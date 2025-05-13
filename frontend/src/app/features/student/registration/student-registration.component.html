@@ -1,0 +1,355 @@
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8">
+      <div class="card border-0 shadow-lg slide-up">
+        <div class="card-body p-md-5 p-4">
+          <div class="text-center mb-4">
+            <h2 class="fw-bold">Student Registration</h2>
+            <p class="text-muted">Complete the form to register for accommodation</p>
+          </div>
+
+          <!-- Progress Indicators -->
+          <div class="mb-4">
+            <div class="progress" style="height: 8px;">
+              <div class="progress-bar" role="progressbar" [style.width]="(currentStep / totalSteps) * 100 + '%'" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div class="d-flex justify-content-between mt-2">
+              <div class="step-indicator" [class.active]="currentStep >= 1">
+                <span class="badge rounded-pill" [class.bg-primary]="currentStep >= 1" [class.bg-light]="currentStep < 1">1</span>
+                <span class="d-none d-md-inline ms-2">Personal Info</span>
+              </div>
+              <div class="step-indicator" [class.active]="currentStep >= 2">
+                <span class="badge rounded-pill" [class.bg-primary]="currentStep >= 2" [class.bg-light]="currentStep < 2">2</span>
+                <span class="d-none d-md-inline ms-2">Academic Details</span>
+              </div>
+              <div class="step-indicator" [class.active]="currentStep >= 3">
+                <span class="badge rounded-pill" [class.bg-primary]="currentStep >= 3" [class.bg-light]="currentStep < 3">3</span>
+                <span class="d-none d-md-inline ms-2">Accommodation</span>
+              </div>
+            </div>
+          </div>
+
+          <form [formGroup]="registrationForm" (ngSubmit)="onSubmit()" class="fade-in">
+            <!-- Step 1: Personal Information -->
+            <div *ngIf="currentStep === 1" class="slide-up">
+              <h4 class="mb-3">Personal Information</h4>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="firstName" class="form-label">First Name</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="firstName" 
+                    formControlName="firstName"
+                    [ngClass]="{'is-invalid': registrationForm.get('firstName')?.invalid && registrationForm.get('firstName')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('firstName')?.errors?.['required'] && registrationForm.get('firstName')?.touched">
+                    First name is required
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="lastName" class="form-label">Last Name</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="lastName" 
+                    formControlName="lastName"
+                    [ngClass]="{'is-invalid': registrationForm.get('lastName')?.invalid && registrationForm.get('lastName')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('lastName')?.errors?.['required'] && registrationForm.get('lastName')?.touched">
+                    Last name is required
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="gender" class="form-label">Gender</label>
+                  <select 
+                    class="form-select" 
+                    id="gender" 
+                    formControlName="gender"
+                    [ngClass]="{'is-invalid': registrationForm.get('gender')?.invalid && registrationForm.get('gender')?.touched}"
+                  >
+                    <option value="" disabled selected>Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer-not-to-say">Prefer not to say</option>
+                  </select>
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('gender')?.errors?.['required'] && registrationForm.get('gender')?.touched">
+                    Please select your gender
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="dob" class="form-label">Date of Birth</label>
+                  <input 
+                    type="date" 
+                    class="form-control" 
+                    id="dob" 
+                    formControlName="dob"
+                    [ngClass]="{'is-invalid': registrationForm.get('dob')?.invalid && registrationForm.get('dob')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('dob')?.errors?.['required'] && registrationForm.get('dob')?.touched">
+                    Date of birth is required
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="email" class="form-label">Email</label>
+                  <input 
+                    type="email" 
+                    class="form-control" 
+                    id="email" 
+                    formControlName="email"
+                    [ngClass]="{'is-invalid': registrationForm.get('email')?.invalid && registrationForm.get('email')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('email')?.errors?.['required'] && registrationForm.get('email')?.touched">
+                    Email is required
+                  </div>
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('email')?.errors?.['email'] && registrationForm.get('email')?.touched">
+                    Please enter a valid email
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="phone" class="form-label">Phone Number</label>
+                  <input 
+                    type="tel" 
+                    class="form-control" 
+                    id="phone" 
+                    formControlName="phone"
+                    [ngClass]="{'is-invalid': registrationForm.get('phone')?.invalid && registrationForm.get('phone')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('phone')?.errors?.['required'] && registrationForm.get('phone')?.touched">
+                    Phone number is required
+                  </div>
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('phone')?.errors?.['pattern'] && registrationForm.get('phone')?.touched">
+                    Please enter a valid 10-digit phone number
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <label for="nationality" class="form-label">Nationality</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="nationality" 
+                    formControlName="nationality"
+                    [ngClass]="{'is-invalid': registrationForm.get('nationality')?.invalid && registrationForm.get('nationality')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('nationality')?.errors?.['required'] && registrationForm.get('nationality')?.touched">
+                    Nationality is required
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: Academic Information -->
+            <div *ngIf="currentStep === 2" class="slide-up">
+              <h4 class="mb-3">Academic Information</h4>
+              <div class="row g-3">
+                <div class="col-12">
+                  <label for="university" class="form-label">University/College</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="university" 
+                    formControlName="university"
+                    [ngClass]="{'is-invalid': registrationForm.get('university')?.invalid && registrationForm.get('university')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('university')?.errors?.['required'] && registrationForm.get('university')?.touched">
+                    University/College is required
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <label for="course" class="form-label">Course/Program</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="course" 
+                    formControlName="course"
+                    [ngClass]="{'is-invalid': registrationForm.get('course')?.invalid && registrationForm.get('course')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('course')?.errors?.['required'] && registrationForm.get('course')?.touched">
+                    Course/Program is required
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="studentId" class="form-label">Student ID</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="studentId" 
+                    formControlName="studentId"
+                    [ngClass]="{'is-invalid': registrationForm.get('studentId')?.invalid && registrationForm.get('studentId')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('studentId')?.errors?.['required'] && registrationForm.get('studentId')?.touched">
+                    Student ID is required
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="yearOfStudy" class="form-label">Year of Study</label>
+                  <select 
+                    class="form-select" 
+                    id="yearOfStudy" 
+                    formControlName="yearOfStudy"
+                    [ngClass]="{'is-invalid': registrationForm.get('yearOfStudy')?.invalid && registrationForm.get('yearOfStudy')?.touched}"
+                  >
+                    <option value="" disabled selected>Select year</option>
+                    <option value="1">First Year</option>
+                    <option value="2">Second Year</option>
+                    <option value="3">Third Year</option>
+                    <option value="4">Fourth Year</option>
+                    <option value="5">Fifth Year</option>
+                    <option value="6">Sixth Year or Higher</option>
+                    <option value="postgraduate">Postgraduate</option>
+                  </select>
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('yearOfStudy')?.errors?.['required'] && registrationForm.get('yearOfStudy')?.touched">
+                    Year of study is required
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3: Accommodation Preferences -->
+            <div *ngIf="currentStep === 3" class="slide-up">
+              <h4 class="mb-3">Accommodation Preferences</h4>
+              <div class="row g-3">
+                <div class="col-12">
+                  <label for="accommodationType" class="form-label">Accommodation Type</label>
+                  <select 
+                    class="form-select" 
+                    id="accommodationType" 
+                    formControlName="accommodationType"
+                    [ngClass]="{'is-invalid': registrationForm.get('accommodationType')?.invalid && registrationForm.get('accommodationType')?.touched}"
+                  >
+                    <option value="" disabled selected>Select accommodation type</option>
+                    <option value="single">Single Room</option>
+                    <option value="shared">Shared Room</option>
+                    <option value="studio">Studio Apartment</option>
+                    <option value="ensuite">En-suite Room</option>
+                  </select>
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('accommodationType')?.errors?.['required'] && registrationForm.get('accommodationType')?.touched">
+                    Please select an accommodation type
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="moveInDate" class="form-label">Preferred Move-in Date</label>
+                  <input 
+                    type="date" 
+                    class="form-control" 
+                    id="moveInDate" 
+                    formControlName="moveInDate"
+                    [ngClass]="{'is-invalid': registrationForm.get('moveInDate')?.invalid && registrationForm.get('moveInDate')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('moveInDate')?.errors?.['required'] && registrationForm.get('moveInDate')?.touched">
+                    Move-in date is required
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="duration" class="form-label">Length of Stay</label>
+                  <select 
+                    class="form-select" 
+                    id="duration" 
+                    formControlName="duration"
+                    [ngClass]="{'is-invalid': registrationForm.get('duration')?.invalid && registrationForm.get('duration')?.touched}"
+                  >
+                    <option value="" disabled selected>Select duration</option>
+                    <option value="1-semester">1 Semester</option>
+                    <option value="2-semesters">2 Semesters</option>
+                    <option value="1-year">1 Year</option>
+                    <option value="2-years">2 Years</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('duration')?.errors?.['required'] && registrationForm.get('duration')?.touched">
+                    Length of stay is required
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <label for="specialRequirements" class="form-label">Special Requirements (Optional)</label>
+                  <textarea 
+                    class="form-control" 
+                    id="specialRequirements" 
+                    formControlName="specialRequirements"
+                    rows="3"
+                  ></textarea>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="emergencyContactName" class="form-label">Emergency Contact Name</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="emergencyContactName" 
+                    formControlName="emergencyContactName"
+                    [ngClass]="{'is-invalid': registrationForm.get('emergencyContactName')?.invalid && registrationForm.get('emergencyContactName')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('emergencyContactName')?.errors?.['required'] && registrationForm.get('emergencyContactName')?.touched">
+                    Emergency contact name is required
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="emergencyContactPhone" class="form-label">Emergency Contact Phone</label>
+                  <input 
+                    type="tel" 
+                    class="form-control" 
+                    id="emergencyContactPhone" 
+                    formControlName="emergencyContactPhone"
+                    [ngClass]="{'is-invalid': registrationForm.get('emergencyContactPhone')?.invalid && registrationForm.get('emergencyContactPhone')?.touched}"
+                  >
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('emergencyContactPhone')?.errors?.['required'] && registrationForm.get('emergencyContactPhone')?.touched">
+                    Emergency contact phone is required
+                  </div>
+                  <div class="invalid-feedback" *ngIf="registrationForm.get('emergencyContactPhone')?.errors?.['pattern'] && registrationForm.get('emergencyContactPhone')?.touched">
+                    Please enter a valid 10-digit phone number
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="d-flex justify-content-between mt-4">
+              <button 
+                type="button" 
+                class="btn btn-outline-secondary" 
+                *ngIf="currentStep > 1"
+                (click)="prevStep()"
+              >
+                <i class="bi bi-arrow-left me-2"></i>Back
+              </button>
+              
+              <div class="ms-auto">
+                <button 
+                  type="button" 
+                  class="btn btn-primary" 
+                  *ngIf="currentStep < totalSteps"
+                  (click)="nextStep()"
+                >
+                  Next<i class="bi bi-arrow-right ms-2"></i>
+                </button>
+                
+                <button 
+                  type="submit" 
+                  class="btn btn-success" 
+                  *ngIf="currentStep === totalSteps"
+                  [disabled]="isSubmitting"
+                >
+                  <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  {{isSubmitting ? 'Submitting...' : 'Submit Application'}}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
