@@ -1,4 +1,4 @@
-# student-accommodation-system# Student Accommodation System
+# Student Accommodation System
 
 This project is a comprehensive solution for managing student accommodations efficiently. It provides features for both administrators and students to streamline the accommodation process.
 

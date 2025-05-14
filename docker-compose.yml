@@ -1,0 +1,28 @@
+version: "3"
+
+services:
+  db:
+    image: postgres:16.2-alpine
+    container_name: student-accommodation-local-db
+    environment:
+      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: localadmin
+      POSTGRES_DB: studentaccommodationlocaldb
+    ports:
+      - "5432:5432"
+
+  student-accommodation-back-end:
+    container_name: student-accommodation-back-end
+    image: student-accommodation-back-end:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - POSTGRES_DB=studentaccommodationlocaldb
+      - USER_DB=localadmin
+      - PASSWORD_DB=admin
+      - DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb

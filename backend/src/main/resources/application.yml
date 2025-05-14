@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: student-accommodation
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
+    username: ${USER_DB:localadmin}
+    password: ${PASSWORD_DB:admin}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: student-accommodation-pool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 600000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        hbm2ddl:
+          auto: update
+  flyway:
+    baseline-on-migrate: true
+    enabled: true
+    password: ${PASSWORD_DB:admin}
+    user: ${USER_DB:localadmin}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
+    locations: classpath:db/migration
+    out-of-order: true
