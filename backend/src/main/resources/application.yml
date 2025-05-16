@@ -30,3 +30,14 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
     locations: classpath:db/migration
     out-of-order: true
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tags-sorter: alpha
+    disable-swagger-default-url: true
+jwt:
+  secret: ${JWT_SECRET:jCiWx+J9UALsCG/0E4elPktfQpDd7EpipyN1AGrCE2HNAjf826VSFMklA76gqBf23ZP8P1kq9DmC95dSolXknQ==}
+  expiration-time-ms: ${JWT_EXPIRATION:36000000}
