@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.security.user;
 
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -21,7 +22,7 @@ public class AppUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singleton(() -> role);
+        return Collections.singleton(new SimpleGrantedAuthority(role));
     }
 
     @Override
