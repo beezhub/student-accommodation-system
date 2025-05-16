@@ -40,3 +40,4 @@ springdoc:
     disable-swagger-default-url: true
 jwt:
   secret: ${JWT_SECRET:jCiWx+J9UALsCG/0E4elPktfQpDd7EpipyN1AGrCE2HNAjf826VSFMklA76gqBf23ZP8P1kq9DmC95dSolXknQ==}
+  expiration-time-ms: ${JWT_EXPIRATION:36000000}

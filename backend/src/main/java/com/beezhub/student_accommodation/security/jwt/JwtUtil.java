@@ -14,18 +14,14 @@ import java.util.Date;
 import java.util.function.Function;
 
 @Component
-@RequiredArgsConstructor
 public class JwtUtil {
-
 
     private final JwtConfig jwtConfig;
     private SecretKey key;
 
-    private SecretKey getSigningKey() {
-        if (key == null) {
-            key = Keys.hmacShaKeyFor(jwtConfig.getSecretKeyString().getBytes(StandardCharsets.UTF_8));
-        }
-        return key;
+    public JwtUtil(JwtConfig jwtConfig) {
+        this.jwtConfig = jwtConfig;
+        this.key = Keys.hmacShaKeyFor(jwtConfig.getSecretKeyString().getBytes(StandardCharsets.UTF_8));
     }
 
     public String extractUsername(String token) {
@@ -39,7 +35,7 @@ public class JwtUtil {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+                .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -49,8 +45,8 @@ public class JwtUtil {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours
-                .signWith(getSigningKey())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtConfig.getExpirationTime()))
+                .signWith(key)
                 .compact();
     }
 
