@@ -17,7 +17,7 @@ import java.util.function.Function;
 public class JwtUtil {
 
     private final JwtConfig jwtConfig;
-    private SecretKey key;
+    private final SecretKey key;
 
     public JwtUtil(JwtConfig jwtConfig) {
         this.jwtConfig = jwtConfig;
