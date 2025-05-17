@@ -22,7 +22,13 @@ export class AuthService {
     // Register a new user
 
     signup(data: any): Observable<any> {
-        console.log(data);
         return this.http.post(`${(this.apiUrl)}/signup`, data);
+    }
+    // Login a user
+    login(data: any): Observable<any> {
+        console.log('Login data:', data);
+        const response = this.http.post(`${(this.apiUrl)}/login`, data);
+        console.log('Login response:', response);
+        return response;
     }
 }
