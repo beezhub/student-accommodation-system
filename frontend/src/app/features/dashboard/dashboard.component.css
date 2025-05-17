@@ -1,0 +1,61 @@
+.dashboard-container {
+    min-height: 100vh;
+    background-color: var(--neutral-100);
+    padding-top: 72px; /* Height of the fixed navbar */
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.main-content {
+    padding: 2rem 0;
+}
+
+.welcome-card {
+    background: linear-gradient(to right, var(--primary), var(--secondary));
+}
+
+.welcome-card .card-title,
+.welcome-card p {
+    color: white;
+}
+
+.card {
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.progress {
+    border-radius: 10px;
+    background-color: var(--neutral-200);
+}
+
+.progress-bar {
+    background-color: var(--primary);
+    border-radius: 10px;
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--neutral-700);
+}
+
+.badge {
+    padding: 0.5em 1em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding-top: 56px;
+    }
+
+    .main-content {
+        padding: 1rem 0;
+    }
+}

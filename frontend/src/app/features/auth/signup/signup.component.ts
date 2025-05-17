@@ -63,7 +63,7 @@ export class SignupComponent {
             this.authService.signup(signupData).subscribe({
                 next: () => {
                     this.isSubmitting = false;
-                    this.router.navigate(['/login']);
+                    this.router.navigate(['/profile-setup']);
                 },
                 error: (error: { error: { message: string; }; }) => {
                     this.isSubmitting = false;

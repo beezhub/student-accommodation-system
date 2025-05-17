@@ -1,0 +1,169 @@
+<div class="dashboard-container">
+    <!-- Navigation Header -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <h5 class="mb-0">Student Housing</h5>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Applications</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Documents</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Profile</a>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center">
+                    <span class="me-3">{{currentUser?.firstName}} {{currentUser?.lastName}}</span>
+                    <button class="btn btn-outline-primary" (click)="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container main-content">
+        <div class="row g-4">
+            <!-- Welcome Card -->
+            <div class="col-12">
+                <div class="card border-0 shadow-sm welcome-card">
+                    <div class="card-body">
+                        <h2 class="card-title">Welcome, {{currentUser?.firstName}}! 👋</h2>
+                        <p class="text-muted">Manage your accommodation applications and documents here.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Application Status -->
+            <div class="col-12 col-lg-8">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Current Application</h5>
+                        <div class="current-application mt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <div>
+                  <span class="badge rounded-pill" [ngClass]="getStatusClass(currentApplication.status)">
+                    {{currentApplication.status}}
+                  </span>
+                                    <p class="text-muted mt-2 mb-0">Application Year: {{currentApplication.year}}</p>
+                                </div>
+                                <button class="btn btn-primary" *ngIf="currentApplication.status === 'Approved'">
+                                    View Room Details
+                                </button>
+                            </div>
+
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" role="progressbar" style="width: 75%"></div>
+                            </div>
+
+                            <p class="text-muted small mt-2">Application Progress: 75%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="col-12 col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Quick Actions</h5>
+                        <div class="d-grid gap-2 mt-4">
+                            <button class="btn btn-outline-primary">
+                                <i class="bi bi-upload me-2"></i>Upload Document
+                            </button>
+                            <button class="btn btn-outline-primary">
+                                <i class="bi bi-pencil me-2"></i>Edit Profile
+                            </button>
+                            <button class="btn btn-outline-primary">
+                                <i class="bi bi-chat me-2"></i>Contact Support
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Previous Applications -->
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Previous Applications</h5>
+                        <div class="table-responsive mt-4">
+                            <table class="table table-hover">
+                                <thead>
+                                <tr>
+                                    <th>Year</th>
+                                    <th>Status</th>
+                                    <th>Room</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr *ngFor="let application of previousApplications">
+                                    <td>{{application.year}}</td>
+                                    <td>
+                      <span class="badge rounded-pill" [ngClass]="getStatusClass(application.status)">
+                        {{application.status}}
+                      </span>
+                                    </td>
+                                    <td>{{application.room}}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary">View Details</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents -->
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="card-title mb-0">Uploaded Documents</h5>
+                            <button class="btn btn-primary btn-sm">
+                                <i class="bi bi-upload me-2"></i>Upload New
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>Document</th>
+                                    <th>Upload Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr *ngFor="let doc of uploadedDocuments">
+                                    <td>{{doc.name}}</td>
+                                    <td>{{doc.date | date}}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-link">View</button>
+                                        <button class="btn btn-sm btn-link text-danger">Delete</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

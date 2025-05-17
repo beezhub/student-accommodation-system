@@ -1,0 +1,33 @@
+.border-dashed {
+    border: 2px dashed var(--neutral-300);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.border-dashed:hover {
+    border-color: var(--primary);
+}
+
+.upload-area {
+    position: relative;
+}
+
+.upload-status {
+    font-size: 1.25rem;
+}
+
+/* Animation for successful upload */
+@keyframes checkmark {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.upload-status i {
+    animation: checkmark 0.3s ease-in-out;
+}
