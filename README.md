@@ -1,57 +1,95 @@
 # Student Accommodation System
 
-This project is a comprehensive solution for managing student accommodations efficiently. It provides features for both administrators and students to streamline the accommodation process.
+A web application to help students find, book, and manage accommodation easily. This project consists of a backend (Spring Boot) and a frontend (Angular).
 
 ## Features
-- **Student Management**: Register, update, and manage student profiles.
-- **Room Allocation**: Assign rooms based on availability and preferences.
-- **Payment Tracking**: Monitor and manage accommodation payments.
-- **Maintenance Requests**: Submit and track maintenance issues.
-- **Reporting**: Generate reports for occupancy, payments, and more.
+- Student registration and authentication
+- Search and filter accommodations
+- Book and manage accommodation
+- Admin dashboard for managing listings
+- Responsive UI
 
-## Technologies Used
-- **Frontend**: [Specify framework/library, e.g., React, Angular]
-- **Backend**: [Specify framework/language, e.g., Node.js, Django]
-- **Database**: [Specify database, e.g., MySQL, MongoDB]
-- **Other Tools**: [Specify tools, e.g., Docker, Git]
+## Tech Stack
+- **Backend:** Java, Spring Boot
+- **Frontend:** Angular
+- **Database:** PostgreSQL
+- **Containerization:** Docker
 
 ## Installation
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/your-username/student-accommodation-system.git
-    ```
-2. Navigate to the project directory:
-    ```bash
-    cd student-accommodation-system
-    ```
-3. Install dependencies:
-    ```bash
-    [Specify command, e.g., npm install, pip install -r requirements.txt]
-    ```
-4. Start the application:
-    ```bash
-    [Specify command, e.g., npm start, python manage.py runserver]
-    ```
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/your-username/student-accommodation-system.git
+```
+
+### 2. Navigate to the project directory
+```bash
+cd student-accommodation-system
+```
+
+### 3. Configure the Database (PostgreSQL)
+- Ensure you have PostgreSQL installed and running (or use Docker Compose as described below).
+- Create a database for the project (e.g., `student_accommodation`).
+- Update the database settings in `backend/src/main/resources/application.yml` with your PostgreSQL credentials and database name.
+- Flyway will automatically run migrations on backend startup.
+
+### 4. Start with Docker Compose (Recommended)
+If you prefer to run the entire stack (backend, frontend, and database) using Docker Compose:
+```powershell
+docker-compose up --build
+```
+This will build and start all services as defined in `docker-compose.yml`.
+
+### 5. Manual Setup (Alternative)
+If you want to run services manually without Docker Compose, follow these steps:
+
+#### a. Build and Run the Backend (Spring Boot)
+Navigate to the backend directory and build the project:
+```bash
+cd backend
+./gradlew build
+```
+Start the backend server:
+```bash
+./gradlew bootRun
+```
+
+#### b. Install Frontend Dependencies (Angular)
+Open a new terminal, navigate to the frontend directory, and install dependencies:
+```bash
+cd ../frontend
+npm install
+```
+
+#### c. Start the Frontend Application
+From the `frontend` directory:
+```bash
+ng serve
+```
+
+Now, both the backend and frontend servers should be running. Access the application via your browser at the specified frontend URL (typically `http://localhost:4200`).
+
+## Usage
+- Register as a student or admin
+- Log in to access your dashboard
+- Search and book accommodations
+- Admins can add, edit, or remove listings
+
+## Folder Structure
+```
+student-accommodation-system/
+├── backend/      # Spring Boot backend
+├── frontend/     # Angular frontend
+├── docs/         # Documentation and diagrams
+├── docker-compose.yml
+└── README.md
+```
 
 ## Contributing
-Contributions are welcome! Please follow these steps:
-1. Fork the repository.
-2. Create a new branch:
-    ```bash
-    git checkout -b feature-name
-    ```
-3. Commit your changes:
-    ```bash
-    git commit -m "Add feature-name"
-    ```
-4. Push to the branch:
-    ```bash
-    git push origin feature-name
-    ```
-5. Open a pull request.
+Contributions are welcome! Please fork the repository and submit a pull request.
 
 ## License
-This project is licensed under the [Specify License, e.g., MIT License](LICENSE).
+This project is licensed under the MIT License.
 
 ## Contact
-For any inquiries, please contact [Your Name/Team] at [Your Email Address].
+For questions or support, contact [your-email@example.com](mailto:your-email@example.com).
