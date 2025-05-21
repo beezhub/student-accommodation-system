@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping(name = "/api/year-of-study")
+@RequestMapping(value = "/api/year-of-study")
 @RequiredArgsConstructor
 public class YearOfStudyController {
     private final YearOfStudyService yearOfStudyService;
