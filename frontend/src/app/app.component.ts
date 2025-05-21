@@ -7,7 +7,8 @@ import { CommonModule } from '@angular/common';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   standalone: true,
-  imports: [RouterModule, CommonModule]
+  imports: [RouterModule, CommonModule],
+  providers: []
 })
 export class AppComponent {
   title = 'Student Accommodation Management';

@@ -1,0 +1,23 @@
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">Contact Support</h5>
+        <form (ngSubmit)="submitForm()" *ngIf="!submitted">
+            <div class="mb-3">
+                <label class="form-label">Name</label>
+                <input class="form-control" [(ngModel)]="name" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input class="form-control" [(ngModel)]="email" name="email" type="email" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Message</label>
+                <textarea class="form-control" [(ngModel)]="message" name="message" rows="4" required></textarea>
+            </div>
+            <button class="btn btn-primary" type="submit">Send</button>
+        </form>
+        <div *ngIf="submitted" class="alert alert-success mt-3">
+            Your message has been sent. Support will contact you soon.
+        </div>
+    </div>
+</div>
