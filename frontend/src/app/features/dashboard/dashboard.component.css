@@ -1,7 +1,6 @@
 .dashboard-container {
     min-height: 100vh;
     background-color: var(--neutral-100);
-    padding-top: 72px; /* Height of the fixed navbar */
 }
 
 .navbar {
@@ -10,6 +9,7 @@
 
 .main-content {
     padding: 2rem 0;
+    margin-top: 72px; /* Changed from padding-top to margin-top */
 }
 
 .welcome-card {
@@ -51,11 +51,8 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .dashboard-container {
-        padding-top: 56px;
-    }
-
     .main-content {
+        margin-top: 56px; /* Adjusted for mobile */
         padding: 1rem 0;
     }
 }

@@ -1,0 +1,76 @@
+.main-content {
+    margin-top: 72px;
+    padding: 2rem 0;
+}
+
+.card {
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--neutral-700);
+}
+
+.badge {
+    padding: 0.5em 1em;
+}
+
+.btn-outline-primary {
+    transition: all 0.3s;
+}
+
+.btn-outline-primary:hover {
+    transform: translateY(-2px);
+}
+
+.list-unstyled li {
+    display: flex;
+    align-items: center;
+}
+
+/* Modal Styles */
+.modal {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1050;
+    overflow-x: hidden;
+    overflow-y: auto;
+    outline: 0;
+}
+
+.modal-dialog {
+    position: relative;
+    pointer-events: auto;
+}
+
+.modal-content {
+    position: relative;
+    background-color: #fff;
+    pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        margin-top: 56px;
+        padding: 1rem 0;
+    }
+}

@@ -1,0 +1,147 @@
+<div class="container-fluid">
+    <div class="row">
+        <!-- Navigation Header -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <h5 class="mb-0">Student Housing</h5>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" routerLink="/dashboard">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" routerLink="/applications">Applications</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" routerLink="/documents">Documents</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" routerLink="/profile">Profile</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-12 col-lg-8">
+                        <div class="card border-0 shadow-lg">
+                            <div class="card-body p-4">
+                                <h2 class="card-title text-center mb-4">New Accommodation Application</h2>
+
+                                <form [formGroup]="applicationForm" (ngSubmit)="onSubmit()">
+                                    <div class="mb-4">
+                                        <label class="form-label">Accommodation Type</label>
+                                        <select class="form-select" formControlName="accommodationType">
+                                            <option value="">Select accommodation type</option>
+                                            <option value="single">Single Room</option>
+                                            <option value="double">Double Room</option>
+                                            <option value="studio">Studio Apartment</option>
+                                            <option value="ensuite">En-suite Room</option>
+                                        </select>
+                                        <div class="invalid-feedback" *ngIf="applicationForm.get('accommodationType')?.errors?.['required'] && applicationForm.get('accommodationType')?.touched">
+                                            Please select an accommodation type
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label">Move-in Date</label>
+                                        <input type="date" class="form-control" formControlName="moveInDate">
+                                        <div class="invalid-feedback" *ngIf="applicationForm.get('moveInDate')?.errors?.['required'] && applicationForm.get('moveInDate')?.touched">
+                                            Move-in date is required
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label">Duration of Stay</label>
+                                        <select class="form-select" formControlName="duration">
+                                            <option value="">Select duration</option>
+                                            <option value="semester">One Semester</option>
+                                            <option value="academic-year">Academic Year</option>
+                                            <option value="full-year">Full Year</option>
+                                        </select>
+                                        <div class="invalid-feedback" *ngIf="applicationForm.get('duration')?.errors?.['required'] && applicationForm.get('duration')?.touched">
+                                            Please select a duration
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label">Meal Plan</label>
+                                        <select class="form-select" formControlName="mealPlan">
+                                            <option value="">Select meal plan</option>
+                                            <option value="none">No Meal Plan</option>
+                                            <option value="basic">Basic (14 meals/week)</option>
+                                            <option value="standard">Standard (19 meals/week)</option>
+                                            <option value="premium">Premium (unlimited)</option>
+                                        </select>
+                                        <div class="invalid-feedback" *ngIf="applicationForm.get('mealPlan')?.errors?.['required'] && applicationForm.get('mealPlan')?.touched">
+                                            Please select a meal plan
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label">Room Preference</label>
+                                        <select class="form-select" formControlName="roomPreference">
+                                            <option value="">Select preference</option>
+                                            <option value="quiet">Quiet Study Floor</option>
+                                            <option value="social">Social Floor</option>
+                                            <option value="female-only">Female-Only Floor</option>
+                                            <option value="male-only">Male-Only Floor</option>
+                                        </select>
+                                        <div class="invalid-feedback" *ngIf="applicationForm.get('roomPreference')?.errors?.['required'] && applicationForm.get('roomPreference')?.touched">
+                                            Please select a room preference
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label">Monthly Budget (£)</label>
+                                        <input type="number" class="form-control" formControlName="budget" min="0">
+                                        <div class="invalid-feedback" *ngIf="applicationForm.get('budget')?.errors?.['required'] && applicationForm.get('budget')?.touched">
+                                            Please enter your budget
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label">Special Requirements (Optional)</label>
+                                        <textarea class="form-control" formControlName="specialRequirements" rows="3"
+                                                  placeholder="Any specific requirements or preferences"></textarea>
+                                    </div>
+
+                                    <div class="mb-4 form-check">
+                                        <input type="checkbox" class="form-check-input" id="agreeToTerms" formControlName="agreeToTerms">
+                                        <label class="form-check-label" for="agreeToTerms">
+                                            I agree to the terms and conditions
+                                        </label>
+                                        <div class="invalid-feedback" *ngIf="applicationForm.get('agreeToTerms')?.errors?.['required'] && applicationForm.get('agreeToTerms')?.touched">
+                                            You must agree to the terms and conditions
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary btn-lg" [disabled]="isSubmitting">
+                                            <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+                                            {{isSubmitting ? 'Submitting...' : 'Submit Application'}}
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" routerLink="/applications">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,54 @@
+<div class="modal-backdrop" (click)="closeUploadModal()"></div>
+<div class="modal-container">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">Upload Document</h5>
+            <button type="button" class="btn-close" (click)="closeUploadModal()"></button>
+        </div>
+        <div class="modal-body">
+            <form [formGroup]="uploadForm">
+                <div class="mb-3">
+                    <label for="documentType" class="form-label">Document Type</label>
+                    <select class="form-select" id="documentType" formControlName="documentType">
+                        <option value="">Select document type</option>
+                        <option value="student-id">Student ID</option>
+                        <option value="passport">Passport</option>
+                        <option value="drivers-license">Driver's License</option>
+                        <option value="enrollment-proof">Proof of Enrollment</option>
+                        <option value="academic-transcript">Academic Transcript</option>
+                        <option value="financial-statement">Financial Statement</option>
+                        <option value="medical-record">Medical Record</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <div class="invalid-feedback" *ngIf="uploadForm.get('documentType')?.errors?.['required'] && uploadForm.get('documentType')?.touched">
+                        Please select a document type
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="file" class="form-label">Select File</label>
+                    <input
+                            type="file"
+                            class="form-control"
+                            id="file"
+                            (change)="onFileSelected($event)"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            [class.is-invalid]="uploadError"
+                    >
+                    <div class="form-text">Maximum file size: 5MB. Accepted formats: PDF, JPG, PNG</div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeUploadModal()">Cancel</button>
+            <button
+                    type="button"
+                    class="btn btn-primary"
+                    (click)="uploadDocument()"
+                    [disabled]="!uploadForm.valid || !selectedFile || isUploading"
+            >
+                <span *ngIf="isUploading" class="spinner-border spinner-border-sm me-2"></span>
+                {{isUploading ? 'Uploading...' : 'Upload'}}
+            </button>
+        </div>
+    </div>
+</div>

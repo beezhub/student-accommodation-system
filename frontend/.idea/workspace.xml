@@ -4,15 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f6b93699-dffb-4a6f-bb11-79ddbaf494b5" name="Changes" comment="feat: add authentication service and update login/signup components">
-      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/com/beezhub/student_accommodation/controller/StudentController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/app/core/guards/auth.guard.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../docs/Student_Accommodation_ERD.drawio.png" beforeDir="false" afterPath="$PROJECT_DIR$/../docs/Student_Accommodation_ERD.drawio.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../docs/Student_Accommodation_ERD.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../docs/Student_Accommodation_ERD.xml" afterDir="false" />
+    <list default="true" id="f6b93699-dffb-4a6f-bb11-79ddbaf494b5" name="Changes" comment="feat: implement profile setup and document upload components with routing">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/app-routing.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/app-routing.module.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app/core/services/auth.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/core/services/auth.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/app/features/auth/signup/signup.component.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/features/auth/signup/signup.component.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/global_styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/global_styles.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/features/dashboard/dashboard.component.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/features/dashboard/dashboard.component.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/features/dashboard/dashboard.component.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/features/dashboard/dashboard.component.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/features/dashboard/dashboard.component.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/features/dashboard/dashboard.component.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -95,11 +93,26 @@
       <updated>1747471495301</updated>
       <workItem from="1747471496559" duration="4649000" />
       <workItem from="1747476272530" duration="4952000" />
-      <workItem from="1747482512879" duration="7911000" />
+      <workItem from="1747482512879" duration="8721000" />
+      <workItem from="1747557371492" duration="6447000" />
+      <workItem from="1747724667660" duration="10808000" />
+      <workItem from="1747766913415" duration="592000" />
+      <workItem from="1747811553141" duration="6275000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>

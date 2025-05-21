@@ -73,10 +73,13 @@ export class AuthService {
         this.currentUserSubject.next(null);
     }
     // Login a user
-    login(data: any): Observable<any> {
-        console.log('Login data:', data);
-        const response = this.http.post(`${(this.apiUrl)}/login`, data);
-        console.log('Login response:', response);
-        return response;
+    login(data: any): Observable<User> {
+        return this.http.post<User>(`${this.apiUrl}/login`, data).pipe(
+            map(user => {
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                this.currentUserSubject.next(user);
+                return user;
+            })
+        );
     }
 }

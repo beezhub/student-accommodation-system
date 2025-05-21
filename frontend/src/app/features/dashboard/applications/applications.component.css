@@ -1,0 +1,33 @@
+.main-content {
+    margin-top: 72px;
+    padding: 2rem 0;
+}
+
+.card {
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--neutral-700);
+}
+
+.badge {
+    padding: 0.5em 1em;
+}
+
+.btn-outline-primary {
+    transition: all 0.3s;
+}
+
+.btn-outline-primary:hover {
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        margin-top: 56px;
+        padding: 1rem 0;
+    }
+}

@@ -1,0 +1,33 @@
+.main-content {
+    margin-top: 72px;
+    padding: 2rem 0;
+}
+
+.card {
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.form-control, .form-select {
+    transition: all 0.3s;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+}
+
+.btn {
+    transition: all 0.3s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        margin-top: 56px;
+        padding: 1rem 0;
+    }
+}

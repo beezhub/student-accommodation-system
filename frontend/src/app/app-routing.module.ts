@@ -36,5 +36,35 @@ export const routes: Routes = [
     loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [AuthGuard]
   },
+  {
+    path: 'contact-support',
+    loadComponent: () => import('./features/dashboard/contact-support/contact-support.component').then(m => m.ContactSupportComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'applications',
+    loadComponent: () => import('./features/dashboard/applications/applications.component').then(m => m.ApplicationsComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'applications/new',
+    loadComponent: () => import('./features/dashboard/applications/new-application/new-application.component').then(m => m.NewApplicationComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'applications/:id',
+    loadComponent: () => import('./features/dashboard/applications/application-details/application-details.component').then(m => m.ApplicationDetailsComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'documents',
+    loadComponent: () => import('./features/dashboard/documents/documents.component').then(m => m.DocumentsComponent),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'profile',
+    loadComponent: () => import('./features/dashboard/profile/profile.component').then(m => m.ProfileComponent),
+    canActivate: [AuthGuard]
+  },
   { path: '**', redirectTo: '/dashboard' }
 ];
