@@ -5,6 +5,8 @@ import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.LoginResponse;
 import com.beezhub.student_accommodation.model.dto.SignupRequest;
+import com.beezhub.student_accommodation.model.dto.UserData;
+import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
@@ -28,17 +30,19 @@ public class AuthService {
     private final AppUserMapper appUserMapper;
 
     @Transactional
-    public String signup(SignupRequest request) {
+    public LoginResponse signup(SignupRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
         var user = appUserMapper.toEntity(request, passwordEncoder.encode(request.getPassword()));
-        userRepository.save(user);
-        return jwtUtil.generateToken(new AppUserDetails(
+        var save = userRepository.save(user);
+        var userData = appUserMapper.toUserData(save);
+        String token = jwtUtil.generateToken(new AppUserDetails(
                 user.getEmail(),
                 user.getUserPassword(),
                 user.getUserRole().name()
         ));
+        return new LoginResponse(token, userData);
     }
 
     public LoginResponse validateLogin(String username, String password) {

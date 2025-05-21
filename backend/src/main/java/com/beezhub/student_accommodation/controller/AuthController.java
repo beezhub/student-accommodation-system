@@ -43,8 +43,7 @@ public class AuthController {
             description = "User successfully registered"
     )
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
-        String token = authService.signup(request);
-        return ResponseEntity.status(201).body(new AuthResponse(token, "User registered successfully"));
+    public ResponseEntity<LoginResponse> signup(@Valid @RequestBody SignupRequest request) {
+        return ResponseEntity.status(201).body(authService.signup(request));
     }
 }

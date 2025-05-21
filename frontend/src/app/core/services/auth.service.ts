@@ -49,12 +49,16 @@ export class AuthService {
     }
 
     signup(data: SignupData): Observable<User> {
-        return this.http.post<User>(`${this.apiUrl}/signup`, data)
+        return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/signup`, data)
             .pipe(
-                map(user => {
-                    localStorage.setItem('currentUser', JSON.stringify(user));
-                    this.currentUserSubject.next(user);
-                    return user;
+                map(response => {
+                    localStorage.setItem('token', response.token);
+                    localStorage.setItem('currentUser', JSON.stringify(response.user));
+                   console.log(localStorage.getItem('token'));
+                    console.log(localStorage.getItem('user'));
+                    console.log(response);
+                    this.currentUserSubject.next(response.user);
+                    return response.user;
                 })
             );
     }
