@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { InstitutionService, Institution } from '../../../core/services/institution.service';
 
 @Component({
   selector: 'app-profile-setup',
@@ -15,11 +16,13 @@ export class ProfileSetupComponent implements OnInit {
   profileForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
+  institutions: Institution[] = [];
 
   constructor(
       private fb: FormBuilder,
       private router: Router,
-      private authService: AuthService
+      private authService: AuthService,
+      private institutionService: InstitutionService
   ) {
     this.profileForm = this.fb.group({
       studentNumber: ['', [Validators.required]],
@@ -27,7 +30,6 @@ export class ProfileSetupComponent implements OnInit {
       dateOfBirth: ['', [Validators.required]],
       institution: ['', [Validators.required]],
       yearOfStudy: ['', [Validators.required]],
-      lengthOfStay: ['', [Validators.required]],
       gender: ['', [Validators.required]],
       specialRequirements: ['']
     });
@@ -38,6 +40,16 @@ export class ProfileSetupComponent implements OnInit {
     if (!this.currentUser) {
       this.router.navigate(['/login']);
     }
+
+    this.institutionService.getInstitutions().subscribe({
+      next: (institutions) => {
+        this.institutions = institutions;
+        console.log('Institutions:', this.institutions);
+      },
+      error: (error) => {
+        console.error('Error fetching institutions:', error);
+      }
+    });
   }
 
   onSubmit() {

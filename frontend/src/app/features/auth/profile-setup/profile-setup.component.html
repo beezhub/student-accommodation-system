@@ -94,25 +94,6 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label for="lengthOfStay" class="form-label">Length of Stay</label>
-                                <select
-                                        class="form-select"
-                                        id="lengthOfStay"
-                                        formControlName="lengthOfStay"
-                                        [ngClass]="{'is-invalid': profileForm.get('lengthOfStay')?.invalid && profileForm.get('lengthOfStay')?.touched}"
-                                >
-                                    <option value="">Select length of stay</option>
-                                    <option value="1-semester">1 Semester</option>
-                                    <option value="2-semesters">2 Semesters</option>
-                                    <option value="1-year">1 Year</option>
-                                    <option value="2-years">2 Years</option>
-                                </select>
-                                <div class="invalid-feedback" *ngIf="profileForm.get('lengthOfStay')?.errors?.['required'] && profileForm.get('lengthOfStay')?.touched">
-                                    Length of stay is required
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
                                 <label for="gender" class="form-label">Gender</label>
                                 <select
                                         class="form-select"

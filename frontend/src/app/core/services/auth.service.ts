@@ -16,7 +16,6 @@ export interface ProfileData {
     dateOfBirth: string;
     institution: string;
     yearOfStudy: string;
-    lengthOfStay: string;
     gender: string;
     specialRequirements?: string;
 }
@@ -27,6 +26,7 @@ export interface User {
     lastName: string;
     email: string;
     profileCompleted: boolean;
+    userRole: string;
 }
 
 @Injectable({
