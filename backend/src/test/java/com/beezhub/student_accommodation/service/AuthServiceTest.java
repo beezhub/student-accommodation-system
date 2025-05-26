@@ -86,10 +86,10 @@ class AuthServiceTest {
         when(jwtUtil.generateToken(any(AppUserDetails.class))).thenReturn("jwt-token");
 
         // Act
-        String token = authService.signup(signupRequest);
+        var signup = authService.signup(signupRequest);
 
         // Assert
-        assertEquals("jwt-token", token);
+        assertEquals("jwt-token", signup.getToken());
         verify(userRepository).save(appUser);
     }
 
