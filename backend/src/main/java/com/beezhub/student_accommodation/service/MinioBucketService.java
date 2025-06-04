@@ -5,10 +5,12 @@ import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MinioBucketService {
 
     private final MinioClient minioClient;
@@ -27,9 +29,9 @@ public class MinioBucketService {
             );
             if (!bucketExists) {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-                System.out.println("Bucket created: " + bucketName);
+                log.info("Bucket created: {}", bucketName);
             } else {
-                System.out.println("Bucket already exists: " + bucketName);
+                log.info("Bucket already exists: {}", bucketName);
             }
         } catch (Exception e) {
             throw new RuntimeException("Error creating bucket: " + bucketName, e);

@@ -32,7 +32,7 @@ public class Document {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "student_id", referencedColumnName = "id", nullable = false)
     private Student student;
     @OneToOne
