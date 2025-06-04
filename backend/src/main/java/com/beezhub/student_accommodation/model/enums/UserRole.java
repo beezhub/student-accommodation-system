@@ -26,5 +26,7 @@ public enum UserRole {
     }
 
 
-
+    public boolean isAdmin() {
+        return this == ADMIN;
+    }
 }

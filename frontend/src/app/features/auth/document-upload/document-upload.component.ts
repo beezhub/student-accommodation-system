@@ -58,6 +58,7 @@ export class DocumentUploadComponent implements OnInit {
       Object.keys(this.uploadedFiles).forEach(key => {
         formData.append(key, this.uploadedFiles[key]);
       });
+      console.log('Form Data:', formData);
       this.isSubmitting = false;
       this.router.navigate(['/application-review']);
       // this.authService.uploadDocuments(formData).subscribe({
