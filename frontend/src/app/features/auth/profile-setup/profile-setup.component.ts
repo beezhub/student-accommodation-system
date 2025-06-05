@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { InstitutionService, Institution } from '../../../core/services/institution.service';
+import { YearOfStudyService, YearOfStudy } from '../../../core/services/year-of-study.service';
 
 @Component({
   selector: 'app-profile-setup',
@@ -17,13 +18,16 @@ export class ProfileSetupComponent implements OnInit {
   isSubmitting = false;
   currentUser: any;
   institutions: Institution[] = [];
-
+  yearsOfStudy: YearOfStudy[] = [];
+  
+  
   constructor(
       private fb: FormBuilder,
       private router: Router,
       private authService: AuthService,
-      private institutionService: InstitutionService
-  ) {
+      private institutionService: InstitutionService,
+      private yearOfStudyService: YearOfStudyService ) {
+
     this.profileForm = this.fb.group({
       studentNumber: ['', [Validators.required]],
       phoneNumber: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
@@ -48,6 +52,15 @@ export class ProfileSetupComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error fetching institutions:', error);
+      }
+    });
+
+    this.yearOfStudyService.getYearsOfStudy().subscribe({
+      next: (yearOfStudy) => {
+        this.yearsOfStudy = yearOfStudy;
+      },
+      error: (error) => {
+        console.error('Error fetching years of study:', error);
       }
     });
   }
