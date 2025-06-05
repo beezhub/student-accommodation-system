@@ -53,7 +53,7 @@
                                 <select class="form-select" id="institution" formControlName="institution"
                                     [ngClass]="{'is-invalid': profileForm.get('institution')?.invalid && profileForm.get('institution')?.touched}">
                                     <option value="">Select institution</option>
-                                    <option *ngFor="let institution of institutions" [value]="institution.name">{{ institution.name }}</option>
+                                    <option *ngFor="let institution of institutions" [value]="institution.id">{{ institution.name }}</option>
                                 </select>
                                 <div class="invalid-feedback"
                                     *ngIf="profileForm.get('institution')?.errors?.['required'] && profileForm.get('institution')?.touched">
@@ -66,7 +66,7 @@
                                 <select class="form-select" id="yearOfStudy" formControlName="yearOfStudy"
                                     [ngClass]="{'is-invalid': profileForm.get('yearOfStudy')?.invalid && profileForm.get('yearOfStudy')?.touched}">
                                     <option value="">Select year of study</option>
-                                    <option *ngFor="let yearOfStudy of yearsOfStudy" [value]="yearOfStudy.yearOfStudy">{{ yearOfStudy.yearOfStudy }}</option>
+                                    <option *ngFor="let yearOfStudy of yearsOfStudy" [value]="yearOfStudy.id">{{ yearOfStudy.yearOfStudy }}</option>
                                 </select> 
                                     <div class="invalid-feedback"
                                     *ngIf="profileForm.get('yearOfStudy')?.errors?.['required'] && profileForm.get('yearOfStudy')?.touched">

@@ -3,8 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { InstitutionService, Institution } from '../../../core/services/institution.service';
-import { YearOfStudyService, YearOfStudy } from '../../../core/services/year-of-study.service';
+import { InstitutionService } from '../../../core/services/institution.service';
+import { YearOfStudyService} from '../../../core/services/year-of-study.service';
+import { StudentService } from '../../../core/services/student.service';
+import { Institution } from '../../../core/models/institution.model';
+import { YearOfStudy } from '../../../core/models/year-of-study.model';
 
 @Component({
   selector: 'app-profile-setup',
@@ -26,7 +29,8 @@ export class ProfileSetupComponent implements OnInit {
       private router: Router,
       private authService: AuthService,
       private institutionService: InstitutionService,
-      private yearOfStudyService: YearOfStudyService ) {
+      private yearOfStudyService: YearOfStudyService,
+      private studentService: StudentService) {
 
     this.profileForm = this.fb.group({
       studentNumber: ['', [Validators.required]],
@@ -48,7 +52,6 @@ export class ProfileSetupComponent implements OnInit {
     this.institutionService.getInstitutions().subscribe({
       next: (institutions) => {
         this.institutions = institutions;
-        console.log('Institutions:', this.institutions);
       },
       error: (error) => {
         console.error('Error fetching institutions:', error);
@@ -69,17 +72,29 @@ export class ProfileSetupComponent implements OnInit {
     if (this.profileForm.valid) {
       this.isSubmitting = true;
       this.isSubmitting = false;
-      this.router.navigate(['/document-upload']);
-      // this.authService.updateProfile(this.profileForm.value).subscribe({
-      //   next: () => {
-      //     this.isSubmitting = false;
-      //     this.router.navigate(['/document-upload']);
-      //   },
-      //   error: (error) => {
-      //     this.isSubmitting = false;
-      //     console.error('Error updating profile:', error);
-      //   }
-      // });
+      
+      const studentData = {
+        userId: this.currentUser.id,
+        studentNumber: this.profileForm.get('studentNumber')?.value,
+        dateOfBirth: this.profileForm.get('dateOfBirth')?.value,
+        institutionId: this.profileForm.get('institution')?.value,
+        yearOfStudyId: this.profileForm.get('yearOfStudy')?.value,
+        gender: this.profileForm.get('gender')?.value,
+        specialRequirements: this.profileForm.get('specialRequirements')?.value,
+        phoneNumber: this.profileForm.get('phoneNumber')?.value
+      }
+    
+
+      this.studentService.createStudentProfile(studentData).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.router.navigate(['/document-upload']);
+        },
+        error: (error) => {
+          this.isSubmitting = false;
+          console.error('Error updating profile:', error);
+        }
+      });
     } else {
       this.profileForm.markAllAsTouched();
     }
