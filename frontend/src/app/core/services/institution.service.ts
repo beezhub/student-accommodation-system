@@ -21,12 +21,9 @@ export class InstitutionService {
 
   getInstitutions(): Observable<Institution[]> {
     const token = localStorage.getItem('token');
-    console.log("token: " + token);
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`
     });
-    console.log("Institution API URL:", this.apiUrl);
-    console.log("Request Headers:", headers);
     return this.http.get<Institution[]>(this.apiUrl, { headers });
   }
 }
