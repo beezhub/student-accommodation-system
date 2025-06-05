@@ -1,0 +1,24 @@
+<div class="container">
+  <!-- Hero Section -->
+  <div class="hero-section text-center py-5">
+    <h1 class="display-4 fw-bold mb-4">Find Your Perfect Student Accommodation</h1>
+    <p class="lead text-muted mb-5">Simple, secure, and hassle-free student housing management platform</p>
+    <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+      <a routerLink="/student-registration" class="btn btn-primary btn-lg px-4 gap-3">Register Now</a>
+      <a routerLink="/login" class="btn btn-outline-secondary btn-lg px-4">Sign In</a>
+    </div>
+  </div>
+
+  <!-- Features Section -->
+  <div class="row g-4 py-5">
+    <div class="col-md-4" *ngFor="let feature of features">
+      <div class="card h-100 border-0 shadow-sm hover-card">
+        <div class="card-body text-center p-4">
+          <i class="bi {{feature.icon}} feature-icon mb-3"></i>
+          <h3 class="card-title h5 mb-3">{{feature.title}}</h3>
+          <p class="card-text text-muted">{{feature.description}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,7 @@
+.angular
+dist
+node_modules
+.env
+.bolt
+yarn.lock
+npm-debug.log

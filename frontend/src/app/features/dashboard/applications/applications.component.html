@@ -1,0 +1,90 @@
+<div class="container-fluid">
+    <div class="row">
+        <!-- Navigation Header -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <h5 class="mb-0">Student Housing</h5>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" routerLink="/dashboard">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" routerLink="/applications">Applications</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" routerLink="/documents">Documents</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" routerLink="/profile">Profile</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>My Applications</h2>
+                            <button class="btn btn-primary" routerLink="/applications/new">
+                                <i class="bi bi-plus-lg me-2"></i>New Application
+                            </button>
+                        </div>
+
+                        <!-- Applications List -->
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                        <tr>
+                                            <th>Application ID</th>
+                                            <th>Year</th>
+                                            <th>Status</th>
+                                            <th>Submitted Date</th>
+                                            <th>Type</th>
+                                            <th>Duration</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr *ngFor="let app of applications">
+                                            <td>#{{app.id}}</td>
+                                            <td>{{app.year}}</td>
+                                            <td>
+                          <span class="badge rounded-pill" [ngClass]="getStatusClass(app.status)">
+                            {{app.status}}
+                          </span>
+                                            </td>
+                                            <td>{{app.submittedDate | date}}</td>
+                                            <td>{{app.type}}</td>
+                                            <td>{{app.duration}}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary me-2" [routerLink]="['/applications', app.id]">
+                                                    View Details
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" *ngIf="app.status === 'Pending'">Cancel</button>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

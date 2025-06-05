@@ -1,0 +1,139 @@
+<div class="container-fluid">
+    <div class="row">
+        <!-- Navigation Header -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <h5 class="mb-0">Student Housing</h5>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" routerLink="/dashboard">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" routerLink="/applications">Applications</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" routerLink="/documents">Documents</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" routerLink="/profile">Profile</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>My Documents</h2>
+                            <div>
+                                <button
+                                        class="btn btn-primary"
+                                        (click)="openUploadModal()"
+                                        [disabled]="isUploading"
+                                >
+                                    <i class="bi" [ngClass]="isUploading ? 'bi-hourglass-split' : 'bi-upload'"></i>
+                                    <span class="ms-2">{{ isUploading ? 'Uploading...' : 'Upload Document' }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Error Alert -->
+                        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert"
+                             *ngIf="uploadError">
+                            {{ uploadError }}
+                            <button type="button" class="btn-close" (click)="uploadError = null"></button>
+                        </div>
+
+                        <!-- Documents List -->
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                        <tr>
+                                            <th>Document Name</th>
+                                            <th>Type</th>
+                                            <th>Upload Date</th>
+                                            <th>Status</th>
+                                            <th>Size</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr *ngFor="let doc of documents">
+                                            <td>{{ doc.name }}</td>
+                                            <td>{{ doc.type }}</td>
+                                            <td>{{ doc.uploadDate | date }}</td>
+                                            <td>
+                          <span class="badge rounded-pill" [ngClass]="getStatusClass(doc.status)">
+                            {{ doc.status }}
+                          </span>
+                                            </td>
+                                            <td>{{ doc.size }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary me-2"
+                                                        (click)="viewDocument(doc)">
+                                                    <i class="bi bi-eye me-1"></i>View
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        (click)="deleteDocument(doc.id)">
+                                                    <i class="bi bi-trash me-1"></i>Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upload Guidelines -->
+                        <div class="card border-0 shadow-sm mt-4">
+                            <div class="card-body">
+                                <h5 class="card-title">Document Upload Guidelines</h5>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="mb-2">
+                                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                        Accepted formats: PDF, JPG, PNG
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                        Maximum file size: 5MB
+                                    </li>
+                                    <li>
+                                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                        Ensure documents are clear and readable
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Viewer Modal -->
+    <app-document-viewer
+            *ngIf="selectedDocument"
+            [document]="selectedDocument"
+            (close)="closeViewer()"
+    ></app-document-viewer>
+
+    <!-- Upload Modal -->
+    <app-upload-document
+            *ngIf="showUploadModal"
+            (close)="closeUploadModal()"
+    ></app-upload-document>
