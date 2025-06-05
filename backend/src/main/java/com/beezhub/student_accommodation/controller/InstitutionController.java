@@ -16,7 +16,7 @@ public class InstitutionController {
 
     private final InstitutionService institutionService;
 
-    @GetMapping("/")
+    @GetMapping
     public List<InstitutionResponse> getInstitutions() {
         return institutionService.getAllInstitutions();
     }

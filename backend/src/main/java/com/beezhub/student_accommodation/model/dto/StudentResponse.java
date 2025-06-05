@@ -12,7 +12,7 @@ public class StudentResponse {
     private Date registrationDate;
     private String gender;
     private String specialRequirements;
-    private InstitutionResponse institution;
-    private YearOfStudyResponse yearOfStudy;
-    private UserData user;
+    private Long institutionId;
+    private Long yearOfStudyId;
+    private Long userId;
 }

@@ -9,9 +9,13 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring", uses = {InstitutionMapper.class, YearOfStudyMapper.class})
 public interface StudentMapper {
 
-    @Mapping(source = "user", target = "appUser")
+    @Mapping(source = "userId", target = "appUser.id")
+    @Mapping(source = "institutionId", target = "institution.id")
+    @Mapping(source = "yearOfStudyId", target = "yearOfStudy.id")
     Student toEntity(StudentRequest studentRequest);
 
-    @Mapping(source = "appUser", target = "user")
+    @Mapping(source = "appUser.id", target = "userId")
+    @Mapping(source = "institution.id", target = "institutionId")
+    @Mapping(source = "yearOfStudy.id", target = "yearOfStudyId")
     StudentResponse toResponse(Student savedStudent);
 }
