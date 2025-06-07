@@ -26,7 +26,6 @@ export class StudentService {
 
   createStudentProfile(studentData: StudentRequest): Observable<StudentResponse> {
     const token = localStorage.getItem("token");
-    console.log(token);
     const headers = new HttpHeaders({
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
