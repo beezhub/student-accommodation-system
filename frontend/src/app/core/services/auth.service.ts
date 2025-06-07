@@ -2,32 +2,8 @@ import {Injectable} from "@angular/core";
 import {HttpClient} from "@angular/common/http";
 import {BehaviorSubject, map, Observable} from "rxjs";
 import { environment } from '../../../environments/environment';
-
-export interface SignupData {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-}
-
-export interface ProfileData {
-    studentNumber: string;
-    phoneNumber: string;
-    dateOfBirth: string;
-    institution: string;
-    yearOfStudy: string;
-    lengthOfStay: string;
-    gender: string;
-    specialRequirements?: string;
-}
-
-export interface User {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    profileCompleted: boolean;
-}
+import { User } from '../models/user.model';
+import { SignupData } from "../models/signup-data.model";
 
 @Injectable({
     providedIn: 'root'
@@ -54,9 +30,6 @@ export class AuthService {
                 map(response => {
                     localStorage.setItem('token', response.token);
                     localStorage.setItem('currentUser', JSON.stringify(response.user));
-                   console.log(localStorage.getItem('token'));
-                    console.log(localStorage.getItem('user'));
-                    console.log(response);
                     this.currentUserSubject.next(response.user);
                     return response.user;
                 })

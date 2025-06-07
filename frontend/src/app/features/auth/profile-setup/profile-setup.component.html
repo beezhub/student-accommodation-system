@@ -10,7 +10,8 @@
 
                     <!-- Progress Bar -->
                     <div class="progress mb-4" style="height: 8px;">
-                        <div class="progress-bar" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress-bar" role="progressbar" style="width: 50%;" aria-valuenow="50"
+                            aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                     <p class="text-center text-muted mb-4">Step 2 of 4</p>
 
@@ -18,137 +19,89 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="studentNumber" class="form-label">Student Number</label>
-                                <input
-                                        type="text"
-                                        class="form-control"
-                                        id="studentNumber"
-                                        formControlName="studentNumber"
-                                        [ngClass]="{'is-invalid': profileForm.get('studentNumber')?.invalid && profileForm.get('studentNumber')?.touched}"
-                                >
-                                <div class="invalid-feedback" *ngIf="profileForm.get('studentNumber')?.errors?.['required'] && profileForm.get('studentNumber')?.touched">
+                                <input type="text" class="form-control" id="studentNumber"
+                                    formControlName="studentNumber"
+                                    [ngClass]="{'is-invalid': profileForm.get('studentNumber')?.invalid && profileForm.get('studentNumber')?.touched}">
+                                <div class="invalid-feedback"
+                                    *ngIf="profileForm.get('studentNumber')?.errors?.['required'] && profileForm.get('studentNumber')?.touched">
                                     Student number is required
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <label for="phoneNumber" class="form-label">Phone Number</label>
-                                <input
-                                        type="tel"
-                                        class="form-control"
-                                        id="phoneNumber"
-                                        formControlName="phoneNumber"
-                                        [ngClass]="{'is-invalid': profileForm.get('phoneNumber')?.invalid && profileForm.get('phoneNumber')?.touched}"
-                                >
-                                <div class="invalid-feedback" *ngIf="profileForm.get('phoneNumber')?.errors?.['required'] && profileForm.get('phoneNumber')?.touched">
+                                <input type="tel" class="form-control" id="phoneNumber" formControlName="phoneNumber"
+                                    [ngClass]="{'is-invalid': profileForm.get('phoneNumber')?.invalid && profileForm.get('phoneNumber')?.touched}">
+                                <div class="invalid-feedback"
+                                    *ngIf="profileForm.get('phoneNumber')?.errors?.['required'] && profileForm.get('phoneNumber')?.touched">
                                     Phone number is required
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <label for="dateOfBirth" class="form-label">Date of Birth</label>
-                                <input
-                                        type="date"
-                                        class="form-control"
-                                        id="dateOfBirth"
-                                        formControlName="dateOfBirth"
-                                        [ngClass]="{'is-invalid': profileForm.get('dateOfBirth')?.invalid && profileForm.get('dateOfBirth')?.touched}"
-                                >
-                                <div class="invalid-feedback" *ngIf="profileForm.get('dateOfBirth')?.errors?.['required'] && profileForm.get('dateOfBirth')?.touched">
+                                <input type="date" class="form-control" id="dateOfBirth" formControlName="dateOfBirth"
+                                    [ngClass]="{'is-invalid': profileForm.get('dateOfBirth')?.invalid && profileForm.get('dateOfBirth')?.touched}">
+                                <div class="invalid-feedback"
+                                    *ngIf="profileForm.get('dateOfBirth')?.errors?.['required'] && profileForm.get('dateOfBirth')?.touched">
                                     Date of birth is required
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <label for="institution" class="form-label">Institution</label>
-                                <input
-                                        type="text"
-                                        class="form-control"
-                                        id="institution"
-                                        formControlName="institution"
-                                        [ngClass]="{'is-invalid': profileForm.get('institution')?.invalid && profileForm.get('institution')?.touched}"
-                                >
-                                <div class="invalid-feedback" *ngIf="profileForm.get('institution')?.errors?.['required'] && profileForm.get('institution')?.touched">
+                                <select class="form-select" id="institution" formControlName="institution"
+                                    [ngClass]="{'is-invalid': profileForm.get('institution')?.invalid && profileForm.get('institution')?.touched}">
+                                    <option value="">Select institution</option>
+                                    <option *ngFor="let institution of institutions" [value]="institution.id">{{ institution.name }}</option>
+                                </select>
+                                <div class="invalid-feedback"
+                                    *ngIf="profileForm.get('institution')?.errors?.['required'] && profileForm.get('institution')?.touched">
                                     Institution is required
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <label for="yearOfStudy" class="form-label">Year of Study</label>
-                                <select
-                                        class="form-select"
-                                        id="yearOfStudy"
-                                        formControlName="yearOfStudy"
-                                        [ngClass]="{'is-invalid': profileForm.get('yearOfStudy')?.invalid && profileForm.get('yearOfStudy')?.touched}"
-                                >
-                                    <option value="">Select year</option>
-                                    <option value="1">First Year</option>
-                                    <option value="2">Second Year</option>
-                                    <option value="3">Third Year</option>
-                                    <option value="4">Fourth Year</option>
-                                    <option value="5">Fifth Year</option>
-                                    <option value="postgraduate">Postgraduate</option>
-                                </select>
-                                <div class="invalid-feedback" *ngIf="profileForm.get('yearOfStudy')?.errors?.['required'] && profileForm.get('yearOfStudy')?.touched">
+                                <select class="form-select" id="yearOfStudy" formControlName="yearOfStudy"
+                                    [ngClass]="{'is-invalid': profileForm.get('yearOfStudy')?.invalid && profileForm.get('yearOfStudy')?.touched}">
+                                    <option value="">Select year of study</option>
+                                    <option *ngFor="let yearOfStudy of yearsOfStudy" [value]="yearOfStudy.id">{{ yearOfStudy.yearOfStudy }}</option>
+                                </select> 
+                                    <div class="invalid-feedback"
+                                    *ngIf="profileForm.get('yearOfStudy')?.errors?.['required'] && profileForm.get('yearOfStudy')?.touched">
                                     Year of study is required
                                 </div>
                             </div>
 
                             <div class="col-md-6">
-                                <label for="lengthOfStay" class="form-label">Length of Stay</label>
-                                <select
-                                        class="form-select"
-                                        id="lengthOfStay"
-                                        formControlName="lengthOfStay"
-                                        [ngClass]="{'is-invalid': profileForm.get('lengthOfStay')?.invalid && profileForm.get('lengthOfStay')?.touched}"
-                                >
-                                    <option value="">Select length of stay</option>
-                                    <option value="1-semester">1 Semester</option>
-                                    <option value="2-semesters">2 Semesters</option>
-                                    <option value="1-year">1 Year</option>
-                                    <option value="2-years">2 Years</option>
-                                </select>
-                                <div class="invalid-feedback" *ngIf="profileForm.get('lengthOfStay')?.errors?.['required'] && profileForm.get('lengthOfStay')?.touched">
-                                    Length of stay is required
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
                                 <label for="gender" class="form-label">Gender</label>
-                                <select
-                                        class="form-select"
-                                        id="gender"
-                                        formControlName="gender"
-                                        [ngClass]="{'is-invalid': profileForm.get('gender')?.invalid && profileForm.get('gender')?.touched}"
-                                >
+                                <select class="form-select" id="gender" formControlName="gender"
+                                    [ngClass]="{'is-invalid': profileForm.get('gender')?.invalid && profileForm.get('gender')?.touched}">
                                     <option value="">Select gender</option>
                                     <option value="male">Male</option>
                                     <option value="female">Female</option>
                                     <option value="other">Other</option>
                                     <option value="prefer-not-to-say">Prefer not to say</option>
                                 </select>
-                                <div class="invalid-feedback" *ngIf="profileForm.get('gender')?.errors?.['required'] && profileForm.get('gender')?.touched">
+                                <div class="invalid-feedback"
+                                    *ngIf="profileForm.get('gender')?.errors?.['required'] && profileForm.get('gender')?.touched">
                                     Gender is required
                                 </div>
                             </div>
 
                             <div class="col-12">
-                                <label for="specialRequirements" class="form-label">Special Requirements (Optional)</label>
-                                <textarea
-                                        class="form-control"
-                                        id="specialRequirements"
-                                        formControlName="specialRequirements"
-                                        rows="3"
-                                ></textarea>
+                                <label for="specialRequirements" class="form-label">Special Requirements
+                                    (Optional)</label>
+                                <textarea class="form-control" id="specialRequirements"
+                                    formControlName="specialRequirements" rows="3"></textarea>
                             </div>
                         </div>
 
                         <div class="d-grid gap-2 mt-4">
-                            <button
-                                    type="submit"
-                                    class="btn btn-primary btn-lg"
-                                    [disabled]="isSubmitting"
-                            >
-                                <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <button type="submit" class="btn btn-primary btn-lg" [disabled]="isSubmitting">
+                                <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status"
+                                    aria-hidden="true"></span>
                                 {{isSubmitting ? 'Saving...' : 'Continue to Document Upload'}}
                             </button>
                         </div>

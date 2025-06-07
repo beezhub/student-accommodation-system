@@ -74,7 +74,7 @@ class RestResponseExceptionHandlerTest {
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(HttpStatus.UNAUTHORIZED.value(), response.getBody().getStatus());
-        assertEquals("Invalid username or password", response.getBody().getErrors().get(0));
+        assertEquals("Invalid email or password", response.getBody().getErrors().getFirst());
         assertEquals("test-uri", response.getBody().getPath());
     }
 }

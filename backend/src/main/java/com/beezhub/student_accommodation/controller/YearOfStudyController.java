@@ -15,7 +15,7 @@ import java.util.List;
 public class YearOfStudyController {
     private final YearOfStudyService yearOfStudyService;
 
-    @GetMapping("/")
+    @GetMapping
     public List<YearOfStudyResponse> getAllYearsOfStudy() {
         return yearOfStudyService.getAllYearsOfStudy();
     }
