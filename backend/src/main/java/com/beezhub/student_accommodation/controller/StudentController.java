@@ -28,7 +28,7 @@ public class StudentController {
             responseCode = "200",
             description = "Student created successfully"
     )
-    @PostMapping("/")
+    @PostMapping
     public StudentResponse createStudent(@RequestBody StudentRequest studentRequest) {
         return studentService.createStudent(studentRequest);
     }
