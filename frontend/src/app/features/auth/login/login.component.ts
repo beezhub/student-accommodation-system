@@ -9,8 +9,7 @@ import { AuthService } from '../../../core/services/auth.service'; // Adjust pat
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
-  providers: [AuthService]
+  imports: [CommonModule, ReactiveFormsModule, RouterModule]
 })
 export class LoginComponent {
   loginForm: FormGroup;

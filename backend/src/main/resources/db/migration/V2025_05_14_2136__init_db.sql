@@ -106,12 +106,6 @@ CREATE TABLE room_allocation (
     FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE CASCADE
 );
 
--- Create initial data for app_user
-INSERT INTO app_user (email, user_password, user_role, first_name, last_name) VALUES
-('test@test.com', '12345678', 'STUDENT', 'John', 'Doe');
-
-
-
 --Create initial data for room
 INSERT INTO room (room_number, capacity, building) VALUES
 ('101', 2, 'Main Building'),
