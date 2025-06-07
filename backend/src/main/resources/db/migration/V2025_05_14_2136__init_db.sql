@@ -52,6 +52,8 @@ CREATE TABLE student (
 CREATE TABLE document_type (
                                id SERIAL PRIMARY KEY,
                                type_name VARCHAR(50) NOT NULL UNIQUE,
+                                description VARCHAR(255),
+                                is_required BOOLEAN NOT NULL DEFAULT FALSE,
                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -132,8 +134,9 @@ INSERT INTO year_of_study (year) VALUES
 ('Postgraduate');
 
 --insert document type
-INSERT INTO document_type (type_name) VALUES
-('Proof of Enrollment'),
-('ID/Passport'),
-('Medical Report'),
-('Other');
+INSERT INTO document_type (type_name, description, is_required) VALUES
+('ID Document', 'National ID or Passport', TRUE),
+('Proof of Address', 'Utility bill or bank statement', TRUE),
+('Proof of Enrollment', 'Current enrollment verification', TRUE),
+('Financial Aid Application', 'Application for financial assistance', FALSE),
+('Medical Certificate', 'Health clearance certificate', FALSE);

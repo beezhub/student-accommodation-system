@@ -1,15 +1,23 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
+import { Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from "@angular/forms";
+import { Router } from "@angular/router";
+import { AuthService } from "../../../core/services/auth.service";
+import { DocumentTypeService } from "../../../core/services/document-type.service";
+import { DocumentType } from "../../../core/models/document-type.model";
+import { DocumentService } from "../../../core/services/document.service";
 
 @Component({
-  selector: 'app-document-upload',
-  templateUrl: './document-upload.component.html',
-  styleUrls: ['./document-upload.component.css'],
+  selector: "app-document-upload",
+  templateUrl: "./document-upload.component.html",
+  styleUrls: ["./document-upload.component.css"],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule]
+  imports: [CommonModule, ReactiveFormsModule],
 })
 export class DocumentUploadComponent implements OnInit {
   uploadForm: FormGroup;
@@ -17,29 +25,39 @@ export class DocumentUploadComponent implements OnInit {
   currentUser: any;
   uploadedFiles: { [key: string]: File } = {};
 
-  requiredDocuments = [
-    { id: 'studentId', name: 'Student ID', description: 'A clear photo or scan of your student ID card' },
-    { id: 'proofOfEnrollment', name: 'Proof of Enrollment', description: 'Current enrollment letter or registration document' },
-    { id: 'passport', name: 'Passport/ID', description: 'Valid government-issued ID or passport' }
-  ];
+  requiredDocuments: DocumentType[] = [];
 
   constructor(
-      private fb: FormBuilder,
-      private router: Router,
-      private authService: AuthService
+    private fb: FormBuilder,
+    private router: Router,
+    private authService: AuthService,
+    private documentTypeService: DocumentTypeService,
+    private documentService: DocumentService
   ) {
-    this.uploadForm = this.fb.group({
-      studentId: [null, Validators.required],
-      proofOfEnrollment: [null, Validators.required],
-      passport: [null, Validators.required]
-    });
+    this.uploadForm = this.fb.group({});
   }
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
     if (!this.currentUser) {
-      this.router.navigate(['/login']);
+      this.router.navigate(["/login"]);
     }
+    this.documentTypeService.getRequiredDocumentTypes().subscribe({
+      next: (documentTypes: any[]) => {
+        this.requiredDocuments = documentTypes;
+        documentTypes.forEach((doc) => {
+          if (!this.uploadForm.contains(doc.id)) {
+            this.uploadForm.addControl(
+              doc.id,
+              this.fb.control(null, Validators.required)
+            );
+          }
+        });
+      },
+      error: (err) => {
+        console.error("Failed to load required document types", err);
+      },
+    });
   }
 
   onFileSelected(event: any, documentId: string) {
@@ -53,24 +71,32 @@ export class DocumentUploadComponent implements OnInit {
   onSubmit() {
     if (this.uploadForm.valid) {
       this.isSubmitting = true;
-      const formData = new FormData();
 
-      Object.keys(this.uploadedFiles).forEach(key => {
-        formData.append(key, this.uploadedFiles[key]);
+      const files: File[] = [];
+      const documentTypes: number[] = [];
+
+      Object.keys(this.uploadedFiles).forEach((key) => {
+        files.push(this.uploadedFiles[key]);
+        documentTypes.push(Number(key)); 
       });
-      console.log('Form Data:', formData);
-      this.isSubmitting = false;
-      this.router.navigate(['/application-review']);
-      // this.authService.uploadDocuments(formData).subscribe({
-      //   next: () => {
-      //     this.isSubmitting = false;
-      //     this.router.navigate(['/application-review']);
-      //   },
-      //   error: (error) => {
-      //     this.isSubmitting = false;
-      //     console.error('Error uploading documents:', error);
-      //   }
-      // });
+      console.log("Files to upload:", files);
+      console.log("Document types:", documentTypes);
+      this.documentService
+        .uploadMultipleDocuments(files, documentTypes)
+        .subscribe({
+          next: (res) => {
+            console.log("Upload success", res);
+            this.isSubmitting = false;
+            this.router.navigate(["/application-review"]);
+          },
+          error: (err) => {
+            console.error("Upload error", err);
+            if (err.error && err.error.errors) {
+              console.error("Backend errors:", err.error.errors);
+            }
+            this.isSubmitting = false;
+          },
+        });
     } else {
       this.uploadForm.markAllAsTouched();
     }
