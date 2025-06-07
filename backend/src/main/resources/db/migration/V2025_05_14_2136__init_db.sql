@@ -62,6 +62,7 @@ CREATE TABLE document (
     document_name VARCHAR(100) NOT NULL,
     document_type_id INT NOT NULL,
     document_path VARCHAR(255) NOT NULL,
+    document_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     student_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
