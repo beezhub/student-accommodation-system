@@ -70,6 +70,51 @@ CREATE TABLE document (
     FOREIGN KEY (student_id) REFERENCES student(id) ON DELETE CASCADE
 );
 
+-- Create Application table
+CREATE TABLE application (
+    id SERIAL PRIMARY KEY,
+    application_code VARCHAR(50) NOT NULL UNIQUE,
+    application_date DATE DEFAULT CURRENT_DATE,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    student_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES student(id) ON DELETE CASCADE
+);
+
+-- Create Room table
+CREATE TABLE room (
+    id SERIAL PRIMARY KEY,
+    room_number VARCHAR(20) NOT NULL UNIQUE,
+    capacity INT NOT NULL,
+    building VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+--Create Room Allocation table
+CREATE TABLE room_allocation (
+    id SERIAL PRIMARY KEY,
+    allocation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    student_id INT NOT NULL,
+    room_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES student(id) ON DELETE CASCADE,
+    FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE CASCADE
+);
+
+-- Create initial data for app_user
+INSERT INTO app_user (email, user_password, user_role, first_name, last_name) VALUES
+('test@test.com', '12345678', 'STUDENT', 'John', 'Doe');
+
+
+
+--Create initial data for room
+INSERT INTO room (room_number, capacity, building) VALUES
+('101', 2, 'Main Building'),
+('102', 4, 'Science Block'),
+('103', 3, 'Arts Wing');
 
 
 
