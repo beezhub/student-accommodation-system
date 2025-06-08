@@ -6,11 +6,15 @@ import { User } from "../models/user.model";
 import { SignupData } from "../models/signup-data.model";
 import { InstitutionService } from "./institution.service";
 import { YearOfStudyService } from "./year-of-study.service";
+import { Router } from "@angular/router";
 
 @Injectable({
   providedIn: "root",
 })
 export class AuthService {
+  isLoggedIn() {
+    throw new Error('Method not implemented.');
+  }
   private apiUrl = `${environment.apiUrl}/auth`;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser = this.currentUserSubject.asObservable();
@@ -18,7 +22,8 @@ export class AuthService {
   constructor(
     private http: HttpClient,
     private institutionService: InstitutionService,
-    private yearOfStudyService: YearOfStudyService
+    private yearOfStudyService: YearOfStudyService,
+    private router: Router
   ) {
     window.addEventListener("storage", (event) => {
       if (event.key === "currentUser") {
@@ -59,6 +64,7 @@ export class AuthService {
     this.currentUserSubject.next(null);
     this.institutionService.clearCache();
     this.yearOfStudyService.clearCache();
+    this.router.navigate(["/home"]);
   }
   // Login a user
   login(data: any): Observable<User> {

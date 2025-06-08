@@ -13,15 +13,16 @@ export class ApplicationService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
   createApplication(studentId: number): Observable<Application> {
-    let params = new HttpParams();
+    let params = new HttpParams().set("studentId", studentId);
     const token = localStorage.getItem("token");
     const headers = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     };
-    params = params.append("studentId", studentId);
     return this.http.post<Application>(
-      `${this.apiUrl}/submit`,{
+      `${this.apiUrl}/submit`,
+      {},
+      {
         headers,
         params
       }
@@ -36,4 +37,14 @@ export class ApplicationService {
     };
     return this.http.get<Application[]>(`${this.apiUrl}/${status}`, { headers });
   }
+
+  getApplicationById(applicationId: number): Observable<Application> {
+    const token = localStorage.getItem("token");
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+    return this.http.get<Application>(`${this.apiUrl}/${applicationId}`, { headers });
+  }
+
 }

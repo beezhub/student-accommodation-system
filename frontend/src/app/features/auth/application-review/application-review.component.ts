@@ -93,16 +93,15 @@ export class ApplicationReviewComponent implements OnInit {
     return;
   }
     this.ApplicationService.createApplication(studentId).subscribe({
-      next: () => {
+      next: (application) => {
         console.log('Application submitted successfully');
-        this.router.navigate(['/application-confirmation']);
+        this.router.navigate([`/application-confirmation/${application.id}`]);
       },
       error: err => {
         console.error('Failed to submit application', err);
         this.isSubmitting = false;
       }
     });
-    this.router.navigate(['/application-confirmation']);
     
   }
 

@@ -35,10 +35,10 @@ public class ApplicationController {
         summary = "Get application with application ID",
         description = "Retrieves application for the given application ID."
     )
-    @GetMapping
+    @GetMapping("/{applicationId}")
     public ResponseEntity<ApplicationResponse> getApplicationById(
             @Parameter(description = "ID of the application to retrieve", required = true)
-            @RequestParam("applicationId") Long applicationId ) {
+            @PathVariable("applicationId") Long applicationId ) {
         var applicationResponse = applicationService.getApplicationById(applicationId);
         return ResponseEntity.ok(applicationResponse);
     }
@@ -53,11 +53,13 @@ public class ApplicationController {
             @PathVariable("studentId") Long studentId) {
         return ResponseEntity.ok( applicationService.getApplicationsByStudentId(studentId));
     }
+
+
     @Operation(
             summary = "Get all applications by status",
             description = "Retrieves all applications with the specified status."
     )
-    @GetMapping("/{status}")
+    @GetMapping("/status/{status}")
     public ResponseEntity<List<ApplicationResponse>> getApplicationsByStatus(
             @Parameter(description = "Status of the applications to retrieve", required = true)
             @PathVariable("status") String status) {
