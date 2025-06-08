@@ -17,5 +17,5 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
      long countByApplicationCodeStartingWith(String s);
 
-    List<Application> findByStudent_Id(Long studentId);
+// Removed redundant method findByStudent_Id(Long studentId)
 }
