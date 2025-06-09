@@ -12,10 +12,6 @@ import java.util.List;
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
 
      List<Application> findByStatus(ApplicationStatus status);
-
-     List<Application> findByStudentId(Long studentId);
-
      long countByApplicationCodeStartingWith(String s);
-
-// Removed redundant method findByStudent_Id(Long studentId)
+     List<Application> findByStudent_Id(Long studentId);
 }
