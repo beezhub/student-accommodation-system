@@ -10,7 +10,6 @@ import { AuthService } from "./auth.service";
 })
 export class StudentService {
   private apiUrl = `${environment.apiUrl}/student`;
-  private studentSubject = new BehaviorSubject<StudentResponse | null>(null);
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
@@ -27,12 +26,12 @@ export class StudentService {
     });
   }
 
-  getStudentProfile(): Observable<StudentResponse> {
-    const token = localStorage.getItem("token");
-    const headers = new HttpHeaders({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    });
+getStudentProfile(): Observable<StudentResponse> {
+  const token = localStorage.getItem("token");
+  const headers = new HttpHeaders({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  });
 
     const userId = this.authService.currentUserValue?.id
     if (!userId) {

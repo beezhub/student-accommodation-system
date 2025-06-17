@@ -37,7 +37,8 @@
                     <div class="col-12">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h2>My Profile</h2>
-                            <button class="btn" [ngClass]="isEditing ? 'btn-outline-secondary' : 'btn-primary'" (click)="toggleEdit()">
+                            <button class="btn" [ngClass]="isEditing ? 'btn-outline-secondary' : 'btn-primary'"
+                                (click)="toggleEdit()">
                                 <i class="bi" [ngClass]="isEditing ? 'bi-x-lg' : 'bi-pencil'"></i>
                                 {{isEditing ? 'Cancel' : 'Edit Profile'}}
                             </button>
@@ -50,115 +51,100 @@
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <label class="form-label">First Name</label>
-                                            <input
-                                                    type="text"
-                                                    class="form-control"
-                                                    formControlName="firstName"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched}"
-                                            >
+                                            <input type="text" class="form-control" formControlName="firstName"
+                                                [readonly]="!isEditing"
+                                                [ngClass]="{'is-invalid': profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched}">
                                             <div class="invalid-feedback">First name is required</div>
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label">Last Name</label>
-                                            <input
-                                                    type="text"
-                                                    class="form-control"
-                                                    formControlName="lastName"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched}"
-                                            >
+                                            <input type="text" class="form-control" formControlName="lastName"
+                                                [readonly]="!isEditing"
+                                                [ngClass]="{'is-invalid': profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched}">
                                             <div class="invalid-feedback">Last name is required</div>
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label">Email</label>
-                                            <input
-                                                    type="email"
-                                                    class="form-control"
-                                                    formControlName="email"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('email')?.invalid && profileForm.get('email')?.touched}"
-                                            >
+                                            <input type="email" class="form-control" formControlName="email"
+                                                [readonly]="!isEditing"
+                                                [ngClass]="{'is-invalid': profileForm.get('email')?.invalid && profileForm.get('email')?.touched}">
                                             <div class="invalid-feedback">Please enter a valid email</div>
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label">Phone Number</label>
-                                            <input
-                                                    type="tel"
-                                                    class="form-control"
-                                                    formControlName="phone"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('phone')?.invalid && profileForm.get('phone')?.touched}"
-                                            >
-                                            <div class="invalid-feedback">Please enter a valid phone number</div>
+                                            <input type="text" class="form-control" formControlName="phone"
+                                                [readonly]="!isEditing"
+                                                [ngClass]="{'is-invalid': profileForm.get('phone')?.invalid && profileForm.get('phone')?.touched}">
+                                            <div class="invalid-feedback">Phone number is required</div>
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label">Student Number</label>
-                                            <input
-                                                    type="text"
-                                                    class="form-control"
-                                                    formControlName="studentNumber"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('studentNumber')?.invalid && profileForm.get('studentNumber')?.touched}"
-                                            >
+                                            <input type="text" class="form-control" formControlName="studentNumber"
+                                                [readonly]="!isEditing"
+                                                [ngClass]="{'is-invalid': profileForm.get('studentNumber')?.invalid && profileForm.get('studentNumber')?.touched}">
                                             <div class="invalid-feedback">Student number is required</div>
                                         </div>
-
                                         <div class="col-md-6">
                                             <label class="form-label">Institution</label>
-                                            <input
-                                                    type="text"
-                                                    class="form-control"
-                                                    formControlName="institution"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('institution')?.invalid && profileForm.get('institution')?.touched}"
-                                            >
-                                            <div class="invalid-feedback">Institution is required</div>
+                                            <ng-container *ngIf="isEditing; else institutionText">
+                                                <select class="form-select" formControlName="institution"
+                                                    [ngClass]="{'is-invalid': profileForm.get('institution')?.invalid && profileForm.get('institution')?.touched}">
+                                                    <option value="">Select institution</option>
+                                                    <option *ngFor="let institution of institutions"
+                                                        [value]="institution.id">
+                                                        {{ institution.name }}
+                                                    </option>
+                                                </select>
+                                                <div class="invalid-feedback">Institution is required</div>
+                                            </ng-container>
+                                            <ng-template #institutionText>
+                                                <input class="form-control"
+                                                    [value]="getInstitutionName(profileForm.get('institution')?.value)"
+                                                    readonly>
+                                            </ng-template>
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label">Year of Study</label>
-                                            <select
-                                                    class="form-select"
-                                                    formControlName="yearOfStudy"
-                                                    [disabled]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('yearOfStudy')?.invalid && profileForm.get('yearOfStudy')?.touched}"
-                                            >
-                                                <option value="">Select year</option>
-                                                <option value="1">First Year</option>
-                                                <option value="2">Second Year</option>
-                                                <option value="3">Third Year</option>
-                                                <option value="4">Fourth Year</option>
-                                                <option value="5">Fifth Year</option>
-                                                <option value="postgraduate">Postgraduate</option>
-                                            </select>
-                                            <div class="invalid-feedback">Year of study is required</div>
+                                            <ng-container *ngIf="isEditing; else yearOfStudyText">
+                                                <select class="form-select" formControlName="yearOfStudy"
+                                                    [ngClass]="{'is-invalid': profileForm.get('yearOfStudy')?.invalid && profileForm.get('yearOfStudy')?.touched}">
+                                                    <option value="">Select year</option>
+                                                    <option *ngFor="let year of yearsOfStudy" [value]="year.id">
+                                                        {{ year.yearOfStudy }}
+                                                    </option>
+                                                </select>
+                                                <div class="invalid-feedback">Year of study is required</div>
+                                            </ng-container>
+                                            <ng-template #yearOfStudyText>
+                                                <input class="form-control"
+                                                    [value]="getYearOfStudyName(profileForm.get('yearOfStudy')?.value)"
+                                                    readonly>
+                                            </ng-template>
                                         </div>
-
                                         <div class="col-md-6">
                                             <label class="form-label">Date of Birth</label>
-                                            <input
-                                                    type="date"
-                                                    class="form-control"
-                                                    formControlName="dateOfBirth"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('dateOfBirth')?.invalid && profileForm.get('dateOfBirth')?.touched}"
-                                            >
-                                            <div class="invalid-feedback">Date of birth is required</div>
+                                            <ng-container *ngIf="isEditing; else dobText">
+                                                <input type="date" class="form-control" formControlName="dateOfBirth"
+                                                    [ngClass]="{'is-invalid': profileForm.get('dateOfBirth')?.invalid && profileForm.get('dateOfBirth')?.touched}">
+                                                <div class="invalid-feedback">Date of birth is required</div>
+                                            </ng-container>
+                                            <ng-template #dobText>
+                                                <input class="form-control"
+                                                    [value]="profileForm.get('dateOfBirth')?.value" readonly>
+                                            </ng-template>
                                         </div>
                                     </div>
 
                                     <div class="mt-4" *ngIf="isEditing">
-                                        <button
-                                                type="submit"
-                                                class="btn btn-primary"
-                                                [disabled]="!profileForm.valid || isSaving"
-                                        >
-                                            <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        <button type="submit" class="btn btn-primary"
+                                            [disabled]="!profileForm.valid || isSaving">
+                                            <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-2"
+                                                role="status" aria-hidden="true"></span>
                                             {{isSaving ? 'Saving...' : 'Save Changes'}}
                                         </button>
                                     </div>
