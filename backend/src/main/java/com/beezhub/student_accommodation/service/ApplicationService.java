@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.*;
 
@@ -45,5 +46,29 @@ public class ApplicationService {
         long count = applicationRepository.countByApplicationCodeStartingWith("APP-" + year + "-");
         String sequence = String.format("%03d", count + 1);
         return "APP-" + year + "-" + sequence;
+    }
+
+    public ApplicationResponse getApplicationById(Long applicationId) {
+        log.info("Retrieving application with ID: {}", applicationId);
+        return applicationRepository.findById(applicationId)
+                .map(applicationMapper::toResponse)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found with ID: " + applicationId));
+    }
+
+    public List<ApplicationResponse> getApplicationsByStudentId(Long studentId) {
+        log.info("Retrieving applications for student with ID: {}", studentId);
+        return applicationRepository.findByStudent_Id(studentId)
+                .stream()
+                .map(applicationMapper::toResponse)
+                .toList();
+    }
+
+    public List<ApplicationResponse> getApplicationsByStatus(String status) {
+       log.info("Retrieving applications for status {}", status);
+        ApplicationStatus applicationStatus = ApplicationStatus.valueOf(status.toUpperCase());
+        return applicationRepository.findByStatus(applicationStatus)
+                .stream()
+                .map(applicationMapper::toResponse)
+                .toList();
     }
 }

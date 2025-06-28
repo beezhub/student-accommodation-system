@@ -4,20 +4,55 @@
       <a class="navbar-brand fw-bold text-primary" routerLink="/home">
         Student Housing
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <a class="nav-link" routerLink="/home" routerLinkActive="active">Home</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" routerLink="/login" routerLinkActive="active">Login</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" routerLink="/signup" routerLinkActive="active">Sign Up</a>
-          </li>
+          <ng-container *ngIf="currentUser">
+            <li class="nav-item">
+              <a class="nav-link active" routerLink="/dashboard">Dashboard</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/applications">Applications</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/documents">Documents</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/profile">Profile</a>
+            </li>
+            <li class="nav-item">
+              <button class="btn btn-outline-primary ms-2" (click)="logout()">
+                Logout
+              </button>
+            </li>
+          </ng-container>
+          <ng-container *ngIf="!currentUser">
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/home" routerLinkActive="active"
+                >Home</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/login" routerLinkActive="active"
+                >Login</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/signup" routerLinkActive="active"
+                >Sign Up</a
+              >
+            </li>
+          </ng-container>
         </ul>
       </div>
     </div>

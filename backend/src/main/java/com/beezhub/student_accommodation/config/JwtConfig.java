@@ -9,10 +9,10 @@ import org.springframework.stereotype.Component;
 public class JwtConfig {
 
     private final String secretKeyString;
-    private final long expirationTime;
+    private final String expirationTime;
 
     public JwtConfig(@Value("${jwt.secret}") String secretKeyString
-    , @Value("${jwt.expiration-time-ms}") long expirationTime) {
+    , @Value("${jwt.expiration-time-ms}") String expirationTime) {
         this.secretKeyString = secretKeyString;
         this.expirationTime = expirationTime;
     }

@@ -7,10 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/student")
@@ -31,5 +28,18 @@ public class StudentController {
     @PostMapping
     public StudentResponse createStudent(@RequestBody StudentRequest studentRequest) {
         return studentService.createStudent(studentRequest);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(
+            summary = "Get Student",
+            description = "Retrieve student details by ID"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Student details retrieved successfully"
+    )
+    public StudentResponse getStudent(@PathVariable Long id) {
+        return studentService.getStudentByUserId(id);
     }
 }
