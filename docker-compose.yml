@@ -21,13 +21,19 @@ services:
       - "8080:8080"
     depends_on:
       - db
+      - minio
     environment:
       - POSTGRES_DB=studentaccommodationlocaldb
       - USER_DB=localadmin
       - PASSWORD_DB=admin
       - DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb
       - JWT_SECRET=jvc+QC/0myyJ9+//Rzo+qYxfMmHDiQdlysvcT9XhUF7/6mvHD9evZBB/ngNAMwTD6sDDQgf4vS0QDZ8JYLoBOA==
-      - JWT_EXPIRATION=36000000
+      - JWT_EXPIRATION=360000
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=student-accommodation-bucket
+      
 
   minio:
     image: minio/minio

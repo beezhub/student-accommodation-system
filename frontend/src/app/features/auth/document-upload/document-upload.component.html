@@ -32,11 +32,11 @@
                                             type="file"
                                             [id]="doc.id"
                                             class="form-control"
-                                            (change)="onFileSelected($event, doc.id)"
+                                            (change)="onFileSelected($event, doc.id.toString())"
                                             accept=".pdf,.jpg,.jpeg,.png"
-                                            [class.is-invalid]="uploadForm.get(doc.id)?.invalid && uploadForm.get(doc.id)?.touched"
+                                            [class.is-invalid]="uploadForm.get(doc.id.toString())?.invalid && uploadForm.get(doc.id.toString())?.touched"
                                     >
-                                    <div class="invalid-feedback" *ngIf="uploadForm.get(doc.id)?.errors?.['required'] && uploadForm.get(doc.id)?.touched">
+                                    <div class="invalid-feedback" *ngIf="uploadForm.get(doc.id.toString())?.invalid && uploadForm.get(doc.id.toString())?.touched">
                                         Please upload {{doc.name}}
                                     </div>
                                 </div>
@@ -51,7 +51,7 @@
                             <button
                                     type="submit"
                                     class="btn btn-primary btn-lg"
-                                    [disabled]="isSubmitting"
+                                    [disabled]="isSubmitting || uploadForm.invalid"
                             >
                                 <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                 {{isSubmitting ? 'Uploading...' : 'Continue to Review'}}

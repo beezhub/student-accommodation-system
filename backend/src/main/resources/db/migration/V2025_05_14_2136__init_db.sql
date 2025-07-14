@@ -52,6 +52,8 @@ CREATE TABLE student (
 CREATE TABLE document_type (
                                id SERIAL PRIMARY KEY,
                                type_name VARCHAR(50) NOT NULL UNIQUE,
+                                description VARCHAR(255),
+                                is_required BOOLEAN NOT NULL DEFAULT FALSE,
                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -104,12 +106,6 @@ CREATE TABLE room_allocation (
     FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE CASCADE
 );
 
--- Create initial data for app_user
-INSERT INTO app_user (email, user_password, user_role, first_name, last_name) VALUES
-('test@test.com', '12345678', 'STUDENT', 'John', 'Doe');
-
-
-
 --Create initial data for room
 INSERT INTO room (room_number, capacity, building) VALUES
 ('101', 2, 'Main Building'),
@@ -132,8 +128,9 @@ INSERT INTO year_of_study (year) VALUES
 ('Postgraduate');
 
 --insert document type
-INSERT INTO document_type (type_name) VALUES
-('Proof of Enrollment'),
-('ID/Passport'),
-('Medical Report'),
-('Other');
+INSERT INTO document_type (type_name, description, is_required) VALUES
+('ID Document', 'National ID or Passport', TRUE),
+('Proof of Address', 'Utility bill or bank statement', TRUE),
+('Proof of Enrollment', 'Current enrollment verification', TRUE),
+('Financial Aid Application', 'Application for financial assistance', FALSE),
+('Medical Certificate', 'Health clearance certificate', FALSE);

@@ -12,6 +12,7 @@ export interface StudentRequest {
 export interface StudentResponse {
   id: number;
   phoneNumber: string;
+  studentNumber: string;
   dateOfBirth: string;
   registrationDate: string;
   gender: string;

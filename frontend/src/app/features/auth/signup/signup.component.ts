@@ -9,8 +9,7 @@ import {AuthService} from '../../../core/services/auth.service';
     templateUrl: './signup.component.html',
     styleUrls: ['./signup.component.css'],
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, RouterModule],
-    providers: [AuthService]
+    imports: [CommonModule, ReactiveFormsModule, RouterModule]
 })
 
 export class SignupComponent {
@@ -63,11 +62,13 @@ export class SignupComponent {
             this.authService.signup(signupData).subscribe({
                 next: () => {
                     this.isSubmitting = false;
-                    this.router.navigate(['/profile-setup']);
+                    Promise.resolve().then(() => this.router.navigate(['/profile-setup']));
                 },
                 error: (error: { error: { message: string; }; }) => {
                     this.isSubmitting = false;
                     this.errorMessage = error.error.message || 'An error occurred during signup';
+                    console.error('Signup error:', this.errorMessage);
+                    this.signupForm.reset();
                 }
             });
         } else {
