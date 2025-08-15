@@ -1,0 +1,182 @@
+{
+  "files.associations": {
+    "**/AI_AGENT_*.md": "markdown",
+    "**/GUIDELINES_*.md": "markdown",
+    "**/.ai-context.json": "json",
+    "**/ai-prompts/**/*.md": "markdown"
+  },
+  
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/build": true,
+    "**/dist": true,
+    "**/.gradle": true
+  },
+  
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/build": true,
+    "**/dist": true
+  },
+  
+  "workbench.colorCustomizations": {
+    "[Default Dark+]": {
+      "tab.activeBorder": "#007ACC",
+      "tab.activeForeground": "#007ACC"
+    }
+  },
+  
+  "editor.rulers": [80, 120],
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  
+  "angular.experimental-ivy": true,
+  "angular.enable-strict-mode-prompt": false,
+  
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/build/**": true,
+    "**/dist/**": true
+  },
+  
+  "emmet.includeLanguages": {
+    "typescript": "html"
+  },
+  
+  "html.suggest.html5": true,
+  
+  "css.validate": true,
+  "scss.validate": true,
+  
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.saveActions.organizeImports": true,
+  
+  "spring-boot.ls.problem.application-properties.unknown-property": "ignore",
+  
+  "todo-tree.general.tags": [
+    "AI_TODO",
+    "AI_PATTERN", 
+    "AI_CONTEXT",
+    "TODO",
+    "FIXME",
+    "HACK",
+    "XXX"
+  ],
+  
+  "todo-tree.highlights.customHighlight": {
+    "AI_TODO": {
+      "icon": "robot",
+      "foreground": "#00FF00"
+    },
+    "AI_PATTERN": {
+      "icon": "lightbulb", 
+      "foreground": "#FFD700"
+    },
+    "AI_CONTEXT": {
+      "icon": "info",
+      "foreground": "#00BFFF"
+    }
+  },
+  
+  "git.ignoreLimitWarning": true,
+  
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.ts": "$(capture).spec.ts, $(capture).stories.ts",
+    "*.component.ts": "$(capture).component.html, $(capture).component.scss, $(capture).component.spec.ts",
+    "*.service.ts": "$(capture).service.spec.ts"
+  },
+  
+  "files.defaultLanguage": "typescript",
+  "typescript.suggest.autoImports": true,
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+    "html"
+  ],
+  
+  "github.copilot.enable": {
+    "*": true,
+    "yaml": false,
+    "plaintext": true,
+    "markdown": true
+  },
+  
+  "github.copilot.advanced": {
+    "length": 500,
+    "temperature": 0.1,
+    "top_p": 1,
+    "inlineSuggestMode": "trigger",
+    "debug.overrideEngine": "copilot-codex"
+  },
+  
+  "ai.promptBoost.enabled": true,
+  "ai.promptBoost.autoEnhance": true,
+  "ai.promptBoost.templates": {
+    "angular-component": "tools/ai-prompts/templates/component-generation.md",
+    "spring-service": "tools/ai-prompts/templates/service-generation.md", 
+    "test-tdd": "tools/ai-prompts/templates/test-generation.md",
+    "refactor": "tools/ai-prompts/templates/refactoring.md"
+  },
+  
+  "ai.promptBoost.enhancementRules": [
+    {
+      "trigger": "generate",
+      "action": "boost",
+      "template": "angular-component",
+      "when": "*.component.ts"
+    },
+    {
+      "trigger": "test",
+      "action": "boost", 
+      "template": "test-tdd",
+      "when": "*.spec.ts"
+    },
+    {
+      "trigger": "service",
+      "action": "boost",
+      "template": "spring-service", 
+      "when": "*.service.ts"
+    }
+  ],
+  
+  "ai.context.includeProjectStructure": true,
+  "ai.context.includeRecentChanges": true,
+  "ai.context.maxContextLines": 1000,
+  "ai.context.autoIncludePatterns": [
+    "*.md",
+    "*.instructions.md", 
+    "**/ai-prompts/**/*.md",
+    "architecture/*.md"
+  ],
+  
+  "ai.agent.mode": "enhanced",
+  "ai.agent.promptBoost.enabled": true,
+  "ai.agent.context.smartSelection": true,
+  "ai.agent.templates.path": "tools/ai-prompts/templates",
+  
+  "ai.mcp.enabled": true,
+  "ai.mcp.servers": {
+    "filesystem": {
+      "enabled": true,
+      "rootPath": "."
+    },
+    "git": {
+      "enabled": true
+    },
+    "memory": {
+      "enabled": true,
+      "persistContext": true
+    }
+  }
+}

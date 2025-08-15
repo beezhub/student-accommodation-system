@@ -1,0 +1,81 @@
+{
+  "ai-context": {
+    "primary-files": [
+      "AI_AGENT_GUIDELINES.md",
+      ".github/instructions/student-accomodation.instructions.md",
+      "docs/DEVELOPMENT_WORKFLOW.md",
+      "tools/ai-prompts/README.md"
+    ],
+    "secondary-files": [
+      "docs/BUSINESS_REQUIREMENTS.md",
+      "docs/architecture/README.md",
+      "tools/ai-prompts/templates/component-generation.md",
+      "tools/ai-prompts/templates/test-generation.md"
+    ],
+    "quick-reference": {
+      "architecture": "Single Responsibility + Cloud Native",
+      "ui-framework": "Angular Material + Apple Design",
+      "testing": "TDD with 80%+ coverage",
+      "technologies": {
+        "frontend": "Angular 18+, Material, NgRx, TypeScript",
+        "backend": "Spring Boot 3+, PostgreSQL, Redis",
+        "devops": "Docker, Kubernetes, Prometheus"
+      },
+      "key-principles": [
+        "Single Responsibility Principle for all components",
+        "Angular Material with Apple-inspired design",
+        "Test-Driven Development (80%+ coverage)",
+        "Cloud-native, container-first architecture",
+        "Accessibility compliance (WCAG 2.1 AA)",
+        "TypeScript strict mode and proper typing"
+      ]
+    },
+    "quality-gates": {
+      "test-coverage": "80%",
+      "code-quality": "SonarQube passing",
+      "accessibility": "WCAG 2.1 AA",
+      "security": "OWASP compliant",
+      "performance": "Core Web Vitals"
+    },
+    "prompt-templates": {
+      "component": "tools/ai-prompts/templates/component-generation.md",
+      "service": "tools/ai-prompts/templates/service-generation.md",
+      "test": "tools/ai-prompts/templates/test-generation.md"
+    }
+  },
+  "agent-instructions": {
+    "always-include": [
+      "Load AI_AGENT_GUIDELINES.md first",
+      "Follow Single Responsibility Principle",
+      "Use TDD approach (tests first)",
+      "Apply Apple-inspired design patterns",
+      "Ensure 80%+ test coverage",
+      "Include proper error handling",
+      "Support accessibility requirements"
+    ],
+    "code-patterns": {
+      "angular-component": "Standalone, OnPush, Material components",
+      "angular-service": "Injectable, RxJS, error handling",
+      "spring-controller": "REST, validation, documentation",
+      "testing": "Arrange-Act-Assert, mocks, edge cases"
+    }
+  },
+  "workflow": {
+    "tdd-cycle": [
+      "Write failing tests",
+      "Implement minimal code",
+      "Refactor"
+    ],
+    "review-checklist": [
+      "SRP compliance",
+      "Test coverage",
+      "Apple design",
+      "Accessibility"
+    ],
+    "deployment": [
+      "Container-ready",
+      "Health checks",
+      "Observability"
+    ]
+  }
+}

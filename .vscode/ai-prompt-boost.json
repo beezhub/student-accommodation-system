@@ -1,0 +1,180 @@
+{
+    "promptBoost": {
+        "version": "1.0.0",
+        "description": "AI Prompt Boost Configuration for Student Accommodation System",
+        "templates": {
+            "angular-component": {
+                "path": "tools/ai-prompts/templates/component-generation.md",
+                "description": "Generate Angular components with Apple-inspired Material Design",
+                "triggers": [
+                    "component",
+                    "generate component",
+                    "create component"
+                ],
+                "filePattern": "*.component.ts",
+                "context": {
+                    "includeFiles": [
+                        "*.model.ts",
+                        "*.service.ts",
+                        "*.module.ts"
+                    ],
+                    "excludePatterns": [
+                        "*.spec.ts",
+                        "build/**",
+                        "dist/**"
+                    ]
+                }
+            },
+            "spring-service": {
+                "path": "tools/ai-prompts/templates/service-generation.md",
+                "description": "Generate Spring Boot services with microservices patterns",
+                "triggers": [
+                    "service",
+                    "generate service",
+                    "create service"
+                ],
+                "filePattern": "*Service.java",
+                "context": {
+                    "includeFiles": [
+                        "*.java",
+                        "application.yml",
+                        "pom.xml",
+                        "build.gradle"
+                    ],
+                    "excludePatterns": [
+                        "*Test.java",
+                        "target/**",
+                        "build/**"
+                    ]
+                }
+            },
+            "test-tdd": {
+                "path": "tools/ai-prompts/templates/test-generation.md",
+                "description": "Generate comprehensive test suites using TDD approach",
+                "triggers": [
+                    "test",
+                    "generate test",
+                    "tdd",
+                    "unit test"
+                ],
+                "filePattern": "*.spec.ts",
+                "context": {
+                    "includeFiles": [
+                        "*.component.ts",
+                        "*.service.ts",
+                        "*.model.ts"
+                    ],
+                    "testFramework": "jasmine",
+                    "coverageTarget": "80%"
+                }
+            },
+            "java-test": {
+                "path": "tools/ai-prompts/templates/java-test-generation.md",
+                "description": "Generate Java test suites with JUnit and Mockito",
+                "triggers": [
+                    "java test",
+                    "junit",
+                    "integration test"
+                ],
+                "filePattern": "*Test.java",
+                "context": {
+                    "includeFiles": [
+                        "*Service.java",
+                        "*Controller.java",
+                        "*Repository.java"
+                    ],
+                    "testFramework": "junit5",
+                    "coverageTarget": "85%"
+                }
+            },
+            "api-endpoint": {
+                "path": "tools/ai-prompts/templates/api-generation.md",
+                "description": "Generate RESTful API endpoints with OpenAPI documentation",
+                "triggers": [
+                    "api",
+                    "endpoint",
+                    "rest controller"
+                ],
+                "filePattern": "*Controller.java",
+                "context": {
+                    "includeFiles": [
+                        "*Service.java",
+                        "*.dto.java",
+                        "application.yml"
+                    ],
+                    "apiStandard": "OpenAPI 3.0",
+                    "authentication": "JWT"
+                }
+            }
+        },
+        "enhancementRules": {
+            "contextAwareness": {
+                "enabled": true,
+                "maxContextTokens": 4000,
+                "prioritizeRecent": true,
+                "includeArchitectureDoc": true
+            },
+            "codeQuality": {
+                "enforceStandards": true,
+                "includeSecurityChecks": true,
+                "validateAccessibility": true,
+                "ensureTestCoverage": true
+            },
+            "projectSpecific": {
+                "architectureStyle": "microservices",
+                "uiFramework": "angular-material",
+                "designSystem": "apple-inspired",
+                "testingApproach": "tdd",
+                "authenticationMethod": "jwt",
+                "database": "postgresql"
+            }
+        },
+        "agentModeSettings": {
+            "autoBoostEnabled": true,
+            "contextEnrichment": true,
+            "templateSuggestions": true,
+            "qualityValidation": true,
+            "iterativeRefinement": true,
+            "smartFileDetection": true
+        },
+        "integrations": {
+            "mcp": {
+                "enabled": true,
+                "servers": [
+                    "filesystem",
+                    "git",
+                    "memory"
+                ],
+                "contextEnhancement": true
+            },
+            "vscode": {
+                "commandPalette": true,
+                "quickActions": true,
+                "statusBar": true
+            }
+        }
+    },
+    "shortcuts": {
+        "boost-angular": {
+            "command": "ai.promptBoost.useTemplate",
+            "args": [
+                "angular-component"
+            ],
+            "keybinding": "ctrl+shift+a"
+        },
+        "boost-test": {
+            "command": "ai.promptBoost.useTemplate",
+            "args": [
+                "test-tdd"
+            ],
+            "keybinding": "ctrl+shift+t"
+        },
+        "boost-service": {
+            "command": "ai.promptBoost.useTemplate",
+            "args": [
+                "spring-service"
+            ],
+            "keybinding": "ctrl+shift+s"
+        }
+    }
+}
