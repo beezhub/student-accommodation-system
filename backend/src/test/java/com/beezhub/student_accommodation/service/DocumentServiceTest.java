@@ -176,4 +176,52 @@ class DocumentServiceTest {
                 () -> documentService.getAllDocumentsByUserId(999L, "user@example.com"));
         assertTrue(ex.getMessage().contains("Unauthorized"));
     }
+
+    @Test
+    void getAllDocumentsByUserId_success() {
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentRepository.findAllByStudent_AppUser_Id(1L)).thenReturn(java.util.List.of(document));
+        when(documentMapper.toDocumentResponseList(anyList())).thenReturn(java.util.List.of(new DocumentResponse()));
+        var list = documentService.getAllDocumentsByUserId(1L, "user@example.com");
+        assertEquals(1, list.size());
+    }
+
+    @Test
+    void uploadDocuments_multipleFiles_success() throws Exception {
+        MultipartFile f1 = mock(MultipartFile.class);
+        MultipartFile f2 = mock(MultipartFile.class);
+        when(f1.getOriginalFilename()).thenReturn("a.pdf");
+        when(f1.getSize()).thenReturn(10L);
+        when(f1.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[]{1}));
+        when(f1.getContentType()).thenReturn("application/pdf");
+        when(f2.getOriginalFilename()).thenReturn("b.pdf");
+        when(f2.getSize()).thenReturn(20L);
+        when(f2.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[]{2}));
+        when(f2.getContentType()).thenReturn("application/pdf");
+
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentTypeRepository.findById(2L)).thenReturn(Optional.of(docType));
+        when(documentTypeRepository.findById(3L)).thenReturn(Optional.of(docType));
+        when(studentRepository.findStudentByAppUser(user)).thenReturn(Optional.of(student));
+        when(documentRepository.save(any(Document.class))).thenReturn(document);
+        when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(new DocumentResponse());
+
+        var out = documentService.uploadDocuments(java.util.List.of(f1, f2), "user@example.com", java.util.List.of(2L, 3L));
+        assertEquals(2, out.size());
+        verify(minioClient, times(2)).putObject(any(PutObjectArgs.class));
+    }
+
+    @Test
+    void downloadDocument_success() throws Exception {
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+        io.minio.GetObjectResponse response = mock(io.minio.GetObjectResponse.class, RETURNS_DEEP_STUBS);
+        when(minioClient.getObject(any())).thenReturn(response);
+        when(response.headers().get("Content-Type")).thenReturn("application/pdf");
+
+        var dd = documentService.downloadDocument(100L, "user@example.com");
+        assertEquals("file.pdf", dd.getFilename());
+        assertEquals("application/pdf", dd.getContentType());
+        assertNotNull(dd.getResource());
+    }
 }
