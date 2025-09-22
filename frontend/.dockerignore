@@ -1,0 +1,14 @@
+.git
+.gitignore
+README.md
+Dockerfile
+.angular
+.vscode
+node_modules
+npm-debug.log
+dist
+e2e
+coverage
+*.md
+.editorconfig
+.dockerignore

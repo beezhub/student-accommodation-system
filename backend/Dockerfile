@@ -1,13 +1,22 @@
 # Stage 1: Build the application
 FROM gradle:jdk21-alpine AS builder
 WORKDIR /app
-COPY gradlew .
+
+# Copy only the files needed for dependency resolution first
 COPY gradle ./gradle
 COPY build.gradle settings.gradle ./
-COPY src ./src
+COPY gradlew .
 RUN chmod +x ./gradlew
-RUN ./gradlew bootJar --no-daemon -x test
-RUN find build/libs/ -type f -name '*.jar' -exec ls -l {} \;
+
+# Download dependencies - this layer will be cached if dependencies don't change
+RUN ./gradlew downloadDependencies --no-daemon || return 0
+
+# Copy source code
+COPY src ./src
+
+# Build the application
+RUN ./gradlew bootJar --no-daemon --parallel --build-cache -x test \
+  && find build/libs/ -type f -name '*.jar' -exec ls -l {} \;
 
 # Stage 2: Runtime
 FROM eclipse-temurin:21-jre-alpine
@@ -15,9 +24,9 @@ WORKDIR /app
 
 # Create directory and set permissions before switching user
 RUN mkdir -p /app/libs/ && \
-    addgroup -S spring && \
-    adduser -S spring -G spring && \
-    chown -R spring:spring /app
+  addgroup -S spring && \
+  adduser -S spring -G spring && \
+  chown -R spring:spring /app
 
 # Switch to non-root user
 USER spring:spring
@@ -34,7 +43,7 @@ HEALTHCHECK --interval=30s --timeout=3s \
 
 # Run the application
 ENTRYPOINT ["java", \
-    "-XX:+UseContainerSupport", \
-    "-XX:MaxRAMPercentage=75.0", \
-    "-Djava.security.egd=file:/dev/./urandom", \
-    "-jar", "app.jar"]
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-jar", "app.jar"]

@@ -66,5 +66,16 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.getApplicationsByStatus(status));
     }
 
+    @Operation(
+            summary = "Get current application by student ID",
+            description = "Retrieves the current application for the given student ID."
+    )
+    @GetMapping("/current/{studentId}")
+    public ResponseEntity<ApplicationResponse> getCurrentApplicationByStudentId(
+            @Parameter(description = "ID of the user to retrieve the current application for", required = true)
+            @PathVariable("studentId") Long studentId) {
+        var applicationResponse = applicationService.getCurrentApplicationByStudentId(studentId);
+        return ResponseEntity.ok(applicationResponse);
+    }
 
 }

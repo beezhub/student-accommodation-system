@@ -105,3 +105,13 @@ sonarqube {
 
 check.dependsOn jacocoTestCoverageVerification
 
+// Task to download dependencies
+task downloadDependencies() {
+    doLast {
+        configurations.all { configuration ->
+            if (configuration.canBeResolved) {
+                configuration.resolve()
+            }
+        }
+    }
+}

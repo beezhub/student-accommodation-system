@@ -71,4 +71,11 @@ public class ApplicationService {
                 .map(applicationMapper::toResponse)
                 .toList();
     }
+
+    public ApplicationResponse getCurrentApplicationByStudentId(Long studentId) {
+        log.info("Retrieving current application for student with ID: {}", studentId);
+        return applicationRepository.findTopByStudent_IdOrderByApplicationDateDesc(studentId)
+                .map(applicationMapper::toResponse)
+                .orElseThrow(() -> new IllegalArgumentException("No applications found for student with ID: " + studentId));
+    }
 }

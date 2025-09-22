@@ -17,6 +17,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      no_cache: true
+      args:
+        - BUILDKIT_INLINE_CACHE=0
     ports:
       - "8080:8080"
     depends_on:
@@ -72,6 +75,23 @@ services:
       - sonarqube_logs:/opt/sonarqube/logs
     ports:
       - "9002:9000"
+
+  student-accommodation-front-end:
+    container_name: student-accommodation-front-end
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      no_cache: true
+      args:
+        - BUILDKIT_INLINE_CACHE=0
+    ports:
+      - "4200:80"
+    depends_on:
+      - student-accommodation-back-end
+    environment:
+      - API_URL=http://student-accommodation-back-end:8080
+    volumes:
+      - ./frontend/dist:/app/dist
 
 volumes:
   minio_data:

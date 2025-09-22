@@ -16,9 +16,9 @@ COPY . .
 # Build and verify output
 RUN npm run build --configuration=production && \
     echo "Listing dist directory:" && \
-    ls -la dist/demo/browser/ && \
-    echo "Contents of dist/demo/browser:" && \
-    find dist/demo/browser -type f
+    ls -la dist/frontend/browser && \
+    echo "Contents of dist/frontend/browser:" && \
+    find dist/frontend/browser -type f
 
 # Stage 2: Serve the application
 FROM nginx:1.25-alpine
@@ -26,8 +26,15 @@ FROM nginx:1.25-alpine
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
+# Create directory and set permissions
+RUN mkdir -p /usr/share/nginx/html && \
+    chown -R nginx:nginx /usr/share/nginx/html
+
 # Copy built application
-COPY --from=builder /app/dist/demo/browser/ /usr/share/nginx/html/
+COPY --from=builder --chown=nginx:nginx /app/dist/frontend/browser/* /usr/share/nginx/html/
+
+# Verify the files are copied
+RUN ls -la /usr/share/nginx/html
 
 # Expose port 80
 EXPOSE 80
