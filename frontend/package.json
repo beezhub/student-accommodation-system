@@ -27,26 +27,26 @@
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
-    "@angular/build": "^19.2.0",
-    "@angular/cli": "^19.2.0",
-    "@angular/compiler-cli": "^19.2.0",
-    "typescript": "^5.8.2",
-    "eslint": "^8.40.0",
-    "@typescript-eslint/parser": "^6.4.0",
-    "@typescript-eslint/eslint-plugin": "^6.4.0",
     "@angular-eslint/builder": "^19.0.0",
     "@angular-eslint/eslint-plugin": "^19.0.0",
     "@angular-eslint/eslint-plugin-template": "^19.0.0",
     "@angular-eslint/schematics": "^19.0.0",
     "@angular-eslint/template-parser": "^19.0.0",
-    "prettier": "^2.8.8",
+    "@angular/build": "^19.2.0",
+    "@angular/cli": "^19.2.0",
+    "@angular/compiler-cli": "^19.2.0",
+    "@commitlint/cli": "^17.0.0",
+    "@commitlint/config-conventional": "^17.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "@typescript-eslint/parser": "^6.4.0",
+    "eslint": "^8.40.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
+    "lint-staged": "^16.2.6",
+    "prettier": "^2.8.8",
     "stylelint": "^15.0.0",
-    "stylelint-scss": "^4.4.0",
     "stylelint-config-standard": "^30.0.0",
-    "lint-staged": "^14.0.0",
-    "@commitlint/config-conventional": "^17.0.0",
-    "@commitlint/cli": "^17.0.0"
+    "stylelint-scss": "^4.4.0",
+    "typescript": "^5.8.2"
   }
 }
