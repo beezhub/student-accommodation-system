@@ -6,8 +6,9 @@
         <div class="welcome-content">
           <div class="welcome-text">
             <h1 class="welcome-title">
-              Welcome back, {{currentUser?.firstName}}! 👋
+              Welcome back,
             </h1>
+            <div class="welcome-name">{{currentUser?.firstName}}</div>
             <p class="welcome-subtitle">
               Manage your student accommodation journey from your personalized dashboard.
             </p>
@@ -28,145 +29,132 @@
   </div>
 
   <!-- Dashboard Grid -->
-  <div class="dashboard-grid">
-    <!-- Current Application Status -->
-    <mat-card class="status-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon class="card-icon">assignment</mat-icon>
-          Application Status
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="application-status">
-          <div class="status-header">
-            <div class="status-info">
-              <span class="application-year">2024 Application</span>
-              <mat-chip [ngClass]="getStatusClass(currentApplication.status)">
-                {{currentApplication.status}}
-              </mat-chip>
+  <div class="dashboard-grid dashboard-grid-custom two-column-layout">
+    <div class="left-column">
+      <!-- Quick Actions -->
+      <mat-card class="actions-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">flash_on</mat-icon>
+            Quick Actions
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="quick-actions">
+            <button mat-raised-button class="action-button profile-action" routerLink="/profile">
+              <mat-icon>person</mat-icon>
+              <span>Edit Profile</span>
+            </button>
+            <button mat-raised-button class="action-button support-action" routerLink="/contact-support">
+              <mat-icon>support_agent</mat-icon>
+              <span>Contact Support</span>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Application Status -->
+      <mat-card class="status-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">assignment</mat-icon>
+            Application Status
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="application-status">
+            <div class="status-header">
+              <div class="status-info">
+                <span class="application-year">2024 Application</span>
+                <mat-chip [ngClass]="getStatusClass(currentApplication.status)">
+                  {{currentApplication.status}}
+                </mat-chip>
+              </div>
+            </div>
+
+            <div class="room-info" *ngIf="currentApplication.roomInfo">
+              <mat-icon>home</mat-icon>
+              <span>{{currentApplication.roomInfo}}</span>
+            </div>
+
+            <div class="application-actions">
+              <button mat-button color="primary" routerLink="/applications">
+                <mat-icon>visibility</mat-icon>
+                View Details
+              </button>
+              <button mat-button *ngIf="currentApplication.status === 'Pending'">
+                <mat-icon>edit</mat-icon>
+                Edit Application
+              </button>
             </div>
           </div>
+        </mat-card-content>
+      </mat-card>
 
-          <div class="application-progress" *ngIf="currentApplication.status === 'Pending'">
-            <mat-progress-bar mode="indeterminate" class="status-progress"></mat-progress-bar>
-            <p class="progress-text">Your application is being reviewed...</p>
-          </div>
-
-          <div class="room-info" *ngIf="currentApplication.roomInfo">
-            <mat-icon>home</mat-icon>
-            <span>{{currentApplication.roomInfo}}</span>
-          </div>
-
-          <div class="application-actions">
-            <button mat-button color="primary" routerLink="/applications">
-              <mat-icon>visibility</mat-icon>
-              View Details
-            </button>
-            <button mat-button *ngIf="currentApplication.status === 'Pending'">
-              <mat-icon>edit</mat-icon>
-              Edit Application
-            </button>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Quick Actions -->
-    <mat-card class="actions-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon class="card-icon">flash_on</mat-icon>
-          Quick Actions
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="quick-actions">
-          <button mat-raised-button class="action-button document-action" routerLink="/documents">
-            <mat-icon>upload_file</mat-icon>
-            <span>Upload Document</span>
-          </button>
-
-          <button mat-raised-button class="action-button profile-action" routerLink="/profile">
-            <mat-icon>person</mat-icon>
-            <span>Edit Profile</span>
-          </button>
-
-          <button mat-raised-button class="action-button support-action" routerLink="/contact-support">
-            <mat-icon>support_agent</mat-icon>
-            <span>Contact Support</span>
-          </button>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Document Status -->
-    <mat-card class="documents-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon class="card-icon">folder_open</mat-icon>
-          Document Status
-        </mat-card-title>
-        <mat-card-subtitle>{{uploadedDocuments.length}} documents uploaded</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="documents-list">
-          <div class="document-item" *ngFor="let doc of uploadedDocuments">
-            <div class="document-info">
-              <mat-icon class="document-icon">description</mat-icon>
-              <div class="document-details">
-                <span class="document-name">{{doc.name}}</span>
-                <span class="document-date">{{doc.date | date:'shortDate'}}</span>
+      <!-- Previous Applications -->
+      <mat-card class="history-card" *ngIf="previousApplications.length > 0">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">history</mat-icon>
+            Previous Applications
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="history-list">
+            <div class="history-item" *ngFor="let app of previousApplications">
+              <div class="history-info">
+                <div class="history-year">{{app.year}}</div>
+                <div class="history-details">
+                  <mat-chip [ngClass]="getStatusClass(app.status)">{{app.status}}</mat-chip>
+                  <span class="history-room" *ngIf="app.room">{{app.room}}</span>
+                </div>
               </div>
               <button mat-icon-button color="primary" [routerLink]="['/applications', app.id]">
                 <mat-icon>arrow_forward</mat-icon>
               </button>
             </div>
-            <mat-chip [ngClass]="getStatusClass(doc.status)" class="document-status">
-              {{doc.status}}
-            </mat-chip>
           </div>
-        </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
 
-        <mat-divider class="documents-divider"></mat-divider>
-
-        <div class="documents-actions">
-          <button mat-button color="primary" routerLink="/documents">
-            <mat-icon>visibility</mat-icon>
-            View All Documents
-          </button>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Previous Applications -->
-    <mat-card class="history-card" *ngIf="previousApplications.length > 0">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon class="card-icon">history</mat-icon>
-          Previous Applications
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="history-list">
-          <div class="history-item" *ngFor="let app of previousApplications">
-            <div class="history-info">
-              <div class="history-year">{{app.year}}</div>
-              <div class="history-details">
-                <mat-chip [ngClass]="getStatusClass(app.status)">{{app.status}}</mat-chip>
-                <span class="history-room" *ngIf="app.room">{{app.room}}</span>
+    <!-- Right column: Document Status fills remaining width -->
+    <div class="right-column">
+      <mat-card class="documents-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">folder_open</mat-icon>
+            Document Status
+          </mat-card-title>
+          <mat-card-subtitle>{{uploadedDocuments.length}} documents uploaded</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="documents-list">
+            <div class="document-item" *ngFor="let doc of uploadedDocuments">
+              <div class="document-info">
+                <mat-icon class="document-icon">description</mat-icon>
+                <div class="document-details">
+                  <span class="document-name">{{doc.name}}</span>
+                  <span class="document-date">{{doc.date | date:'shortDate'}}</span>
+                </div>
               </div>
               <mat-chip [ngClass]="getStatusClass(doc.status)" class="document-status">
                 {{doc.status}}
               </mat-chip>
             </div>
-            <button mat-icon-button color="primary" [routerLink]="['/applications', app.id]">
-              <mat-icon>arrow_forward</mat-icon>
+          </div>
+
+          <mat-divider class="documents-divider"></mat-divider>
+
+          <div class="documents-actions">
+            <button mat-button color="primary" routerLink="/documents">
+              <mat-icon>visibility</mat-icon>
+              View All Documents
             </button>
           </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
+        </mat-card-content>
+      </mat-card>
+    </div>
   </div>
 
 <!-- Document Viewer Modal -->

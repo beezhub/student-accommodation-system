@@ -17,9 +17,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      no_cache: true
-      args:
-        - BUILDKIT_INLINE_CACHE=0
     ports:
       - "8080:8080"
     depends_on:
@@ -36,6 +33,7 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_BUCKET=student-accommodation-bucket
+      
 
   minio:
     image: minio/minio
@@ -49,53 +47,6 @@ services:
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
-
-  sonarqube-db:
-    image: postgres:16.2-alpine
-    container_name: student-accommodation-sonarqube-db
-    environment:
-      POSTGRES_USER: sonar
-      POSTGRES_PASSWORD: sonar
-      POSTGRES_DB: sonar
-    volumes:
-      - sonarqube_postgresql_data:/var/lib/postgresql/data
-
-  sonarqube:
-    image: sonarqube:community
-    container_name: student-accommodation-sonarqube
-    depends_on:
-      - sonarqube-db
-    environment:
-      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/sonar
-      SONAR_JDBC_USERNAME: sonar
-      SONAR_JDBC_PASSWORD: sonar
-    volumes:
-      - sonarqube_data:/opt/sonarqube/data
-      - sonarqube_extensions:/opt/sonarqube/extensions
-      - sonarqube_logs:/opt/sonarqube/logs
-    ports:
-      - "9002:9000"
-
-  student-accommodation-front-end:
-    container_name: student-accommodation-front-end
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      no_cache: true
-      args:
-        - BUILDKIT_INLINE_CACHE=0
-    ports:
-      - "4200:80"
-    depends_on:
-      - student-accommodation-back-end
-    environment:
-      - API_URL=http://student-accommodation-back-end:8080
-    volumes:
-      - ./frontend/dist:/app/dist
-
+  
 volumes:
   minio_data:
-  sonarqube_data:
-  sonarqube_extensions:
-  sonarqube_logs:
-  sonarqube_postgresql_data:

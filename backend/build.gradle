@@ -3,7 +3,6 @@ plugins {
 	id 'jacoco'
 	id 'org.springframework.boot' version '3.4.5'
 	id 'io.spring.dependency-management' version '1.1.7'
-	id "org.sonarqube" version "6.2.0.5505"
 }
 
 group = 'com.beezhub'
@@ -78,40 +77,17 @@ jacocoTestCoverageVerification {
 	violationRules {
 		rule {
 			element = "CLASS"
-	    includes = [
-		    "com.beezhub.student_accommodation.service.*",
-		    "com.beezhub.student_accommodation.controller.*",
-		    "com.beezhub.student_accommodation.mapper.*",
-		    "com.beezhub.student_accommodation.security.*"
-	    ]
 			limit {
 				counter = "LINE"
 				value = "COVEREDRATIO"
-				minimum = 0.00
+				minimum = 0.0
 			}
+			excludes += [
+					"za.co.momentum.investments.bpm.hs.HyperscienceProxyApplication",
+					"za.co.momentum.investments.bpm.hs.model.*"
+			]
 		}
 	}
 }
-
-sonarqube {
-    properties {
-        property ("sonar.host.url", "http://localhost:9002")
-        property ("sonar.projectKey", "student-accommodation-system")
-        property ("sonar.projectName", "student-accommodation-system")
-        // Point SonarQube to the actual Jacoco XML report path (custom reportsDirectory used above)
-        property ("sonar.coverage.jacoco.xmlReportPaths", file("${buildDir}/jacocoHtml/test/jacocoTestReport.xml").path)
-    }
-}
-
 check.dependsOn jacocoTestCoverageVerification
 
-// Task to download dependencies
-task downloadDependencies() {
-    doLast {
-        configurations.all { configuration ->
-            if (configuration.canBeResolved) {
-                configuration.resolve()
-            }
-        }
-    }
-}

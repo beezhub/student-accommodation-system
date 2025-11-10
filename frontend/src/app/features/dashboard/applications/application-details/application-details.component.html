@@ -12,14 +12,23 @@
       </nav>
     </ng-container>
     <ng-container *ngIf="isSmallScreen">
-      <button mat-icon-button [matMenuTriggerFor]="menu" class="toolbar-menu-btn toolbar-menu-mobile" aria-label="Open menu">
+      <button mat-icon-button [matMenuTriggerFor]="menu" class="toolbar-menu-btn toolbar-menu-mobile"
+        aria-label="Open menu">
         <mat-icon>menu</mat-icon>
       </button>
       <mat-menu #menu="matMenu">
-        <button mat-menu-item routerLink="/dashboard">Dashboard</button>
-        <button mat-menu-item routerLink="/applications">Applications</button>
-        <button mat-menu-item routerLink="/documents">Documents</button>
-        <button mat-menu-item routerLink="/profile">Profile</button>
+        <a mat-menu-item routerLink="/dashboard">
+          <span>Dashboard</span>
+        </a>
+        <a mat-menu-item routerLink="/applications">
+          <span>Applications</span>
+        </a>
+        <a mat-menu-item routerLink="/documents">
+          <span>Documents</span>
+        </a>
+        <a mat-menu-item routerLink="/profile">
+          <span>Profile</span>
+        </a>
       </mat-menu>
     </ng-container>
   </div>
@@ -181,19 +190,20 @@
                 <div class="timeline-mat-icon">
                   <mat-icon color="primary" aria-hidden="true">
                     {{
-                      event.status.toLowerCase() === 'application submitted' ? 'send' :
-                      event.status.toLowerCase() === 'documents verified' ? 'fact_check' :
-                      event.status.toLowerCase() === 'under review' ? 'hourglass_empty' :
-                      event.status.toLowerCase() === 'approved' ? 'check_circle' :
-                      event.status.toLowerCase() === 'rejected' ? 'cancel' :
-                      'info'
+                    event.status.toLowerCase() === 'application submitted' ? 'send' :
+                    event.status.toLowerCase() === 'documents verified' ? 'fact_check' :
+                    event.status.toLowerCase() === 'under review' ? 'hourglass_empty' :
+                    event.status.toLowerCase() === 'approved' ? 'check_circle' :
+                    event.status.toLowerCase() === 'rejected' ? 'cancel' :
+                    'info'
                     }}
                   </mat-icon>
                 </div>
                 <div class="timeline-mat-content">
                   <div class="timeline-mat-header">
                     <span class="timeline-mat-title">{{event.status}}</span>
-                    <mat-chip [ngClass]="getStatusClass(event.status)" class="timeline-mat-chip">{{event.status}}</mat-chip>
+                    <mat-chip [ngClass]="getStatusClass(event.status)"
+                      class="timeline-mat-chip">{{event.status}}</mat-chip>
                     <span class="timeline-mat-date">{{event.date | date}}</span>
                   </div>
                   <div class="timeline-mat-description">{{event.description}}</div>
