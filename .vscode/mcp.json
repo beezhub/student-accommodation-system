@@ -1,0 +1,27 @@
+{
+	"servers": {
+		"sequentialthinking": {
+			"command": "docker",
+			"args": [
+				"run",
+				"-i",
+				"--rm",
+				"mcp/sequentialthinking"
+			],
+			"type": "stdio"
+		},
+		"memory": {
+			"command": "docker",
+			"args": [
+				"run",
+				"-i",
+				"--rm",
+				"-v",
+				"/local-directory:/local-directory",
+				"mcp/memory"
+			],
+			"type": "stdio"
+		}
+	},
+	"inputs": []
+}
