@@ -10,6 +10,8 @@ services:
       POSTGRES_DB: studentaccommodationlocaldb
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/data
 
   student-accommodation-back-end:
     container_name: student-accommodation-back-end
@@ -50,3 +52,4 @@ services:
   
 volumes:
   minio_data:
+  postgres_data:

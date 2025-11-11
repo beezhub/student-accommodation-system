@@ -26,6 +26,8 @@ public class Application {
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status;
+    @Column(name = "remarks")
+    private String remarks;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     @Column(name = "updated_at")
@@ -35,4 +37,14 @@ public class Application {
     @JoinColumn(name = "student_id", referencedColumnName = "id", nullable = false)
     private Student student;
 
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
