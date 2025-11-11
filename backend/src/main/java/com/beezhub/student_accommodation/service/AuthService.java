@@ -5,8 +5,6 @@ import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.LoginResponse;
 import com.beezhub.student_accommodation.model.dto.SignupRequest;
-import com.beezhub.student_accommodation.model.dto.UserData;
-import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;

@@ -1,8 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
 import com.beezhub.student_accommodation.model.dto.LoginRequest;
-import com.beezhub.student_accommodation.security.jwt.JwtUtil;
-import com.beezhub.student_accommodation.model.dto.AuthResponse;
 import com.beezhub.student_accommodation.model.dto.LoginResponse;
 import com.beezhub.student_accommodation.model.dto.SignupRequest;
 import com.beezhub.student_accommodation.service.AuthService;
