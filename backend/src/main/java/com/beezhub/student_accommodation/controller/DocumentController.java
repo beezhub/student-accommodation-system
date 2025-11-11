@@ -2,12 +2,12 @@ package com.beezhub.student_accommodation.controller;
 
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
 import com.beezhub.student_accommodation.service.DocumentService;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -27,8 +27,8 @@ public class DocumentController {
             produces = "application/json"
     )
     public ResponseEntity<List<DocumentResponse>> uploadDocuments(@RequestParam("files") List<MultipartFile> files,
-                                                  @RequestParam("documentTypes") List<Long> documentType,
-                                                  HttpServletRequest request) {
+                                                                  @RequestParam("documentTypes") List<Long> documentType,
+                                                                  HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         return ResponseEntity.ok(documentService.uploadDocuments(files, username, documentType));
@@ -73,6 +73,7 @@ public class DocumentController {
     }
 
     @PutMapping("/update-status/{documentId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DocumentResponse> updateDocumentStatus(@PathVariable Long documentId,
                                                                  @RequestParam String status,
                                                                  HttpServletRequest request) {

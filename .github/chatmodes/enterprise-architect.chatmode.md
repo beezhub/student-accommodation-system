@@ -1,6 +1,6 @@
 ---
 description: Enterprise Full-Stack Architect - Autonomous agent for Angular 18+ & Spring Boot 3+ development with full MCP integration
-tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'atlassian/fetch', 'atlassian/search', 'memory/*', 'sequentialthinking/*', 'chrisdias.promptboost/promptBoost', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'extensions']
+tools: ['edit', 'runNotebooks', 'search', 'new', 'runCommands', 'runTasks', 'atlassian/fetch', 'atlassian/search', 'memory/*', 'sequentialthinking/*', 'oraios/serena/*', 'chrisdias.promptboost/promptBoost', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'extensions', 'todos', 'runSubagent']
 model: GPT-5 mini
 handoffs:
   - label: Review & Test

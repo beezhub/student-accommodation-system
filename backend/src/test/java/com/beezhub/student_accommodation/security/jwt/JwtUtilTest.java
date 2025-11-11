@@ -1,17 +1,40 @@
 package com.beezhub.student_accommodation.security.jwt;
 
 import com.beezhub.student_accommodation.config.JwtConfig;
+import io.jsonwebtoken.ExpiredJwtException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import io.jsonwebtoken.ExpiredJwtException;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class JwtUtilTest {
 
-    private JwtConfig jwtConfig = new JwtConfig("test-secret-key-test-secret-key-test-secret-key-12345", "3600000");
-    private JwtUtil jwtUtil = new JwtUtil(jwtConfig);
+    private JwtUtil jwtUtil;
+
+    @BeforeEach
+    void setUp() {
+        JwtConfig cfg = new JwtConfig(
+                "01234567890123456789012345678901234567890123456789012345678901234",
+                "3600000"
+        );
+        jwtUtil = new JwtUtil(cfg);
+    }
+
+    @Test
+    void generateToken_containsRolesClaim_and_extractRoles() {
+        var user = new User("alice@example.com", "pw", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        String token = jwtUtil.generateToken(user);
+        assertNotNull(token);
+
+        var roles = jwtUtil.extractRoles(token);
+        assertNotNull(roles);
+        assertTrue(roles.contains("ROLE_ADMIN"));
+    }
 
     @Test
     void generateAndValidateToken() {
@@ -27,7 +50,7 @@ class JwtUtilTest {
 
     @Test
     void tokenExpires() throws InterruptedException {
-        JwtConfig shortConfig = new JwtConfig("test-secret-key-test-secret-key-test-secret-key-12345", "1");
+        JwtConfig shortConfig = new JwtConfig("01234567890123456789012345678901234567890123456789012345678901234", "1");
         JwtUtil shortUtil = new JwtUtil(shortConfig);
         UserDetails user = User.withUsername("bob@example.com").password("pw").roles("USER").build();
         String token = shortUtil.generateToken(user);
