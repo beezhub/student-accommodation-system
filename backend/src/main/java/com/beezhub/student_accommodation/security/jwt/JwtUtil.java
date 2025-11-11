@@ -44,7 +44,7 @@ public class JwtUtil {
                 .getBody();
     }
 
-        public String generateToken(UserDetails userDetails) {
+    public String generateToken(UserDetails userDetails) {
         var roles = userDetails.getAuthorities().stream()
             .map(GrantedAuthority::getAuthority)
             .toList();
