@@ -62,12 +62,13 @@ class DocumentServiceTest {
 
     @BeforeEach
     void setUp() {
-        user = new AppUser();
-        user.setId(1L);
-        user.setEmail("user@example.com");
-        user.setFirstName("U");
-        user.setLastName("Ser");
-        user.setUserRole(UserRole.STUDENT);
+        user = AppUser.builder()
+                .id(1L)
+                .email("user@example.com")
+                .firstName("U")
+                .lastName("Ser")
+                .userRole(UserRole.STUDENT)
+                .build();
 
         student = new Student();
         student.setId(10L);
@@ -123,10 +124,11 @@ class DocumentServiceTest {
 
     @Test
     void getDocumentInfo_unauthorized_throws() {
-        AppUser other = new AppUser();
-        other.setId(2L);
-        other.setEmail("other@example.com");
-        other.setUserRole(UserRole.STUDENT);
+        AppUser other = AppUser.builder()
+                .id(2L)
+                .email("other@example.com")
+                .userRole(UserRole.STUDENT)
+                .build();
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(other));
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
 

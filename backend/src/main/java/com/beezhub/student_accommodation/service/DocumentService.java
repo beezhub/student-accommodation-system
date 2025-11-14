@@ -12,16 +12,20 @@ import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.specification.DocumentSpecification;
 import io.minio.*;
 import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -231,5 +235,48 @@ public class DocumentService {
         } catch (Exception e) {
             throw new RuntimeException("Error deleting document: " + documentId, e);
         }
+    }
+
+    public Page<DocumentResponse> searchDocuments(
+            String documentName,
+            Long studentId,
+            Long documentTypeId,
+            String status,
+            LocalDateTime createdAfter,
+            LocalDateTime createdBefore,
+            Pageable pageable,
+            String username
+    ) {
+        var user = getUserByEmail(username);
+        Specification<Document> spec = DocumentSpecification.filterBy(
+                documentName, studentId, documentTypeId, status, createdAfter, createdBefore
+        );
+
+        // If not admin, restrict to user's own documents
+        if (!user.getUserRole().isAdmin()) {
+            spec = spec.and(DocumentSpecification.belongsToUser(user.getId()));
+        }
+
+        Page<Document> documentsPage = documentRepository.findAll(spec, pageable);
+        return documentsPage.map(documentMapper::toDocumentResponse);
+    }
+
+    public Page<DocumentResponse> getMyDocuments(
+            String documentName,
+            Long documentTypeId,
+            String status,
+            LocalDateTime createdAfter,
+            LocalDateTime createdBefore,
+            Pageable pageable,
+            String username
+    ) {
+        var user = getUserByEmail(username);
+        Specification<Document> spec = DocumentSpecification.belongsToUser(user.getId())
+                .and(DocumentSpecification.filterBy(
+                        documentName, null, documentTypeId, status, createdAfter, createdBefore
+                ));
+
+        Page<Document> documentsPage = documentRepository.findAll(spec, pageable);
+        return documentsPage.map(documentMapper::toDocumentResponse);
     }
 }

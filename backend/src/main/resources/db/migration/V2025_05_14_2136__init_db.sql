@@ -78,6 +78,7 @@ CREATE TABLE application (
     application_code VARCHAR(50) NOT NULL UNIQUE,
     application_date DATE DEFAULT CURRENT_DATE,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    remarks VARCHAR(255),
     student_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

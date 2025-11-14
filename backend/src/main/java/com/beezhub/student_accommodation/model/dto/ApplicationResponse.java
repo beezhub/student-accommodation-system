@@ -1,13 +1,28 @@
 package com.beezhub.student_accommodation.model.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ApplicationResponse {
     private Long id;
     private String applicationCode;
     private LocalDate applicationDate;
     private String status;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
+    // Student details
+    private Long studentId;
+    private String studentNumber;
+    private String studentName;
+    private String studentEmail;
 }

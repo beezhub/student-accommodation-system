@@ -4,8 +4,10 @@ import com.beezhub.student_accommodation.config.JwtConfig;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import java.util.List;
+import java.util.Collections;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -42,17 +44,35 @@ public class JwtUtil {
     }
 
     public String generateToken(UserDetails userDetails) {
+        var roles = userDetails.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .toList();
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + Long.parseLong(jwtConfig.getExpirationTime())))
-                .signWith(key)
-                .compact();
+            .setSubject(userDetails.getUsername())
+            .claim("roles", roles)
+            .setIssuedAt(new Date())
+            .setExpiration(new Date(System.currentTimeMillis() + Long.parseLong(jwtConfig.getExpirationTime())))
+            .signWith(key)
+            .compact();
     }
 
     public boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+    }
+
+    public boolean validateToken(String token, String username) {
+        final String tokenUsername = extractUsername(token);
+        return tokenUsername != null && tokenUsername.equals(username) && !isTokenExpired(token);
+    }
+
+    public List<String> extractRoles(String token) {
+        Claims claims = extractAllClaims(token);
+        Object rolesObj = claims.get("roles");
+        if (rolesObj instanceof List<?>) {
+            return ((List<?>) rolesObj).stream().map(Object::toString).toList();
+        }
+        return Collections.emptyList();
     }
 
     private boolean isTokenExpired(String token) {

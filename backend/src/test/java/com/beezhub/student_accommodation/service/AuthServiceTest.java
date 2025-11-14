@@ -61,10 +61,11 @@ class AuthServiceTest {
         signupRequest.setEmail("test@example.com");
         signupRequest.setPassword("password");
 
-        appUser = new AppUser();
-        appUser.setEmail("test@example.com");
-        appUser.setUserPassword("encodedPassword");
-        appUser.setUserRole(UserRole.STUDENT);
+        appUser = AppUser.builder()
+                .email("test@example.com")
+                .userPassword("encodedPassword")
+                .userRole(UserRole.STUDENT)
+                .build();
 
         userData = new UserData();
         userData.setEmail("test@example.com");
