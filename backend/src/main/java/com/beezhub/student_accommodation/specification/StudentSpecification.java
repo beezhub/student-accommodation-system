@@ -15,11 +15,11 @@ public class StudentSpecification {
 
             if (name != null && !name.trim().isEmpty()) {
                 Predicate firstNamePredicate = criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("firstName")),
+                        criteriaBuilder.lower(root.get("appUser").get("firstName")),
                         "%" + name.toLowerCase() + "%"
                 );
                 Predicate lastNamePredicate = criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("lastName")),
+                        criteriaBuilder.lower(root.get("appUser").get("lastName")),
                         "%" + name.toLowerCase() + "%"
                 );
                 predicates.add(criteriaBuilder.or(firstNamePredicate, lastNamePredicate));
