@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { DocumentViewerComponent } from './documents/document-viewer/document-viewer.component';
+import { HttpClient } from '@angular/common/http';
+import { DocumentService } from '../../core/services/document.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -13,6 +15,8 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatDividerModule } from '@angular/material/divider';
+import { StatusButtonComponent } from '../../shared/status-button.component';
+
 
 @Component({
   selector: 'app-dashboard',
@@ -31,6 +35,7 @@ import { MatDividerModule } from '@angular/material/divider';
     MatProgressBarModule,
     MatGridListModule,
     MatDividerModule,
+    StatusButtonComponent,
   ],
 })
 export class DashboardComponent implements OnInit {
@@ -52,18 +57,36 @@ export class DashboardComponent implements OnInit {
   ];
 
   uploadedDocuments = [
-    { name: 'Student ID', date: '2024-01-15', status: 'Verified' },
+    { name: 'Student ID', date: '2024-01-15', status: 'Rejected' },
     { name: 'Proof of Enrollment', date: '2024-01-15', status: 'Pending' },
     { name: 'Passport', date: '2024-01-15', status: 'Verified' },
   ];
 
-  constructor(private router: Router, private authService: AuthService) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private documentService: DocumentService
+  ) { }
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
     if (!this.currentUser) {
       this.router.navigate(['/login']);
+      return;
     }
+
+    this.documentService.getUploadedDocuments().subscribe({
+      next: (docs) => {
+        this.uploadedDocuments = docs.map(doc => ({
+          name: doc.documentName,
+          date: doc.UploadedDate,
+          status: doc.documentStatus
+        }));
+      },
+      error: (err) => {
+        console.error('Failed to fetch documents:', err);
+      }
+    });
   }
 
   logout() {
@@ -82,13 +105,15 @@ export class DashboardComponent implements OnInit {
   getStatusClass(status: string): string {
     switch (status.toLowerCase()) {
       case 'approved':
-        return 'bg-success';
+        return 'status-approved';
       case 'pending':
-        return 'bg-warning';
-      case 'waitlisted':
-        return 'bg-info';
+        return 'status-pending';
+      case 'rejected':
+        return 'status-rejected';
+      case 'verified':
+        return 'status-verified';
       default:
-        return 'bg-secondary';
+        return '';
     }
   }
 }

@@ -1,0 +1,39 @@
+.status-btn {
+    font-family: 'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 16px !important;
+    padding: 6px 20px;
+    min-width: 120px;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-verified {
+    background: #eafaf1 !important;
+    /* Subtle green */
+    color: #388e3c !important;
+    border: 1px solid #c8e6c9 !important;
+}
+
+.status-pending {
+    background: #fffde7 !important;
+    /* Subtle yellow */
+    color: #fbc02d !important;
+    border: 1px solid #ffe082 !important;
+}
+
+.status-rejected {
+    background: #ffebee !important;
+    /* Subtle red */
+    color: #d32f2f !important;
+    border: 1px solid #ffcdd2 !important;
+}
+
+.status-btn:hover {
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15);
+    transform: translateY(-2px) scale(1.03);
+}

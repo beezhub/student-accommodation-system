@@ -4,7 +4,8 @@ import { RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentViewerComponent } from './document-viewer/document-viewer.component';
-import {UploadDocumentComponent} from "./upload-document/upload-document.component";
+import { DocumentService } from '../../../core/services/document.service';
+import { StatusButtonComponent } from '../../../shared/status-button.component';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -19,7 +20,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-
 import { MatTableDataSource } from '@angular/material/table';
 
 @Component({
@@ -32,7 +32,6 @@ import { MatTableDataSource } from '@angular/material/table';
     RouterModule,
     ReactiveFormsModule,
     DocumentViewerComponent,
-    UploadDocumentComponent,
     // Material modules
     MatToolbarModule,
     MatButtonModule,
@@ -45,7 +44,8 @@ import { MatTableDataSource } from '@angular/material/table';
     MatInputModule,
     MatChipsModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    StatusButtonComponent
   ]
 })
 export class DocumentsComponent implements OnInit {
@@ -89,8 +89,9 @@ export class DocumentsComponent implements OnInit {
   dataSource = new MatTableDataSource<any>(this.documents);
 
   constructor(
-      private authService: AuthService,
-      private fb: FormBuilder
+    private authService: AuthService,
+    private fb: FormBuilder,
+    private documentService: DocumentService
   ) {
     this.uploadForm = this.fb.group({
       documentType: ['', Validators.required]
@@ -99,8 +100,22 @@ export class DocumentsComponent implements OnInit {
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
-    // ensure data source is in sync
-    this.dataSource.data = this.documents;
+    this.documentService.getUploadedDocuments().subscribe({
+      next: (docs) => {
+        this.documents = docs.map(doc => ({
+          id: String(doc.id),
+          name: doc.documentName,
+          type: doc.documentTypeName,
+          uploadDate: doc.UploadedDate,
+          status: doc.documentStatus,
+          size: '' // Size not provided by API, can be updated if available
+        }));
+        this.dataSource.data = this.documents;
+      },
+      error: (err) => {
+        console.error('Failed to fetch documents:', err);
+      }
+    });
   }
 
   getStatusClass(status: string): string {

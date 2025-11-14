@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from './core/services/auth.service';
 import { IconService } from './core/services/icon.service';
@@ -16,6 +16,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { AppNavMenuComponent } from './shared/app-nav-menu.component';
 
 @Component({
   selector: 'app-root',
@@ -32,6 +33,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
     MatDividerModule,
     MatSidenavModule,
     MatListModule,
+    AppNavMenuComponent,
   ],
   providers: [],
 })
@@ -40,6 +42,7 @@ export class AppComponent {
   currentUser: User | null = null;
   private userSub!: Subscription;
   isMobile = false;
+  isHomePage = false;
   constructor(
     private authService: AuthService,
     private router: Router,
@@ -47,6 +50,11 @@ export class AppComponent {
     private iconService: IconService
   ) {
     this.isMobile = this.breakpointObserver.isMatched(Breakpoints.Handset);
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        this.isHomePage = event.urlAfterRedirects === '/home' || event.urlAfterRedirects === '/login';
+      }
+    });
   }
 
   ngOnInit() {

@@ -1,6 +1,6 @@
 .main-content {
-    margin-top: 72px;
-    padding: 2rem 0;
+  margin-top: 72px;
+  padding: 2rem 0;
 }
 
 .app-toolbar .toolbar-content {
@@ -56,32 +56,39 @@
 }
 
 mat-chip.status-verified {
-  background: var(--success-500) !important;
-  color: white;
+  background: var(--success-500, #34c759) !important;
+  /* Apple green fallback */
+  color: white !important;
 }
 
 mat-chip.status-pending {
-  background: var(--warning-500) !important;
-  color: black;
+  background: var(--warning-500, #ffd60a) !important;
+  /* Apple yellow fallback */
+  color: black !important;
 }
 
 mat-chip.status-rejected {
-  background: var(--danger-500) !important;
-  color: white;
+  background: var(--danger-500, #ff3b30) !important;
+  /* Apple red fallback */
+  color: white !important;
 }
 
 mat-chip.status-default {
-  background: var(--neutral-300) !important;
+  background: var(--neutral-300, #e0e0e0) !important;
+  color: black !important;
 }
 
 /* Remove Bootstrap modal/backdrop styles as dialogs use Angular overlays */
-.modal, .modal-backdrop, .modal-dialog, .modal-content {
+.modal,
+.modal-backdrop,
+.modal-dialog,
+.modal-content {
   display: none;
 }
 
 @media (max-width: 768px) {
-    .main-content {
-        margin-top: 56px;
-        padding: 1rem 0;
-    }
+  .main-content {
+    margin-top: 56px;
+    padding: 1rem 0;
+  }
 }
