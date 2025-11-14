@@ -14,7 +14,7 @@ public class YearOfStudySpecification {
             List<Predicate> predicates = new ArrayList<>();
 
             if (year != null) {
-                predicates.add(criteriaBuilder.equal(root.get("year"), year));
+                predicates.add(criteriaBuilder.equal(root.get("yearOfStudy"), year));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

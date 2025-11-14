@@ -84,17 +84,24 @@ public class SecurityConfig {
      * Configure CORS for the application.
      * Allows requests from specified origins with credentials.
      * Admin endpoints require specific CORS configuration.
+     * Uses environment variable ALLOWED_ORIGINS for production configuration.
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow specific origins (update these based on your frontend URLs)
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "http://localhost:4200",
-                "http://localhost:8080"
-        ));
+        // Get allowed origins from environment variable or use defaults for development
+        String allowedOrigins = System.getenv("ALLOWED_ORIGINS");
+        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
+            configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        } else {
+            // Default to localhost origins for development
+            configuration.setAllowedOrigins(Arrays.asList(
+                    "http://localhost:3000",
+                    "http://localhost:4200",
+                    "http://localhost:8080"
+            ));
+        }
         
         // Allow all standard HTTP methods
         configuration.setAllowedMethods(Arrays.asList(
