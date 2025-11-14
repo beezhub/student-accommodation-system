@@ -29,7 +29,7 @@ public class InstitutionSpecification {
 
             if (contactEmail != null && !contactEmail.trim().isEmpty()) {
                 predicates.add(criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("contactEmail")),
+                        criteriaBuilder.lower(root.get("emailAddress")),
                         "%" + contactEmail.toLowerCase() + "%"
                 ));
             }
