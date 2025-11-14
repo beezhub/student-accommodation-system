@@ -12,6 +12,7 @@ import java.util.List;
 public interface DocumentTypeMapper {
 
     @Mapping(source = "typeName", target = "name")
+    @Mapping(source = "isRequired", target = "isRequired")
     DocumentTypeResponse toDto(DocumentType documentType);
 
     List<DocumentTypeResponse> toDtoList(List<DocumentType> documentTypes);

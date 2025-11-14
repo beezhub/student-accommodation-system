@@ -4,6 +4,10 @@ import com.beezhub.student_accommodation.security.jwt.JwtAuthenticationFilter;
 import com.beezhub.student_accommodation.security.user.AppUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
@@ -16,6 +20,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -34,6 +43,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
@@ -48,6 +58,81 @@ public class SecurityConfig {
                 .build();
     }
 
+    /**
+     * Configure role hierarchy for the application.
+     * ADMIN has all privileges of LANDLORD and STUDENT
+     * LANDLORD has all privileges of STUDENT
+     */
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        // Use the static factory method instead of deprecated constructor
+        return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_LANDLORD \n ROLE_LANDLORD > ROLE_STUDENT");
+    }
+
+    /**
+     * Configure method security expression handler with role hierarchy.
+     * This ensures that @PreAuthorize and @PostAuthorize annotations respect the role hierarchy.
+     */
+    @Bean
+    public MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
+        DefaultMethodSecurityExpressionHandler expressionHandler = new DefaultMethodSecurityExpressionHandler();
+        expressionHandler.setRoleHierarchy(roleHierarchy());
+        return expressionHandler;
+    }
+
+    /**
+     * Configure CORS for the application.
+     * Allows requests from specified origins with credentials.
+     * Admin endpoints require specific CORS configuration.
+     * Uses environment variable ALLOWED_ORIGINS for production configuration.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // Get allowed origins from environment variable or use defaults for development
+        String allowedOrigins = System.getenv("ALLOWED_ORIGINS");
+        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
+            configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        } else {
+            // Default to localhost origins for development
+            configuration.setAllowedOrigins(Arrays.asList(
+                    "http://localhost:3000",
+                    "http://localhost:4200",
+                    "http://localhost:8080"
+            ));
+        }
+        
+        // Allow all standard HTTP methods
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+        ));
+        
+        // Allow all headers
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        
+        // Allow credentials (cookies, authorization headers)
+        configuration.setAllowCredentials(true);
+        
+        // Expose authorization header
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
+        
+        // Max age for preflight requests
+        configuration.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        
+        // Apply CORS configuration to all endpoints
+        source.registerCorsConfiguration("/**", configuration);
+        
+        // Specific configuration for admin endpoints can be added if needed
+        // CorsConfiguration adminConfig = new CorsConfiguration(configuration);
+        // adminConfig.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        // source.registerCorsConfiguration("/api/admin/**", adminConfig);
+        
+        return source;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -55,8 +140,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return new ProviderManager(authProvider);
     }

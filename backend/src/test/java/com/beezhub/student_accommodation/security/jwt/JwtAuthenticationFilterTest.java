@@ -24,7 +24,7 @@ class JwtAuthenticationFilterTest {
                 "3600000"
         );
         jwtUtil = new JwtUtil(cfg);
-        filter = new JwtAuthenticationFilter(jwtUtil, mock(org.springframework.security.core.userdetails.UserDetailsService.class));
+        filter = new JwtAuthenticationFilter(jwtUtil);
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 

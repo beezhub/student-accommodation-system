@@ -4,7 +4,6 @@ import com.beezhub.student_accommodation.config.JwtConfig;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import java.util.List;
@@ -44,7 +43,7 @@ public class JwtUtil {
                 .getBody();
     }
 
-        public String generateToken(UserDetails userDetails) {
+    public String generateToken(UserDetails userDetails) {
         var roles = userDetails.getAuthorities().stream()
             .map(GrantedAuthority::getAuthority)
             .toList();
