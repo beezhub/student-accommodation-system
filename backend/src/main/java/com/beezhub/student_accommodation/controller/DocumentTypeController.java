@@ -2,19 +2,19 @@ package com.beezhub.student_accommodation.controller;
 
 import com.beezhub.student_accommodation.model.dto.DocumentTypeRequest;
 import com.beezhub.student_accommodation.model.dto.DocumentTypeResponse;
+import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.service.DocumentTypeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import com.beezhub.student_accommodation.model.dto.PageResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -29,16 +29,11 @@ public class DocumentTypeController {
 
     @GetMapping
     @Operation(summary = "Get all document types", description = "Returns a list of all available document types. Supports pagination with query params: page, size, sort")
-    public ResponseEntity<?> getAllDocumentTypes(
-            @RequestParam(required = false) Boolean paginated,
+    public ResponseEntity<PageResponse<DocumentTypeResponse>> getAllDocumentTypes(
             @PageableDefault(size = 20, sort = "typeName") Pageable pageable) {
         log.info("Fetching all document types");
-        if (Boolean.TRUE.equals(paginated)) {
-            PageResponse<DocumentTypeResponse> page = documentTypeService.getAllDocumentTypes(pageable);
-            return ResponseEntity.ok(page);
-        }
-        List<DocumentTypeResponse> allDocumentTypes = documentTypeService.getAllDocumentTypes();
-        return ResponseEntity.ok(allDocumentTypes);
+        PageResponse<DocumentTypeResponse> page = documentTypeService.getAllDocumentTypes(pageable);
+        return ResponseEntity.ok(page);
     }
 
     @GetMapping("/search")

@@ -313,7 +313,7 @@ class DocumentServiceSearchTest {
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
                 null, null, null, null, null,
-                pageable, "user@test.com"
+                pageable
         );
 
         // Assert
@@ -333,7 +333,7 @@ class DocumentServiceSearchTest {
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
                 "passport", null, null, null, null,
-                pageable, "user@test.com"
+                pageable
         );
 
         // Assert
@@ -354,7 +354,7 @@ class DocumentServiceSearchTest {
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
                 null, null, "APPROVED", null, null,
-                pageable, "user@test.com"
+                pageable
         );
 
         // Assert
@@ -375,7 +375,7 @@ class DocumentServiceSearchTest {
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
                 null, 1L, null, null, null,
-                pageable, "user@test.com"
+                pageable
         );
 
         // Assert
@@ -396,7 +396,7 @@ class DocumentServiceSearchTest {
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
                 null, null, null, createdAfter, null,
-                pageable, "user@test.com"
+                pageable
         );
 
         // Assert
@@ -418,7 +418,7 @@ class DocumentServiceSearchTest {
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
                 "passport", 1L, "PENDING", createdAfter, createdBefore,
-                pageable, "user@test.com"
+                pageable
         );
 
         // Assert
@@ -451,7 +451,7 @@ class DocumentServiceSearchTest {
         assertThrows(RuntimeException.class, () ->
                 documentService.getMyDocuments(
                         null, null, null, null, null,
-                        pageable, "invalid@test.com"
+                        pageable
                 )
         );
         verify(documentRepository, never()).findAll(any(Specification.class), any(Pageable.class));

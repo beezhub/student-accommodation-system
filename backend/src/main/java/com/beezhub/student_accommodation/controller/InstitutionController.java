@@ -4,6 +4,9 @@ import com.beezhub.student_accommodation.model.dto.InstitutionRequest;
 import com.beezhub.student_accommodation.model.dto.InstitutionResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.service.InstitutionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -11,9 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/institution")
@@ -25,14 +25,10 @@ public class InstitutionController {
 
     @GetMapping
     @Operation(summary = "Get all institutions", description = "Returns a list of all registered institutions. Supports pagination with query params: page, size, sort")
-    public ResponseEntity<?> getInstitutions(
-            @RequestParam(required = false) Boolean paginated,
+    public ResponseEntity<PageResponse<InstitutionResponse>> getInstitutions(
             @PageableDefault(size = 20, sort = "name") Pageable pageable) {
-        if (Boolean.TRUE.equals(paginated)) {
-            PageResponse<InstitutionResponse> page = institutionService.getAllInstitutions(pageable);
-            return ResponseEntity.ok(page);
-        }
-        return ResponseEntity.ok(institutionService.getAllInstitutions());
+        PageResponse<InstitutionResponse> page = institutionService.getAllInstitutions(pageable);
+        return ResponseEntity.ok(page);
     }
 
     @GetMapping("/search")

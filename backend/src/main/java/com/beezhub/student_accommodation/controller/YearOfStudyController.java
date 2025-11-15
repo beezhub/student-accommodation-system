@@ -24,14 +24,10 @@ public class YearOfStudyController {
 
     @GetMapping
     @Operation(summary = "Get all years of study", description = "Returns a list of all configured years of study. Supports pagination with query params: page, size, sort")
-    public ResponseEntity<?> getAllYearsOfStudy(
-            @RequestParam(required = false) Boolean paginated,
+    public ResponseEntity<PageResponse<YearOfStudyResponse>> getAllYearsOfStudy(
             @PageableDefault(size = 20, sort = "yearOfStudy") Pageable pageable) {
-        if (Boolean.TRUE.equals(paginated)) {
             PageResponse<YearOfStudyResponse> page = yearOfStudyService.getAllYearsOfStudy(pageable);
             return ResponseEntity.ok(page);
-        }
-        return ResponseEntity.ok(yearOfStudyService.getAllYearsOfStudy());
     }
 
     @GetMapping("/search")

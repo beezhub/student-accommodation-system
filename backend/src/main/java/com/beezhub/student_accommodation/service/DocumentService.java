@@ -43,6 +43,7 @@ public class DocumentService {
     private final AppUserRepository appUserRepository;
     private final StudentRepository studentRepository;
     private final DocumentMapper documentMapper;
+    private final AuthService authService;
 
     public List<DocumentResponse> uploadDocuments(List<MultipartFile> files, String email, List<Long> documentTypeIds) {
         String bucketName = minioConfig.getBucketName();
@@ -267,11 +268,10 @@ public class DocumentService {
             String status,
             LocalDateTime createdAfter,
             LocalDateTime createdBefore,
-            Pageable pageable,
-            String username
+            Pageable pageable
     ) {
-        var user = getUserByEmail(username);
-        Specification<Document> spec = DocumentSpecification.belongsToUser(user.getId())
+        var currentUser = authService.getCurrentUser();
+        Specification<Document> spec = DocumentSpecification.belongsToUser(currentUser.getId())
                 .and(DocumentSpecification.filterBy(
                         documentName, null, documentTypeId, status, createdAfter, createdBefore
                 ));

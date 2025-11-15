@@ -106,30 +106,24 @@ public class DocumentController {
     @ApiResponse(responseCode = "200", description = "Documents for current user returned")
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/my")
-    public ResponseEntity<?> getMyDocuments(
+    public ResponseEntity<PageResponse<DocumentResponse>> getMyDocuments(
             @RequestParam(required = false) String documentName,
             @RequestParam(required = false) Long documentTypeId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore,
-            @RequestParam(defaultValue = "false") boolean paginated,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "DESC") String sortDirection,
-            Authentication authentication
+            @RequestParam(defaultValue = "DESC") String sortDirection
     ) {
-        if (!paginated) {
-            // Backward compatibility: return list
-            return ResponseEntity.ok(documentService.getAllDocumentsByUserId(null, authentication.getName()));
-        }
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<DocumentResponse> documentsPage = documentService.getMyDocuments(
                 documentName, documentTypeId, status, createdAfter, createdBefore,
-                pageable, authentication.getName()
+                pageable
         );
 
         PageResponse<DocumentResponse> response = PageResponse.<DocumentResponse>builder()
