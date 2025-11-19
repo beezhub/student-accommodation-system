@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity(name = "building")
 @Data
@@ -24,6 +26,9 @@ public class Building {
 
     @Column(name = "total_floors")
     private Integer totalFloors;
+
+    @OneToMany(mappedBy = "building", fetch = FetchType.LAZY)
+    private List<Room> rooms = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

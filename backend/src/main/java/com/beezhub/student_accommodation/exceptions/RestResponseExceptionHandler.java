@@ -140,6 +140,18 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(RoomNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRoomNotFound(
+            RoomNotFoundException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                request.getDescription(false)
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(DuplicateApplicationException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateApplication(
             DuplicateApplicationException ex, WebRequest request) {
