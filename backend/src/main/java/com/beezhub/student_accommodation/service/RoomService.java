@@ -68,6 +68,8 @@ public class RoomService {
         Room room = new Room();
         room.setRoomNumber(request.getRoomNumber());
         room.setCapacity(request.getCapacity());
+        room.setCurrentOccupancy(0);
+        room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
 
         if (request.getBuildingId() != null) {
             Building building = buildingRepository.findById(request.getBuildingId())
@@ -87,6 +89,10 @@ public class RoomService {
 
         room.setRoomNumber(request.getRoomNumber());
         room.setCapacity(request.getCapacity());
+
+        if (request.getStatus() != null) {
+            room.setStatus(request.getStatus());
+        }
 
         if (request.getBuildingId() != null) {
             Building building = buildingRepository.findById(request.getBuildingId())

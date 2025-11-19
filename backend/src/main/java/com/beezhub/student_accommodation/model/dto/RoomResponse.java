@@ -7,5 +7,7 @@ public class RoomResponse {
     private String id;
     private String roomNumber;
     private Integer capacity;
+    private Integer currentOccupancy;
+    private String status;
     private BuildingResponse building;
 }

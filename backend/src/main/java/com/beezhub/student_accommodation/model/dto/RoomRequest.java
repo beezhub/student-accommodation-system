@@ -14,5 +14,7 @@ public class RoomRequest {
     @Min(value = 1, message = "Capacity must be at least 1")
     private Integer capacity;
 
+    private String status; // AVAILABLE, OCCUPIED, FULL, MAINTENANCE
+
     private Long buildingId;
 }

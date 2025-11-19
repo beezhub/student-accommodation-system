@@ -19,6 +19,12 @@ public class Room {
     @Column(nullable = false)
     private Integer capacity;
 
+    @Column(name = "current_occupancy", nullable = false)
+    private Integer currentOccupancy = 0;
+
+    @Column(name = "status", length = 20)
+    private String status; // AVAILABLE, OCCUPIED, FULL, MAINTENANCE
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "building_id")
     private Building building;
