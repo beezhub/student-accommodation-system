@@ -128,6 +128,18 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(BuildingNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleBuildingNotFound(
+            BuildingNotFoundException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                request.getDescription(false)
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(DuplicateApplicationException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateApplication(
             DuplicateApplicationException ex, WebRequest request) {
