@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class BuildingResponse {
-    private String id;
+    private Long id;
     private String name;
     private String address;
     private String description;
