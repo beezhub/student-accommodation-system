@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Approved</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .success-icon {
+            text-align: center;
+            font-size: 60px;
+            margin: 20px 0;
+        }
+        .message {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .info-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .info-box li {
+            margin: 8px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+        .contact-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+        .contact-info h4 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .contact-info p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Congratulations!</h1>
+        </div>
+
+        <div class="content">
+            <div class="success-icon">✓</div>
+
+            <p class="message">Dear <span th:text="${studentName}">Student</span>,</p>
+
+            <p class="message">
+                We are delighted to inform you that your accommodation application
+                <strong>#<span th:text="${applicationId}">12345</span></strong> has been
+                <strong style="color: #28a745;">APPROVED</strong>!
+            </p>
+
+            <div class="info-box">
+                <h3>Next Steps</h3>
+                <ul>
+                    <li>Complete your document verification within 7 days</li>
+                    <li>Upload all required documents in your student portal</li>
+                    <li>Wait for room allocation (typically within 2-3 business days)</li>
+                    <li>Review and accept the accommodation terms and conditions</li>
+                    <li>Complete the initial payment as per the fee structure</li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <h3>Important Information</h3>
+                <p><strong>Application Date:</strong> <span th:text="${applicationDate}">2025-01-15</span></p>
+                <p><strong>Academic Year:</strong> <span th:text="${academicYear}">2025/2026</span></p>
+                <p><strong>Semester:</strong> <span th:text="${semester}">First Semester</span></p>
+            </div>
+
+            <center>
+                <a href="#" th:href="${portalUrl}" class="cta-button">Access Your Portal</a>
+            </center>
+
+            <div class="contact-info">
+                <h4>Need Help?</h4>
+                <p><strong>Email:</strong> accommodation@university.edu</p>
+                <p><strong>Phone:</strong> +27 (0) 11 234 5678</p>
+                <p><strong>Office Hours:</strong> Monday - Friday, 8:00 AM - 5:00 PM</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated message from the Student Accommodation System.</p>
+            <p>&copy; 2025 Student Accommodation System. All rights reserved.</p>
+            <p style="margin-top: 10px; font-size: 12px;">
+                <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> |
+                <a href="#" style="color: #667eea; text-decoration: none;">Notification Preferences</a> |
+                <a href="#" style="color: #667eea; text-decoration: none;">Contact Support</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

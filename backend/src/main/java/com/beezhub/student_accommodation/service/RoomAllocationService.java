@@ -38,6 +38,7 @@ public class RoomAllocationService {
     private final RoomRepository roomRepository;
     private final ApplicationRepository applicationRepository;
     private final RoomAllocationMapper roomAllocationMapper;
+    private final NotificationService notificationService;
 
     public List<RoomAllocationResponse> getAllRoomAllocations() {
         log.info("Fetching all room allocations");
@@ -130,8 +131,15 @@ public class RoomAllocationService {
 
         log.info("Successfully created room allocation with id: {}", saved.getId());
 
-        // TODO: Business Rule 5: Send notification email to student
-        // emailService.sendAllocationConfirmation(student, room, allocation);
+        // Business Rule 5: Send notification email to student
+        try {
+            log.info("Triggering room allocation notification for student {} to room {}", student.getId(), room.getRoomNumber());
+            notificationService.sendRoomAllocationNotification(saved);
+        } catch (Exception e) {
+            // Log error but don't fail the request - notification will be retried
+            log.error("Failed to trigger notification for room allocation {} - notification will be retried by scheduler",
+                    saved.getId(), e);
+        }
 
         return roomAllocationMapper.toResponse(saved);
     }
@@ -220,10 +228,12 @@ public class RoomAllocationService {
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + request.getRoomId()));
 
         // If room is changing, validate capacity and update occupancy
+        boolean roomChanged = false;
         if (!oldRoom.getId().equals(newRoom.getId())) {
             validateRoomCapacity(newRoom);
             updateRoomOccupancy(oldRoom, -1);  // Decrease old room
             updateRoomOccupancy(newRoom, 1);    // Increase new room
+            roomChanged = true;
         }
 
         allocation.setStudent(student);
@@ -239,6 +249,20 @@ public class RoomAllocationService {
 
         RoomAllocation updated = roomAllocationRepository.save(allocation);
         log.info("Successfully updated room allocation with id: {}", id);
+
+        // Send notification if room was changed
+        if (roomChanged) {
+            try {
+                log.info("Triggering room change notification for student {} from room {} to room {}",
+                        student.getId(), oldRoom.getRoomNumber(), newRoom.getRoomNumber());
+                notificationService.sendRoomAllocationNotification(updated);
+            } catch (Exception e) {
+                // Log error but don't fail the request - notification will be retried
+                log.error("Failed to trigger notification for room allocation update {} - notification will be retried by scheduler",
+                        updated.getId(), e);
+            }
+        }
+
         return roomAllocationMapper.toResponse(updated);
     }
 

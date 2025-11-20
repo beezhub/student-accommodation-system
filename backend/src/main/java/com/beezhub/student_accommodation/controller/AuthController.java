@@ -1,10 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
-import com.beezhub.student_accommodation.model.dto.ChangePasswordRequest;
-import com.beezhub.student_accommodation.model.dto.LoginRequest;
-import com.beezhub.student_accommodation.model.dto.LoginResponse;
-import com.beezhub.student_accommodation.model.dto.SignupRequest;
-import com.beezhub.student_accommodation.model.dto.UserData;
+import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -82,5 +78,56 @@ public class AuthController {
         public ResponseEntity<Void> logout() {
                 // Stateless JWT: client should discard token. No server action required.
                 return ResponseEntity.noContent().build();
+        }
+
+        @Operation(
+                summary = "Request password reset",
+                description = "Send password reset email to the provided email address"
+        )
+        @ApiResponse(responseCode = "200", description = "Password reset email sent")
+        @PostMapping("/forgot-password")
+        public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+                return ResponseEntity.ok(authService.requestPasswordReset(request.getEmail()));
+        }
+
+        @Operation(
+                summary = "Verify reset token validity",
+                description = "Check if a password reset token is valid and not expired"
+        )
+        @ApiResponse(responseCode = "200", description = "Token validation result returned")
+        @PostMapping("/verify-reset-token")
+        public ResponseEntity<TokenValidationResponse> verifyResetToken(@Valid @RequestBody VerifyEmailRequest request) {
+                return ResponseEntity.ok(authService.verifyResetToken(request.getToken()));
+        }
+
+        @Operation(
+                summary = "Reset password with token",
+                description = "Reset user password using a valid reset token"
+        )
+        @ApiResponse(responseCode = "200", description = "Password reset successfully")
+        @PostMapping("/reset-password")
+        public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+                return ResponseEntity.ok(authService.resetPassword(request.getToken(), request.getNewPassword()));
+        }
+        
+
+        @Operation(
+                summary = "Verify email with token",
+                description = "Verify user's email address using verification token"
+        )
+        @ApiResponse(responseCode = "200", description = "Email verified successfully")
+        @PostMapping("/verify-email")
+        public ResponseEntity<MessageResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+                return ResponseEntity.ok(authService.verifyEmail(request.getToken()));
+        }
+
+        @Operation(
+                summary = "Resend verification email",
+                description = "Resend email verification link to the provided email address"
+        )
+        @ApiResponse(responseCode = "200", description = "Verification email sent")
+        @PostMapping("/resend-verification")
+        public ResponseEntity<MessageResponse> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+                return ResponseEntity.ok(authService.sendVerificationEmail(request.getEmail()));
         }
 }

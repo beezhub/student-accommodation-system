@@ -1,17 +1,20 @@
 package com.beezhub.student_accommodation.service;
 
-import com.beezhub.student_accommodation.exceptions.EmailAlreadyRegisteredException;
-import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
+import com.beezhub.student_accommodation.exceptions.*;
 import com.beezhub.student_accommodation.mapper.AppUserMapper;
-import com.beezhub.student_accommodation.model.dto.ChangePasswordRequest;
-import com.beezhub.student_accommodation.model.dto.LoginResponse;
-import com.beezhub.student_accommodation.model.dto.SignupRequest;
-import com.beezhub.student_accommodation.model.dto.UserData;
+import com.beezhub.student_accommodation.model.dto.*;
+import com.beezhub.student_accommodation.model.entity.EmailVerificationToken;
+import com.beezhub.student_accommodation.model.entity.PasswordResetToken;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.repository.EmailVerificationTokenRepository;
+import com.beezhub.student_accommodation.repository.PasswordResetTokenRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,8 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final AppUserRepository userRepository;
@@ -30,6 +37,18 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final AppUserMapper appUserMapper;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final EmailService emailService;
+
+    @Value("${app.base-url:http://localhost:3000}")
+    private String baseUrl;
+
+    @Value("${app.password-reset.expiry-hours:24}")
+    private int passwordResetExpiryHours;
+
+    @Value("${app.email-verification.expiry-hours:24}")
+    private int emailVerificationExpiryHours;
 
     @Transactional
     public LoginResponse signup(SignupRequest request) {
@@ -81,7 +100,7 @@ public class AuthService {
 
         // Verify current password
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getUserPassword())) {
-            throw new org.springframework.security.authentication.BadCredentialsException("Current password is incorrect");
+            throw new BadCredentialsException("Current password is incorrect");
         }
 
         // Update password
@@ -100,5 +119,183 @@ public class AuthService {
 
     public Long getCurrentUserId() {
         return getCurrentUser().getId();
+    }
+
+    @Transactional
+    public MessageResponse requestPasswordReset(String email) {
+        log.info("Password reset requested for email: {}", email);
+
+        AppUser user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+
+        passwordResetTokenRepository.deleteByUserId(user.getId());
+
+        // Generate new token
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiryDate = LocalDateTime.now().plusHours(passwordResetExpiryHours);
+
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(expiryDate)
+                .used(false)
+                .build();
+
+        passwordResetTokenRepository.save(resetToken);
+
+        // Send password reset email
+        String resetUrl = baseUrl + "/reset-password?token=" + token;
+        try {
+            emailService.sendSimpleEmail(
+                    email,
+                    "Password Reset Request",
+                    "Hello " + user.getFirstName() + ",\n\n" +
+                            "You have requested to reset your password. Please click the link below to reset your password:\n\n" +
+                            resetUrl + "\n\n" +
+                            "This link will expire in " + passwordResetExpiryHours + " hours.\n\n" +
+                            "If you did not request this, please ignore this email.\n\n" +
+                            "Best regards,\n" +
+                            "Student Accommodation Team"
+            );
+            log.info("Password reset email sent successfully to: {}", email);
+        } catch (Exception e) {
+            log.error("Failed to send password reset email to: {}", email, e);
+            throw new RuntimeException("Failed to send password reset email");
+        }
+
+        return new MessageResponse("Password reset instructions have been sent to your email");
+    }
+
+    @Transactional
+    public TokenValidationResponse verifyResetToken(String token) {
+        log.info("Verifying reset token");
+
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                .orElse(null);
+
+        if (resetToken == null) {
+            return new TokenValidationResponse(false, "Invalid token");
+        }
+
+        if (resetToken.isUsed()) {
+            return new TokenValidationResponse(false, "Token has already been used");
+        }
+
+        if (resetToken.isExpired()) {
+            return new TokenValidationResponse(false, "Token has expired");
+        }
+
+        return new TokenValidationResponse(true, "Token is valid");
+    }
+
+    @Transactional
+    public MessageResponse resetPassword(String token, String newPassword) {
+        log.info("Attempting to reset password with token");
+
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid password reset token"));
+
+        if (resetToken.isUsed()) {
+            throw new InvalidTokenException("Password reset token has already been used");
+        }
+
+        if (resetToken.isExpired()) {
+            throw new TokenExpiredException("Password reset token has expired");
+        }
+
+        AppUser user = resetToken.getUser();
+        user.setUserPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Mark token as used
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+
+        log.info("Password reset successful for user: {}", user.getEmail());
+        return new MessageResponse("Password has been reset successfully");
+    }
+
+    // ==================== Email Verification Methods ====================
+
+    @Transactional
+    public MessageResponse sendVerificationEmail(String email) {
+        log.info("Sending verification email to: {}", email);
+
+        AppUser user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new EmailAlreadyVerifiedException("Email is already verified");
+        }
+
+        // Delete any existing verification tokens for this user
+        emailVerificationTokenRepository.deleteByUserId(user.getId());
+
+        // Generate new token
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiryDate = LocalDateTime.now().plusHours(emailVerificationExpiryHours);
+
+        EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(expiryDate)
+                .used(false)
+                .build();
+
+        emailVerificationTokenRepository.save(verificationToken);
+
+        // Send verification email
+        String verificationUrl = baseUrl + "/verify-email?token=" + token;
+        try {
+            emailService.sendSimpleEmail(
+                    email,
+                    "Email Verification",
+                    "Hello " + user.getFirstName() + ",\n\n" +
+                            "Thank you for registering! Please click the link below to verify your email address:\n\n" +
+                            verificationUrl + "\n\n" +
+                            "This link will expire in " + emailVerificationExpiryHours + " hours.\n\n" +
+                            "If you did not register, please ignore this email.\n\n" +
+                            "Best regards,\n" +
+                            "Student Accommodation Team"
+            );
+            log.info("Verification email sent successfully to: {}", email);
+        } catch (Exception e) {
+            log.error("Failed to send verification email to: {}", email, e);
+            throw new RuntimeException("Failed to send verification email");
+        }
+
+        return new MessageResponse("Verification email has been sent to your email address");
+    }
+
+    @Transactional
+    public MessageResponse verifyEmail(String token) {
+        log.info("Attempting to verify email with token");
+
+        EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid verification token"));
+
+        if (verificationToken.isUsed()) {
+            throw new InvalidTokenException("Verification token has already been used");
+        }
+
+        if (verificationToken.isExpired()) {
+            throw new TokenExpiredException("Verification token has expired");
+        }
+
+        AppUser user = verificationToken.getUser();
+
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new EmailAlreadyVerifiedException("Email is already verified");
+        }
+
+        user.setEmailVerified(true);
+        userRepository.save(user);
+
+        // Mark token as used
+        verificationToken.setUsed(true);
+        emailVerificationTokenRepository.save(verificationToken);
+
+        log.info("Email verification successful for user: {}", user.getEmail());
+        return new MessageResponse("Email has been verified successfully");
     }
 }

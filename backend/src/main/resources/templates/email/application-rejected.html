@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Status Update</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .message {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .reason-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .reason-box h3 {
+            margin-top: 0;
+            color: #721c24;
+        }
+        .reapply-box {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .reapply-box h3 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+        .reapply-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .reapply-box li {
+            margin: 8px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: #ffffff;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+        .contact-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+        .contact-info h4 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .contact-info p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Application Status Update</h1>
+        </div>
+
+        <div class="content">
+            <p class="message">Dear <span th:text="${studentName}">Student</span>,</p>
+
+            <p class="message">
+                Thank you for your interest in student accommodation. We have carefully reviewed your
+                application <strong>#<span th:text="${applicationId}">12345</span></strong>.
+            </p>
+
+            <p class="message">
+                Unfortunately, we regret to inform you that we are unable to approve your application
+                at this time.
+            </p>
+
+            <div class="reason-box">
+                <h3>Reason for Decision</h3>
+                <p th:text="${rejectionReason}">
+                    Your application did not meet the eligibility criteria at this time.
+                    Please review the requirements and consider reapplying in the future.
+                </p>
+            </div>
+
+            <div class="info-box">
+                <h3>Application Details</h3>
+                <p><strong>Application ID:</strong> <span th:text="${applicationId}">12345</span></p>
+                <p><strong>Submission Date:</strong> <span th:text="${applicationDate}">2025-01-15</span></p>
+                <p><strong>Review Date:</strong> <span th:text="${reviewDate}">2025-01-20</span></p>
+            </div>
+
+            <div class="reapply-box">
+                <h3>Reapplication Instructions</h3>
+                <p>You are welcome to reapply for accommodation in the future. When reapplying, please:</p>
+                <ul>
+                    <li>Ensure all eligibility criteria are met</li>
+                    <li>Provide complete and accurate information</li>
+                    <li>Submit all required supporting documents</li>
+                    <li>Apply within the designated application period</li>
+                    <li>Review the feedback provided above</li>
+                </ul>
+                <p><strong>Next Application Period:</strong> <span th:text="${nextApplicationPeriod}">June 2025</span></p>
+            </div>
+
+            <center>
+                <a href="#" th:href="${portalUrl}" class="cta-button">Visit Student Portal</a>
+            </center>
+
+            <div class="contact-info">
+                <h4>Have Questions?</h4>
+                <p>If you would like to discuss this decision or need clarification, please contact us:</p>
+                <p><strong>Email:</strong> accommodation@university.edu</p>
+                <p><strong>Phone:</strong> +27 (0) 11 234 5678</p>
+                <p><strong>Office Hours:</strong> Monday - Friday, 8:00 AM - 5:00 PM</p>
+            </div>
+
+            <p class="message" style="margin-top: 30px; font-style: italic;">
+                We appreciate your understanding and wish you the best in your academic pursuits.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated message from the Student Accommodation System.</p>
+            <p>&copy; 2025 Student Accommodation System. All rights reserved.</p>
+            <p style="margin-top: 10px; font-size: 12px;">
+                <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> |
+                <a href="#" style="color: #667eea; text-decoration: none;">Notification Preferences</a> |
+                <a href="#" style="color: #667eea; text-decoration: none;">Contact Support</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

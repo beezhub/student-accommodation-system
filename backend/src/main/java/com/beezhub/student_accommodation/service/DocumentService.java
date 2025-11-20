@@ -44,6 +44,7 @@ public class DocumentService {
     private final StudentRepository studentRepository;
     private final DocumentMapper documentMapper;
     private final AuthService authService;
+    private final NotificationService notificationService;
 
     public List<DocumentResponse> uploadDocuments(List<MultipartFile> files, String email, List<Long> documentTypeIds) {
         String bucketName = minioConfig.getBucketName();
@@ -196,6 +197,12 @@ public class DocumentService {
     }
 
     public DocumentResponse updateDocumentStatus(Long documentId, String status, String username) {
+        return updateDocumentStatus(documentId, status, null, username);
+    }
+
+    public DocumentResponse updateDocumentStatus(Long documentId, String status, String comment, String username) {
+        log.info("Updating document {} to status: {}", documentId, status);
+
         var user = getUserByEmail(username);
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new RuntimeException("Document not found"));
@@ -205,8 +212,25 @@ public class DocumentService {
         }
 
         try {
-            document.setDocumentStatus(DocumentStatus.valueOf(status.toUpperCase()));
+            DocumentStatus oldStatus = document.getDocumentStatus();
+            DocumentStatus newStatus = DocumentStatus.valueOf(status.toUpperCase());
+            document.setDocumentStatus(newStatus);
             Document updatedDocument = documentRepository.save(document);
+
+            log.info("Document {} status updated from {} to: {}", documentId, oldStatus, newStatus);
+
+            // Send notification if status changed to APPROVED or REJECTED
+            if (newStatus != oldStatus && (newStatus == APPROVED || newStatus == REJECTED)) {
+                try {
+                    log.info("Triggering notification for document {} with status {}", documentId, newStatus);
+                    notificationService.sendDocumentVerificationNotification(updatedDocument, newStatus, comment);
+                } catch (Exception e) {
+                    // Log error but don't fail the request - notification will be retried
+                    log.error("Failed to trigger notification for document {} - notification will be retried by scheduler",
+                            documentId, e);
+                }
+            }
+
             return documentMapper.toDocumentResponse(updatedDocument);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid document status: " + status, e);

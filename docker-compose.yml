@@ -25,6 +25,7 @@ services:
     depends_on:
       - db
       - minio
+      - mailhog
     environment:
       - POSTGRES_DB=studentaccommodationlocaldb
       - USER_DB=localadmin
@@ -36,20 +37,36 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_BUCKET=student-accommodation-bucket
+      - MAIL_HOST=mailhog
+      - MAIL_PORT=1025
+      - MAIL_USERNAME=
+      - MAIL_PASSWORD=
+      - APP_BASE_URL=http://localhost:3000
+      - APP_SUPPORT_EMAIL=accommodation@university.edu
+      - APP_UNIVERSITY_NAME=University
 
   minio:
     image: minio/minio
     container_name: student-accommodation-minio
     ports:
-      - "9000:9000"  
-      - "9001:9001"  
+      - "9000:9000"
+      - "9001:9001"
     environment:
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
-  
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: student-accommodation-mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    logging:
+      driver: "none"  # Disable logs to reduce noise
+
 volumes:
   minio_data:
   postgres_data:

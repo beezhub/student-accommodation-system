@@ -29,6 +29,22 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
     locations: classpath:db/migration
     out-of-order: true
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+    default-encoding: UTF-8
 springdoc:
   api-docs:
     path: /v3/api-docs
@@ -45,3 +61,10 @@ minio:
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
   bucket-name: ${MINIO_BUCKET:student-accommodation-bucket}
+app:
+  base-url: ${APP_BASE_URL:http://localhost:3000}
+  support-email: ${APP_SUPPORT_EMAIL:accommodation@university.edu}
+  university-name: ${APP_UNIVERSITY_NAME:University}
+  notification:
+    retry-delay-minutes: ${NOTIFICATION_RETRY_DELAY_MINUTES:5}
+    retry-check-interval-ms: ${NOTIFICATION_RETRY_CHECK_INTERVAL_MS:300000}

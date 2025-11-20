@@ -35,6 +35,9 @@ public class AppUser {
     @Column(nullable = false, name = "last_name")
     private String lastName;
 
+    @Column(nullable = false, name = "email_verified")
+    private Boolean emailVerified = false;
+
     @Column(nullable = false, updatable = false, name = "created_at")
     private LocalDateTime createdAt;
 

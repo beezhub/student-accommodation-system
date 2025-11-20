@@ -40,6 +40,7 @@ public class ApplicationService {
     private final StudentRepository studentRepository;
     private final ApplicationMapper applicationMapper;
     private final AuthService authService;
+    private final NotificationService notificationService;
 
     @Transactional
     public ApplicationResponse submitApplication(Long studentId) {
@@ -133,17 +134,30 @@ public class ApplicationService {
     @Transactional
     public ApplicationResponse updateApplicationStatus(Long applicationId, @Valid ApplicationStatusUpdateRequest request) {
         log.info("Updating application {} to status: {}", applicationId, request.getStatus());
-        
+
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + applicationId));
-        
-        ApplicationStatus status = ApplicationStatus.valueOf(request.getStatus().toUpperCase());
-        application.setStatus(status);
+
+        ApplicationStatus oldStatus = application.getStatus();
+        ApplicationStatus newStatus = ApplicationStatus.valueOf(request.getStatus().toUpperCase());
+        application.setStatus(newStatus);
         application.setRemarks(request.getRemarks());
-        
+
         Application updatedApplication = applicationRepository.save(application);
-        log.info("Application {} status updated to: {}", applicationId, request.getStatus());
-        
+        log.info("Application {} status updated from {} to: {}", applicationId, oldStatus, newStatus);
+
+        // Send notification if status changed to APPROVED or REJECTED
+        if (newStatus != oldStatus && (newStatus == APPROVED || newStatus == REJECTED)) {
+            try {
+                log.info("Triggering notification for application {} with status {}", applicationId, newStatus);
+                notificationService.sendApplicationStatusNotification(updatedApplication, newStatus);
+            } catch (Exception e) {
+                // Log error but don't fail the request - notification will be retried
+                log.error("Failed to trigger notification for application {} - notification will be retried by scheduler",
+                        applicationId, e);
+            }
+        }
+
         return applicationMapper.toResponse(updatedApplication);
     }
     
