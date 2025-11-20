@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 @Data
 public class RoomAllocationResponse {
-    private String id;
+    private Long id;
     private LocalDateTime allocationDate;
     private LocalDateTime endDate;
     private String status;
