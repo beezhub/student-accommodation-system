@@ -5,7 +5,8 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Entity(name = "document_type")
+@Entity
+@Table(name = "document_type")
 @Data
 public class DocumentType {
 

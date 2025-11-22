@@ -57,6 +57,14 @@ public class AuthService {
         }
         var user = appUserMapper.toEntity(request, passwordEncoder.encode(request.getPassword()));
         var save = userRepository.save(user);
+
+        try {
+            sendVerificationEmail(save.getEmail());
+            log.info("Verification email sent to new user: {}", save.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send verification email during signup to: {}", save.getEmail(), e);
+        }
+
         var userData = appUserMapper.toUserData(save);
         String token = jwtUtil.generateToken(new AppUserDetails(
                 user.getEmail(),

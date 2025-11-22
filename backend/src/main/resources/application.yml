@@ -30,20 +30,16 @@ spring:
     locations: classpath:db/migration
     out-of-order: true
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:noreply@studentaccommodation.local}
+    password: ${MAIL_PASSWORD:test}
     properties:
       mail:
         smtp:
-          auth: true
+          auth: false
           starttls:
-            enable: true
-            required: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
+            enable: false
     default-encoding: UTF-8
 springdoc:
   api-docs:
@@ -62,7 +58,7 @@ minio:
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
   bucket-name: ${MINIO_BUCKET:student-accommodation-bucket}
 app:
-  base-url: ${APP_BASE_URL:http://localhost:3000}
+  base-url: ${APP_BASE_URL:http://localhost:8080}
   support-email: ${APP_SUPPORT_EMAIL:accommodation@university.edu}
   university-name: ${APP_UNIVERSITY_NAME:University}
   notification:

@@ -15,11 +15,11 @@ public interface EmailVerificationTokenRepository extends JpaRepository<EmailVer
     Optional<EmailVerificationToken> findByToken(String token);
 
     @Modifying
-    @Query("DELETE FROM email_verification_token t WHERE t.expiryDate < ?1")
+    @Query("DELETE FROM EmailVerificationToken t WHERE t.expiryDate < ?1")
     void deleteExpiredTokens(LocalDateTime now);
 
     @Modifying
-    @Query("DELETE FROM email_verification_token t WHERE t.user.id = ?1")
+    @Query("DELETE FROM EmailVerificationToken t WHERE t.user.id = ?1")
     void deleteByUserId(Long userId);
 }
 

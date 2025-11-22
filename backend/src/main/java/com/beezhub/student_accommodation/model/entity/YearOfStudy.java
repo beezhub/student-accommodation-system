@@ -5,7 +5,8 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Entity(name = "year_of_study")
+@Entity
+@Table(name = "year_of_study")
 @Data
 public class YearOfStudy {
 

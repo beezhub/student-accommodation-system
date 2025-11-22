@@ -19,6 +19,7 @@ public interface AppUserMapper {
     @Mapping(target = "lastName", source = "signupRequest.lastName")
     @Mapping(target = "email", source = "signupRequest.email")
     @Mapping(target = "userRole", expression = "java(mapRole(signupRequest.getUserRole()))")
+    @Mapping(target = "emailVerified", constant = "false")
     AppUser toEntity(SignupRequest signupRequest, String password);
 
     UserData toUserData(AppUser appUser);

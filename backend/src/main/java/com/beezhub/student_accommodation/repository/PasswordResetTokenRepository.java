@@ -14,11 +14,11 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     Optional<PasswordResetToken> findByToken(String token);
 
     @Modifying
-    @Query("DELETE FROM password_reset_token t WHERE t.expiryDate < ?1")
+    @Query("DELETE FROM PasswordResetToken t WHERE t.expiryDate < ?1")
     void deleteExpiredTokens(LocalDateTime now);
 
     @Modifying
-    @Query("DELETE FROM password_reset_token t WHERE t.user.id = ?1")
+    @Query("DELETE FROM PasswordResetToken t WHERE t.user.id = ?1")
     void deleteByUserId(Long userId);
 }
 

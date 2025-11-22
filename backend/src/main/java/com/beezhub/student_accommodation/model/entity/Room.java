@@ -5,7 +5,8 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Entity(name = "room")
+@Entity
+@Table(name = "room")
 @Data
 public class Room {
 
@@ -19,7 +20,7 @@ public class Room {
     @Column(nullable = false)
     private Integer capacity;
 
-    @Column(name = "current_occupancy", nullable = false)
+    @Column(name = "current_occupancy", nullable = false, columnDefinition = "integer default 0")
     private Integer currentOccupancy = 0;
 
     @Column(name = "status", length = 20)

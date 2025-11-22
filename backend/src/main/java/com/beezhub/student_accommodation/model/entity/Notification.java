@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Entity(name = "notification")
+@Entity
+@Table(name = "notification")
 @Data
 @Builder
 @NoArgsConstructor

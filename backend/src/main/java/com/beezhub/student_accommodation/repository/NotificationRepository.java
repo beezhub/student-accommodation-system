@@ -23,12 +23,12 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     List<Notification> findByStatusAndRetryCountLessThan(NotificationStatus status, Integer maxRetries);
 
-    @Query("SELECT n FROM notification n WHERE n.status = :status AND n.retryCount < n.maxRetries AND n.lastAttemptAt < :threshold")
+    @Query("SELECT n FROM Notification n WHERE n.status = :status AND n.retryCount < n.maxRetries AND n.lastAttemptAt < :threshold")
     List<Notification> findFailedNotificationsForRetry(NotificationStatus status, LocalDateTime threshold);
 
-    @Query("SELECT COUNT(n) FROM notification n WHERE n.status = :status")
+    @Query("SELECT COUNT(n) FROM Notification n WHERE n.status = :status")
     long countByStatus(NotificationStatus status);
 
-    @Query("SELECT COUNT(n) FROM notification n WHERE n.status = :status AND n.sentAt BETWEEN :startDate AND :endDate")
+    @Query("SELECT COUNT(n) FROM Notification n WHERE n.status = :status AND n.sentAt BETWEEN :startDate AND :endDate")
     long countByStatusAndDateRange(NotificationStatus status, LocalDateTime startDate, LocalDateTime endDate);
 }

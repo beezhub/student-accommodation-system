@@ -5,7 +5,8 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Entity(name = "room_allocation")
+@Entity
+@Table(name = "room_allocation")
 @Data
 public class RoomAllocation {
 
