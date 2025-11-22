@@ -1,0 +1,41 @@
+# Build outputs
+build/
+target/
+out/
+*.log
+
+# Gradle
+.gradle/
+gradle-wrapper.jar
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+docs/
+*.md
+HELP.md
+
+# Data and test files
+data/
+*.tmp
+*.bak
+
+# DevContainer
+.devcontainer/
+
+# GitHub
+.github/
