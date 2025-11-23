@@ -52,7 +52,7 @@ export class AuthService {
   }
 
   uploadDocuments(files: FormData): Observable<any> {
-    return this.http.post(`${this.apiUrl}/documents`, files);
+    return this.http.post(`${environment.apiUrl}/documents/upload-multiple`, files);
   }
 
   submitApplication(applicationData: any): Observable<any> {

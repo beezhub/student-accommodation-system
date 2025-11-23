@@ -114,7 +114,6 @@
         <app-document-viewer *ngIf="selectedDocument" [document]="selectedDocument"
             (close)="closeViewer()"></app-document-viewer>
 
-        <!-- Upload Modal -->
-        <app-upload-document *ngIf="showUploadModal" (close)="closeUploadModal()"></app-upload-document>
+        <!-- Upload Modal removed: now handled by MatDialog -->
     </div>
 </div>
