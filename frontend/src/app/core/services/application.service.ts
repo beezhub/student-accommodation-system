@@ -12,22 +12,19 @@ export class ApplicationService {
   private apiUrl = `${environment.apiUrl}/applications`;
 
   constructor(private http: HttpClient, private authService: AuthService) {}
-  createApplication(studentId: number): Observable<Application> {
-    let params = new HttpParams().set("studentId", studentId);
-    const token = localStorage.getItem("token");
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-    return this.http.post<Application>(
-      `${this.apiUrl}/submit`,
-      {},
-      {
-        headers,
-        params
-      }
-    );
-  }
+
+    createApplication(studentId: number): Observable<Application> {
+        const token = localStorage.getItem("token");
+        const headers = {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        };
+        return this.http.post<Application>(
+            `${this.apiUrl}/submit`,
+            { studentId: studentId },
+            { headers }
+        );
+    }
 
   getApplicationByStatus(status: string): Observable<Application[]> {
     const token = localStorage.getItem("token");
