@@ -52,7 +52,12 @@ export class AuthService {
   }
 
   uploadDocuments(files: FormData): Observable<any> {
-    return this.http.post(`${this.apiUrl}/documents`, files);
+    const token = localStorage.getItem('token');
+    let headers = undefined;
+    if (token) {
+      headers = { 'Authorization': `Bearer ${token}` };
+    }
+    return this.http.post(`${environment.apiUrl}/documents/upload-multiple`, files, headers ? { headers } : {});
   }
 
   submitApplication(applicationData: any): Observable<any> {

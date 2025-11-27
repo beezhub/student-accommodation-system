@@ -86,7 +86,13 @@ export class ApplicationReviewComponent implements OnInit {
 
     this.yearOfStudyService.getYearsOfStudy().subscribe({
       next: yearOfStudy => {
-        this.yearOfStudy = yearOfStudy;
+        if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
+          this.yearOfStudy = (yearOfStudy as any).content;
+        } else if (Array.isArray(yearOfStudy)) {
+          this.yearOfStudy = yearOfStudy;
+        } else {
+          this.yearOfStudy = [];
+        }
       },
       error: err => {
         console.error('Failed to load year of study', err);
@@ -95,7 +101,13 @@ export class ApplicationReviewComponent implements OnInit {
 
     this.institutionService.getInstitutions().subscribe({
       next: institutions => {
-        this.institutions = institutions;
+        if (institutions && Array.isArray((institutions as any).content)) {
+          this.institutions = (institutions as any).content;
+        } else if (Array.isArray(institutions)) {
+          this.institutions = institutions;
+        } else {
+          this.institutions = [];
+        }
       },
       error: err => {
         console.error('Failed to load institutions', err);

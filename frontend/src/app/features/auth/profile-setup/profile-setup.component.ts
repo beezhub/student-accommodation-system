@@ -84,20 +84,36 @@ export class ProfileSetupComponent implements OnInit {
     }
 
     this.institutionService.getInstitutions().subscribe({
-      next: (institutions) => {
-        this.institutions = institutions;
-      },
+        next: (institutions) => {
+          console.log('Institutions API response:', institutions);
+          if (institutions && Array.isArray((institutions as any).content)) {
+            this.institutions = (institutions as any).content;
+          } else if (Array.isArray(institutions)) {
+            this.institutions = institutions;
+          } else {
+            this.institutions = [];
+          }
+        },
       error: (error) => {
         console.error('Error fetching institutions:', error);
+        this.institutions = [];
       }
     });
 
     this.yearOfStudyService.getYearsOfStudy().subscribe({
-      next: (yearOfStudy) => {
-        this.yearsOfStudy = yearOfStudy;
-      },
+        next: (yearOfStudy) => {
+          console.log('YearsOfStudy API response:', yearOfStudy);
+          if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
+            this.yearsOfStudy = (yearOfStudy as any).content;
+          } else if (Array.isArray(yearOfStudy)) {
+            this.yearsOfStudy = yearOfStudy;
+          } else {
+            this.yearsOfStudy = [];
+          }
+        },
       error: (error) => {
         console.error('Error fetching years of study:', error);
+        this.yearsOfStudy = [];
       }
     });
   }

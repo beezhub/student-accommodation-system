@@ -39,8 +39,8 @@ services:
       - MINIO_BUCKET=student-accommodation-bucket
       - MAIL_HOST=mailhog
       - MAIL_PORT=1025
-      - MAIL_USERNAME=
-      - MAIL_PASSWORD=
+      - MAIL_USERNAME=student@gmail.com
+      - MAIL_PASSWORD=test
       - APP_BASE_URL=http://localhost:3000
       - APP_SUPPORT_EMAIL=accommodation@university.edu
       - APP_UNIVERSITY_NAME=University
