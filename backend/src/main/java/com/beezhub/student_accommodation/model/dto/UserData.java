@@ -13,4 +13,5 @@ public class UserData {
     private String firstName;
     private String lastName;
     private String userRole;
+    private Boolean mustChangePassword;
 }

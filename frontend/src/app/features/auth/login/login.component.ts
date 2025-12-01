@@ -70,17 +70,32 @@ export class LoginComponent {
       };
 
       this.authService.login(loginData).subscribe({
-        next: () => {
+        next: (user) => {
           this.isSubmitting = false;
-          this.snackBar.open('Login successful!', 'Close', {
-            duration: 3000,
-            panelClass: ['success-snackbar'],
-          });
-          this.router.navigate(['/dashboard']);
+
+          // Check if user must change password
+          if (user.mustChangePassword) {
+            this.snackBar.open('You must change your password before continuing.', 'Close', {
+              duration: 5000,
+              panelClass: ['warning-snackbar'],
+            });
+            this.router.navigate(['/change-password'], { queryParams: { forced: 'true' } });
+          } else {
+            this.snackBar.open('Login successful!', 'Close', {
+              duration: 3000,
+              panelClass: ['success-snackbar'],
+            });
+            // Redirect based on user role
+            if (user.userRole === 'ADMIN') {
+              this.router.navigate(['/admin']);
+            } else {
+              this.router.navigate(['/dashboard']);
+            }
+          }
         },
-        error: (error: { error: { message: string } }) => {
+        error: (error: any) => {
           this.isSubmitting = false;
-          this.errorMessage = error.error.message || 'Login failed. Please try again.';
+          this.errorMessage = error?.error?.message || error?.message || 'Login failed. Please try again.';
           this.snackBar.open(this.errorMessage, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar'],

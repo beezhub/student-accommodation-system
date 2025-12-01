@@ -13,6 +13,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      List<Application> findByStatus(ApplicationStatus status);
      long countByApplicationCodeStartingWith(String s);
+     long countByStatus(ApplicationStatus status);
      List<Application> findByStudent_Id(Long studentId);
      boolean existsByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
      List<Application> findByStudent_IdAndStatus(Long studentId, ApplicationStatus status);

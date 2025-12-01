@@ -1,0 +1,196 @@
+<div class="admin-dashboard-container">
+  <div class="dashboard-header">
+    <h1>
+      <mat-icon>admin_panel_settings</mat-icon>
+      Admin Dashboard
+    </h1>
+    <p class="subtitle">Manage users and system settings</p>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner></mat-spinner>
+  </div>
+
+  <!-- Stats Cards -->
+  <div *ngIf="!isLoading">
+    <h2 class="section-title">Application Overview</h2>
+    <div class="stats-grid">
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon primary">
+              <mat-icon>assignment</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h2>{{ stats.totalApplications }}</h2>
+              <p>Total Applications</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card pending">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon warn">
+              <mat-icon>pending_actions</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h2>{{ stats.pendingApplications }}</h2>
+              <p>Pending Review</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card approved">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon success">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h2>{{ stats.approvedApplications }}</h2>
+              <p>Approved</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card rejected">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon danger">
+              <mat-icon>cancel</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h2>{{ stats.rejectedApplications }}</h2>
+              <p>Rejected</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <h2 class="section-title">Document Overview</h2>
+    <div class="stats-grid">
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon accent">
+              <mat-icon>description</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h2>{{ stats.totalDocuments }}</h2>
+              <p>Total Documents</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card pending">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon warn">
+              <mat-icon>hourglass_empty</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h2>{{ stats.pendingDocuments }}</h2>
+              <p>Pending Verification</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card approved">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon success">
+              <mat-icon>verified</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h2>{{ stats.approvedDocuments }}</h2>
+              <p>Verified</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card rejected">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon danger">
+              <mat-icon>error</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h2>{{ stats.rejectedDocuments }}</h2>
+              <p>Rejected</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <h2 class="section-title">User Overview</h2>
+    <div class="stats-grid-small">
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon primary">
+              <mat-icon>school</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h2>{{ stats.totalStudents }}</h2>
+              <p>Students</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-content">
+            <div class="stat-icon accent">
+              <mat-icon>admin_panel_settings</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h2>{{ stats.totalAdmins }}</h2>
+              <p>Administrators</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="quick-links-section">
+    <h2>Quick Access</h2>
+    <div class="quick-links-grid">
+      <mat-card
+        *ngFor="let link of quickLinks"
+        class="quick-link-card"
+        [class.disabled]="link.disabled"
+        [routerLink]="link.disabled ? null : link.route"
+      >
+        <mat-card-content>
+          <div class="quick-link-content">
+            <mat-icon [color]="link.color">{{ link.icon }}</mat-icon>
+            <h3>{{ link.title }}</h3>
+            <p>{{ link.description }}</p>
+            <button
+              mat-raised-button
+              [color]="link.color"
+              [disabled]="link.disabled"
+              [routerLink]="link.disabled ? null : link.route"
+            >
+              {{ link.disabled ? 'Coming Soon' : 'Open' }}
+              <mat-icon *ngIf="!link.disabled">arrow_forward</mat-icon>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

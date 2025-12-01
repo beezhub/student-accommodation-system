@@ -272,13 +272,91 @@
   }
 }
 
+/* Content Grid */
+.content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Loading Container */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+}
+
+/* Admin Actions Card */
+.admin-actions-card {
+  border-left: 4px solid var(--mat-primary-500, #1976d2);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.action-buttons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Dialog Overlay */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-card {
+  min-width: 400px;
+  max-width: 600px;
+  margin: 0 16px;
+}
+
+.dialog-card .full-width {
+  width: 100%;
+}
+
+.dialog-card mat-card-content {
+  padding: 16px 24px;
+}
+
+.dialog-card mat-card-actions {
+  padding: 16px 24px;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
     .main-content {
         margin-top: 56px;
         padding: 1rem 0;
     }
-    
+
     .info-grid {
         grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+      flex-direction: column;
+    }
+
+    .action-buttons button {
+      width: 100%;
+    }
+
+    .dialog-card {
+      min-width: auto;
+      width: calc(100% - 32px);
     }
 }

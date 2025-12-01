@@ -82,7 +82,6 @@ export class SignupComponent {
         lastName: this.signupForm.get('lastName')?.value,
         email: this.signupForm.get('email')?.value,
         password: this.signupForm.get('password')?.value,
-        userRole: 'Student',
       };
 
       this.authService.signup(signupData).subscribe({

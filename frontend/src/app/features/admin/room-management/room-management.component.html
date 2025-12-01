@@ -1,0 +1,154 @@
+<div class="room-management-container">
+  <div class="page-header">
+    <h1>
+      <mat-icon>meeting_room</mat-icon>
+      Room Management
+    </h1>
+    <button mat-raised-button color="primary" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      Add Room
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <mat-card class="filter-card">
+    <mat-card-content>
+      <form [formGroup]="filterForm" class="filter-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Room Number</mat-label>
+          <input matInput formControlName="roomNumber" placeholder="Search by room number">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Building</mat-label>
+          <mat-select formControlName="buildingId">
+            <mat-option value="">All Buildings</mat-option>
+            <mat-option *ngFor="let building of buildings" [value]="building.id">
+              {{ building.name }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Min Capacity</mat-label>
+          <input matInput type="number" formControlName="minCapacity" placeholder="Min" min="1">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Max Capacity</mat-label>
+          <input matInput type="number" formControlName="maxCapacity" placeholder="Max" min="1">
+        </mat-form-field>
+
+        <div class="filter-actions">
+          <button mat-raised-button color="primary" (click)="onFilter()">
+            <mat-icon>search</mat-icon>
+            Search
+          </button>
+          <button mat-button (click)="onClearFilters()">
+            <mat-icon>clear</mat-icon>
+            Clear
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Data Table -->
+  <mat-card>
+    <mat-card-content>
+      <div *ngIf="isLoading" class="loading-container">
+        <mat-spinner></mat-spinner>
+      </div>
+
+      <div *ngIf="!isLoading">
+        <table mat-table [dataSource]="rooms" class="rooms-table">
+          <!-- Room Number Column -->
+          <ng-container matColumnDef="roomNumber">
+            <th mat-header-cell *matHeaderCellDef>Room Number</th>
+            <td mat-cell *matCellDef="let room">
+              <strong>{{ room.roomNumber }}</strong>
+            </td>
+          </ng-container>
+
+          <!-- Building Name Column -->
+          <ng-container matColumnDef="buildingName">
+            <th mat-header-cell *matHeaderCellDef>Building</th>
+            <td mat-cell *matCellDef="let room">
+              {{ room.buildingName }}
+            </td>
+          </ng-container>
+
+          <!-- Capacity Column -->
+          <ng-container matColumnDef="capacity">
+            <th mat-header-cell *matHeaderCellDef>Capacity</th>
+            <td mat-cell *matCellDef="let room">
+              {{ room.capacity }}
+            </td>
+          </ng-container>
+
+          <!-- Occupancy Column -->
+          <ng-container matColumnDef="currentOccupancy">
+            <th mat-header-cell *matHeaderCellDef>Occupancy</th>
+            <td mat-cell *matCellDef="let room">
+              <span [class]="'occupancy ' + getOccupancyClass(room)">
+                {{ getOccupancyText(room) }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let room">
+              <mat-chip [class]="'status-chip ' + getStatusClass(room.status)">
+                <mat-icon>{{ getStatusIcon(room.status) }}</mat-icon>
+                {{ room.status }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let room">
+              <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Actions">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="openEditDialog(room)">
+                  <mat-icon>edit</mat-icon>
+                  <span>Edit</span>
+                </button>
+                <button mat-menu-item (click)="deleteRoom(room)">
+                  <mat-icon>delete</mat-icon>
+                  <span>Delete</span>
+                </button>
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+
+        <div *ngIf="rooms.length === 0" class="no-data">
+          <mat-icon>meeting_room</mat-icon>
+          <p>No rooms found</p>
+          <button mat-raised-button color="primary" (click)="openCreateDialog()">
+            <mat-icon>add</mat-icon>
+            Add First Room
+          </button>
+        </div>
+
+        <mat-paginator
+          *ngIf="rooms.length > 0"
+          [length]="totalElements"
+          [pageSize]="pageSize"
+          [pageSizeOptions]="[10, 20, 50, 100]"
+          (page)="onPageChange($event)"
+          showFirstLastButtons>
+        </mat-paginator>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

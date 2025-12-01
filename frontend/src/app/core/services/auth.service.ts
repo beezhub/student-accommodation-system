@@ -52,12 +52,7 @@ export class AuthService {
   }
 
   uploadDocuments(files: FormData): Observable<any> {
-    const token = localStorage.getItem('token');
-    let headers = undefined;
-    if (token) {
-      headers = { 'Authorization': `Bearer ${token}` };
-    }
-    return this.http.post(`${environment.apiUrl}/documents/upload-multiple`, files, headers ? { headers } : {});
+    return this.http.post(`${environment.apiUrl}/documents/upload-multiple`, files);
   }
 
   submitApplication(applicationData: any): Observable<any> {
@@ -96,5 +91,23 @@ export class AuthService {
     } catch (e) {
       return true;
     }
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/change-password`, {
+      currentPassword,
+      newPassword
+    }).pipe(
+      map((response) => {
+        // Update the user in localStorage to clear mustChangePassword flag
+        const currentUser = this.currentUserValue;
+        if (currentUser) {
+          currentUser.mustChangePassword = false;
+          localStorage.setItem("currentUser", JSON.stringify(currentUser));
+          this.currentUserSubject.next(currentUser);
+        }
+        return response;
+      })
+    );
   }
 }

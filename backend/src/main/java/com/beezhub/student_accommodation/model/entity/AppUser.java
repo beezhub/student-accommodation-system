@@ -39,6 +39,10 @@ public class AppUser {
     @Column(nullable = false, name = "email_verified")
     private Boolean emailVerified = false;
 
+    @Column(nullable = false, name = "must_change_password")
+    @Builder.Default
+    private Boolean mustChangePassword = false;
+
     @Column(nullable = false, updatable = false, name = "created_at")
     private LocalDateTime createdAt;
 

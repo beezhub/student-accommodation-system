@@ -47,11 +47,20 @@ public class JwtUtil {
         var roles = userDetails.getAuthorities().stream()
             .map(GrantedAuthority::getAuthority)
             .toList();
+
+        // Determine expiration based on role
+        long expirationMs;
+        if (roles.contains("ROLE_ADMIN")) {
+            expirationMs = Long.parseLong(jwtConfig.getAdminExpirationTime());
+        } else {
+            expirationMs = Long.parseLong(jwtConfig.getExpirationTime());
+        }
+
         return Jwts.builder()
             .setSubject(userDetails.getUsername())
             .claim("roles", roles)
             .setIssuedAt(new Date())
-            .setExpiration(new Date(System.currentTimeMillis() + Long.parseLong(jwtConfig.getExpirationTime())))
+            .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
             .signWith(key)
             .compact();
     }

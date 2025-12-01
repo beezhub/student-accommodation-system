@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
-import { HttpClient, HttpHeaders } from "@angular/common/http";
-import { BehaviorSubject, Observable } from "rxjs";
+import { HttpClient } from "@angular/common/http";
+import { Observable } from "rxjs";
 import { environment } from "../../../environments/environment";
 import { StudentRequest, StudentResponse } from "../models/student.model";
 import { AuthService } from "./auth.service";
@@ -16,28 +16,15 @@ export class StudentService {
   createStudentProfile(
     studentData: StudentRequest
   ): Observable<StudentResponse> {
-    const token = localStorage.getItem("token");
-    const headers = new HttpHeaders({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    });
-    return this.http.post<StudentResponse>(`${this.apiUrl}`, studentData, {
-      headers,
-    });
+    return this.http.post<StudentResponse>(`${this.apiUrl}`, studentData);
   }
 
-getStudentProfile(): Observable<StudentResponse> {
-  const token = localStorage.getItem("token");
-  const headers = new HttpHeaders({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  });
-
+  getStudentProfile(): Observable<StudentResponse> {
     const userId = this.authService.currentUserValue?.id
     if (!userId) {
       throw new Error("User does not exist or is not logged in.");
     }
 
-    return this.http.get<StudentResponse>(`${this.apiUrl}/${userId}`, { headers });
+    return this.http.get<StudentResponse>(`${this.apiUrl}/${userId}`);
   }
 }

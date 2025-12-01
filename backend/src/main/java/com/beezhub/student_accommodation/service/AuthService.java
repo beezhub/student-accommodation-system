@@ -78,9 +78,14 @@ public class AuthService {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, password));
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String token = jwtUtil.generateToken(userDetails);
+
         var user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        // Generate token and return user data
+        // The mustChangePassword flag will be included in userData
+        // Frontend should check this and enforce password change if needed
+        String token = jwtUtil.generateToken(userDetails);
         var userData = appUserMapper.toUserData(user);
         return new LoginResponse(token, userData);
     }
@@ -113,6 +118,7 @@ public class AuthService {
 
         // Update password
         user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setMustChangePassword(false);
         userRepository.save(user);
     }
 

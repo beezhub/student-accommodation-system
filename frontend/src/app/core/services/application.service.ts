@@ -1,9 +1,8 @@
 import { Injectable } from "@angular/core";
-import { HttpClient, HttpParams } from "@angular/common/http";
+import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { environment } from "../../../environments/environment";
 import { Application } from "../models/application.model";
-import { AuthService } from "./auth.service";
 
 @Injectable({
   providedIn: "root",
@@ -11,37 +10,21 @@ import { AuthService } from "./auth.service";
 export class ApplicationService {
   private apiUrl = `${environment.apiUrl}/applications`;
 
-  constructor(private http: HttpClient, private authService: AuthService) {}
+  constructor(private http: HttpClient) {}
 
-    createApplication(studentId: number): Observable<Application> {
-        const token = localStorage.getItem("token");
-        const headers = {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        };
-        return this.http.post<Application>(
-            `${this.apiUrl}/submit`,
-            { studentId: studentId },
-            { headers }
-        );
-    }
+  createApplication(studentId: number): Observable<Application> {
+    return this.http.post<Application>(
+      `${this.apiUrl}/submit`,
+      { studentId: studentId }
+    );
+  }
 
   getApplicationByStatus(status: string): Observable<Application[]> {
-    const token = localStorage.getItem("token");
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-    return this.http.get<Application[]>(`${this.apiUrl}/${status}`, { headers });
+    return this.http.get<Application[]>(`${this.apiUrl}/${status}`);
   }
 
   getApplicationById(applicationId: number): Observable<Application> {
-    const token = localStorage.getItem("token");
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-    return this.http.get<Application>(`${this.apiUrl}/${applicationId}`, { headers });
+    return this.http.get<Application>(`${this.apiUrl}/${applicationId}`);
   }
 
 }
