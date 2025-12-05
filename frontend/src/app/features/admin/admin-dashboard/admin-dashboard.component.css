@@ -101,28 +101,28 @@
 }
 
 .stat-icon.primary {
-  background-color: #e3f2fd;
-  color: #1976d2;
+  background: linear-gradient(135deg, #e0f2fe 0%, #cffafe 100%);
+  color: #0891B2;
 }
 
 .stat-icon.accent {
-  background-color: #fce4ec;
-  color: #c2185b;
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+  color: #EA580C;
 }
 
 .stat-icon.warn {
-  background-color: #fff3e0;
-  color: #f57c00;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #D97706;
 }
 
 .stat-icon.success {
-  background-color: #e8f5e9;
-  color: #388e3c;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #059669;
 }
 
 .stat-icon.danger {
-  background-color: #ffebee;
-  color: #d32f2f;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #DC2626;
 }
 
 .stat-info h2 {

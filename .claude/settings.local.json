@@ -6,7 +6,21 @@
       "Bash(node --version:*)",
       "Bash(npm run build:*)",
       "Bash(./mvnw clean:*)",
-      "Bash(mvn clean compile:*)"
+      "Bash(mvn clean compile:*)",
+      "Bash(claude mcp add --transport stdio playwright -- cmd /c npx -y @playwright/mcp@latest)",
+      "Bash(claude mcp list:*)",
+      "Bash(claude mcp get:*)",
+      "Bash(claude mcp remove:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_run_code",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_take_screenshot"
     ],
     "deny": [],
     "ask": []

@@ -5,33 +5,46 @@
 }
 
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .page-header h1 {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 28px;
-  font-weight: 500;
+  font-size: 32px;
+  font-weight: 700;
   margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #1e293b 0%, #0891b2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .page-header h1 mat-icon {
-  font-size: 32px;
-  width: 32px;
-  height: 32px;
+  font-size: 36px;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .subtitle {
-  color: #666;
-  font-size: 14px;
+  color: #64748b;
+  font-size: 15px;
   margin: 0;
+  font-weight: 500;
 }
 
-/* Filter Form */
+/* Filter Form - Modern Card Style */
 .filter-card {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  border-radius: 20px !important;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
 .filter-form {
@@ -51,11 +64,19 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  border-radius: 12px;
+  font-weight: 600;
 }
 
-/* Bulk Actions */
+/* Bulk Actions - Floating Style */
 .bulk-actions {
   margin-bottom: 20px;
+}
+
+.bulk-actions mat-card {
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #93c5fd;
 }
 
 .bulk-actions-content {
@@ -65,8 +86,17 @@
 }
 
 .selection-count {
-  font-weight: 500;
-  color: #1976d2;
+  font-weight: 700;
+  font-size: 15px;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selection-count::before {
+  content: '✨';
+  font-size: 16px;
 }
 
 .bulk-buttons {
@@ -78,6 +108,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  border-radius: 12px;
+  font-weight: 600;
 }
 
 /* Loading */
@@ -85,32 +117,86 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 60px;
+  padding: 80px;
+  flex-direction: column;
+  gap: 16px;
 }
 
-/* Table */
+.loading-container::after {
+  content: 'Loading applications...';
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Table Card */
+mat-card:not(.filter-card):not(.bulk-actions mat-card) {
+  border-radius: 24px !important;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+}
+
+/* Modern Table Styles */
 .applications-table {
   width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .applications-table th {
-  font-weight: 600;
-  color: #333;
+  font-weight: 700;
+  color: #334155;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 20px 16px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .applications-table td {
-  padding: 16px 12px;
+  padding: 20px 16px;
+  font-size: 14px;
+  color: #475569;
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
 }
 
-/* Status Chips */
+.applications-table tr {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.applications-table tbody tr:hover {
+  background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 50%, #f0fdfa 100%);
+  transform: scale(1.005);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.applications-table tbody tr:hover td {
+  color: #1e293b;
+}
+
+/* Application code styling */
+.applications-table td strong {
+  font-weight: 700;
+  color: #0f172a;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid #bae6fd;
+}
+
+/* Status Chips - Legacy support (now using modern-status-badge) */
 .status-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  font-weight: 500;
-  padding: 4px 12px;
-  border-radius: 16px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 20px;
 }
 
 .status-chip mat-icon {
@@ -120,38 +206,77 @@
 }
 
 .status-chip.pending {
-  background-color: #fff3e0;
-  color: #f57c00;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #b45309;
+  border: 1.5px solid #fcd34d;
 }
 
 .status-chip.approved {
-  background-color: #e8f5e9;
-  color: #388e3c;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #047857;
+  border: 1.5px solid #6ee7b7;
 }
 
 .status-chip.rejected {
-  background-color: #ffebee;
-  color: #d32f2f;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #b91c1c;
+  border: 1.5px solid #f87171;
 }
 
-/* No Data */
+/* No Data - Friendly Empty State */
 .no-data {
   text-align: center;
-  padding: 60px 20px;
-  color: #666;
+  padding: 80px 20px;
+  color: #64748b;
 }
 
 .no-data mat-icon {
-  font-size: 64px;
-  width: 64px;
-  height: 64px;
-  opacity: 0.3;
-  margin-bottom: 16px;
+  font-size: 80px;
+  width: 80px;
+  height: 80px;
+  opacity: 0.2;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #94a3b8 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .no-data p {
-  margin: 0;
-  font-size: 16px;
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.no-data::after {
+  content: 'Check back later or adjust your filters';
+  display: block;
+  font-size: 14px;
+  color: #94a3b8;
+  margin-top: 8px;
+}
+
+/* Paginator styling */
+mat-paginator {
+  background: transparent !important;
+  border-top: 1px solid #f1f5f9;
+  padding: 12px 0;
+}
+
+/* Action buttons */
+button[mat-icon-button] {
+  transition: all 0.2s ease;
+}
+
+button[mat-icon-button]:hover {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  transform: scale(1.1);
+}
+
+/* Checkbox styling */
+mat-checkbox {
+  --mdc-checkbox-selected-checkmark-color: white;
 }
 
 /* Responsive Design */
@@ -184,6 +309,11 @@
   }
 
   .applications-table {
-    font-size: 14px;
+    font-size: 13px;
+  }
+
+  .applications-table th,
+  .applications-table td {
+    padding: 12px 8px;
   }
 }

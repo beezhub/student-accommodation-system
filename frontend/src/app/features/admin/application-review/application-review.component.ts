@@ -20,6 +20,9 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SelectionModel } from '@angular/cdk/collections';
 
+// Modern UI Components
+import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+
 @Component({
   selector: 'app-application-review',
   templateUrl: './application-review.component.html',
@@ -42,6 +45,7 @@ import { SelectionModel } from '@angular/cdk/collections';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
+    ModernStatusBadgeComponent,
   ],
 })
 export class ApplicationReviewComponent implements OnInit {

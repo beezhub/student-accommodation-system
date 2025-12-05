@@ -16,7 +16,7 @@
 .nav-tabs.desktop-only a,
 .nav-tabs.desktop-only button,
 .mat-menu-item {
-    color: #2563eb !important;
+    color: #1E293B !important;
     font-weight: 600;
     font-size: 15px;
     letter-spacing: -0.01em;
@@ -25,22 +25,22 @@
 .profile-btn {
     font-weight: 600;
     border-radius: 8px;
-    background: rgba(0, 0, 0, 0.05);
-    color: #2563eb !important;
+    background: rgba(30, 41, 59, 0.05);
+    color: #1E293B !important;
     padding: 0 16px;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+    box-shadow: 0 2px 8px rgba(30, 41, 59, 0.08);
 }
 
 .menu-toggle {
     display: none;
     background: #fff !important;
-    color: #2563eb !important;
+    color: #1E293B !important;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+    box-shadow: 0 2px 8px rgba(30, 41, 59, 0.08);
 }
 
 .menu-toggle mat-icon {
-    color: #2563eb !important;
+    color: #1E293B !important;
     font-size: 32px !important;
     font-weight: bold;
     stroke-width: 2.5;
@@ -49,7 +49,7 @@
 .mat-menu-panel {
     background: #fff !important;
     border-radius: 12px !important;
-    box-shadow: 0 4px 24px rgba(37, 99, 235, 0.10) !important;
+    box-shadow: 0 4px 24px rgba(30, 41, 59, 0.10) !important;
     transition: none !important;
     animation: none !important;
 }
@@ -60,16 +60,16 @@
 }
 
 .mat-menu-content .mat-menu-item {
-    color: #2563eb !important;
+    color: #1E293B !important;
     font-weight: 600;
 }
 
 .mat-menu-item mat-icon {
-    color: #2563eb !important;
+    color: #1E293B !important;
 }
 
 ::ng-deep .mat-menu-item mat-icon {
-    color: #2563eb !important;
+    color: #1E293B !important;
 }
 
 ::ng-deep .mat-mdc-menu-item {
@@ -77,12 +77,12 @@
 }
 
 ::ng-deep .mat-mdc-menu-item .mat-mdc-menu-item-text {
-    color: #2563eb !important;
+    color: #1E293B !important;
     font-weight: 600;
 }
 
 ::ng-deep .mat-mdc-menu-item mat-icon {
-    color: #2563eb !important;
+    color: #1E293B !important;
 }
 
 ::ng-deep .mat-mdc-menu-panel {

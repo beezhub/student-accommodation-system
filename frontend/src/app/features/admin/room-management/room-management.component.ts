@@ -20,6 +20,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
 
+// Modern UI Components
+import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+
 @Component({
   selector: 'app-room-management',
   templateUrl: './room-management.component.html',
@@ -42,6 +45,7 @@ import { MatChipsModule } from '@angular/material/chips';
     MatTooltipModule,
     MatMenuModule,
     MatChipsModule,
+    ModernStatusBadgeComponent,
   ],
 })
 export class RoomManagementComponent implements OnInit {
@@ -193,10 +197,16 @@ export class RoomManagementComponent implements OnInit {
   }
 
   getOccupancyText(room: RoomResponse): string {
+    if (!room || room.currentOccupancy === undefined || room.capacity === undefined) {
+      return '- / -';
+    }
     return `${room.currentOccupancy} / ${room.capacity}`;
   }
 
   getOccupancyClass(room: RoomResponse): string {
+    if (!room || room.currentOccupancy === undefined || room.capacity === undefined || room.capacity === 0) {
+      return 'empty';
+    }
     const percentage = (room.currentOccupancy / room.capacity) * 100;
     if (percentage === 0) return 'empty';
     if (percentage < 100) return 'partial';

@@ -25,22 +25,27 @@
   --space-4: calc(var(--grid-unit) * 4); /* 32px */
   --space-6: calc(var(--grid-unit) * 6); /* 48px */
 
-  /* Border radii (Apple-inspired rounded corners) */
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 12px;
+  /* Border radii (Modern, bold rounded corners) */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
 
-  /* Color system (Apple-inspired vibrant primary, semantic tokens) */
-  --color-primary: #0a84ff; /* iOS blue */
-  --color-primary-700: #0066d6;
+  /* Color system (Modern neutral with vibrant accents) */
+  --color-primary: #1E293B; /* Deep slate */
+  --color-primary-dark: #0F172A;
+  --color-primary-light: #334155;
+  --color-primary-gradient: linear-gradient(135deg, #1E293B 0%, #0EA5E9 100%);
   --color-on-primary: #ffffff;
 
-  --color-secondary: #5e5ce6;
-  --color-accent: #ff2d55; /* pink accent */
+  --color-secondary: #06B6D4; /* Bright cyan */
+  --color-secondary-dark: #0891B2;
+  --color-accent: #F97316; /* Vibrant orange */
+  --color-accent-gradient: linear-gradient(135deg, #F97316 0%, #FB923C 100%);
 
-  --color-success: #34c759;
-  --color-warning: #ff9500;
-  --color-error: #ff3b30;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
 
   --neutral-50: #ffffff;
   --neutral-100: #f2f2f7;
@@ -305,12 +310,19 @@ body {
   font-family: var(--font-sans);
   font-size: var(--type-base);
   color: var(--neutral-700);
-  /* Modern, attractive gradient background */
-  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 50%, #c7d2fe 100%);
+  /* Modern neutral gradient background with cool tones */
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #e0f2fe 50%, #cffafe 75%, #f0fdfa 100%);
   background-attachment: fixed;
-  background-size: cover;
+  background-size: 400% 400%;
+  animation: gradientShift 20s ease infinite;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* Modern Material Button Styles - visible, attractive, and accessible */
@@ -325,45 +337,93 @@ body {
     color 0.18s var(--motion-spring), border-color 0.18s var(--motion-spring);
 }
 
-/* Primary (blue) button - vibrant, visible */
+/* Primary (slate-cyan gradient) button - modern, bold */
 .mat-mdc-raised-button.mat-primary,
 .mat-mdc-unelevated-button.mat-primary {
-  background: linear-gradient(90deg, #2563eb 0%, #0ea5e9 100%) !important;
+  background: linear-gradient(135deg, #1E293B 0%, #06B6D4 100%) !important;
   color: #fff !important;
   border: none;
+  position: relative;
+  overflow: hidden;
+}
+.mat-mdc-raised-button.mat-primary::before,
+.mat-mdc-unelevated-button.mat-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #0F172A 0%, #0891B2 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.mat-mdc-raised-button.mat-primary:hover::before,
+.mat-mdc-unelevated-button.mat-primary:hover::before {
+  opacity: 1;
 }
 .mat-mdc-raised-button.mat-primary:hover,
 .mat-mdc-unelevated-button.mat-primary:hover {
-  background: linear-gradient(90deg, #1d4ed8 0%, #0284c7 100%) !important;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(30, 41, 59, 0.35), 0 4px 12px rgba(6, 182, 212, 0.25);
+  transform: translateY(-2px);
+}
+.mat-mdc-raised-button.mat-primary > *,
+.mat-mdc-unelevated-button.mat-primary > * {
+  position: relative;
+  z-index: 1;
 }
 
-/* Tonal/white button - clean, visible, with blue border */
+/* Tonal/white button - clean, visible, with slate border */
 .mat-mdc-raised-button.mat-basic,
 .mat-mdc-unelevated-button.mat-basic,
 .mat-mdc-button.mat-basic {
   background: #fff !important;
-  color: #2563eb !important;
-  border: 1.5px solid #2563eb !important;
+  color: #1E293B !important;
+  border: 2px solid #1E293B !important;
 }
 .mat-mdc-raised-button.mat-basic:hover,
 .mat-mdc-unelevated-button.mat-basic:hover,
 .mat-mdc-button.mat-basic:hover {
-  background: #e0e7ff !important;
-  color: #1d4ed8 !important;
-  border: 1.5px solid #1d4ed8 !important;
+  background: #f1f5f9 !important;
+  color: #0F172A !important;
+  border: 2px solid #0F172A !important;
+  transform: translateY(-2px);
 }
 
-/* Accent button (pink) for special actions */
+/* Accent button (vibrant orange) for special actions */
 .mat-mdc-raised-button.mat-accent,
 .mat-mdc-unelevated-button.mat-accent {
-  background: linear-gradient(90deg, #f472b6 0%, #fb7185 100%) !important;
+  background: linear-gradient(135deg, #F97316 0%, #FB923C 100%) !important;
   color: #fff !important;
   border: none;
+  position: relative;
+  overflow: hidden;
+}
+.mat-mdc-raised-button.mat-accent::before,
+.mat-mdc-unelevated-button.mat-accent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #EA580C 0%, #F97316 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.mat-mdc-raised-button.mat-accent:hover::before,
+.mat-mdc-unelevated-button.mat-accent:hover::before {
+  opacity: 1;
 }
 .mat-mdc-raised-button.mat-accent:hover,
 .mat-mdc-unelevated-button.mat-accent:hover {
-  background: linear-gradient(90deg, #ec4899 0%, #f43f5e 100%) !important;
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35), 0 4px 12px rgba(251, 146, 60, 0.25);
+  transform: translateY(-2px);
+}
+.mat-mdc-raised-button.mat-accent > *,
+.mat-mdc-unelevated-button.mat-accent > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Warn button (red) for destructive actions */
@@ -381,13 +441,14 @@ body {
 /* Outlined button - subtle, visible */
 .mat-mdc-outlined-button {
   background: transparent !important;
-  color: #2563eb !important;
-  border: 1.5px solid #2563eb !important;
+  color: #1E293B !important;
+  border: 2px solid #1E293B !important;
 }
 .mat-mdc-outlined-button:hover {
-  background: #e0e7ff !important;
-  color: #1d4ed8 !important;
-  border: 1.5px solid #1d4ed8 !important;
+  background: #f1f5f9 !important;
+  color: #0F172A !important;
+  border: 2px solid #06B6D4 !important;
+  transform: translateY(-2px);
 }
 
 /* Button icon color always matches text */
@@ -426,4 +487,233 @@ body {
 body {
   margin: 0;
   font-family: Roboto, 'Helvetica Neue', sans-serif;
+}
+
+/* ================================== */
+/* Modern Table Styles - Student Friendly */
+/* ================================== */
+
+/* Global Table Container Enhancement */
+.mat-mdc-table {
+  border-radius: 16px !important;
+  overflow: hidden;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+/* Table Header - Clean and Bold */
+.mat-mdc-header-row {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+}
+
+.mat-mdc-header-cell {
+  font-weight: 700 !important;
+  color: #334155 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  padding: 18px 16px !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  background: transparent !important;
+}
+
+/* Table Rows - Interactive and Modern */
+.mat-mdc-row {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.mat-mdc-row:hover {
+  background: linear-gradient(90deg, 
+    rgba(240, 249, 255, 0.8) 0%, 
+    rgba(224, 242, 254, 0.6) 50%, 
+    rgba(240, 253, 250, 0.8) 100%) !important;
+  transform: scale(1.002);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.mat-mdc-cell {
+  padding: 16px !important;
+  font-size: 14px !important;
+  color: #475569 !important;
+  transition: color 0.2s ease !important;
+}
+
+.mat-mdc-row:hover .mat-mdc-cell {
+  color: #1e293b !important;
+}
+
+/* Table Cell with Strong Text */
+.mat-mdc-cell strong {
+  font-weight: 700;
+  color: #0f172a;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+/* Modern Paginator */
+.mat-mdc-paginator {
+  background: transparent !important;
+  border-top: 1px solid #f1f5f9 !important;
+  padding: 12px 16px !important;
+  border-radius: 0 0 16px 16px !important;
+}
+
+.mat-mdc-paginator-container {
+  min-height: 52px !important;
+}
+
+.mat-mdc-paginator-range-label {
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+.mat-mdc-paginator-navigation-previous,
+.mat-mdc-paginator-navigation-next,
+.mat-mdc-paginator-navigation-first,
+.mat-mdc-paginator-navigation-last {
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-paginator-navigation-previous:hover,
+.mat-mdc-paginator-navigation-next:hover,
+.mat-mdc-paginator-navigation-first:hover,
+.mat-mdc-paginator-navigation-last:hover {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+}
+
+/* Checkbox Styling */
+.mat-mdc-checkbox .mdc-checkbox {
+  border-radius: 6px !important;
+}
+
+.mat-mdc-checkbox .mdc-checkbox__background {
+  border-radius: 6px !important;
+  border-width: 2px !important;
+}
+
+/* Select/Dropdown in Tables */
+.mat-mdc-select-panel {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.mat-mdc-option {
+  border-radius: 8px !important;
+  margin: 4px 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-option:hover {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+}
+
+.mat-mdc-option.mat-mdc-option-active {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+}
+
+/* Menu Styling */
+.mat-mdc-menu-panel {
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid #e2e8f0 !important;
+  min-width: 180px !important;
+}
+
+.mat-mdc-menu-item {
+  border-radius: 8px !important;
+  margin: 4px 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-menu-item:hover {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+}
+
+.mat-mdc-menu-item .mat-icon {
+  color: #64748b !important;
+  margin-right: 12px !important;
+}
+
+.mat-mdc-menu-item:hover .mat-icon {
+  color: #0891b2 !important;
+}
+
+/* Form Field Enhancements */
+.mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.mat-mdc-text-field-wrapper {
+  border-radius: 14px !important;
+}
+
+.mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading,
+.mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__notch,
+.mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
+  border-radius: 14px !important;
+}
+
+/* Snackbar Styling */
+.mat-mdc-snack-bar-container {
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+}
+
+.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+}
+
+/* Progress Spinner Enhancement */
+.mat-mdc-progress-spinner circle {
+  stroke: url(#gradient) !important;
+}
+
+/* Tooltip Styling */
+.mat-mdc-tooltip .mdc-tooltip__surface {
+  border-radius: 10px !important;
+  padding: 10px 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Icon Button Enhancement */
+.mat-mdc-icon-button {
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-icon-button:hover {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+  transform: scale(1.05);
+}
+
+/* Empty State Enhancement */
+.no-data, .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.no-data mat-icon, .empty-state mat-icon {
+  font-size: 72px;
+  width: 72px;
+  height: 72px;
+  opacity: 0.15;
+  margin-bottom: 16px;
+}
+
+/* Chip/Badge Enhancement for Status */
+.mat-mdc-chip {
+  border-radius: 20px !important;
+  font-weight: 600 !important;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.mat-mdc-chip:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
