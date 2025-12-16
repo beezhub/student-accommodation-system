@@ -11,12 +11,15 @@ import { MatCardModule } from '@angular/material/card';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 
+// Shared Components
+import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+
 @Component({
   selector: 'app-applications',
   templateUrl: './applications.component.html',
   styleUrls: ['./applications.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterModule, MatToolbarModule, MatButtonModule, MatIconModule, MatCardModule, MatTableModule, MatChipsModule]
+  imports: [CommonModule, RouterModule, MatToolbarModule, MatButtonModule, MatIconModule, MatCardModule, MatTableModule, MatChipsModule, ModernStatusBadgeComponent]
 })
 export class ApplicationsComponent implements OnInit {
   currentUser: any;

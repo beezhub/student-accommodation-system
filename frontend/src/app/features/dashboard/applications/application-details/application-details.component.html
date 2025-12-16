@@ -44,7 +44,7 @@
       </button>
       <h2>Application Details</h2>
       <div class="status-chip-container" *ngIf="application">
-        <mat-chip [ngClass]="getStatusClass(application.status)">{{ application.status }}</mat-chip>
+        <app-modern-status-badge [status]="application.status" size="md"></app-modern-status-badge>
       </div>
     </div>
 
@@ -91,7 +91,7 @@
             <div class="info-item">
               <div class="label">Status</div>
               <div class="value">
-                <mat-chip [ngClass]="getStatusClass(application.status)">{{ application.status }}</mat-chip>
+                <app-modern-status-badge [status]="application.status" size="sm"></app-modern-status-badge>
               </div>
             </div>
             <div class="info-item" *ngIf="application.remarks">
@@ -140,9 +140,7 @@
                 <div class="timeline-mat-content">
                   <div class="timeline-mat-header">
                     <span class="timeline-mat-title">{{ event.status }}</span>
-                    <mat-chip [ngClass]="getStatusClass(event.status)" class="timeline-mat-chip">
-                      {{ event.status }}
-                    </mat-chip>
+                    <app-modern-status-badge [status]="event.status" size="sm" class="timeline-mat-chip"></app-modern-status-badge>
                     <span class="timeline-mat-date">{{ event.date | date: 'short' }}</span>
                   </div>
                   <div class="timeline-mat-description">{{ event.description }}</div>

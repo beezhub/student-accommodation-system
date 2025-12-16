@@ -104,10 +104,17 @@
 }
 
 .form-field .mat-mdc-form-field-wrapper {
-  border-radius: 16px !important;
+  border-radius: 0px !important;
   background: rgba(247, 250, 252, 0.8);
   border: 1.5px solid rgba(226, 232, 240, 0.8);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.form-field .mdc-notched-outline,
+.form-field .mdc-notched-outline .mdc-notched-outline__leading,
+.form-field .mdc-notched-outline .mdc-notched-outline__notch,
+.form-field .mdc-notched-outline .mdc-notched-outline__trailing {
+  border-radius: 0px !important;
 }
 
 .form-field .mat-mdc-form-field-wrapper:hover {

@@ -5,7 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentViewerComponent } from './document-viewer/document-viewer.component';
 import { DocumentService } from '../../../core/services/document.service';
-import { StatusButtonComponent } from '../../../shared/status-button.component';
+import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -45,7 +45,7 @@ import { MatTableDataSource } from '@angular/material/table';
     MatChipsModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    StatusButtonComponent
+    ModernStatusBadgeComponent
   ]
 })
 export class DocumentsComponent implements OnInit {

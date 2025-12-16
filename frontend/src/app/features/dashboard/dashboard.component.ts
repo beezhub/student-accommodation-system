@@ -15,7 +15,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatDividerModule } from '@angular/material/divider';
-import { StatusButtonComponent } from '../../shared/status-button.component';
+import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/modern-status-badge.component';
 
 
 @Component({
@@ -35,7 +35,7 @@ import { StatusButtonComponent } from '../../shared/status-button.component';
     MatProgressBarModule,
     MatGridListModule,
     MatDividerModule,
-    StatusButtonComponent,
+    ModernStatusBadgeComponent,
   ],
 })
 export class DashboardComponent implements OnInit {

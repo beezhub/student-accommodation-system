@@ -92,21 +92,23 @@ import { AuthService } from '../core/services/auth.service';
       <div class="nav-tabs desktop-only">
         <!-- Student navigation tabs -->
         <ng-container *ngIf="isStudent()">
-          <a mat-button routerLink="/dashboard"><mat-icon>dashboard</mat-icon> Dashboard</a>
-          <a mat-button routerLink="/applications"><mat-icon>event_note</mat-icon> Applications</a>
-          <a mat-button routerLink="/documents"><mat-icon>folder</mat-icon> Documents</a>
-          <a mat-button routerLink="/rooms"><mat-icon>hotel</mat-icon> Browse Rooms</a>
+          <a mat-button routerLink="/dashboard"><mat-icon>dashboard</mat-icon><span>Dashboard</span></a>
+          <a mat-button routerLink="/applications"><mat-icon>event_note</mat-icon><span>Applications</span></a>
+          <a mat-button routerLink="/documents"><mat-icon>folder</mat-icon><span>Documents</span></a>
+          <a mat-button routerLink="/rooms"><mat-icon>hotel</mat-icon><span>Browse Rooms</span></a>
         </ng-container>
         <!-- Admin navigation tabs -->
         <ng-container *ngIf="isAdmin()">
-          <a mat-button routerLink="/admin"><mat-icon>dashboard</mat-icon> Dashboard</a>
-          <a mat-button routerLink="/admin/applications"><mat-icon>assignment</mat-icon> Applications</a>
-          <a mat-button routerLink="/admin/buildings"><mat-icon>apartment</mat-icon> Buildings</a>
-          <a mat-button routerLink="/admin/rooms"><mat-icon>meeting_room</mat-icon> Rooms</a>
-          <a mat-button routerLink="/admin/room-allocations"><mat-icon>assignment_ind</mat-icon> Allocations</a>
+          <a mat-button routerLink="/admin"><mat-icon>dashboard</mat-icon><span>Dashboard</span></a>
+          <a mat-button routerLink="/admin/applications"><mat-icon>assignment</mat-icon><span>Applications</span></a>
+          <a mat-button routerLink="/admin/documents"><mat-icon>verified</mat-icon><span>Documents</span></a>
+          <a mat-button routerLink="/admin/users"><mat-icon>people</mat-icon><span>Users</span></a>
+          <a mat-button routerLink="/admin/buildings"><mat-icon>apartment</mat-icon><span>Buildings</span></a>
+          <a mat-button routerLink="/admin/rooms"><mat-icon>meeting_room</mat-icon><span>Rooms</span></a>
+          <a mat-button routerLink="/admin/room-allocations"><mat-icon>assignment_ind</mat-icon><span>Allocations</span></a>
         </ng-container>
         <button mat-button [matMenuTriggerFor]="profileMenu" class="profile-btn">
-          <mat-icon>account_circle</mat-icon> Profile <mat-icon>expand_more</mat-icon>
+          <mat-icon>account_circle</mat-icon><span>Profile</span><mat-icon>expand_more</mat-icon>
         </button>
       </div>
     </nav>

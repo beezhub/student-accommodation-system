@@ -15,6 +15,9 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
+// Shared Components
+import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+
 @Component({
   selector: 'app-room-browser',
   templateUrl: './room-browser.component.html',
@@ -32,6 +35,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
     MatChipsModule,
     MatDialogModule,
     MatSnackBarModule,
+    ModernStatusBadgeComponent
   ],
 })
 export class RoomBrowserComponent implements OnInit {

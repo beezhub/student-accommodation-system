@@ -11,10 +11,44 @@
     font-family: 'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
     z-index: 1000;
     position: relative;
+    gap: 8px;
+}
+
+.nav-tabs.desktop-only {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .nav-tabs.desktop-only a,
-.nav-tabs.desktop-only button,
+.nav-tabs.desktop-only button {
+    color: #1E293B !important;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    padding: 8px 12px !important;
+    min-width: auto !important;
+    border-radius: 8px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    white-space: nowrap;
+}
+
+.nav-tabs.desktop-only a:hover,
+.nav-tabs.desktop-only button:hover {
+    background-color: rgba(30, 41, 59, 0.08) !important;
+    transform: translateY(-1px);
+}
+
+.nav-tabs.desktop-only a mat-icon,
+.nav-tabs.desktop-only button mat-icon {
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+}
+
 .mat-menu-item {
     color: #1E293B !important;
     font-weight: 600;
@@ -23,12 +57,32 @@
 }
 
 .profile-btn {
-    font-weight: 600;
-    border-radius: 8px;
-    background: rgba(30, 41, 59, 0.05);
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    background: rgba(30, 41, 59, 0.05) !important;
     color: #1E293B !important;
-    padding: 0 16px;
-    box-shadow: 0 2px 8px rgba(30, 41, 59, 0.08);
+    padding: 8px 12px !important;
+    box-shadow: 0 2px 8px rgba(30, 41, 59, 0.08) !important;
+    min-width: auto !important;
+    margin-left: 4px;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.profile-btn:hover {
+    background: rgba(30, 41, 59, 0.1) !important;
+    transform: translateY(-1px);
+}
+
+.profile-btn mat-icon {
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+}
+
+.profile-btn span {
+    font-size: 14px;
 }
 
 .menu-toggle {
@@ -37,13 +91,15 @@
     color: #1E293B !important;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(30, 41, 59, 0.08);
+    width: 40px !important;
+    height: 40px !important;
 }
 
 .menu-toggle mat-icon {
     color: #1E293B !important;
-    font-size: 32px !important;
-    font-weight: bold;
-    stroke-width: 2.5;
+    font-size: 24px !important;
+    width: 24px !important;
+    height: 24px !important;
 }
 
 .mat-menu-panel {
@@ -102,12 +158,56 @@
 
 .desktop-only {
     display: flex;
-    gap: 24px;
+    gap: 4px;
     flex: 1;
     justify-content: flex-end;
+    align-items: center;
+}
+
+/* Responsive breakpoints for better navigation handling */
+@media (max-width: 1200px) {
+    /* Make navigation items more compact on medium screens */
+    .nav-tabs.desktop-only a,
+    .nav-tabs.desktop-only button {
+        font-size: 13px;
+        padding: 8px 10px !important;
+        gap: 4px !important;
+    }
+
+    .nav-tabs.desktop-only a mat-icon,
+    .nav-tabs.desktop-only button mat-icon {
+        font-size: 16px !important;
+        width: 16px !important;
+        height: 16px !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    /* Hide text, show only icons on smaller tablets */
+    .nav-tabs.desktop-only a span,
+    .nav-tabs.desktop-only button span:not(:last-child) {
+        display: none;
+    }
+
+    .nav-tabs.desktop-only a,
+    .nav-tabs.desktop-only button {
+        padding: 8px !important;
+        min-width: 40px;
+        justify-content: center;
+    }
+
+    .profile-btn {
+        padding: 8px !important;
+        min-width: 40px !important;
+    }
+
+    .profile-btn mat-icon:last-child {
+        display: none;
+    }
 }
 
 @media (max-width: 900px) {
+    /* Switch to hamburger menu on mobile */
     .desktop-only {
         display: none;
     }
@@ -115,5 +215,12 @@
     .menu-toggle {
         display: inline-flex;
         margin-right: 8px;
+    }
+}
+
+@media (min-width: 901px) {
+    /* Ensure menu toggle is hidden on desktop */
+    .menu-toggle {
+        display: none !important;
     }
 }

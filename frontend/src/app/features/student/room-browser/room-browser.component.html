@@ -83,12 +83,9 @@
           <span class="occupancy-text">{{ getOccupancyPercentage(room) | number:'1.0-0' }}% occupied</span>
         </div>
 
-        <!-- Status Chip -->
+        <!-- Status Badge -->
         <div class="status-section">
-          <mat-chip [color]="getStatusColor(room)" selected>
-            <mat-icon>{{ room.status === 'AVAILABLE' ? 'check_circle' : 'schedule' }}</mat-icon>
-            {{ room.status }}
-          </mat-chip>
+          <app-modern-status-badge [status]="room.status" size="sm"></app-modern-status-badge>
         </div>
       </mat-card-content>
 

@@ -646,13 +646,14 @@ body {
 }
 
 .mat-mdc-text-field-wrapper {
-  border-radius: 14px !important;
+  border-radius: 0px !important;
 }
 
+.mdc-text-field--outlined .mdc-notched-outline,
 .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading,
 .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__notch,
 .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
-  border-radius: 14px !important;
+  border-radius: 0px !important;
 }
 
 /* Snackbar Styling */

@@ -23,6 +23,9 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
+// Shared Components
+import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-badge/modern-status-badge.component';
+
 @Component({
   selector: 'app-application-details',
   templateUrl: './application-details.component.html',
@@ -45,7 +48,8 @@ import { MatInputModule } from '@angular/material/input';
     MatDialogModule,
     MatProgressSpinnerModule,
     MatFormFieldModule,
-    MatInputModule
+    MatInputModule,
+    ModernStatusBadgeComponent
   ]
 })
 export class ApplicationDetailsComponent implements OnInit {
