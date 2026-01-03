@@ -718,3 +718,17 @@ body {
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+
+/* Error Snackbar Styling */
+.error-snackbar {
+  background: #ef4444 !important;
+  color: white !important;
+}
+
+.error-snackbar .mat-mdc-snack-bar-label {
+  color: white !important;
+}
+
+.error-snackbar .mdc-snackbar__surface {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
+}

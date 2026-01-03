@@ -21,9 +21,18 @@
       "mcp__playwright__browser_run_code",
       "mcp__playwright__browser_type",
       "mcp__playwright__browser_take_screenshot",
-      "mcp__playwright__browser_resize"
+      "mcp__playwright__browser_resize",
+      "Bash(ls:*)",
+      "Bash(npx tsc:*)",
+      "Bash(./gradlew clean build:*)",
+      "Bash(java:*)",
+      "Bash(where:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
 }

@@ -20,9 +20,7 @@
                     </div>
                     <div class="info-item">
                         <p class="info-label">Status</p>
-                        <mat-chip [ngClass]="getStatusClass(document.status)">
-                            {{document.status}}
-                        </mat-chip>
+                        <app-modern-status-badge [status]="document.status" size="sm" />
                     </div>
                     <div class="info-item">
                         <p class="info-label">Upload Date</p>
@@ -37,9 +35,37 @@
 
             <!-- Document Preview -->
             <div class="document-preview">
-                <div class="preview-placeholder">
+                <!-- Loading State -->
+                <div *ngIf="isLoadingPreview" class="preview-loading">
+                    <mat-spinner diameter="50"></mat-spinner>
+                    <p class="loading-text">Loading document preview...</p>
+                </div>
+
+                <!-- Error State -->
+                <div *ngIf="previewError && !isLoadingPreview" class="preview-error">
+                    <mat-icon class="error-icon">error_outline</mat-icon>
+                    <p class="error-text">Failed to load document preview</p>
+                    <button mat-stroked-button color="primary" (click)="loadDocumentPreview()">
+                        <mat-icon>refresh</mat-icon>
+                        Retry
+                    </button>
+                </div>
+
+                <!-- PDF Preview -->
+                <div *ngIf="!isLoadingPreview && !previewError && fileType === 'pdf'" class="preview-content">
+                    <iframe [src]="previewUrl" class="pdf-viewer" frameborder="0"></iframe>
+                </div>
+
+                <!-- Image Preview -->
+                <div *ngIf="!isLoadingPreview && !previewError && fileType === 'image'" class="preview-content">
+                    <img [src]="previewUrl" alt="Document preview" class="image-viewer">
+                </div>
+
+                <!-- Unknown File Type -->
+                <div *ngIf="!isLoadingPreview && !previewError && fileType === 'unknown'" class="preview-placeholder">
                     <mat-icon class="preview-icon">description</mat-icon>
-                    <p class="preview-text">Document Preview</p>
+                    <p class="preview-text">Preview not available for this file type</p>
+                    <p class="preview-subtext">Please download to view</p>
                 </div>
             </div>
         </div>
@@ -48,7 +74,7 @@
 
         <div class="dialog-footer">
             <button mat-stroked-button (click)="onClose()">Close</button>
-            <button mat-raised-button color="primary">
+            <button mat-raised-button color="primary" (click)="downloadDocument()">
                 <mat-icon>download</mat-icon>
                 Download
             </button>

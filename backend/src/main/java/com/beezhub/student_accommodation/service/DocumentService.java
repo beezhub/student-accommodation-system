@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentDownloadResponse;
@@ -45,7 +46,9 @@ public class DocumentService {
     private final DocumentMapper documentMapper;
     private final AuthService authService;
     private final NotificationService notificationService;
+    private final UserNotificationService userNotificationService;
 
+    @LogActivity(action = "UPLOAD", entityType = "DOCUMENT", description = "Uploaded {0} documents", entityIdParamIndex = -1)
     public List<DocumentResponse> uploadDocuments(List<MultipartFile> files, String email, List<Long> documentTypeIds) {
         String bucketName = minioConfig.getBucketName();
         var user = getUserByEmail(email);
@@ -200,6 +203,7 @@ public class DocumentService {
         return updateDocumentStatus(documentId, status, null, username);
     }
 
+    @LogActivity(action = "UPDATE", entityType = "DOCUMENT", description = "Updated document {0} status to {1}", entityIdParamIndex = 0)
     public DocumentResponse updateDocumentStatus(Long documentId, String status, String comment, String username) {
         log.info("Updating document {} to status: {}", documentId, status);
 
@@ -223,7 +227,17 @@ public class DocumentService {
             if (newStatus != oldStatus && (newStatus == APPROVED || newStatus == REJECTED)) {
                 try {
                     log.info("Triggering notification for document {} with status {}", documentId, newStatus);
+                    // Send email notification
                     notificationService.sendDocumentVerificationNotification(updatedDocument, newStatus, comment);
+
+                    // Create in-app notification
+                    Long studentUserId = document.getStudent().getAppUser().getId();
+                    userNotificationService.createDocumentStatusNotification(
+                            studentUserId,
+                            document.getDocumentType().getTypeName(),
+                            newStatus == APPROVED,
+                            comment
+                    );
                 } catch (Exception e) {
                     // Log error but don't fail the request - notification will be retried
                     log.error("Failed to trigger notification for document {} - notification will be retried by scheduler",
@@ -237,6 +251,7 @@ public class DocumentService {
         }
     }
 
+    @LogActivity(action = "DELETE", entityType = "DOCUMENT", description = "Deleted document {0}", entityIdParamIndex = 0)
     public void deleteDocument(Long documentId, String username) {
         var user = getUserByEmail(username);
         Document document = documentRepository.findById(documentId)

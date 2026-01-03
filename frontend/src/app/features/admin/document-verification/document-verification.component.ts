@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AdminService, DocumentResponse, PageResponse } from '../../../core/services/admin.service';
+import { DocumentViewerComponent } from '../../dashboard/documents/document-viewer/document-viewer.component';
+import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -12,7 +14,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -37,13 +38,14 @@ import { SelectionModel } from '@angular/cdk/collections';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatChipsModule,
     MatCheckboxModule,
     MatMenuModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
     MatDividerModule,
+    DocumentViewerComponent,
+    ModernStatusBadgeComponent,
   ],
 })
 export class DocumentVerificationComponent implements OnInit {
@@ -68,6 +70,9 @@ export class DocumentVerificationComponent implements OnInit {
   selection = new SelectionModel<DocumentResponse>(true, []);
 
   statuses = ['PENDING', 'APPROVED', 'REJECTED'];
+  applicationStatuses = ['PENDING', 'APPROVED', 'REJECTED'];
+
+  selectedDocument: any = null;
 
   constructor(
     private adminService: AdminService,
@@ -78,6 +83,7 @@ export class DocumentVerificationComponent implements OnInit {
       studentName: [''],
       documentType: [''],
       status: [''],
+      applicationStatus: ['APPROVED'], // Default to showing only approved applications
     });
   }
 
@@ -114,7 +120,12 @@ export class DocumentVerificationComponent implements OnInit {
   }
 
   onClearFilters(): void {
-    this.filterForm.reset();
+    this.filterForm.reset({
+      studentName: '',
+      documentType: '',
+      status: '',
+      applicationStatus: 'APPROVED', // Reset to default: approved applications only
+    });
     this.currentPage = 0;
     this.loadDocuments();
   }
@@ -127,16 +138,30 @@ export class DocumentVerificationComponent implements OnInit {
 
   updateStatus(document: DocumentResponse, status: string): void {
     this.adminService.updateDocumentStatus(document.id, status).subscribe({
-      next: () => {
+      next: (response) => {
         this.snackBar.open(`Document ${status.toLowerCase()} successfully`, 'Close', {
           duration: 3000,
         });
+
+        // Check if room was allocated by backend (backend returns this info)
+        if (response && (response as any).roomAllocated) {
+          const roomInfo = (response as any).roomNumber ? `Room: ${(response as any).roomNumber}` : '';
+          this.snackBar.open(
+            `Room allocated automatically! ${roomInfo}`,
+            'Close',
+            { duration: 5000 }
+          );
+        }
+
         this.loadDocuments();
       },
       error: (error) => {
         console.error('Failed to update status:', error);
-        this.snackBar.open('Failed to update document status', 'Close', {
-          duration: 3000,
+
+        // Display specific error message from backend
+        const errorMessage = error.error?.message || error.error?.error || 'Failed to update document status';
+        this.snackBar.open(errorMessage, 'Close', {
+          duration: 5000,
         });
       },
     });
@@ -178,8 +203,9 @@ export class DocumentVerificationComponent implements OnInit {
             this.finalizeBulkOperation(completed, failed, 'approved');
           }
         },
-        error: () => {
+        error: (error) => {
           failed++;
+          console.error('Failed to approve document:', error);
           if (completed + failed === selectedIds.length) {
             this.finalizeBulkOperation(completed, failed, 'approved');
           }
@@ -260,5 +286,21 @@ export class DocumentVerificationComponent implements OnInit {
       default:
         return 'help';
     }
+  }
+
+  viewDocument(document: DocumentResponse): void {
+    // Transform DocumentResponse to the format expected by DocumentViewerComponent
+    this.selectedDocument = {
+      id: document.id,
+      name: document.documentName,
+      type: document.documentTypeName,
+      uploadDate: document.createdAt,
+      status: document.documentStatus,
+      size: '' // Size not available from API
+    };
+  }
+
+  closeViewer(): void {
+    this.selectedDocument = null;
   }
 }

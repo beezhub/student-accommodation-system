@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DuplicateApplicationException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
@@ -41,28 +42,30 @@ public class ApplicationService {
     private final ApplicationMapper applicationMapper;
     private final AuthService authService;
     private final NotificationService notificationService;
+    private final UserNotificationService userNotificationService;
 
     @Transactional
+    @LogActivity(action = "CREATE", entityType = "APPLICATION", description = "Submitted application for student {0}", entityIdParamIndex = 0)
     public ApplicationResponse submitApplication(Long studentId) {
         log.info("Submitting application for student with ID: {}", studentId);
-        
+
         // Get student
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + studentId));
-        
+
         // Verify authorization - student can only submit for themselves
         AppUser currentUser = authService.getCurrentUser();
-        
-        if (!student.getAppUser().getId().equals(currentUser.getId()) && 
+
+        if (!student.getAppUser().getId().equals(currentUser.getId()) &&
             !currentUser.getUserRole().equals(UserRole.ADMIN)) {
             throw new UnauthorizedAccessException("You can only submit applications for yourself");
         }
-        
+
         // Check for existing pending application
         if (applicationRepository.existsByStudent_IdAndStatus(studentId, PENDING)) {
             throw new DuplicateApplicationException("Student already has a pending application");
         }
-        
+
         // Create and save application
         Application application = Application.builder()
                 .applicationCode(generateApplicationCode())
@@ -70,10 +73,10 @@ public class ApplicationService {
                 .status(PENDING)
                 .student(student)
                 .build();
-        
+
         Application savedApplication = applicationRepository.save(application);
         log.info("Application submitted successfully with code: {}", savedApplication.getApplicationCode());
-        
+
         return applicationMapper.toResponse(savedApplication);
     }
 
@@ -132,6 +135,7 @@ public class ApplicationService {
     }
     
     @Transactional
+    @LogActivity(action = "UPDATE", entityType = "APPLICATION", description = "Updated application {0} status to {1}", entityIdParamIndex = 0)
     public ApplicationResponse updateApplicationStatus(Long applicationId, @Valid ApplicationStatusUpdateRequest request) {
         log.info("Updating application {} to status: {}", applicationId, request.getStatus());
 
@@ -150,7 +154,17 @@ public class ApplicationService {
         if (newStatus != oldStatus && (newStatus == APPROVED || newStatus == REJECTED)) {
             try {
                 log.info("Triggering notification for application {} with status {}", applicationId, newStatus);
+                // Send email notification
                 notificationService.sendApplicationStatusNotification(updatedApplication, newStatus);
+
+                // Create in-app notification
+                Long studentUserId = application.getStudent().getAppUser().getId();
+                userNotificationService.createApplicationStatusNotification(
+                        studentUserId,
+                        applicationId,
+                        newStatus == APPROVED,
+                        request.getRemarks()
+                );
             } catch (Exception e) {
                 // Log error but don't fail the request - notification will be retried
                 log.error("Failed to trigger notification for application {} - notification will be retried by scheduler",
@@ -162,24 +176,25 @@ public class ApplicationService {
     }
     
     @Transactional
+    @LogActivity(action = "DELETE", entityType = "APPLICATION", description = "Canceled application {0}", entityIdParamIndex = 0)
     public void cancelApplication(Long applicationId) {
         log.info("Canceling application with ID: {}", applicationId);
-        
+
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + applicationId));
-        
+
         // Verify authorization
         AppUser currentUser = authService.getCurrentUser();
-        
+
         if (!application.getStudent().getAppUser().getId().equals(currentUser.getId())) {
             throw new UnauthorizedAccessException("You can only cancel your own applications");
         }
-        
+
         // Only pending applications can be canceled
         if (!application.getStatus().equals(PENDING)) {
             throw new IllegalStateException("Only pending applications can be canceled");
         }
-        
+
         applicationRepository.delete(application);
         log.info("Application {} canceled successfully", applicationId);
     }

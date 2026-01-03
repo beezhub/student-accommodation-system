@@ -4,12 +4,12 @@ import { Router, RouterModule, ActivatedRoute } from "@angular/router";
 import { AuthService } from "../../../core/services/auth.service";
 import { ApplicationService } from "../../../core/services/application.service";
 import { Application } from "../../../core/models/application.model";
+import { ModernStatusBadgeComponent } from "../../../shared/modern-status-badge/modern-status-badge.component";
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
@@ -18,13 +18,13 @@ import { MatDividerModule } from '@angular/material/divider';
   styleUrls: ["./application-confirmation.component.css"],
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
     RouterModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule,
-    MatDividerModule
+    MatDividerModule,
+    ModernStatusBadgeComponent
   ],
 })
 export class ApplicationConfirmationComponent implements OnInit {

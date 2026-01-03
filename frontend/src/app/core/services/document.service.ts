@@ -38,4 +38,16 @@ export class DocumentService {
 
     return this.http.get<DocumentData[]>(`${this.apiUrl}/info/all/${userId}`);
   }
+
+  getDocumentPreview(documentId: string | number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/download/${documentId}`, {
+      responseType: 'blob'
+    });
+  }
+
+  downloadDocument(documentId: string | number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/download/${documentId}`, {
+      responseType: 'blob'
+    });
+  }
 }

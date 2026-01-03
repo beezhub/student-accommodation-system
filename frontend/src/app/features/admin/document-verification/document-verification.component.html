@@ -7,6 +7,20 @@
     <p class="subtitle">Verify and manage student documents</p>
   </div>
 
+  <!-- Workflow Information -->
+  <mat-card class="info-banner">
+    <mat-card-content>
+      <div class="info-content">
+        <mat-icon color="primary">info</mat-icon>
+        <div class="info-text">
+          <strong>Document Review Workflow:</strong>
+          <p>The system validates that applications are approved before allowing document reviews.
+          Once all required documents are approved, a room is <strong>automatically allocated</strong> to the student by the system.</p>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
   <!-- Filters -->
   <mat-card class="filter-card">
     <mat-card-content>
@@ -22,13 +36,24 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Status</mat-label>
+          <mat-label>Document Status</mat-label>
           <mat-select formControlName="status">
             <mat-option value="">All</mat-option>
             <mat-option *ngFor="let status of statuses" [value]="status">
               {{ status }}
             </mat-option>
           </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Application Status</mat-label>
+          <mat-select formControlName="applicationStatus">
+            <mat-option value="">All Applications</mat-option>
+            <mat-option *ngFor="let appStatus of applicationStatuses" [value]="appStatus">
+              {{ appStatus }}
+            </mat-option>
+          </mat-select>
+          <mat-hint>Default: Approved applications only</mat-hint>
         </mat-form-field>
 
         <div class="filter-actions">
@@ -135,10 +160,7 @@
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef>Status</th>
             <td mat-cell *matCellDef="let document">
-              <mat-chip [class]="'status-chip ' + getStatusClass(document.documentStatus)">
-                <mat-icon>{{ getStatusIcon(document.documentStatus) }}</mat-icon>
-                {{ document.documentStatus }}
-              </mat-chip>
+              <app-modern-status-badge [status]="document.documentStatus" size="sm" />
             </td>
           </ng-container>
 
@@ -146,6 +168,10 @@
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef>Actions</th>
             <td mat-cell *matCellDef="let document">
+              <button mat-icon-button (click)="viewDocument(document)"
+                      matTooltip="View Document">
+                <mat-icon>visibility</mat-icon>
+              </button>
               <button mat-icon-button (click)="downloadDocument(document)"
                       matTooltip="Download Document">
                 <mat-icon>download</mat-icon>
@@ -170,6 +196,10 @@
                   <span>Set Pending</span>
                 </button>
                 <mat-divider></mat-divider>
+                <button mat-menu-item (click)="viewDocument(document)">
+                  <mat-icon>visibility</mat-icon>
+                  <span>View Document</span>
+                </button>
                 <button mat-menu-item (click)="downloadDocument(document)">
                   <mat-icon>download</mat-icon>
                   <span>Download</span>
@@ -198,4 +228,8 @@
       </div>
     </mat-card-content>
   </mat-card>
+
+  <!-- Document Viewer Modal -->
+  <app-document-viewer *ngIf="selectedDocument" [document]="selectedDocument"
+    (close)="closeViewer()"></app-document-viewer>
 </div>

@@ -1,0 +1,96 @@
+<button
+  mat-icon-button
+  [matMenuTriggerFor]="notificationMenu"
+  matTooltip="Notifications"
+  class="notification-button">
+  <mat-icon
+    [matBadge]="(unreadCount$ | async) || 0"
+    [matBadgeHidden]="(unreadCount$ | async) === 0"
+    matBadgeColor="warn"
+    matBadgeSize="small">
+    notifications
+  </mat-icon>
+</button>
+
+<mat-menu #notificationMenu="matMenu" class="notification-menu" xPosition="before">
+  <div class="notification-header" (click)="$event.stopPropagation()">
+    <h3>Notifications</h3>
+    <button
+      mat-button
+      color="primary"
+      (click)="markAllAsRead()"
+      *ngIf="(unreadCount$ | async)! > 0"
+      class="mark-all-read-btn">
+      Mark all as read
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="notification-list">
+    <ng-container *ngIf="(notifications$ | async) as notifications">
+      <div *ngIf="notifications.length === 0" class="no-notifications">
+        <mat-icon>notifications_none</mat-icon>
+        <p>No notifications</p>
+      </div>
+
+      <div
+        *ngFor="let notification of notifications"
+        class="notification-item"
+        [class.unread]="!notification.isRead"
+        (click)="markAsRead(notification, $event)">
+
+        <div class="notification-icon" [ngClass]="'icon-' + getColor(notification.type)">
+          <mat-icon>{{ getIcon(notification.type) }}</mat-icon>
+        </div>
+
+        <div class="notification-content">
+          <div class="notification-title">{{ notification.title }}</div>
+          <div class="notification-message">{{ notification.message }}</div>
+
+          <!-- Room Allocation Details -->
+          <div *ngIf="notification.type === 'ROOM_ALLOCATION' && notification.data" class="notification-details">
+            <span class="detail-item" *ngIf="notification.data.roomNumber">
+              <mat-icon>meeting_room</mat-icon>
+              Room {{ notification.data.roomNumber }}
+            </span>
+            <span class="detail-item" *ngIf="notification.data.buildingName">
+              <mat-icon>apartment</mat-icon>
+              {{ notification.data.buildingName }}
+            </span>
+          </div>
+
+          <!-- Payment Details -->
+          <div *ngIf="notification.type === 'PAYMENT_DUE' && notification.data" class="notification-details">
+            <span class="detail-item" *ngIf="notification.data.amount">
+              <mat-icon>attach_money</mat-icon>
+              ${{ notification.data.amount }}
+            </span>
+            <span class="detail-item" *ngIf="notification.data.dueDate">
+              <mat-icon>event</mat-icon>
+              Due: {{ notification.data.dueDate | date:'shortDate' }}
+            </span>
+          </div>
+
+          <div class="notification-time">{{ getTimeAgo(notification.createdAt) }}</div>
+        </div>
+
+        <button
+          mat-icon-button
+          class="delete-btn"
+          (click)="deleteNotification(notification.id, $event)"
+          matTooltip="Delete">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <mat-divider *ngIf="notifications.length > 0"></mat-divider>
+    </ng-container>
+  </div>
+
+  <div class="notification-footer" (click)="$event.stopPropagation()">
+    <button mat-button class="view-all-btn">
+      View all notifications
+    </button>
+  </div>
+</mat-menu>

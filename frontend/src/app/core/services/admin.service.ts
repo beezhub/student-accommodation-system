@@ -44,6 +44,8 @@ export interface DocumentResponse {
   studentFirstName: string;
   studentLastName: string;
   studentEmail: string;
+  applicationStatus?: string;
+  applicationId?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -164,9 +166,8 @@ export class AdminService {
   }
 
   updateDocumentStatus(documentId: number, status: string): Observable<DocumentResponse> {
-    return this.http.put<DocumentResponse>(`${this.documentApiUrl}/update-status/${documentId}`, {
-      documentStatus: status
-    });
+    const params = new HttpParams().set('status', status);
+    return this.http.put<DocumentResponse>(`${this.documentApiUrl}/update-status/${documentId}`, null, { params });
   }
 
   downloadDocument(documentId: number): Observable<Blob> {

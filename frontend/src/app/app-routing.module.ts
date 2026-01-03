@@ -113,6 +113,10 @@ export const routes: Routes = [
       {
         path: 'room-allocations',
         loadComponent: () => import('./features/admin/room-allocation/room-allocation.component').then(m => m.RoomAllocationComponent)
+      },
+      {
+        path: 'activity-logs',
+        loadComponent: () => import('./features/admin/activity-logs/activity-logs.component').then(m => m.ActivityLogsComponent)
       }
     ]
   },

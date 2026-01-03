@@ -6,12 +6,13 @@ import { routes } from './app/app-routing.module';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { authInterceptor } from './app/core/interceptors/auth.interceptor';
 import { tokenExpiryInterceptor } from './app/core/interceptors/token-expiry.interceptor';
+import { errorInterceptor } from './app/core/interceptors/error.interceptor';
 
 bootstrapApplication(AppComponent, {
   providers: [
     provideRouter(routes),
     provideHttpClient(
-      withInterceptors([authInterceptor, tokenExpiryInterceptor])
+      withInterceptors([authInterceptor, tokenExpiryInterceptor, errorInterceptor])
     ),
     provideAnimations()
   ],

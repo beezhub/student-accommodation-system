@@ -5,13 +5,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../core/services/auth.service';
+import { NotificationsComponent } from './notifications/notifications.component';
 
 @Component({
     selector: 'app-nav-menu',
     standalone: true,
-    imports: [CommonModule, MatMenuModule, MatIconModule, MatButtonModule, RouterModule],
+    imports: [CommonModule, MatMenuModule, MatIconModule, MatButtonModule, RouterModule, NotificationsComponent],
     template: `
     <nav class="nav-bar">
+      <app-notifications></app-notifications>
       <button mat-icon-button [matMenuTriggerFor]="menu" class="menu-toggle" aria-label="Open navigation menu">
         <mat-icon>menu</mat-icon>
       </button>
@@ -65,6 +67,10 @@ import { AuthService } from '../core/services/auth.service';
             <mat-icon>assignment_ind</mat-icon>
             Room Allocations
           </button>
+          <button mat-menu-item routerLink="/admin/activity-logs">
+            <mat-icon>history</mat-icon>
+            Activity Logs
+          </button>
         </ng-container>
         <button mat-menu-item [matMenuTriggerFor]="profileMenu">
           <mat-icon>account_circle</mat-icon>
@@ -106,6 +112,7 @@ import { AuthService } from '../core/services/auth.service';
           <a mat-button routerLink="/admin/buildings"><mat-icon>apartment</mat-icon><span>Buildings</span></a>
           <a mat-button routerLink="/admin/rooms"><mat-icon>meeting_room</mat-icon><span>Rooms</span></a>
           <a mat-button routerLink="/admin/room-allocations"><mat-icon>assignment_ind</mat-icon><span>Allocations</span></a>
+          <a mat-button routerLink="/admin/activity-logs"><mat-icon>history</mat-icon><span>Activity Logs</span></a>
         </ng-container>
         <button mat-button [matMenuTriggerFor]="profileMenu" class="profile-btn">
           <mat-icon>account_circle</mat-icon><span>Profile</span><mat-icon>expand_more</mat-icon>

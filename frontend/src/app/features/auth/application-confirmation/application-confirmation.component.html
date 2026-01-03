@@ -35,7 +35,7 @@
 
           <div class="detail-item">
             <span class="detail-label">Status</span>
-            <mat-chip class="status-chip status-warning">{{application?.status}}</mat-chip>
+            <app-modern-status-badge [status]="application?.status || 'pending'" />
           </div>
 
           <mat-divider></mat-divider>

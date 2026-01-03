@@ -7,6 +7,7 @@ import { SignupData } from "../models/signup-data.model";
 import { InstitutionService } from "./institution.service";
 import { YearOfStudyService } from "./year-of-study.service";
 import { Router } from "@angular/router";
+import { NotificationService } from "./notification.service";
 
 @Injectable({
   providedIn: "root",
@@ -24,7 +25,8 @@ export class AuthService {
     private http: HttpClient,
     private institutionService: InstitutionService,
     private yearOfStudyService: YearOfStudyService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) {
     window.addEventListener("storage", (event) => {
       if (event.key === "currentUser") {
@@ -46,6 +48,10 @@ export class AuthService {
           localStorage.setItem("token", response.token);
           localStorage.setItem("currentUser", JSON.stringify(response.user));
           this.currentUserSubject.next(response.user);
+
+          // Start notification polling after successful signup
+          this.notificationService.startPolling();
+
           return response.user;
         })
       );
@@ -60,6 +66,9 @@ export class AuthService {
   }
 
   logout(): void {
+    // Stop notification polling before logout
+    this.notificationService.stopPolling();
+
     localStorage.removeItem("currentUser");
     localStorage.removeItem("token");
     this.currentUserSubject.next(null);
@@ -76,6 +85,10 @@ export class AuthService {
           localStorage.setItem("token", response.token);
           localStorage.setItem("currentUser", JSON.stringify(response.user));
           this.currentUserSubject.next(response.user);
+
+          // Start notification polling after successful login
+          this.notificationService.startPolling();
+
           return response.user;
         })
       );
