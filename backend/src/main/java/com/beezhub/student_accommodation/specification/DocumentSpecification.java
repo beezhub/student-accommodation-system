@@ -1,6 +1,8 @@
 package com.beezhub.student_accommodation.specification;
 
+import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Document;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -16,6 +18,7 @@ public class DocumentSpecification {
             Long studentId,
             Long documentTypeId,
             String status,
+            String applicationStatus,
             LocalDateTime createdAfter,
             LocalDateTime createdBefore
     ) {
@@ -49,6 +52,23 @@ public class DocumentSpecification {
                     predicates.add(criteriaBuilder.equal(root.get("documentStatus"), documentStatus));
                 } catch (IllegalArgumentException e) {
                     // Invalid status, ignore this filter
+                }
+            }
+
+            if (applicationStatus != null && !applicationStatus.trim().isEmpty()) {
+                try {
+                    ApplicationStatus appStatus = ApplicationStatus.valueOf(applicationStatus.toUpperCase());
+                    // Exists subquery: application for this student with desired status
+                    var subquery = query.subquery(Long.class);
+                    var appRoot = subquery.from(Application.class);
+                    subquery.select(appRoot.get("id"))
+                            .where(
+                                    criteriaBuilder.equal(appRoot.get("student").get("id"), root.get("student").get("id")),
+                                    criteriaBuilder.equal(appRoot.get("status"), appStatus)
+                            );
+                    predicates.add(criteriaBuilder.exists(subquery));
+                } catch (IllegalArgumentException ignored) {
+                    // invalid status; ignore
                 }
             }
 

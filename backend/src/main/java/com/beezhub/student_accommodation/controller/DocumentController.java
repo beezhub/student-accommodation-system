@@ -110,6 +110,7 @@ public class DocumentController {
             @RequestParam(required = false) String documentName,
             @RequestParam(required = false) Long documentTypeId,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String applicationStatus,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore,
             @RequestParam(defaultValue = "0") int page,
@@ -122,7 +123,7 @@ public class DocumentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<DocumentResponse> documentsPage = documentService.getMyDocuments(
-                documentName, documentTypeId, status, createdAfter, createdBefore,
+                documentName, documentTypeId, status, applicationStatus, createdAfter, createdBefore,
                 pageable
         );
 
@@ -176,6 +177,7 @@ public class DocumentController {
             @RequestParam(required = false) Long studentId,
             @RequestParam(required = false) Long documentTypeId,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String applicationStatus,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdAfter,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createdBefore,
             @RequestParam(defaultValue = "0") int page,
@@ -188,7 +190,7 @@ public class DocumentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<DocumentResponse> documentsPage = documentService.searchDocuments(
-                documentName, studentId, documentTypeId, status, createdAfter, createdBefore,
+                documentName, studentId, documentTypeId, status, applicationStatus, createdAfter, createdBefore,
                 pageable, authentication.getName()
         );
 

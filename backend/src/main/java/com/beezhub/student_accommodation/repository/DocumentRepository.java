@@ -12,5 +12,6 @@ import java.util.List;
 public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSpecificationExecutor<Document> {
 
     List<Document> findAllByStudent_AppUser_Id(Long userId);
+    List<Document> findAllByStudent_Id(Long studentId);
     long countByDocumentStatus(DocumentStatus status);
 }

@@ -21,6 +21,8 @@ public class Document {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Version
+    private Long version;
     @Column(name = "document_name", nullable = false)
     private String documentName;
     @Column(name = "document_path", nullable = false)

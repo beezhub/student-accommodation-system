@@ -20,6 +20,8 @@ public class Application {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Version
+    private Long version;
     @Column(unique = true, nullable = false, name = "application_code")
     private String applicationCode;
     @Column(name = "applicant_date")

@@ -1,18 +1,35 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.ApplicationNotApprovedException;
+import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
+import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
+import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
+import org.springframework.dao.OptimisticLockingFailureException;
+
 import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentDownloadResponse;
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
+import com.beezhub.student_accommodation.model.dto.RoomAllocationRequest;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
+import com.beezhub.student_accommodation.model.entity.Application;
+import com.beezhub.student_accommodation.model.entity.Room;
+import com.beezhub.student_accommodation.model.entity.RoomAllocation;
+import com.beezhub.student_accommodation.model.entity.Student;
+import com.beezhub.student_accommodation.model.entity.WaitingListEntry;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.repository.ApplicationRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.repository.WaitingListRepository;
+import com.beezhub.student_accommodation.service.RoomAllocationService;
 import com.beezhub.student_accommodation.specification.DocumentSpecification;
 import io.minio.*;
 import io.minio.http.Method;
@@ -25,6 +42,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.transaction.Transactional;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -47,6 +65,10 @@ public class DocumentService {
     private final AuthService authService;
     private final NotificationService notificationService;
     private final UserNotificationService userNotificationService;
+    private final ApplicationRepository applicationRepository;
+    private final RoomAllocationRepository roomAllocationRepository;
+    private final RoomAllocationService roomAllocationService;
+    private final WaitingListRepository waitingListRepository;
 
     @LogActivity(action = "UPLOAD", entityType = "DOCUMENT", description = "Uploaded {0} documents", entityIdParamIndex = -1)
     public List<DocumentResponse> uploadDocuments(List<MultipartFile> files, String email, List<Long> documentTypeIds) {
@@ -69,10 +91,10 @@ public class DocumentService {
     public DocumentResponse getDocumentInfo(Long documentId, String username) {
         var user = getUserByEmail(username);
         Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
         if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new RuntimeException("Unauthorized access to document");
+            throw new UnauthorizedAccessException("Unauthorized access to document");
         }
 
         String bucketName = minioConfig.getBucketName();
@@ -203,52 +225,121 @@ public class DocumentService {
         return updateDocumentStatus(documentId, status, null, username);
     }
 
+    @Transactional
     @LogActivity(action = "UPDATE", entityType = "DOCUMENT", description = "Updated document {0} status to {1}", entityIdParamIndex = 0)
     public DocumentResponse updateDocumentStatus(Long documentId, String status, String comment, String username) {
         log.info("Updating document {} to status: {}", documentId, status);
 
         var user = getUserByEmail(username);
         Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
         if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new RuntimeException("Unauthorized access to document");
+            throw new UnauthorizedAccessException("Unauthorized access to document");
+        }
+
+        DocumentStatus oldStatus = document.getDocumentStatus();
+        DocumentStatus newStatus;
+        try {
+            newStatus = DocumentStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidStatusException("Invalid document status: " + status);
+        }
+
+        Application application = applicationRepository.findByStudent_Id(document.getStudent().getId())
+                .stream()
+                .filter(app -> app.getStatus() == ApplicationStatus.APPROVED)
+                .findFirst()
+                .orElseThrow(() -> new ApplicationNotApprovedException("Documents can only be reviewed for approved applications"));
+
+        document.setDocumentStatus(newStatus);
+        Document updatedDocument;
+        try {
+            updatedDocument = documentRepository.save(document);
+        } catch (OptimisticLockingFailureException e) {
+            throw e; // surface for handler; caller can retry
+        }
+
+        log.info("Document {} status updated from {} to: {}", documentId, oldStatus, newStatus);
+
+        if (newStatus != oldStatus && (newStatus == APPROVED || newStatus == REJECTED)) {
+            try {
+                log.info("Triggering notification for document {} with status {}", documentId, newStatus);
+                notificationService.sendDocumentVerificationNotification(updatedDocument, newStatus, comment);
+                Long studentUserId = document.getStudent().getAppUser().getId();
+                userNotificationService.createDocumentStatusNotification(
+                        studentUserId,
+                        document.getDocumentType().getTypeName(),
+                        newStatus == APPROVED,
+                        comment
+                );
+            } catch (Exception e) {
+                log.error("Failed to trigger notification for document {} - notification will be retried by scheduler",
+                        documentId, e);
+            }
+        }
+
+        // If approved, check all required docs and allocate room or enqueue waiting list
+        if (newStatus == APPROVED) {
+            tryAllocateOrQueue(document.getStudent(), application, updatedDocument);
+        }
+
+        DocumentResponse response = documentMapper.toDocumentResponse(updatedDocument);
+        documentMapper.enrichWithApplication(response, application);
+        documentMapper.enrichWithRoom(response, findActiveAllocation(document.getStudent().getId()));
+        return response;
+    }
+
+    private RoomAllocation findActiveAllocation(Long studentId) {
+        return roomAllocationRepository.findActiveAllocationByStudentId(studentId).orElse(null);
+    }
+
+    private void tryAllocateOrQueue(Student student, Application application, Document updatedDocument) {
+        // Check if all required docs are approved
+        List<Document> documents = documentRepository.findAllByStudent_Id(student.getId());
+        long requiredApproved = documents.stream()
+                .filter(doc -> doc.getDocumentStatus() == APPROVED)
+                .map(Document::getDocumentType)
+                .filter(DocumentType::getIsRequired)
+                .count();
+        long requiredTotal = documents.stream()
+                .map(Document::getDocumentType)
+                .filter(DocumentType::getIsRequired)
+                .count();
+
+        if (requiredApproved < requiredTotal) {
+            log.info("Student {} does not have all required documents approved yet", student.getId());
+            return;
         }
 
         try {
-            DocumentStatus oldStatus = document.getDocumentStatus();
-            DocumentStatus newStatus = DocumentStatus.valueOf(status.toUpperCase());
-            document.setDocumentStatus(newStatus);
-            Document updatedDocument = documentRepository.save(document);
-
-            log.info("Document {} status updated from {} to: {}", documentId, oldStatus, newStatus);
-
-            // Send notification if status changed to APPROVED or REJECTED
-            if (newStatus != oldStatus && (newStatus == APPROVED || newStatus == REJECTED)) {
-                try {
-                    log.info("Triggering notification for document {} with status {}", documentId, newStatus);
-                    // Send email notification
-                    notificationService.sendDocumentVerificationNotification(updatedDocument, newStatus, comment);
-
-                    // Create in-app notification
-                    Long studentUserId = document.getStudent().getAppUser().getId();
-                    userNotificationService.createDocumentStatusNotification(
-                            studentUserId,
-                            document.getDocumentType().getTypeName(),
-                            newStatus == APPROVED,
-                            comment
-                    );
-                } catch (Exception e) {
-                    // Log error but don't fail the request - notification will be retried
-                    log.error("Failed to trigger notification for document {} - notification will be retried by scheduler",
-                            documentId, e);
-                }
+            Room availableRoom = roomAllocationService.findAvailableRoom();
+            if (availableRoom != null) {
+                RoomAllocationRequest request = new RoomAllocationRequest();
+                request.setStudentId(student.getId());
+                request.setRoomId(availableRoom.getId());
+                request.setApplicationId(application.getId());
+                roomAllocationService.createRoomAllocation(request);
+                log.info("Allocated room {} to student {} after document approvals", availableRoom.getRoomNumber(), student.getId());
+            } else {
+                enqueueWaitingList(student, application);
             }
-
-            return documentMapper.toDocumentResponse(updatedDocument);
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid document status: " + status, e);
+        } catch (Exception e) {
+            log.error("Failed to auto-allocate room for student {}: {}", student.getId(), e.getMessage(), e);
         }
+    }
+
+    private void enqueueWaitingList(Student student, Application application) {
+        if (waitingListRepository.existsByStudent_IdAndStatus(student.getId(), "WAITING")) {
+            log.info("Student {} is already on the waiting list", student.getId());
+            return;
+        }
+        WaitingListEntry entry = new WaitingListEntry();
+        entry.setStudent(student);
+        entry.setApplication(application);
+        entry.setStatus("WAITING");
+        waitingListRepository.save(entry);
+        log.warn("No rooms available; student {} placed on waiting list", student.getId());
     }
 
     @LogActivity(action = "DELETE", entityType = "DOCUMENT", description = "Deleted document {0}", entityIdParamIndex = 0)
@@ -282,6 +373,7 @@ public class DocumentService {
             Long studentId,
             Long documentTypeId,
             String status,
+            String applicationStatus,
             LocalDateTime createdAfter,
             LocalDateTime createdBefore,
             Pageable pageable,
@@ -289,7 +381,7 @@ public class DocumentService {
     ) {
         var user = getUserByEmail(username);
         Specification<Document> spec = DocumentSpecification.filterBy(
-                documentName, studentId, documentTypeId, status, createdAfter, createdBefore
+                documentName, studentId, documentTypeId, status, applicationStatus, createdAfter, createdBefore
         );
 
         // If not admin, restrict to user's own documents
@@ -305,6 +397,7 @@ public class DocumentService {
             String documentName,
             Long documentTypeId,
             String status,
+            String applicationStatus,
             LocalDateTime createdAfter,
             LocalDateTime createdBefore,
             Pageable pageable
@@ -312,10 +405,11 @@ public class DocumentService {
         var currentUser = authService.getCurrentUser();
         Specification<Document> spec = DocumentSpecification.belongsToUser(currentUser.getId())
                 .and(DocumentSpecification.filterBy(
-                        documentName, null, documentTypeId, status, createdAfter, createdBefore
+                        documentName, null, documentTypeId, status, applicationStatus, createdAfter, createdBefore
                 ));
 
         Page<Document> documentsPage = documentRepository.findAll(spec, pageable);
         return documentsPage.map(documentMapper::toDocumentResponse);
     }
 }
+

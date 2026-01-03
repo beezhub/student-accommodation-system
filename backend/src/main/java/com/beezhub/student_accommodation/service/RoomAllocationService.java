@@ -11,10 +11,12 @@ import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
+import com.beezhub.student_accommodation.model.entity.WaitingListEntry;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.repository.WaitingListRepository;
 import com.beezhub.student_accommodation.specification.RoomAllocationSpecification;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +42,7 @@ public class RoomAllocationService {
     private final ApplicationRepository applicationRepository;
     private final RoomAllocationMapper roomAllocationMapper;
     private final NotificationService notificationService;
+    private final WaitingListRepository waitingListRepository;
 
     public List<RoomAllocationResponse> getAllRoomAllocations() {
         log.info("Fetching all room allocations");
@@ -279,6 +283,12 @@ public class RoomAllocationService {
 
         roomAllocationRepository.delete(allocation);
         log.info("Successfully deleted room allocation with id: {}", id);
+
+        try {
+            allocateNextFromWaitingList();
+        } catch (Exception e) {
+            log.error("Failed to allocate next from waiting list after deletion {}", id, e);
+        }
     }
 
     /**
@@ -302,6 +312,13 @@ public class RoomAllocationService {
 
         RoomAllocation updated = roomAllocationRepository.save(allocation);
         log.info("Successfully ended room allocation with id: {}", id);
+
+        try {
+            allocateNextFromWaitingList();
+        } catch (Exception e) {
+            log.error("Failed to allocate next from waiting list after ending allocation {}", id, e);
+        }
+
         return roomAllocationMapper.toResponse(updated);
     }
 
@@ -449,5 +466,39 @@ public class RoomAllocationService {
                 room.getRoomNumber(), response.getAvailableSpots(), room.getCapacity(), activeAllocations);
 
         return response;
+    }
+
+    public Room findAvailableRoom() {
+        Optional<Room> room = roomRepository.findFirstByStatusOrderByBuilding_IdAscRoomNumberAsc("AVAILABLE");
+        room.ifPresent(r -> log.info("Found available room {}", r.getRoomNumber()));
+        return room.orElse(null);
+    }
+
+    /**
+     * Attempts to allocate next waiting student when a room frees up.
+     */
+    @Transactional
+    public void allocateNextFromWaitingList() {
+        Room room = findAvailableRoom();
+        if (room == null) {
+            log.info("No available rooms to allocate waiting list");
+            return;
+        }
+        WaitingListEntry entry = waitingListRepository.findFirstByStatusOrderByCreatedAtAsc("WAITING")
+                .orElse(null);
+        if (entry == null) {
+            log.info("No waiting list entries to allocate");
+            return;
+        }
+        RoomAllocationRequest request = new RoomAllocationRequest();
+        request.setStudentId(entry.getStudent().getId());
+        request.setRoomId(room.getId());
+        if (entry.getApplication() != null) {
+            request.setApplicationId(entry.getApplication().getId());
+        }
+        createRoomAllocation(request);
+        entry.setStatus("ALLOCATED");
+        waitingListRepository.save(entry);
+        log.info("Allocated waiting student {} to room {}", entry.getStudent().getId(), room.getRoomNumber());
     }
 }
