@@ -5,10 +5,20 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApplicationRequest {
     @NotNull(message = "Student ID is required")
     private Long studentId;
+
+    private String preferredAccommodationType;
+    private LocalDate preferredMoveInDate;
+    private Integer preferredDurationMonths;
+    private String preferredRoomType;
+    private String specialRequirements;
+    private String institutionName;
+    private String courseName;
 }

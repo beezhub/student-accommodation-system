@@ -40,6 +40,27 @@ public class Application {
     @JoinColumn(name = "student_id", referencedColumnName = "id", nullable = false)
     private Student student;
 
+    @Column(name = "preferred_accommodation_type", length = 50)
+    private String preferredAccommodationType;
+
+    @Column(name = "preferred_move_in_date")
+    private LocalDate preferredMoveInDate;
+
+    @Column(name = "preferred_duration_months")
+    private Integer preferredDurationMonths;
+
+    @Column(name = "preferred_room_type", length = 50)
+    private String preferredRoomType;
+
+    @Column(name = "special_requirements", length = 500)
+    private String specialRequirements;
+
+    @Column(name = "institution_name", length = 150)
+    private String institutionName;
+
+    @Column(name = "course_name", length = 150)
+    private String courseName;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

@@ -17,11 +17,11 @@ Owner: Team (Backend, Frontend, DevOps)
 3) Quality gates (tests/CI) then deployment packaging.
 
 ## Work Breakdown
-- **B1: Document Status & Room Allocation** (Backend)
-  - Implement transactional status update, required-doc check, room allocation, enriched response.
-  - Add applicationStatus filter to document search.
-  - Logging, security annotations, optimistic locking as per requirements.
-  - Add waiting-list enqueue when no rooms available, with notification hook and dequeue logic on room free.
+- **B1: Document Status & Room Allocation** (Backend) **[Done]**
+  - Implement transactional status update, required-doc check, room allocation, enriched response. ✅
+  - Add applicationStatus filter to document search. ✅
+  - Logging, security annotations, optimistic locking as per requirements. ✅ (`@Version` on Application/Room/Document; domain exceptions wired)
+  - Add waiting-list enqueue when no rooms available, with notification hook and dequeue logic on room free. ✅ (enqueue on doc approval; dequeue on allocation end/delete)
 - **B2: Preference Fields E2E** (Backend)
   - Add preference fields to entity/DTO/mapper/repo/service/controller.
   - Database migration + backfill script.
@@ -73,8 +73,7 @@ Owner: Team (Backend, Frontend, DevOps)
 - Admin CRUD consistency → enforce RBAC and optimistic locking; add audit logs for changes.
 
 ## Next Actions
-- Start B1 implementation, then B2 migration/backfill.
-- Kick off B3 scaffolds for admin CRUD (buildings/institutions/documents) via MCP/codegen, then refine validation and RBAC.
-- Add waiting-list model/endpoints and UI visibility; define auto-assign policy and notifications.
-- Parallelize F1 with mocked APIs, swap to live once B1 stable.
-- Prepare CI/Docker templates early to catch integration issues.
+- **Backend:** Start B2 preference fields (schema + backfill + tests). Add backend tests for waiting-list enqueue/dequeue and doc-required checks.
+- **Infra/Build:** Ensure builds run on JDK 17+; run Flyway migrations (`waiting_list_entry`, version columns). Hook CI to enforce.
+- **Frontend:** Begin F1 with live APIs for doc review/allocation once backend is stable; expose waiting-list visibility.
+- **Ops:** Prepare CI/Docker templates; add health checks to compose.

@@ -6,6 +6,7 @@ import com.beezhub.student_accommodation.exceptions.DuplicateApplicationExceptio
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.mapper.ApplicationMapper;
+import com.beezhub.student_accommodation.model.dto.ApplicationRequest;
 import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
 import com.beezhub.student_accommodation.model.dto.ApplicationStatusUpdateRequest;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
@@ -46,7 +47,8 @@ public class ApplicationService {
 
     @Transactional
     @LogActivity(action = "CREATE", entityType = "APPLICATION", description = "Submitted application for student {0}", entityIdParamIndex = 0)
-    public ApplicationResponse submitApplication(Long studentId) {
+    public ApplicationResponse submitApplication(@Valid ApplicationRequest request) {
+        Long studentId = request.getStudentId();
         log.info("Submitting application for student with ID: {}", studentId);
 
         // Get student
@@ -72,6 +74,13 @@ public class ApplicationService {
                 .applicationDate(LocalDate.now())
                 .status(PENDING)
                 .student(student)
+                .preferredAccommodationType(request.getPreferredAccommodationType())
+                .preferredMoveInDate(request.getPreferredMoveInDate())
+                .preferredDurationMonths(request.getPreferredDurationMonths())
+                .preferredRoomType(request.getPreferredRoomType())
+                .specialRequirements(request.getSpecialRequirements())
+                .institutionName(request.getInstitutionName())
+                .courseName(request.getCourseName())
                 .build();
 
         Application savedApplication = applicationRepository.save(application);

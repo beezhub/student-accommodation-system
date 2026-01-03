@@ -75,6 +75,11 @@ Now, both the backend and frontend servers should be running. Access the applica
 - Search and book accommodations
 - Admins can add, edit, or remove listings
 
+## Application Preferences (Backend B2)
+- Fields captured: preferred accommodation type, move-in date, duration (months), room type, special requirements, institution, and course.
+- Meal plans and student-paid budgets are not collected; bursaries cover accommodation costs. Related columns are dropped and not exposed via API.
+- Submission endpoint: `POST /api/applications/submit` accepts `ApplicationRequest` with the above preference fields only.
+
 ## Folder Structure
 ```
 student-accommodation-system/

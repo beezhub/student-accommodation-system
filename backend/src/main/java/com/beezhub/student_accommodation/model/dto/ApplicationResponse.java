@@ -19,10 +19,19 @@ public class ApplicationResponse {
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
+
     // Student details
     private Long studentId;
     private String studentNumber;
     private String studentName;
     private String studentEmail;
+
+    // Preferences
+    private String preferredAccommodationType;
+    private LocalDate preferredMoveInDate;
+    private Integer preferredDurationMonths;
+    private String preferredRoomType;
+    private String specialRequirements;
+    private String institutionName;
+    private String courseName;
 }

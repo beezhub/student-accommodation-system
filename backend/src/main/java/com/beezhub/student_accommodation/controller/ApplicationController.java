@@ -44,10 +44,10 @@ public class ApplicationController {
             @ApiResponse(responseCode = "409", description = "Student already has a pending application")
     })
     @PostMapping("/submit")
-    @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApplicationResponse> submitApplication(
             @Valid @RequestBody ApplicationRequest request) {
-        ApplicationResponse response = applicationService.submitApplication(request.getStudentId());
+        ApplicationResponse response = applicationService.submitApplication(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

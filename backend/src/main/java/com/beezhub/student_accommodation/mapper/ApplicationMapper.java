@@ -12,5 +12,12 @@ public interface ApplicationMapper {
     @Mapping(target = "studentNumber", source = "student.studentNumber")
     @Mapping(target = "studentName", expression = "java(application.getStudent().getAppUser().getFirstName() + \" \" + application.getStudent().getAppUser().getLastName())")
     @Mapping(target = "studentEmail", source = "student.appUser.email")
+    @Mapping(target = "preferredAccommodationType", source = "preferredAccommodationType")
+    @Mapping(target = "preferredMoveInDate", source = "preferredMoveInDate")
+    @Mapping(target = "preferredDurationMonths", source = "preferredDurationMonths")
+    @Mapping(target = "preferredRoomType", source = "preferredRoomType")
+    @Mapping(target = "specialRequirements", source = "specialRequirements")
+    @Mapping(target = "institutionName", source = "institutionName")
+    @Mapping(target = "courseName", source = "courseName")
     ApplicationResponse toResponse(Application application);
 }
