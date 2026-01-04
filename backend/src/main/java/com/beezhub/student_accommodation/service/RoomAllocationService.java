@@ -46,7 +46,7 @@ public class RoomAllocationService {
 
     public List<RoomAllocationResponse> getAllRoomAllocations() {
         log.info("Fetching all room allocations");
-        List<RoomAllocation> allocations = roomAllocationRepository.findAll();
+        List<RoomAllocation> allocations = roomAllocationRepository.findAllWithDetails();
         List<RoomAllocationResponse> allocationResponses = roomAllocationMapper.toResponseList(allocations);
         log.info("Found {} room allocations", allocationResponses.size());
         return allocationResponses;
@@ -74,7 +74,7 @@ public class RoomAllocationService {
 
     public RoomAllocationResponse getRoomAllocationById(Long id) {
         log.info("Fetching room allocation with id: {}", id);
-        RoomAllocation allocation = roomAllocationRepository.findById(id)
+        RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
         return roomAllocationMapper.toResponse(allocation);
     }
@@ -221,7 +221,7 @@ public class RoomAllocationService {
     @Transactional
     public RoomAllocationResponse updateRoomAllocation(Long id, RoomAllocationRequest request) {
         log.info("Updating room allocation with id: {}", id);
-        RoomAllocation allocation = roomAllocationRepository.findById(id)
+        RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
         Room oldRoom = allocation.getRoom();
@@ -273,7 +273,7 @@ public class RoomAllocationService {
     @Transactional
     public void deleteRoomAllocation(Long id) {
         log.info("Deleting room allocation with id: {}", id);
-        RoomAllocation allocation = roomAllocationRepository.findById(id)
+        RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
         Room room = allocation.getRoom();
@@ -297,7 +297,7 @@ public class RoomAllocationService {
     @Transactional
     public RoomAllocationResponse endAllocation(Long id) {
         log.info("Ending room allocation with id: {}", id);
-        RoomAllocation allocation = roomAllocationRepository.findById(id)
+        RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
         if (!"ACTIVE".equals(allocation.getStatus())) {
@@ -414,12 +414,22 @@ public class RoomAllocationService {
         response.setEligible(true);
 
         // Check if student already has active allocation
-        if (roomAllocationRepository.existsActiveAllocationByStudentId(studentId)) {
+        boolean hasActiveAllocation = roomAllocationRepository.existsActiveAllocationByStudentId(studentId);
+        response.setHasActiveAllocation(hasActiveAllocation);
+
+        if (hasActiveAllocation) {
             response.setEligible(false);
             response.setReason("Student already has an active room allocation");
             log.info("Student {} is not eligible: already has active allocation", studentId);
             return response;
         }
+
+        // Check if student has approved application
+        boolean hasApprovedApplication = applicationRepository.existsByStudent_IdAndStatus(
+            studentId,
+            com.beezhub.student_accommodation.model.enums.ApplicationStatus.APPROVED
+        );
+        response.setHasApprovedApplication(hasApprovedApplication);
 
         response.setReason("Student is eligible for room allocation");
         log.info("Student {} is eligible for room allocation", studentId);
@@ -456,6 +466,7 @@ public class RoomAllocationService {
         RoomAvailabilityResponse response = new RoomAvailabilityResponse();
         response.setRoomId(room.getId());
         response.setRoomNumber(room.getRoomNumber());
+        response.setBuildingName(room.getBuilding() != null ? room.getBuilding().getName() : "");
         response.setCapacity(room.getCapacity());
         response.setCurrentOccupancy((int) activeAllocations);
         response.setAvailableSpots(Math.max(0, availableSpots));

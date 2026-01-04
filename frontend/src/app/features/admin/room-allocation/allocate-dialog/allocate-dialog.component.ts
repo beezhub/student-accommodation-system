@@ -380,14 +380,13 @@ export class AllocateDialogComponent implements OnInit {
         // Otherwise, use manual allocation
         const allocationDate = this.allocateForm.get('allocationDate')?.value;
         const formattedDate = allocationDate instanceof Date
-          ? allocationDate.toISOString().split('T')[0]
+          ? allocationDate.toISOString()
           : allocationDate;
 
         const request: RoomAllocationRequest = {
           studentId: this.allocateForm.get('studentId')?.value,
           roomId: this.allocateForm.get('roomId')?.value,
-          allocationDate: formattedDate,
-          status: 'ACTIVE'
+          allocationDate: formattedDate
         };
 
         this.allocationService.createAllocation(request).subscribe({

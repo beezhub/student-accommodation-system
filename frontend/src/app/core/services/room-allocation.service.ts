@@ -9,7 +9,6 @@ export interface RoomAllocationRequest {
   applicationId?: number;
   allocationDate?: string;
   endDate?: string;
-  status: string;
 }
 
 export interface RoomAllocationResponse {
