@@ -274,7 +274,8 @@
 .status-card,
 .actions-card,
 .documents-card,
-.history-card {
+.history-card,
+.room-allocation-card {
   min-height: 260px;
   height: 100%;
   display: flex;
@@ -700,6 +701,118 @@
   font-size: 14px;
 }
 
+/* Room Allocation Specific Styles */
+.room-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.room-number,
+.building-name,
+.allocation-date {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.room-number:hover,
+.building-name:hover,
+.allocation-date:hover {
+  background: rgba(0, 0, 0, 0.04);
+  transform: translateX(2px);
+}
+
+.room-number mat-icon,
+.building-name mat-icon,
+.allocation-date mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: #06B6D4;
+  flex-shrink: 0;
+}
+
+.room-label,
+.building-label,
+.date-label {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.room-number strong,
+.building-name strong {
+  font-size: 15px;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.allocation-date span:last-child {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.allocation-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
+.room-actions {
+  margin-top: 16px;
+  padding-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.room-actions button {
+  width: 100%;
+}
+
+/* Room Empty State */
+.no-room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  gap: 12px;
+}
+
+.no-room-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: rgba(0, 0, 0, 0.3);
+  margin-bottom: 8px;
+}
+
+.no-room p {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.no-room-hint {
+  font-size: 13px !important;
+  color: rgba(0, 0, 0, 0.5) !important;
+  font-weight: 400 !important;
+  margin-bottom: 8px !important;
+}
+
+.no-room button {
+  margin-top: 8px;
+}
+
 /* Status Chips */
 .mat-mdc-chip {
   border-radius: 8px !important;
@@ -866,7 +979,8 @@
 .status-card,
 .actions-card,
 .documents-card,
-.history-card {
+.history-card,
+.room-allocation-card {
   border-radius: 8px !important;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
   background: rgba(255, 255, 255, 0.98) !important;
@@ -876,7 +990,8 @@
 .status-card,
 .actions-card,
 .documents-card,
-.history-card {
+.history-card,
+.room-allocation-card {
   height: 100%;
   min-height: 320px;
   display: flex;
@@ -886,7 +1001,8 @@
 .status-card .mat-mdc-card-content,
 .actions-card .mat-mdc-card-content,
 .documents-card .mat-mdc-card-content,
-.history-card .mat-mdc-card-content {
+.history-card .mat-mdc-card-content,
+.room-allocation-card .mat-mdc-card-content {
   padding: 32px 32px 28px 32px !important;
   flex: 1 1 auto;
   display: flex;
@@ -898,7 +1014,8 @@
 .dashboard-grid-custom .status-card,
 .dashboard-grid-custom .actions-card,
 .dashboard-grid-custom .documents-card,
-.dashboard-grid-custom .history-card {
+.dashboard-grid-custom .history-card,
+.dashboard-grid-custom .room-allocation-card {
   min-width: 0;
   min-height: 260px;
   width: 100%;
