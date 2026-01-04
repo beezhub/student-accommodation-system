@@ -15,7 +15,8 @@ public class Room {
     private Long id;
 
     @Version
-    private Long version;
+    @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    private Long version = 0L;
 
     @Column(name = "room_number", nullable = false, unique = true, length = 20)
     private String roomNumber;

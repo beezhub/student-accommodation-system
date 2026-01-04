@@ -18,12 +18,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class RoomService {
 
     private final RoomRepository roomRepository;
@@ -83,27 +85,29 @@ public class RoomService {
     }
 
     public RoomResponse updateRoom(Long id, RoomRequest request) {
-        log.info("Updating room with id: {}", id);
+        log.info("Updating room with id: {} and buildingId: {}", id, request.getBuildingId());
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
 
+        // Update basic fields
         room.setRoomNumber(request.getRoomNumber());
         room.setCapacity(request.getCapacity());
+        room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
 
-        if (request.getStatus() != null) {
-            room.setStatus(request.getStatus());
-        }
-
+        // Handle building relationship
         if (request.getBuildingId() != null) {
+            log.info("Fetching building with id: {}", request.getBuildingId());
             Building building = buildingRepository.findById(request.getBuildingId())
                     .orElseThrow(() -> new BuildingNotFoundException("Building not found with id: " + request.getBuildingId()));
             room.setBuilding(building);
+            log.info("Building set to: {}", building.getName());
         } else {
+            log.info("Removing building association");
             room.setBuilding(null);
         }
 
         Room updated = roomRepository.save(room);
-        log.info("Successfully updated room with id: {}", id);
+        log.info("Successfully updated room with id: {}, room number: {}", updated.getId(), updated.getRoomNumber());
         return roomMapper.toResponse(updated);
     }
 

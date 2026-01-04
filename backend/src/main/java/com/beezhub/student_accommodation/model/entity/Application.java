@@ -21,7 +21,8 @@ public class Application {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Version
-    private Long version;
+    @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    private Long version = 0L;
     @Column(unique = true, nullable = false, name = "application_code")
     private String applicationCode;
     @Column(name = "applicant_date")
