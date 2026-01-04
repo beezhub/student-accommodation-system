@@ -62,29 +62,57 @@
           </mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <div class="application-status">
+          <!-- Loading State -->
+          <div *ngIf="isLoadingCurrentApplication" class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Loading application...</p>
+          </div>
+
+          <!-- Application Found -->
+          <div *ngIf="!isLoadingCurrentApplication && currentApplication" class="application-status">
             <div class="status-header">
               <div class="status-info">
-                <span class="application-year">2024 Application</span>
+                <span class="application-code">{{currentApplication.applicationCode}}</span>
                 <app-modern-status-badge [status]="currentApplication.status" size="sm"></app-modern-status-badge>
               </div>
             </div>
 
-            <div class="room-info" *ngIf="currentApplication.roomInfo">
-              <mat-icon>home</mat-icon>
-              <span>{{currentApplication.roomInfo}}</span>
+            <div class="application-details">
+              <div class="detail-row">
+                <mat-icon>event</mat-icon>
+                <span>Submitted: {{currentApplication.applicationDate | date: 'MMM d, y'}}</span>
+              </div>
+              <div class="detail-row" *ngIf="currentApplication.preferredRoomType">
+                <mat-icon>bed</mat-icon>
+                <span>{{currentApplication.preferredRoomType}}</span>
+              </div>
+              <div class="detail-row" *ngIf="currentApplication.preferredMoveInDate">
+                <mat-icon>calendar_today</mat-icon>
+                <span>Move-in: {{currentApplication.preferredMoveInDate | date: 'MMM d, y'}}</span>
+              </div>
             </div>
 
             <div class="application-actions">
-              <button mat-button color="primary" routerLink="/applications">
+              <button mat-button color="primary" [routerLink]="['/applications', currentApplication.id]">
                 <mat-icon>visibility</mat-icon>
                 View Details
               </button>
-              <button mat-button *ngIf="currentApplication.status === 'Pending'">
+              <button mat-button *ngIf="currentApplication.status.toUpperCase() === 'PENDING'">
                 <mat-icon>edit</mat-icon>
                 Edit Application
               </button>
             </div>
+          </div>
+
+          <!-- No Application State -->
+          <div *ngIf="!isLoadingCurrentApplication && !currentApplication" class="no-application">
+            <mat-icon class="no-application-icon">inbox</mat-icon>
+            <p>No application submitted yet</p>
+            <p class="no-application-hint">Submit your first accommodation application to get started.</p>
+            <button mat-raised-button color="primary" routerLink="/applications/new">
+              <mat-icon>add</mat-icon>
+              New Application
+            </button>
           </div>
         </mat-card-content>
       </mat-card>

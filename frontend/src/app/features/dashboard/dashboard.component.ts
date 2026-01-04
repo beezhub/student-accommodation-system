@@ -47,11 +47,8 @@ import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/mod
 export class DashboardComponent implements OnInit {
   currentUser: any;
   selectedDocument: any = null;
-  currentApplication = {
-    status: 'Pending',
-    year: '2024',
-    roomInfo: null,
-  };
+  currentApplication: Application | null = null;
+  isLoadingCurrentApplication = false;
 
   applicationHistory: Application[] = [];
   isLoadingApplications = false;
@@ -129,6 +126,7 @@ export class DashboardComponent implements OnInit {
 
   loadApplicationHistory(): void {
     this.isLoadingApplications = true;
+    this.isLoadingCurrentApplication = true;
     this.applicationService.getMyApplications().subscribe({
       next: (applications) => {
         // Sort by createdAt descending (newest first)
@@ -140,14 +138,48 @@ export class DashboardComponent implements OnInit {
                         b.applicationDate ? new Date(b.applicationDate).getTime() : 0;
           return dateB - dateA;  // Descending order
         });
+
+        // Set current application
+        this.currentApplication = this.getCurrentApplication(applications);
+
         this.isLoadingApplications = false;
+        this.isLoadingCurrentApplication = false;
       },
       error: (err) => {
         console.error('Failed to fetch application history:', err);
         this.applicationHistory = [];
+        this.currentApplication = null;
         this.isLoadingApplications = false;
+        this.isLoadingCurrentApplication = false;
       }
     });
+  }
+
+  getCurrentApplication(applications: Application[]): Application | null {
+    if (!applications || applications.length === 0) return null;
+
+    // Sort by date descending (newest first)
+    const sorted = [...applications].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() :
+                    a.applicationDate ? new Date(a.applicationDate).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() :
+                    b.applicationDate ? new Date(b.applicationDate).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    // Priority: PENDING > APPROVED > most recent
+    const pending = sorted.find(app =>
+      app.status.toUpperCase() === 'PENDING'
+    );
+    if (pending) return pending;
+
+    const approved = sorted.find(app =>
+      app.status.toUpperCase() === 'APPROVED'
+    );
+    if (approved) return approved;
+
+    // Return most recent
+    return sorted[0];
   }
 
   logout() {
