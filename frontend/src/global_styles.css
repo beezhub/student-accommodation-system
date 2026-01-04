@@ -461,12 +461,13 @@ body {
 
 /* Fix for Angular Material Dialog (Upload Popup) scaling/zoom issue */
 .mat-mdc-dialog-container {
-  max-width: 420px;
-  width: 96vw;
+  max-width: 90vw !important;
+  width: auto !important;
+  min-width: 320px;
   padding: var(--space-3) var(--space-3) var(--space-2) var(--space-3);
   border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--elevation-3);
-  background: var(--neutral-50);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1);
+  background: #ffffff !important;
   font-family: var(--font-sans);
   font-size: var(--type-base);
   transform: none !important; /* Remove any unwanted scaling */
@@ -475,9 +476,21 @@ body {
 
 @media (max-width: 480px) {
   .mat-mdc-dialog-container {
-    max-width: 98vw;
+    max-width: 95vw !important;
     padding: var(--space-2) var(--space-1);
   }
+}
+
+/* Dialog content should flow naturally */
+.mat-mdc-dialog-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Dialog actions */
+.mat-mdc-dialog-actions {
+  padding: var(--space-2) 0 0 0;
+  gap: var(--space-2);
 }
 
 html,
