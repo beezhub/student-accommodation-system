@@ -68,7 +68,7 @@ export class AdminDashboardComponent implements OnInit {
       icon: 'settings',
       route: '/admin/settings',
       color: 'accent',
-      disabled: true,
+      disabled: false,
     },
   ];
 

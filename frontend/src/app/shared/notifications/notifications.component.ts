@@ -37,8 +37,8 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Start polling for notifications
-    this.notificationService.startPolling();
+    // Polling is started by AuthService after login/signup
+    // Don't start polling here to avoid errors before authentication
   }
 
   ngOnDestroy(): void {

@@ -18,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -83,7 +84,7 @@ public class StudentService {
     }
 
     public List<StudentResponse> getAllStudents() {
-        return studentRepository.findAll().stream().map(studentMapper::toResponse).toList();
+        return studentRepository.findAll().stream().map(studentMapper::toResponse).collect(Collectors.toList());
     }
 
     public PageResponse<StudentResponse> getAllStudents(Pageable pageable) {

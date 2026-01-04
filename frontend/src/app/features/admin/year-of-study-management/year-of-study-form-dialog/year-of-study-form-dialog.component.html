@@ -1,0 +1,28 @@
+<h2 mat-dialog-title>
+  <mat-icon>school</mat-icon>
+  {{ getTitle() }}
+</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="yearOfStudyForm" class="year-of-study-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Year of Study</mat-label>
+      <input matInput formControlName="yearOfStudy" placeholder="e.g., 1st Year, 2nd Year, Final Year" required>
+      <mat-hint>Enter the year level (e.g., 1st Year, 2nd Year, 3rd Year, 4th Year)</mat-hint>
+      <mat-error *ngIf="yearOfStudyForm.get('yearOfStudy')?.hasError('required')">
+        Year of study is required
+      </mat-error>
+      <mat-error *ngIf="yearOfStudyForm.get('yearOfStudy')?.hasError('maxlength')">
+        Year of study cannot exceed 50 characters
+      </mat-error>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" [disabled]="isLoading">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isLoading">
+    <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+    <span *ngIf="!isLoading">{{ getSubmitButtonText() }}</span>
+  </button>
+</mat-dialog-actions>

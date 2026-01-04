@@ -22,21 +22,32 @@ Owner: Team (Backend, Frontend, DevOps)
   - Add applicationStatus filter to document search. ✅
   - Logging, security annotations, optimistic locking as per requirements. ✅ (`@Version` on Application/Room/Document; domain exceptions wired)
   - Add waiting-list enqueue when no rooms available, with notification hook and dequeue logic on room free. ✅ (enqueue on doc approval; dequeue on allocation end/delete)
-- **B2: Preference Fields E2E** (Backend)
-  - Add preference fields to entity/DTO/mapper/repo/service/controller.
-  - Database migration + backfill script.
-  - Integration tests for persistence.
-- **B3: Admin Entities Management** (Backend)
-  - CRUD + search endpoints for buildings, institutions, and document types/status configs.
-  - Add validation, pagination/filtering specs, and role-based access control.
-  - Seed/migration updates for default entities as needed.
-- **F1: Admin Review/Approval/Allocation UI** (Frontend)
-  - Review queue, document approval, allocation actions, status/notification display.
-  - Wire to live APIs; show room assignment.
-- **F2: Room/Building Management UI** (Frontend)
-  - Room/building CRUD; student view of assigned room.
-  - Admin screens for institutions and document management; table filters/sorts and bulk actions.
-  - Waiting-list visibility and manual override (assign, reorder, notify).
+- **B2: Preference Fields E2E** (Backend) **[Done]**
+  - Added preference fields (accommodation type, move-in date, duration, room type, special requirements, institution, course) across entity/DTO/mapper/service/controller.
+  - Meal plan and student budget removed per policy (bursaries cover accommodation); columns dropped via `V2026_01_03_1201__drop_meal_budget_preferences.sql`.
+  - Migration `V2026_01_03_1200__add_application_preferences.sql` applied; integration test covers preference persistence.
+- **B3: Admin Entities Management** (Backend) **[Done]**
+  - CRUD + search endpoints for buildings, institutions, and document types/status configs. ✅
+  - Add validation, pagination/filtering specs, and role-based access control. ✅ (All mutating operations protected with @PreAuthorize("hasRole('ADMIN')"); DTOs validated with @Valid)
+  - Seed/migration updates for default entities as needed. ✅ (Institution: 2 seeded; DocumentType: 5 seeded; Building: migrated from room data)
+- **F1: Admin Review/Approval/Allocation UI** (Frontend) **[Done]**
+  - Review queue, document approval, allocation actions, status/notification display. ✅
+  - Wire to live APIs; show room assignment. ✅
+  - Application Review: `/admin/applications` - search/filter, bulk approve/reject, individual status updates
+  - Document Verification: `/admin/documents` - approval with auto-allocation feedback, download, viewer, filters by application status
+  - Room Allocation: `/admin/room-allocations` - manual allocation dialog, end/delete allocation, building filters
+  - Admin Dashboard: `/admin` - statistics overview with quick links to all admin features
+  - All components use Material Design, modern status badges, pagination, and real-time notifications via MatSnackBar
+- **F2: Room/Building Management UI** (Frontend) **[Done]**
+  - Room/building CRUD; student view of assigned room. ✅
+  - Admin screens for institutions and document management; table filters/sorts and bulk actions. ✅
+  - Room Management: `/admin/rooms` - CRUD operations with filters by room number, building, capacity; occupancy tracking
+  - Building Management: `/admin/buildings` - CRUD operations with filters by name, address; displays total floors
+  - Institution Management: `/admin/institutions` - CRUD operations with filters by name, address, email; phone and email fields
+  - Document Type Management: `/admin/document-types` - CRUD operations with filters by name, required status; toggle required flag feature
+  - Student Room View: Enhanced dashboard (`/dashboard`) to show active room allocation with room number, building, allocation date
+  - All components use Material Design, pagination (20 items/page), form dialogs for create/edit, confirmation for delete
+  - ⚠️ Waiting-list visibility and manual override (assign, reorder, notify): Backend endpoints needed - deferred to backend implementation
 - **Q1: Tests & CI** (Backend/Frontend/DevOps)
   - Backend unit/integration for doc/room/preference/backfill.
   - Add tests for waiting-list enqueue/dequeue and notification flow.

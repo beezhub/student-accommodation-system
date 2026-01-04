@@ -18,7 +18,6 @@ class AppUserMapperTest {
         req.setFirstName("John");
         req.setLastName("Doe");
         req.setEmail("john.doe@example.com");
-        req.setUserRole("STUDENT");
 
         AppUser user = mapper.toEntity(req, "hashedPwd");
         assertNotNull(user);

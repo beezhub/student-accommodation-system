@@ -26,6 +26,13 @@ export class NotificationService {
     // Stop any existing polling first
     this.stopPolling();
 
+    // Check if user is authenticated before starting polling
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('Cannot start notification polling: User not authenticated');
+      return;
+    }
+
     this.pollingSubscription = interval(30000) // Poll every 30 seconds
       .pipe(
         startWith(0), // Start immediately

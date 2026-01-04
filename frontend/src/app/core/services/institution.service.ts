@@ -1,15 +1,43 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Institution } from '../models/institution.model';
+
+export interface InstitutionResponse {
+  id: number;
+  name: string;
+  address?: string;
+  phoneNumber?: string;
+  emailAddress?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InstitutionRequest {
+  name: string;
+  address: string;
+  phoneNumber: string;
+  emailAddress: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class InstitutionService {
   private apiUrl = `${environment.apiUrl}/institution`;
- private institutions: Institution[] | null = null;
+  private institutions: Institution[] | null = null;
 
   constructor(private http: HttpClient) {}
 
@@ -23,8 +51,52 @@ export class InstitutionService {
     );
   }
 
+  getAllInstitutions(filters: any): Observable<PageResponse<InstitutionResponse>> {
+    let params = new HttpParams()
+      .set('page', filters.page?.toString() || '0')
+      .set('size', filters.size?.toString() || '20');
+
+    return this.http.get<PageResponse<InstitutionResponse>>(this.apiUrl, { params });
+  }
+
+  searchInstitutions(filters: any): Observable<PageResponse<InstitutionResponse>> {
+    let params = new HttpParams()
+      .set('page', filters.page?.toString() || '0')
+      .set('size', filters.size?.toString() || '20');
+
+    if (filters.name) {
+      params = params.set('name', filters.name);
+    }
+    if (filters.address) {
+      params = params.set('address', filters.address);
+    }
+    if (filters.contactEmail) {
+      params = params.set('contactEmail', filters.contactEmail);
+    }
+
+    return this.http.get<PageResponse<InstitutionResponse>>(`${this.apiUrl}/search`, { params });
+  }
+
+  getInstitutionById(id: number): Observable<InstitutionResponse> {
+    return this.http.get<InstitutionResponse>(`${this.apiUrl}/${id}`);
+  }
+
+  createInstitution(request: InstitutionRequest): Observable<InstitutionResponse> {
+    this.clearCache();
+    return this.http.post<InstitutionResponse>(this.apiUrl, request);
+  }
+
+  updateInstitution(id: number, request: InstitutionRequest): Observable<InstitutionResponse> {
+    this.clearCache();
+    return this.http.put<InstitutionResponse>(`${this.apiUrl}/${id}`, request);
+  }
+
+  deleteInstitution(id: number): Observable<void> {
+    this.clearCache();
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
   clearCache() {
     this.institutions = null;
   }
-
 }

@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.*;
 
@@ -131,7 +132,7 @@ public class ApplicationService {
         return applicationRepository.findByStudent_Id(studentId)
                 .stream()
                 .map(applicationMapper::toResponse)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public List<ApplicationResponse> getApplicationsByStatus(String status) {
@@ -140,7 +141,7 @@ public class ApplicationService {
         return applicationRepository.findByStatus(applicationStatus)
                 .stream()
                 .map(applicationMapper::toResponse)
-                .toList();
+                .collect(Collectors.toList());
     }
     
     @Transactional
@@ -219,7 +220,7 @@ public class ApplicationService {
         return applicationRepository.findByStudent_Id(student.getId())
                 .stream()
                 .map(applicationMapper::toResponse)
-                .toList();
+                .collect(Collectors.toList());
     }
     
     public List<ApplicationResponse> getAllApplications() {
@@ -227,7 +228,7 @@ public class ApplicationService {
         return applicationRepository.findAll()
                 .stream()
                 .map(applicationMapper::toResponse)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public PageResponse<ApplicationResponse> getAllApplications(Pageable pageable) {

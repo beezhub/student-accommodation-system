@@ -89,6 +89,60 @@
         </mat-card-content>
       </mat-card>
 
+      <!-- Room Allocation -->
+      <mat-card class="room-allocation-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">meeting_room</mat-icon>
+            My Room
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div *ngIf="isLoadingRoom" class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Loading room information...</p>
+          </div>
+
+          <div *ngIf="!isLoadingRoom && roomAllocation" class="room-details">
+            <div class="room-number">
+              <mat-icon>door_front</mat-icon>
+              <span class="room-label">Room Number:</span>
+              <strong>{{ roomAllocation.roomNumber }}</strong>
+            </div>
+            <div class="building-name">
+              <mat-icon>apartment</mat-icon>
+              <span class="building-label">Building:</span>
+              <strong>{{ roomAllocation.buildingName }}</strong>
+            </div>
+            <div class="allocation-date">
+              <mat-icon>event</mat-icon>
+              <span class="date-label">Allocated:</span>
+              <span>{{ roomAllocation.allocationDate | date: 'MMM d, y' }}</span>
+            </div>
+            <div class="allocation-status">
+              <app-modern-status-badge [status]="roomAllocation.status" size="sm"></app-modern-status-badge>
+            </div>
+            <mat-divider></mat-divider>
+            <div class="room-actions">
+              <button mat-button color="primary" routerLink="/rooms">
+                <mat-icon>visibility</mat-icon>
+                View Room Details
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="!isLoadingRoom && !roomAllocation" class="no-room">
+            <mat-icon class="no-room-icon">info</mat-icon>
+            <p>No room allocated yet</p>
+            <p class="no-room-hint">Your room will be allocated after your application and documents are approved.</p>
+            <button mat-raised-button color="primary" routerLink="/rooms">
+              <mat-icon>search</mat-icon>
+              Browse Available Rooms
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
       <!-- Previous Applications -->
       <mat-card class="history-card" *ngIf="previousApplications.length > 0">
         <mat-card-header>

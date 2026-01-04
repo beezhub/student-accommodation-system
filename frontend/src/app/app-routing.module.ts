@@ -117,6 +117,22 @@ export const routes: Routes = [
       {
         path: 'activity-logs',
         loadComponent: () => import('./features/admin/activity-logs/activity-logs.component').then(m => m.ActivityLogsComponent)
+      },
+      {
+        path: 'institutions',
+        loadComponent: () => import('./features/admin/institution-management/institution-management.component').then(m => m.InstitutionManagementComponent)
+      },
+      {
+        path: 'document-types',
+        loadComponent: () => import('./features/admin/document-type-management/document-type-management.component').then(m => m.DocumentTypeManagementComponent)
+      },
+      {
+        path: 'year-of-study',
+        loadComponent: () => import('./features/admin/year-of-study-management/year-of-study-management.component').then(m => m.YearOfStudyManagementComponent)
+      },
+      {
+        path: 'settings',
+        loadComponent: () => import('./features/admin/system-settings/system-settings.component').then(m => m.SystemSettingsComponent)
       }
     ]
   },

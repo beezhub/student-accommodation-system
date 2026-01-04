@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -47,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role;
                             return new SimpleGrantedAuthority(roleWithPrefix);
                         })
-                        .toList();
+                        .collect(Collectors.toList());
                 var authentication = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
                         username, null, authorities);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

@@ -14,6 +14,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
@@ -46,7 +47,7 @@ public class JwtUtil {
     public String generateToken(UserDetails userDetails) {
         var roles = userDetails.getAuthorities().stream()
             .map(GrantedAuthority::getAuthority)
-            .toList();
+            .collect(Collectors.toList());
 
         // Determine expiration based on role
         long expirationMs;
@@ -79,7 +80,7 @@ public class JwtUtil {
         Claims claims = extractAllClaims(token);
         Object rolesObj = claims.get("roles");
         if (rolesObj instanceof List<?>) {
-            return ((List<?>) rolesObj).stream().map(Object::toString).toList();
+            return ((List<?>) rolesObj).stream().map(Object::toString).collect(Collectors.toList());
         }
         return Collections.emptyList();
     }

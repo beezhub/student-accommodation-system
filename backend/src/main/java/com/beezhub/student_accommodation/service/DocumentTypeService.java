@@ -17,6 +17,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +33,7 @@ public class DocumentTypeService {
        List<DocumentTypeResponse> documentTypes = documentTypeRepository.findAll()
                 .stream()
                 .map(documentTypeMapper::toDto)
-                .toList();
+                .collect(Collectors.toList());
         log.info("Found {} document types", documentTypes.size());
         return documentTypes;
     }
@@ -59,7 +60,7 @@ public class DocumentTypeService {
         List<DocumentTypeResponse> requiredDocumentTypes = documentTypeRepository.findByIsRequiredTrue()
                 .stream()
                 .map(documentTypeMapper::toDto)
-                .toList();
+                .collect(Collectors.toList());
         log.info("Found {} required document types", requiredDocumentTypes.size());
         return requiredDocumentTypes;
     }

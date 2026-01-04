@@ -93,4 +93,3 @@ jacocoTestCoverageVerification {
 	}
 }
 check.dependsOn jacocoTestCoverageVerification
-

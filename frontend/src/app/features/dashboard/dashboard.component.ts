@@ -5,6 +5,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { DocumentViewerComponent } from './documents/document-viewer/document-viewer.component';
 import { HttpClient } from '@angular/common/http';
 import { DocumentService } from '../../core/services/document.service';
+import { StudentService } from '../../core/services/student.service';
+import { RoomAllocationService, RoomAllocationResponse } from '../../core/services/room-allocation.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -13,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatDividerModule } from '@angular/material/divider';
 import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/modern-status-badge.component';
@@ -33,6 +36,7 @@ import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/mod
     MatChipsModule,
     MatBadgeModule,
     MatProgressBarModule,
+    MatProgressSpinnerModule,
     MatGridListModule,
     MatDividerModule,
     ModernStatusBadgeComponent,
@@ -62,10 +66,15 @@ export class DashboardComponent implements OnInit {
     { name: 'Passport', date: '2024-01-15', status: 'Verified' },
   ];
 
+  roomAllocation: RoomAllocationResponse | null = null;
+  isLoadingRoom = false;
+
   constructor(
     private router: Router,
     private authService: AuthService,
-    private documentService: DocumentService
+    private documentService: DocumentService,
+    private studentService: StudentService,
+    private roomAllocationService: RoomAllocationService
   ) { }
 
   ngOnInit() {
@@ -75,6 +84,11 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
+    this.loadDocuments();
+    this.loadRoomAllocation();
+  }
+
+  loadDocuments(): void {
     this.documentService.getUploadedDocuments().subscribe({
       next: (docs) => {
         this.uploadedDocuments = docs.map(doc => ({
@@ -85,6 +99,32 @@ export class DashboardComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to fetch documents:', err);
+      }
+    });
+  }
+
+  loadRoomAllocation(): void {
+    this.isLoadingRoom = true;
+    // First get the student profile to get the student ID
+    this.studentService.getStudentProfile().subscribe({
+      next: (student) => {
+        // Then fetch the active room allocation for this student
+        this.roomAllocationService.getActiveAllocationByStudentId(student.id).subscribe({
+          next: (allocation) => {
+            this.roomAllocation = allocation;
+            this.isLoadingRoom = false;
+          },
+          error: (err) => {
+            // Student might not have a room allocation yet
+            console.log('No active room allocation found:', err);
+            this.roomAllocation = null;
+            this.isLoadingRoom = false;
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Failed to fetch student profile:', err);
+        this.isLoadingRoom = false;
       }
     });
   }

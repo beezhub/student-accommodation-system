@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.security.jwt;
 
+import com.beezhub.student_accommodation.config.JwtConfig;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +20,11 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp() {
-        var cfg = new com.beezhub.student_accommodation.config.JwtConfig(
+        var cfg = new JwtConfig(
                 "01234567890123456789012345678901234567890123456789012345678901234",
-                "3600000"
+                "3600000",
+                "14400000"
+
         );
         jwtUtil = new JwtUtil(cfg);
         filter = new JwtAuthenticationFilter(jwtUtil);

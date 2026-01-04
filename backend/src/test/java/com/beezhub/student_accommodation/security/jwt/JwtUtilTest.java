@@ -20,7 +20,8 @@ class JwtUtilTest {
     void setUp() {
         JwtConfig cfg = new JwtConfig(
                 "01234567890123456789012345678901234567890123456789012345678901234",
-                "3600000"
+                "3600000",
+                "14400000"
         );
         jwtUtil = new JwtUtil(cfg);
     }
@@ -50,7 +51,7 @@ class JwtUtilTest {
 
     @Test
     void tokenExpires() throws InterruptedException {
-        JwtConfig shortConfig = new JwtConfig("01234567890123456789012345678901234567890123456789012345678901234", "1");
+        JwtConfig shortConfig = new JwtConfig("01234567890123456789012345678901234567890123456789012345678901234", "1", "10");
         JwtUtil shortUtil = new JwtUtil(shortConfig);
         UserDetails user = User.withUsername("bob@example.com").password("pw").roles("USER").build();
         String token = shortUtil.generateToken(user);

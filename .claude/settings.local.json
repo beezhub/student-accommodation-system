@@ -26,7 +26,10 @@
       "Bash(npx tsc:*)",
       "Bash(./gradlew clean build:*)",
       "Bash(java:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_evaluate"
     ],
     "deny": [],
     "ask": []

@@ -7,7 +7,8 @@
     [matBadge]="(unreadCount$ | async) || 0"
     [matBadgeHidden]="(unreadCount$ | async) === 0"
     matBadgeColor="warn"
-    matBadgeSize="small">
+    matBadgeSize="small"
+    [attr.aria-hidden]="(unreadCount$ | async) === 0">
     notifications
   </mat-icon>
 </button>

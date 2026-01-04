@@ -1,0 +1,113 @@
+.year-of-study-management-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.page-header mat-icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+}
+
+.filter-card {
+  margin-bottom: 24px;
+}
+
+.filter-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.years-table {
+  width: 100%;
+}
+
+.years-table th {
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.years-table td,
+.years-table th {
+  padding: 16px;
+}
+
+.years-table tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.no-data {
+  text-align: center;
+  padding: 48px;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.no-data mat-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.no-data p {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .year-of-study-management-container {
+    padding: 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .filter-form {
+    grid-template-columns: 1fr;
+  }
+
+  .years-table {
+    font-size: 14px;
+  }
+
+  .years-table td,
+  .years-table th {
+    padding: 12px 8px;
+  }
+}
