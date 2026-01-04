@@ -27,4 +27,8 @@ export class ApplicationService {
     return this.http.get<Application>(`${this.apiUrl}/${applicationId}`);
   }
 
+  getMyApplications(): Observable<Application[]> {
+    return this.http.get<Application[]>(`${this.apiUrl}/my-applications`);
+  }
+
 }

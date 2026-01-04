@@ -143,22 +143,40 @@
         </mat-card-content>
       </mat-card>
 
-      <!-- Previous Applications -->
-      <mat-card class="history-card" *ngIf="previousApplications.length > 0">
+      <!-- Application History -->
+      <mat-card class="history-card">
         <mat-card-header>
           <mat-card-title>
             <mat-icon class="card-icon">history</mat-icon>
-            Previous Applications
+            Application History
           </mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <div class="history-list">
-            <div class="history-item" *ngFor="let app of previousApplications">
+          <!-- Loading State -->
+          <div *ngIf="isLoadingApplications" class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Loading applications...</p>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="!isLoadingApplications && applicationHistory.length === 0" class="no-applications">
+            <mat-icon class="no-applications-icon">inbox</mat-icon>
+            <p>No applications yet</p>
+            <p class="no-applications-hint">Submit your first accommodation application to get started.</p>
+            <button mat-raised-button color="primary" routerLink="/applications/new">
+              <mat-icon>add</mat-icon>
+              New Application
+            </button>
+          </div>
+
+          <!-- Applications List -->
+          <div *ngIf="!isLoadingApplications && applicationHistory.length > 0" class="history-list">
+            <div class="history-item" *ngFor="let app of applicationHistory">
               <div class="history-info">
-                <div class="history-year">{{app.year}}</div>
+                <div class="history-code">{{ app.applicationCode }}</div>
                 <div class="history-details">
                   <app-modern-status-badge [status]="app.status" size="sm"></app-modern-status-badge>
-                  <span class="history-room" *ngIf="app.room">{{app.room}}</span>
+                  <span class="history-date">{{ app.applicationDate | date: 'MMM d, y' }}</span>
                 </div>
               </div>
               <button mat-icon-button color="primary" [routerLink]="['/applications', app.id]">

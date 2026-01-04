@@ -7,6 +7,8 @@ import { HttpClient } from '@angular/common/http';
 import { DocumentService } from '../../core/services/document.service';
 import { StudentService } from '../../core/services/student.service';
 import { RoomAllocationService, RoomAllocationResponse } from '../../core/services/room-allocation.service';
+import { ApplicationService } from '../../core/services/application.service';
+import { Application } from '../../core/models/application.model';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -51,14 +53,8 @@ export class DashboardComponent implements OnInit {
     roomInfo: null,
   };
 
-  previousApplications = [
-    {
-      year: '2023',
-      status: 'Approved',
-      room: 'Room 302, Block A',
-      id: '1',
-    },
-  ];
+  applicationHistory: Application[] = [];
+  isLoadingApplications = false;
 
   uploadedDocuments = [
     { name: 'Student ID', date: '2024-01-15', status: 'Rejected' },
@@ -74,7 +70,8 @@ export class DashboardComponent implements OnInit {
     private authService: AuthService,
     private documentService: DocumentService,
     private studentService: StudentService,
-    private roomAllocationService: RoomAllocationService
+    private roomAllocationService: RoomAllocationService,
+    private applicationService: ApplicationService
   ) { }
 
   ngOnInit() {
@@ -86,6 +83,7 @@ export class DashboardComponent implements OnInit {
 
     this.loadDocuments();
     this.loadRoomAllocation();
+    this.loadApplicationHistory();
   }
 
   loadDocuments(): void {
@@ -125,6 +123,29 @@ export class DashboardComponent implements OnInit {
       error: (err) => {
         console.error('Failed to fetch student profile:', err);
         this.isLoadingRoom = false;
+      }
+    });
+  }
+
+  loadApplicationHistory(): void {
+    this.isLoadingApplications = true;
+    this.applicationService.getMyApplications().subscribe({
+      next: (applications) => {
+        // Sort by createdAt descending (newest first)
+        // Fallback to applicationDate if createdAt is not available
+        this.applicationHistory = applications.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() :
+                        a.applicationDate ? new Date(a.applicationDate).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() :
+                        b.applicationDate ? new Date(b.applicationDate).getTime() : 0;
+          return dateB - dateA;  // Descending order
+        });
+        this.isLoadingApplications = false;
+      },
+      error: (err) => {
+        console.error('Failed to fetch application history:', err);
+        this.applicationHistory = [];
+        this.isLoadingApplications = false;
       }
     });
   }

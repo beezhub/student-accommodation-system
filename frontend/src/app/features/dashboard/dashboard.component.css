@@ -632,6 +632,74 @@
   color: rgba(0, 0, 0, 0.6);
 }
 
+/* Application History Empty State */
+.no-applications {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  gap: 12px;
+}
+
+.no-applications-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: rgba(0, 0, 0, 0.3);
+  margin-bottom: 8px;
+}
+
+.no-applications p {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.no-applications-hint {
+  font-size: 13px !important;
+  color: rgba(0, 0, 0, 0.5) !important;
+  font-weight: 400 !important;
+  margin-bottom: 8px !important;
+}
+
+.no-applications button {
+  margin-top: 8px;
+}
+
+/* Application History Code Display */
+.history-code {
+  font-weight: 600;
+  font-size: 16px;
+  color: #1a1a1a;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+  letter-spacing: 0.5px;
+}
+
+.history-date {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.6);
+  margin-left: 4px;
+}
+
+/* Loading Container */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  gap: 16px;
+}
+
+.loading-container p {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+}
+
 /* Status Chips */
 .mat-mdc-chip {
   border-radius: 8px !important;
