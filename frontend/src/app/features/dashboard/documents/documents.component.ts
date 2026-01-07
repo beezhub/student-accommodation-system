@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { DatePipe } from '@angular/common';
@@ -29,6 +29,7 @@ import { MatDividerModule } from '@angular/material/divider';
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.css'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     RouterModule,
@@ -94,7 +95,8 @@ export class DocumentsComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private fb: FormBuilder,
-    private documentService: DocumentService
+    private documentService: DocumentService,
+    private cdr: ChangeDetectorRef
   ) {
     this.uploadForm = this.fb.group({
       documentType: ['', Validators.required]
@@ -114,9 +116,11 @@ export class DocumentsComponent implements OnInit {
           size: '' // Size not provided by API, can be updated if available
         }));
         this.dataSource.data = this.documents;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Failed to fetch documents:', err);
+        this.cdr.markForCheck();
       }
     });
   }
@@ -139,6 +143,7 @@ export class DocumentsComponent implements OnInit {
     this.uploadForm.reset();
     this.selectedFile = null;
     this.uploadError = null;
+    this.cdr.markForCheck();
   }
 
   closeUploadModal() {
@@ -146,6 +151,7 @@ export class DocumentsComponent implements OnInit {
     this.uploadForm.reset();
     this.selectedFile = null;
     this.uploadError = null;
+    this.cdr.markForCheck();
   }
 
   onFileSelected(event: any) {
@@ -154,6 +160,7 @@ export class DocumentsComponent implements OnInit {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
         this.uploadError = 'File size must be less than 5MB';
         this.selectedFile = null;
+        this.cdr.markForCheck();
         return;
       }
 
@@ -161,11 +168,13 @@ export class DocumentsComponent implements OnInit {
       if (!allowedTypes.includes(file.type)) {
         this.uploadError = 'Only PDF, JPG, and PNG files are allowed';
         this.selectedFile = null;
+        this.cdr.markForCheck();
         return;
       }
 
       this.uploadError = null;
       this.selectedFile = file;
+      this.cdr.markForCheck();
     }
   }
 
@@ -173,6 +182,7 @@ export class DocumentsComponent implements OnInit {
     if (this.uploadForm.valid && this.selectedFile) {
       this.isUploading = true;
       this.uploadError = null;
+      this.cdr.markForCheck();
 
       const formData = new FormData();
       formData.append('file', this.selectedFile);
@@ -193,12 +203,14 @@ export class DocumentsComponent implements OnInit {
           this.documents.unshift(newDoc);
           // keep dataSource in sync
           this.dataSource.data = this.documents;
+          this.cdr.markForCheck();
           this.closeUploadModal();
         },
         error: (error) => {
           this.isUploading = false;
           this.uploadError = 'Failed to upload document. Please try again.';
           console.error('Upload error:', error);
+          this.cdr.markForCheck();
         }
       });
     }
@@ -226,6 +238,7 @@ export class DocumentsComponent implements OnInit {
       this.documents = this.documents.filter(doc => doc.id !== documentId);
       // keep dataSource in sync
       this.dataSource.data = this.documents;
+      this.cdr.markForCheck();
     }
   }
 

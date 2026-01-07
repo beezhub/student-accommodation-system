@@ -159,7 +159,7 @@
           <!-- File Upload Area -->
           <div class="file-upload-area">
             <div class="file-input-wrapper">
-              <input type="file" #fileInput (change)="onFileSelected($event)" accept=".pdf,.jpg,.jpeg,.png"
+              <input type="file" #fileInput id="fileInput" (change)="onFileSelected($event)" accept=".pdf,.jpg,.jpeg,.png"
                 class="file-input" />
               <label for="fileInput" class="file-upload-label">
                 <div class="upload-icon-container">
