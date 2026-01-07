@@ -41,4 +41,9 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
     @Modifying
     @Query("DELETE FROM UserNotification n WHERE n.user.id = :userId AND n.isRead = true AND n.readAt IS NOT NULL AND n.readAt < :cutoff")
     int deleteOldReadNotifications(@Param("userId") Long userId, @Param("cutoff") LocalDateTime cutoff);
+
+    /**
+     * Delete all notifications for a specific user
+     */
+    void deleteByUser(com.beezhub.student_accommodation.model.entity.AppUser user);
 }

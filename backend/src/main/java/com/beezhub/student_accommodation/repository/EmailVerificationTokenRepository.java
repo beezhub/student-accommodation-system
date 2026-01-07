@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.repository;
 
+import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.EmailVerificationToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -21,5 +22,7 @@ public interface EmailVerificationTokenRepository extends JpaRepository<EmailVer
     @Modifying
     @Query("DELETE FROM EmailVerificationToken t WHERE t.user.id = ?1")
     void deleteByUserId(Long userId);
+
+    void deleteByUser(AppUser user);
 }
 

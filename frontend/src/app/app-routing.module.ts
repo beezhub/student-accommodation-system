@@ -28,6 +28,11 @@ export const routes: Routes = [
     canActivate: [AuthGuard, StudentGuard]
   },
   {
+    path: 'application-submission',
+    loadComponent: () => import('./features/auth/application-submission/application-submission.component').then(m => m.ApplicationSubmissionComponent),
+    canActivate: [AuthGuard, StudentGuard]
+  },
+  {
     path: 'document-upload',
     loadComponent: () => import('./features/auth/document-upload/document-upload.component').then(m => m.DocumentUploadComponent),
     canActivate: [AuthGuard, StudentGuard]

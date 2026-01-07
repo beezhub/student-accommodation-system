@@ -10,5 +10,6 @@ import java.util.Optional;
 public interface WaitingListRepository extends JpaRepository<WaitingListEntry, Long> {
     Optional<WaitingListEntry> findFirstByStatusOrderByCreatedAtAsc(String status);
     boolean existsByStudent_IdAndStatus(Long studentId, String status);
+    void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 }
 

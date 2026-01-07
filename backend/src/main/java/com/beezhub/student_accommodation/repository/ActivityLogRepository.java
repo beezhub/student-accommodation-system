@@ -64,4 +64,9 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long>,
      */
     @Query("DELETE FROM ActivityLog a WHERE a.timestamp < :cutoffDate")
     void deleteOldLogs(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+    /**
+     * Delete all logs for a specific user
+     */
+    void deleteByUser(com.beezhub.student_accommodation.model.entity.AppUser user);
 }

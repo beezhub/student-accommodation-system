@@ -140,8 +140,8 @@
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Document Type</mat-label>
             <mat-select formControlName="documentType">
-              <mat-option *ngFor="let type of getDocumentTypes()" [value]="type.value">
-                {{type.viewValue}}
+              <mat-option *ngFor="let type of requiredDocumentTypes" [value]="type.id">
+                {{ type.name }}
               </mat-option>
             </mat-select>
             <mat-icon matPrefix>category</mat-icon>

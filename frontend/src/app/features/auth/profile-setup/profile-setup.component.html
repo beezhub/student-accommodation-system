@@ -1,35 +1,63 @@
 <div class="profile-setup-container">
-  <div class="setup-wrapper">
-    <mat-card class="setup-card mat-elevation-z4">
-      <mat-card-content>
-        <!-- Header Section -->
-        <div class="setup-header">
-          <h1 class="welcome-title">Welcome, {{currentUser?.firstName}}!</h1>
-          <p class="welcome-subtitle">Let's complete your profile</p>
-        </div>
+  <div class="progress-indicator">
+    <div class="step completed">
+      <div class="step-number">1</div>
+      <div class="step-label">Sign Up</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step active">
+      <div class="step-number">2</div>
+      <div class="step-label">Profile Setup</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-label">Application</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step">
+      <div class="step-number">4</div>
+      <div class="step-label">Documents</div>
+    </div>
+  </div>
 
-        <!-- Progress Section -->
-        <div class="progress-section">
-          <mat-progress-bar mode="determinate" value="50" class="setup-progress"></mat-progress-bar>
-          <p class="progress-text">Step 2 of 4</p>
-        </div>
+  <mat-card class="profile-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>person</mat-icon>
+        Complete Your Profile
+      </mat-card-title>
+      <mat-card-subtitle>
+        Welcome, {{currentUser?.firstName}}! Let's set up your student profile
+      </mat-card-subtitle>
+    </mat-card-header>
 
-        <!-- Profile Form -->
-        <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
-          <div class="form-grid">
-            <!-- Student Number -->
-            <mat-form-field appearance="outline" class="form-field">
+    <mat-divider></mat-divider>
+
+    <mat-card-content>
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+
+        <!-- Personal Information Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <mat-icon>badge</mat-icon>
+            Personal Information
+          </h3>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
               <mat-label>Student Number</mat-label>
-              <input matInput formControlName="studentNumber" placeholder="Enter your student number">
+              <input matInput formControlName="studentNumber" placeholder="e.g., STU123456">
+              <mat-icon matPrefix>badge</mat-icon>
               <mat-error *ngIf="profileForm.get('studentNumber')?.hasError('required')">
                 Student number is required
               </mat-error>
             </mat-form-field>
 
-            <!-- Phone Number -->
-            <mat-form-field appearance="outline" class="form-field">
+            <mat-form-field appearance="outline" class="half-width">
               <mat-label>Phone Number</mat-label>
-              <input matInput type="tel" formControlName="phoneNumber" placeholder="Enter your phone number">
+              <input matInput type="tel" formControlName="phoneNumber" placeholder="e.g., 0123456789">
+              <mat-icon matPrefix>phone</mat-icon>
               <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('required')">
                 Phone number is required
               </mat-error>
@@ -37,79 +65,112 @@
                 Please enter a valid 10-digit phone number
               </mat-error>
             </mat-form-field>
+          </div>
 
-            <!-- Date of Birth -->
-            <mat-form-field appearance="outline" class="form-field">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
               <mat-label>Date of Birth</mat-label>
-              <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth" placeholder="Select your date of birth">
+              <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth">
               <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
               <mat-datepicker #dobPicker></mat-datepicker>
+              <mat-icon matPrefix>cake</mat-icon>
               <mat-error *ngIf="profileForm.get('dateOfBirth')?.hasError('required')">
                 Date of birth is required
               </mat-error>
             </mat-form-field>
 
-            <!-- Gender -->
-            <mat-form-field appearance="outline" class="form-field">
+            <mat-form-field appearance="outline" class="half-width">
               <mat-label>Gender</mat-label>
-              <mat-select formControlName="gender" placeholder="Select your gender">
-                <mat-option [value]="">Select gender</mat-option>
+              <mat-select formControlName="gender">
                 <mat-option *ngFor="let gender of genderOptions" [value]="gender.value">
                   {{gender.viewValue}}
                 </mat-option>
               </mat-select>
+              <mat-icon matPrefix>wc</mat-icon>
               <mat-error *ngIf="profileForm.get('gender')?.hasError('required')">
                 Gender is required
               </mat-error>
             </mat-form-field>
+          </div>
+        </div>
 
-            <!-- Institution -->
-            <mat-form-field appearance="outline" class="form-field">
+        <mat-divider></mat-divider>
+
+        <!-- Academic Information Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <mat-icon>school</mat-icon>
+            Academic Information
+          </h3>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
               <mat-label>Institution</mat-label>
-              <mat-select formControlName="institution" placeholder="Select your institution">
-                <mat-option [value]="">Select institution</mat-option>
+              <mat-select formControlName="institution">
                 <mat-option *ngFor="let institution of institutions" [value]="institution.id">
                   {{institution.name}}
                 </mat-option>
               </mat-select>
+              <mat-icon matPrefix>location_city</mat-icon>
               <mat-error *ngIf="profileForm.get('institution')?.hasError('required')">
                 Institution is required
               </mat-error>
             </mat-form-field>
 
-            <!-- Year of Study -->
-            <mat-form-field appearance="outline" class="form-field">
+            <mat-form-field appearance="outline" class="half-width">
               <mat-label>Year of Study</mat-label>
-              <mat-select formControlName="yearOfStudy" placeholder="Select year of study">
-                <mat-option [value]="">Select year of study</mat-option>
-                <mat-option *ngFor="let yearOfStudy of yearsOfStudy" [value]="yearOfStudy.id">
-                  {{yearOfStudy.yearOfStudy}}
+              <mat-select formControlName="yearOfStudy">
+                <mat-option *ngFor="let year of yearsOfStudy" [value]="year.id">
+                  {{year.yearOfStudy}}
                 </mat-option>
               </mat-select>
+              <mat-icon matPrefix>calendar_today</mat-icon>
               <mat-error *ngIf="profileForm.get('yearOfStudy')?.hasError('required')">
                 Year of study is required
               </mat-error>
             </mat-form-field>
           </div>
+        </div>
 
-          <!-- Special Requirements -->
-          <mat-form-field appearance="outline" class="form-field full-width">
-            <mat-label>Special Requirements (Optional)</mat-label>
-            <textarea matInput formControlName="specialRequirements" rows="3" 
+        <mat-divider></mat-divider>
+
+        <!-- Special Requirements Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <mat-icon>accessible</mat-icon>
+            Special Requirements (Optional)
+          </h3>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Special Requirements or Accessibility Needs</mat-label>
+            <textarea matInput formControlName="specialRequirements"
+                      rows="4"
                       placeholder="Please describe any special accommodation requirements"></textarea>
+            <mat-icon matPrefix>notes</mat-icon>
+            <mat-hint>Any additional information we should know</mat-hint>
           </mat-form-field>
+        </div>
 
-          <!-- Submit Button -->
-          <div class="submit-section">
-            <button mat-raised-button color="primary" type="submit" class="submit-button" 
-                    [disabled]="profileForm.invalid || isSubmitting">
-              <mat-spinner *ngIf="isSubmitting" diameter="20" class="button-spinner"></mat-spinner>
-              <mat-icon *ngIf="!isSubmitting">arrow_forward</mat-icon>
-              <span>{{isSubmitting ? 'Saving Profile...' : 'Continue to Document Upload'}}</span>
-            </button>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+        <mat-divider></mat-divider>
+
+        <!-- Action Buttons -->
+        <mat-card-actions class="action-buttons">
+          <div></div>
+
+          <button mat-raised-button color="primary" type="submit" class="submit-button"
+            [disabled]="profileForm.invalid || isSubmitting">
+            <mat-spinner *ngIf="isSubmitting" diameter="20" class="button-spinner"></mat-spinner>
+            <mat-icon *ngIf="!isSubmitting">arrow_forward</mat-icon>
+            <span *ngIf="!isSubmitting">Continue</span>
+            <span *ngIf="isSubmitting">Saving Profile...</span>
+          </button>
+        </mat-card-actions>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="help-text">
+    <mat-icon>info</mat-icon>
+    <p>Your profile information helps us match you with the most suitable accommodation options.</p>
   </div>
 </div>

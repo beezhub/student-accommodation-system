@@ -7,6 +7,8 @@ import { AuthService } from '../../../core/services/auth.service';
 import { DocumentViewerComponent } from './document-viewer/document-viewer.component';
 import { DocumentService } from '../../../core/services/document.service';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { DocumentTypeService } from '../../../core/services/document-type.service';
+import { DocumentType } from '../../../core/models/document-type.model';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -94,7 +96,8 @@ export class DocumentsComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private fb: FormBuilder,
-    private documentService: DocumentService
+    private documentService: DocumentService,
+    private documentTypeService: DocumentTypeService
   ) {
     this.uploadForm = this.fb.group({
       documentType: ['', Validators.required]
@@ -104,12 +107,12 @@ export class DocumentsComponent implements OnInit {
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
     this.documentService.getUploadedDocuments().subscribe({
-      next: (docs) => {
-        this.documents = docs.map(doc => ({
+          next: (docs) => {
+            this.documents = docs.map(doc => ({
           id: String(doc.id),
           name: doc.documentName,
           type: doc.documentTypeName,
-          uploadDate: doc.UploadedDate,
+              uploadDate: doc.UploadedDate,
           status: doc.documentStatus,
           size: '' // Size not provided by API, can be updated if available
         }));
@@ -117,6 +120,16 @@ export class DocumentsComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to fetch documents:', err);
+      }
+    });
+
+    // Load required document types to populate the upload modal
+    this.documentTypeService.getRequiredDocumentTypes().subscribe({
+      next: (types: DocumentType[]) => {
+        this.requiredDocumentTypes = types;
+      },
+      error: (err) => {
+        console.error('Failed to load document types', err);
       }
     });
   }
@@ -174,25 +187,38 @@ export class DocumentsComponent implements OnInit {
       this.isUploading = true;
       this.uploadError = null;
 
-      const formData = new FormData();
-      formData.append('file', this.selectedFile);
-      formData.append('type', this.uploadForm.get('documentType')?.value);
+      const selectedTypeId: number = this.uploadForm.get('documentType')?.value;
 
-      this.authService.uploadDocuments(formData).subscribe({
-        next: (response) => {
+      this.documentService.uploadSingleDocument(this.selectedFile, selectedTypeId).subscribe({
+        next: () => {
           this.isUploading = false;
-          // Add the new document to the list
+          // Optimistically add new doc to the list with basic info
+            const typeName = this.requiredDocumentTypes.find(t => t.id === selectedTypeId)?.name || String(selectedTypeId);
           const newDoc = {
-            id: response.id,
+            id: String(Date.now()),
             name: this.selectedFile!.name,
-            type: this.uploadForm.get('documentType')?.value,
+              type: typeName,
             uploadDate: new Date().toISOString(),
             status: 'Pending',
             size: this.formatFileSize(this.selectedFile!.size)
           };
           this.documents.unshift(newDoc);
-          // keep dataSource in sync
           this.dataSource.data = this.documents;
+          // Refresh from server to show accurate data
+          this.documentService.getUploadedDocuments().subscribe({
+            next: (docs) => {
+              this.documents = docs.map(doc => ({
+                id: String(doc.id),
+                name: doc.documentName,
+                type: doc.documentTypeName,
+                uploadDate: doc.UploadedDate,
+                status: doc.documentStatus,
+                size: ''
+              }));
+              this.dataSource.data = this.documents;
+            },
+            error: (err) => console.error('Failed to refresh documents:', err)
+          });
           this.closeUploadModal();
         },
         error: (error) => {
@@ -229,16 +255,5 @@ export class DocumentsComponent implements OnInit {
     }
   }
 
-  getDocumentTypes() {
-    return [
-      { value: 'student-id', viewValue: 'Student ID' },
-      { value: 'passport', viewValue: 'Passport' },
-      { value: 'drivers-license', viewValue: 'Driver\'s License' },
-      { value: 'enrollment-proof', viewValue: 'Proof of Enrollment' },
-      { value: 'academic-transcript', viewValue: 'Academic Transcript' },
-      { value: 'financial-statement', viewValue: 'Financial Statement' },
-      { value: 'medical-record', viewValue: 'Medical Record' },
-      { value: 'other', viewValue: 'Other' }
-    ];
-  }
+  requiredDocumentTypes: DocumentType[] = [];
 }

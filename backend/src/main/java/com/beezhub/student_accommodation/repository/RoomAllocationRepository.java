@@ -61,4 +61,7 @@ public interface RoomAllocationRepository extends JpaRepository<RoomAllocation, 
     // Find allocation by application ID
     @Query("SELECT ra FROM RoomAllocation ra WHERE ra.application.id = :applicationId")
     Optional<RoomAllocation> findByApplicationId(@Param("applicationId") Long applicationId);
+
+    // Delete all allocations for a student
+    void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 }

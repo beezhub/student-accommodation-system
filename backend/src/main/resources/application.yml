@@ -41,6 +41,11 @@ spring:
           starttls:
             enable: false
     default-encoding: UTF-8
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE:10MB}
+      max-request-size: ${MAX_REQUEST_SIZE:20MB}
+      file-size-threshold: 2MB
 springdoc:
   api-docs:
     path: /v3/api-docs

@@ -17,4 +17,5 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
      List<Application> findByStudent_Id(Long studentId);
      boolean existsByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
      List<Application> findByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
+     void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 }

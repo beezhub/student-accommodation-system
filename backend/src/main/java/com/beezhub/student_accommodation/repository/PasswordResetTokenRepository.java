@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.repository;
 import java.util.Optional;
 import java.time.LocalDateTime;
 
+import com.beezhub.student_accommodation.model.entity.AppUser;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Modifying;
@@ -20,6 +21,8 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     @Modifying
     @Query("DELETE FROM PasswordResetToken t WHERE t.user.id = ?1")
     void deleteByUserId(Long userId);
+
+    void deleteByUser(AppUser user);
 }
 
 

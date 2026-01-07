@@ -51,7 +51,7 @@ public class DocumentController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping(value = "/upload-single",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = "application/json"
+            produces = MediaType.TEXT_PLAIN_VALUE
     )
     public ResponseEntity<String> uploadSingleDocument(
             @RequestParam("file") MultipartFile file,

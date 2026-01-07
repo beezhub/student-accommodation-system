@@ -45,8 +45,8 @@
 
             <mat-form-field appearance="fill">
               <mat-label>Phone Number</mat-label>
-              <input matInput type="text" formControlName="phone" [readonly]="!isEditing">
-              <mat-error *ngIf="profileForm.get('phone')?.invalid && profileForm.get('phone')?.touched">Phone number is required</mat-error>
+              <input matInput type="text" formControlName="phoneNumber" [readonly]="!isEditing">
+              <mat-error *ngIf="profileForm.get('phoneNumber')?.invalid && profileForm.get('phoneNumber')?.touched">Phone number must be 10 digits</mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="fill">
@@ -58,34 +58,34 @@
             <ng-container *ngIf="isEditing; else institutionText">
               <mat-form-field appearance="fill">
                 <mat-label>Institution</mat-label>
-                <mat-select formControlName="institution">
+                <mat-select formControlName="institutionId">
                   <mat-option value="">Select institution</mat-option>
                   <mat-option *ngFor="let institution of institutions" [value]="institution.id">{{ institution.name }}</mat-option>
                 </mat-select>
-                <mat-error *ngIf="profileForm.get('institution')?.invalid && profileForm.get('institution')?.touched">Institution is required</mat-error>
+                <mat-error *ngIf="profileForm.get('institutionId')?.invalid && profileForm.get('institutionId')?.touched">Institution is required</mat-error>
               </mat-form-field>
             </ng-container>
             <ng-template #institutionText>
               <mat-form-field appearance="fill">
                 <mat-label>Institution</mat-label>
-                <input matInput [value]="getInstitutionName(profileForm.get('institution')?.value)" readonly>
+                <input matInput [value]="getInstitutionName(profileForm.get('institutionId')?.value)" readonly>
               </mat-form-field>
             </ng-template>
 
             <ng-container *ngIf="isEditing; else yearOfStudyText">
               <mat-form-field appearance="fill">
                 <mat-label>Year of Study</mat-label>
-                <mat-select formControlName="yearOfStudy">
+                <mat-select formControlName="yearOfStudyId">
                   <mat-option value="">Select year</mat-option>
                   <mat-option *ngFor="let year of yearsOfStudy" [value]="year.id">{{ year.yearOfStudy }}</mat-option>
                 </mat-select>
-                <mat-error *ngIf="profileForm.get('yearOfStudy')?.invalid && profileForm.get('yearOfStudy')?.touched">Year of study is required</mat-error>
+                <mat-error *ngIf="profileForm.get('yearOfStudyId')?.invalid && profileForm.get('yearOfStudyId')?.touched">Year of study is required</mat-error>
               </mat-form-field>
             </ng-container>
             <ng-template #yearOfStudyText>
               <mat-form-field appearance="fill">
                 <mat-label>Year of Study</mat-label>
-                <input matInput [value]="getYearOfStudyName(profileForm.get('yearOfStudy')?.value)" readonly>
+                <input matInput [value]="getYearOfStudyName(profileForm.get('yearOfStudyId')?.value)" readonly>
               </mat-form-field>
             </ng-template>
 
@@ -104,6 +104,30 @@
                 <input matInput [value]="profileForm.get('dateOfBirth')?.value" readonly>
               </mat-form-field>
             </ng-template>
+
+            <ng-container *ngIf="isEditing; else genderText">
+              <mat-form-field appearance="fill">
+                <mat-label>Gender</mat-label>
+                <mat-select formControlName="gender">
+                  <mat-option value="">Prefer not to say</mat-option>
+                  <mat-option value="Male">Male</mat-option>
+                  <mat-option value="Female">Female</mat-option>
+                  <mat-option value="Other">Other</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </ng-container>
+            <ng-template #genderText>
+              <mat-form-field appearance="fill">
+                <mat-label>Gender</mat-label>
+                <input matInput [value]="profileForm.get('gender')?.value || 'Not specified'" readonly>
+              </mat-form-field>
+            </ng-template>
+
+            <mat-form-field appearance="fill" class="full-width">
+              <mat-label>Special Requirements</mat-label>
+              <textarea matInput formControlName="specialRequirements" [readonly]="!isEditing" rows="3" 
+                        placeholder="Enter any special requirements or accommodations needed"></textarea>
+            </mat-form-field>
           </div>
 
           <div class="actions" *ngIf="isEditing">
@@ -120,11 +144,11 @@
       <mat-card-content>
         <h3>Account Settings</h3>
         <div class="account-actions">
-          <button mat-stroked-button>
+          <button mat-stroked-button (click)="openChangePasswordDialog()">
             <mat-icon [attr.aria-hidden]="'false'" [attr.aria-label]="'Change password'">lock</mat-icon>
             Change Password
           </button>
-          <button mat-stroked-button color="warn">
+          <button mat-stroked-button color="warn" (click)="openDeleteAccountDialog()">
             <mat-icon [attr.aria-hidden]="'false'" [attr.aria-label]="'Delete account'">delete</mat-icon>
             Delete Account
           </button>

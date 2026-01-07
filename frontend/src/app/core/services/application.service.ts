@@ -12,10 +12,10 @@ export class ApplicationService {
 
   constructor(private http: HttpClient) {}
 
-  createApplication(studentId: number): Observable<Application> {
+  createApplication(applicationData: any): Observable<Application> {
     return this.http.post<Application>(
       `${this.apiUrl}/submit`,
-      { studentId: studentId }
+      applicationData
     );
   }
 

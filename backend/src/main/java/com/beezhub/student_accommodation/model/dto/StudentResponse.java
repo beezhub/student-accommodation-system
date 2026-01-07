@@ -16,4 +16,9 @@ public class StudentResponse {
     private Long institutionId;
     private Long yearOfStudyId;
     private Long userId;
+    
+    // AppUser fields
+    private String firstName;
+    private String lastName;
+    private String email;
 }

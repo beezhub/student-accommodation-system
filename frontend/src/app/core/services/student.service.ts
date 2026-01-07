@@ -20,11 +20,15 @@ export class StudentService {
   }
 
   getStudentProfile(): Observable<StudentResponse> {
-    const userId = this.authService.currentUserValue?.id
+    return this.http.get<StudentResponse>(`${this.apiUrl}/me`);
+  }
+
+  updateStudentProfile(studentData: StudentRequest): Observable<StudentResponse> {
+    const userId = this.authService.currentUserValue?.id;
     if (!userId) {
       throw new Error("User does not exist or is not logged in.");
     }
 
-    return this.http.get<StudentResponse>(`${this.apiUrl}/${userId}`);
+    return this.http.put<StudentResponse>(`${this.apiUrl}/${userId}`, studentData);
   }
 }

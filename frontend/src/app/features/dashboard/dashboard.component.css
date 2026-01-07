@@ -280,6 +280,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* Two-column layout for dashboard */
@@ -385,7 +386,7 @@
   align-items: stretch;
   transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .dashboard-grid .mat-mdc-card::before {
@@ -425,6 +426,9 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .card-icon {
@@ -818,12 +822,17 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  min-width: 0;
 }
 
 .status-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
 }
 
 .status-info {
@@ -831,6 +840,7 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  min-width: 0;
 }
 
 .application-code {
@@ -839,6 +849,10 @@
   color: #1E293B;
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
   letter-spacing: 0.5px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+  min-width: 0;
 }
 
 .application-details {
@@ -846,6 +860,8 @@
   flex-direction: column;
   gap: 10px;
   padding: 12px 0;
+  width: 100%;
+  min-width: 0;
 }
 
 .detail-row {
@@ -858,6 +874,8 @@
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.02);
   transition: all 0.2s ease;
+  width: 100%;
+  min-width: 0;
 }
 
 .detail-row:hover {
@@ -875,6 +893,11 @@
 .detail-row span {
   color: rgba(0, 0, 0, 0.7);
   font-weight: 500;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: normal;
 }
 
 .application-actions {
@@ -884,11 +907,13 @@
   padding-top: 8px;
   border-top: 1px solid #E2E8F0;
   margin-top: 4px;
+  width: 100%;
+  min-width: 0;
 }
 
 .application-actions button {
-  flex: 1;
-  min-width: 120px;
+  flex: 1 1 auto;
+  min-width: 100px;
 }
 
 /* Application Empty State */

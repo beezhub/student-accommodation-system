@@ -1,138 +1,163 @@
-<mat-toolbar color="primary" class="app-toolbar" role="banner">
-  <div class="toolbar-content">
-    <span class="app-title">Student Housing</span>
-    <span class="spacer"></span>
-    <nav class="toolbar-nav" aria-label="Main navigation">
-      <a mat-button routerLink="/dashboard">Dashboard</a>
-      <a mat-button routerLink="/applications" aria-current="page">Applications</a>
-      <a mat-button routerLink="/documents">Documents</a>
-      <a mat-button routerLink="/profile">Profile</a>
-    </nav>
-  </div>
-</mat-toolbar>
+<div class="page-container">
+  <mat-card class="application-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>add_circle</mat-icon>
+        New Accommodation Application
+      </mat-card-title>
+      <mat-card-subtitle>
+        Submit your accommodation preferences to find the perfect housing
+      </mat-card-subtitle>
+    </mat-card-header>
 
-<main class="main-content">
-  <div class="page-container">
-    <mat-card class="application-card">
-      <mat-card-content>
-        <h2 class="card-title">New Accommodation Application</h2>
+    <mat-divider></mat-divider>
 
-        <form [formGroup]="applicationForm" (ngSubmit)="onSubmit()">
-          <!-- Accommodation Details Section -->
-          <div class="form-section">
-            <h3>Accommodation Details</h3>
-            <mat-divider></mat-divider>
-            
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Accommodation Type</mat-label>
-                <mat-select formControlName="accommodationType">
-                  <mat-option *ngFor="let type of accommodationTypes" [value]="type.value">
-                    {{type.viewValue}}
-                  </mat-option>
-                </mat-select>
-                <mat-error *ngIf="applicationForm.get('accommodationType')?.hasError('required')">
-                  Please select an accommodation type
-                </mat-error>
-              </mat-form-field>
+    <mat-card-content>
+      <form [formGroup]="applicationForm" (ngSubmit)="onSubmit()">
+        <!-- Accommodation Details Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <mat-icon>home</mat-icon>
+            Accommodation Preferences
+          </h3>
 
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Room Preference</mat-label>
-                <mat-select formControlName="roomPreference">
-                  <mat-option *ngFor="let pref of roomPreferenceOptions" [value]="pref.value">
-                    {{pref.viewValue}}
-                  </mat-option>
-                </mat-select>
-                <mat-error *ngIf="applicationForm.get('roomPreference')?.hasError('required')">
-                  Please select a room preference
-                </mat-error>
-              </mat-form-field>
-            </div>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Preferred Accommodation Type</mat-label>
+              <mat-select formControlName="preferredAccommodationType">
+                <mat-option *ngFor="let type of accommodationTypes" [value]="type.value">
+                  {{type.viewValue}}
+                </mat-option>
+              </mat-select>
+              <mat-icon matPrefix>meeting_room</mat-icon>
+              <mat-error *ngIf="applicationForm.get('preferredAccommodationType')?.hasError('required')">
+                Please select an accommodation type
+              </mat-error>
+            </mat-form-field>
 
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Move-in Date</mat-label>
-                <input matInput [matDatepicker]="picker" formControlName="moveInDate">
-                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-                <mat-datepicker #picker></mat-datepicker>
-                <mat-error *ngIf="applicationForm.get('moveInDate')?.hasError('required')">
-                  Move-in date is required
-                </mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Duration of Stay</mat-label>
-                <mat-select formControlName="duration">
-                  <mat-option *ngFor="let duration of durationOptions" [value]="duration.value">
-                    {{duration.viewValue}}
-                  </mat-option>
-                </mat-select>
-                <mat-error *ngIf="applicationForm.get('duration')?.hasError('required')">
-                  Please select a duration
-                </mat-error>
-              </mat-form-field>
-            </div>
-          </div>
-
-          <!-- Additional Options Section -->
-          <div class="form-section">
-            <h3>Additional Options</h3>
-            <mat-divider></mat-divider>
-            
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Meal Plan</mat-label>
-                <mat-select formControlName="mealPlan">
-                  <mat-option *ngFor="let plan of mealPlanOptions" [value]="plan.value">
-                    {{plan.viewValue}}
-                  </mat-option>
-                </mat-select>
-                <mat-error *ngIf="applicationForm.get('mealPlan')?.hasError('required')">
-                  Please select a meal plan
-                </mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Monthly Budget (£)</mat-label>
-                <input matInput type="number" formControlName="budget" min="0">
-                <mat-error *ngIf="applicationForm.get('budget')?.hasError('required')">
-                  Please enter your budget
-                </mat-error>
-                <mat-error *ngIf="applicationForm.get('budget')?.hasError('min')">
-                  Budget must be a positive number
-                </mat-error>
-              </mat-form-field>
-            </div>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Special Requirements (Optional)</mat-label>
-              <textarea matInput formControlName="specialRequirements" rows="3"
-                placeholder="Any specific requirements or preferences"></textarea>
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Preferred Room Type</mat-label>
+              <mat-select formControlName="preferredRoomType">
+                <mat-option *ngFor="let type of roomTypeOptions" [value]="type.value">
+                  {{type.viewValue}}
+                </mat-option>
+              </mat-select>
+              <mat-icon matPrefix>bed</mat-icon>
+              <mat-error *ngIf="applicationForm.get('preferredRoomType')?.hasError('required')">
+                Please select a room type
+              </mat-error>
             </mat-form-field>
           </div>
 
-          <!-- Terms and Conditions -->
-          <div class="terms-section">
-            <mat-checkbox formControlName="agreeToTerms" color="primary">
-              I agree to the <a href="#">terms and conditions</a>
-            </mat-checkbox>
-            <mat-error *ngIf="applicationForm.get('agreeToTerms')?.hasError('required') && applicationForm.get('agreeToTerms')?.touched">
-              You must agree to the terms and conditions
-            </mat-error>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Preferred Move-in Date</mat-label>
+              <input matInput [matDatepicker]="picker" formControlName="preferredMoveInDate">
+              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+              <mat-icon matPrefix>event</mat-icon>
+              <mat-error *ngIf="applicationForm.get('preferredMoveInDate')?.hasError('required')">
+                Move-in date is required
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Duration (Months)</mat-label>
+              <input matInput type="number" formControlName="preferredDurationMonths"
+                     placeholder="e.g., 12" min="1" max="12">
+              <mat-icon matPrefix>schedule</mat-icon>
+              <mat-hint>Minimum 1 month, Maximum 12 months</mat-hint>
+              <mat-error *ngIf="applicationForm.get('preferredDurationMonths')?.hasError('required')">
+                Duration is required
+              </mat-error>
+              <mat-error *ngIf="applicationForm.get('preferredDurationMonths')?.hasError('min')">
+                Minimum duration is 1 month
+              </mat-error>
+              <mat-error *ngIf="applicationForm.get('preferredDurationMonths')?.hasError('max')">
+                Maximum duration is 12 months
+              </mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Student Information Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <mat-icon>school</mat-icon>
+            Academic Information
+          </h3>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Institution</mat-label>
+              <mat-select formControlName="institutionId">
+                <mat-option *ngFor="let institution of institutions" [value]="institution.id">
+                  {{institution.name}}
+                </mat-option>
+              </mat-select>
+              <mat-icon matPrefix>location_city</mat-icon>
+              <mat-error *ngIf="applicationForm.get('institutionId')?.hasError('required')">
+                Institution is required
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Course Name</mat-label>
+              <input matInput formControlName="courseName" placeholder="e.g., Computer Science">
+              <mat-icon matPrefix>book</mat-icon>
+              <mat-error *ngIf="applicationForm.get('courseName')?.hasError('required')">
+                Course name is required
+              </mat-error>
+            </mat-form-field>
           </div>
 
-          <!-- Action Buttons -->
-          <div class="action-buttons">
-            <button mat-raised-button color="primary" type="submit" [disabled]="isSubmitting" class="submit-button">
-              <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
-              <span class="button-text">{{isSubmitting ? 'Submitting...' : 'Submit Application'}}</span>
-            </button>
-            <button mat-stroked-button type="button" routerLink="/applications">
-              Cancel
-            </button>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Special Requirements (Optional)</mat-label>
+            <textarea matInput formControlName="specialRequirements" rows="4"
+              placeholder="e.g., Ground floor access, wheelchair accessible, dietary requirements, etc."></textarea>
+            <mat-icon matPrefix>notes</mat-icon>
+            <mat-hint>Please describe any special needs or requirements</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Terms and Conditions -->
+        <div class="terms-section">
+          <mat-checkbox formControlName="agreeToTerms" color="primary">
+            I agree to the <a href="#" class="terms-link">terms and conditions</a>
+          </mat-checkbox>
+          <mat-error *ngIf="applicationForm.get('agreeToTerms')?.hasError('required') && applicationForm.get('agreeToTerms')?.touched"
+            class="terms-error">
+            You must agree to the terms and conditions
+          </mat-error>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Action Buttons -->
+        <mat-card-actions class="action-buttons">
+          <button mat-button type="button" routerLink="/applications" class="cancel-button">
+            <mat-icon>close</mat-icon>
+            Cancel
+          </button>
+
+          <button mat-raised-button color="primary" type="submit" [disabled]="isSubmitting || !applicationForm.valid"
+            class="submit-button">
+            <mat-spinner *ngIf="isSubmitting" diameter="20" class="button-spinner"></mat-spinner>
+            <mat-icon *ngIf="!isSubmitting">send</mat-icon>
+            <span *ngIf="!isSubmitting">Submit Application</span>
+            <span *ngIf="isSubmitting">Submitting...</span>
+          </button>
+        </mat-card-actions>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="help-text">
+    <mat-icon>info</mat-icon>
+    <p>Your application will be reviewed by our team. You'll receive a notification once it's processed.</p>
   </div>
-</main>
+</div>

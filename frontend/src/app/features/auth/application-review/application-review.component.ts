@@ -119,23 +119,30 @@ export class ApplicationReviewComponent implements OnInit {
 
   onSubmit() {
     this.isSubmitting = true;
-    let studentId = this.studentProfile?.id;
-    if (studentId === undefined || studentId === null) {
-    console.error('Student ID is missing');
-    this.isSubmitting = false;
-    return;
-  }
-    this.ApplicationService.createApplication(studentId).subscribe({
-      next: (application) => {
-        console.log('Application submitted successfully');
-        this.router.navigate([`/application-confirmation/${application.id}`]);
+
+    // Get the most recent application for this student
+    this.ApplicationService.getMyApplications().subscribe({
+      next: (applications) => {
+        console.log('Applications retrieved:', applications);
+        this.isSubmitting = false;
+
+        if (applications && applications.length > 0) {
+          // Navigate to the most recent application's confirmation page
+          const latestApplication = applications[0];
+          this.router.navigate([`/application-confirmation/${latestApplication.id}`]);
+        } else {
+          // No application found, redirect to dashboard
+          console.warn('No application found for student');
+          this.router.navigate(['/dashboard']);
+        }
       },
       error: err => {
-        console.error('Failed to submit application', err);
+        console.error('Failed to retrieve applications', err);
         this.isSubmitting = false;
+        // On error, just navigate to dashboard
+        this.router.navigate(['/dashboard']);
       }
     });
-    
   }
 
   getInstitutionName(): string {

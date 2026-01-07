@@ -130,4 +130,17 @@ public class AuthController {
         public ResponseEntity<MessageResponse> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
                 return ResponseEntity.ok(authService.sendVerificationEmail(request.getEmail()));
         }
+
+        @Operation(
+                summary = "Delete user account",
+                description = "Permanently delete the authenticated user's account"
+        )
+        @ApiResponse(responseCode = "204", description = "Account deleted successfully")
+        @PostMapping("/delete-account")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<Void> deleteAccount(@Valid @RequestBody DeleteAccountRequest request,
+                                                   Authentication authentication) {
+                authService.deleteAccount(request, authentication);
+                return ResponseEntity.noContent().build();
+        }
 }

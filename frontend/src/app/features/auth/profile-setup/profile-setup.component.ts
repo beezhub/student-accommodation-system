@@ -21,6 +21,7 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
   selector: 'app-profile-setup',
@@ -40,7 +41,8 @@ import { MatNativeDateModule } from '@angular/material/core';
     MatStepperModule,
     MatIconModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatDividerModule
   ]
 })
 export class ProfileSetupComponent implements OnInit {
@@ -121,24 +123,25 @@ export class ProfileSetupComponent implements OnInit {
   onSubmit() {
     if (this.profileForm.valid) {
       this.isSubmitting = true;
-      this.isSubmitting = false;
-      
+
       const studentData = {
-        userId: this.currentUser.id,
+        firstName: this.currentUser.firstName,
+        lastName: this.currentUser.lastName,
+        email: this.currentUser.email,
         studentNumber: this.profileForm.get('studentNumber')?.value,
+        phoneNumber: this.profileForm.get('phoneNumber')?.value,
         dateOfBirth: this.profileForm.get('dateOfBirth')?.value,
         institutionId: this.profileForm.get('institution')?.value,
         yearOfStudyId: this.profileForm.get('yearOfStudy')?.value,
         gender: this.profileForm.get('gender')?.value,
         specialRequirements: this.profileForm.get('specialRequirements')?.value,
-        phoneNumber: this.profileForm.get('phoneNumber')?.value
-      }
-    
+        userId: this.currentUser.id
+      };
 
       this.studentService.createStudentProfile(studentData).subscribe({
         next: () => {
           this.isSubmitting = false;
-          this.router.navigate(['/document-upload']);
+          this.router.navigate(['/application-submission']);
         },
         error: (error) => {
           this.isSubmitting = false;

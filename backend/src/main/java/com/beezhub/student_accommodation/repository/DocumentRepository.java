@@ -14,4 +14,5 @@ public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSp
     List<Document> findAllByStudent_AppUser_Id(Long userId);
     List<Document> findAllByStudent_Id(Long studentId);
     long countByDocumentStatus(DocumentStatus status);
+    void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 }

@@ -32,7 +32,10 @@
       "mcp__playwright__browser_evaluate",
       "Bash(./gradlew bootRun)",
       "Bash(taskkill:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(mvnw clean compile:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

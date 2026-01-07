@@ -6,13 +6,14 @@ import {
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
-import { Router } from "@angular/router";
+import { Router, RouterModule } from "@angular/router";
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from "../../../core/services/auth.service";
 import { DocumentTypeService } from "../../../core/services/document-type.service";
 import { DocumentType } from "../../../core/models/document-type.model";
@@ -24,14 +25,16 @@ import { DocumentService } from "../../../core/services/document.service";
   styleUrls: ["./document-upload.component.css"],
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
     ReactiveFormsModule,
+    RouterModule,
     MatCardModule,
     MatProgressBarModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatChipsModule
+    MatChipsModule,
+    MatDividerModule
   ],
 })
 export class DocumentUploadComponent implements OnInit {

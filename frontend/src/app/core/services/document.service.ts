@@ -32,6 +32,18 @@ export class DocumentService {
     });
   }
 
+  uploadSingleDocument(file: File, documentTypeId: number): Observable<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    let params = new HttpParams().set("documentType", documentTypeId.toString());
+
+    return this.http.post(`${this.apiUrl}/upload-single`, formData, {
+      params,
+      responseType: 'text'
+    });
+  }
+
   getUploadedDocuments(): Observable<DocumentData[]> {
     const userId = this.authService.currentUserValue?.id;
     console.log('Fetching documents for user ID:', userId);

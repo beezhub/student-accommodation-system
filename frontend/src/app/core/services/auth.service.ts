@@ -123,4 +123,8 @@ export class AuthService {
       })
     );
   }
+
+  deleteAccount(password: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/delete-account`, { password });
+  }
 }

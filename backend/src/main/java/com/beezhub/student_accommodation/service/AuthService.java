@@ -5,9 +5,17 @@ import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.EmailVerificationToken;
 import com.beezhub.student_accommodation.model.entity.PasswordResetToken;
+import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.EmailVerificationTokenRepository;
 import com.beezhub.student_accommodation.repository.PasswordResetTokenRepository;
+import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.repository.ApplicationRepository;
+import com.beezhub.student_accommodation.repository.DocumentRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.repository.WaitingListRepository;
+import com.beezhub.student_accommodation.repository.UserNotificationRepository;
+import com.beezhub.student_accommodation.repository.ActivityLogRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +48,13 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final EmailService emailService;
+    private final StudentRepository studentRepository;
+    private final ApplicationRepository applicationRepository;
+    private final DocumentRepository documentRepository;
+    private final RoomAllocationRepository roomAllocationRepository;
+    private final WaitingListRepository waitingListRepository;
+    private final UserNotificationRepository userNotificationRepository;
+    private final ActivityLogRepository activityLogRepository;
 
     @Value("${app.base-url:http://localhost:3000}")
     private String baseUrl;
@@ -120,6 +135,65 @@ public class AuthService {
         user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setMustChangePassword(false);
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteAccount(DeleteAccountRequest request, Authentication authentication) {
+        log.info("Attempting to delete account for user: {}", authentication.getName());
+
+        var user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        // Verify password before deletion
+        if (!passwordEncoder.matches(request.getPassword(), user.getUserPassword())) {
+            throw new BadCredentialsException("Password is incorrect");
+        }
+
+        // Find student record if exists
+        var studentOpt = studentRepository.findByAppUser_Id(user.getId());
+
+        if (studentOpt.isPresent()) {
+            var student = studentOpt.get();
+            log.info("Deleting related data for student: {}", student.getId());
+
+            // Delete room allocations
+            roomAllocationRepository.deleteByStudent(student);
+            log.info("Deleted room allocations");
+
+            // Delete waiting list entries
+            waitingListRepository.deleteByStudent(student);
+            log.info("Deleted waiting list entries");
+
+            // Delete applications
+            applicationRepository.deleteByStudent(student);
+            log.info("Deleted applications");
+
+            // Delete documents
+            documentRepository.deleteByStudent(student);
+            log.info("Deleted documents");
+
+            // Delete student record
+            studentRepository.delete(student);
+            log.info("Deleted student record");
+        }
+
+        // Delete user notifications
+        userNotificationRepository.deleteByUser(user);
+        log.info("Deleted user notifications");
+
+        // Delete activity logs
+        activityLogRepository.deleteByUser(user);
+        log.info("Deleted activity logs");
+
+        // Delete associated tokens
+        passwordResetTokenRepository.deleteByUser(user);
+        emailVerificationTokenRepository.deleteByUser(user);
+        log.info("Deleted tokens");
+
+        // Finally, delete user
+        userRepository.delete(user);
+
+        log.info("Account deleted successfully for user: {}", authentication.getName());
     }
 
     public AppUser getCurrentUser() {
