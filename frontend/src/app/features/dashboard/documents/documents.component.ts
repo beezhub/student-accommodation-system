@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentViewerComponent } from './document-viewer/document-viewer.component';
@@ -21,6 +22,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
   selector: 'app-documents',
@@ -45,6 +47,7 @@ import { MatTableDataSource } from '@angular/material/table';
     MatChipsModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    MatDividerModule,
     ModernStatusBadgeComponent
   ]
 })
@@ -201,7 +204,7 @@ export class DocumentsComponent implements OnInit {
     }
   }
 
-  private formatFileSize(bytes: number): string {
+  formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -224,5 +227,18 @@ export class DocumentsComponent implements OnInit {
       // keep dataSource in sync
       this.dataSource.data = this.documents;
     }
+  }
+
+  getDocumentTypes() {
+    return [
+      { value: 'student-id', viewValue: 'Student ID' },
+      { value: 'passport', viewValue: 'Passport' },
+      { value: 'drivers-license', viewValue: 'Driver\'s License' },
+      { value: 'enrollment-proof', viewValue: 'Proof of Enrollment' },
+      { value: 'academic-transcript', viewValue: 'Academic Transcript' },
+      { value: 'financial-statement', viewValue: 'Financial Statement' },
+      { value: 'medical-record', viewValue: 'Medical Record' },
+      { value: 'other', viewValue: 'Other' }
+    ];
   }
 }
