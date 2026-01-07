@@ -118,12 +118,12 @@
   </mat-card>
 </div>
 
-  <!-- Document Viewer Modal -->
-  <app-document-viewer *ngIf="selectedDocument" [document]="selectedDocument" (close)="closeViewer()">
-  </app-document-viewer>
+<!-- Document Viewer Modal -->
+<app-document-viewer *ngIf="selectedDocument" [document]="selectedDocument" (close)="closeViewer()">
+</app-document-viewer>
 
-  <!-- Upload Dialog -->
-  <div *ngIf="showUploadModal" class="modal-overlay" (click)="closeUploadModal()">
+<!-- Upload Dialog -->
+<div *ngIf="showUploadModal" class="modal-overlay" (click)="closeUploadModal()">
     <mat-card class="upload-modal" (click)="$event.stopPropagation()">
       <mat-card-header>
         <mat-card-title>
