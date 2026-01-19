@@ -35,7 +35,8 @@
       "Bash(psql:*)",
       "Bash(mvnw clean compile:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
