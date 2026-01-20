@@ -27,6 +27,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 @Component({
   selector: 'app-documents',
@@ -52,6 +53,7 @@ import { MatDividerModule } from '@angular/material/divider';
     MatDatepickerModule,
     MatNativeDateModule,
     MatDividerModule,
+    MatProgressBarModule,
     ModernStatusBadgeComponent,
     ErrorDisplayComponent,
   ],
@@ -67,8 +69,12 @@ export class DocumentsComponent implements OnInit {
   // Error state
   loadError: ParsedError | null = null;
   uploadError: ParsedError | null = null;
-  fileError: string | null = null; // Simple string for file validation errors
+  fileValidationErrors: string[] = []; // Array for detailed file validation errors
   isRetrying = false;
+
+  // Upload progress
+  uploadProgress = 0;
+  uploadStatus: 'idle' | 'validating' | 'uploading' | 'complete' | 'error' = 'idle';
 
   documents = [
     {
@@ -180,7 +186,9 @@ export class DocumentsComponent implements OnInit {
     this.uploadForm.reset();
     this.selectedFile = null;
     this.uploadError = null;
-    this.fileError = null;
+    this.fileValidationErrors = [];
+    this.uploadProgress = 0;
+    this.uploadStatus = 'idle';
   }
 
   closeUploadModal() {
@@ -188,7 +196,9 @@ export class DocumentsComponent implements OnInit {
     this.uploadForm.reset();
     this.selectedFile = null;
     this.uploadError = null;
-    this.fileError = null;
+    this.fileValidationErrors = [];
+    this.uploadProgress = 0;
+    this.uploadStatus = 'idle';
   }
 
   dismissUploadError(): void {
@@ -198,23 +208,23 @@ export class DocumentsComponent implements OnInit {
   onFileSelected(event: any) {
     const file = event.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        // 5MB limit
-        this.fileError = 'File size must be less than 5MB';
-        this.selectedFile = null;
-        return;
-      }
-
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-      if (!allowedTypes.includes(file.type)) {
-        this.fileError = 'Only PDF, JPG, and PNG files are allowed';
-        this.selectedFile = null;
-        return;
-      }
-
-      this.fileError = null;
+      this.uploadStatus = 'validating';
+      this.fileValidationErrors = [];
       this.uploadError = null;
+
+      // Use document service's validation
+      const validation = this.documentService.validateFile(file);
+
+      if (!validation.valid) {
+        this.fileValidationErrors = validation.errors;
+        this.selectedFile = null;
+        this.uploadStatus = 'error';
+        return;
+      }
+
+      this.fileValidationErrors = [];
       this.selectedFile = file;
+      this.uploadStatus = 'idle';
     }
   }
 
@@ -222,47 +232,62 @@ export class DocumentsComponent implements OnInit {
     if (this.uploadForm.valid && this.selectedFile) {
       this.isUploading = true;
       this.uploadError = null;
-      this.fileError = null;
+      this.fileValidationErrors = [];
+      this.uploadProgress = 0;
+      this.uploadStatus = 'uploading';
 
       const selectedTypeId: number = this.uploadForm.get('documentType')?.value;
+      const fileName = this.selectedFile.name;
+      const fileSize = this.selectedFile.size;
 
-      this.documentService.uploadSingleDocument(this.selectedFile, selectedTypeId).subscribe({
-        next: () => {
-          this.isUploading = false;
-          this.errorService.showSuccess('Document uploaded successfully!');
-          // Optimistically add new doc to the list with basic info
-          const typeName =
-            this.requiredDocumentTypes.find((t) => t.id === selectedTypeId)?.name ||
-            String(selectedTypeId);
-          const newDoc = {
-            id: String(Date.now()),
-            name: this.selectedFile!.name,
-            type: typeName,
-            uploadDate: new Date().toISOString(),
-            status: 'Pending',
-            size: this.formatFileSize(this.selectedFile!.size),
-          };
-          this.documents.unshift(newDoc);
-          this.dataSource.data = this.documents;
-          // Refresh from server to show accurate data
-          this.documentService.getUploadedDocuments().subscribe({
-            next: (docs) => {
-              this.documents = docs.map((doc) => ({
-                id: String(doc.id),
-                name: doc.documentName,
-                type: doc.documentTypeName,
-                uploadDate: doc.UploadedDate,
-                status: doc.documentStatus,
-                size: '',
-              }));
-              this.dataSource.data = this.documents;
-            },
-            error: (err) => console.error('Failed to refresh documents:', err),
-          });
-          this.closeUploadModal();
+      this.documentService.uploadSingleDocumentWithProgress(this.selectedFile, selectedTypeId).subscribe({
+        next: (progress) => {
+          this.uploadProgress = progress.progress;
+
+          if (progress.status === 'complete') {
+            this.isUploading = false;
+            this.uploadStatus = 'complete';
+            this.errorService.showSuccess('Document uploaded successfully!');
+
+            // Optimistically add new doc to the list with basic info
+            const typeName =
+              this.requiredDocumentTypes.find((t) => t.id === selectedTypeId)?.name ||
+              String(selectedTypeId);
+            const newDoc = {
+              id: String(Date.now()),
+              name: fileName,
+              type: typeName,
+              uploadDate: new Date().toISOString(),
+              status: 'Pending',
+              size: this.formatFileSize(fileSize),
+            };
+            this.documents.unshift(newDoc);
+            this.dataSource.data = this.documents;
+
+            // Refresh from server to show accurate data
+            this.documentService.getUploadedDocuments().subscribe({
+              next: (docs) => {
+                this.documents = docs.map((doc) => ({
+                  id: String(doc.id),
+                  name: doc.documentName,
+                  type: doc.documentTypeName,
+                  uploadDate: doc.UploadedDate,
+                  status: doc.documentStatus,
+                  size: '',
+                }));
+                this.dataSource.data = this.documents;
+              },
+              error: (err) => console.error('Failed to refresh documents:', err),
+            });
+
+            // Close modal after a brief delay to show completion
+            setTimeout(() => this.closeUploadModal(), 500);
+          }
         },
         error: (error) => {
           this.isUploading = false;
+          this.uploadStatus = 'error';
+          this.uploadProgress = 0;
           console.error('Upload error:', error);
           this.uploadError = this.errorService.parseError(error);
         },

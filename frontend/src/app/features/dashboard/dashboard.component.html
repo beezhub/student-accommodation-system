@@ -163,13 +163,6 @@
               <div class="allocation-status">
                 <app-modern-status-badge [status]="roomAllocation.status" size="sm"></app-modern-status-badge>
               </div>
-              <mat-divider></mat-divider>
-              <div class="room-actions">
-                <button mat-button color="primary" routerLink="/rooms">
-                  <mat-icon>visibility</mat-icon>
-                  View Room Details
-                </button>
-              </div>
             </div>
           }
 
@@ -178,10 +171,6 @@
               <mat-icon class="no-room-icon">info</mat-icon>
               <p>No room allocated yet</p>
               <p class="no-room-hint">Your room will be allocated after your application and documents are approved.</p>
-              <button mat-raised-button color="primary" routerLink="/rooms">
-                <mat-icon>search</mat-icon>
-                Browse Available Rooms
-              </button>
             </div>
           }
         </mat-card-content>

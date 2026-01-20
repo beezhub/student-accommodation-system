@@ -37,10 +37,6 @@ import { NotificationsComponent } from './notifications/notifications.component'
           <mat-icon>folder</mat-icon>
           Documents
         </button>
-        <button mat-menu-item routerLink="/rooms">
-          <mat-icon>hotel</mat-icon>
-          Browse Rooms
-        </button>
         }
         <!-- Admin menu items -->
         @if (isAdmin()) {
@@ -114,7 +110,6 @@ import { NotificationsComponent } from './notifications/notifications.component'
           ><mat-icon>event_note</mat-icon><span>Applications</span></a
         >
         <a mat-button routerLink="/documents"><mat-icon>folder</mat-icon><span>Documents</span></a>
-        <a mat-button routerLink="/rooms"><mat-icon>hotel</mat-icon><span>Browse Rooms</span></a>
         }
         <!-- Admin navigation tabs -->
         @if (isAdmin()) {

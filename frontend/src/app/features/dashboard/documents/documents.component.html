@@ -175,11 +175,18 @@
               </mat-error>
             }
           </mat-form-field>
-          <!-- File Validation Error -->
-          @if (fileError) {
-            <div class="error-message">
-              <mat-icon>error</mat-icon>
-              <span>{{fileError}}</span>
+          <!-- File Validation Errors -->
+          @if (fileValidationErrors.length > 0) {
+            <div class="validation-errors">
+              <div class="validation-error-header">
+                <mat-icon>warning</mat-icon>
+                <span>File validation failed</span>
+              </div>
+              <ul class="validation-error-list">
+                @for (error of fileValidationErrors; track error) {
+                  <li>{{ error }}</li>
+                }
+              </ul>
             </div>
           }
 
@@ -196,6 +203,26 @@
               (retry)="retryUpload()"
               (dismiss)="dismissUploadError()">
             </app-error-display>
+          }
+
+          <!-- Upload Progress -->
+          @if (uploadStatus === 'uploading') {
+            <div class="upload-progress-container">
+              <div class="upload-progress-header">
+                <mat-icon class="uploading-icon">cloud_upload</mat-icon>
+                <span>Uploading document...</span>
+                <span class="progress-percentage">{{ uploadProgress }}%</span>
+              </div>
+              <mat-progress-bar mode="determinate" [value]="uploadProgress" color="primary"></mat-progress-bar>
+            </div>
+          }
+
+          <!-- Upload Complete -->
+          @if (uploadStatus === 'complete') {
+            <div class="upload-complete">
+              <mat-icon class="success-icon">check_circle</mat-icon>
+              <span>Upload complete!</span>
+            </div>
           }
           <!-- File Upload Area -->
           <div class="file-upload-area">

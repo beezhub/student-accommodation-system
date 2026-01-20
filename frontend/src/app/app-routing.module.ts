@@ -135,14 +135,8 @@ export const routes: Routes = [
       import('./features/dashboard/profile/profile.component').then((m) => m.ProfileComponent),
     canActivate: [AuthGuard, StudentGuard, EmailVerifiedGuard],
   },
-  {
-    path: 'rooms',
-    loadComponent: () =>
-      import('./features/student/room-browser/room-browser.component').then(
-        (m) => m.RoomBrowserComponent
-      ),
-    canActivate: [AuthGuard, StudentGuard, EmailVerifiedGuard],
-  },
+  // Room browser route removed from MVP - feature deferred
+  // Component preserved at features/student/room-browser/ for future use
   {
     path: 'admin',
     canActivate: [AuthGuard, AdminGuard],
