@@ -1,35 +1,4 @@
 <div class="dashboard-container">
-  <!-- Email Verification Banner -->
-  @if (showVerificationBanner) {
-    <div class="verification-banner">
-      <div class="banner-content">
-        <mat-icon class="banner-icon">warning</mat-icon>
-        <div class="banner-text">
-          <strong>Email verification required</strong>
-          <span>Please verify your email address to submit accommodation applications. Check your inbox for the verification link.</span>
-        </div>
-      </div>
-      <div class="banner-actions">
-        <button
-          mat-stroked-button
-          (click)="resendVerificationEmail()"
-          [disabled]="isResendingVerification"
-          class="resend-btn">
-          @if (!isResendingVerification) {
-            <mat-icon>email</mat-icon>
-          }
-          @if (isResendingVerification) {
-            <mat-spinner diameter="18"></mat-spinner>
-          }
-          {{ isResendingVerification ? 'Sending...' : 'Resend Email' }}
-        </button>
-        <button mat-icon-button (click)="dismissVerificationBanner()" class="dismiss-btn" aria-label="Dismiss">
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-    </div>
-  }
-
   <!-- Welcome Section -->
   <div class="welcome-section">
     <mat-card class="welcome-card">

@@ -28,6 +28,16 @@ export class AuthService {
     private router: Router,
     private notificationService: NotificationService
   ) {
+    // Initialize from localStorage on app start
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      try {
+        this.currentUserSubject.next(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem('currentUser');
+      }
+    }
+
     window.addEventListener('storage', (event) => {
       if (event.key === 'currentUser') {
         const updatedUser = event.newValue ? JSON.parse(event.newValue) : null;

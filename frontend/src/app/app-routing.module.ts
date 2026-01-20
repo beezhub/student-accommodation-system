@@ -28,6 +28,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'email-verification-required',
+    loadComponent: () =>
+      import(
+        './features/auth/email-verification-required/email-verification-required.component'
+      ).then((m) => m.EmailVerificationRequiredComponent),
+    canActivate: [AuthGuard],
+  },
+  {
     path: 'change-password',
     loadComponent: () =>
       import('./features/auth/change-password/change-password.component').then(
@@ -79,7 +87,7 @@ export const routes: Routes = [
     path: 'dashboard',
     loadComponent: () =>
       import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
-    canActivate: [AuthGuard, StudentGuard],
+    canActivate: [AuthGuard, StudentGuard, EmailVerifiedGuard],
   },
   {
     path: 'contact-support',
@@ -87,7 +95,7 @@ export const routes: Routes = [
       import('./features/dashboard/contact-support/contact-support.component').then(
         (m) => m.ContactSupportComponent
       ),
-    canActivate: [AuthGuard, StudentGuard],
+    canActivate: [AuthGuard, StudentGuard, EmailVerifiedGuard],
   },
   {
     path: 'applications',
@@ -95,7 +103,7 @@ export const routes: Routes = [
       import('./features/dashboard/applications/applications.component').then(
         (m) => m.ApplicationsComponent
       ),
-    canActivate: [AuthGuard, StudentGuard],
+    canActivate: [AuthGuard, StudentGuard, EmailVerifiedGuard],
   },
   {
     path: 'applications/new',
@@ -111,7 +119,7 @@ export const routes: Routes = [
       import(
         './features/dashboard/applications/application-details/application-details.component'
       ).then((m) => m.ApplicationDetailsComponent),
-    canActivate: [AuthGuard, StudentGuard],
+    canActivate: [AuthGuard, StudentGuard, EmailVerifiedGuard],
   },
   {
     path: 'documents',
@@ -119,13 +127,13 @@ export const routes: Routes = [
       import('./features/dashboard/documents/documents.component').then(
         (m) => m.DocumentsComponent
       ),
-    canActivate: [AuthGuard, StudentGuard],
+    canActivate: [AuthGuard, StudentGuard, EmailVerifiedGuard],
   },
   {
     path: 'profile',
     loadComponent: () =>
       import('./features/dashboard/profile/profile.component').then((m) => m.ProfileComponent),
-    canActivate: [AuthGuard, StudentGuard],
+    canActivate: [AuthGuard, StudentGuard, EmailVerifiedGuard],
   },
   {
     path: 'rooms',
@@ -133,7 +141,7 @@ export const routes: Routes = [
       import('./features/student/room-browser/room-browser.component').then(
         (m) => m.RoomBrowserComponent
       ),
-    canActivate: [AuthGuard, StudentGuard],
+    canActivate: [AuthGuard, StudentGuard, EmailVerifiedGuard],
   },
   {
     path: 'admin',

@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Injectable({
   providedIn: 'root',
 })
 export class EmailVerifiedGuard {
-  constructor(private router: Router, private snackBar: MatSnackBar) {}
+  constructor(private router: Router) {}
 
   canActivate(): boolean {
     const currentUser = localStorage.getItem('currentUser');
@@ -22,17 +21,8 @@ export class EmailVerifiedGuard {
       if (user.emailVerified === true) {
         return true;
       } else {
-        this.snackBar.open(
-          'Please verify your email address before accessing this feature. Check your inbox for the verification link.',
-          'Close',
-          {
-            duration: 6000,
-            panelClass: ['warning-snackbar'],
-          }
-        );
-        this.router.navigate(['/dashboard'], {
-          queryParams: { showVerificationBanner: true },
-        });
+        // Redirect to email verification required page
+        this.router.navigate(['/email-verification-required']);
         return false;
       }
     } catch {

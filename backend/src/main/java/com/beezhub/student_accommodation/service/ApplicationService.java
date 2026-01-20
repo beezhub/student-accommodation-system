@@ -3,7 +3,6 @@ package com.beezhub.student_accommodation.service;
 import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DuplicateApplicationException;
-import com.beezhub.student_accommodation.exceptions.EmailNotVerifiedException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.mapper.ApplicationMapper;
@@ -63,12 +62,6 @@ public class ApplicationService {
         if (!student.getAppUser().getId().equals(currentUser.getId()) &&
             !currentUser.getUserRole().equals(UserRole.ADMIN)) {
             throw new UnauthorizedAccessException("You can only submit applications for yourself");
-        }
-
-        // Check email verification (skip for admins submitting on behalf)
-        if (!Boolean.TRUE.equals(currentUser.getEmailVerified()) &&
-            !currentUser.getUserRole().equals(UserRole.ADMIN)) {
-            throw new EmailNotVerifiedException("Please verify your email address before submitting an application. Check your inbox for the verification link.");
         }
 
         // Check for existing pending application
