@@ -6,7 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ApplicationService } from '../../../core/services/application.service';
 import { StudentService } from '../../../core/services/student.service';
 import { InstitutionService } from '../../../core/services/institution.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -18,8 +18,10 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
+
+// Shared components
+import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 
 @Component({
   selector: 'app-application-submission',
@@ -37,8 +39,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatNativeDateModule,
     MatProgressSpinnerModule,
     MatDividerModule,
-    MatSnackBarModule,
     MatIconModule,
+    ErrorDisplayComponent,
   ],
 })
 export class ApplicationSubmissionComponent implements OnInit {
@@ -47,6 +49,11 @@ export class ApplicationSubmissionComponent implements OnInit {
   currentUser: any;
   studentId: number | null = null;
   institutionName: string = '';
+
+  // Error state
+  submitError: ParsedError | null = null;
+  loadError: ParsedError | null = null;
+  isRetrying = false;
 
   // Accommodation types for the dropdown
   accommodationTypes = [
@@ -71,7 +78,7 @@ export class ApplicationSubmissionComponent implements OnInit {
     private applicationService: ApplicationService,
     private studentService: StudentService,
     private institutionService: InstitutionService,
-    private snackBar: MatSnackBar
+    private errorService: ErrorHandlingService
   ) {
     this.applicationForm = this.fb.group({
       preferredAccommodationType: ['', Validators.required],
@@ -90,9 +97,16 @@ export class ApplicationSubmissionComponent implements OnInit {
       return;
     }
 
-    // Get student profile to retrieve student ID and institution
+    this.loadStudentProfile();
+  }
+
+  loadStudentProfile(): void {
+    this.loadError = null;
+    this.isRetrying = true;
+
     this.studentService.getStudentProfile().subscribe({
       next: (profile) => {
+        this.isRetrying = false;
         this.studentId = profile.id;
 
         // Get institution name
@@ -120,32 +134,28 @@ export class ApplicationSubmissionComponent implements OnInit {
         }
       },
       error: (error) => {
+        this.isRetrying = false;
         console.error('Error fetching student profile:', error);
-        this.snackBar.open(
-          'Failed to load student profile. Please complete your profile first.',
-          'Close',
-          {
-            duration: 5000,
-            horizontalPosition: 'end',
-            verticalPosition: 'top',
-          }
-        );
-        this.router.navigate(['/profile-setup']);
+        this.loadError = this.errorService.parseError(error);
+
+        if (this.loadError.statusCode === 404) {
+          this.errorService.showWarning('Please complete your profile first.');
+          this.router.navigate(['/profile-setup']);
+        }
       },
     });
   }
 
+  retryLoadProfile(): void {
+    this.loadStudentProfile();
+  }
+
   onSubmit() {
+    // Clear previous errors
+    this.submitError = null;
+
     if (!this.studentId) {
-      this.snackBar.open(
-        'Student profile not found. Please complete your profile first.',
-        'Close',
-        {
-          duration: 5000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-        }
-      );
+      this.errorService.showWarning('Student profile not found. Please complete your profile first.');
       this.router.navigate(['/profile-setup']);
       return;
     }
@@ -177,38 +187,34 @@ export class ApplicationSubmissionComponent implements OnInit {
       };
 
       this.applicationService.createApplication(applicationData).subscribe({
-        next: (response) => {
+        next: () => {
           this.isSubmitting = false;
-          this.snackBar.open('Application submitted successfully!', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'end',
-            verticalPosition: 'top',
-            panelClass: ['success-snackbar'],
-          });
+          this.errorService.showSuccess('Application submitted successfully!');
           this.router.navigate(['/document-upload']);
         },
         error: (error) => {
           this.isSubmitting = false;
           console.error('Error submitting application:', error);
+          this.submitError = this.errorService.parseError(error);
 
-          const errorMessage =
-            error.error?.message || 'Failed to submit application. Please try again.';
-          this.snackBar.open(errorMessage, 'Close', {
-            duration: 5000,
-            horizontalPosition: 'end',
-            verticalPosition: 'top',
-            panelClass: ['error-snackbar'],
-          });
+          // Don't show snackbar for validation errors - they'll see the inline error
+          if (this.submitError.type !== 'validation') {
+            this.errorService.showErrorSnackbar(this.submitError);
+          }
         },
       });
     } else {
       this.applicationForm.markAllAsTouched();
-      this.snackBar.open('Please fill in all required fields correctly', 'Close', {
-        duration: 3000,
-        horizontalPosition: 'end',
-        verticalPosition: 'top',
-      });
+      this.errorService.showWarning('Please fill in all required fields correctly');
     }
+  }
+
+  dismissError(): void {
+    this.submitError = null;
+  }
+
+  retrySubmit(): void {
+    this.onSubmit();
   }
 
   skipApplication() {

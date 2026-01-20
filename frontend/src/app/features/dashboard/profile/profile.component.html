@@ -23,6 +23,33 @@
 
     <mat-card class="profile-card">
       <mat-card-content>
+        <!-- Load Error Display -->
+        @if (loadError) {
+          <app-error-display
+            mode="inline"
+            [type]="loadError.type"
+            [message]="loadError.message"
+            [showRetry]="loadError.canRetry"
+            [isRetrying]="isRetrying"
+            (retry)="retryLoadProfile()">
+          </app-error-display>
+        }
+
+        <!-- Save Error Display -->
+        @if (saveError) {
+          <app-error-display
+            mode="inline"
+            [type]="saveError.type"
+            [message]="saveError.message"
+            [details]="saveError.details"
+            [showRetry]="saveError.canRetry"
+            [showDismiss]="true"
+            [isRetrying]="isSaving"
+            (retry)="retrySave()"
+            (dismiss)="dismissSaveError()">
+          </app-error-display>
+        }
+
         <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
           <div class="grid">
             <mat-form-field appearance="fill">

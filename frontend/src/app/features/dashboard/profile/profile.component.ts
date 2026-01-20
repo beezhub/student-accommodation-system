@@ -15,13 +15,15 @@ import { MatDialog } from '@angular/material/dialog';
 import { StudentRequest } from '../../../core/models/student.model';
 import { ChangePasswordDialogComponent } from './change-password-dialog/change-password-dialog.component';
 import { DeleteAccountDialogComponent } from './delete-account-dialog/delete-account-dialog.component';
+import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
+import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 
 @Component({
   selector: 'app-profile',
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.css'],
   standalone: true,
-  imports: [RouterModule, ReactiveFormsModule, MaterialModule],
+  imports: [RouterModule, ReactiveFormsModule, MaterialModule, ErrorDisplayComponent],
 })
 export class ProfileComponent implements OnInit {
   currentUser: any;
@@ -32,6 +34,11 @@ export class ProfileComponent implements OnInit {
   yearsOfStudy: YearOfStudy[] = [];
   studentProfile: StudentProfile | null = null;
 
+  // Error state
+  loadError: ParsedError | null = null;
+  saveError: ParsedError | null = null;
+  isRetrying = false;
+
   constructor(
     private authService: AuthService,
     private studentService: StudentService,
@@ -40,7 +47,8 @@ export class ProfileComponent implements OnInit {
     private fb: FormBuilder,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
-    private router: Router
+    private router: Router,
+    private errorService: ErrorHandlingService
   ) {
     this.profileForm = this.fb.group({
       firstName: ['', Validators.required],
@@ -65,8 +73,12 @@ export class ProfileComponent implements OnInit {
 
   loadStudentProfile() {
     if (this.currentUser) {
+      this.loadError = null;
+      this.isRetrying = true;
+
       this.studentService.getStudentProfile().subscribe({
         next: (profile) => {
+          this.isRetrying = false;
           this.studentProfile = {
             ...profile,
             institutionId: String(profile.institutionId),
@@ -86,15 +98,18 @@ export class ProfileComponent implements OnInit {
           });
         },
         error: (error) => {
+          this.isRetrying = false;
           console.error('Error fetching student profile:', error);
-          this.snackBar.open('Failed to load profile', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'end',
-            verticalPosition: 'top',
-          });
+          this.loadError = this.errorService.parseError(error);
         },
       });
     }
+  }
+
+  retryLoadProfile(): void {
+    this.loadStudentProfile();
+    this.loadInstitutions();
+    this.loadYearsOfStudy();
   }
 
   loadInstitutions() {
@@ -175,6 +190,9 @@ export class ProfileComponent implements OnInit {
   }
 
   onSubmit() {
+    // Clear previous errors
+    this.saveError = null;
+
     if (this.profileForm.valid && !this.isSaving) {
       this.isSaving = true;
 
@@ -212,25 +230,17 @@ export class ProfileComponent implements OnInit {
             email: response.email,
           };
 
-          this.snackBar.open('Profile updated successfully!', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'end',
-            verticalPosition: 'top',
-            panelClass: ['success-snackbar'],
-          });
+          this.errorService.showSuccess('Profile updated successfully!');
         },
         error: (error) => {
           this.isSaving = false;
           console.error('Error updating profile:', error);
+          this.saveError = this.errorService.parseError(error);
 
-          const errorMessage =
-            error.error?.message || 'Failed to update profile. Please try again.';
-          this.snackBar.open(errorMessage, 'Close', {
-            duration: 5000,
-            horizontalPosition: 'end',
-            verticalPosition: 'top',
-            panelClass: ['error-snackbar'],
-          });
+          // Don't show snackbar for validation errors - they'll see the inline error
+          if (this.saveError.type !== 'validation') {
+            this.errorService.showErrorSnackbar(this.saveError);
+          }
         },
       });
     } else {
@@ -239,12 +249,16 @@ export class ProfileComponent implements OnInit {
         this.profileForm.get(key)?.markAsTouched();
       });
 
-      this.snackBar.open('Please fill in all required fields correctly', 'Close', {
-        duration: 3000,
-        horizontalPosition: 'end',
-        verticalPosition: 'top',
-      });
+      this.errorService.showWarning('Please fill in all required fields correctly');
     }
+  }
+
+  dismissSaveError(): void {
+    this.saveError = null;
+  }
+
+  retrySave(): void {
+    this.onSubmit();
   }
 
   openChangePasswordDialog() {
@@ -255,12 +269,7 @@ export class ProfileComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result === 'success') {
-        this.snackBar.open('Password changed successfully!', 'Close', {
-          duration: 3000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-          panelClass: ['success-snackbar'],
-        });
+        this.errorService.showSuccess('Password changed successfully!');
       }
     });
   }
@@ -273,11 +282,7 @@ export class ProfileComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result === 'deleted') {
-        this.snackBar.open('Account deleted successfully', 'Close', {
-          duration: 3000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-        });
+        this.errorService.showInfo('Account deleted successfully');
         // Logout and redirect to login
         this.authService.logout();
         this.router.navigate(['/login']);

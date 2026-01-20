@@ -35,6 +35,32 @@
     <mat-divider></mat-divider>
 
     <mat-card-content>
+      <!-- Load Error Display -->
+      @if (loadError) {
+        <app-error-display
+          mode="inline"
+          [type]="loadError.type"
+          [message]="loadError.message"
+          [showRetry]="loadError.canRetry"
+          [isRetrying]="isRetrying"
+          (retry)="retryLoadProfile()">
+        </app-error-display>
+      }
+
+      <!-- Submit Error Display -->
+      @if (submitError) {
+        <app-error-display
+          mode="inline"
+          [type]="submitError.type"
+          [message]="submitError.message"
+          [details]="submitError.details"
+          [showRetry]="submitError.canRetry"
+          [showDismiss]="true"
+          (retry)="retrySubmit()"
+          (dismiss)="dismissError()">
+        </app-error-display>
+      }
+
       <form [formGroup]="applicationForm" (ngSubmit)="onSubmit()">
 
         <!-- Course Information -->

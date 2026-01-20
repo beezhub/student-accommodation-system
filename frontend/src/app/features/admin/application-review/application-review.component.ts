@@ -26,6 +26,8 @@ import { SelectionModel } from '@angular/cdk/collections';
 
 // Modern UI Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
+import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 
 @Component({
   selector: 'app-application-review',
@@ -50,6 +52,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatSnackBarModule,
     MatTooltipModule,
     ModernStatusBadgeComponent,
+    ErrorDisplayComponent,
   ],
 })
 export class ApplicationReviewComponent implements OnInit {
@@ -74,10 +77,15 @@ export class ApplicationReviewComponent implements OnInit {
 
   statuses = ['PENDING', 'APPROVED', 'REJECTED'];
 
+  // Error state
+  loadError: ParsedError | null = null;
+  isRetrying = false;
+
   constructor(
     private adminService: AdminService,
     private fb: FormBuilder,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private errorService: ErrorHandlingService
   ) {
     this.filterForm = this.fb.group({
       applicationCode: [''],
@@ -94,6 +102,9 @@ export class ApplicationReviewComponent implements OnInit {
 
   loadApplications(): void {
     this.isLoading = true;
+    this.loadError = null;
+    this.isRetrying = true;
+
     const filters = {
       ...this.filterForm.value,
       page: this.currentPage,
@@ -105,14 +116,24 @@ export class ApplicationReviewComponent implements OnInit {
         this.applications = response.content;
         this.totalElements = response.totalElements;
         this.isLoading = false;
+        this.isRetrying = false;
         this.selection.clear();
       },
       error: (error) => {
         console.error('Failed to load applications:', error);
-        this.snackBar.open('Failed to load applications', 'Close', { duration: 3000 });
         this.isLoading = false;
+        this.isRetrying = false;
+        this.loadError = this.errorService.parseError(error);
       },
     });
+  }
+
+  retryLoadApplications(): void {
+    this.loadApplications();
+  }
+
+  dismissLoadError(): void {
+    this.loadError = null;
   }
 
   onFilter(): void {
@@ -135,23 +156,20 @@ export class ApplicationReviewComponent implements OnInit {
   updateStatus(application: ApplicationResponse, status: string): void {
     this.adminService.updateApplicationStatus(application.id, status).subscribe({
       next: () => {
-        this.snackBar.open(`Application ${status.toLowerCase()} successfully`, 'Close', {
-          duration: 3000,
-        });
+        this.errorService.showSuccess(`Application ${status.toLowerCase()} successfully`);
         this.loadApplications();
       },
       error: (error) => {
         console.error('Failed to update status:', error);
-        this.snackBar.open('Failed to update application status', 'Close', {
-          duration: 3000,
-        });
+        const parsedError = this.errorService.parseError(error);
+        this.errorService.showErrorSnackbar(parsedError);
       },
     });
   }
 
   bulkApprove(): void {
     if (this.selection.isEmpty()) {
-      this.snackBar.open('Please select applications to approve', 'Close', { duration: 3000 });
+      this.errorService.showWarning('Please select applications to approve');
       return;
     }
 
@@ -179,7 +197,7 @@ export class ApplicationReviewComponent implements OnInit {
 
   bulkReject(): void {
     if (this.selection.isEmpty()) {
-      this.snackBar.open('Please select applications to reject', 'Close', { duration: 3000 });
+      this.errorService.showWarning('Please select applications to reject');
       return;
     }
 
@@ -207,13 +225,9 @@ export class ApplicationReviewComponent implements OnInit {
 
   private finalizeBulkOperation(completed: number, failed: number, action: string): void {
     if (failed === 0) {
-      this.snackBar.open(`Successfully ${action} ${completed} application(s)`, 'Close', {
-        duration: 3000,
-      });
+      this.errorService.showSuccess(`Successfully ${action} ${completed} application(s)`);
     } else {
-      this.snackBar.open(`${completed} application(s) ${action}, ${failed} failed`, 'Close', {
-        duration: 5000,
-      });
+      this.errorService.showWarning(`${completed} application(s) ${action}, ${failed} failed`);
     }
     this.loadApplications();
   }

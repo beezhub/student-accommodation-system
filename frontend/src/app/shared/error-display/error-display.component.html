@@ -1,41 +1,131 @@
-<div class="error-container">
-  <mat-card class="error-card">
-    <mat-card-content>
-      <div class="error-content">
-        <div class="error-icon" [ngClass]="'icon-' + errorConfig.color">
-          <mat-icon>{{ errorConfig.icon }}</mat-icon>
+<!-- Card Mode (Full page error) -->
+@if (mode === 'card') {
+  <div class="error-container">
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <div class="error-icon" [ngClass]="'icon-' + errorConfig.color">
+            <mat-icon>{{ errorConfig.icon }}</mat-icon>
+          </div>
+
+          <h2 class="error-title">{{ displayTitle }}</h2>
+          <p class="error-message">{{ displayMessage }}</p>
+
+          @if (details && details.length > 0) {
+            <ul class="error-details">
+              @for (detail of details; track detail) {
+                <li>{{ detail }}</li>
+              }
+            </ul>
+          }
+
+          <div class="error-actions">
+            @if (showRetryButton) {
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="onRetry()"
+                [disabled]="isRetrying">
+                @if (isRetrying) {
+                  <mat-icon class="spinning">sync</mat-icon>
+                  Retrying...
+                } @else {
+                  <mat-icon>refresh</mat-icon>
+                  {{ retryLabel }}
+                }
+              </button>
+            }
+
+            @if (showGoBack) {
+              <button mat-stroked-button (click)="onGoBack()">
+                <mat-icon>arrow_back</mat-icon>
+                Go Back
+              </button>
+            }
+
+            @if (customAction) {
+              <button mat-raised-button color="accent" (click)="onCustomAction()">
+                {{ customAction }}
+              </button>
+            }
+          </div>
         </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}
 
-        <h2 class="error-title">{{ displayTitle }}</h2>
-        <p class="error-message">{{ displayMessage }}</p>
-
-        <div class="error-actions">
-          <button
-            *ngIf="showRetry"
-            mat-raised-button
-            color="primary"
-            (click)="onRetry()">
-            <mat-icon>refresh</mat-icon>
-            Try Again
-          </button>
-
-          <button
-            *ngIf="showGoBack"
-            mat-stroked-button
-            (click)="onGoBack()">
-            <mat-icon>arrow_back</mat-icon>
-            Go Back
-          </button>
-
-          <button
-            *ngIf="customAction"
-            mat-raised-button
-            color="accent"
-            (click)="onCustomAction()">
-            {{ customAction }}
-          </button>
-        </div>
+<!-- Inline Mode (Form errors) -->
+@if (mode === 'inline') {
+  <div class="error-inline" [ngClass]="'inline-' + errorConfig.color">
+    <div class="inline-content">
+      <mat-icon class="inline-icon">{{ errorConfig.icon }}</mat-icon>
+      <div class="inline-text">
+        <span class="inline-title">{{ displayTitle }}</span>
+        <span class="inline-message">{{ displayMessage }}</span>
+        @if (details && details.length > 0) {
+          <ul class="inline-details">
+            @for (detail of details; track detail) {
+              <li>{{ detail }}</li>
+            }
+          </ul>
+        }
       </div>
-    </mat-card-content>
-  </mat-card>
-</div>
+    </div>
+    <div class="inline-actions">
+      @if (showRetryButton) {
+        <button
+          mat-button
+          color="primary"
+          (click)="onRetry()"
+          [disabled]="isRetrying">
+          @if (isRetrying) {
+            <mat-icon class="spinning">sync</mat-icon>
+          } @else {
+            <mat-icon>refresh</mat-icon>
+          }
+          {{ isRetrying ? 'Retrying...' : retryLabel }}
+        </button>
+      }
+      @if (showDismiss) {
+        <button mat-icon-button (click)="onDismiss()" aria-label="Dismiss">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+  </div>
+}
+
+<!-- Banner Mode (Top of page alerts) -->
+@if (mode === 'banner') {
+  <div class="error-banner" [ngClass]="'banner-' + errorConfig.color">
+    <div class="banner-content">
+      <mat-icon class="banner-icon">{{ errorConfig.icon }}</mat-icon>
+      <div class="banner-text">
+        <strong>{{ displayTitle }}</strong>
+        <span>{{ displayMessage }}</span>
+      </div>
+    </div>
+    <div class="banner-actions">
+      @if (showRetryButton) {
+        <button
+          mat-stroked-button
+          (click)="onRetry()"
+          [disabled]="isRetrying"
+          class="banner-retry-btn">
+          @if (isRetrying) {
+            <mat-icon class="spinning">sync</mat-icon>
+          } @else {
+            <mat-icon>refresh</mat-icon>
+          }
+          {{ isRetrying ? 'Retrying...' : retryLabel }}
+        </button>
+      }
+      @if (showDismiss) {
+        <button mat-icon-button (click)="onDismiss()" class="banner-dismiss-btn" aria-label="Dismiss">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+  </div>
+}

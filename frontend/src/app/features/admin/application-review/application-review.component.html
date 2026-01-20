@@ -7,6 +7,20 @@
     <p class="subtitle">Review and manage student accommodation applications</p>
   </div>
 
+  <!-- Load Error Display -->
+  @if (loadError) {
+    <app-error-display
+      mode="banner"
+      [type]="loadError.type"
+      [message]="loadError.message"
+      [showRetry]="loadError.canRetry"
+      [showDismiss]="true"
+      [isRetrying]="isRetrying"
+      (retry)="retryLoadApplications()"
+      (dismiss)="dismissLoadError()">
+    </app-error-display>
+  }
+
   <!-- Filters -->
   <mat-card class="filter-card">
     <mat-card-content>

@@ -9,6 +9,8 @@ import { DocumentService } from '../../../core/services/document.service';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { DocumentType } from '../../../core/models/document-type.model';
+import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
+import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -51,16 +53,22 @@ import { MatDividerModule } from '@angular/material/divider';
     MatNativeDateModule,
     MatDividerModule,
     ModernStatusBadgeComponent,
+    ErrorDisplayComponent,
   ],
 })
 export class DocumentsComponent implements OnInit {
   currentUser: any;
   selectedDocument: any = null;
   isUploading = false;
-  uploadError: string | null = null;
   showUploadModal = false;
   selectedFile: File | null = null;
   uploadForm: FormGroup;
+
+  // Error state
+  loadError: ParsedError | null = null;
+  uploadError: ParsedError | null = null;
+  fileError: string | null = null; // Simple string for file validation errors
+  isRetrying = false;
 
   documents = [
     {
@@ -97,7 +105,8 @@ export class DocumentsComponent implements OnInit {
     private authService: AuthService,
     private fb: FormBuilder,
     private documentService: DocumentService,
-    private documentTypeService: DocumentTypeService
+    private documentTypeService: DocumentTypeService,
+    private errorService: ErrorHandlingService
   ) {
     this.uploadForm = this.fb.group({
       documentType: ['', Validators.required],
@@ -106,8 +115,17 @@ export class DocumentsComponent implements OnInit {
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
+    this.loadDocuments();
+    this.loadDocumentTypes();
+  }
+
+  loadDocuments(): void {
+    this.loadError = null;
+    this.isRetrying = true;
+
     this.documentService.getUploadedDocuments().subscribe({
       next: (docs) => {
+        this.isRetrying = false;
         this.documents = docs.map((doc) => ({
           id: String(doc.id),
           name: doc.documentName,
@@ -119,19 +137,29 @@ export class DocumentsComponent implements OnInit {
         this.dataSource.data = this.documents;
       },
       error: (err) => {
+        this.isRetrying = false;
         console.error('Failed to fetch documents:', err);
+        this.loadError = this.errorService.parseError(err);
       },
     });
+  }
 
-    // Load required document types to populate the upload modal
+  loadDocumentTypes(): void {
     this.documentTypeService.getRequiredDocumentTypes().subscribe({
       next: (types: DocumentType[]) => {
         this.requiredDocumentTypes = types;
       },
       error: (err) => {
         console.error('Failed to load document types', err);
+        // Show a warning but don't block the page
+        this.errorService.showWarning('Failed to load document types. Please try refreshing.');
       },
     });
+  }
+
+  retryLoadDocuments(): void {
+    this.loadDocuments();
+    this.loadDocumentTypes();
   }
 
   getStatusClass(status: string): string {
@@ -152,12 +180,18 @@ export class DocumentsComponent implements OnInit {
     this.uploadForm.reset();
     this.selectedFile = null;
     this.uploadError = null;
+    this.fileError = null;
   }
 
   closeUploadModal() {
     this.showUploadModal = false;
     this.uploadForm.reset();
     this.selectedFile = null;
+    this.uploadError = null;
+    this.fileError = null;
+  }
+
+  dismissUploadError(): void {
     this.uploadError = null;
   }
 
@@ -166,18 +200,19 @@ export class DocumentsComponent implements OnInit {
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         // 5MB limit
-        this.uploadError = 'File size must be less than 5MB';
+        this.fileError = 'File size must be less than 5MB';
         this.selectedFile = null;
         return;
       }
 
       const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
       if (!allowedTypes.includes(file.type)) {
-        this.uploadError = 'Only PDF, JPG, and PNG files are allowed';
+        this.fileError = 'Only PDF, JPG, and PNG files are allowed';
         this.selectedFile = null;
         return;
       }
 
+      this.fileError = null;
       this.uploadError = null;
       this.selectedFile = file;
     }
@@ -187,12 +222,14 @@ export class DocumentsComponent implements OnInit {
     if (this.uploadForm.valid && this.selectedFile) {
       this.isUploading = true;
       this.uploadError = null;
+      this.fileError = null;
 
       const selectedTypeId: number = this.uploadForm.get('documentType')?.value;
 
       this.documentService.uploadSingleDocument(this.selectedFile, selectedTypeId).subscribe({
         next: () => {
           this.isUploading = false;
+          this.errorService.showSuccess('Document uploaded successfully!');
           // Optimistically add new doc to the list with basic info
           const typeName =
             this.requiredDocumentTypes.find((t) => t.id === selectedTypeId)?.name ||
@@ -226,11 +263,15 @@ export class DocumentsComponent implements OnInit {
         },
         error: (error) => {
           this.isUploading = false;
-          this.uploadError = 'Failed to upload document. Please try again.';
           console.error('Upload error:', error);
+          this.uploadError = this.errorService.parseError(error);
         },
       });
     }
+  }
+
+  retryUpload(): void {
+    this.uploadDocument();
   }
 
   formatFileSize(bytes: number): string {

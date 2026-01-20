@@ -12,8 +12,20 @@
     <mat-divider></mat-divider>
 
     <mat-card-content>
+      <!-- Load Error Display -->
+      @if (loadError) {
+        <app-error-display
+          mode="inline"
+          [type]="loadError.type"
+          [message]="loadError.message"
+          [showRetry]="loadError.canRetry"
+          [isRetrying]="isRetrying"
+          (retry)="retryLoadDocuments()">
+        </app-error-display>
+      }
+
       <!-- Empty State -->
-      @if (!documents || documents.length === 0) {
+      @if (!loadError && (!documents || documents.length === 0)) {
         <div class="empty-state">
           <mat-icon class="empty-icon">inbox</mat-icon>
           <p class="empty-title">No documents uploaded yet</p>
@@ -26,7 +38,7 @@
       }
 
       <!-- Documents List -->
-      @if (documents && documents.length > 0) {
+      @if (!loadError && documents && documents.length > 0) {
         <div class="documents-list">
           @for (doc of documents; track doc; let last = $last) {
             <div class="document-item">
@@ -73,7 +85,7 @@
       }
 
       <!-- Guidelines Section -->
-      @if (documents && documents.length > 0) {
+      @if (!loadError && documents && documents.length > 0) {
         <div class="guidelines-section">
           <mat-divider class="section-divider"></mat-divider>
           <h3 class="section-title">
@@ -163,12 +175,27 @@
               </mat-error>
             }
           </mat-form-field>
-          <!-- Error Message -->
-          @if (uploadError) {
+          <!-- File Validation Error -->
+          @if (fileError) {
             <div class="error-message">
               <mat-icon>error</mat-icon>
-              <span>{{uploadError}}</span>
+              <span>{{fileError}}</span>
             </div>
+          }
+
+          <!-- Upload Error -->
+          @if (uploadError) {
+            <app-error-display
+              mode="inline"
+              [type]="uploadError.type"
+              [message]="uploadError.message"
+              [details]="uploadError.details"
+              [showRetry]="uploadError.canRetry"
+              [showDismiss]="true"
+              [isRetrying]="isUploading"
+              (retry)="retryUpload()"
+              (dismiss)="dismissUploadError()">
+            </app-error-display>
           }
           <!-- File Upload Area -->
           <div class="file-upload-area">
