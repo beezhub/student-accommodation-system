@@ -2,7 +2,11 @@ import { Component, Inject, OnInit } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
-import { InstitutionService, InstitutionResponse, InstitutionRequest } from '../../../../core/services/institution.service';
+import {
+  InstitutionService,
+  InstitutionResponse,
+  InstitutionRequest,
+} from '../../../../core/services/institution.service';
 
 // Material imports
 import { MatButtonModule } from '@angular/material/button';
@@ -25,8 +29,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatIconModule
-],
+    MatIconModule,
+  ],
 })
 export class InstitutionFormDialogComponent implements OnInit {
   institutionForm: FormGroup;
@@ -72,9 +76,10 @@ export class InstitutionFormDialogComponent implements OnInit {
     this.isLoading = true;
     const request: InstitutionRequest = this.institutionForm.value;
 
-    const operation = this.mode === 'create'
-      ? this.institutionService.createInstitution(request)
-      : this.institutionService.updateInstitution(this.institution!.id, request);
+    const operation =
+      this.mode === 'create'
+        ? this.institutionService.createInstitution(request)
+        : this.institutionService.updateInstitution(this.institution!.id, request);
 
     operation.subscribe({
       next: () => {

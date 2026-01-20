@@ -5,7 +5,7 @@ import { environment } from '../../../environments/environment';
 import { ActivityLog, ActivityLogFilters, ActivityLogResponse } from '../models/activity-log.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ActivityLogService {
   private apiUrl = `${environment.apiUrl}/admin/activity-logs`;
@@ -52,7 +52,7 @@ export class ActivityLogService {
 
     return this.http.get(`${this.apiUrl}/export`, {
       params,
-      responseType: 'blob'
+      responseType: 'blob',
     });
   }
 
@@ -61,17 +61,17 @@ export class ActivityLogService {
    */
   getActionIcon(action: string): string {
     const iconMap: { [key: string]: string } = {
-      'CREATE': 'add_circle',
-      'UPDATE': 'edit',
-      'DELETE': 'delete',
-      'LOGIN': 'login',
-      'LOGOUT': 'logout',
-      'APPROVE': 'verified',
-      'REJECT': 'cancel',
-      'UPLOAD': 'upload',
-      'DOWNLOAD': 'download',
-      'VIEW': 'visibility',
-      'EXPORT': 'file_download'
+      CREATE: 'add_circle',
+      UPDATE: 'edit',
+      DELETE: 'delete',
+      LOGIN: 'login',
+      LOGOUT: 'logout',
+      APPROVE: 'verified',
+      REJECT: 'cancel',
+      UPLOAD: 'upload',
+      DOWNLOAD: 'download',
+      VIEW: 'visibility',
+      EXPORT: 'file_download',
     };
     return iconMap[action] || 'info';
   }
@@ -81,17 +81,17 @@ export class ActivityLogService {
    */
   getActionColor(action: string): string {
     const colorMap: { [key: string]: string } = {
-      'CREATE': 'success',
-      'UPDATE': 'primary',
-      'DELETE': 'warn',
-      'LOGIN': 'success',
-      'LOGOUT': 'neutral',
-      'APPROVE': 'success',
-      'REJECT': 'warn',
-      'UPLOAD': 'primary',
-      'DOWNLOAD': 'primary',
-      'VIEW': 'neutral',
-      'EXPORT': 'primary'
+      CREATE: 'success',
+      UPDATE: 'primary',
+      DELETE: 'warn',
+      LOGIN: 'success',
+      LOGOUT: 'neutral',
+      APPROVE: 'success',
+      REJECT: 'warn',
+      UPLOAD: 'primary',
+      DOWNLOAD: 'primary',
+      VIEW: 'neutral',
+      EXPORT: 'primary',
     };
     return colorMap[action] || 'neutral';
   }

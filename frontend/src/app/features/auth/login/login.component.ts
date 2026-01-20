@@ -27,8 +27,8 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
-],
+    MatSnackBarModule,
+  ],
 })
 export class LoginComponent {
   loginForm: FormGroup;
@@ -94,7 +94,8 @@ export class LoginComponent {
         },
         error: (error: any) => {
           this.isSubmitting = false;
-          this.errorMessage = error?.error?.message || error?.message || 'Login failed. Please try again.';
+          this.errorMessage =
+            error?.error?.message || error?.message || 'Login failed. Please try again.';
           this.snackBar.open(this.errorMessage, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar'],

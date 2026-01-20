@@ -12,7 +12,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { RoomAllocationService, RoomAllocationRequest, AllocationEligibilityResponse, RoomAvailabilityResponse } from '../../../../core/services/room-allocation.service';
+import {
+  RoomAllocationService,
+  RoomAllocationRequest,
+  AllocationEligibilityResponse,
+  RoomAvailabilityResponse,
+} from '../../../../core/services/room-allocation.service';
 import { RoomService, RoomResponse } from '../../../../core/services/room.service';
 import { AdminService, ApplicationResponse } from '../../../../core/services/admin.service';
 import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
@@ -26,213 +31,210 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
         <!-- Student ID -->
         <mat-form-field appearance="outline">
           <mat-label>Student ID *</mat-label>
-          <input matInput type="number" formControlName="studentId"
-            placeholder="Enter student ID" required
-            (blur)="checkEligibility()">
+          <input
+            matInput
+            type="number"
+            formControlName="studentId"
+            placeholder="Enter student ID"
+            required
+            (blur)="checkEligibility()"
+          />
           @if (allocateForm.get('studentId')?.hasError('required')) {
-            <mat-error>
-              Student ID is required
-            </mat-error>
-          }
-          @if (allocateForm.get('studentId')?.hasError('min')) {
-            <mat-error>
-              Invalid student ID
-            </mat-error>
+          <mat-error> Student ID is required </mat-error>
+          } @if (allocateForm.get('studentId')?.hasError('min')) {
+          <mat-error> Invalid student ID </mat-error>
           }
         </mat-form-field>
-    
+
         <!-- Eligibility Status -->
         @if (eligibilityChecked) {
-          <div class="status-message">
-            @if (eligibility?.isEligible) {
-              <div class="success-message">
-                <mat-icon>check_circle</mat-icon>
-                <span>Student is eligible for room allocation</span>
-              </div>
-            }
-            @if (!eligibility?.isEligible) {
-              <div class="error-message">
-                <mat-icon>error</mat-icon>
-                <span>{{ eligibility?.reason || 'Student is not eligible' }}</span>
-              </div>
-            }
+        <div class="status-message">
+          @if (eligibility?.isEligible) {
+          <div class="success-message">
+            <mat-icon>check_circle</mat-icon>
+            <span>Student is eligible for room allocation</span>
           </div>
+          } @if (!eligibility?.isEligible) {
+          <div class="error-message">
+            <mat-icon>error</mat-icon>
+            <span>{{ eligibility?.reason || 'Student is not eligible' }}</span>
+          </div>
+          }
+        </div>
         }
-    
+
         <!-- Room Selection -->
         <mat-form-field appearance="outline">
           <mat-label>Room *</mat-label>
           <mat-select formControlName="roomId" required (selectionChange)="checkAvailability()">
             @for (room of availableRooms; track room) {
-              <mat-option [value]="room.id">
-                {{ room.roomNumber }} - {{ room.buildingName }}
-                ({{ room.currentOccupancy }}/{{ room.capacity }} occupied)
-              </mat-option>
+            <mat-option [value]="room.id">
+              {{ room.roomNumber }} - {{ room.buildingName }} ({{ room.currentOccupancy }}/{{
+                room.capacity
+              }}
+              occupied)
+            </mat-option>
             }
           </mat-select>
           @if (allocateForm.get('roomId')?.hasError('required')) {
-            <mat-error>
-              Room is required
-            </mat-error>
+          <mat-error> Room is required </mat-error>
           }
         </mat-form-field>
-    
+
         <!-- Room Availability Status -->
         @if (availabilityChecked) {
-          <div class="status-message">
-            @if (availability?.isAvailable) {
-              <div class="success-message">
-                <mat-icon>check_circle</mat-icon>
-                <span>Room is available ({{ availability?.availableSpots }} spots remaining)</span>
-              </div>
-            }
-            @if (!availability?.isAvailable) {
-              <div class="error-message">
-                <mat-icon>error</mat-icon>
-                <span>Room is not available ({{ availability?.status }})</span>
-              </div>
-            }
+        <div class="status-message">
+          @if (availability?.isAvailable) {
+          <div class="success-message">
+            <mat-icon>check_circle</mat-icon>
+            <span>Room is available ({{ availability?.availableSpots }} spots remaining)</span>
           </div>
+          } @if (!availability?.isAvailable) {
+          <div class="error-message">
+            <mat-icon>error</mat-icon>
+            <span>Room is not available ({{ availability?.status }})</span>
+          </div>
+          }
+        </div>
         }
-    
+
         <!-- Application Selection (Optional) -->
         <mat-form-field appearance="outline">
           <mat-label>Application (Optional)</mat-label>
           <mat-select formControlName="applicationId" (selectionChange)="onApplicationSelected()">
             <mat-option value="">No Application</mat-option>
             @for (app of studentApplications; track app) {
-              <mat-option [value]="app.id">
-                {{ app.applicationCode }} - {{ app.status }}
-              </mat-option>
+            <mat-option [value]="app.id"> {{ app.applicationCode }} - {{ app.status }} </mat-option>
             }
           </mat-select>
           <mat-hint>Link this allocation to an existing application</mat-hint>
         </mat-form-field>
-    
+
         <!-- Allocation Date -->
         <mat-form-field appearance="outline">
           <mat-label>Allocation Date *</mat-label>
-          <input matInput [matDatepicker]="picker" formControlName="allocationDate" required>
+          <input matInput [matDatepicker]="picker" formControlName="allocationDate" required />
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
           @if (allocateForm.get('allocationDate')?.hasError('required')) {
-            <mat-error>
-              Allocation date is required
-            </mat-error>
+          <mat-error> Allocation date is required </mat-error>
           }
         </mat-form-field>
-    
+
         <!-- Information Panel -->
         @if (allocateForm.get('studentId')?.value) {
-          <div class="info-panel">
-            <mat-icon>info</mat-icon>
-            <div>
-              <strong>Allocation Process:</strong>
-              <ul>
-                <li>Student eligibility will be verified</li>
-                <li>Room availability will be checked</li>
-                <li>Allocation will be created with ACTIVE status</li>
-                @if (allocateForm.get('applicationId')?.value) {
-                  <li>
-                    Application status will be updated
-                  </li>
-                }
-              </ul>
-            </div>
+        <div class="info-panel">
+          <mat-icon>info</mat-icon>
+          <div>
+            <strong>Allocation Process:</strong>
+            <ul>
+              <li>Student eligibility will be verified</li>
+              <li>Room availability will be checked</li>
+              <li>Allocation will be created with ACTIVE status</li>
+              @if (allocateForm.get('applicationId')?.value) {
+              <li>Application status will be updated</li>
+              }
+            </ul>
           </div>
+        </div>
         }
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
-      <button mat-raised-button color="primary" (click)="onSubmit()"
-        [disabled]="!canSubmit() || isSubmitting">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="onSubmit()"
+        [disabled]="!canSubmit() || isSubmitting"
+      >
         @if (isSubmitting) {
-          <mat-spinner diameter="20"></mat-spinner>
-        }
-        @if (!isSubmitting) {
-          <span>Allocate Room</span>
+        <mat-spinner diameter="20"></mat-spinner>
+        } @if (!isSubmitting) {
+        <span>Allocate Room</span>
         }
       </button>
     </mat-dialog-actions>
+  `,
+  styles: [
+    `
+      .allocate-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 500px;
+        padding: 16px 0;
+      }
+
+      mat-dialog-content {
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+
+      mat-dialog-actions button {
+        margin-left: 8px;
+      }
+
+      mat-spinner {
+        display: inline-block;
+        margin-right: 8px;
+      }
+
+      .status-message {
+        padding: 12px;
+        border-radius: 4px;
+        margin: -8px 0;
+      }
+
+      .success-message {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .success-message mat-icon {
+        color: #2e7d32;
+      }
+
+      .error-message {
+        background-color: #ffebee;
+        color: #c62828;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .error-message mat-icon {
+        color: #c62828;
+      }
+
+      .info-panel {
+        background-color: #e3f2fd;
+        padding: 12px;
+        border-radius: 4px;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .info-panel mat-icon {
+        color: #1976d2;
+        margin-top: 2px;
+      }
+
+      .info-panel ul {
+        margin: 8px 0 0 0;
+        padding-left: 20px;
+      }
+
+      .info-panel li {
+        margin: 4px 0;
+        font-size: 14px;
+      }
     `,
-  styles: [`
-    .allocate-form {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      min-width: 500px;
-      padding: 16px 0;
-    }
-
-    mat-dialog-content {
-      max-height: 70vh;
-      overflow-y: auto;
-    }
-
-    mat-dialog-actions button {
-      margin-left: 8px;
-    }
-
-    mat-spinner {
-      display: inline-block;
-      margin-right: 8px;
-    }
-
-    .status-message {
-      padding: 12px;
-      border-radius: 4px;
-      margin: -8px 0;
-    }
-
-    .success-message {
-      background-color: #e8f5e9;
-      color: #2e7d32;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .success-message mat-icon {
-      color: #2e7d32;
-    }
-
-    .error-message {
-      background-color: #ffebee;
-      color: #c62828;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .error-message mat-icon {
-      color: #c62828;
-    }
-
-    .info-panel {
-      background-color: #e3f2fd;
-      padding: 12px;
-      border-radius: 4px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    .info-panel mat-icon {
-      color: #1976d2;
-      margin-top: 2px;
-    }
-
-    .info-panel ul {
-      margin: 8px 0 0 0;
-      padding-left: 20px;
-    }
-
-    .info-panel li {
-      margin: 4px 0;
-      font-size: 14px;
-    }
-  `],
+  ],
   standalone: true,
   imports: [
     ReactiveFormsModule,
@@ -246,8 +248,8 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
     MatIconModule,
     MatAutocompleteModule,
     MatDatepickerModule,
-    MatNativeDateModule
-],
+    MatNativeDateModule,
+  ],
 })
 export class AllocateDialogComponent implements OnInit {
   allocateForm: FormGroup;
@@ -287,13 +289,13 @@ export class AllocateDialogComponent implements OnInit {
     this.roomService.searchRooms({ page: 0, size: 1000 }).subscribe({
       next: (response) => {
         this.availableRooms = response.content.filter(
-          room => room.status === 'AVAILABLE' || room.status === 'OCCUPIED'
+          (room) => room.status === 'AVAILABLE' || room.status === 'OCCUPIED'
         );
       },
       error: (error) => {
         console.error('Failed to load rooms:', error);
         this.snackBar.open('Failed to load available rooms', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
@@ -305,7 +307,7 @@ export class AllocateDialogComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load applications:', error);
-      }
+      },
     });
   }
 
@@ -324,10 +326,10 @@ export class AllocateDialogComponent implements OnInit {
             isEligible: false,
             reason: 'Failed to check eligibility',
             hasApprovedApplication: false,
-            hasActiveAllocation: false
+            hasActiveAllocation: false,
           };
           this.eligibilityChecked = true;
-        }
+        },
       });
     } else {
       this.eligibilityChecked = false;
@@ -354,10 +356,10 @@ export class AllocateDialogComponent implements OnInit {
             currentOccupancy: 0,
             availableSpots: 0,
             isAvailable: false,
-            status: 'ERROR'
+            status: 'ERROR',
           };
           this.availabilityChecked = true;
-        }
+        },
       });
     } else {
       this.availabilityChecked = false;
@@ -374,11 +376,13 @@ export class AllocateDialogComponent implements OnInit {
   }
 
   canSubmit(): boolean {
-    return this.allocateForm.valid &&
-           this.eligibilityChecked &&
-           this.eligibility?.isEligible === true &&
-           this.availabilityChecked &&
-           this.availability?.isAvailable === true;
+    return (
+      this.allocateForm.valid &&
+      this.eligibilityChecked &&
+      this.eligibility?.isEligible === true &&
+      this.availabilityChecked &&
+      this.availability?.isAvailable === true
+    );
   }
 
   onSubmit(): void {
@@ -389,35 +393,34 @@ export class AllocateDialogComponent implements OnInit {
       // If application is selected, use allocateByApplication
       if (applicationId) {
         const roomId = this.allocateForm.get('roomId')?.value;
-        this.allocationService.allocateByApplication({
-          applicationId: applicationId,
-          roomId: roomId
-        }).subscribe({
-          next: () => {
-            this.snackBar.open('Room allocated successfully', 'Close', { duration: 3000 });
-            this.dialogRef.close(true);
-          },
-          error: (error) => {
-            console.error('Error allocating room:', error);
-            this.snackBar.open(
-              error.error?.message || 'Failed to allocate room',
-              'Close',
-              { duration: 5000 }
-            );
-            this.isSubmitting = false;
-          },
-        });
+        this.allocationService
+          .allocateByApplication({
+            applicationId: applicationId,
+            roomId: roomId,
+          })
+          .subscribe({
+            next: () => {
+              this.snackBar.open('Room allocated successfully', 'Close', { duration: 3000 });
+              this.dialogRef.close(true);
+            },
+            error: (error) => {
+              console.error('Error allocating room:', error);
+              this.snackBar.open(error.error?.message || 'Failed to allocate room', 'Close', {
+                duration: 5000,
+              });
+              this.isSubmitting = false;
+            },
+          });
       } else {
         // Otherwise, use manual allocation
         const allocationDate = this.allocateForm.get('allocationDate')?.value;
-        const formattedDate = allocationDate instanceof Date
-          ? allocationDate.toISOString()
-          : allocationDate;
+        const formattedDate =
+          allocationDate instanceof Date ? allocationDate.toISOString() : allocationDate;
 
         const request: RoomAllocationRequest = {
           studentId: this.allocateForm.get('studentId')?.value,
           roomId: this.allocateForm.get('roomId')?.value,
-          allocationDate: formattedDate
+          allocationDate: formattedDate,
         };
 
         this.allocationService.createAllocation(request).subscribe({
@@ -427,11 +430,9 @@ export class AllocateDialogComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error allocating room:', error);
-            this.snackBar.open(
-              error.error?.message || 'Failed to allocate room',
-              'Close',
-              { duration: 5000 }
-            );
+            this.snackBar.open(error.error?.message || 'Failed to allocate room', 'Close', {
+              duration: 5000,
+            });
             this.isSubmitting = false;
           },
         });

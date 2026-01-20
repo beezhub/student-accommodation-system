@@ -1,11 +1,11 @@
-import { Injectable } from "@angular/core";
-import { HttpClient } from "@angular/common/http";
-import { Observable } from "rxjs";
-import { environment } from "../../../environments/environment";
-import { Application } from "../models/application.model";
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { Application } from '../models/application.model';
 
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root',
 })
 export class ApplicationService {
   private apiUrl = `${environment.apiUrl}/applications`;
@@ -13,10 +13,7 @@ export class ApplicationService {
   constructor(private http: HttpClient) {}
 
   createApplication(applicationData: any): Observable<Application> {
-    return this.http.post<Application>(
-      `${this.apiUrl}/submit`,
-      applicationData
-    );
+    return this.http.post<Application>(`${this.apiUrl}/submit`, applicationData);
   }
 
   getApplicationByStatus(status: string): Observable<Application[]> {
@@ -30,5 +27,4 @@ export class ApplicationService {
   getMyApplications(): Observable<Application[]> {
     return this.http.get<Application[]>(`${this.apiUrl}/my-applications`);
   }
-
 }

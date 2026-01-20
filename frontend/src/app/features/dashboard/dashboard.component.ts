@@ -6,7 +6,10 @@ import { DocumentViewerComponent } from './documents/document-viewer/document-vi
 import { HttpClient } from '@angular/common/http';
 import { DocumentService } from '../../core/services/document.service';
 import { StudentService } from '../../core/services/student.service';
-import { RoomAllocationService, RoomAllocationResponse } from '../../core/services/room-allocation.service';
+import {
+  RoomAllocationService,
+  RoomAllocationResponse,
+} from '../../core/services/room-allocation.service';
 import { ApplicationService } from '../../core/services/application.service';
 import { Application } from '../../core/models/application.model';
 
@@ -22,7 +25,6 @@ import { MatGridListModule } from '@angular/material/grid-list';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/modern-status-badge.component';
-
 
 @Component({
   selector: 'app-dashboard',
@@ -76,7 +78,7 @@ export class DashboardComponent implements OnInit {
     private roomAllocationService: RoomAllocationService,
     private applicationService: ApplicationService,
     private snackBar: MatSnackBar
-  ) { }
+  ) {}
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
@@ -96,15 +98,15 @@ export class DashboardComponent implements OnInit {
   loadDocuments(): void {
     this.documentService.getUploadedDocuments().subscribe({
       next: (docs) => {
-        this.uploadedDocuments = docs.map(doc => ({
+        this.uploadedDocuments = docs.map((doc) => ({
           name: doc.documentName,
           date: doc.UploadedDate,
-          status: doc.documentStatus
+          status: doc.documentStatus,
         }));
       },
       error: (err) => {
         console.error('Failed to fetch documents:', err);
-      }
+      },
     });
   }
 
@@ -124,13 +126,13 @@ export class DashboardComponent implements OnInit {
             console.log('No active room allocation found:', err);
             this.roomAllocation = null;
             this.isLoadingRoom = false;
-          }
+          },
         });
       },
       error: (err) => {
         console.error('Failed to fetch student profile:', err);
         this.isLoadingRoom = false;
-      }
+      },
     });
   }
 
@@ -142,11 +144,17 @@ export class DashboardComponent implements OnInit {
         // Sort by createdAt descending (newest first)
         // Fallback to applicationDate if createdAt is not available
         this.applicationHistory = applications.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() :
-                        a.applicationDate ? new Date(a.applicationDate).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() :
-                        b.applicationDate ? new Date(b.applicationDate).getTime() : 0;
-          return dateB - dateA;  // Descending order
+          const dateA = a.createdAt
+            ? new Date(a.createdAt).getTime()
+            : a.applicationDate
+            ? new Date(a.applicationDate).getTime()
+            : 0;
+          const dateB = b.createdAt
+            ? new Date(b.createdAt).getTime()
+            : b.applicationDate
+            ? new Date(b.applicationDate).getTime()
+            : 0;
+          return dateB - dateA; // Descending order
         });
 
         // Set current application
@@ -161,7 +169,7 @@ export class DashboardComponent implements OnInit {
         this.currentApplication = null;
         this.isLoadingApplications = false;
         this.isLoadingCurrentApplication = false;
-      }
+      },
     });
   }
 
@@ -170,22 +178,24 @@ export class DashboardComponent implements OnInit {
 
     // Sort by date descending (newest first)
     const sorted = [...applications].sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() :
-                    a.applicationDate ? new Date(a.applicationDate).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() :
-                    b.applicationDate ? new Date(b.applicationDate).getTime() : 0;
+      const dateA = a.createdAt
+        ? new Date(a.createdAt).getTime()
+        : a.applicationDate
+        ? new Date(a.applicationDate).getTime()
+        : 0;
+      const dateB = b.createdAt
+        ? new Date(b.createdAt).getTime()
+        : b.applicationDate
+        ? new Date(b.applicationDate).getTime()
+        : 0;
       return dateB - dateA;
     });
 
     // Priority: PENDING > APPROVED > most recent
-    const pending = sorted.find(app =>
-      app.status.toUpperCase() === 'PENDING'
-    );
+    const pending = sorted.find((app) => app.status.toUpperCase() === 'PENDING');
     if (pending) return pending;
 
-    const approved = sorted.find(app =>
-      app.status.toUpperCase() === 'APPROVED'
-    );
+    const approved = sorted.find((app) => app.status.toUpperCase() === 'APPROVED');
     if (approved) return approved;
 
     // Return most recent

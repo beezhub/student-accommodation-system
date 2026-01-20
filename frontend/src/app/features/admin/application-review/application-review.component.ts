@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { AdminService, ApplicationResponse, PageResponse } from '../../../core/services/admin.service';
+import {
+  AdminService,
+  ApplicationResponse,
+  PageResponse,
+} from '../../../core/services/admin.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -151,11 +155,11 @@ export class ApplicationReviewComponent implements OnInit {
       return;
     }
 
-    const selectedIds = this.selection.selected.map(app => app.id);
+    const selectedIds = this.selection.selected.map((app) => app.id);
     let completed = 0;
     let failed = 0;
 
-    selectedIds.forEach(id => {
+    selectedIds.forEach((id) => {
       this.adminService.updateApplicationStatus(id, 'APPROVED').subscribe({
         next: () => {
           completed++;
@@ -179,11 +183,11 @@ export class ApplicationReviewComponent implements OnInit {
       return;
     }
 
-    const selectedIds = this.selection.selected.map(app => app.id);
+    const selectedIds = this.selection.selected.map((app) => app.id);
     let completed = 0;
     let failed = 0;
 
-    selectedIds.forEach(id => {
+    selectedIds.forEach((id) => {
       this.adminService.updateApplicationStatus(id, 'REJECTED').subscribe({
         next: () => {
           completed++;
@@ -203,30 +207,28 @@ export class ApplicationReviewComponent implements OnInit {
 
   private finalizeBulkOperation(completed: number, failed: number, action: string): void {
     if (failed === 0) {
-      this.snackBar.open(
-        `Successfully ${action} ${completed} application(s)`,
-        'Close',
-        { duration: 3000 }
-      );
+      this.snackBar.open(`Successfully ${action} ${completed} application(s)`, 'Close', {
+        duration: 3000,
+      });
     } else {
-      this.snackBar.open(
-        `${completed} application(s) ${action}, ${failed} failed`,
-        'Close',
-        { duration: 5000 }
-      );
+      this.snackBar.open(`${completed} application(s) ${action}, ${failed} failed`, 'Close', {
+        duration: 5000,
+      });
     }
     this.loadApplications();
   }
 
   isAllSelected(): boolean {
-    return this.selection.selected.length === this.applications.length && this.applications.length > 0;
+    return (
+      this.selection.selected.length === this.applications.length && this.applications.length > 0
+    );
   }
 
   toggleAllRows(): void {
     if (this.isAllSelected()) {
       this.selection.clear();
     } else {
-      this.applications.forEach(row => this.selection.select(row));
+      this.applications.forEach((row) => this.selection.select(row));
     }
   }
 

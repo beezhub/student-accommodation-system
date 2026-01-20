@@ -1,6 +1,13 @@
 import { Component } from '@angular/core';
 
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+  AbstractControl,
+  ValidationErrors,
+} from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -19,121 +26,152 @@ import { AuthService } from '../../../../core/services/auth.service';
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
-    MatProgressSpinnerModule
-],
+    MatProgressSpinnerModule,
+  ],
   template: `
     <h2 mat-dialog-title>Change Password</h2>
     <mat-dialog-content>
       <form [formGroup]="passwordForm">
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>Current Password</mat-label>
-          <input matInput [type]="hideCurrentPassword ? 'password' : 'text'"
-            formControlName="currentPassword" autocomplete="current-password">
-          <button mat-icon-button matSuffix (click)="hideCurrentPassword = !hideCurrentPassword"
-            type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hideCurrentPassword">
-            <mat-icon>{{hideCurrentPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          <input
+            matInput
+            [type]="hideCurrentPassword ? 'password' : 'text'"
+            formControlName="currentPassword"
+            autocomplete="current-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            (click)="hideCurrentPassword = !hideCurrentPassword"
+            type="button"
+            [attr.aria-label]="'Hide password'"
+            [attr.aria-pressed]="!hideCurrentPassword"
+          >
+            <mat-icon>{{ hideCurrentPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
-          @if (passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched) {
-            <mat-error>
-              Current password is required
-            </mat-error>
+          @if (passwordForm.get('currentPassword')?.invalid &&
+          passwordForm.get('currentPassword')?.touched) {
+          <mat-error> Current password is required </mat-error>
           }
         </mat-form-field>
-    
+
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>New Password</mat-label>
-          <input matInput [type]="hideNewPassword ? 'password' : 'text'"
-            formControlName="newPassword" autocomplete="new-password">
-          <button mat-icon-button matSuffix (click)="hideNewPassword = !hideNewPassword"
-            type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hideNewPassword">
-            <mat-icon>{{hideNewPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          <input
+            matInput
+            [type]="hideNewPassword ? 'password' : 'text'"
+            formControlName="newPassword"
+            autocomplete="new-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            (click)="hideNewPassword = !hideNewPassword"
+            type="button"
+            [attr.aria-label]="'Hide password'"
+            [attr.aria-pressed]="!hideNewPassword"
+          >
+            <mat-icon>{{ hideNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
-          @if (passwordForm.get('newPassword')?.hasError('required') && passwordForm.get('newPassword')?.touched) {
-            <mat-error>
-              New password is required
-            </mat-error>
-          }
-          @if (passwordForm.get('newPassword')?.hasError('minlength')) {
-            <mat-error>
-              Password must be at least 8 characters
-            </mat-error>
+          @if (passwordForm.get('newPassword')?.hasError('required') &&
+          passwordForm.get('newPassword')?.touched) {
+          <mat-error> New password is required </mat-error>
+          } @if (passwordForm.get('newPassword')?.hasError('minlength')) {
+          <mat-error> Password must be at least 8 characters </mat-error>
           }
         </mat-form-field>
-    
+
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>Confirm New Password</mat-label>
-          <input matInput [type]="hideConfirmPassword ? 'password' : 'text'"
-            formControlName="confirmPassword" autocomplete="new-password">
-          <button mat-icon-button matSuffix (click)="hideConfirmPassword = !hideConfirmPassword"
-            type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hideConfirmPassword">
-            <mat-icon>{{hideConfirmPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          <input
+            matInput
+            [type]="hideConfirmPassword ? 'password' : 'text'"
+            formControlName="confirmPassword"
+            autocomplete="new-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            (click)="hideConfirmPassword = !hideConfirmPassword"
+            type="button"
+            [attr.aria-label]="'Hide password'"
+            [attr.aria-pressed]="!hideConfirmPassword"
+          >
+            <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
-          @if (passwordForm.get('confirmPassword')?.hasError('required') && passwordForm.get('confirmPassword')?.touched) {
-            <mat-error>
-              Please confirm your password
-            </mat-error>
-          }
-          @if (passwordForm.get('confirmPassword')?.hasError('passwordMismatch')) {
-            <mat-error>
-              Passwords do not match
-            </mat-error>
+          @if (passwordForm.get('confirmPassword')?.hasError('required') &&
+          passwordForm.get('confirmPassword')?.touched) {
+          <mat-error> Please confirm your password </mat-error>
+          } @if (passwordForm.get('confirmPassword')?.hasError('passwordMismatch')) {
+          <mat-error> Passwords do not match </mat-error>
           }
         </mat-form-field>
-    
+
         @if (errorMessage) {
-          <div class="error-message">
-            {{ errorMessage }}
-          </div>
+        <div class="error-message">
+          {{ errorMessage }}
+        </div>
         }
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
-      <button mat-flat-button color="primary" (click)="onSubmit()"
-        [disabled]="!passwordForm.valid || isSubmitting">
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="onSubmit()"
+        [disabled]="!passwordForm.valid || isSubmitting"
+      >
         @if (isSubmitting) {
-          <mat-progress-spinner mode="indeterminate" diameter="18" strokeWidth="3"></mat-progress-spinner>
+        <mat-progress-spinner
+          mode="indeterminate"
+          diameter="18"
+          strokeWidth="3"
+        ></mat-progress-spinner>
         }
         <span>{{ isSubmitting ? 'Changing...' : 'Change Password' }}</span>
       </button>
     </mat-dialog-actions>
+  `,
+  styles: [
+    `
+      .full-width {
+        width: 100%;
+        margin-bottom: 16px;
+      }
+
+      mat-dialog-content {
+        min-height: 300px;
+        padding: 24px;
+      }
+
+      mat-dialog-actions {
+        padding: 16px 24px;
+        gap: 12px;
+      }
+
+      .error-message {
+        color: #f44336;
+        font-size: 14px;
+        margin-top: 8px;
+        padding: 12px;
+        background-color: #ffebee;
+        border-radius: 4px;
+      }
+
+      button[mat-flat-button] {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      mat-progress-spinner {
+        display: inline-block;
+        margin-right: 8px;
+      }
     `,
-  styles: [`
-    .full-width {
-      width: 100%;
-      margin-bottom: 16px;
-    }
-
-    mat-dialog-content {
-      min-height: 300px;
-      padding: 24px;
-    }
-
-    mat-dialog-actions {
-      padding: 16px 24px;
-      gap: 12px;
-    }
-
-    .error-message {
-      color: #f44336;
-      font-size: 14px;
-      margin-top: 8px;
-      padding: 12px;
-      background-color: #ffebee;
-      border-radius: 4px;
-    }
-
-    button[mat-flat-button] {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    mat-progress-spinner {
-      display: inline-block;
-      margin-right: 8px;
-    }
-  `]
+  ],
 })
 export class ChangePasswordDialogComponent {
   passwordForm: FormGroup;
@@ -148,11 +186,14 @@ export class ChangePasswordDialogComponent {
     private dialogRef: MatDialogRef<ChangePasswordDialogComponent>,
     private authService: AuthService
   ) {
-    this.passwordForm = this.fb.group({
-      currentPassword: ['', Validators.required],
-      newPassword: ['', [Validators.required, Validators.minLength(8)]],
-      confirmPassword: ['', Validators.required]
-    }, { validators: this.passwordMatchValidator });
+    this.passwordForm = this.fb.group(
+      {
+        currentPassword: ['', Validators.required],
+        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        confirmPassword: ['', Validators.required],
+      },
+      { validators: this.passwordMatchValidator }
+    );
   }
 
   passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -192,8 +233,10 @@ export class ChangePasswordDialogComponent {
         },
         error: (error) => {
           this.isSubmitting = false;
-          this.errorMessage = error.error?.message || 'Failed to change password. Please check your current password.';
-        }
+          this.errorMessage =
+            error.error?.message ||
+            'Failed to change password. Please check your current password.';
+        },
       });
     }
   }

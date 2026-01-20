@@ -2,7 +2,11 @@ import { Component, Inject, OnInit } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
-import { YearOfStudyService, YearOfStudyResponse, YearOfStudyRequest } from '../../../../core/services/year-of-study.service';
+import {
+  YearOfStudyService,
+  YearOfStudyResponse,
+  YearOfStudyRequest,
+} from '../../../../core/services/year-of-study.service';
 
 // Material imports
 import { MatButtonModule } from '@angular/material/button';
@@ -25,8 +29,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatIconModule
-],
+    MatIconModule,
+  ],
 })
 export class YearOfStudyFormDialogComponent implements OnInit {
   yearOfStudyForm: FormGroup;
@@ -66,9 +70,10 @@ export class YearOfStudyFormDialogComponent implements OnInit {
     this.isLoading = true;
     const request: YearOfStudyRequest = this.yearOfStudyForm.value;
 
-    const operation = this.mode === 'create'
-      ? this.yearOfStudyService.createYearOfStudy(request)
-      : this.yearOfStudyService.updateYearOfStudy(this.yearOfStudy!.id, request);
+    const operation =
+      this.mode === 'create'
+        ? this.yearOfStudyService.createYearOfStudy(request)
+        : this.yearOfStudyService.updateYearOfStudy(this.yearOfStudy!.id, request);
 
     operation.subscribe({
       next: () => {

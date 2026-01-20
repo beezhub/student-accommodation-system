@@ -21,10 +21,10 @@ import { takeUntil } from 'rxjs/operators';
     MatBadgeModule,
     MatMenuModule,
     MatDividerModule,
-    MatTooltipModule
+    MatTooltipModule,
   ],
   templateUrl: './notifications.component.html',
-  styleUrls: ['./notifications.component.css']
+  styleUrls: ['./notifications.component.css'],
 })
 export class NotificationsComponent implements OnInit, OnDestroy {
   notifications$: Observable<Notification[]>;

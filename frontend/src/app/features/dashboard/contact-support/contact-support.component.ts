@@ -18,10 +18,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatSnackBarModule
-],
+    MatSnackBarModule,
+  ],
   templateUrl: './contact-support.component.html',
-  styleUrls: ['./contact-support.component.css']
+  styleUrls: ['./contact-support.component.css'],
 })
 export class ContactSupportComponent {
   name = '';
@@ -35,7 +35,7 @@ export class ContactSupportComponent {
     this.submitted = true;
     this.snackBar.open('Your message has been sent. Support will contact you soon.', 'Close', {
       duration: 4000,
-      panelClass: 'snackbar-success'
+      panelClass: 'snackbar-success',
     });
     this.name = '';
     this.email = '';

@@ -145,12 +145,12 @@ export class DocumentVerificationComponent implements OnInit {
 
         // Check if room was allocated by backend (backend returns this info)
         if (response && (response as any).roomAllocated) {
-          const roomInfo = (response as any).roomNumber ? `Room: ${(response as any).roomNumber}` : '';
-          this.snackBar.open(
-            `Room allocated automatically! ${roomInfo}`,
-            'Close',
-            { duration: 5000 }
-          );
+          const roomInfo = (response as any).roomNumber
+            ? `Room: ${(response as any).roomNumber}`
+            : '';
+          this.snackBar.open(`Room allocated automatically! ${roomInfo}`, 'Close', {
+            duration: 5000,
+          });
         }
 
         this.loadDocuments();
@@ -159,7 +159,8 @@ export class DocumentVerificationComponent implements OnInit {
         console.error('Failed to update status:', error);
 
         // Display specific error message from backend
-        const errorMessage = error.error?.message || error.error?.error || 'Failed to update document status';
+        const errorMessage =
+          error.error?.message || error.error?.error || 'Failed to update document status';
         this.snackBar.open(errorMessage, 'Close', {
           duration: 5000,
         });
@@ -191,11 +192,11 @@ export class DocumentVerificationComponent implements OnInit {
       return;
     }
 
-    const selectedIds = this.selection.selected.map(doc => doc.id);
+    const selectedIds = this.selection.selected.map((doc) => doc.id);
     let completed = 0;
     let failed = 0;
 
-    selectedIds.forEach(id => {
+    selectedIds.forEach((id) => {
       this.adminService.updateDocumentStatus(id, 'APPROVED').subscribe({
         next: () => {
           completed++;
@@ -220,11 +221,11 @@ export class DocumentVerificationComponent implements OnInit {
       return;
     }
 
-    const selectedIds = this.selection.selected.map(doc => doc.id);
+    const selectedIds = this.selection.selected.map((doc) => doc.id);
     let completed = 0;
     let failed = 0;
 
-    selectedIds.forEach(id => {
+    selectedIds.forEach((id) => {
       this.adminService.updateDocumentStatus(id, 'REJECTED').subscribe({
         next: () => {
           completed++;
@@ -244,17 +245,13 @@ export class DocumentVerificationComponent implements OnInit {
 
   private finalizeBulkOperation(completed: number, failed: number, action: string): void {
     if (failed === 0) {
-      this.snackBar.open(
-        `Successfully ${action} ${completed} document(s)`,
-        'Close',
-        { duration: 3000 }
-      );
+      this.snackBar.open(`Successfully ${action} ${completed} document(s)`, 'Close', {
+        duration: 3000,
+      });
     } else {
-      this.snackBar.open(
-        `${completed} document(s) ${action}, ${failed} failed`,
-        'Close',
-        { duration: 5000 }
-      );
+      this.snackBar.open(`${completed} document(s) ${action}, ${failed} failed`, 'Close', {
+        duration: 5000,
+      });
     }
     this.loadDocuments();
   }
@@ -267,7 +264,7 @@ export class DocumentVerificationComponent implements OnInit {
     if (this.isAllSelected()) {
       this.selection.clear();
     } else {
-      this.documents.forEach(row => this.selection.select(row));
+      this.documents.forEach((row) => this.selection.select(row));
     }
   }
 
@@ -296,7 +293,7 @@ export class DocumentVerificationComponent implements OnInit {
       type: document.documentTypeName,
       uploadDate: document.createdAt,
       status: document.documentStatus,
-      size: '' // Size not available from API
+      size: '', // Size not available from API
     };
   }
 

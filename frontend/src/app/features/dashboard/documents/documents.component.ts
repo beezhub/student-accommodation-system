@@ -50,8 +50,8 @@ import { MatDividerModule } from '@angular/material/divider';
     MatDatepickerModule,
     MatNativeDateModule,
     MatDividerModule,
-    ModernStatusBadgeComponent
-  ]
+    ModernStatusBadgeComponent,
+  ],
 })
 export class DocumentsComponent implements OnInit {
   currentUser: any;
@@ -69,7 +69,7 @@ export class DocumentsComponent implements OnInit {
       type: 'Identity',
       uploadDate: '2024-01-15',
       status: 'Verified',
-      size: '1.2 MB'
+      size: '1.2 MB',
     },
     {
       id: '2',
@@ -77,7 +77,7 @@ export class DocumentsComponent implements OnInit {
       type: 'Academic',
       uploadDate: '2024-01-15',
       status: 'Pending',
-      size: '2.1 MB'
+      size: '2.1 MB',
     },
     {
       id: '3',
@@ -85,8 +85,8 @@ export class DocumentsComponent implements OnInit {
       type: 'Identity',
       uploadDate: '2024-01-15',
       status: 'Verified',
-      size: '3.5 MB'
-    }
+      size: '3.5 MB',
+    },
   ];
 
   // Material table configuration
@@ -100,27 +100,27 @@ export class DocumentsComponent implements OnInit {
     private documentTypeService: DocumentTypeService
   ) {
     this.uploadForm = this.fb.group({
-      documentType: ['', Validators.required]
+      documentType: ['', Validators.required],
     });
   }
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
     this.documentService.getUploadedDocuments().subscribe({
-          next: (docs) => {
-            this.documents = docs.map(doc => ({
+      next: (docs) => {
+        this.documents = docs.map((doc) => ({
           id: String(doc.id),
           name: doc.documentName,
           type: doc.documentTypeName,
-              uploadDate: doc.UploadedDate,
+          uploadDate: doc.UploadedDate,
           status: doc.documentStatus,
-          size: '' // Size not provided by API, can be updated if available
+          size: '', // Size not provided by API, can be updated if available
         }));
         this.dataSource.data = this.documents;
       },
       error: (err) => {
         console.error('Failed to fetch documents:', err);
-      }
+      },
     });
 
     // Load required document types to populate the upload modal
@@ -130,7 +130,7 @@ export class DocumentsComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load document types', err);
-      }
+      },
     });
   }
 
@@ -164,7 +164,8 @@ export class DocumentsComponent implements OnInit {
   onFileSelected(event: any) {
     const file = event.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
         this.uploadError = 'File size must be less than 5MB';
         this.selectedFile = null;
         return;
@@ -193,31 +194,33 @@ export class DocumentsComponent implements OnInit {
         next: () => {
           this.isUploading = false;
           // Optimistically add new doc to the list with basic info
-            const typeName = this.requiredDocumentTypes.find(t => t.id === selectedTypeId)?.name || String(selectedTypeId);
+          const typeName =
+            this.requiredDocumentTypes.find((t) => t.id === selectedTypeId)?.name ||
+            String(selectedTypeId);
           const newDoc = {
             id: String(Date.now()),
             name: this.selectedFile!.name,
-              type: typeName,
+            type: typeName,
             uploadDate: new Date().toISOString(),
             status: 'Pending',
-            size: this.formatFileSize(this.selectedFile!.size)
+            size: this.formatFileSize(this.selectedFile!.size),
           };
           this.documents.unshift(newDoc);
           this.dataSource.data = this.documents;
           // Refresh from server to show accurate data
           this.documentService.getUploadedDocuments().subscribe({
             next: (docs) => {
-              this.documents = docs.map(doc => ({
+              this.documents = docs.map((doc) => ({
                 id: String(doc.id),
                 name: doc.documentName,
                 type: doc.documentTypeName,
                 uploadDate: doc.UploadedDate,
                 status: doc.documentStatus,
-                size: ''
+                size: '',
               }));
               this.dataSource.data = this.documents;
             },
-            error: (err) => console.error('Failed to refresh documents:', err)
+            error: (err) => console.error('Failed to refresh documents:', err),
           });
           this.closeUploadModal();
         },
@@ -225,7 +228,7 @@ export class DocumentsComponent implements OnInit {
           this.isUploading = false;
           this.uploadError = 'Failed to upload document. Please try again.';
           console.error('Upload error:', error);
-        }
+        },
       });
     }
   }
@@ -249,7 +252,7 @@ export class DocumentsComponent implements OnInit {
   deleteDocument(documentId: string) {
     if (confirm('Are you sure you want to delete this document?')) {
       // Here you would typically call your service to delete the document
-      this.documents = this.documents.filter(doc => doc.id !== documentId);
+      this.documents = this.documents.filter((doc) => doc.id !== documentId);
       // keep dataSource in sync
       this.dataSource.data = this.documents;
     }

@@ -13,13 +13,7 @@ import { MatGridListModule } from '@angular/material/grid-list';
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css'],
   standalone: true,
-  imports: [
-    RouterModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatGridListModule
-],
+  imports: [RouterModule, MatCardModule, MatButtonModule, MatIconModule, MatGridListModule],
 })
 export class HomeComponent {
   features = [

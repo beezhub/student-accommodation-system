@@ -3,15 +3,12 @@ import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class IconService {
   private registeredIcons = new Set<string>();
 
-  constructor(
-    private matIconRegistry: MatIconRegistry,
-    private domSanitizer: DomSanitizer
-  ) {
+  constructor(private matIconRegistry: MatIconRegistry, private domSanitizer: DomSanitizer) {
     this.registerCommonIcons();
   }
 
@@ -51,10 +48,10 @@ export class IconService {
       'folder_open',
       'attach_file',
       'visibility_off',
-      'upload'
+      'upload',
     ];
 
-    commonIcons.forEach(icon => {
+    commonIcons.forEach((icon) => {
       if (!this.registeredIcons.has(icon)) {
         this.registeredIcons.add(icon);
       }
@@ -97,9 +94,7 @@ export class IconService {
         this.domSanitizer.bypassSecurityTrustResourceUrl(url)
       );
     } else {
-      this.matIconRegistry.addSvgIconSet(
-        this.domSanitizer.bypassSecurityTrustResourceUrl(url)
-      );
+      this.matIconRegistry.addSvgIconSet(this.domSanitizer.bypassSecurityTrustResourceUrl(url));
     }
   }
 

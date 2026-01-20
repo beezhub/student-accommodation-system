@@ -1,8 +1,8 @@
-import { Injectable } from "@angular/core";
-import { HttpClient, HttpParams } from "@angular/common/http";
-import { Observable } from "rxjs";
-import { environment } from "../../../environments/environment";
-import { DocumentType } from "../models/document-type.model";
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { DocumentType } from '../models/document-type.model';
 
 export interface DocumentTypeResponse {
   id: number;
@@ -31,7 +31,7 @@ export interface PageResponse<T> {
 }
 
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root',
 })
 export class DocumentTypeService {
   private apiUrl = `${environment.apiUrl}/document-type`;
@@ -47,7 +47,7 @@ export class DocumentTypeService {
   }
 
   getAllDocumentTypesPaginated(filters: any): Observable<PageResponse<DocumentTypeResponse>> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
 
@@ -62,7 +62,11 @@ export class DocumentTypeService {
     if (filters.name) {
       params = params.set('name', filters.name);
     }
-    if (filters.isRequired !== undefined && filters.isRequired !== null && filters.isRequired !== '') {
+    if (
+      filters.isRequired !== undefined &&
+      filters.isRequired !== null &&
+      filters.isRequired !== ''
+    ) {
       params = params.set('isRequired', filters.isRequired.toString());
     }
 

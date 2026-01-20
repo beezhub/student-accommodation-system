@@ -4,7 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { InstitutionService } from '../../../core/services/institution.service';
-import { YearOfStudyService} from '../../../core/services/year-of-study.service';
+import { YearOfStudyService } from '../../../core/services/year-of-study.service';
 import { StudentService } from '../../../core/services/student.service';
 import { Institution } from '../../../core/models/institution.model';
 import { YearOfStudy } from '../../../core/models/year-of-study.model';
@@ -41,8 +41,8 @@ import { MatDividerModule } from '@angular/material/divider';
     MatIconModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatDividerModule
-]
+    MatDividerModule,
+  ],
 })
 export class ProfileSetupComponent implements OnInit {
   profileForm: FormGroup;
@@ -50,23 +50,23 @@ export class ProfileSetupComponent implements OnInit {
   currentUser: any;
   institutions: Institution[] = [];
   yearsOfStudy: YearOfStudy[] = [];
-  
+
   // Gender options for the select dropdown
   genderOptions = [
     { value: 'male', viewValue: 'Male' },
     { value: 'female', viewValue: 'Female' },
     { value: 'other', viewValue: 'Other' },
-    { value: 'prefer-not-to-say', viewValue: 'Prefer not to say' }
+    { value: 'prefer-not-to-say', viewValue: 'Prefer not to say' },
   ];
-  
-  constructor(
-      private fb: FormBuilder,
-      private router: Router,
-      private authService: AuthService,
-      private institutionService: InstitutionService,
-      private yearOfStudyService: YearOfStudyService,
-      private studentService: StudentService) {
 
+  constructor(
+    private fb: FormBuilder,
+    private router: Router,
+    private authService: AuthService,
+    private institutionService: InstitutionService,
+    private yearOfStudyService: YearOfStudyService,
+    private studentService: StudentService
+  ) {
     this.profileForm = this.fb.group({
       studentNumber: ['', [Validators.required]],
       phoneNumber: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
@@ -74,7 +74,7 @@ export class ProfileSetupComponent implements OnInit {
       institution: ['', [Validators.required]],
       yearOfStudy: ['', [Validators.required]],
       gender: ['', [Validators.required]],
-      specialRequirements: ['']
+      specialRequirements: [''],
     });
   }
 
@@ -85,37 +85,37 @@ export class ProfileSetupComponent implements OnInit {
     }
 
     this.institutionService.getInstitutions().subscribe({
-        next: (institutions) => {
-          console.log('Institutions API response:', institutions);
-          if (institutions && Array.isArray((institutions as any).content)) {
-            this.institutions = (institutions as any).content;
-          } else if (Array.isArray(institutions)) {
-            this.institutions = institutions;
-          } else {
-            this.institutions = [];
-          }
-        },
+      next: (institutions) => {
+        console.log('Institutions API response:', institutions);
+        if (institutions && Array.isArray((institutions as any).content)) {
+          this.institutions = (institutions as any).content;
+        } else if (Array.isArray(institutions)) {
+          this.institutions = institutions;
+        } else {
+          this.institutions = [];
+        }
+      },
       error: (error) => {
         console.error('Error fetching institutions:', error);
         this.institutions = [];
-      }
+      },
     });
 
     this.yearOfStudyService.getYearsOfStudy().subscribe({
-        next: (yearOfStudy) => {
-          console.log('YearsOfStudy API response:', yearOfStudy);
-          if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
-            this.yearsOfStudy = (yearOfStudy as any).content;
-          } else if (Array.isArray(yearOfStudy)) {
-            this.yearsOfStudy = yearOfStudy;
-          } else {
-            this.yearsOfStudy = [];
-          }
-        },
+      next: (yearOfStudy) => {
+        console.log('YearsOfStudy API response:', yearOfStudy);
+        if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
+          this.yearsOfStudy = (yearOfStudy as any).content;
+        } else if (Array.isArray(yearOfStudy)) {
+          this.yearsOfStudy = yearOfStudy;
+        } else {
+          this.yearsOfStudy = [];
+        }
+      },
       error: (error) => {
         console.error('Error fetching years of study:', error);
         this.yearsOfStudy = [];
-      }
+      },
     });
   }
 
@@ -134,7 +134,7 @@ export class ProfileSetupComponent implements OnInit {
         yearOfStudyId: this.profileForm.get('yearOfStudy')?.value,
         gender: this.profileForm.get('gender')?.value,
         specialRequirements: this.profileForm.get('specialRequirements')?.value,
-        userId: this.currentUser.id
+        userId: this.currentUser.id,
       };
 
       this.studentService.createStudentProfile(studentData).subscribe({
@@ -145,7 +145,7 @@ export class ProfileSetupComponent implements OnInit {
         error: (error) => {
           this.isSubmitting = false;
           console.error('Error updating profile:', error);
-        }
+        },
       });
     } else {
       this.profileForm.markAllAsTouched();

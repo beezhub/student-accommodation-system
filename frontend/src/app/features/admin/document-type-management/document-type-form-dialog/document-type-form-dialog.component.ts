@@ -2,7 +2,11 @@ import { Component, Inject, OnInit } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
-import { DocumentTypeService, DocumentTypeResponse, DocumentTypeRequest } from '../../../../core/services/document-type.service';
+import {
+  DocumentTypeService,
+  DocumentTypeResponse,
+  DocumentTypeRequest,
+} from '../../../../core/services/document-type.service';
 
 // Material imports
 import { MatButtonModule } from '@angular/material/button';
@@ -27,8 +31,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatIconModule
-],
+    MatIconModule,
+  ],
 })
 export class DocumentTypeFormDialogComponent implements OnInit {
   documentTypeForm: FormGroup;
@@ -72,9 +76,10 @@ export class DocumentTypeFormDialogComponent implements OnInit {
     this.isLoading = true;
     const request: DocumentTypeRequest = this.documentTypeForm.value;
 
-    const operation = this.mode === 'create'
-      ? this.documentTypeService.createDocumentType(request)
-      : this.documentTypeService.updateDocumentType(this.documentType!.id, request);
+    const operation =
+      this.mode === 'create'
+        ? this.documentTypeService.createDocumentType(request)
+        : this.documentTypeService.updateDocumentType(this.documentType!.id, request);
 
     operation.subscribe({
       next: () => {

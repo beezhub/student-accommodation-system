@@ -19,7 +19,17 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
   templateUrl: './applications.component.html',
   styleUrls: ['./applications.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterModule, MatToolbarModule, MatButtonModule, MatIconModule, MatCardModule, MatTableModule, MatChipsModule, ModernStatusBadgeComponent]
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatToolbarModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+    MatTableModule,
+    MatChipsModule,
+    ModernStatusBadgeComponent,
+  ],
 })
 export class ApplicationsComponent implements OnInit {
   currentUser: any;
@@ -30,7 +40,7 @@ export class ApplicationsComponent implements OnInit {
       status: 'Pending',
       submittedDate: '2024-01-15',
       type: 'Single Room',
-      duration: '1 Year'
+      duration: '1 Year',
     },
     {
       id: '2',
@@ -38,12 +48,20 @@ export class ApplicationsComponent implements OnInit {
       status: 'Approved',
       submittedDate: '2023-01-10',
       type: 'Studio Apartment',
-      duration: '2 Semesters'
-    }
+      duration: '2 Semesters',
+    },
   ];
 
   // Material table
-  displayedColumns: string[] = ['applicationId', 'year', 'status', 'submittedDate', 'type', 'duration', 'actions'];
+  displayedColumns: string[] = [
+    'applicationId',
+    'year',
+    'status',
+    'submittedDate',
+    'type',
+    'duration',
+    'actions',
+  ];
   dataSource = new MatTableDataSource<any>(this.applications);
 
   constructor(private authService: AuthService) {}
@@ -68,7 +86,7 @@ export class ApplicationsComponent implements OnInit {
 
   cancelApplication(applicationId: string) {
     // simple client-side cancellation; replace with API call as needed
-    this.applications = this.applications.filter(a => a.id !== applicationId);
+    this.applications = this.applications.filter((a) => a.id !== applicationId);
     this.dataSource.data = this.applications;
   }
 }

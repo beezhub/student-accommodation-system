@@ -8,10 +8,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     '/api/auth/verify-reset-token',
     '/api/auth/reset-password',
     '/api/auth/verify-email',
-    '/api/auth/resend-verification'
+    '/api/auth/resend-verification',
   ];
 
-  const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
+  const isPublicEndpoint = publicEndpoints.some((endpoint) => req.url.includes(endpoint));
 
   if (isPublicEndpoint) {
     return next(req);
@@ -21,11 +21,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   if (token) {
     const cloned = req.clone({
-      headers: req.headers.set('Authorization', `Bearer ${token}`)
+      headers: req.headers.set('Authorization', `Bearer ${token}`),
     });
     return next(cloned);
   }
 
   return next(req);
 };
-

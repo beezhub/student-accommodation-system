@@ -44,13 +44,20 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatTooltipModule,
     MatMenuModule,
     MatChipsModule,
-    ModernStatusBadgeComponent
-],
+    ModernStatusBadgeComponent,
+  ],
 })
 export class RoomManagementComponent implements OnInit {
   rooms: RoomResponse[] = [];
   buildings: BuildingResponse[] = [];
-  displayedColumns: string[] = ['roomNumber', 'buildingName', 'capacity', 'currentOccupancy', 'status', 'actions'];
+  displayedColumns: string[] = [
+    'roomNumber',
+    'buildingName',
+    'capacity',
+    'currentOccupancy',
+    'status',
+    'actions',
+  ];
 
   isLoading = false;
   totalElements = 0;
@@ -132,13 +139,13 @@ export class RoomManagementComponent implements OnInit {
   }
 
   openCreateDialog(): void {
-    import('./room-form-dialog/room-form-dialog.component').then(m => {
+    import('./room-form-dialog/room-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.RoomFormDialogComponent, {
         width: '600px',
-        data: { mode: 'create', buildings: this.buildings }
+        data: { mode: 'create', buildings: this.buildings },
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadRooms();
         }
@@ -147,13 +154,13 @@ export class RoomManagementComponent implements OnInit {
   }
 
   openEditDialog(room: RoomResponse): void {
-    import('./room-form-dialog/room-form-dialog.component').then(m => {
+    import('./room-form-dialog/room-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.RoomFormDialogComponent, {
         width: '600px',
-        data: { mode: 'edit', room, buildings: this.buildings }
+        data: { mode: 'edit', room, buildings: this.buildings },
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadRooms();
         }
@@ -162,7 +169,11 @@ export class RoomManagementComponent implements OnInit {
   }
 
   deleteRoom(room: RoomResponse): void {
-    if (confirm(`Are you sure you want to delete room "${room.roomNumber}"? This action cannot be undone.`)) {
+    if (
+      confirm(
+        `Are you sure you want to delete room "${room.roomNumber}"? This action cannot be undone.`
+      )
+    ) {
       this.roomService.deleteRoom(room.id).subscribe({
         next: () => {
           this.snackBar.open('Room deleted successfully', 'Close', { duration: 3000 });
@@ -170,7 +181,9 @@ export class RoomManagementComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to delete room:', error);
-          this.snackBar.open('Failed to delete room. It may have active allocations.', 'Close', { duration: 5000 });
+          this.snackBar.open('Failed to delete room. It may have active allocations.', 'Close', {
+            duration: 5000,
+          });
         },
       });
     }
@@ -203,7 +216,12 @@ export class RoomManagementComponent implements OnInit {
   }
 
   getOccupancyClass(room: RoomResponse): string {
-    if (!room || room.currentOccupancy === undefined || room.capacity === undefined || room.capacity === 0) {
+    if (
+      !room ||
+      room.currentOccupancy === undefined ||
+      room.capacity === undefined ||
+      room.capacity === 0
+    ) {
       return 'empty';
     }
     const percentage = (room.currentOccupancy / room.capacity) * 100;

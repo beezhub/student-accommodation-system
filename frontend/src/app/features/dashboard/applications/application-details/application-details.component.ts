@@ -49,8 +49,8 @@ import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-bad
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatInputModule,
-    ModernStatusBadgeComponent
-  ]
+    ModernStatusBadgeComponent,
+  ],
 })
 export class ApplicationDetailsComponent implements OnInit {
   currentUser: any;
@@ -86,7 +86,7 @@ export class ApplicationDetailsComponent implements OnInit {
     private fb: FormBuilder
   ) {
     this.remarksForm = this.fb.group({
-      remarks: ['', Validators.required]
+      remarks: ['', Validators.required],
     });
   }
 
@@ -94,16 +94,18 @@ export class ApplicationDetailsComponent implements OnInit {
     this.currentUser = this.authService.currentUserValue;
     this.isAdmin = this.currentUser?.userRole === 'ADMIN';
 
-    this.route.params.subscribe(params => {
+    this.route.params.subscribe((params) => {
       this.applicationId = +params['id'];
       if (this.applicationId) {
         this.loadApplicationDetails();
       }
     });
 
-    this.breakpointObserver.observe([Breakpoints.Handset, Breakpoints.Tablet]).subscribe(result => {
-      this.isSmallScreen = result.matches;
-    });
+    this.breakpointObserver
+      .observe([Breakpoints.Handset, Breakpoints.Tablet])
+      .subscribe((result) => {
+        this.isSmallScreen = result.matches;
+      });
   }
 
   loadApplicationDetails(): void {
@@ -121,7 +123,7 @@ export class ApplicationDetailsComponent implements OnInit {
           studentLastName: '',
           studentEmail: '',
           createdAt: '',
-          updatedAt: ''
+          updatedAt: '',
         };
 
         this.buildTimeline();
@@ -131,7 +133,7 @@ export class ApplicationDetailsComponent implements OnInit {
         console.error('Error loading application:', error);
         this.snackBar.open('Failed to load application details', 'Close', { duration: 3000 });
         this.isLoading = false;
-      }
+      },
     });
   }
 
@@ -145,7 +147,7 @@ export class ApplicationDetailsComponent implements OnInit {
       date: this.application.applicationDate,
       status: 'Application Submitted',
       description: 'Your application has been received and is being processed',
-      icon: 'send'
+      icon: 'send',
     });
 
     // Status-based timeline events
@@ -154,21 +156,21 @@ export class ApplicationDetailsComponent implements OnInit {
         date: this.application.updatedAt || this.application.applicationDate,
         status: 'Application Approved',
         description: 'Your application has been approved',
-        icon: 'check_circle'
+        icon: 'check_circle',
       });
     } else if (this.application.status === 'REJECTED') {
       this.timeline.push({
         date: this.application.updatedAt || this.application.applicationDate,
         status: 'Application Rejected',
         description: this.application.remarks || 'Your application has been rejected',
-        icon: 'cancel'
+        icon: 'cancel',
       });
     } else if (this.application.status === 'PENDING') {
       this.timeline.push({
         date: new Date().toISOString(),
         status: 'Under Review',
         description: 'Application is being reviewed by the housing team',
-        icon: 'hourglass_empty'
+        icon: 'hourglass_empty',
       });
     }
   }
@@ -225,12 +227,10 @@ export class ApplicationDetailsComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error approving application:', error);
-        this.snackBar.open(
-          error.error?.message || 'Failed to approve application',
-          'Close',
-          { duration: 5000 }
-        );
-      }
+        this.snackBar.open(error.error?.message || 'Failed to approve application', 'Close', {
+          duration: 5000,
+        });
+      },
     });
   }
 
@@ -247,12 +247,10 @@ export class ApplicationDetailsComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error rejecting application:', error);
-        this.snackBar.open(
-          error.error?.message || 'Failed to reject application',
-          'Close',
-          { duration: 5000 }
-        );
-      }
+        this.snackBar.open(error.error?.message || 'Failed to reject application', 'Close', {
+          duration: 5000,
+        });
+      },
     });
   }
 

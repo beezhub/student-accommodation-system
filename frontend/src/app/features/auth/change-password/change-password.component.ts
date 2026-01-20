@@ -27,8 +27,8 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
-],
+    MatSnackBarModule,
+  ],
 })
 export class ChangePasswordComponent implements OnInit {
   changePasswordForm: FormGroup;
@@ -59,7 +59,7 @@ export class ChangePasswordComponent implements OnInit {
 
   ngOnInit(): void {
     // Check if this is a forced password change
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.isForced = params['forced'] === 'true';
     });
   }
@@ -101,7 +101,10 @@ export class ChangePasswordComponent implements OnInit {
         },
         error: (error: { error: { message: string; errors: string[] } }) => {
           this.isSubmitting = false;
-          const errorMessage = error.error.message || error.error.errors?.[0] || 'Failed to change password. Please try again.';
+          const errorMessage =
+            error.error.message ||
+            error.error.errors?.[0] ||
+            'Failed to change password. Please try again.';
           this.snackBar.open(errorMessage, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar'],

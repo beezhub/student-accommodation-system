@@ -34,8 +34,8 @@ import { CreateUserDialogComponent } from './create-user-dialog/create-user-dial
     MatSelectModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatChipsModule
-],
+    MatChipsModule,
+  ],
 })
 export class UserManagementComponent implements OnInit {
   users: AdminUser[] = [];
@@ -97,7 +97,7 @@ export class UserManagementComponent implements OnInit {
       width: '500px',
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.loadUsers();
       }
@@ -115,7 +115,8 @@ export class UserManagementComponent implements OnInit {
           this.loadUsers();
         },
         error: (error) => {
-          const errorMessage = error.error?.message || error.error?.errors?.[0] || 'Failed to delete user';
+          const errorMessage =
+            error.error?.message || error.error?.errors?.[0] || 'Failed to delete user';
           this.snackBar.open(errorMessage, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar'],

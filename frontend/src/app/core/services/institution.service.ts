@@ -33,7 +33,7 @@ export interface PageResponse<T> {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class InstitutionService {
   private apiUrl = `${environment.apiUrl}/institution`;
@@ -46,13 +46,13 @@ export class InstitutionService {
       return of(this.institutions);
     }
 
-    return this.http.get<Institution[]>(this.apiUrl).pipe(
-      tap(data => this.institutions = data)
-    );
+    return this.http
+      .get<Institution[]>(this.apiUrl)
+      .pipe(tap((data) => (this.institutions = data)));
   }
 
   getAllInstitutions(filters: any): Observable<PageResponse<InstitutionResponse>> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
 

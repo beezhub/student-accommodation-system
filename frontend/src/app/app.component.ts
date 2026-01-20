@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 
 import { AuthService } from './core/services/auth.service';
@@ -32,11 +32,11 @@ import { AppNavMenuComponent } from './shared/app-nav-menu.component';
     MatDividerModule,
     MatSidenavModule,
     MatListModule,
-    AppNavMenuComponent
-],
+    AppNavMenuComponent,
+  ],
   providers: [],
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'Student Accommodation Management';
   currentUser: User | null = null;
   private userSub!: Subscription;
@@ -49,9 +49,10 @@ export class AppComponent {
     private iconService: IconService
   ) {
     this.isMobile = this.breakpointObserver.isMatched(Breakpoints.Handset);
-    this.router.events.subscribe(event => {
+    this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
-        this.isHomePage = event.urlAfterRedirects === '/home' || event.urlAfterRedirects === '/login';
+        this.isHomePage =
+          event.urlAfterRedirects === '/home' || event.urlAfterRedirects === '/login';
       }
     });
   }

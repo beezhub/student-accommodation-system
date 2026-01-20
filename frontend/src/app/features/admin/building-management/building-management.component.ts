@@ -1,7 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { BuildingService, BuildingResponse, BuildingRequest, PageResponse } from '../../../core/services/building.service';
+import {
+  BuildingService,
+  BuildingResponse,
+  BuildingRequest,
+  PageResponse,
+} from '../../../core/services/building.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -106,13 +111,13 @@ export class BuildingManagementComponent implements OnInit {
   }
 
   openCreateDialog(): void {
-    import('./building-form-dialog/building-form-dialog.component').then(m => {
+    import('./building-form-dialog/building-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.BuildingFormDialogComponent, {
         width: '600px',
-        data: { mode: 'create' }
+        data: { mode: 'create' },
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadBuildings();
         }
@@ -121,13 +126,13 @@ export class BuildingManagementComponent implements OnInit {
   }
 
   openEditDialog(building: BuildingResponse): void {
-    import('./building-form-dialog/building-form-dialog.component').then(m => {
+    import('./building-form-dialog/building-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.BuildingFormDialogComponent, {
         width: '600px',
-        data: { mode: 'edit', building }
+        data: { mode: 'edit', building },
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadBuildings();
         }
@@ -136,7 +141,11 @@ export class BuildingManagementComponent implements OnInit {
   }
 
   deleteBuilding(building: BuildingResponse): void {
-    if (confirm(`Are you sure you want to delete building "${building.name}"? This action cannot be undone.`)) {
+    if (
+      confirm(
+        `Are you sure you want to delete building "${building.name}"? This action cannot be undone.`
+      )
+    ) {
       this.buildingService.deleteBuilding(building.id).subscribe({
         next: () => {
           this.snackBar.open('Building deleted successfully', 'Close', { duration: 3000 });
@@ -144,7 +153,9 @@ export class BuildingManagementComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to delete building:', error);
-          this.snackBar.open('Failed to delete building. It may have associated rooms.', 'Close', { duration: 5000 });
+          this.snackBar.open('Failed to delete building. It may have associated rooms.', 'Close', {
+            duration: 5000,
+          });
         },
       });
     }

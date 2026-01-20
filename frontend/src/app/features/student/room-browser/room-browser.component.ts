@@ -35,7 +35,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatChipsModule,
     MatDialogModule,
     MatSnackBarModule,
-    ModernStatusBadgeComponent
+    ModernStatusBadgeComponent,
   ],
 })
 export class RoomBrowserComponent implements OnInit {
@@ -92,8 +92,9 @@ export class RoomBrowserComponent implements OnInit {
       next: (response) => {
         // Only show available or partially occupied rooms
         this.rooms = response.content.filter(
-          room => room.status === 'AVAILABLE' ||
-                  (room.status === 'OCCUPIED' && room.currentOccupancy < room.capacity)
+          (room) =>
+            room.status === 'AVAILABLE' ||
+            (room.status === 'OCCUPIED' && room.currentOccupancy < room.capacity)
         );
         this.applyFilters();
         this.isLoading = false;
@@ -109,7 +110,7 @@ export class RoomBrowserComponent implements OnInit {
   applyFilters(): void {
     const { buildingId, capacity } = this.filterForm.value;
 
-    this.filteredRooms = this.rooms.filter(room => {
+    this.filteredRooms = this.rooms.filter((room) => {
       let matches = true;
 
       if (buildingId) {
@@ -151,10 +152,10 @@ export class RoomBrowserComponent implements OnInit {
   }
 
   openRoomDetails(room: RoomResponse): void {
-    import('./room-details-dialog/room-details-dialog.component').then(m => {
+    import('./room-details-dialog/room-details-dialog.component').then((m) => {
       this.dialog.open(m.RoomDetailsDialogComponent, {
         width: '600px',
-        data: { room }
+        data: { room },
       });
     });
   }

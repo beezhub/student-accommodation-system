@@ -61,17 +61,18 @@ export interface PageResponse<T> {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class RoomAllocationService {
   private apiUrl = `${environment.apiUrl}/room-allocation`;
 
   constructor(private http: HttpClient) {}
 
-  getAllAllocations(page: number = 0, size: number = 20): Observable<PageResponse<RoomAllocationResponse>> {
-    const params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString());
+  getAllAllocations(
+    page: number = 0,
+    size: number = 20
+  ): Observable<PageResponse<RoomAllocationResponse>> {
+    const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
     return this.http.get<PageResponse<RoomAllocationResponse>>(this.apiUrl, { params });
   }
 
@@ -101,11 +102,15 @@ export class RoomAllocationService {
     return this.http.get<PageResponse<RoomAllocationResponse>>(`${this.apiUrl}/search`, { params });
   }
 
-  getAllocationsByStatus(status: string, page: number = 0, size: number = 20): Observable<PageResponse<RoomAllocationResponse>> {
-    const params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString());
-    return this.http.get<PageResponse<RoomAllocationResponse>>(`${this.apiUrl}/status/${status}`, { params });
+  getAllocationsByStatus(
+    status: string,
+    page: number = 0,
+    size: number = 20
+  ): Observable<PageResponse<RoomAllocationResponse>> {
+    const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
+    return this.http.get<PageResponse<RoomAllocationResponse>>(`${this.apiUrl}/status/${status}`, {
+      params,
+    });
   }
 
   getAllocationById(id: number): Observable<RoomAllocationResponse> {
@@ -121,10 +126,16 @@ export class RoomAllocationService {
   }
 
   allocateByApplication(request: AllocateByApplicationRequest): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/allocate-by-application`, request);
+    return this.http.post<RoomAllocationResponse>(
+      `${this.apiUrl}/allocate-by-application`,
+      request
+    );
   }
 
-  updateAllocation(id: number, allocation: RoomAllocationRequest): Observable<RoomAllocationResponse> {
+  updateAllocation(
+    id: number,
+    allocation: RoomAllocationRequest
+  ): Observable<RoomAllocationResponse> {
     return this.http.put<RoomAllocationResponse>(`${this.apiUrl}/${id}`, allocation);
   }
 
@@ -145,6 +156,8 @@ export class RoomAllocationService {
   }
 
   checkStudentEligibility(studentId: number): Observable<AllocationEligibilityResponse> {
-    return this.http.get<AllocationEligibilityResponse>(`${this.apiUrl}/student/${studentId}/eligibility`);
+    return this.http.get<AllocationEligibilityResponse>(
+      `${this.apiUrl}/student/${studentId}/eligibility`
+    );
   }
 }

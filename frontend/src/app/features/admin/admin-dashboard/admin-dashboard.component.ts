@@ -21,8 +21,8 @@ import { MatGridListModule } from '@angular/material/grid-list';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatGridListModule
-],
+    MatGridListModule,
+  ],
 })
 export class AdminDashboardComponent implements OnInit {
   stats: DashboardStats = {

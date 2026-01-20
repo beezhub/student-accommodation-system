@@ -41,8 +41,8 @@ import { MatChipsModule } from '@angular/material/chips';
     MatProgressSpinnerModule,
     MatTooltipModule,
     MatChipsModule,
-    MatSnackBarModule
-  ]
+    MatSnackBarModule,
+  ],
 })
 export class ActivityLogsComponent implements OnInit {
   displayedColumns: string[] = [
@@ -51,7 +51,7 @@ export class ActivityLogsComponent implements OnInit {
     'action',
     'entityType',
     'description',
-    'ipAddress'
+    'ipAddress',
   ];
 
   dataSource = new MatTableDataSource<ActivityLog>([]);
@@ -63,13 +63,27 @@ export class ActivityLogsComponent implements OnInit {
   filterForm: FormGroup;
 
   actions: ActivityAction[] = [
-    'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT',
-    'APPROVE', 'REJECT', 'UPLOAD', 'DOWNLOAD', 'VIEW', 'EXPORT'
+    'CREATE',
+    'UPDATE',
+    'DELETE',
+    'LOGIN',
+    'LOGOUT',
+    'APPROVE',
+    'REJECT',
+    'UPLOAD',
+    'DOWNLOAD',
+    'VIEW',
+    'EXPORT',
   ];
 
   entityTypes: EntityType[] = [
-    'APPLICATION', 'DOCUMENT', 'USER', 'ROOM',
-    'PAYMENT', 'NOTIFICATION', 'SYSTEM'
+    'APPLICATION',
+    'DOCUMENT',
+    'USER',
+    'ROOM',
+    'PAYMENT',
+    'NOTIFICATION',
+    'SYSTEM',
   ];
 
   userRoles: string[] = ['ADMIN', 'STUDENT', 'LANDLORD'];
@@ -84,7 +98,7 @@ export class ActivityLogsComponent implements OnInit {
       action: [''],
       entityType: [''],
       startDate: [''],
-      endDate: ['']
+      endDate: [''],
     });
   }
 
@@ -103,7 +117,7 @@ export class ActivityLogsComponent implements OnInit {
         ? this.filterForm.value.endDate.toISOString().split('T')[0]
         : undefined,
       page: this.currentPage,
-      size: this.pageSize
+      size: this.pageSize,
     };
 
     this.activityLogService.getActivityLogs(filters).subscribe({
@@ -116,7 +130,7 @@ export class ActivityLogsComponent implements OnInit {
         console.error('Failed to load activity logs:', error);
         this.snackBar.open('Failed to load activity logs', 'Close', { duration: 3000 });
         this.isLoading = false;
-      }
+      },
     });
   }
 
@@ -145,7 +159,7 @@ export class ActivityLogsComponent implements OnInit {
         : undefined,
       endDate: this.filterForm.value.endDate
         ? this.filterForm.value.endDate.toISOString().split('T')[0]
-        : undefined
+        : undefined,
     };
 
     this.activityLogService.exportActivityLogs(filters).subscribe({
@@ -161,7 +175,7 @@ export class ActivityLogsComponent implements OnInit {
       error: (error) => {
         console.error('Failed to export logs:', error);
         this.snackBar.open('Failed to export activity logs', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 

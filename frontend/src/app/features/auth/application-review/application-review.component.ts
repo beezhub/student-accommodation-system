@@ -37,8 +37,8 @@ import { ApplicationService } from '../../../core/services/application.service';
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatDividerModule,
-    MatChipsModule
-  ]
+    MatChipsModule,
+  ],
 })
 export class ApplicationReviewComponent implements OnInit {
   isSubmitting = false;
@@ -46,18 +46,17 @@ export class ApplicationReviewComponent implements OnInit {
   currentUser: User | null = null;
   studentProfile: StudentResponse | null = null;
   documents: DocumentData[] = [];
-  yearOfStudy: YearOfStudy[] =[];
+  yearOfStudy: YearOfStudy[] = [];
   institutions: Institution[] = [];
-  
 
   constructor(
-      private router: Router,
-      private authService: AuthService,
-      private documentService: DocumentService,
-      private studentService: StudentService,
-      private yearOfStudyService: YearOfStudyService,
-      private institutionService: InstitutionService,
-      private ApplicationService: ApplicationService
+    private router: Router,
+    private authService: AuthService,
+    private documentService: DocumentService,
+    private studentService: StudentService,
+    private yearOfStudyService: YearOfStudyService,
+    private institutionService: InstitutionService,
+    private ApplicationService: ApplicationService
   ) {}
 
   ngOnInit() {
@@ -69,23 +68,22 @@ export class ApplicationReviewComponent implements OnInit {
 
     this.currentUser = this.authService.currentUserValue;
     this.studentService.getStudentProfile().subscribe({
-      next: student => {
+      next: (student) => {
         this.studentProfile = student;
       },
-      error: err => {
+      error: (err) => {
         console.error('Failed to load student profile', err);
         this.router.navigate(['/login']);
-      }
+      },
     });
-    
 
     this.documentService.getUploadedDocuments().subscribe({
-      next: docsInfo => this.documents = docsInfo,
-      error: err => console.error('Failed to load documents', err)
+      next: (docsInfo) => (this.documents = docsInfo),
+      error: (err) => console.error('Failed to load documents', err),
     });
 
     this.yearOfStudyService.getYearsOfStudy().subscribe({
-      next: yearOfStudy => {
+      next: (yearOfStudy) => {
         if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
           this.yearOfStudy = (yearOfStudy as any).content;
         } else if (Array.isArray(yearOfStudy)) {
@@ -94,13 +92,13 @@ export class ApplicationReviewComponent implements OnInit {
           this.yearOfStudy = [];
         }
       },
-      error: err => {
+      error: (err) => {
         console.error('Failed to load year of study', err);
-      }
+      },
     });
 
     this.institutionService.getInstitutions().subscribe({
-      next: institutions => {
+      next: (institutions) => {
         if (institutions && Array.isArray((institutions as any).content)) {
           this.institutions = (institutions as any).content;
         } else if (Array.isArray(institutions)) {
@@ -109,12 +107,10 @@ export class ApplicationReviewComponent implements OnInit {
           this.institutions = [];
         }
       },
-      error: err => {
+      error: (err) => {
         console.error('Failed to load institutions', err);
-      }
+      },
     });
-
-
   }
 
   onSubmit() {
@@ -136,12 +132,12 @@ export class ApplicationReviewComponent implements OnInit {
           this.router.navigate(['/dashboard']);
         }
       },
-      error: err => {
+      error: (err) => {
         console.error('Failed to retrieve applications', err);
         this.isSubmitting = false;
         // On error, just navigate to dashboard
         this.router.navigate(['/dashboard']);
-      }
+      },
     });
   }
 
@@ -150,7 +146,7 @@ export class ApplicationReviewComponent implements OnInit {
       return 'N/A';
     }
     const institutionId = String(this.studentProfile.institutionId);
-    const inst = this.institutions.find(i => String(i.id) === institutionId);
+    const inst = this.institutions.find((i) => String(i.id) === institutionId);
     return inst?.name || 'N/A';
   }
 
@@ -159,7 +155,7 @@ export class ApplicationReviewComponent implements OnInit {
       return 'N/A';
     }
     const yearOfStudyId = String(this.studentProfile.yearOfStudyId);
-    const year = this.yearOfStudy.find(y => String(y.id) === yearOfStudyId);
-    return year?.yearOfStudy || 'N/A'; 
+    const year = this.yearOfStudy.find((y) => String(y.id) === yearOfStudyId);
+    return year?.yearOfStudy || 'N/A';
   }
 }

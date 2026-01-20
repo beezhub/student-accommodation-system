@@ -1,9 +1,9 @@
-import { Injectable } from "@angular/core";
-import { Router } from "@angular/router";
-import { AuthService } from "../services/auth.service";
+import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root',
 })
 export class AuthGuard {
   constructor(private router: Router, private authService: AuthService) {}
@@ -12,7 +12,7 @@ export class AuthGuard {
     if (!this.authService.isTokenExpired()) {
       return true;
     } else {
-      this.router.navigate(["/login"]);
+      this.router.navigate(['/login']);
       return false;
     }
   }

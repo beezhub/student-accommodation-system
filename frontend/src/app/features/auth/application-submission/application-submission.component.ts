@@ -38,8 +38,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatProgressSpinnerModule,
     MatDividerModule,
     MatSnackBarModule,
-    MatIconModule
-]
+    MatIconModule,
+  ],
 })
 export class ApplicationSubmissionComponent implements OnInit {
   applicationForm: FormGroup;
@@ -53,7 +53,7 @@ export class ApplicationSubmissionComponent implements OnInit {
     { value: 'SINGLE', viewValue: 'Single Room' },
     { value: 'DOUBLE', viewValue: 'Double Room' },
     { value: 'STUDIO', viewValue: 'Studio Apartment' },
-    { value: 'ENSUITE', viewValue: 'En-suite Room' }
+    { value: 'ENSUITE', viewValue: 'En-suite Room' },
   ];
 
   // Room type options for the dropdown
@@ -61,7 +61,7 @@ export class ApplicationSubmissionComponent implements OnInit {
     { value: 'STANDARD', viewValue: 'Standard Room' },
     { value: 'PREMIUM', viewValue: 'Premium Room' },
     { value: 'ACCESSIBLE', viewValue: 'Accessible Room' },
-    { value: 'QUIET_FLOOR', viewValue: 'Quiet Study Floor' }
+    { value: 'QUIET_FLOOR', viewValue: 'Quiet Study Floor' },
   ];
 
   constructor(
@@ -79,7 +79,7 @@ export class ApplicationSubmissionComponent implements OnInit {
       preferredDurationMonths: ['', [Validators.required, Validators.min(1), Validators.max(12)]],
       preferredRoomType: ['', Validators.required],
       specialRequirements: [''],
-      courseName: ['', Validators.required]
+      courseName: ['', Validators.required],
     });
   }
 
@@ -101,10 +101,12 @@ export class ApplicationSubmissionComponent implements OnInit {
             next: (response: any) => {
               const institutions = Array.isArray((response as any).content)
                 ? (response as any).content
-                : (Array.isArray(response) ? response : []);
+                : Array.isArray(response)
+                ? response
+                : [];
 
-              const institution = institutions.find((inst: any) =>
-                String(inst.id) === String(profile.institutionId)
+              const institution = institutions.find(
+                (inst: any) => String(inst.id) === String(profile.institutionId)
               );
 
               if (institution) {
@@ -113,29 +115,37 @@ export class ApplicationSubmissionComponent implements OnInit {
             },
             error: (error) => {
               console.error('Error fetching institution:', error);
-            }
+            },
           });
         }
       },
       error: (error) => {
         console.error('Error fetching student profile:', error);
-        this.snackBar.open('Failed to load student profile. Please complete your profile first.', 'Close', {
-          duration: 5000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-        });
+        this.snackBar.open(
+          'Failed to load student profile. Please complete your profile first.',
+          'Close',
+          {
+            duration: 5000,
+            horizontalPosition: 'end',
+            verticalPosition: 'top',
+          }
+        );
         this.router.navigate(['/profile-setup']);
-      }
+      },
     });
   }
 
   onSubmit() {
     if (!this.studentId) {
-      this.snackBar.open('Student profile not found. Please complete your profile first.', 'Close', {
-        duration: 5000,
-        horizontalPosition: 'end',
-        verticalPosition: 'top',
-      });
+      this.snackBar.open(
+        'Student profile not found. Please complete your profile first.',
+        'Close',
+        {
+          duration: 5000,
+          horizontalPosition: 'end',
+          verticalPosition: 'top',
+        }
+      );
       this.router.navigate(['/profile-setup']);
       return;
     }
@@ -147,15 +157,13 @@ export class ApplicationSubmissionComponent implements OnInit {
 
       // Format the date to YYYY-MM-DD format for the backend
       const moveInDate = formValue.preferredMoveInDate;
-      const formattedDate = moveInDate instanceof Date
-        ? moveInDate.toISOString().split('T')[0]
-        : moveInDate;
+      const formattedDate =
+        moveInDate instanceof Date ? moveInDate.toISOString().split('T')[0] : moveInDate;
 
       // Ensure numeric fields are sent as numbers
       const durationMonths = formValue.preferredDurationMonths;
-      const parsedDuration = typeof durationMonths === 'string'
-        ? parseInt(durationMonths, 10)
-        : durationMonths;
+      const parsedDuration =
+        typeof durationMonths === 'string' ? parseInt(durationMonths, 10) : durationMonths;
 
       const applicationData = {
         studentId: this.studentId,
@@ -165,7 +173,7 @@ export class ApplicationSubmissionComponent implements OnInit {
         preferredRoomType: formValue.preferredRoomType,
         specialRequirements: formValue.specialRequirements || null,
         institutionName: this.institutionName || 'Not specified',
-        courseName: formValue.courseName
+        courseName: formValue.courseName,
       };
 
       this.applicationService.createApplication(applicationData).subscribe({
@@ -175,7 +183,7 @@ export class ApplicationSubmissionComponent implements OnInit {
             duration: 3000,
             horizontalPosition: 'end',
             verticalPosition: 'top',
-            panelClass: ['success-snackbar']
+            panelClass: ['success-snackbar'],
           });
           this.router.navigate(['/document-upload']);
         },
@@ -183,14 +191,15 @@ export class ApplicationSubmissionComponent implements OnInit {
           this.isSubmitting = false;
           console.error('Error submitting application:', error);
 
-          const errorMessage = error.error?.message || 'Failed to submit application. Please try again.';
+          const errorMessage =
+            error.error?.message || 'Failed to submit application. Please try again.';
           this.snackBar.open(errorMessage, 'Close', {
             duration: 5000,
             horizontalPosition: 'end',
             verticalPosition: 'top',
-            panelClass: ['error-snackbar']
+            panelClass: ['error-snackbar'],
           });
-        }
+        },
       });
     } else {
       this.applicationForm.markAllAsTouched();

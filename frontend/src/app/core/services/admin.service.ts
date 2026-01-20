@@ -78,7 +78,7 @@ export interface BulkStatusUpdateRequest {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AdminService {
   private userApiUrl = `${environment.apiUrl}/admin/users`;
@@ -105,7 +105,11 @@ export class AdminService {
   }
 
   // Application Management
-  getAllApplications(page: number = 0, size: number = 20, sort: string = 'applicationDate'): Observable<PageResponse<ApplicationResponse>> {
+  getAllApplications(
+    page: number = 0,
+    size: number = 20,
+    sort: string = 'applicationDate'
+  ): Observable<PageResponse<ApplicationResponse>> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString())
@@ -132,18 +136,27 @@ export class AdminService {
     if (filters.startDate) params = params.set('startDate', filters.startDate);
     if (filters.endDate) params = params.set('endDate', filters.endDate);
 
-    return this.http.get<PageResponse<ApplicationResponse>>(`${this.applicationApiUrl}/search`, { params });
+    return this.http.get<PageResponse<ApplicationResponse>>(`${this.applicationApiUrl}/search`, {
+      params,
+    });
   }
 
   getApplicationsByStatus(status: string): Observable<ApplicationResponse[]> {
     return this.http.get<ApplicationResponse[]>(`${this.applicationApiUrl}/status/${status}`);
   }
 
-  updateApplicationStatus(applicationId: number, status: string, remarks?: string): Observable<ApplicationResponse> {
-    return this.http.patch<ApplicationResponse>(`${this.applicationApiUrl}/${applicationId}/status`, {
-      status,
-      remarks
-    });
+  updateApplicationStatus(
+    applicationId: number,
+    status: string,
+    remarks?: string
+  ): Observable<ApplicationResponse> {
+    return this.http.patch<ApplicationResponse>(
+      `${this.applicationApiUrl}/${applicationId}/status`,
+      {
+        status,
+        remarks,
+      }
+    );
   }
 
   // Document Management
@@ -162,17 +175,23 @@ export class AdminService {
     if (filters.documentType) params = params.set('documentType', filters.documentType);
     if (filters.status) params = params.set('status', filters.status);
 
-    return this.http.get<PageResponse<DocumentResponse>>(`${this.documentApiUrl}/search`, { params });
+    return this.http.get<PageResponse<DocumentResponse>>(`${this.documentApiUrl}/search`, {
+      params,
+    });
   }
 
   updateDocumentStatus(documentId: number, status: string): Observable<DocumentResponse> {
     const params = new HttpParams().set('status', status);
-    return this.http.put<DocumentResponse>(`${this.documentApiUrl}/update-status/${documentId}`, null, { params });
+    return this.http.put<DocumentResponse>(
+      `${this.documentApiUrl}/update-status/${documentId}`,
+      null,
+      { params }
+    );
   }
 
   downloadDocument(documentId: number): Observable<Blob> {
     return this.http.get(`${this.documentApiUrl}/download/${documentId}`, {
-      responseType: 'blob'
+      responseType: 'blob',
     });
   }
 

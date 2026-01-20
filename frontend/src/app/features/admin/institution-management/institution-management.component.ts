@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { InstitutionService, InstitutionResponse, PageResponse } from '../../../core/services/institution.service';
+import {
+  InstitutionService,
+  InstitutionResponse,
+  PageResponse,
+} from '../../../core/services/institution.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -35,8 +39,8 @@ import { MatMenuModule } from '@angular/material/menu';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatMenuModule
-],
+    MatMenuModule,
+  ],
 })
 export class InstitutionManagementComponent implements OnInit {
   institutions: InstitutionResponse[] = [];
@@ -106,13 +110,13 @@ export class InstitutionManagementComponent implements OnInit {
   }
 
   openCreateDialog(): void {
-    import('./institution-form-dialog/institution-form-dialog.component').then(m => {
+    import('./institution-form-dialog/institution-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.InstitutionFormDialogComponent, {
         width: '600px',
-        data: { mode: 'create' }
+        data: { mode: 'create' },
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadInstitutions();
         }
@@ -121,13 +125,13 @@ export class InstitutionManagementComponent implements OnInit {
   }
 
   openEditDialog(institution: InstitutionResponse): void {
-    import('./institution-form-dialog/institution-form-dialog.component').then(m => {
+    import('./institution-form-dialog/institution-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.InstitutionFormDialogComponent, {
         width: '600px',
-        data: { mode: 'edit', institution }
+        data: { mode: 'edit', institution },
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadInstitutions();
         }
@@ -136,7 +140,11 @@ export class InstitutionManagementComponent implements OnInit {
   }
 
   deleteInstitution(institution: InstitutionResponse): void {
-    if (confirm(`Are you sure you want to delete institution "${institution.name}"? This action cannot be undone.`)) {
+    if (
+      confirm(
+        `Are you sure you want to delete institution "${institution.name}"? This action cannot be undone.`
+      )
+    ) {
       this.institutionService.deleteInstitution(institution.id).subscribe({
         next: () => {
           this.snackBar.open('Institution deleted successfully', 'Close', { duration: 3000 });
@@ -144,7 +152,11 @@ export class InstitutionManagementComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to delete institution:', error);
-          this.snackBar.open('Failed to delete institution. It may have associated students.', 'Close', { duration: 5000 });
+          this.snackBar.open(
+            'Failed to delete institution. It may have associated students.',
+            'Close',
+            { duration: 5000 }
+          );
         },
       });
     }

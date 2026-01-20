@@ -21,8 +21,8 @@ import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-bad
     MatDividerModule,
     MatDialogModule,
     MatProgressSpinnerModule,
-    ModernStatusBadgeComponent
-  ]
+    ModernStatusBadgeComponent,
+  ],
 })
 export class DocumentViewerComponent implements OnInit {
   @Input() document: any;
@@ -33,10 +33,7 @@ export class DocumentViewerComponent implements OnInit {
   previewError = false;
   fileType: 'pdf' | 'image' | 'unknown' = 'unknown';
 
-  constructor(
-    private documentService: DocumentService,
-    private sanitizer: DomSanitizer
-  ) {}
+  constructor(private documentService: DocumentService, private sanitizer: DomSanitizer) {}
 
   ngOnInit() {
     this.loadDocumentPreview();
@@ -82,7 +79,7 @@ export class DocumentViewerComponent implements OnInit {
         console.error('Failed to load document preview:', error);
         this.isLoadingPreview = false;
         this.previewError = true;
-      }
+      },
     });
   }
 
@@ -101,7 +98,7 @@ export class DocumentViewerComponent implements OnInit {
       error: (error) => {
         console.error('Failed to download document:', error);
         alert('Failed to download document. Please try again.');
-      }
+      },
     });
   }
 

@@ -1,8 +1,5 @@
 import { inject } from '@angular/core';
-import {
-  HttpInterceptorFn,
-  HttpErrorResponse
-} from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { throwError } from 'rxjs';
 import { catchError, retry } from 'rxjs/operators';
 import { Router } from '@angular/router';
@@ -58,7 +55,7 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
         localStorage.removeItem('currentUser');
         localStorage.removeItem('token');
         router.navigate(['/login'], {
-          queryParams: { returnUrl: router.url }
+          queryParams: { returnUrl: router.url },
         });
         break;
 
@@ -92,7 +89,7 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
       duration: 5000,
       horizontalPosition: 'right',
       verticalPosition: 'top',
-      panelClass: ['error-snackbar']
+      panelClass: ['error-snackbar'],
     });
   };
 
@@ -100,7 +97,7 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
     // Retry failed requests once (except for POST, PUT, DELETE)
     retry({
       count: request.method === 'GET' ? 1 : 0,
-      delay: 1000
+      delay: 1000,
     }),
     catchError((error: HttpErrorResponse) => {
       let errorMessage = 'An error occurred';

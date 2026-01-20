@@ -1,4 +1,4 @@
-import { provideZoneChangeDetection } from "@angular/core";
+import { provideZoneChangeDetection } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
@@ -11,10 +11,11 @@ import { errorInterceptor } from './app/core/interceptors/error.interceptor';
 
 bootstrapApplication(AppComponent, {
   providers: [
-    provideZoneChangeDetection(),provideRouter(routes),
+    provideZoneChangeDetection(),
+    provideRouter(routes),
     provideHttpClient(
       withInterceptors([authInterceptor, tokenExpiryInterceptor, errorInterceptor])
     ),
-    provideAnimations()
+    provideAnimations(),
   ],
 }).catch((err) => console.error(err));

@@ -19,8 +19,8 @@ import { AuthService } from '../../../../core/services/auth.service';
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
-    MatProgressSpinnerModule
-],
+    MatProgressSpinnerModule,
+  ],
   template: `
     <h2 mat-dialog-title class="warning-title">
       <mat-icon>warning</mat-icon>
@@ -37,125 +37,141 @@ import { AuthService } from '../../../../core/services/auth.service';
           <li>Your room allocation (if any)</li>
         </ul>
       </div>
-    
+
       <form [formGroup]="deleteForm">
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>Type "DELETE" to confirm</mat-label>
-          <input matInput formControlName="confirmation" autocomplete="off" placeholder="DELETE">
+          <input matInput formControlName="confirmation" autocomplete="off" placeholder="DELETE" />
           @if (deleteForm.get('confirmation')?.invalid && deleteForm.get('confirmation')?.touched) {
-            <mat-error>
-              Please type DELETE to confirm
-            </mat-error>
+          <mat-error> Please type DELETE to confirm </mat-error>
           }
         </mat-form-field>
-    
+
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>Enter your password</mat-label>
-          <input matInput [type]="hidePassword ? 'password' : 'text'"
-            formControlName="password" autocomplete="current-password">
-          <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword"
-            type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hidePassword">
-            <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          <input
+            matInput
+            [type]="hidePassword ? 'password' : 'text'"
+            formControlName="password"
+            autocomplete="current-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            (click)="hidePassword = !hidePassword"
+            type="button"
+            [attr.aria-label]="'Hide password'"
+            [attr.aria-pressed]="!hidePassword"
+          >
+            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
           @if (deleteForm.get('password')?.invalid && deleteForm.get('password')?.touched) {
-            <mat-error>
-              Password is required
-            </mat-error>
+          <mat-error> Password is required </mat-error>
           }
         </mat-form-field>
-    
+
         @if (errorMessage) {
-          <div class="error-message">
-            {{ errorMessage }}
-          </div>
+        <div class="error-message">
+          {{ errorMessage }}
+        </div>
         }
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()" [disabled]="isDeleting">Cancel</button>
-      <button mat-flat-button color="warn" (click)="onDelete()"
-        [disabled]="!deleteForm.valid || isDeleting">
+      <button
+        mat-flat-button
+        color="warn"
+        (click)="onDelete()"
+        [disabled]="!deleteForm.valid || isDeleting"
+      >
         @if (isDeleting) {
-          <mat-progress-spinner mode="indeterminate" diameter="18" strokeWidth="3"></mat-progress-spinner>
+        <mat-progress-spinner
+          mode="indeterminate"
+          diameter="18"
+          strokeWidth="3"
+        ></mat-progress-spinner>
         }
         <span>{{ isDeleting ? 'Deleting...' : 'Delete Account' }}</span>
       </button>
     </mat-dialog-actions>
+  `,
+  styles: [
+    `
+      .full-width {
+        width: 100%;
+        margin-bottom: 16px;
+      }
+
+      mat-dialog-content {
+        min-height: 350px;
+        padding: 24px;
+      }
+
+      mat-dialog-actions {
+        padding: 16px 24px;
+        gap: 12px;
+      }
+
+      .warning-title {
+        color: #f44336;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .warning-title mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+
+      .warning-box {
+        background-color: #fff3e0;
+        border-left: 4px solid #ff9800;
+        padding: 16px;
+        margin-bottom: 24px;
+        border-radius: 4px;
+      }
+
+      .warning-box p {
+        margin: 0 0 12px 0;
+      }
+
+      .warning-box strong {
+        color: #e65100;
+      }
+
+      .warning-box ul {
+        margin: 8px 0 0 0;
+        padding-left: 20px;
+      }
+
+      .warning-box li {
+        margin: 4px 0;
+      }
+
+      .error-message {
+        color: #f44336;
+        font-size: 14px;
+        margin-top: 8px;
+        padding: 12px;
+        background-color: #ffebee;
+        border-radius: 4px;
+      }
+
+      button[mat-flat-button] {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      mat-progress-spinner {
+        display: inline-block;
+        margin-right: 8px;
+      }
     `,
-  styles: [`
-    .full-width {
-      width: 100%;
-      margin-bottom: 16px;
-    }
-
-    mat-dialog-content {
-      min-height: 350px;
-      padding: 24px;
-    }
-
-    mat-dialog-actions {
-      padding: 16px 24px;
-      gap: 12px;
-    }
-
-    .warning-title {
-      color: #f44336;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .warning-title mat-icon {
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
-    }
-
-    .warning-box {
-      background-color: #fff3e0;
-      border-left: 4px solid #ff9800;
-      padding: 16px;
-      margin-bottom: 24px;
-      border-radius: 4px;
-    }
-
-    .warning-box p {
-      margin: 0 0 12px 0;
-    }
-
-    .warning-box strong {
-      color: #e65100;
-    }
-
-    .warning-box ul {
-      margin: 8px 0 0 0;
-      padding-left: 20px;
-    }
-
-    .warning-box li {
-      margin: 4px 0;
-    }
-
-    .error-message {
-      color: #f44336;
-      font-size: 14px;
-      margin-top: 8px;
-      padding: 12px;
-      background-color: #ffebee;
-      border-radius: 4px;
-    }
-
-    button[mat-flat-button] {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    mat-progress-spinner {
-      display: inline-block;
-      margin-right: 8px;
-    }
-  `]
+  ],
 })
 export class DeleteAccountDialogComponent {
   deleteForm: FormGroup;
@@ -170,7 +186,7 @@ export class DeleteAccountDialogComponent {
   ) {
     this.deleteForm = this.fb.group({
       confirmation: ['', [Validators.required, this.deleteConfirmationValidator]],
-      password: ['', Validators.required]
+      password: ['', Validators.required],
     });
   }
 
@@ -192,8 +208,9 @@ export class DeleteAccountDialogComponent {
         },
         error: (error) => {
           this.isDeleting = false;
-          this.errorMessage = error.error?.message || 'Failed to delete account. Please check your password.';
-        }
+          this.errorMessage =
+            error.error?.message || 'Failed to delete account. Please check your password.';
+        },
       });
     }
   }

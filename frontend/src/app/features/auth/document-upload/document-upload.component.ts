@@ -1,12 +1,7 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit } from '@angular/core';
 
-import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from "@angular/forms";
-import { Router, RouterModule } from "@angular/router";
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,15 +9,15 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
-import { AuthService } from "../../../core/services/auth.service";
-import { DocumentTypeService } from "../../../core/services/document-type.service";
-import { DocumentType } from "../../../core/models/document-type.model";
-import { DocumentService } from "../../../core/services/document.service";
+import { AuthService } from '../../../core/services/auth.service';
+import { DocumentTypeService } from '../../../core/services/document-type.service';
+import { DocumentType } from '../../../core/models/document-type.model';
+import { DocumentService } from '../../../core/services/document.service';
 
 @Component({
-  selector: "app-document-upload",
-  templateUrl: "./document-upload.component.html",
-  styleUrls: ["./document-upload.component.css"],
+  selector: 'app-document-upload',
+  templateUrl: './document-upload.component.html',
+  styleUrls: ['./document-upload.component.css'],
   standalone: true,
   imports: [
     ReactiveFormsModule,
@@ -33,8 +28,8 @@ import { DocumentService } from "../../../core/services/document.service";
     MatIconModule,
     MatProgressSpinnerModule,
     MatChipsModule,
-    MatDividerModule
-],
+    MatDividerModule,
+  ],
 })
 export class DocumentUploadComponent implements OnInit {
   uploadForm: FormGroup;
@@ -57,23 +52,20 @@ export class DocumentUploadComponent implements OnInit {
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
     if (!this.currentUser) {
-      this.router.navigate(["/login"]);
+      this.router.navigate(['/login']);
     }
     this.documentTypeService.getRequiredDocumentTypes().subscribe({
       next: (documentTypes: any[]) => {
-        console.log("Required document types:", documentTypes);
+        console.log('Required document types:', documentTypes);
         this.requiredDocuments = documentTypes;
         documentTypes.forEach((doc) => {
           if (!this.uploadForm.contains(doc.id)) {
-            this.uploadForm.addControl(
-              doc.id,
-              this.fb.control(null, Validators.required)
-            );
+            this.uploadForm.addControl(doc.id, this.fb.control(null, Validators.required));
           }
         });
       },
       error: (err) => {
-        console.error("Failed to load required document types", err);
+        console.error('Failed to load required document types', err);
       },
     });
   }
@@ -95,26 +87,24 @@ export class DocumentUploadComponent implements OnInit {
 
       Object.keys(this.uploadedFiles).forEach((key) => {
         files.push(this.uploadedFiles[key]);
-        documentTypes.push(Number(key)); 
+        documentTypes.push(Number(key));
       });
-      console.log("Files to upload:", files);
-      console.log("Document types:", documentTypes);
-      this.documentService
-        .uploadMultipleDocuments(files, documentTypes)
-        .subscribe({
-          next: (res) => {
-            console.log("Upload success", res);
-            this.isSubmitting = false;
-            this.router.navigate(["/application-review"]);
-          },
-          error: (err) => {
-            console.error("Upload error", err);
-            if (err.error && err.error.errors) {
-              console.error("Backend errors:", err.error.errors);
-            }
-            this.isSubmitting = false;
-          },
-        });
+      console.log('Files to upload:', files);
+      console.log('Document types:', documentTypes);
+      this.documentService.uploadMultipleDocuments(files, documentTypes).subscribe({
+        next: (res) => {
+          console.log('Upload success', res);
+          this.isSubmitting = false;
+          this.router.navigate(['/application-review']);
+        },
+        error: (err) => {
+          console.error('Upload error', err);
+          if (err.error && err.error.errors) {
+            console.error('Backend errors:', err.error.errors);
+          }
+          this.isSubmitting = false;
+        },
+      });
     } else {
       this.uploadForm.markAllAsTouched();
     }

@@ -31,8 +31,8 @@ import { MatDividerModule } from '@angular/material/divider';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatCheckboxModule,
-    MatDividerModule
-],
+    MatDividerModule,
+  ],
 })
 export class SignupComponent {
   signupForm: FormGroup;
@@ -97,7 +97,7 @@ export class SignupComponent {
             }
           );
           this.router.navigate(['/profile-setup'], {
-            queryParams: { verificationPending: true }
+            queryParams: { verificationPending: true },
           });
         },
         error: (error: { error: { message: string } }) => {

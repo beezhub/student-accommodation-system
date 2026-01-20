@@ -27,8 +27,8 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
     MatSelectModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
-],
+    MatSnackBarModule,
+  ],
 })
 export class CreateUserDialogComponent {
   createUserForm: FormGroup;
@@ -65,7 +65,8 @@ export class CreateUserDialogComponent {
         },
         error: (error) => {
           this.isSubmitting = false;
-          const errorMessage = error.error?.message || error.error?.errors?.[0] || 'Failed to create user';
+          const errorMessage =
+            error.error?.message || error.error?.errors?.[0] || 'Failed to create user';
           this.snackBar.open(errorMessage, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar'],

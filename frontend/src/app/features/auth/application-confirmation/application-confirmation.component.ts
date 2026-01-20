@@ -1,10 +1,10 @@
-import { Component, OnInit } from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { Router, RouterModule, ActivatedRoute } from "@angular/router";
-import { AuthService } from "../../../core/services/auth.service";
-import { ApplicationService } from "../../../core/services/application.service";
-import { Application } from "../../../core/models/application.model";
-import { ModernStatusBadgeComponent } from "../../../shared/modern-status-badge/modern-status-badge.component";
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+import { ApplicationService } from '../../../core/services/application.service';
+import { Application } from '../../../core/models/application.model';
+import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -13,9 +13,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
-  selector: "app-application-confirmation",
-  templateUrl: "./application-confirmation.component.html",
-  styleUrls: ["./application-confirmation.component.css"],
+  selector: 'app-application-confirmation',
+  templateUrl: './application-confirmation.component.html',
+  styleUrls: ['./application-confirmation.component.css'],
   standalone: true,
   imports: [
     CommonModule,
@@ -24,7 +24,7 @@ import { MatDividerModule } from '@angular/material/divider';
     MatButtonModule,
     MatIconModule,
     MatDividerModule,
-    ModernStatusBadgeComponent
+    ModernStatusBadgeComponent,
   ],
 })
 export class ApplicationConfirmationComponent implements OnInit {
@@ -43,12 +43,11 @@ export class ApplicationConfirmationComponent implements OnInit {
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
     if (!this.currentUser) {
-      this.router.navigate(["/login"]);
+      this.router.navigate(['/login']);
     }
-    const idParam = this.route.snapshot.paramMap.get("applicationId");
-    this.applicationId =
-      idParam !== null && !isNaN(Number(idParam)) ? Number(idParam) : null;
-    console.log("Application ID:", this.applicationId);
+    const idParam = this.route.snapshot.paramMap.get('applicationId');
+    this.applicationId = idParam !== null && !isNaN(Number(idParam)) ? Number(idParam) : null;
+    console.log('Application ID:', this.applicationId);
 
     if (this.applicationId && this.applicationId > 0) {
       this.applicationService.getApplicationById(this.applicationId).subscribe({
@@ -56,17 +55,17 @@ export class ApplicationConfirmationComponent implements OnInit {
           this.application = application;
         },
         error: (err) => {
-          console.error("Failed to load application", err);
-          this.router.navigate(["/dashboard"]);
+          console.error('Failed to load application', err);
+          this.router.navigate(['/dashboard']);
         },
       });
     } else {
-      console.error("No valid application ID found in route");
-      this.router.navigate(["/dashboard"]);
+      console.error('No valid application ID found in route');
+      this.router.navigate(['/dashboard']);
     }
   }
 
   goToDashboard() {
-    this.router.navigate(["/dashboard"]);
+    this.router.navigate(['/dashboard']);
   }
 }

@@ -25,27 +25,26 @@ export interface PageResponse<T> {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
-
 export class YearOfStudyService {
   private yearsOfStudyUrl = `${environment.apiUrl}/year-of-study`;
   private yearsCache: YearOfStudy[] | null = null;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
   getYearsOfStudy(): Observable<YearOfStudy[]> {
     if (this.yearsCache) {
       return of(this.yearsCache);
     }
 
-    return this.http.get<YearOfStudy[]>(this.yearsOfStudyUrl).pipe(
-      tap(data => this.yearsCache = data)
-    );
+    return this.http
+      .get<YearOfStudy[]>(this.yearsOfStudyUrl)
+      .pipe(tap((data) => (this.yearsCache = data)));
   }
 
   getAllYearsOfStudyPaginated(filters: any): Observable<PageResponse<YearOfStudyResponse>> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
 
@@ -61,7 +60,9 @@ export class YearOfStudyService {
       params = params.set('year', filters.year.toString());
     }
 
-    return this.http.get<PageResponse<YearOfStudyResponse>>(`${this.yearsOfStudyUrl}/search`, { params });
+    return this.http.get<PageResponse<YearOfStudyResponse>>(`${this.yearsOfStudyUrl}/search`, {
+      params,
+    });
   }
 
   getYearOfStudyById(id: number): Observable<YearOfStudyResponse> {
@@ -83,5 +84,4 @@ export class YearOfStudyService {
   clearCache() {
     this.yearsCache = null;
   }
-
 }

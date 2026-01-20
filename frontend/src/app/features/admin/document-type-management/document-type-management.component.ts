@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { DocumentTypeService, DocumentTypeResponse, PageResponse } from '../../../core/services/document-type.service';
+import {
+  DocumentTypeService,
+  DocumentTypeResponse,
+  PageResponse,
+} from '../../../core/services/document-type.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -116,13 +120,13 @@ export class DocumentTypeManagementComponent implements OnInit {
   }
 
   openCreateDialog(): void {
-    import('./document-type-form-dialog/document-type-form-dialog.component').then(m => {
+    import('./document-type-form-dialog/document-type-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.DocumentTypeFormDialogComponent, {
         width: '600px',
-        data: { mode: 'create' }
+        data: { mode: 'create' },
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadDocumentTypes();
         }
@@ -131,13 +135,13 @@ export class DocumentTypeManagementComponent implements OnInit {
   }
 
   openEditDialog(documentType: DocumentTypeResponse): void {
-    import('./document-type-form-dialog/document-type-form-dialog.component').then(m => {
+    import('./document-type-form-dialog/document-type-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.DocumentTypeFormDialogComponent, {
         width: '600px',
-        data: { mode: 'edit', documentType }
+        data: { mode: 'edit', documentType },
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadDocumentTypes();
         }
@@ -161,7 +165,11 @@ export class DocumentTypeManagementComponent implements OnInit {
   }
 
   deleteDocumentType(documentType: DocumentTypeResponse): void {
-    if (confirm(`Are you sure you want to delete document type "${documentType.typeName}"? This action cannot be undone.`)) {
+    if (
+      confirm(
+        `Are you sure you want to delete document type "${documentType.typeName}"? This action cannot be undone.`
+      )
+    ) {
       this.documentTypeService.deleteDocumentType(documentType.id).subscribe({
         next: () => {
           this.snackBar.open('Document type deleted successfully', 'Close', { duration: 3000 });
@@ -169,7 +177,11 @@ export class DocumentTypeManagementComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to delete document type:', error);
-          this.snackBar.open('Failed to delete document type. It may be associated with existing documents.', 'Close', { duration: 5000 });
+          this.snackBar.open(
+            'Failed to delete document type. It may be associated with existing documents.',
+            'Close',
+            { duration: 5000 }
+          );
         },
       });
     }

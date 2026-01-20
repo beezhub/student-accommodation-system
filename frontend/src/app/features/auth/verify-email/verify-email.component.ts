@@ -20,8 +20,8 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
-],
+    MatSnackBarModule,
+  ],
 })
 export class VerifyEmailComponent implements OnInit {
   isVerifying = true;
@@ -57,7 +57,8 @@ export class VerifyEmailComponent implements OnInit {
       error: (error: { error?: { message?: string } }) => {
         this.isVerifying = false;
         this.verificationSuccess = false;
-        this.errorMessage = error.error?.message || 'Email verification failed. The link may be expired or invalid.';
+        this.errorMessage =
+          error.error?.message || 'Email verification failed. The link may be expired or invalid.';
       },
     });
   }

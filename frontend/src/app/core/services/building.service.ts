@@ -29,7 +29,7 @@ export interface PageResponse<T> {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class BuildingService {
   private apiUrl = `${environment.apiUrl}/building`;
@@ -37,9 +37,7 @@ export class BuildingService {
   constructor(private http: HttpClient) {}
 
   getAllBuildings(page: number = 0, size: number = 20): Observable<PageResponse<BuildingResponse>> {
-    const params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString());
+    const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
     return this.http.get<PageResponse<BuildingResponse>>(this.apiUrl, { params });
   }
 

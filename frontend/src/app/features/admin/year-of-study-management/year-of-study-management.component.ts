@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { YearOfStudyService, YearOfStudyResponse, PageResponse } from '../../../core/services/year-of-study.service';
+import {
+  YearOfStudyService,
+  YearOfStudyResponse,
+  PageResponse,
+} from '../../../core/services/year-of-study.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -35,8 +39,8 @@ import { MatMenuModule } from '@angular/material/menu';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatMenuModule
-],
+    MatMenuModule,
+  ],
 })
 export class YearOfStudyManagementComponent implements OnInit {
   yearsOfStudy: YearOfStudyResponse[] = [];
@@ -104,13 +108,13 @@ export class YearOfStudyManagementComponent implements OnInit {
   }
 
   openCreateDialog(): void {
-    import('./year-of-study-form-dialog/year-of-study-form-dialog.component').then(m => {
+    import('./year-of-study-form-dialog/year-of-study-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.YearOfStudyFormDialogComponent, {
         width: '500px',
-        data: { mode: 'create' }
+        data: { mode: 'create' },
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadYearsOfStudy();
           this.yearOfStudyService.clearCache();
@@ -120,13 +124,13 @@ export class YearOfStudyManagementComponent implements OnInit {
   }
 
   openEditDialog(yearOfStudy: YearOfStudyResponse): void {
-    import('./year-of-study-form-dialog/year-of-study-form-dialog.component').then(m => {
+    import('./year-of-study-form-dialog/year-of-study-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.YearOfStudyFormDialogComponent, {
         width: '500px',
-        data: { mode: 'edit', yearOfStudy }
+        data: { mode: 'edit', yearOfStudy },
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadYearsOfStudy();
           this.yearOfStudyService.clearCache();
@@ -136,7 +140,11 @@ export class YearOfStudyManagementComponent implements OnInit {
   }
 
   deleteYearOfStudy(yearOfStudy: YearOfStudyResponse): void {
-    if (confirm(`Are you sure you want to delete year "${yearOfStudy.yearOfStudy}"? This action cannot be undone.`)) {
+    if (
+      confirm(
+        `Are you sure you want to delete year "${yearOfStudy.yearOfStudy}"? This action cannot be undone.`
+      )
+    ) {
       this.yearOfStudyService.deleteYearOfStudy(yearOfStudy.id).subscribe({
         next: () => {
           this.snackBar.open('Year of study deleted successfully', 'Close', { duration: 3000 });
@@ -145,7 +153,11 @@ export class YearOfStudyManagementComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to delete year of study:', error);
-          this.snackBar.open('Failed to delete year of study. It may be associated with existing students.', 'Close', { duration: 5000 });
+          this.snackBar.open(
+            'Failed to delete year of study. It may be associated with existing students.',
+            'Close',
+            { duration: 5000 }
+          );
         },
       });
     }

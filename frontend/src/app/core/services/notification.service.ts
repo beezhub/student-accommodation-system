@@ -6,7 +6,7 @@ import { environment } from '../../../environments/environment';
 import { Notification, NotificationResponse } from '../models/notification.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class NotificationService {
   private apiUrl = `${environment.apiUrl}/notifications`;
@@ -49,14 +49,17 @@ export class NotificationService {
     const headers = new HttpHeaders().set('X-Silent-Error', 'true');
 
     return this.http.get<NotificationResponse>(`${this.apiUrl}`, { headers }).pipe(
-      tap(response => {
+      tap((response) => {
         this.notificationsSubject.next(response.notifications);
         this.unreadCountSubject.next(response.unreadCount);
       }),
-      catchError(error => {
+      catchError((error) => {
         // Silently handle errors - just return empty response
         // This prevents notification errors from breaking the app
-        console.warn('Failed to fetch notifications (backend endpoint may not be ready):', error.message);
+        console.warn(
+          'Failed to fetch notifications (backend endpoint may not be ready):',
+          error.message
+        );
         return of({ notifications: [], unreadCount: 0, totalCount: 0 });
       })
     );
@@ -69,12 +72,12 @@ export class NotificationService {
     return this.http.put<void>(`${this.apiUrl}/${notificationId}/read`, {}).pipe(
       tap(() => {
         const currentNotifications = this.notificationsSubject.value;
-        const updatedNotifications = currentNotifications.map(notif =>
+        const updatedNotifications = currentNotifications.map((notif) =>
           notif.id === notificationId ? { ...notif, isRead: true } : notif
         );
         this.notificationsSubject.next(updatedNotifications);
 
-        const unreadCount = updatedNotifications.filter(n => !n.isRead).length;
+        const unreadCount = updatedNotifications.filter((n) => !n.isRead).length;
         this.unreadCountSubject.next(unreadCount);
       })
     );
@@ -87,9 +90,9 @@ export class NotificationService {
     return this.http.put<void>(`${this.apiUrl}/read-all`, {}).pipe(
       tap(() => {
         const currentNotifications = this.notificationsSubject.value;
-        const updatedNotifications = currentNotifications.map(notif => ({
+        const updatedNotifications = currentNotifications.map((notif) => ({
           ...notif,
-          isRead: true
+          isRead: true,
         }));
         this.notificationsSubject.next(updatedNotifications);
         this.unreadCountSubject.next(0);
@@ -105,11 +108,11 @@ export class NotificationService {
       tap(() => {
         const currentNotifications = this.notificationsSubject.value;
         const updatedNotifications = currentNotifications.filter(
-          notif => notif.id !== notificationId
+          (notif) => notif.id !== notificationId
         );
         this.notificationsSubject.next(updatedNotifications);
 
-        const unreadCount = updatedNotifications.filter(n => !n.isRead).length;
+        const unreadCount = updatedNotifications.filter((n) => !n.isRead).length;
         this.unreadCountSubject.next(unreadCount);
       })
     );
@@ -120,14 +123,14 @@ export class NotificationService {
    */
   getNotificationIcon(type: string): string {
     const iconMap: { [key: string]: string } = {
-      'ROOM_ALLOCATION': 'meeting_room',
-      'DOCUMENT_APPROVED': 'verified',
-      'DOCUMENT_REJECTED': 'cancel',
-      'APPLICATION_APPROVED': 'check_circle',
-      'APPLICATION_REJECTED': 'error',
-      'PAYMENT_DUE': 'payment',
-      'SYSTEM_ANNOUNCEMENT': 'campaign',
-      'INFO': 'info'
+      ROOM_ALLOCATION: 'meeting_room',
+      DOCUMENT_APPROVED: 'verified',
+      DOCUMENT_REJECTED: 'cancel',
+      APPLICATION_APPROVED: 'check_circle',
+      APPLICATION_REJECTED: 'error',
+      PAYMENT_DUE: 'payment',
+      SYSTEM_ANNOUNCEMENT: 'campaign',
+      INFO: 'info',
     };
     return iconMap[type] || 'notifications';
   }
@@ -137,14 +140,14 @@ export class NotificationService {
    */
   getNotificationColor(type: string): string {
     const colorMap: { [key: string]: string } = {
-      'ROOM_ALLOCATION': 'success',
-      'DOCUMENT_APPROVED': 'success',
-      'DOCUMENT_REJECTED': 'warn',
-      'APPLICATION_APPROVED': 'success',
-      'APPLICATION_REJECTED': 'warn',
-      'PAYMENT_DUE': 'accent',
-      'SYSTEM_ANNOUNCEMENT': 'primary',
-      'INFO': 'primary'
+      ROOM_ALLOCATION: 'success',
+      DOCUMENT_APPROVED: 'success',
+      DOCUMENT_REJECTED: 'warn',
+      APPLICATION_APPROVED: 'success',
+      APPLICATION_REJECTED: 'warn',
+      PAYMENT_DUE: 'accent',
+      SYSTEM_ANNOUNCEMENT: 'primary',
+      INFO: 'primary',
     };
     return colorMap[type] || 'primary';
   }

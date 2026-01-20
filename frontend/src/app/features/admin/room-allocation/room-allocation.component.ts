@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { RoomAllocationService, RoomAllocationResponse, PageResponse } from '../../../core/services/room-allocation.service';
+import {
+  RoomAllocationService,
+  RoomAllocationResponse,
+  PageResponse,
+} from '../../../core/services/room-allocation.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
 
 // Material imports
@@ -47,7 +51,15 @@ import { MatChipsModule } from '@angular/material/chips';
 export class RoomAllocationComponent implements OnInit {
   allocations: RoomAllocationResponse[] = [];
   buildings: BuildingResponse[] = [];
-  displayedColumns: string[] = ['studentName', 'studentEmail', 'roomNumber', 'buildingName', 'allocationDate', 'status', 'actions'];
+  displayedColumns: string[] = [
+    'studentName',
+    'studentEmail',
+    'roomNumber',
+    'buildingName',
+    'allocationDate',
+    'status',
+    'actions',
+  ];
 
   isLoading = false;
   totalElements = 0;
@@ -129,13 +141,13 @@ export class RoomAllocationComponent implements OnInit {
   }
 
   openAllocateDialog(): void {
-    import('./allocate-dialog/allocate-dialog.component').then(m => {
+    import('./allocate-dialog/allocate-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.AllocateDialogComponent, {
         width: '700px',
-        data: {}
+        data: {},
       });
 
-      dialogRef.afterClosed().subscribe(result => {
+      dialogRef.afterClosed().subscribe((result) => {
         if (result) {
           this.loadAllocations();
         }
@@ -144,7 +156,11 @@ export class RoomAllocationComponent implements OnInit {
   }
 
   endAllocation(allocation: RoomAllocationResponse): void {
-    if (confirm(`Are you sure you want to end the allocation for ${allocation.studentFirstName} ${allocation.studentLastName}?`)) {
+    if (
+      confirm(
+        `Are you sure you want to end the allocation for ${allocation.studentFirstName} ${allocation.studentLastName}?`
+      )
+    ) {
       this.allocationService.endAllocation(allocation.id).subscribe({
         next: () => {
           this.snackBar.open('Allocation ended successfully', 'Close', { duration: 3000 });

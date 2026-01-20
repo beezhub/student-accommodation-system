@@ -44,8 +44,8 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatDividerModule,
-    MatSnackBarModule
-]
+    MatSnackBarModule,
+  ],
 })
 export class NewApplicationComponent implements OnInit {
   applicationForm: FormGroup;
@@ -59,7 +59,7 @@ export class NewApplicationComponent implements OnInit {
     { value: 'SINGLE', viewValue: 'Single Room' },
     { value: 'DOUBLE', viewValue: 'Double Room' },
     { value: 'STUDIO', viewValue: 'Studio Apartment' },
-    { value: 'ENSUITE', viewValue: 'En-suite Room' }
+    { value: 'ENSUITE', viewValue: 'En-suite Room' },
   ];
 
   // Room type options for the dropdown
@@ -67,17 +67,17 @@ export class NewApplicationComponent implements OnInit {
     { value: 'STANDARD', viewValue: 'Standard Room' },
     { value: 'PREMIUM', viewValue: 'Premium Room' },
     { value: 'ACCESSIBLE', viewValue: 'Accessible Room' },
-    { value: 'QUIET_FLOOR', viewValue: 'Quiet Study Floor' }
+    { value: 'QUIET_FLOOR', viewValue: 'Quiet Study Floor' },
   ];
 
   constructor(
-      private fb: FormBuilder,
-      private router: Router,
-      private authService: AuthService,
-      private applicationService: ApplicationService,
-      private studentService: StudentService,
-      private institutionService: InstitutionService,
-      private snackBar: MatSnackBar
+    private fb: FormBuilder,
+    private router: Router,
+    private authService: AuthService,
+    private applicationService: ApplicationService,
+    private studentService: StudentService,
+    private institutionService: InstitutionService,
+    private snackBar: MatSnackBar
   ) {
     this.applicationForm = this.fb.group({
       preferredAccommodationType: ['', Validators.required],
@@ -87,7 +87,7 @@ export class NewApplicationComponent implements OnInit {
       specialRequirements: [''],
       institutionId: ['', Validators.required],
       courseName: ['', Validators.required],
-      agreeToTerms: [false, Validators.requiredTrue]
+      agreeToTerms: [false, Validators.requiredTrue],
     });
   }
 
@@ -103,11 +103,13 @@ export class NewApplicationComponent implements OnInit {
       next: (response: any) => {
         this.institutions = Array.isArray((response as any).content)
           ? (response as any).content
-          : (Array.isArray(response) ? response : []);
+          : Array.isArray(response)
+          ? response
+          : [];
       },
       error: (error) => {
         console.error('Failed to load institutions', error);
-      }
+      },
     });
 
     // Get student ID from student profile
@@ -118,29 +120,37 @@ export class NewApplicationComponent implements OnInit {
         // Pre-fill institution if available
         if (profile.institutionId) {
           this.applicationForm.patchValue({
-            institutionId: profile.institutionId
+            institutionId: profile.institutionId,
           });
         }
       },
       error: (error) => {
         console.error('Error fetching student profile:', error);
-        this.snackBar.open('Failed to load student profile. Please complete your profile first.', 'Close', {
-          duration: 5000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-        });
+        this.snackBar.open(
+          'Failed to load student profile. Please complete your profile first.',
+          'Close',
+          {
+            duration: 5000,
+            horizontalPosition: 'end',
+            verticalPosition: 'top',
+          }
+        );
         this.router.navigate(['/profile']);
-      }
+      },
     });
   }
 
   onSubmit() {
     if (!this.studentId) {
-      this.snackBar.open('Student profile not found. Please complete your profile first.', 'Close', {
-        duration: 5000,
-        horizontalPosition: 'end',
-        verticalPosition: 'top',
-      });
+      this.snackBar.open(
+        'Student profile not found. Please complete your profile first.',
+        'Close',
+        {
+          duration: 5000,
+          horizontalPosition: 'end',
+          verticalPosition: 'top',
+        }
+      );
       this.router.navigate(['/profile']);
       return;
     }
@@ -152,12 +162,13 @@ export class NewApplicationComponent implements OnInit {
 
       // Format the date to YYYY-MM-DD format for the backend
       const moveInDate = formValue.preferredMoveInDate;
-      const formattedDate = moveInDate instanceof Date
-        ? moveInDate.toISOString().split('T')[0]
-        : moveInDate;
+      const formattedDate =
+        moveInDate instanceof Date ? moveInDate.toISOString().split('T')[0] : moveInDate;
 
       // Get institution name from selected institution ID
-      const selectedInstitution = this.institutions.find(inst => inst.id === formValue.institutionId);
+      const selectedInstitution = this.institutions.find(
+        (inst) => inst.id === formValue.institutionId
+      );
       const institutionName = selectedInstitution ? selectedInstitution.name : '';
 
       const applicationData = {
@@ -168,7 +179,7 @@ export class NewApplicationComponent implements OnInit {
         preferredRoomType: formValue.preferredRoomType,
         specialRequirements: formValue.specialRequirements || null,
         institutionName: institutionName,
-        courseName: formValue.courseName
+        courseName: formValue.courseName,
       };
 
       this.applicationService.createApplication(applicationData).subscribe({
@@ -178,7 +189,7 @@ export class NewApplicationComponent implements OnInit {
             duration: 3000,
             horizontalPosition: 'end',
             verticalPosition: 'top',
-            panelClass: ['success-snackbar']
+            panelClass: ['success-snackbar'],
           });
           this.router.navigate(['/applications']);
         },
@@ -186,14 +197,15 @@ export class NewApplicationComponent implements OnInit {
           this.isSubmitting = false;
           console.error('Error submitting application:', error);
 
-          const errorMessage = error.error?.message || 'Failed to submit application. Please try again.';
+          const errorMessage =
+            error.error?.message || 'Failed to submit application. Please try again.';
           this.snackBar.open(errorMessage, 'Close', {
             duration: 5000,
             horizontalPosition: 'end',
             verticalPosition: 'top',
-            panelClass: ['error-snackbar']
+            panelClass: ['error-snackbar'],
           });
-        }
+        },
       });
     } else {
       this.applicationForm.markAllAsTouched();

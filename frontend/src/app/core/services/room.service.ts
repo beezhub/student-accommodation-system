@@ -32,7 +32,7 @@ export interface PageResponse<T> {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class RoomService {
   private apiUrl = `${environment.apiUrl}/room`;
@@ -40,9 +40,7 @@ export class RoomService {
   constructor(private http: HttpClient) {}
 
   getAllRooms(page: number = 0, size: number = 20): Observable<PageResponse<RoomResponse>> {
-    const params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString());
+    const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
     return this.http.get<PageResponse<RoomResponse>>(this.apiUrl, { params });
   }
 
