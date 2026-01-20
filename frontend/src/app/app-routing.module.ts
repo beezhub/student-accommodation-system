@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { AdminGuard } from './core/guards/admin.guard';
 import { StudentGuard } from './core/guards/student.guard';
+import { EmailVerifiedGuard } from './core/guards/email-verified.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' },
@@ -16,6 +17,10 @@ export const routes: Routes = [
   {
     path: 'signup',
     loadComponent: () => import('./features/auth/signup/signup.component').then(m => m.SignupComponent)
+  },
+  {
+    path: 'verify-email',
+    loadComponent: () => import('./features/auth/verify-email/verify-email.component').then(m => m.VerifyEmailComponent)
   },
   {
     path: 'change-password',
@@ -65,7 +70,7 @@ export const routes: Routes = [
   {
     path: 'applications/new',
     loadComponent: () => import('./features/dashboard/applications/new-application/new-application.component').then(m => m.NewApplicationComponent),
-    canActivate: [AuthGuard, StudentGuard]
+    canActivate: [AuthGuard, StudentGuard, EmailVerifiedGuard]
   },
   {
     path: 'applications/:id',

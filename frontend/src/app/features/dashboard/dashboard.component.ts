@@ -20,6 +20,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/modern-status-badge.component';
 
 
@@ -41,6 +42,7 @@ import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/mod
     MatProgressSpinnerModule,
     MatGridListModule,
     MatDividerModule,
+    MatSnackBarModule,
     ModernStatusBadgeComponent,
   ],
 })
@@ -62,13 +64,18 @@ export class DashboardComponent implements OnInit {
   roomAllocation: RoomAllocationResponse | null = null;
   isLoadingRoom = false;
 
+  // Email verification
+  showVerificationBanner = false;
+  isResendingVerification = false;
+
   constructor(
     private router: Router,
     private authService: AuthService,
     private documentService: DocumentService,
     private studentService: StudentService,
     private roomAllocationService: RoomAllocationService,
-    private applicationService: ApplicationService
+    private applicationService: ApplicationService,
+    private snackBar: MatSnackBar
   ) { }
 
   ngOnInit() {
@@ -77,6 +84,9 @@ export class DashboardComponent implements OnInit {
       this.router.navigate(['/login']);
       return;
     }
+
+    // Check if email is not verified
+    this.showVerificationBanner = this.currentUser.emailVerified !== true;
 
     this.loadDocuments();
     this.loadRoomAllocation();
@@ -208,5 +218,35 @@ export class DashboardComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  resendVerificationEmail(): void {
+    if (this.isResendingVerification || !this.currentUser?.email) return;
+
+    this.isResendingVerification = true;
+    this.authService.resendVerificationEmail(this.currentUser.email).subscribe({
+      next: () => {
+        this.isResendingVerification = false;
+        this.snackBar.open('Verification email sent! Please check your inbox.', 'Close', {
+          duration: 5000,
+          panelClass: ['success-snackbar'],
+        });
+      },
+      error: (error: { error?: { message?: string } }) => {
+        this.isResendingVerification = false;
+        this.snackBar.open(
+          error.error?.message || 'Failed to resend verification email. Please try again.',
+          'Close',
+          {
+            duration: 5000,
+            panelClass: ['error-snackbar'],
+          }
+        );
+      },
+    });
+  }
+
+  dismissVerificationBanner(): void {
+    this.showVerificationBanner = false;
   }
 }

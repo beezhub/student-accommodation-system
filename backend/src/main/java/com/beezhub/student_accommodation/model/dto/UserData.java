@@ -14,4 +14,5 @@ public class UserData {
     private String lastName;
     private String userRole;
     private Boolean mustChangePassword;
+    private Boolean emailVerified;
 }

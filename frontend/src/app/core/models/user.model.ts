@@ -6,4 +6,5 @@ export interface User {
     profileCompleted: boolean;
     userRole: string;
     mustChangePassword?: boolean;
+    emailVerified?: boolean;
 }

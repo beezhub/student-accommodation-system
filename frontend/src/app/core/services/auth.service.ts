@@ -127,4 +127,26 @@ export class AuthService {
   deleteAccount(password: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/delete-account`, { password });
   }
+
+  resendVerificationEmail(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/resend-verification`, { email });
+  }
+
+  verifyEmail(token: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/verify-email`, { token });
+  }
+
+  isEmailVerified(): boolean {
+    const currentUser = this.currentUserValue;
+    return currentUser?.emailVerified === true;
+  }
+
+  updateEmailVerificationStatus(verified: boolean): void {
+    const currentUser = this.currentUserValue;
+    if (currentUser) {
+      currentUser.emailVerified = verified;
+      localStorage.setItem("currentUser", JSON.stringify(currentUser));
+      this.currentUserSubject.next(currentUser);
+    }
+  }
 }

@@ -89,11 +89,17 @@ export class SignupComponent {
       this.authService.signup(signupData).subscribe({
         next: () => {
           this.isSubmitting = false;
-          this.snackBar.open('Account created successfully!', 'Close', {
-            duration: 3000,
-            panelClass: ['success-snackbar'],
+          this.snackBar.open(
+            'Account created! Please check your email to verify your account before submitting applications.',
+            'Close',
+            {
+              duration: 8000,
+              panelClass: ['success-snackbar'],
+            }
+          );
+          this.router.navigate(['/profile-setup'], {
+            queryParams: { verificationPending: true }
           });
-          this.router.navigate(['/profile-setup']);
         },
         error: (error: { error: { message: string } }) => {
           this.isSubmitting = false;
