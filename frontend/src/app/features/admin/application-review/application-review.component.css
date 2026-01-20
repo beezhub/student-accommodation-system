@@ -276,7 +276,7 @@ button[mat-icon-button]:hover {
 
 /* Checkbox styling */
 mat-checkbox {
-  --mdc-checkbox-selected-checkmark-color: white;
+  --mat-checkbox-selected-checkmark-color: white;
 }
 
 /* Responsive Design */

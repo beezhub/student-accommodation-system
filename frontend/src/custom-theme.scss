@@ -3,7 +3,8 @@
 @use '@angular/material' as mat;
 
 // Include the common styles for Angular Material
-@include mat.core();
+@include mat.elevation-classes();
+@include mat.app-background();
 
 // Define the theme using Angular Material built-in palettes
 $app-theme: mat.define-theme((
@@ -28,9 +29,9 @@ html {
 
 // Apple-inspired customizations
 html {
-  --mdc-filled-button-label-text-font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-  --mdc-outlined-button-label-text-font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-  --mdc-text-button-label-text-font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --mat-button-filled-label-text-font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --mat-button-outlined-label-text-font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --mat-button-text-label-text-font: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
 }
 
 // Custom Material component styles with modern neutral aesthetics
