@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -19,7 +19,6 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./login.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterModule,
     MatCardModule,
@@ -28,8 +27,8 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatSnackBarModule
+],
 })
 export class LoginComponent {
   loginForm: FormGroup;

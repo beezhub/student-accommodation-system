@@ -1,28 +1,34 @@
 <div class="dashboard-container">
   <!-- Email Verification Banner -->
-  <div *ngIf="showVerificationBanner" class="verification-banner">
-    <div class="banner-content">
-      <mat-icon class="banner-icon">warning</mat-icon>
-      <div class="banner-text">
-        <strong>Email verification required</strong>
-        <span>Please verify your email address to submit accommodation applications. Check your inbox for the verification link.</span>
+  @if (showVerificationBanner) {
+    <div class="verification-banner">
+      <div class="banner-content">
+        <mat-icon class="banner-icon">warning</mat-icon>
+        <div class="banner-text">
+          <strong>Email verification required</strong>
+          <span>Please verify your email address to submit accommodation applications. Check your inbox for the verification link.</span>
+        </div>
+      </div>
+      <div class="banner-actions">
+        <button
+          mat-stroked-button
+          (click)="resendVerificationEmail()"
+          [disabled]="isResendingVerification"
+          class="resend-btn">
+          @if (!isResendingVerification) {
+            <mat-icon>email</mat-icon>
+          }
+          @if (isResendingVerification) {
+            <mat-spinner diameter="18"></mat-spinner>
+          }
+          {{ isResendingVerification ? 'Sending...' : 'Resend Email' }}
+        </button>
+        <button mat-icon-button (click)="dismissVerificationBanner()" class="dismiss-btn" aria-label="Dismiss">
+          <mat-icon>close</mat-icon>
+        </button>
       </div>
     </div>
-    <div class="banner-actions">
-      <button
-        mat-stroked-button
-        (click)="resendVerificationEmail()"
-        [disabled]="isResendingVerification"
-        class="resend-btn">
-        <mat-icon *ngIf="!isResendingVerification">email</mat-icon>
-        <mat-spinner *ngIf="isResendingVerification" diameter="18"></mat-spinner>
-        {{ isResendingVerification ? 'Sending...' : 'Resend Email' }}
-      </button>
-      <button mat-icon-button (click)="dismissVerificationBanner()" class="dismiss-btn" aria-label="Dismiss">
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
-  </div>
+  }
 
   <!-- Welcome Section -->
   <div class="welcome-section">
@@ -88,57 +94,67 @@
         </mat-card-header>
         <mat-card-content>
           <!-- Loading State -->
-          <div *ngIf="isLoadingCurrentApplication" class="loading-container">
-            <mat-spinner diameter="40"></mat-spinner>
-            <p>Loading application...</p>
-          </div>
+          @if (isLoadingCurrentApplication) {
+            <div class="loading-container">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p>Loading application...</p>
+            </div>
+          }
 
           <!-- Application Found -->
-          <div *ngIf="!isLoadingCurrentApplication && currentApplication" class="application-status">
-            <div class="status-header">
-              <div class="status-info">
-                <span class="application-code">{{currentApplication.applicationCode}}</span>
-                <app-modern-status-badge [status]="currentApplication.status" size="sm"></app-modern-status-badge>
+          @if (!isLoadingCurrentApplication && currentApplication) {
+            <div class="application-status">
+              <div class="status-header">
+                <div class="status-info">
+                  <span class="application-code">{{currentApplication.applicationCode}}</span>
+                  <app-modern-status-badge [status]="currentApplication.status" size="sm"></app-modern-status-badge>
+                </div>
+              </div>
+              <div class="application-details">
+                <div class="detail-row">
+                  <mat-icon>event</mat-icon>
+                  <span>Submitted: {{currentApplication.applicationDate | date: 'MMM d, y'}}</span>
+                </div>
+                @if (currentApplication.preferredRoomType) {
+                  <div class="detail-row">
+                    <mat-icon>bed</mat-icon>
+                    <span>{{currentApplication.preferredRoomType}}</span>
+                  </div>
+                }
+                @if (currentApplication.preferredMoveInDate) {
+                  <div class="detail-row">
+                    <mat-icon>calendar_today</mat-icon>
+                    <span>Move-in: {{currentApplication.preferredMoveInDate | date: 'MMM d, y'}}</span>
+                  </div>
+                }
+              </div>
+              <div class="application-actions">
+                <button mat-button color="primary" [routerLink]="['/applications', currentApplication.id]">
+                  <mat-icon>visibility</mat-icon>
+                  View Details
+                </button>
+                @if (currentApplication.status.toUpperCase() === 'PENDING') {
+                  <button mat-button>
+                    <mat-icon>edit</mat-icon>
+                    Edit Application
+                  </button>
+                }
               </div>
             </div>
-
-            <div class="application-details">
-              <div class="detail-row">
-                <mat-icon>event</mat-icon>
-                <span>Submitted: {{currentApplication.applicationDate | date: 'MMM d, y'}}</span>
-              </div>
-              <div class="detail-row" *ngIf="currentApplication.preferredRoomType">
-                <mat-icon>bed</mat-icon>
-                <span>{{currentApplication.preferredRoomType}}</span>
-              </div>
-              <div class="detail-row" *ngIf="currentApplication.preferredMoveInDate">
-                <mat-icon>calendar_today</mat-icon>
-                <span>Move-in: {{currentApplication.preferredMoveInDate | date: 'MMM d, y'}}</span>
-              </div>
-            </div>
-
-            <div class="application-actions">
-              <button mat-button color="primary" [routerLink]="['/applications', currentApplication.id]">
-                <mat-icon>visibility</mat-icon>
-                View Details
-              </button>
-              <button mat-button *ngIf="currentApplication.status.toUpperCase() === 'PENDING'">
-                <mat-icon>edit</mat-icon>
-                Edit Application
-              </button>
-            </div>
-          </div>
+          }
 
           <!-- No Application State -->
-          <div *ngIf="!isLoadingCurrentApplication && !currentApplication" class="no-application">
-            <mat-icon class="no-application-icon">inbox</mat-icon>
-            <p>No application submitted yet</p>
-            <p class="no-application-hint">Submit your first accommodation application to get started.</p>
-            <button mat-raised-button color="primary" routerLink="/applications/new">
-              <mat-icon>add</mat-icon>
-              New Application
-            </button>
-          </div>
+          @if (!isLoadingCurrentApplication && !currentApplication) {
+            <div class="no-application">
+              <mat-icon class="no-application-icon">inbox</mat-icon>
+              <p>No application submitted yet</p>
+              <p class="no-application-hint">Submit your first accommodation application to get started.</p>
+              <button mat-raised-button color="primary" routerLink="/applications/new">
+                <mat-icon>add</mat-icon>
+                New Application
+              </button>
+            </div>
+          }
         </mat-card-content>
       </mat-card>
 
@@ -151,48 +167,54 @@
           </mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <div *ngIf="isLoadingRoom" class="loading-container">
-            <mat-spinner diameter="40"></mat-spinner>
-            <p>Loading room information...</p>
-          </div>
+          @if (isLoadingRoom) {
+            <div class="loading-container">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p>Loading room information...</p>
+            </div>
+          }
 
-          <div *ngIf="!isLoadingRoom && roomAllocation" class="room-details">
-            <div class="room-number">
-              <mat-icon>door_front</mat-icon>
-              <span class="room-label">Room Number:</span>
-              <strong>{{ roomAllocation.roomNumber }}</strong>
+          @if (!isLoadingRoom && roomAllocation) {
+            <div class="room-details">
+              <div class="room-number">
+                <mat-icon>door_front</mat-icon>
+                <span class="room-label">Room Number:</span>
+                <strong>{{ roomAllocation.roomNumber }}</strong>
+              </div>
+              <div class="building-name">
+                <mat-icon>apartment</mat-icon>
+                <span class="building-label">Building:</span>
+                <strong>{{ roomAllocation.buildingName }}</strong>
+              </div>
+              <div class="allocation-date">
+                <mat-icon>event</mat-icon>
+                <span class="date-label">Allocated:</span>
+                <span>{{ roomAllocation.allocationDate | date: 'MMM d, y' }}</span>
+              </div>
+              <div class="allocation-status">
+                <app-modern-status-badge [status]="roomAllocation.status" size="sm"></app-modern-status-badge>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="room-actions">
+                <button mat-button color="primary" routerLink="/rooms">
+                  <mat-icon>visibility</mat-icon>
+                  View Room Details
+                </button>
+              </div>
             </div>
-            <div class="building-name">
-              <mat-icon>apartment</mat-icon>
-              <span class="building-label">Building:</span>
-              <strong>{{ roomAllocation.buildingName }}</strong>
-            </div>
-            <div class="allocation-date">
-              <mat-icon>event</mat-icon>
-              <span class="date-label">Allocated:</span>
-              <span>{{ roomAllocation.allocationDate | date: 'MMM d, y' }}</span>
-            </div>
-            <div class="allocation-status">
-              <app-modern-status-badge [status]="roomAllocation.status" size="sm"></app-modern-status-badge>
-            </div>
-            <mat-divider></mat-divider>
-            <div class="room-actions">
-              <button mat-button color="primary" routerLink="/rooms">
-                <mat-icon>visibility</mat-icon>
-                View Room Details
+          }
+
+          @if (!isLoadingRoom && !roomAllocation) {
+            <div class="no-room">
+              <mat-icon class="no-room-icon">info</mat-icon>
+              <p>No room allocated yet</p>
+              <p class="no-room-hint">Your room will be allocated after your application and documents are approved.</p>
+              <button mat-raised-button color="primary" routerLink="/rooms">
+                <mat-icon>search</mat-icon>
+                Browse Available Rooms
               </button>
             </div>
-          </div>
-
-          <div *ngIf="!isLoadingRoom && !roomAllocation" class="no-room">
-            <mat-icon class="no-room-icon">info</mat-icon>
-            <p>No room allocated yet</p>
-            <p class="no-room-hint">Your room will be allocated after your application and documents are approved.</p>
-            <button mat-raised-button color="primary" routerLink="/rooms">
-              <mat-icon>search</mat-icon>
-              Browse Available Rooms
-            </button>
-          </div>
+          }
         </mat-card-content>
       </mat-card>
 
@@ -206,37 +228,45 @@
         </mat-card-header>
         <mat-card-content>
           <!-- Loading State -->
-          <div *ngIf="isLoadingApplications" class="loading-container">
-            <mat-spinner diameter="40"></mat-spinner>
-            <p>Loading applications...</p>
-          </div>
+          @if (isLoadingApplications) {
+            <div class="loading-container">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p>Loading applications...</p>
+            </div>
+          }
 
           <!-- Empty State -->
-          <div *ngIf="!isLoadingApplications && applicationHistory.length === 0" class="no-applications">
-            <mat-icon class="no-applications-icon">inbox</mat-icon>
-            <p>No applications yet</p>
-            <p class="no-applications-hint">Submit your first accommodation application to get started.</p>
-            <button mat-raised-button color="primary" routerLink="/applications/new">
-              <mat-icon>add</mat-icon>
-              New Application
-            </button>
-          </div>
-
-          <!-- Applications List -->
-          <div *ngIf="!isLoadingApplications && applicationHistory.length > 0" class="history-list">
-            <div class="history-item" *ngFor="let app of applicationHistory">
-              <div class="history-info">
-                <div class="history-code">{{ app.applicationCode }}</div>
-                <div class="history-details">
-                  <app-modern-status-badge [status]="app.status" size="sm"></app-modern-status-badge>
-                  <span class="history-date">{{ app.applicationDate | date: 'MMM d, y' }}</span>
-                </div>
-              </div>
-              <button mat-icon-button color="primary" [routerLink]="['/applications', app.id]">
-                <mat-icon>arrow_forward</mat-icon>
+          @if (!isLoadingApplications && applicationHistory.length === 0) {
+            <div class="no-applications">
+              <mat-icon class="no-applications-icon">inbox</mat-icon>
+              <p>No applications yet</p>
+              <p class="no-applications-hint">Submit your first accommodation application to get started.</p>
+              <button mat-raised-button color="primary" routerLink="/applications/new">
+                <mat-icon>add</mat-icon>
+                New Application
               </button>
             </div>
-          </div>
+          }
+
+          <!-- Applications List -->
+          @if (!isLoadingApplications && applicationHistory.length > 0) {
+            <div class="history-list">
+              @for (app of applicationHistory; track app) {
+                <div class="history-item">
+                  <div class="history-info">
+                    <div class="history-code">{{ app.applicationCode }}</div>
+                    <div class="history-details">
+                      <app-modern-status-badge [status]="app.status" size="sm"></app-modern-status-badge>
+                      <span class="history-date">{{ app.applicationDate | date: 'MMM d, y' }}</span>
+                    </div>
+                  </div>
+                  <button mat-icon-button color="primary" [routerLink]="['/applications', app.id]">
+                    <mat-icon>arrow_forward</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          }
         </mat-card-content>
       </mat-card>
     </div>
@@ -253,16 +283,18 @@
         </mat-card-header>
         <mat-card-content>
           <div class="documents-list">
-            <div class="document-item" *ngFor="let doc of uploadedDocuments">
-              <div class="document-info">
-                <mat-icon class="document-icon">description</mat-icon>
-                <div class="document-details">
-                  <span class="document-name">{{doc.name}}</span>
-                  <span class="document-date">{{doc.date | date:'shortDate'}}</span>
+            @for (doc of uploadedDocuments; track doc) {
+              <div class="document-item">
+                <div class="document-info">
+                  <mat-icon class="document-icon">description</mat-icon>
+                  <div class="document-details">
+                    <span class="document-name">{{doc.name}}</span>
+                    <span class="document-date">{{doc.date | date:'shortDate'}}</span>
+                  </div>
                 </div>
+                <app-modern-status-badge [status]="doc.status" size="sm"></app-modern-status-badge>
               </div>
-              <app-modern-status-badge [status]="doc.status" size="sm"></app-modern-status-badge>
-            </div>
+            }
           </div>
 
           <mat-divider class="documents-divider"></mat-divider>
@@ -279,5 +311,7 @@
   </div>
 
   <!-- Document Viewer Modal -->
-  <app-document-viewer *ngIf="selectedDocument" [document]="selectedDocument" (close)="closeViewer()">
-  </app-document-viewer>
+  @if (selectedDocument) {
+    <app-document-viewer [document]="selectedDocument" (close)="closeViewer()">
+    </app-document-viewer>
+  }

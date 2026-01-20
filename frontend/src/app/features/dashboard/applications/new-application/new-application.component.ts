@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -30,7 +30,6 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
   styleUrls: ['./new-application.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterModule,
     MatToolbarModule,
@@ -46,7 +45,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
     MatProgressSpinnerModule,
     MatDividerModule,
     MatSnackBarModule
-  ]
+]
 })
 export class NewApplicationComponent implements OnInit {
   applicationForm: FormGroup;

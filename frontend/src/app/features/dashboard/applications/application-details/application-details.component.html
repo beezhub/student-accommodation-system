@@ -3,15 +3,19 @@
     <span class="app-title">Student Housing</span>
     <span class="spacer"></span>
     <!-- Responsive navigation: hamburger on small, inline on large -->
-    <ng-container *ngIf="!isSmallScreen">
+    @if (!isSmallScreen) {
       <nav class="toolbar-nav toolbar-nav-desktop" aria-label="Main navigation">
         <a mat-button [routerLink]="isAdmin ? '/admin' : '/dashboard'">Dashboard</a>
         <a mat-button [routerLink]="isAdmin ? '/admin/applications' : '/applications'" aria-current="page">Applications</a>
-        <a mat-button *ngIf="!isAdmin" routerLink="/documents">Documents</a>
-        <a mat-button *ngIf="!isAdmin" routerLink="/profile">Profile</a>
+        @if (!isAdmin) {
+          <a mat-button routerLink="/documents">Documents</a>
+        }
+        @if (!isAdmin) {
+          <a mat-button routerLink="/profile">Profile</a>
+        }
       </nav>
-    </ng-container>
-    <ng-container *ngIf="isSmallScreen">
+    }
+    @if (isSmallScreen) {
       <button mat-icon-button [matMenuTriggerFor]="menu" class="toolbar-menu-btn toolbar-menu-mobile"
         aria-label="Open menu">
         <mat-icon>menu</mat-icon>
@@ -23,14 +27,18 @@
         <a mat-menu-item [routerLink]="isAdmin ? '/admin/applications' : '/applications'">
           <span>Applications</span>
         </a>
-        <a mat-menu-item *ngIf="!isAdmin" routerLink="/documents">
-          <span>Documents</span>
-        </a>
-        <a mat-menu-item *ngIf="!isAdmin" routerLink="/profile">
-          <span>Profile</span>
-        </a>
+        @if (!isAdmin) {
+          <a mat-menu-item routerLink="/documents">
+            <span>Documents</span>
+          </a>
+        }
+        @if (!isAdmin) {
+          <a mat-menu-item routerLink="/profile">
+            <span>Profile</span>
+          </a>
+        }
       </mat-menu>
-    </ng-container>
+    }
   </div>
 </mat-toolbar>
 
@@ -43,169 +51,183 @@
         Back to Applications
       </button>
       <h2>Application Details</h2>
-      <div class="status-chip-container" *ngIf="application">
-        <app-modern-status-badge [status]="application.status" size="md"></app-modern-status-badge>
-      </div>
+      @if (application) {
+        <div class="status-chip-container">
+          <app-modern-status-badge [status]="application.status" size="md"></app-modern-status-badge>
+        </div>
+      }
     </div>
 
     <!-- Loading Spinner -->
-    <div *ngIf="isLoading" class="loading-container">
-      <mat-spinner></mat-spinner>
-    </div>
+    @if (isLoading) {
+      <div class="loading-container">
+        <mat-spinner></mat-spinner>
+      </div>
+    }
 
     <!-- Content -->
-    <div *ngIf="!isLoading && application" class="content-grid">
-      <!-- Admin Actions -->
-      <mat-card *ngIf="canApproveOrReject()" appearance="outlined" class="admin-actions-card">
-        <mat-card-content>
-          <h3 class="section-title">Admin Actions</h3>
-          <mat-divider></mat-divider>
-          <div class="action-buttons">
-            <button mat-raised-button color="primary" (click)="openApproveDialog()">
-              <mat-icon>check_circle</mat-icon>
-              Approve Application
-            </button>
-            <button mat-raised-button color="warn" (click)="openRejectDialog()">
-              <mat-icon>cancel</mat-icon>
-              Reject Application
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Application Overview -->
-      <mat-card appearance="outlined">
-        <mat-card-content>
-          <h3 class="section-title">Application Overview</h3>
-          <mat-divider></mat-divider>
-
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="label">Application Code</div>
-              <div class="value">{{ application.applicationCode }}</div>
-            </div>
-            <div class="info-item">
-              <div class="label">Submitted Date</div>
-              <div class="value">{{ application.applicationDate | date: 'medium' }}</div>
-            </div>
-            <div class="info-item">
-              <div class="label">Status</div>
-              <div class="value">
-                <app-modern-status-badge [status]="application.status" size="sm"></app-modern-status-badge>
+    @if (!isLoading && application) {
+      <div class="content-grid">
+        <!-- Admin Actions -->
+        @if (canApproveOrReject()) {
+          <mat-card appearance="outlined" class="admin-actions-card">
+            <mat-card-content>
+              <h3 class="section-title">Admin Actions</h3>
+              <mat-divider></mat-divider>
+              <div class="action-buttons">
+                <button mat-raised-button color="primary" (click)="openApproveDialog()">
+                  <mat-icon>check_circle</mat-icon>
+                  Approve Application
+                </button>
+                <button mat-raised-button color="warn" (click)="openRejectDialog()">
+                  <mat-icon>cancel</mat-icon>
+                  Reject Application
+                </button>
               </div>
-            </div>
-            <div class="info-item" *ngIf="application.remarks">
-              <div class="label">Remarks</div>
-              <div class="value">{{ application.remarks }}</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Student Information (for admin view) -->
-      <mat-card *ngIf="isAdmin && application.studentFirstName" appearance="outlined">
-        <mat-card-content>
-          <h3 class="section-title">Student Information</h3>
-          <mat-divider></mat-divider>
-
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="label">Full Name</div>
-              <div class="value">{{ application.studentFirstName }} {{ application.studentLastName }}</div>
-            </div>
-            <div class="info-item">
-              <div class="label">Email</div>
-              <div class="value">{{ application.studentEmail }}</div>
-            </div>
-            <div class="info-item">
-              <div class="label">Student ID</div>
-              <div class="value">#{{ application.studentId }}</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Application Timeline -->
-      <mat-card appearance="outlined">
-        <mat-card-content>
-          <h3 class="section-title">Application Timeline</h3>
-          <mat-divider></mat-divider>
-
-          <div class="timeline-mat-list" role="list">
-            <ng-container *ngFor="let event of timeline; let last = last">
-              <div class="timeline-mat-item" role="listitem">
-                <div class="timeline-mat-icon">
-                  <mat-icon color="primary" aria-hidden="true">{{ event.icon }}</mat-icon>
+            </mat-card-content>
+          </mat-card>
+        }
+        <!-- Application Overview -->
+        <mat-card appearance="outlined">
+          <mat-card-content>
+            <h3 class="section-title">Application Overview</h3>
+            <mat-divider></mat-divider>
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="label">Application Code</div>
+                <div class="value">{{ application.applicationCode }}</div>
+              </div>
+              <div class="info-item">
+                <div class="label">Submitted Date</div>
+                <div class="value">{{ application.applicationDate | date: 'medium' }}</div>
+              </div>
+              <div class="info-item">
+                <div class="label">Status</div>
+                <div class="value">
+                  <app-modern-status-badge [status]="application.status" size="sm"></app-modern-status-badge>
                 </div>
-                <div class="timeline-mat-content">
-                  <div class="timeline-mat-header">
-                    <span class="timeline-mat-title">{{ event.status }}</span>
-                    <app-modern-status-badge [status]="event.status" size="sm" class="timeline-mat-chip"></app-modern-status-badge>
-                    <span class="timeline-mat-date">{{ event.date | date: 'short' }}</span>
+              </div>
+              @if (application.remarks) {
+                <div class="info-item">
+                  <div class="label">Remarks</div>
+                  <div class="value">{{ application.remarks }}</div>
+                </div>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+        <!-- Student Information (for admin view) -->
+        @if (isAdmin && application.studentFirstName) {
+          <mat-card appearance="outlined">
+            <mat-card-content>
+              <h3 class="section-title">Student Information</h3>
+              <mat-divider></mat-divider>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="label">Full Name</div>
+                  <div class="value">{{ application.studentFirstName }} {{ application.studentLastName }}</div>
+                </div>
+                <div class="info-item">
+                  <div class="label">Email</div>
+                  <div class="value">{{ application.studentEmail }}</div>
+                </div>
+                <div class="info-item">
+                  <div class="label">Student ID</div>
+                  <div class="value">#{{ application.studentId }}</div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+        <!-- Application Timeline -->
+        <mat-card appearance="outlined">
+          <mat-card-content>
+            <h3 class="section-title">Application Timeline</h3>
+            <mat-divider></mat-divider>
+            <div class="timeline-mat-list" role="list">
+              @for (event of timeline; track event; let last = $last) {
+                <div class="timeline-mat-item" role="listitem">
+                  <div class="timeline-mat-icon">
+                    <mat-icon color="primary" aria-hidden="true">{{ event.icon }}</mat-icon>
                   </div>
-                  <div class="timeline-mat-description">{{ event.description }}</div>
+                  <div class="timeline-mat-content">
+                    <div class="timeline-mat-header">
+                      <span class="timeline-mat-title">{{ event.status }}</span>
+                      <app-modern-status-badge [status]="event.status" size="sm" class="timeline-mat-chip"></app-modern-status-badge>
+                      <span class="timeline-mat-date">{{ event.date | date: 'short' }}</span>
+                    </div>
+                    <div class="timeline-mat-description">{{ event.description }}</div>
+                  </div>
                 </div>
-              </div>
-              <mat-divider *ngIf="!last" class="timeline-mat-divider"></mat-divider>
-            </ng-container>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
+                @if (!last) {
+                  <mat-divider class="timeline-mat-divider"></mat-divider>
+                }
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    }
 
     <!-- Approve Dialog -->
-    <div *ngIf="showApproveDialog" class="dialog-overlay" (click)="closeDialogs()">
-      <mat-card class="dialog-card" (click)="$event.stopPropagation()">
-        <mat-card-header>
-          <mat-card-title>Approve Application</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Are you sure you want to approve this application?</p>
-          <form [formGroup]="remarksForm">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Remarks (Optional)</mat-label>
-              <textarea matInput formControlName="remarks" rows="3" placeholder="Add any comments or notes"></textarea>
-            </mat-form-field>
-          </form>
-        </mat-card-content>
-        <mat-card-actions align="end">
-          <button mat-button (click)="closeDialogs()">Cancel</button>
-          <button mat-raised-button color="primary" (click)="approveApplication()">
-            <mat-icon>check_circle</mat-icon>
-            Approve
-          </button>
-        </mat-card-actions>
-      </mat-card>
-    </div>
+    @if (showApproveDialog) {
+      <div class="dialog-overlay" (click)="closeDialogs()">
+        <mat-card class="dialog-card" (click)="$event.stopPropagation()">
+          <mat-card-header>
+            <mat-card-title>Approve Application</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p>Are you sure you want to approve this application?</p>
+            <form [formGroup]="remarksForm">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Remarks (Optional)</mat-label>
+                <textarea matInput formControlName="remarks" rows="3" placeholder="Add any comments or notes"></textarea>
+              </mat-form-field>
+            </form>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-button (click)="closeDialogs()">Cancel</button>
+            <button mat-raised-button color="primary" (click)="approveApplication()">
+              <mat-icon>check_circle</mat-icon>
+              Approve
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    }
 
     <!-- Reject Dialog -->
-    <div *ngIf="showRejectDialog" class="dialog-overlay" (click)="closeDialogs()">
-      <mat-card class="dialog-card" (click)="$event.stopPropagation()">
-        <mat-card-header>
-          <mat-card-title>Reject Application</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Please provide a reason for rejecting this application.</p>
-          <form [formGroup]="remarksForm">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Reason for Rejection *</mat-label>
-              <textarea matInput formControlName="remarks" rows="4"
+    @if (showRejectDialog) {
+      <div class="dialog-overlay" (click)="closeDialogs()">
+        <mat-card class="dialog-card" (click)="$event.stopPropagation()">
+          <mat-card-header>
+            <mat-card-title>Reject Application</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p>Please provide a reason for rejecting this application.</p>
+            <form [formGroup]="remarksForm">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Reason for Rejection *</mat-label>
+                <textarea matInput formControlName="remarks" rows="4"
                 placeholder="Enter the reason for rejection" required></textarea>
-              <mat-error *ngIf="remarksForm.get('remarks')?.hasError('required')">
-                Reason is required
-              </mat-error>
-            </mat-form-field>
-          </form>
-        </mat-card-content>
-        <mat-card-actions align="end">
-          <button mat-button (click)="closeDialogs()">Cancel</button>
-          <button mat-raised-button color="warn" (click)="rejectApplication()"
-            [disabled]="!remarksForm.valid">
-            <mat-icon>cancel</mat-icon>
-            Reject
-          </button>
-        </mat-card-actions>
-      </mat-card>
-    </div>
+                @if (remarksForm.get('remarks')?.hasError('required')) {
+                  <mat-error>
+                    Reason is required
+                  </mat-error>
+                }
+              </mat-form-field>
+            </form>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-button (click)="closeDialogs()">Cancel</button>
+            <button mat-raised-button color="warn" (click)="rejectApplication()"
+              [disabled]="!remarksForm.valid">
+              <mat-icon>cancel</mat-icon>
+              Reject
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    }
   </div>
 </main>

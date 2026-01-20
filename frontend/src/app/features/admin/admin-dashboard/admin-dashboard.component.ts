@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { AdminService, DashboardStats } from '../../../core/services/admin.service';
 
@@ -16,14 +16,13 @@ import { MatGridListModule } from '@angular/material/grid-list';
   styleUrls: ['./admin-dashboard.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatGridListModule,
-  ],
+    MatGridListModule
+],
 })
 export class AdminDashboardComponent implements OnInit {
   stats: DashboardStats = {

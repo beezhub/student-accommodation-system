@@ -1,5 +1,5 @@
 import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatIconModule } from '@angular/material/icon';
 
 export type StatusType = 
@@ -25,7 +25,7 @@ interface StatusConfig {
 @Component({
   selector: 'app-modern-status-badge',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div [class]="'modern-badge ' + config().colorClass" [class.badge-sm]="size() === 'sm'" [class.badge-lg]="size() === 'lg'">

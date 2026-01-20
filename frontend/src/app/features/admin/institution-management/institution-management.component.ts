@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { InstitutionService, InstitutionResponse, PageResponse } from '../../../core/services/institution.service';
 
@@ -23,7 +23,6 @@ import { MatMenuModule } from '@angular/material/menu';
   styleUrls: ['./institution-management.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
@@ -36,8 +35,8 @@ import { MatMenuModule } from '@angular/material/menu';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatMenuModule,
-  ],
+    MatMenuModule
+],
 })
 export class InstitutionManagementComponent implements OnInit {
   institutions: InstitutionResponse[] = [];

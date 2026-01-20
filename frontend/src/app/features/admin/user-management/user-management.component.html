@@ -33,77 +33,81 @@
 
       <!-- Users Table -->
       <div class="table-container">
-        <div *ngIf="isLoading" class="loading-container">
-          <mat-spinner></mat-spinner>
-        </div>
+        @if (isLoading) {
+          <div class="loading-container">
+            <mat-spinner></mat-spinner>
+          </div>
+        }
 
-        <table mat-table [dataSource]="users" *ngIf="!isLoading" class="users-table">
-          <!-- ID Column -->
-          <ng-container matColumnDef="id">
-            <th mat-header-cell *matHeaderCellDef>ID</th>
-            <td mat-cell *matCellDef="let user">{{ user.id }}</td>
-          </ng-container>
+        @if (!isLoading) {
+          <table mat-table [dataSource]="users" class="users-table">
+            <!-- ID Column -->
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef>ID</th>
+              <td mat-cell *matCellDef="let user">{{ user.id }}</td>
+            </ng-container>
+            <!-- Name Column -->
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Name</th>
+              <td mat-cell *matCellDef="let user">{{ user.firstName }} {{ user.lastName }}</td>
+            </ng-container>
+            <!-- Email Column -->
+            <ng-container matColumnDef="email">
+              <th mat-header-cell *matHeaderCellDef>Email</th>
+              <td mat-cell *matCellDef="let user">{{ user.email }}</td>
+            </ng-container>
+            <!-- Role Column -->
+            <ng-container matColumnDef="role">
+              <th mat-header-cell *matHeaderCellDef>Role</th>
+              <td mat-cell *matCellDef="let user">
+                <mat-chip [color]="getRoleColor(user.userRole)" selected>
+                  {{ user.userRole }}
+                </mat-chip>
+              </td>
+            </ng-container>
+            <!-- Must Change Password Column -->
+            <ng-container matColumnDef="mustChangePassword">
+              <th mat-header-cell *matHeaderCellDef>Password Status</th>
+              <td mat-cell *matCellDef="let user">
+                @if (user.mustChangePassword) {
+                  <mat-chip color="warn" selected>
+                    <mat-icon>lock_reset</mat-icon>
+                    Must Change
+                  </mat-chip>
+                }
+                @if (!user.mustChangePassword) {
+                  <mat-chip color="primary" selected>
+                    <mat-icon>check_circle</mat-icon>
+                    OK
+                  </mat-chip>
+                }
+              </td>
+            </ng-container>
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let user">
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="deleteUser(user)"
+                  matTooltip="Delete user"
+                  >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+        }
 
-          <!-- Name Column -->
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef>Name</th>
-            <td mat-cell *matCellDef="let user">{{ user.firstName }} {{ user.lastName }}</td>
-          </ng-container>
-
-          <!-- Email Column -->
-          <ng-container matColumnDef="email">
-            <th mat-header-cell *matHeaderCellDef>Email</th>
-            <td mat-cell *matCellDef="let user">{{ user.email }}</td>
-          </ng-container>
-
-          <!-- Role Column -->
-          <ng-container matColumnDef="role">
-            <th mat-header-cell *matHeaderCellDef>Role</th>
-            <td mat-cell *matCellDef="let user">
-              <mat-chip [color]="getRoleColor(user.userRole)" selected>
-                {{ user.userRole }}
-              </mat-chip>
-            </td>
-          </ng-container>
-
-          <!-- Must Change Password Column -->
-          <ng-container matColumnDef="mustChangePassword">
-            <th mat-header-cell *matHeaderCellDef>Password Status</th>
-            <td mat-cell *matCellDef="let user">
-              <mat-chip *ngIf="user.mustChangePassword" color="warn" selected>
-                <mat-icon>lock_reset</mat-icon>
-                Must Change
-              </mat-chip>
-              <mat-chip *ngIf="!user.mustChangePassword" color="primary" selected>
-                <mat-icon>check_circle</mat-icon>
-                OK
-              </mat-chip>
-            </td>
-          </ng-container>
-
-          <!-- Actions Column -->
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Actions</th>
-            <td mat-cell *matCellDef="let user">
-              <button
-                mat-icon-button
-                color="warn"
-                (click)="deleteUser(user)"
-                matTooltip="Delete user"
-              >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-        </table>
-
-        <div *ngIf="!isLoading && users.length === 0" class="no-data">
-          <mat-icon>info</mat-icon>
-          <p>No users found</p>
-        </div>
+        @if (!isLoading && users.length === 0) {
+          <div class="no-data">
+            <mat-icon>info</mat-icon>
+            <p>No users found</p>
+          </div>
+        }
       </div>
     </mat-card-content>
   </mat-card>

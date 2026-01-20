@@ -78,14 +78,18 @@
           <mat-card class="info-card">
             <mat-card-content>
               <div class="documents-list">
-                <div *ngFor="let doc of documents" class="document-item">
-                  <mat-icon class="document-icon success-icon">check_circle</mat-icon>
-                  <span class="document-name">{{ doc.documentTypeName }}</span>
-                </div>
-                <div *ngIf="documents.length === 0" class="no-documents">
-                  <mat-icon class="warning-icon">warning</mat-icon>
-                  <span>No documents uploaded.</span>
-                </div>
+                @for (doc of documents; track doc) {
+                  <div class="document-item">
+                    <mat-icon class="document-icon success-icon">check_circle</mat-icon>
+                    <span class="document-name">{{ doc.documentTypeName }}</span>
+                  </div>
+                }
+                @if (documents.length === 0) {
+                  <div class="no-documents">
+                    <mat-icon class="warning-icon">warning</mat-icon>
+                    <span>No documents uploaded.</span>
+                  </div>
+                }
               </div>
             </mat-card-content>
           </mat-card>
@@ -105,8 +109,12 @@
     <mat-card-actions class="review-actions">
       <button mat-raised-button color="primary" class="submit-button" (click)="onSubmit()"
         [disabled]="isSubmitting || !termsAccepted">
-        <mat-spinner *ngIf="isSubmitting" diameter="20" class="button-spinner"></mat-spinner>
-        <mat-icon *ngIf="!isSubmitting">send</mat-icon>
+        @if (isSubmitting) {
+          <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+        }
+        @if (!isSubmitting) {
+          <mat-icon>send</mat-icon>
+        }
         {{ isSubmitting ? "Submitting..." : "Submit Application" }}
       </button>
     </mat-card-actions>

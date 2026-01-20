@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminService, AdminUser, CreateUserRequest } from '../../../core/services/admin.service';
 
@@ -23,7 +23,6 @@ import { CreateUserDialogComponent } from './create-user-dialog/create-user-dial
   styleUrls: ['./user-management.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
@@ -35,8 +34,8 @@ import { CreateUserDialogComponent } from './create-user-dialog/create-user-dial
     MatSelectModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatChipsModule,
-  ],
+    MatChipsModule
+],
 })
 export class UserManagementComponent implements OnInit {
   users: AdminUser[] = [];

@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,37 +18,43 @@ import { BuildingService, BuildingRequest, BuildingResponse } from '../../../../
         <mat-form-field appearance="outline">
           <mat-label>Building Name *</mat-label>
           <input matInput formControlName="name" placeholder="e.g., North Hall" required>
-          <mat-error *ngIf="buildingForm.get('name')?.hasError('required')">
-            Building name is required
-          </mat-error>
+          @if (buildingForm.get('name')?.hasError('required')) {
+            <mat-error>
+              Building name is required
+            </mat-error>
+          }
         </mat-form-field>
-
+    
         <mat-form-field appearance="outline">
           <mat-label>Address</mat-label>
           <input matInput formControlName="address" placeholder="e.g., 123 Campus Drive">
         </mat-form-field>
-
+    
         <mat-form-field appearance="outline">
           <mat-label>Total Floors</mat-label>
           <input matInput type="number" formControlName="totalFloors" placeholder="e.g., 5" min="1">
         </mat-form-field>
-
+    
         <mat-form-field appearance="outline">
           <mat-label>Description</mat-label>
           <textarea matInput formControlName="description" rows="4"
-                    placeholder="Additional information about the building"></textarea>
+          placeholder="Additional information about the building"></textarea>
         </mat-form-field>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
       <button mat-raised-button color="primary" (click)="onSubmit()"
-              [disabled]="!buildingForm.valid || isSubmitting">
-        <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
-        <span *ngIf="!isSubmitting">{{ data.mode === 'create' ? 'Create' : 'Update' }}</span>
+        [disabled]="!buildingForm.valid || isSubmitting">
+        @if (isSubmitting) {
+          <mat-spinner diameter="20"></mat-spinner>
+        }
+        @if (!isSubmitting) {
+          <span>{{ data.mode === 'create' ? 'Create' : 'Update' }}</span>
+        }
       </button>
     </mat-dialog-actions>
-  `,
+    `,
   styles: [`
     .building-form {
       display: flex;
@@ -74,15 +80,14 @@ import { BuildingService, BuildingRequest, BuildingResponse } from '../../../../
   `],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatSnackBarModule
+],
 })
 export class BuildingFormDialogComponent implements OnInit {
   buildingForm: FormGroup;

@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { AdminService } from '../../../../core/services/admin.service';
@@ -19,7 +19,6 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./create-user-dialog.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -28,8 +27,8 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
     MatSelectModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatSnackBarModule
+],
 })
 export class CreateUserDialogComponent {
   createUserForm: FormGroup;

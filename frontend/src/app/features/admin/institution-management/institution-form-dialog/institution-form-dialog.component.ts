@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { InstitutionService, InstitutionResponse, InstitutionRequest } from '../../../../core/services/institution.service';
@@ -18,7 +18,6 @@ import { MatIconModule } from '@angular/material/icon';
   styleUrls: ['./institution-form-dialog.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -26,8 +25,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatIconModule,
-  ],
+    MatIconModule
+],
 })
 export class InstitutionFormDialogComponent implements OnInit {
   institutionForm: FormGroup;

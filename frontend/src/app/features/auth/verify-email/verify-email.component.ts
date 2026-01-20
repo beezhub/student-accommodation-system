@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -15,14 +15,13 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./verify-email.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatSnackBarModule
+],
 })
 export class VerifyEmailComponent implements OnInit {
   isVerifying = true;

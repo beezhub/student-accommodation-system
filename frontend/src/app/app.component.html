@@ -9,7 +9,9 @@
 
       <div class="nav-spacer"></div>
 
-      <app-nav-menu (logout)="logout()" *ngIf="!isHomePage"></app-nav-menu>
+      @if (!isHomePage) {
+        <app-nav-menu (logout)="logout()"></app-nav-menu>
+      }
     </div>
   </mat-toolbar>
   <!-- Main Content Area -->

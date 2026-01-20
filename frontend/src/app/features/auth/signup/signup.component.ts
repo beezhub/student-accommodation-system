@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -21,7 +21,6 @@ import { MatDividerModule } from '@angular/material/divider';
   styleUrls: ['./signup.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterModule,
     MatCardModule,
@@ -33,7 +32,7 @@ import { MatDividerModule } from '@angular/material/divider';
     MatSnackBarModule,
     MatCheckboxModule,
     MatDividerModule
-  ],
+],
 })
 export class SignupComponent {
   signupForm: FormGroup;

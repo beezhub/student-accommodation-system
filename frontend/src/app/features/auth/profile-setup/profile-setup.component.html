@@ -49,21 +49,27 @@
               <mat-label>Student Number</mat-label>
               <input matInput formControlName="studentNumber" placeholder="e.g., STU123456">
               <mat-icon matPrefix>badge</mat-icon>
-              <mat-error *ngIf="profileForm.get('studentNumber')?.hasError('required')">
-                Student number is required
-              </mat-error>
+              @if (profileForm.get('studentNumber')?.hasError('required')) {
+                <mat-error>
+                  Student number is required
+                </mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="half-width">
               <mat-label>Phone Number</mat-label>
               <input matInput type="tel" formControlName="phoneNumber" placeholder="e.g., 0123456789">
               <mat-icon matPrefix>phone</mat-icon>
-              <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('required')">
-                Phone number is required
-              </mat-error>
-              <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('pattern')">
-                Please enter a valid 10-digit phone number
-              </mat-error>
+              @if (profileForm.get('phoneNumber')?.hasError('required')) {
+                <mat-error>
+                  Phone number is required
+                </mat-error>
+              }
+              @if (profileForm.get('phoneNumber')?.hasError('pattern')) {
+                <mat-error>
+                  Please enter a valid 10-digit phone number
+                </mat-error>
+              }
             </mat-form-field>
           </div>
 
@@ -74,22 +80,28 @@
               <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
               <mat-datepicker #dobPicker></mat-datepicker>
               <mat-icon matPrefix>cake</mat-icon>
-              <mat-error *ngIf="profileForm.get('dateOfBirth')?.hasError('required')">
-                Date of birth is required
-              </mat-error>
+              @if (profileForm.get('dateOfBirth')?.hasError('required')) {
+                <mat-error>
+                  Date of birth is required
+                </mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="half-width">
               <mat-label>Gender</mat-label>
               <mat-select formControlName="gender">
-                <mat-option *ngFor="let gender of genderOptions" [value]="gender.value">
-                  {{gender.viewValue}}
-                </mat-option>
+                @for (gender of genderOptions; track gender) {
+                  <mat-option [value]="gender.value">
+                    {{gender.viewValue}}
+                  </mat-option>
+                }
               </mat-select>
               <mat-icon matPrefix>wc</mat-icon>
-              <mat-error *ngIf="profileForm.get('gender')?.hasError('required')">
-                Gender is required
-              </mat-error>
+              @if (profileForm.get('gender')?.hasError('required')) {
+                <mat-error>
+                  Gender is required
+                </mat-error>
+              }
             </mat-form-field>
           </div>
         </div>
@@ -107,27 +119,35 @@
             <mat-form-field appearance="outline" class="half-width">
               <mat-label>Institution</mat-label>
               <mat-select formControlName="institution">
-                <mat-option *ngFor="let institution of institutions" [value]="institution.id">
-                  {{institution.name}}
-                </mat-option>
+                @for (institution of institutions; track institution) {
+                  <mat-option [value]="institution.id">
+                    {{institution.name}}
+                  </mat-option>
+                }
               </mat-select>
               <mat-icon matPrefix>location_city</mat-icon>
-              <mat-error *ngIf="profileForm.get('institution')?.hasError('required')">
-                Institution is required
-              </mat-error>
+              @if (profileForm.get('institution')?.hasError('required')) {
+                <mat-error>
+                  Institution is required
+                </mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="half-width">
               <mat-label>Year of Study</mat-label>
               <mat-select formControlName="yearOfStudy">
-                <mat-option *ngFor="let year of yearsOfStudy" [value]="year.id">
-                  {{year.yearOfStudy}}
-                </mat-option>
+                @for (year of yearsOfStudy; track year) {
+                  <mat-option [value]="year.id">
+                    {{year.yearOfStudy}}
+                  </mat-option>
+                }
               </mat-select>
               <mat-icon matPrefix>calendar_today</mat-icon>
-              <mat-error *ngIf="profileForm.get('yearOfStudy')?.hasError('required')">
-                Year of study is required
-              </mat-error>
+              @if (profileForm.get('yearOfStudy')?.hasError('required')) {
+                <mat-error>
+                  Year of study is required
+                </mat-error>
+              }
             </mat-form-field>
           </div>
         </div>
@@ -144,8 +164,8 @@
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Special Requirements or Accessibility Needs</mat-label>
             <textarea matInput formControlName="specialRequirements"
-                      rows="4"
-                      placeholder="Please describe any special accommodation requirements"></textarea>
+              rows="4"
+            placeholder="Please describe any special accommodation requirements"></textarea>
             <mat-icon matPrefix>notes</mat-icon>
             <mat-hint>Any additional information we should know</mat-hint>
           </mat-form-field>
@@ -159,10 +179,18 @@
 
           <button mat-raised-button color="primary" type="submit" class="submit-button"
             [disabled]="profileForm.invalid || isSubmitting">
-            <mat-spinner *ngIf="isSubmitting" diameter="20" class="button-spinner"></mat-spinner>
-            <mat-icon *ngIf="!isSubmitting">arrow_forward</mat-icon>
-            <span *ngIf="!isSubmitting">Continue</span>
-            <span *ngIf="isSubmitting">Saving Profile...</span>
+            @if (isSubmitting) {
+              <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+            }
+            @if (!isSubmitting) {
+              <mat-icon>arrow_forward</mat-icon>
+            }
+            @if (!isSubmitting) {
+              <span>Continue</span>
+            }
+            @if (isSubmitting) {
+              <span>Saving Profile...</span>
+            }
           </button>
         </mat-card-actions>
       </form>

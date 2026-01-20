@@ -31,9 +31,9 @@ import { RoomResponse } from '../../../../core/services/room.service';
             <span class="value">{{ data.room.roomNumber }}</span>
           </div>
         </div>
-
+    
         <mat-divider></mat-divider>
-
+    
         <!-- Capacity Information -->
         <div class="detail-section">
           <h3>
@@ -54,21 +54,21 @@ import { RoomResponse } from '../../../../core/services/room.service';
               {{ getAvailableSpots() }} {{ getAvailableSpots() === 1 ? 'spot' : 'spots' }}
             </span>
           </div>
-
+    
           <!-- Visual Occupancy Bar -->
           <div class="occupancy-visual">
             <div class="occupancy-bar">
               <div class="occupancy-fill"
-                   [class]="getOccupancyClass()"
-                   [style.width.%]="getOccupancyPercentage()">
+                [class]="getOccupancyClass()"
+                [style.width.%]="getOccupancyPercentage()">
               </div>
             </div>
             <span class="occupancy-percentage">{{ getOccupancyPercentage() | number:'1.0-0' }}% occupied</span>
           </div>
         </div>
-
+    
         <mat-divider></mat-divider>
-
+    
         <!-- Status Information -->
         <div class="detail-section">
           <h3>
@@ -79,25 +79,33 @@ import { RoomResponse } from '../../../../core/services/room.service';
             <mat-icon>{{ getStatusIcon() }}</mat-icon>
             {{ data.room.status }}
           </mat-chip>
-
+    
           <div class="status-description">
-            <p *ngIf="data.room.status === 'AVAILABLE'">
-              This room is fully available for new allocations.
-            </p>
-            <p *ngIf="data.room.status === 'OCCUPIED'">
-              This room is currently occupied. {{ getAvailableSpots() > 0 ? 'Additional spots are available.' : 'No additional spots available.' }}
-            </p>
-            <p *ngIf="data.room.status === 'FULL'">
-              This room is currently at full capacity.
-            </p>
-            <p *ngIf="data.room.status === 'MAINTENANCE'">
-              This room is currently under maintenance and unavailable for allocation.
-            </p>
+            @if (data.room.status === 'AVAILABLE') {
+              <p>
+                This room is fully available for new allocations.
+              </p>
+            }
+            @if (data.room.status === 'OCCUPIED') {
+              <p>
+                This room is currently occupied. {{ getAvailableSpots() > 0 ? 'Additional spots are available.' : 'No additional spots available.' }}
+              </p>
+            }
+            @if (data.room.status === 'FULL') {
+              <p>
+                This room is currently at full capacity.
+              </p>
+            }
+            @if (data.room.status === 'MAINTENANCE') {
+              <p>
+                This room is currently under maintenance and unavailable for allocation.
+              </p>
+            }
           </div>
         </div>
-
+    
         <mat-divider></mat-divider>
-
+    
         <!-- Application Information -->
         <div class="detail-section info-box">
           <mat-icon>help_outline</mat-icon>
@@ -110,12 +118,14 @@ import { RoomResponse } from '../../../../core/services/room.service';
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onClose()">Close</button>
-      <button mat-raised-button color="primary" *ngIf="getAvailableSpots() > 0">
-        <mat-icon>assignment</mat-icon>
-        Apply for Accommodation
-      </button>
+      @if (getAvailableSpots() > 0) {
+        <button mat-raised-button color="primary">
+          <mat-icon>assignment</mat-icon>
+          Apply for Accommodation
+        </button>
+      }
     </mat-dialog-actions>
-  `,
+    `,
   styles: [`
     h2[mat-dialog-title] {
       display: flex;

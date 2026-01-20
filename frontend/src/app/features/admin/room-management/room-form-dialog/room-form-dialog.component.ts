@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,40 +20,50 @@ import { BuildingResponse } from '../../../../core/services/building.service';
         <mat-form-field appearance="outline">
           <mat-label>Room Number *</mat-label>
           <input matInput formControlName="roomNumber" placeholder="e.g., 101, A-201" required>
-          <mat-error *ngIf="roomForm.get('roomNumber')?.hasError('required')">
-            Room number is required
-          </mat-error>
+          @if (roomForm.get('roomNumber')?.hasError('required')) {
+            <mat-error>
+              Room number is required
+            </mat-error>
+          }
         </mat-form-field>
-
+    
         <mat-form-field appearance="outline">
           <mat-label>Building *</mat-label>
           <mat-select formControlName="buildingId" required>
-            <mat-option *ngFor="let building of data.buildings" [value]="building.id">
-              {{ building.name }}
-            </mat-option>
+            @for (building of data.buildings; track building) {
+              <mat-option [value]="building.id">
+                {{ building.name }}
+              </mat-option>
+            }
           </mat-select>
-          <mat-error *ngIf="roomForm.get('buildingId')?.hasError('required')">
-            Building is required
-          </mat-error>
+          @if (roomForm.get('buildingId')?.hasError('required')) {
+            <mat-error>
+              Building is required
+            </mat-error>
+          }
         </mat-form-field>
-
+    
         <mat-form-field appearance="outline">
           <mat-label>Capacity *</mat-label>
           <input matInput type="number" formControlName="capacity" placeholder="e.g., 2" min="1" required>
-          <mat-error *ngIf="roomForm.get('capacity')?.hasError('required')">
-            Capacity is required
-          </mat-error>
-          <mat-error *ngIf="roomForm.get('capacity')?.hasError('min')">
-            Capacity must be at least 1
-          </mat-error>
+          @if (roomForm.get('capacity')?.hasError('required')) {
+            <mat-error>
+              Capacity is required
+            </mat-error>
+          }
+          @if (roomForm.get('capacity')?.hasError('min')) {
+            <mat-error>
+              Capacity must be at least 1
+            </mat-error>
+          }
         </mat-form-field>
-
+    
         <mat-form-field appearance="outline">
           <mat-label>Current Occupancy</mat-label>
           <input matInput type="number" formControlName="currentOccupancy" placeholder="e.g., 0" min="0">
           <mat-hint>Leave as 0 for new rooms</mat-hint>
         </mat-form-field>
-
+    
         <mat-form-field appearance="outline">
           <mat-label>Status *</mat-label>
           <mat-select formControlName="status" required>
@@ -62,21 +72,27 @@ import { BuildingResponse } from '../../../../core/services/building.service';
             <mat-option value="FULL">Full</mat-option>
             <mat-option value="MAINTENANCE">Maintenance</mat-option>
           </mat-select>
-          <mat-error *ngIf="roomForm.get('status')?.hasError('required')">
-            Status is required
-          </mat-error>
+          @if (roomForm.get('status')?.hasError('required')) {
+            <mat-error>
+              Status is required
+            </mat-error>
+          }
         </mat-form-field>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
       <button mat-raised-button color="primary" (click)="onSubmit()"
-              [disabled]="!roomForm.valid || isSubmitting">
-        <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
-        <span *ngIf="!isSubmitting">{{ data.mode === 'create' ? 'Create' : 'Update' }}</span>
+        [disabled]="!roomForm.valid || isSubmitting">
+        @if (isSubmitting) {
+          <mat-spinner diameter="20"></mat-spinner>
+        }
+        @if (!isSubmitting) {
+          <span>{{ data.mode === 'create' ? 'Create' : 'Update' }}</span>
+        }
       </button>
     </mat-dialog-actions>
-  `,
+    `,
   styles: [`
     .room-form {
       display: flex;
@@ -102,7 +118,6 @@ import { BuildingResponse } from '../../../../core/services/building.service';
   `],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -110,8 +125,8 @@ import { BuildingResponse } from '../../../../core/services/building.service';
     MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-  ],
+    MatSnackBarModule
+],
 })
 export class RoomFormDialogComponent implements OnInit {
   roomForm: FormGroup;

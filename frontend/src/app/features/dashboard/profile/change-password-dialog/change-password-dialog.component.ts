@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,7 +13,6 @@ import { AuthService } from '../../../../core/services/auth.service';
   selector: 'app-change-password-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -21,7 +20,7 @@ import { AuthService } from '../../../../core/services/auth.service';
     MatInputModule,
     MatIconModule,
     MatProgressSpinnerModule
-  ],
+],
   template: `
     <h2 mat-dialog-title>Change Password</h2>
     <mat-dialog-content>
@@ -29,62 +28,76 @@ import { AuthService } from '../../../../core/services/auth.service';
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>Current Password</mat-label>
           <input matInput [type]="hideCurrentPassword ? 'password' : 'text'"
-                 formControlName="currentPassword" autocomplete="current-password">
+            formControlName="currentPassword" autocomplete="current-password">
           <button mat-icon-button matSuffix (click)="hideCurrentPassword = !hideCurrentPassword"
-                  type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hideCurrentPassword">
+            type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hideCurrentPassword">
             <mat-icon>{{hideCurrentPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
           </button>
-          <mat-error *ngIf="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched">
-            Current password is required
-          </mat-error>
+          @if (passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched) {
+            <mat-error>
+              Current password is required
+            </mat-error>
+          }
         </mat-form-field>
-
+    
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>New Password</mat-label>
           <input matInput [type]="hideNewPassword ? 'password' : 'text'"
-                 formControlName="newPassword" autocomplete="new-password">
+            formControlName="newPassword" autocomplete="new-password">
           <button mat-icon-button matSuffix (click)="hideNewPassword = !hideNewPassword"
-                  type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hideNewPassword">
+            type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hideNewPassword">
             <mat-icon>{{hideNewPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
           </button>
-          <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('required') && passwordForm.get('newPassword')?.touched">
-            New password is required
-          </mat-error>
-          <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('minlength')">
-            Password must be at least 8 characters
-          </mat-error>
+          @if (passwordForm.get('newPassword')?.hasError('required') && passwordForm.get('newPassword')?.touched) {
+            <mat-error>
+              New password is required
+            </mat-error>
+          }
+          @if (passwordForm.get('newPassword')?.hasError('minlength')) {
+            <mat-error>
+              Password must be at least 8 characters
+            </mat-error>
+          }
         </mat-form-field>
-
+    
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>Confirm New Password</mat-label>
           <input matInput [type]="hideConfirmPassword ? 'password' : 'text'"
-                 formControlName="confirmPassword" autocomplete="new-password">
+            formControlName="confirmPassword" autocomplete="new-password">
           <button mat-icon-button matSuffix (click)="hideConfirmPassword = !hideConfirmPassword"
-                  type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hideConfirmPassword">
+            type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hideConfirmPassword">
             <mat-icon>{{hideConfirmPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
           </button>
-          <mat-error *ngIf="passwordForm.get('confirmPassword')?.hasError('required') && passwordForm.get('confirmPassword')?.touched">
-            Please confirm your password
-          </mat-error>
-          <mat-error *ngIf="passwordForm.get('confirmPassword')?.hasError('passwordMismatch')">
-            Passwords do not match
-          </mat-error>
+          @if (passwordForm.get('confirmPassword')?.hasError('required') && passwordForm.get('confirmPassword')?.touched) {
+            <mat-error>
+              Please confirm your password
+            </mat-error>
+          }
+          @if (passwordForm.get('confirmPassword')?.hasError('passwordMismatch')) {
+            <mat-error>
+              Passwords do not match
+            </mat-error>
+          }
         </mat-form-field>
-
-        <div *ngIf="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
+    
+        @if (errorMessage) {
+          <div class="error-message">
+            {{ errorMessage }}
+          </div>
+        }
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
       <button mat-flat-button color="primary" (click)="onSubmit()"
-              [disabled]="!passwordForm.valid || isSubmitting">
-        <mat-progress-spinner *ngIf="isSubmitting" mode="indeterminate" diameter="18" strokeWidth="3"></mat-progress-spinner>
+        [disabled]="!passwordForm.valid || isSubmitting">
+        @if (isSubmitting) {
+          <mat-progress-spinner mode="indeterminate" diameter="18" strokeWidth="3"></mat-progress-spinner>
+        }
         <span>{{ isSubmitting ? 'Changing...' : 'Change Password' }}</span>
       </button>
     </mat-dialog-actions>
-  `,
+    `,
   styles: [`
     .full-width {
       width: 100%;

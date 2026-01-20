@@ -28,84 +28,101 @@
             <mat-form-field appearance="fill">
               <mat-label>First Name</mat-label>
               <input matInput type="text" formControlName="firstName" [readonly]="!isEditing">
-              <mat-error *ngIf="profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched">First name is required</mat-error>
+              @if (profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched) {
+                <mat-error>First name is required</mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="fill">
               <mat-label>Last Name</mat-label>
               <input matInput type="text" formControlName="lastName" [readonly]="!isEditing">
-              <mat-error *ngIf="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched">Last name is required</mat-error>
+              @if (profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched) {
+                <mat-error>Last name is required</mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="fill">
               <mat-label>Email</mat-label>
               <input matInput type="email" formControlName="email" [readonly]="!isEditing">
-              <mat-error *ngIf="profileForm.get('email')?.invalid && profileForm.get('email')?.touched">Please enter a valid email</mat-error>
+              @if (profileForm.get('email')?.invalid && profileForm.get('email')?.touched) {
+                <mat-error>Please enter a valid email</mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="fill">
               <mat-label>Phone Number</mat-label>
               <input matInput type="text" formControlName="phoneNumber" [readonly]="!isEditing">
-              <mat-error *ngIf="profileForm.get('phoneNumber')?.invalid && profileForm.get('phoneNumber')?.touched">Phone number must be 10 digits</mat-error>
+              @if (profileForm.get('phoneNumber')?.invalid && profileForm.get('phoneNumber')?.touched) {
+                <mat-error>Phone number must be 10 digits</mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="fill">
               <mat-label>Student Number</mat-label>
               <input matInput type="text" formControlName="studentNumber" [readonly]="!isEditing">
-              <mat-error *ngIf="profileForm.get('studentNumber')?.invalid && profileForm.get('studentNumber')?.touched">Student number is required</mat-error>
+              @if (profileForm.get('studentNumber')?.invalid && profileForm.get('studentNumber')?.touched) {
+                <mat-error>Student number is required</mat-error>
+              }
             </mat-form-field>
 
-            <ng-container *ngIf="isEditing; else institutionText">
+            @if (isEditing) {
               <mat-form-field appearance="fill">
                 <mat-label>Institution</mat-label>
                 <mat-select formControlName="institutionId">
                   <mat-option value="">Select institution</mat-option>
-                  <mat-option *ngFor="let institution of institutions" [value]="institution.id">{{ institution.name }}</mat-option>
+                  @for (institution of institutions; track institution) {
+                    <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
+                  }
                 </mat-select>
-                <mat-error *ngIf="profileForm.get('institutionId')?.invalid && profileForm.get('institutionId')?.touched">Institution is required</mat-error>
+                @if (profileForm.get('institutionId')?.invalid && profileForm.get('institutionId')?.touched) {
+                  <mat-error>Institution is required</mat-error>
+                }
               </mat-form-field>
-            </ng-container>
-            <ng-template #institutionText>
+            } @else {
               <mat-form-field appearance="fill">
                 <mat-label>Institution</mat-label>
                 <input matInput [value]="getInstitutionName(profileForm.get('institutionId')?.value)" readonly>
               </mat-form-field>
-            </ng-template>
+            }
 
-            <ng-container *ngIf="isEditing; else yearOfStudyText">
+            @if (isEditing) {
               <mat-form-field appearance="fill">
                 <mat-label>Year of Study</mat-label>
                 <mat-select formControlName="yearOfStudyId">
                   <mat-option value="">Select year</mat-option>
-                  <mat-option *ngFor="let year of yearsOfStudy" [value]="year.id">{{ year.yearOfStudy }}</mat-option>
+                  @for (year of yearsOfStudy; track year) {
+                    <mat-option [value]="year.id">{{ year.yearOfStudy }}</mat-option>
+                  }
                 </mat-select>
-                <mat-error *ngIf="profileForm.get('yearOfStudyId')?.invalid && profileForm.get('yearOfStudyId')?.touched">Year of study is required</mat-error>
+                @if (profileForm.get('yearOfStudyId')?.invalid && profileForm.get('yearOfStudyId')?.touched) {
+                  <mat-error>Year of study is required</mat-error>
+                }
               </mat-form-field>
-            </ng-container>
-            <ng-template #yearOfStudyText>
+            } @else {
               <mat-form-field appearance="fill">
                 <mat-label>Year of Study</mat-label>
                 <input matInput [value]="getYearOfStudyName(profileForm.get('yearOfStudyId')?.value)" readonly>
               </mat-form-field>
-            </ng-template>
+            }
 
-            <ng-container *ngIf="isEditing; else dobText">
+            @if (isEditing) {
               <mat-form-field appearance="fill">
                 <mat-label>Date of Birth</mat-label>
                 <input matInput [matDatepicker]="picker" formControlName="dateOfBirth">
                 <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
                 <mat-datepicker #picker></mat-datepicker>
-                <mat-error *ngIf="profileForm.get('dateOfBirth')?.invalid && profileForm.get('dateOfBirth')?.touched">Date of birth is required</mat-error>
+                @if (profileForm.get('dateOfBirth')?.invalid && profileForm.get('dateOfBirth')?.touched) {
+                  <mat-error>Date of birth is required</mat-error>
+                }
               </mat-form-field>
-            </ng-container>
-            <ng-template #dobText>
+            } @else {
               <mat-form-field appearance="fill">
                 <mat-label>Date of Birth</mat-label>
                 <input matInput [value]="profileForm.get('dateOfBirth')?.value" readonly>
               </mat-form-field>
-            </ng-template>
+            }
 
-            <ng-container *ngIf="isEditing; else genderText">
+            @if (isEditing) {
               <mat-form-field appearance="fill">
                 <mat-label>Gender</mat-label>
                 <mat-select formControlName="gender">
@@ -115,27 +132,30 @@
                   <mat-option value="Other">Other</mat-option>
                 </mat-select>
               </mat-form-field>
-            </ng-container>
-            <ng-template #genderText>
+            } @else {
               <mat-form-field appearance="fill">
                 <mat-label>Gender</mat-label>
                 <input matInput [value]="profileForm.get('gender')?.value || 'Not specified'" readonly>
               </mat-form-field>
-            </ng-template>
+            }
 
             <mat-form-field appearance="fill" class="full-width">
               <mat-label>Special Requirements</mat-label>
-              <textarea matInput formControlName="specialRequirements" [readonly]="!isEditing" rows="3" 
-                        placeholder="Enter any special requirements or accommodations needed"></textarea>
+              <textarea matInput formControlName="specialRequirements" [readonly]="!isEditing" rows="3"
+              placeholder="Enter any special requirements or accommodations needed"></textarea>
             </mat-form-field>
           </div>
 
-          <div class="actions" *ngIf="isEditing">
-            <button mat-flat-button color="primary" type="submit" [disabled]="!profileForm.valid || isSaving">
-              <mat-progress-spinner *ngIf="isSaving" mode="indeterminate" diameter="18" strokeWidth="3"></mat-progress-spinner>
-              <span class="button-text">{{ isSaving ? 'Saving...' : 'Save Changes' }}</span>
-            </button>
-          </div>
+          @if (isEditing) {
+            <div class="actions">
+              <button mat-flat-button color="primary" type="submit" [disabled]="!profileForm.valid || isSaving">
+                @if (isSaving) {
+                  <mat-progress-spinner mode="indeterminate" diameter="18" strokeWidth="3"></mat-progress-spinner>
+                }
+                <span class="button-text">{{ isSaving ? 'Saving...' : 'Save Changes' }}</span>
+              </button>
+            </div>
+          }
         </form>
       </mat-card-content>
     </mat-card>

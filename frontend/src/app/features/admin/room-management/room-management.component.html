@@ -23,9 +23,11 @@
           <mat-label>Building</mat-label>
           <mat-select formControlName="buildingId">
             <mat-option value="">All Buildings</mat-option>
-            <mat-option *ngFor="let building of buildings" [value]="building.id">
-              {{ building.name }}
-            </mat-option>
+            @for (building of buildings; track building) {
+              <mat-option [value]="building.id">
+                {{ building.name }}
+              </mat-option>
+            }
           </mat-select>
         </mat-form-field>
 
@@ -56,96 +58,95 @@
   <!-- Data Table -->
   <mat-card>
     <mat-card-content>
-      <div *ngIf="isLoading" class="loading-container">
-        <mat-spinner></mat-spinner>
-      </div>
-
-      <div *ngIf="!isLoading">
-        <table mat-table [dataSource]="rooms" class="rooms-table">
-          <!-- Room Number Column -->
-          <ng-container matColumnDef="roomNumber">
-            <th mat-header-cell *matHeaderCellDef>Room Number</th>
-            <td mat-cell *matCellDef="let room">
-              <strong>{{ room.roomNumber }}</strong>
-            </td>
-          </ng-container>
-
-          <!-- Building Name Column -->
-          <ng-container matColumnDef="buildingName">
-            <th mat-header-cell *matHeaderCellDef>Building</th>
-            <td mat-cell *matCellDef="let room">
-              {{ room.buildingName }}
-            </td>
-          </ng-container>
-
-          <!-- Capacity Column -->
-          <ng-container matColumnDef="capacity">
-            <th mat-header-cell *matHeaderCellDef>Capacity</th>
-            <td mat-cell *matCellDef="let room">
-              {{ room.capacity }}
-            </td>
-          </ng-container>
-
-          <!-- Occupancy Column -->
-          <ng-container matColumnDef="currentOccupancy">
-            <th mat-header-cell *matHeaderCellDef>Occupancy</th>
-            <td mat-cell *matCellDef="let room">
-              <span [class]="'occupancy ' + getOccupancyClass(room)">
-                {{ getOccupancyText(room) }}
-              </span>
-            </td>
-          </ng-container>
-
-          <!-- Status Column -->
-          <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
-            <td mat-cell *matCellDef="let room">
-              <app-modern-status-badge [status]="room.status || 'available'" size="sm"></app-modern-status-badge>
-            </td>
-          </ng-container>
-
-          <!-- Actions Column -->
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Actions</th>
-            <td mat-cell *matCellDef="let room">
-              <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Actions">
-                <mat-icon>more_vert</mat-icon>
-              </button>
-              <mat-menu #menu="matMenu">
-                <button mat-menu-item (click)="openEditDialog(room)">
-                  <mat-icon>edit</mat-icon>
-                  <span>Edit</span>
-                </button>
-                <button mat-menu-item (click)="deleteRoom(room)">
-                  <mat-icon>delete</mat-icon>
-                  <span>Delete</span>
-                </button>
-              </mat-menu>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-        </table>
-
-        <div *ngIf="rooms.length === 0" class="no-data">
-          <mat-icon>meeting_room</mat-icon>
-          <p>No rooms found</p>
-          <button mat-raised-button color="primary" (click)="openCreateDialog()">
-            <mat-icon>add</mat-icon>
-            Add First Room
-          </button>
+      @if (isLoading) {
+        <div class="loading-container">
+          <mat-spinner></mat-spinner>
         </div>
+      }
 
-        <mat-paginator
-          *ngIf="rooms.length > 0"
-          [length]="totalElements"
-          [pageSize]="pageSize"
-          [pageSizeOptions]="[10, 20, 50, 100]"
-          (page)="onPageChange($event)"
-          showFirstLastButtons>
-        </mat-paginator>
-      </div>
+      @if (!isLoading) {
+        <div>
+          <table mat-table [dataSource]="rooms" class="rooms-table">
+            <!-- Room Number Column -->
+            <ng-container matColumnDef="roomNumber">
+              <th mat-header-cell *matHeaderCellDef>Room Number</th>
+              <td mat-cell *matCellDef="let room">
+                <strong>{{ room.roomNumber }}</strong>
+              </td>
+            </ng-container>
+            <!-- Building Name Column -->
+            <ng-container matColumnDef="buildingName">
+              <th mat-header-cell *matHeaderCellDef>Building</th>
+              <td mat-cell *matCellDef="let room">
+                {{ room.buildingName }}
+              </td>
+            </ng-container>
+            <!-- Capacity Column -->
+            <ng-container matColumnDef="capacity">
+              <th mat-header-cell *matHeaderCellDef>Capacity</th>
+              <td mat-cell *matCellDef="let room">
+                {{ room.capacity }}
+              </td>
+            </ng-container>
+            <!-- Occupancy Column -->
+            <ng-container matColumnDef="currentOccupancy">
+              <th mat-header-cell *matHeaderCellDef>Occupancy</th>
+              <td mat-cell *matCellDef="let room">
+                <span [class]="'occupancy ' + getOccupancyClass(room)">
+                  {{ getOccupancyText(room) }}
+                </span>
+              </td>
+            </ng-container>
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let room">
+                <app-modern-status-badge [status]="room.status || 'available'" size="sm"></app-modern-status-badge>
+              </td>
+            </ng-container>
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let room">
+                <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Actions">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="openEditDialog(room)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Edit</span>
+                  </button>
+                  <button mat-menu-item (click)="deleteRoom(room)">
+                    <mat-icon>delete</mat-icon>
+                    <span>Delete</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+          @if (rooms.length === 0) {
+            <div class="no-data">
+              <mat-icon>meeting_room</mat-icon>
+              <p>No rooms found</p>
+              <button mat-raised-button color="primary" (click)="openCreateDialog()">
+                <mat-icon>add</mat-icon>
+                Add First Room
+              </button>
+            </div>
+          }
+          @if (rooms.length > 0) {
+            <mat-paginator
+              [length]="totalElements"
+              [pageSize]="pageSize"
+              [pageSizeOptions]="[10, 20, 50, 100]"
+              (page)="onPageChange($event)"
+              showFirstLastButtons>
+            </mat-paginator>
+          }
+        </div>
+      }
     </mat-card-content>
   </mat-card>
 </div>

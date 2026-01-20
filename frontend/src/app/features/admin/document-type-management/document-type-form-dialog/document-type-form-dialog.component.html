@@ -8,21 +8,27 @@
     <mat-form-field appearance="outline">
       <mat-label>Document Type Name</mat-label>
       <input matInput formControlName="name" placeholder="e.g., National ID, Proof of Enrollment" required>
-      <mat-error *ngIf="documentTypeForm.get('name')?.hasError('required')">
-        Document type name is required
-      </mat-error>
-      <mat-error *ngIf="documentTypeForm.get('name')?.hasError('maxlength')">
-        Document type name cannot exceed 50 characters
-      </mat-error>
+      @if (documentTypeForm.get('name')?.hasError('required')) {
+        <mat-error>
+          Document type name is required
+        </mat-error>
+      }
+      @if (documentTypeForm.get('name')?.hasError('maxlength')) {
+        <mat-error>
+          Document type name cannot exceed 50 characters
+        </mat-error>
+      }
     </mat-form-field>
 
     <mat-form-field appearance="outline">
       <mat-label>Description</mat-label>
       <textarea matInput formControlName="description" placeholder="Brief description of this document type" rows="3"></textarea>
       <mat-hint>Optional</mat-hint>
-      <mat-error *ngIf="documentTypeForm.get('description')?.hasError('maxlength')">
-        Description cannot exceed 255 characters
-      </mat-error>
+      @if (documentTypeForm.get('description')?.hasError('maxlength')) {
+        <mat-error>
+          Description cannot exceed 255 characters
+        </mat-error>
+      }
     </mat-form-field>
 
     <div class="checkbox-field">
@@ -37,7 +43,11 @@
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()" [disabled]="isLoading">Cancel</button>
   <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isLoading">
-    <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
-    <span *ngIf="!isLoading">{{ getSubmitButtonText() }}</span>
+    @if (isLoading) {
+      <mat-spinner diameter="20"></mat-spinner>
+    }
+    @if (!isLoading) {
+      <span>{{ getSubmitButtonText() }}</span>
+    }
   </button>
 </mat-dialog-actions>

@@ -1,5 +1,5 @@
 import { Component, OnInit } from "@angular/core";
-import { CommonModule } from "@angular/common";
+
 import {
   FormBuilder,
   FormGroup,
@@ -25,7 +25,6 @@ import { DocumentService } from "../../../core/services/document.service";
   styleUrls: ["./document-upload.component.css"],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterModule,
     MatCardModule,
@@ -35,7 +34,7 @@ import { DocumentService } from "../../../core/services/document.service";
     MatProgressSpinnerModule,
     MatChipsModule,
     MatDividerModule
-  ],
+],
 })
 export class DocumentUploadComponent implements OnInit {
   uploadForm: FormGroup;

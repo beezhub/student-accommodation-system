@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -27,7 +27,6 @@ import { MatIconModule } from '@angular/material/icon';
   styleUrls: ['./application-submission.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -40,7 +39,7 @@ import { MatIconModule } from '@angular/material/icon';
     MatDividerModule,
     MatSnackBarModule,
     MatIconModule
-  ]
+]
 })
 export class ApplicationSubmissionComponent implements OnInit {
   applicationForm: FormGroup;

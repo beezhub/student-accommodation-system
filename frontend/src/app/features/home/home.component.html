@@ -20,15 +20,17 @@
   <!-- Features Section -->
   <section class="features-section">
     <div class="features-grid">
-      <mat-card class="feature-card" *ngFor="let feature of features">
-        <mat-card-content class="feature-content">
-          <div class="feature-icon-container">
-            <mat-icon class="feature-icon">{{feature.icon}}</mat-icon>
-          </div>
-          <mat-card-title class="feature-title">{{feature.title}}</mat-card-title>
-          <mat-card-subtitle class="feature-description">{{feature.description}}</mat-card-subtitle>
-        </mat-card-content>
-      </mat-card>
+      @for (feature of features; track feature) {
+        <mat-card class="feature-card">
+          <mat-card-content class="feature-content">
+            <div class="feature-icon-container">
+              <mat-icon class="feature-icon">{{feature.icon}}</mat-icon>
+            </div>
+            <mat-card-title class="feature-title">{{feature.title}}</mat-card-title>
+            <mat-card-subtitle class="feature-description">{{feature.description}}</mat-card-subtitle>
+          </mat-card-content>
+        </mat-card>
+      }
     </div>
   </section>
 </div>

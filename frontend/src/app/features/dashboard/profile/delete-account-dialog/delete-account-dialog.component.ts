@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,7 +13,6 @@ import { AuthService } from '../../../../core/services/auth.service';
   selector: 'app-delete-account-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -21,7 +20,7 @@ import { AuthService } from '../../../../core/services/auth.service';
     MatInputModule,
     MatIconModule,
     MatProgressSpinnerModule
-  ],
+],
   template: `
     <h2 mat-dialog-title class="warning-title">
       <mat-icon>warning</mat-icon>
@@ -38,43 +37,51 @@ import { AuthService } from '../../../../core/services/auth.service';
           <li>Your room allocation (if any)</li>
         </ul>
       </div>
-
+    
       <form [formGroup]="deleteForm">
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>Type "DELETE" to confirm</mat-label>
           <input matInput formControlName="confirmation" autocomplete="off" placeholder="DELETE">
-          <mat-error *ngIf="deleteForm.get('confirmation')?.invalid && deleteForm.get('confirmation')?.touched">
-            Please type DELETE to confirm
-          </mat-error>
+          @if (deleteForm.get('confirmation')?.invalid && deleteForm.get('confirmation')?.touched) {
+            <mat-error>
+              Please type DELETE to confirm
+            </mat-error>
+          }
         </mat-form-field>
-
+    
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>Enter your password</mat-label>
           <input matInput [type]="hidePassword ? 'password' : 'text'"
-                 formControlName="password" autocomplete="current-password">
+            formControlName="password" autocomplete="current-password">
           <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword"
-                  type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hidePassword">
+            type="button" [attr.aria-label]="'Hide password'" [attr.aria-pressed]="!hidePassword">
             <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
           </button>
-          <mat-error *ngIf="deleteForm.get('password')?.invalid && deleteForm.get('password')?.touched">
-            Password is required
-          </mat-error>
+          @if (deleteForm.get('password')?.invalid && deleteForm.get('password')?.touched) {
+            <mat-error>
+              Password is required
+            </mat-error>
+          }
         </mat-form-field>
-
-        <div *ngIf="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
+    
+        @if (errorMessage) {
+          <div class="error-message">
+            {{ errorMessage }}
+          </div>
+        }
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()" [disabled]="isDeleting">Cancel</button>
       <button mat-flat-button color="warn" (click)="onDelete()"
-              [disabled]="!deleteForm.valid || isDeleting">
-        <mat-progress-spinner *ngIf="isDeleting" mode="indeterminate" diameter="18" strokeWidth="3"></mat-progress-spinner>
+        [disabled]="!deleteForm.valid || isDeleting">
+        @if (isDeleting) {
+          <mat-progress-spinner mode="indeterminate" diameter="18" strokeWidth="3"></mat-progress-spinner>
+        }
         <span>{{ isDeleting ? 'Deleting...' : 'Delete Account' }}</span>
       </button>
     </mat-dialog-actions>
-  `,
+    `,
   styles: [`
     .full-width {
       width: 100%;

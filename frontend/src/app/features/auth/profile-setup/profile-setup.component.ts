@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -29,7 +29,6 @@ import { MatDividerModule } from '@angular/material/divider';
   styleUrls: ['./profile-setup.component.css'],
   standalone: true,
   imports: [
-    CommonModule, 
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -43,7 +42,7 @@ import { MatDividerModule } from '@angular/material/divider';
     MatDatepickerModule,
     MatNativeDateModule,
     MatDividerModule
-  ]
+]
 })
 export class ProfileSetupComponent implements OnInit {
   profileForm: FormGroup;

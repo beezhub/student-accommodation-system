@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { YearOfStudyService, YearOfStudyResponse, YearOfStudyRequest } from '../../../../core/services/year-of-study.service';
@@ -18,7 +18,6 @@ import { MatIconModule } from '@angular/material/icon';
   styleUrls: ['./year-of-study-form-dialog.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -26,8 +25,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatIconModule,
-  ],
+    MatIconModule
+],
 })
 export class YearOfStudyFormDialogComponent implements OnInit {
   yearOfStudyForm: FormGroup;

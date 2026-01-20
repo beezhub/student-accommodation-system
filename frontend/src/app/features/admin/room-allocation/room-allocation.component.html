@@ -28,9 +28,11 @@
           <mat-label>Building</mat-label>
           <mat-select formControlName="buildingId">
             <mat-option value="">All Buildings</mat-option>
-            <mat-option *ngFor="let building of buildings" [value]="building.id">
-              {{ building.name }}
-            </mat-option>
+            @for (building of buildings; track building) {
+              <mat-option [value]="building.id">
+                {{ building.name }}
+              </mat-option>
+            }
           </mat-select>
         </mat-form-field>
 
@@ -38,9 +40,11 @@
           <mat-label>Status</mat-label>
           <mat-select formControlName="status">
             <mat-option value="">All Statuses</mat-option>
-            <mat-option *ngFor="let status of statuses" [value]="status">
-              {{ status }}
-            </mat-option>
+            @for (status of statuses; track status) {
+              <mat-option [value]="status">
+                {{ status }}
+              </mat-option>
+            }
           </mat-select>
         </mat-form-field>
 
@@ -61,106 +65,104 @@
   <!-- Data Table -->
   <mat-card>
     <mat-card-content>
-      <div *ngIf="isLoading" class="loading-container">
-        <mat-spinner></mat-spinner>
-      </div>
-
-      <div *ngIf="!isLoading">
-        <table mat-table [dataSource]="allocations" class="allocations-table">
-          <!-- Student Name Column -->
-          <ng-container matColumnDef="studentName">
-            <th mat-header-cell *matHeaderCellDef>Student</th>
-            <td mat-cell *matCellDef="let allocation">
-              <strong>{{ allocation.studentFirstName }} {{ allocation.studentLastName }}</strong>
-            </td>
-          </ng-container>
-
-          <!-- Student Email Column -->
-          <ng-container matColumnDef="studentEmail">
-            <th mat-header-cell *matHeaderCellDef>Email</th>
-            <td mat-cell *matCellDef="let allocation">
-              {{ allocation.studentEmail }}
-            </td>
-          </ng-container>
-
-          <!-- Room Number Column -->
-          <ng-container matColumnDef="roomNumber">
-            <th mat-header-cell *matHeaderCellDef>Room</th>
-            <td mat-cell *matCellDef="let allocation">
-              {{ allocation.roomNumber }}
-            </td>
-          </ng-container>
-
-          <!-- Building Name Column -->
-          <ng-container matColumnDef="buildingName">
-            <th mat-header-cell *matHeaderCellDef>Building</th>
-            <td mat-cell *matCellDef="let allocation">
-              {{ allocation.buildingName }}
-            </td>
-          </ng-container>
-
-          <!-- Allocation Date Column -->
-          <ng-container matColumnDef="allocationDate">
-            <th mat-header-cell *matHeaderCellDef>Allocated</th>
-            <td mat-cell *matCellDef="let allocation">
-              {{ allocation.allocationDate | date: 'MMM d, y' }}
-            </td>
-          </ng-container>
-
-          <!-- Status Column -->
-          <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
-            <td mat-cell *matCellDef="let allocation">
-              <mat-chip [class]="'status-chip ' + getStatusClass(allocation.status)">
-                <mat-icon>{{ getStatusIcon(allocation.status) }}</mat-icon>
-                {{ allocation.status }}
-              </mat-chip>
-            </td>
-          </ng-container>
-
-          <!-- Actions Column -->
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Actions</th>
-            <td mat-cell *matCellDef="let allocation">
-              <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Actions">
-                <mat-icon>more_vert</mat-icon>
-              </button>
-              <mat-menu #menu="matMenu">
-                <button mat-menu-item (click)="endAllocation(allocation)"
-                        [disabled]="allocation.status !== 'ACTIVE'">
-                  <mat-icon>event_busy</mat-icon>
-                  <span>End Allocation</span>
-                </button>
-                <button mat-menu-item (click)="deleteAllocation(allocation)">
-                  <mat-icon>delete</mat-icon>
-                  <span>Delete</span>
-                </button>
-              </mat-menu>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-        </table>
-
-        <div *ngIf="allocations.length === 0" class="no-data">
-          <mat-icon>assignment_ind</mat-icon>
-          <p>No allocations found</p>
-          <button mat-raised-button color="primary" (click)="openAllocateDialog()">
-            <mat-icon>add</mat-icon>
-            Allocate First Room
-          </button>
+      @if (isLoading) {
+        <div class="loading-container">
+          <mat-spinner></mat-spinner>
         </div>
+      }
 
-        <mat-paginator
-          *ngIf="allocations.length > 0"
-          [length]="totalElements"
-          [pageSize]="pageSize"
-          [pageSizeOptions]="[10, 20, 50, 100]"
-          (page)="onPageChange($event)"
-          showFirstLastButtons>
-        </mat-paginator>
-      </div>
+      @if (!isLoading) {
+        <div>
+          <table mat-table [dataSource]="allocations" class="allocations-table">
+            <!-- Student Name Column -->
+            <ng-container matColumnDef="studentName">
+              <th mat-header-cell *matHeaderCellDef>Student</th>
+              <td mat-cell *matCellDef="let allocation">
+                <strong>{{ allocation.studentFirstName }} {{ allocation.studentLastName }}</strong>
+              </td>
+            </ng-container>
+            <!-- Student Email Column -->
+            <ng-container matColumnDef="studentEmail">
+              <th mat-header-cell *matHeaderCellDef>Email</th>
+              <td mat-cell *matCellDef="let allocation">
+                {{ allocation.studentEmail }}
+              </td>
+            </ng-container>
+            <!-- Room Number Column -->
+            <ng-container matColumnDef="roomNumber">
+              <th mat-header-cell *matHeaderCellDef>Room</th>
+              <td mat-cell *matCellDef="let allocation">
+                {{ allocation.roomNumber }}
+              </td>
+            </ng-container>
+            <!-- Building Name Column -->
+            <ng-container matColumnDef="buildingName">
+              <th mat-header-cell *matHeaderCellDef>Building</th>
+              <td mat-cell *matCellDef="let allocation">
+                {{ allocation.buildingName }}
+              </td>
+            </ng-container>
+            <!-- Allocation Date Column -->
+            <ng-container matColumnDef="allocationDate">
+              <th mat-header-cell *matHeaderCellDef>Allocated</th>
+              <td mat-cell *matCellDef="let allocation">
+                {{ allocation.allocationDate | date: 'MMM d, y' }}
+              </td>
+            </ng-container>
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let allocation">
+                <mat-chip [class]="'status-chip ' + getStatusClass(allocation.status)">
+                  <mat-icon>{{ getStatusIcon(allocation.status) }}</mat-icon>
+                  {{ allocation.status }}
+                </mat-chip>
+              </td>
+            </ng-container>
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let allocation">
+                <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Actions">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="endAllocation(allocation)"
+                    [disabled]="allocation.status !== 'ACTIVE'">
+                    <mat-icon>event_busy</mat-icon>
+                    <span>End Allocation</span>
+                  </button>
+                  <button mat-menu-item (click)="deleteAllocation(allocation)">
+                    <mat-icon>delete</mat-icon>
+                    <span>Delete</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+          @if (allocations.length === 0) {
+            <div class="no-data">
+              <mat-icon>assignment_ind</mat-icon>
+              <p>No allocations found</p>
+              <button mat-raised-button color="primary" (click)="openAllocateDialog()">
+                <mat-icon>add</mat-icon>
+                Allocate First Room
+              </button>
+            </div>
+          }
+          @if (allocations.length > 0) {
+            <mat-paginator
+              [length]="totalElements"
+              [pageSize]="pageSize"
+              [pageSizeOptions]="[10, 20, 50, 100]"
+              (page)="onPageChange($event)"
+              showFirstLastButtons>
+            </mat-paginator>
+          }
+        </div>
+      }
     </mat-card-content>
   </mat-card>
 </div>

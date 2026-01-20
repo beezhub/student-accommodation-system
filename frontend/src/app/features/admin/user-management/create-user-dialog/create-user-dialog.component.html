@@ -7,9 +7,11 @@
       <mat-label>First Name</mat-label>
       <input matInput formControlName="firstName" placeholder="Enter first name" required />
       <mat-icon matPrefix>person</mat-icon>
-      <mat-error *ngIf="createUserForm.get('firstName')?.hasError('required')">
-        First name is required
-      </mat-error>
+      @if (createUserForm.get('firstName')?.hasError('required')) {
+        <mat-error>
+          First name is required
+        </mat-error>
+      }
     </mat-form-field>
 
     <!-- Last Name -->
@@ -17,9 +19,11 @@
       <mat-label>Last Name</mat-label>
       <input matInput formControlName="lastName" placeholder="Enter last name" required />
       <mat-icon matPrefix>person</mat-icon>
-      <mat-error *ngIf="createUserForm.get('lastName')?.hasError('required')">
-        Last name is required
-      </mat-error>
+      @if (createUserForm.get('lastName')?.hasError('required')) {
+        <mat-error>
+          Last name is required
+        </mat-error>
+      }
     </mat-form-field>
 
     <!-- Email -->
@@ -27,12 +31,16 @@
       <mat-label>Email</mat-label>
       <input matInput type="email" formControlName="email" placeholder="user@example.com" required />
       <mat-icon matPrefix>email</mat-icon>
-      <mat-error *ngIf="createUserForm.get('email')?.hasError('required')">
-        Email is required
-      </mat-error>
-      <mat-error *ngIf="createUserForm.get('email')?.hasError('email')">
-        Please enter a valid email
-      </mat-error>
+      @if (createUserForm.get('email')?.hasError('required')) {
+        <mat-error>
+          Email is required
+        </mat-error>
+      }
+      @if (createUserForm.get('email')?.hasError('email')) {
+        <mat-error>
+          Please enter a valid email
+        </mat-error>
+      }
     </mat-form-field>
 
     <!-- Password -->
@@ -44,7 +52,7 @@
         formControlName="password"
         placeholder="Enter password"
         required
-      />
+        />
       <mat-icon matPrefix>lock</mat-icon>
       <button
         mat-icon-button
@@ -53,15 +61,19 @@
         (click)="togglePasswordVisibility()"
         [attr.aria-label]="'Hide password'"
         [attr.aria-pressed]="hidePassword"
-      >
+        >
         <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
       </button>
-      <mat-error *ngIf="createUserForm.get('password')?.hasError('required')">
-        Password is required
-      </mat-error>
-      <mat-error *ngIf="createUserForm.get('password')?.hasError('minlength')">
-        Password must be at least 8 characters
-      </mat-error>
+      @if (createUserForm.get('password')?.hasError('required')) {
+        <mat-error>
+          Password is required
+        </mat-error>
+      }
+      @if (createUserForm.get('password')?.hasError('minlength')) {
+        <mat-error>
+          Password must be at least 8 characters
+        </mat-error>
+      }
     </mat-form-field>
 
     <!-- User Role -->
@@ -72,9 +84,11 @@
         <mat-option value="LANDLORD">Landlord</mat-option>
       </mat-select>
       <mat-icon matPrefix>admin_panel_settings</mat-icon>
-      <mat-error *ngIf="createUserForm.get('userRole')?.hasError('required')">
-        Role is required
-      </mat-error>
+      @if (createUserForm.get('userRole')?.hasError('required')) {
+        <mat-error>
+          Role is required
+        </mat-error>
+      }
       <mat-hint>Students cannot be created through admin panel</mat-hint>
     </mat-form-field>
   </form>
@@ -87,8 +101,12 @@
     color="primary"
     (click)="onSubmit()"
     [disabled]="isSubmitting || !createUserForm.valid"
-  >
-    <mat-spinner *ngIf="isSubmitting" diameter="20" class="button-spinner"></mat-spinner>
-    <span *ngIf="!isSubmitting">Create User</span>
+    >
+    @if (isSubmitting) {
+      <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+    }
+    @if (!isSubmitting) {
+      <span>Create User</span>
+    }
   </button>
 </mat-dialog-actions>

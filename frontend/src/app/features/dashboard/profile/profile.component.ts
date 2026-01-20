@@ -1,5 +1,5 @@
 import { Component, OnInit } from "@angular/core";
-import { CommonModule } from "@angular/common";
+
 import { RouterModule, Router } from "@angular/router";
 import {
   FormBuilder,
@@ -26,7 +26,7 @@ import { DeleteAccountDialogComponent } from "./delete-account-dialog/delete-acc
   templateUrl: "./profile.component.html",
   styleUrls: ["./profile.component.css"],
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, MaterialModule],
+  imports: [RouterModule, ReactiveFormsModule, MaterialModule],
 })
 export class ProfileComponent implements OnInit {
   currentUser: any;

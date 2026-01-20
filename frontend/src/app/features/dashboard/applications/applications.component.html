@@ -54,7 +54,9 @@
               <th mat-header-cell *matHeaderCellDef> Actions </th>
               <td mat-cell *matCellDef="let app">
                 <button mat-stroked-button color="primary" [routerLink]="['/applications', app.id]">View Details</button>
-                <button *ngIf="app.status === 'Pending'" mat-stroked-button color="warn" (click)="cancelApplication(app.id)">Cancel</button>
+                @if (app.status === 'Pending') {
+                  <button mat-stroked-button color="warn" (click)="cancelApplication(app.id)">Cancel</button>
+                }
               </td>
             </ng-container>
 

@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { DocumentTypeService, DocumentTypeResponse, DocumentTypeRequest } from '../../../../core/services/document-type.service';
@@ -19,7 +19,6 @@ import { MatIconModule } from '@angular/material/icon';
   styleUrls: ['./document-type-form-dialog.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -28,8 +27,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatIconModule,
-  ],
+    MatIconModule
+],
 })
 export class DocumentTypeFormDialogComponent implements OnInit {
   documentTypeForm: FormGroup;

@@ -8,50 +8,68 @@
     <mat-form-field appearance="outline">
       <mat-label>Institution Name</mat-label>
       <input matInput formControlName="name" placeholder="e.g., University of Example" required>
-      <mat-error *ngIf="institutionForm.get('name')?.hasError('required')">
-        Institution name is required
-      </mat-error>
-      <mat-error *ngIf="institutionForm.get('name')?.hasError('maxlength')">
-        Institution name cannot exceed 100 characters
-      </mat-error>
+      @if (institutionForm.get('name')?.hasError('required')) {
+        <mat-error>
+          Institution name is required
+        </mat-error>
+      }
+      @if (institutionForm.get('name')?.hasError('maxlength')) {
+        <mat-error>
+          Institution name cannot exceed 100 characters
+        </mat-error>
+      }
     </mat-form-field>
 
     <mat-form-field appearance="outline">
       <mat-label>Address</mat-label>
       <textarea matInput formControlName="address" placeholder="e.g., 123 University Ave, City, Country" rows="2" required></textarea>
-      <mat-error *ngIf="institutionForm.get('address')?.hasError('required')">
-        Address is required
-      </mat-error>
-      <mat-error *ngIf="institutionForm.get('address')?.hasError('maxlength')">
-        Address cannot exceed 255 characters
-      </mat-error>
+      @if (institutionForm.get('address')?.hasError('required')) {
+        <mat-error>
+          Address is required
+        </mat-error>
+      }
+      @if (institutionForm.get('address')?.hasError('maxlength')) {
+        <mat-error>
+          Address cannot exceed 255 characters
+        </mat-error>
+      }
     </mat-form-field>
 
     <mat-form-field appearance="outline">
       <mat-label>Phone Number</mat-label>
       <input matInput formControlName="phoneNumber" placeholder="e.g., +1 234-567-8900" required>
       <mat-icon matPrefix>phone</mat-icon>
-      <mat-error *ngIf="institutionForm.get('phoneNumber')?.hasError('required')">
-        Phone number is required
-      </mat-error>
-      <mat-error *ngIf="institutionForm.get('phoneNumber')?.hasError('maxlength')">
-        Phone number cannot exceed 20 characters
-      </mat-error>
+      @if (institutionForm.get('phoneNumber')?.hasError('required')) {
+        <mat-error>
+          Phone number is required
+        </mat-error>
+      }
+      @if (institutionForm.get('phoneNumber')?.hasError('maxlength')) {
+        <mat-error>
+          Phone number cannot exceed 20 characters
+        </mat-error>
+      }
     </mat-form-field>
 
     <mat-form-field appearance="outline">
       <mat-label>Email Address</mat-label>
       <input matInput formControlName="emailAddress" type="email" placeholder="e.g., info@university.edu" required>
       <mat-icon matPrefix>email</mat-icon>
-      <mat-error *ngIf="institutionForm.get('emailAddress')?.hasError('required')">
-        Email address is required
-      </mat-error>
-      <mat-error *ngIf="institutionForm.get('emailAddress')?.hasError('email')">
-        Please enter a valid email address
-      </mat-error>
-      <mat-error *ngIf="institutionForm.get('emailAddress')?.hasError('maxlength')">
-        Email address cannot exceed 100 characters
-      </mat-error>
+      @if (institutionForm.get('emailAddress')?.hasError('required')) {
+        <mat-error>
+          Email address is required
+        </mat-error>
+      }
+      @if (institutionForm.get('emailAddress')?.hasError('email')) {
+        <mat-error>
+          Please enter a valid email address
+        </mat-error>
+      }
+      @if (institutionForm.get('emailAddress')?.hasError('maxlength')) {
+        <mat-error>
+          Email address cannot exceed 100 characters
+        </mat-error>
+      }
     </mat-form-field>
   </form>
 </mat-dialog-content>
@@ -59,7 +77,11 @@
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()" [disabled]="isLoading">Cancel</button>
   <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isLoading">
-    <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
-    <span *ngIf="!isLoading">{{ getSubmitButtonText() }}</span>
+    @if (isLoading) {
+      <mat-spinner diameter="20"></mat-spinner>
+    }
+    @if (!isLoading) {
+      <span>{{ getSubmitButtonText() }}</span>
+    }
   </button>
 </mat-dialog-actions>

@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 import { AuthService } from './core/services/auth.service';
 import { IconService } from './core/services/icon.service';
 import { User } from './core/models/user.model';
@@ -25,7 +25,6 @@ import { AppNavMenuComponent } from './shared/app-nav-menu.component';
   standalone: true,
   imports: [
     RouterModule,
-    CommonModule,
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
@@ -33,8 +32,8 @@ import { AppNavMenuComponent } from './shared/app-nav-menu.component';
     MatDividerModule,
     MatSidenavModule,
     MatListModule,
-    AppNavMenuComponent,
-  ],
+    AppNavMenuComponent
+],
   providers: [],
 })
 export class AppComponent {

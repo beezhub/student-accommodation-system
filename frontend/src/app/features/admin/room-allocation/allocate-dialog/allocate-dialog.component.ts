@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -27,103 +27,135 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
         <mat-form-field appearance="outline">
           <mat-label>Student ID *</mat-label>
           <input matInput type="number" formControlName="studentId"
-                 placeholder="Enter student ID" required
-                 (blur)="checkEligibility()">
-          <mat-error *ngIf="allocateForm.get('studentId')?.hasError('required')">
-            Student ID is required
-          </mat-error>
-          <mat-error *ngIf="allocateForm.get('studentId')?.hasError('min')">
-            Invalid student ID
-          </mat-error>
+            placeholder="Enter student ID" required
+            (blur)="checkEligibility()">
+          @if (allocateForm.get('studentId')?.hasError('required')) {
+            <mat-error>
+              Student ID is required
+            </mat-error>
+          }
+          @if (allocateForm.get('studentId')?.hasError('min')) {
+            <mat-error>
+              Invalid student ID
+            </mat-error>
+          }
         </mat-form-field>
-
+    
         <!-- Eligibility Status -->
-        <div *ngIf="eligibilityChecked" class="status-message">
-          <div *ngIf="eligibility?.isEligible" class="success-message">
-            <mat-icon>check_circle</mat-icon>
-            <span>Student is eligible for room allocation</span>
+        @if (eligibilityChecked) {
+          <div class="status-message">
+            @if (eligibility?.isEligible) {
+              <div class="success-message">
+                <mat-icon>check_circle</mat-icon>
+                <span>Student is eligible for room allocation</span>
+              </div>
+            }
+            @if (!eligibility?.isEligible) {
+              <div class="error-message">
+                <mat-icon>error</mat-icon>
+                <span>{{ eligibility?.reason || 'Student is not eligible' }}</span>
+              </div>
+            }
           </div>
-          <div *ngIf="!eligibility?.isEligible" class="error-message">
-            <mat-icon>error</mat-icon>
-            <span>{{ eligibility?.reason || 'Student is not eligible' }}</span>
-          </div>
-        </div>
-
+        }
+    
         <!-- Room Selection -->
         <mat-form-field appearance="outline">
           <mat-label>Room *</mat-label>
           <mat-select formControlName="roomId" required (selectionChange)="checkAvailability()">
-            <mat-option *ngFor="let room of availableRooms" [value]="room.id">
-              {{ room.roomNumber }} - {{ room.buildingName }}
-              ({{ room.currentOccupancy }}/{{ room.capacity }} occupied)
-            </mat-option>
+            @for (room of availableRooms; track room) {
+              <mat-option [value]="room.id">
+                {{ room.roomNumber }} - {{ room.buildingName }}
+                ({{ room.currentOccupancy }}/{{ room.capacity }} occupied)
+              </mat-option>
+            }
           </mat-select>
-          <mat-error *ngIf="allocateForm.get('roomId')?.hasError('required')">
-            Room is required
-          </mat-error>
+          @if (allocateForm.get('roomId')?.hasError('required')) {
+            <mat-error>
+              Room is required
+            </mat-error>
+          }
         </mat-form-field>
-
+    
         <!-- Room Availability Status -->
-        <div *ngIf="availabilityChecked" class="status-message">
-          <div *ngIf="availability?.isAvailable" class="success-message">
-            <mat-icon>check_circle</mat-icon>
-            <span>Room is available ({{ availability?.availableSpots }} spots remaining)</span>
+        @if (availabilityChecked) {
+          <div class="status-message">
+            @if (availability?.isAvailable) {
+              <div class="success-message">
+                <mat-icon>check_circle</mat-icon>
+                <span>Room is available ({{ availability?.availableSpots }} spots remaining)</span>
+              </div>
+            }
+            @if (!availability?.isAvailable) {
+              <div class="error-message">
+                <mat-icon>error</mat-icon>
+                <span>Room is not available ({{ availability?.status }})</span>
+              </div>
+            }
           </div>
-          <div *ngIf="!availability?.isAvailable" class="error-message">
-            <mat-icon>error</mat-icon>
-            <span>Room is not available ({{ availability?.status }})</span>
-          </div>
-        </div>
-
+        }
+    
         <!-- Application Selection (Optional) -->
         <mat-form-field appearance="outline">
           <mat-label>Application (Optional)</mat-label>
           <mat-select formControlName="applicationId" (selectionChange)="onApplicationSelected()">
             <mat-option value="">No Application</mat-option>
-            <mat-option *ngFor="let app of studentApplications" [value]="app.id">
-              {{ app.applicationCode }} - {{ app.status }}
-            </mat-option>
+            @for (app of studentApplications; track app) {
+              <mat-option [value]="app.id">
+                {{ app.applicationCode }} - {{ app.status }}
+              </mat-option>
+            }
           </mat-select>
           <mat-hint>Link this allocation to an existing application</mat-hint>
         </mat-form-field>
-
+    
         <!-- Allocation Date -->
         <mat-form-field appearance="outline">
           <mat-label>Allocation Date *</mat-label>
           <input matInput [matDatepicker]="picker" formControlName="allocationDate" required>
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
-          <mat-error *ngIf="allocateForm.get('allocationDate')?.hasError('required')">
-            Allocation date is required
-          </mat-error>
+          @if (allocateForm.get('allocationDate')?.hasError('required')) {
+            <mat-error>
+              Allocation date is required
+            </mat-error>
+          }
         </mat-form-field>
-
+    
         <!-- Information Panel -->
-        <div class="info-panel" *ngIf="allocateForm.get('studentId')?.value">
-          <mat-icon>info</mat-icon>
-          <div>
-            <strong>Allocation Process:</strong>
-            <ul>
-              <li>Student eligibility will be verified</li>
-              <li>Room availability will be checked</li>
-              <li>Allocation will be created with ACTIVE status</li>
-              <li *ngIf="allocateForm.get('applicationId')?.value">
-                Application status will be updated
-              </li>
-            </ul>
+        @if (allocateForm.get('studentId')?.value) {
+          <div class="info-panel">
+            <mat-icon>info</mat-icon>
+            <div>
+              <strong>Allocation Process:</strong>
+              <ul>
+                <li>Student eligibility will be verified</li>
+                <li>Room availability will be checked</li>
+                <li>Allocation will be created with ACTIVE status</li>
+                @if (allocateForm.get('applicationId')?.value) {
+                  <li>
+                    Application status will be updated
+                  </li>
+                }
+              </ul>
+            </div>
           </div>
-        </div>
+        }
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
       <button mat-raised-button color="primary" (click)="onSubmit()"
-              [disabled]="!canSubmit() || isSubmitting">
-        <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
-        <span *ngIf="!isSubmitting">Allocate Room</span>
+        [disabled]="!canSubmit() || isSubmitting">
+        @if (isSubmitting) {
+          <mat-spinner diameter="20"></mat-spinner>
+        }
+        @if (!isSubmitting) {
+          <span>Allocate Room</span>
+        }
       </button>
     </mat-dialog-actions>
-  `,
+    `,
   styles: [`
     .allocate-form {
       display: flex;
@@ -203,7 +235,6 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
   `],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -215,8 +246,8 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
     MatIconModule,
     MatAutocompleteModule,
     MatDatepickerModule,
-    MatNativeDateModule,
-  ],
+    MatNativeDateModule
+],
 })
 export class AllocateDialogComponent implements OnInit {
   allocateForm: FormGroup;

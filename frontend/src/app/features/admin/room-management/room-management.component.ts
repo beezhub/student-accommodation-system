@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RoomService, RoomResponse, PageResponse } from '../../../core/services/room.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
@@ -29,7 +29,6 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
   styleUrls: ['./room-management.component.css'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
@@ -45,8 +44,8 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatTooltipModule,
     MatMenuModule,
     MatChipsModule,
-    ModernStatusBadgeComponent,
-  ],
+    ModernStatusBadgeComponent
+],
 })
 export class RoomManagementComponent implements OnInit {
   rooms: RoomResponse[] = [];
