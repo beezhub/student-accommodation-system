@@ -12,7 +12,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { DocumentType } from '../../../core/models/document-type.model';
-import { DocumentService, FileValidationResult } from '../../../core/services/document.service';
+import { DocumentService, FileValidationResult, isNoActiveApplicationError } from '../../../core/services/document.service';
+import { ApplicationService } from '../../../core/services/application.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 
@@ -52,13 +53,18 @@ export class DocumentUploadComponent implements OnInit {
   uploadProgress = 0;
   uploadStatus: 'idle' | 'uploading' | 'complete' | 'error' = 'idle';
 
+  // Application check state
+  hasActiveApplication = false;
+  isCheckingApplication = true;
+
   constructor(
     private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
     private documentTypeService: DocumentTypeService,
     private documentService: DocumentService,
-    private errorService: ErrorHandlingService
+    private errorService: ErrorHandlingService,
+    private applicationService: ApplicationService
   ) {
     this.uploadForm = this.fb.group({});
   }
@@ -69,7 +75,35 @@ export class DocumentUploadComponent implements OnInit {
       this.router.navigate(['/login']);
       return;
     }
-    this.loadDocumentTypes();
+    this.checkActiveApplicationAndLoadTypes();
+  }
+
+  /**
+   * Checks if user has an active application before loading document types.
+   * If no active application, redirects to application submission (auth flow).
+   */
+  private checkActiveApplicationAndLoadTypes(): void {
+    this.isCheckingApplication = true;
+
+    this.applicationService.hasActiveApplication().subscribe({
+      next: (hasActive) => {
+        this.isCheckingApplication = false;
+        this.hasActiveApplication = hasActive;
+
+        if (!hasActive) {
+          this.errorService.showWarning('Please create an application before uploading documents');
+          this.router.navigate(['/application-submission']);
+        } else {
+          this.loadDocumentTypes();
+        }
+      },
+      error: () => {
+        this.isCheckingApplication = false;
+        this.hasActiveApplication = false;
+        this.errorService.showWarning('Unable to verify application status. Please create an application first.');
+        this.router.navigate(['/application-submission']);
+      },
+    });
   }
 
   loadDocumentTypes(): void {
@@ -175,6 +209,14 @@ export class DocumentUploadComponent implements OnInit {
           this.isSubmitting = false;
           this.uploadStatus = 'error';
           this.uploadProgress = 0;
+
+          // Check if error is due to no active application
+          if (isNoActiveApplicationError(err)) {
+            this.errorService.showWarning('Please create an application before uploading documents');
+            this.router.navigate(['/application-submission']);
+            return;
+          }
+
           this.submitError = this.errorService.parseError(err);
         },
       });

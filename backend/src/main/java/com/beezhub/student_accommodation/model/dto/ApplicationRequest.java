@@ -21,4 +21,7 @@ public class ApplicationRequest {
     private String specialRequirements;
     private String institutionName;
     private String courseName;
+
+    // Building preference
+    private Long preferredBuildingId;
 }

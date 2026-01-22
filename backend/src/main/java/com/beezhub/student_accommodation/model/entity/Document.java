@@ -38,6 +38,11 @@ public class Document {
     @ManyToOne
     @JoinColumn(name = "student_id", referencedColumnName = "id", nullable = false)
     private Student student;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "application_id", nullable = false)
+    private Application application;
+
     @OneToOne
     @JoinColumn(name = "document_type_id", referencedColumnName = "id", nullable = false)
     private DocumentType documentType;

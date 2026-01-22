@@ -14,9 +14,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -219,6 +221,115 @@ public class NotificationService {
         log.info("Document rejected notification sent to {}", email);
     }
 
+    /**
+     * Sends a notification to a student when an admin adds a comment to their document.
+     *
+     * @param document    The document that received the comment
+     * @param commentText The comment text from the admin
+     */
+    @Async("notificationExecutor")
+    public void sendDocumentCommentNotification(Document document, String commentText) {
+        Student student = document.getStudent();
+        AppUser user = student.getAppUser();
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+        String documentName = document.getDocumentName();
+        String documentType = document.getDocumentType().getTypeName();
+
+        log.info("Sending document comment notification to {} for document {}", email, document.getId());
+
+        Notification notification = createNotification(
+                email,
+                "Document Requires Attention - Student Accommodation",
+                NotificationType.DOCUMENT_REJECTED,
+                user,
+                document.getId(),
+                "Document"
+        );
+
+        try {
+            String documentReference = "DOC-" + document.getId();
+            String portalUrl = baseUrl + "/portal/documents";
+
+            String htmlContent = buildDocumentCommentEmailContent(
+                    studentName,
+                    documentName,
+                    documentType,
+                    documentReference,
+                    commentText,
+                    portalUrl
+            );
+
+            emailService.sendHtmlEmail(email, notification.getSubject(), htmlContent);
+
+            markNotificationAsSent(notification);
+            log.info("Document comment notification sent to {}", email);
+        } catch (Exception e) {
+            handleNotificationFailure(notification, e);
+        }
+    }
+
+    private String buildDocumentCommentEmailContent(String studentName, String documentName,
+                                                     String documentType, String documentReference,
+                                                     String commentText, String portalUrl) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 20px auto; background: #fff;
+                                    border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                        .header { background: linear-gradient(135deg, #f093fb 0%%, #f5576c 100%%);
+                                 color: #fff; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .content { padding: 30px; }
+                        .info-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; }
+                        .comment-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+                        .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+                                 color: #fff; padding: 12px 30px; text-decoration: none;
+                                 border-radius: 5px; margin: 20px 0; }
+                        .footer { background: #f8f9fa; padding: 20px; text-align: center;
+                                 font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>Document Requires Attention</h1>
+                        </div>
+                        <div class="content">
+                            <p>Dear %s,</p>
+                            <p>An administrator has added a comment to your document that requires your attention.</p>
+                            <div class="info-box">
+                                <strong>Document Details:</strong>
+                                <ul>
+                                    <li><strong>Document:</strong> %s</li>
+                                    <li><strong>Type:</strong> %s</li>
+                                    <li><strong>Reference:</strong> %s</li>
+                                </ul>
+                            </div>
+                            <div class="comment-box">
+                                <strong>Admin Comment:</strong>
+                                <p>%s</p>
+                            </div>
+                            <p>Please review the comment and take appropriate action. You may need to resubmit the document with the requested changes.</p>
+                            <center>
+                                <a href="%s" class="button">View Documents</a>
+                            </center>
+                        </div>
+                        <div class="footer">
+                            <p>This is an automated message from the Student Accommodation System.</p>
+                            <p>If you have any questions, please contact our support team at %s</p>
+                            <p>&copy; 2025 %s Student Accommodation System. All rights reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(studentName, documentName, documentType, documentReference,
+                              commentText, portalUrl, supportEmail, universityName);
+    }
+
     @Async("notificationExecutor")
     public void sendRoomAllocationNotification(RoomAllocation allocation) {
         Student student = allocation.getStudent();
@@ -275,6 +386,308 @@ public class NotificationService {
 
             markNotificationAsSent(notification);
             log.info("Room allocation notification sent to {}", email);
+        } catch (Exception e) {
+            handleNotificationFailure(notification, e);
+        }
+    }
+
+    /**
+     * Sends a notification when a staged allocation (proposal) is created for a student.
+     *
+     * @param stagedAllocation The staged allocation proposal
+     */
+    @Async("notificationExecutor")
+    public void sendAllocationProposalNotification(StagedAllocation stagedAllocation) {
+        Student student = stagedAllocation.getStudent();
+        AppUser user = student.getAppUser();
+        Room room = stagedAllocation.getRoom();
+        Building building = room.getBuilding();
+
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+
+        log.info("Sending allocation proposal notification to {} for staged allocation {}", email, stagedAllocation.getId());
+
+        Notification notification = createNotification(
+                email,
+                "Room Allocation Proposal - Student Accommodation",
+                NotificationType.ROOM_ALLOCATED,
+                user,
+                stagedAllocation.getId(),
+                "StagedAllocation"
+        );
+
+        try {
+            String roomNumber = room.getRoomNumber();
+            String buildingName = building.getName();
+            Integer floorNumber = extractFloorNumber(roomNumber);
+            Integer roomCapacity = room.getCapacity();
+            String proposalId = "PROP-" + stagedAllocation.getId();
+            BigDecimal score = stagedAllocation.getScore();
+            List<String> warnings = parseWarnings(stagedAllocation.getWarnings());
+            String moveInDate = stagedAllocation.getApplication() != null && stagedAllocation.getApplication().getPreferredMoveInDate() != null
+                    ? formatDate(stagedAllocation.getApplication().getPreferredMoveInDate())
+                    : null;
+            String portalUrl = baseUrl + "/portal/allocations/proposal/" + stagedAllocation.getId();
+
+            emailService.sendAllocationProposalEmail(
+                    email,
+                    studentName,
+                    roomNumber,
+                    buildingName,
+                    floorNumber,
+                    roomCapacity,
+                    proposalId,
+                    score,
+                    warnings,
+                    moveInDate,
+                    portalUrl,
+                    supportEmail
+            );
+
+            markNotificationAsSent(notification);
+            log.info("Allocation proposal notification sent to {}", email);
+        } catch (Exception e) {
+            handleNotificationFailure(notification, e);
+        }
+    }
+
+    /**
+     * Sends a notification when a staged allocation is confirmed and converted to a room allocation.
+     *
+     * @param allocation The confirmed room allocation
+     */
+    @Async("notificationExecutor")
+    public void sendAllocationConfirmedNotification(RoomAllocation allocation) {
+        Student student = allocation.getStudent();
+        AppUser user = student.getAppUser();
+        Room room = allocation.getRoom();
+        Building building = room.getBuilding();
+
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+
+        log.info("Sending allocation confirmed notification to {} for allocation {}", email, allocation.getId());
+
+        Notification notification = createNotification(
+                email,
+                "Room Allocation Confirmed - Student Accommodation",
+                NotificationType.ROOM_ALLOCATED,
+                user,
+                allocation.getId(),
+                "RoomAllocation"
+        );
+
+        try {
+            String roomNumber = room.getRoomNumber();
+            String buildingName = building.getName();
+            Integer floorNumber = extractFloorNumber(roomNumber);
+            String roomType = determineRoomType(room);
+            String allocationId = "ALLOC-" + allocation.getId();
+            String moveInDate = formatDate(allocation.getAllocationDate());
+            String startDate = formatDate(allocation.getAllocationDate());
+            String endDate = allocation.getEndDate() != null
+                    ? formatDate(allocation.getEndDate())
+                    : formatDate(allocation.getAllocationDate().plusMonths(10));
+            String portalUrl = baseUrl + "/portal/allocations/" + allocation.getId();
+
+            emailService.sendAllocationConfirmedEmail(
+                    email,
+                    studentName,
+                    roomNumber,
+                    buildingName,
+                    floorNumber,
+                    roomType,
+                    allocationId,
+                    moveInDate,
+                    startDate,
+                    endDate,
+                    portalUrl,
+                    supportEmail,
+                    null
+            );
+
+            markNotificationAsSent(notification);
+            log.info("Allocation confirmed notification sent to {}", email);
+        } catch (Exception e) {
+            handleNotificationFailure(notification, e);
+        }
+    }
+
+    /**
+     * Sends a notification when a staged allocation proposal is rejected.
+     *
+     * @param stagedAllocation The rejected staged allocation
+     * @param reason           Optional reason for rejection
+     * @param waitingListPosition Optional waiting list position
+     */
+    @Async("notificationExecutor")
+    public void sendAllocationRejectedNotification(StagedAllocation stagedAllocation, String reason, Integer waitingListPosition) {
+        Student student = stagedAllocation.getStudent();
+        AppUser user = student.getAppUser();
+        Room room = stagedAllocation.getRoom();
+        Building building = room.getBuilding();
+
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+
+        log.info("Sending allocation rejected notification to {} for staged allocation {}", email, stagedAllocation.getId());
+
+        Notification notification = createNotification(
+                email,
+                "Room Allocation Update - Student Accommodation",
+                NotificationType.APPLICATION_REJECTED,
+                user,
+                stagedAllocation.getId(),
+                "StagedAllocation"
+        );
+
+        try {
+            String roomNumber = room.getRoomNumber();
+            String buildingName = building.getName();
+            String proposalId = "PROP-" + stagedAllocation.getId();
+            String portalUrl = baseUrl + "/portal/applications";
+
+            emailService.sendAllocationRejectedEmail(
+                    email,
+                    studentName,
+                    roomNumber,
+                    buildingName,
+                    proposalId,
+                    reason,
+                    waitingListPosition,
+                    portalUrl,
+                    supportEmail,
+                    null
+            );
+
+            markNotificationAsSent(notification);
+            log.info("Allocation rejected notification sent to {}", email);
+        } catch (Exception e) {
+            handleNotificationFailure(notification, e);
+        }
+    }
+
+    /**
+     * Sends a notification when a student's room allocation is moved to a different room.
+     *
+     * @param newAllocation The new room allocation
+     * @param oldRoom       The previous room
+     * @param effectiveDate The date the move is effective
+     * @param reason        Optional reason for the move
+     */
+    @Async("notificationExecutor")
+    public void sendAllocationMovedNotification(RoomAllocation newAllocation, Room oldRoom, LocalDateTime effectiveDate, String reason) {
+        Student student = newAllocation.getStudent();
+        AppUser user = student.getAppUser();
+        Room newRoom = newAllocation.getRoom();
+        Building newBuilding = newRoom.getBuilding();
+        Building oldBuilding = oldRoom.getBuilding();
+
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+
+        log.info("Sending allocation moved notification to {} for allocation {}", email, newAllocation.getId());
+
+        Notification notification = createNotification(
+                email,
+                "Room Change Notification - Student Accommodation",
+                NotificationType.ROOM_ALLOCATED,
+                user,
+                newAllocation.getId(),
+                "RoomAllocation"
+        );
+
+        try {
+            String oldRoomNumber = oldRoom.getRoomNumber();
+            String oldBuildingName = oldBuilding.getName();
+            Integer oldFloorNumber = extractFloorNumber(oldRoomNumber);
+            String newRoomNumber = newRoom.getRoomNumber();
+            String newBuildingName = newBuilding.getName();
+            Integer newFloorNumber = extractFloorNumber(newRoomNumber);
+            String newRoomType = determineRoomType(newRoom);
+            String effectiveDateStr = formatDate(effectiveDate);
+            String portalUrl = baseUrl + "/portal/allocations/" + newAllocation.getId();
+
+            emailService.sendAllocationMovedEmail(
+                    email,
+                    studentName,
+                    oldRoomNumber,
+                    oldBuildingName,
+                    oldFloorNumber,
+                    newRoomNumber,
+                    newBuildingName,
+                    newFloorNumber,
+                    newRoomType,
+                    effectiveDateStr,
+                    reason,
+                    portalUrl,
+                    supportEmail,
+                    null
+            );
+
+            markNotificationAsSent(notification);
+            log.info("Allocation moved notification sent to {}", email);
+        } catch (Exception e) {
+            handleNotificationFailure(notification, e);
+        }
+    }
+
+    /**
+     * Sends a notification to a student when an admin adds a comment to their document
+     * using the new document-comment template.
+     *
+     * @param document     The document that received the comment
+     * @param commentText  The comment text from the admin
+     * @param reviewerName The name of the reviewer who added the comment
+     */
+    @Async("notificationExecutor")
+    public void sendDocumentCommentNotificationWithTemplate(Document document, String commentText, String reviewerName) {
+        Student student = document.getStudent();
+        AppUser user = student.getAppUser();
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+        String documentName = document.getDocumentName();
+        String documentType = document.getDocumentType().getTypeName();
+
+        log.info("Sending document comment notification to {} for document {}", email, document.getId());
+
+        Notification notification = createNotification(
+                email,
+                "Document Review: Action Required - Student Accommodation",
+                NotificationType.DOCUMENT_REJECTED,
+                user,
+                document.getId(),
+                "Document"
+        );
+
+        try {
+            String applicationId = document.getApplication() != null
+                    ? "APP-" + document.getApplication().getId()
+                    : "N/A";
+            String uploadDate = formatDate(document.getCreatedAt());
+            String documentStatus = document.getDocumentStatus() != null ? document.getDocumentStatus().name() : "PENDING_REVIEW";
+            String commentDate = formatDate(LocalDateTime.now());
+            String portalUrl = baseUrl + "/portal/documents";
+
+            emailService.sendDocumentCommentEmail(
+                    email,
+                    studentName,
+                    documentType,
+                    documentName,
+                    applicationId,
+                    uploadDate,
+                    documentStatus,
+                    commentText,
+                    reviewerName,
+                    commentDate,
+                    portalUrl,
+                    supportEmail,
+                    null
+            );
+
+            markNotificationAsSent(notification);
+            log.info("Document comment notification sent to {}", email);
         } catch (Exception e) {
             handleNotificationFailure(notification, e);
         }
@@ -574,5 +987,18 @@ public class NotificationService {
 
         return years + " year" + (years > 1 ? "s" : "") + " and " +
                remainingMonths + " month" + (remainingMonths > 1 ? "s" : "");
+    }
+
+    private List<String> parseWarnings(String warningsJson) {
+        if (warningsJson == null || warningsJson.isEmpty()) {
+            return new ArrayList<>();
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return mapper.readValue(warningsJson, new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            log.warn("Failed to parse warnings JSON: {}", warningsJson, e);
+            return new ArrayList<>();
+        }
     }
 }

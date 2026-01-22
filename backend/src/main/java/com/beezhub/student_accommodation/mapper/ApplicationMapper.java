@@ -19,5 +19,9 @@ public interface ApplicationMapper {
     @Mapping(target = "specialRequirements", source = "specialRequirements")
     @Mapping(target = "institutionName", source = "institutionName")
     @Mapping(target = "courseName", source = "courseName")
+    @Mapping(target = "preferredBuildingId", source = "preferredBuilding.id")
+    @Mapping(target = "preferredBuildingName", source = "preferredBuilding.name")
+    @Mapping(target = "allocationMethod", expression = "java(application.getAllocationMethod() != null ? application.getAllocationMethod().name() : null)")
+    @Mapping(target = "remarks", source = "remarks")
     ApplicationResponse toResponse(Application application);
 }

@@ -36,7 +36,11 @@
       "Bash(mvnw clean compile:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(./mvnw compile:*)",
+      "Bash(./gradlew.bat compileJava:*)",
+      "Bash(xargs basename:*)"
     ],
     "deny": [],
     "ask": []

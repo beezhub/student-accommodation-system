@@ -1,7 +1,10 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.model.dto.DocumentCommentRequest;
+import com.beezhub.student_accommodation.model.dto.DocumentCommentResponse;
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -141,16 +144,17 @@ public class DocumentController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Update document status (admin)", description = "Admin-only endpoint to update document verification status")
+    @Operation(summary = "Update document status (admin)", description = "Admin-only endpoint to update document verification status. Optionally include a rejection comment when setting status to REJECTED.")
     @ApiResponse(responseCode = "200", description = "Status updated")
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/update-status/{documentId}")
     public ResponseEntity<DocumentResponse> updateDocumentStatus(
             @PathVariable Long documentId,
             @RequestParam String status,
+            @RequestParam(required = false) String rejectionComment,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(documentService.updateDocumentStatus(documentId, status, authentication.getName()));
+        return ResponseEntity.ok(documentService.updateDocumentStatus(documentId, status, rejectionComment, authentication.getName()));
     }
 
     @Operation(summary = "Delete document", description = "Delete a document (owner or admin only)")
@@ -206,5 +210,48 @@ public class DocumentController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    // ==================== Document Comment Endpoints ====================
+
+    @Operation(summary = "Add comment to document (admin)", description = "Admin-only endpoint to add a comment to a document")
+    @ApiResponse(responseCode = "200", description = "Comment added successfully")
+    @ApiResponse(responseCode = "403", description = "User lacks permission")
+    @ApiResponse(responseCode = "404", description = "Document not found")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{documentId}/comments")
+    public ResponseEntity<DocumentCommentResponse> addComment(
+            @PathVariable Long documentId,
+            @Valid @RequestBody DocumentCommentRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(documentService.addComment(documentId, authentication.getName(), request.getCommentText()));
+    }
+
+    @Operation(summary = "Get comments for document", description = "Get all comments for a document. Accessible by admins or the document owner.")
+    @ApiResponse(responseCode = "200", description = "Comments retrieved successfully")
+    @ApiResponse(responseCode = "403", description = "User lacks permission")
+    @ApiResponse(responseCode = "404", description = "Document not found")
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/{documentId}/comments")
+    public ResponseEntity<List<DocumentCommentResponse>> getCommentsByDocument(
+            @PathVariable Long documentId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(documentService.getCommentsByDocument(documentId, authentication.getName()));
+    }
+
+    @Operation(summary = "Delete comment (admin or creator)", description = "Delete a document comment. Only the comment creator or an admin can delete.")
+    @ApiResponse(responseCode = "204", description = "Comment deleted successfully")
+    @ApiResponse(responseCode = "403", description = "User lacks permission")
+    @ApiResponse(responseCode = "404", description = "Comment not found")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable Long commentId,
+            Authentication authentication
+    ) {
+        documentService.deleteComment(commentId, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 }

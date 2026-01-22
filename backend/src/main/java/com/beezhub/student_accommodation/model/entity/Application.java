@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.model.entity;
 
+import com.beezhub.student_accommodation.model.enums.AllocationMethod;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -61,6 +62,15 @@ public class Application {
 
     @Column(name = "course_name", length = 150)
     private String courseName;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "preferred_building_id")
+    private Building preferredBuilding;
+
+    @Column(name = "allocation_method")
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private AllocationMethod allocationMethod = AllocationMethod.MANUAL;
 
     @PrePersist
     protected void onCreate() {

@@ -1,16 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentViewerComponent } from './document-viewer/document-viewer.component';
-import { DocumentService } from '../../../core/services/document.service';
+import { DocumentService, isNoActiveApplicationError } from '../../../core/services/document.service';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { DocumentType } from '../../../core/models/document-type.model';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import { ApplicationService } from '../../../core/services/application.service';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -107,12 +108,18 @@ export class DocumentsComponent implements OnInit {
   displayedColumns: string[] = ['name', 'type', 'uploadDate', 'status', 'size', 'actions'];
   dataSource = new MatTableDataSource<any>(this.documents);
 
+  // Application check state
+  hasActiveApplication = false;
+  isCheckingApplication = true;
+
   constructor(
     private authService: AuthService,
     private fb: FormBuilder,
     private documentService: DocumentService,
     private documentTypeService: DocumentTypeService,
-    private errorService: ErrorHandlingService
+    private errorService: ErrorHandlingService,
+    private applicationService: ApplicationService,
+    private router: Router
   ) {
     this.uploadForm = this.fb.group({
       documentType: ['', Validators.required],
@@ -121,8 +128,36 @@ export class DocumentsComponent implements OnInit {
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
-    this.loadDocuments();
-    this.loadDocumentTypes();
+    this.checkActiveApplication();
+  }
+
+  /**
+   * Checks if user has an active application before allowing document operations.
+   * Redirects to application creation if no active application exists.
+   */
+  private checkActiveApplication(): void {
+    this.isCheckingApplication = true;
+
+    this.applicationService.hasActiveApplication().subscribe({
+      next: (hasActive) => {
+        this.isCheckingApplication = false;
+        this.hasActiveApplication = hasActive;
+
+        if (!hasActive) {
+          this.errorService.showWarning('Please create an application before uploading documents');
+          this.router.navigate(['/applications/new']);
+        } else {
+          this.loadDocuments();
+          this.loadDocumentTypes();
+        }
+      },
+      error: () => {
+        this.isCheckingApplication = false;
+        this.hasActiveApplication = false;
+        this.errorService.showWarning('Unable to verify application status. Please create an application first.');
+        this.router.navigate(['/applications/new']);
+      },
+    });
   }
 
   loadDocuments(): void {
@@ -289,6 +324,15 @@ export class DocumentsComponent implements OnInit {
           this.uploadStatus = 'error';
           this.uploadProgress = 0;
           console.error('Upload error:', error);
+
+          // Check if error is due to no active application
+          if (isNoActiveApplicationError(error)) {
+            this.closeUploadModal();
+            this.errorService.showWarning('Please create an application before uploading documents');
+            this.router.navigate(['/applications/new']);
+            return;
+          }
+
           this.uploadError = this.errorService.parseError(error);
         },
       });

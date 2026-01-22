@@ -217,7 +217,11 @@ export class ApplicationSubmissionComponent implements OnInit {
     this.onSubmit();
   }
 
+  /**
+   * Skip application is no longer allowed since documents must be linked to an application.
+   * This method shows a warning to the user.
+   */
   skipApplication() {
-    this.router.navigate(['/document-upload']);
+    this.errorService.showWarning('An application is required before you can upload documents. Please complete your application.');
   }
 }

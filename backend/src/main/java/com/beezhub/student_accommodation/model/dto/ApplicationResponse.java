@@ -34,4 +34,14 @@ public class ApplicationResponse {
     private String specialRequirements;
     private String institutionName;
     private String courseName;
+
+    // Building preference
+    private Long preferredBuildingId;
+    private String preferredBuildingName;
+
+    // Allocation method
+    private String allocationMethod;
+
+    // Remarks (for rejection reasons, etc.)
+    private String remarks;
 }

@@ -1,9 +1,13 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse;
 import com.beezhub.student_accommodation.model.dto.ApplicationRequest;
 import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
 import com.beezhub.student_accommodation.model.dto.ApplicationStatusUpdateRequest;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
+import com.beezhub.student_accommodation.model.dto.ReviewProgressRequest;
+import com.beezhub.student_accommodation.model.dto.ReviewProgressResponse;
+import org.springframework.security.core.Authentication;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.service.ApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -189,5 +193,74 @@ public class ApplicationController {
             @PathVariable("applicationId") Long applicationId) {
         applicationService.cancelApplication(applicationId);
         return ResponseEntity.noContent().build();
+    }
+
+    // ==================== Full Details, Review Progress, and Allocation Endpoints ====================
+
+    @Operation(
+            summary = "Get application full details",
+            description = "Retrieves comprehensive application details including student profile, " +
+                          "documents with nested comments, required documents checklist, and allocation eligibility. " +
+                          "Accessible by admins or the application owner."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Full details retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized to view this application"),
+            @ApiResponse(responseCode = "404", description = "Application not found")
+    })
+    @GetMapping("/{applicationId}/full-details")
+    @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
+    public ResponseEntity<ApplicationFullDetailsResponse> getApplicationFullDetails(
+            @Parameter(description = "ID of the application", required = true)
+            @PathVariable("applicationId") Long applicationId,
+            Authentication authentication) {
+        ApplicationFullDetailsResponse response = applicationService.getApplicationFullDetailsEnhanced(
+                applicationId, authentication.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Save review progress",
+            description = "Saves document review progress atomically. Updates document statuses and adds comments " +
+                          "without completing the review or moving to the next phase. Admin only."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Review progress saved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request or document status"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized - admin only"),
+            @ApiResponse(responseCode = "404", description = "Application or document not found")
+    })
+    @PostMapping("/{applicationId}/save-review-progress")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ReviewProgressResponse> saveReviewProgress(
+            @Parameter(description = "ID of the application", required = true)
+            @PathVariable("applicationId") Long applicationId,
+            @Valid @RequestBody ReviewProgressRequest request,
+            Authentication authentication) {
+        ReviewProgressResponse response = applicationService.saveReviewProgress(
+                applicationId, request, authentication.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Move application to allocation phase",
+            description = "Moves an application to the allocation phase (AWAITING_ALLOCATION status). " +
+                          "Validates that the application is APPROVED and all required documents are approved. Admin only."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Application moved to allocation phase"),
+            @ApiResponse(responseCode = "400", description = "Cannot move to allocation - requirements not met"),
+            @ApiResponse(responseCode = "403", description = "Unauthorized - admin only"),
+            @ApiResponse(responseCode = "404", description = "Application not found")
+    })
+    @PostMapping("/{applicationId}/move-to-allocation")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApplicationResponse> moveToAllocationPhase(
+            @Parameter(description = "ID of the application", required = true)
+            @PathVariable("applicationId") Long applicationId,
+            Authentication authentication) {
+        ApplicationResponse response = applicationService.moveToAllocationPhaseByUsername(
+                applicationId, authentication.getName());
+        return ResponseEntity.ok(response);
     }
 }

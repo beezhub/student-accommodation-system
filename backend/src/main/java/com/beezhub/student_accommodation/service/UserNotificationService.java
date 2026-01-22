@@ -221,6 +221,83 @@ public class UserNotificationService {
     }
 
     /**
+     * Create an allocation proposal notification
+     */
+    public void createAllocationProposalNotification(Long userId, String roomNumber, String buildingName) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("roomNumber", roomNumber);
+        data.put("buildingName", buildingName);
+
+        createNotification(
+                userId,
+                "ALLOCATION_PROPOSED",
+                "Room Allocation Proposed",
+                String.format("A room allocation has been proposed for you: Room %s in %s. Please review in your portal.",
+                        roomNumber, buildingName),
+                data
+        );
+    }
+
+    /**
+     * Create an allocation confirmation notification
+     */
+    public void createAllocationConfirmationNotification(Long userId, String roomNumber, String buildingName) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("roomNumber", roomNumber);
+        data.put("buildingName", buildingName);
+
+        createNotification(
+                userId,
+                "ALLOCATION_CONFIRMED",
+                "Room Allocation Confirmed",
+                String.format("Your room allocation has been confirmed! You have been assigned to Room %s in %s.",
+                        roomNumber, buildingName),
+                data
+        );
+    }
+
+    /**
+     * Create an allocation rejection notification
+     */
+    public void createAllocationRejectionNotification(Long userId, String roomNumber, String reason) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("roomNumber", roomNumber);
+        if (reason != null) {
+            data.put("reason", reason);
+        }
+
+        createNotification(
+                userId,
+                "ALLOCATION_REJECTED",
+                "Proposed Allocation Not Confirmed",
+                String.format("Your proposed allocation to Room %s was not confirmed. Reason: %s",
+                        roomNumber, reason != null ? reason : "Please contact administration for details."),
+                data
+        );
+    }
+
+    /**
+     * Create a room move notification
+     */
+    public void createRoomMoveNotification(Long userId, String oldRoomNumber, String newRoomNumber, String reason) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("oldRoomNumber", oldRoomNumber);
+        data.put("newRoomNumber", newRoomNumber);
+        if (reason != null) {
+            data.put("reason", reason);
+        }
+
+        createNotification(
+                userId,
+                "ROOM_MOVED",
+                "Room Assignment Changed",
+                String.format("You have been moved from Room %s to Room %s. Reason: %s",
+                        oldRoomNumber, newRoomNumber, reason != null ? reason : "Administrative decision."),
+                data
+        );
+    }
+
+    /**
      * Map entity to response DTO
      */
     private UserNotificationResponse mapToResponse(UserNotification notification) {

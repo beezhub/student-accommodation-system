@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.model.entity;
 
+import com.beezhub.student_accommodation.model.enums.AllocationMethod;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -31,6 +32,10 @@ public class RoomAllocation {
 
     @Column(name = "status", length = 20)
     private String status; // ACTIVE, COMPLETED, CANCELLED
+
+    @Column(name = "allocation_method")
+    @Enumerated(EnumType.STRING)
+    private AllocationMethod allocationMethod;
 
     @Column(name = "end_date")
     private LocalDateTime endDate;

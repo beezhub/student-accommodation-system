@@ -208,4 +208,110 @@ public class EmailService {
         sendTemplateEmail(to, "Welcome to Student Accommodation System",
                          "welcome", variables);
     }
+
+    public void sendAllocationProposalEmail(String to, String studentName, String roomNumber,
+                                            String buildingName, Integer floorNumber, Integer roomCapacity,
+                                            String proposalId, java.math.BigDecimal score, java.util.List<String> warnings,
+                                            String moveInDate, String portalUrl, String supportEmail) {
+        java.util.Map<String, Object> variables = new java.util.HashMap<>();
+        variables.put("studentName", studentName);
+        variables.put("roomNumber", roomNumber);
+        variables.put("buildingName", buildingName);
+        variables.put("floorNumber", floorNumber);
+        variables.put("roomCapacity", roomCapacity);
+        variables.put("proposalId", proposalId);
+        variables.put("score", score);
+        variables.put("warnings", warnings);
+        variables.put("moveInDate", moveInDate);
+        variables.put("portalUrl", portalUrl);
+        variables.put("supportEmail", supportEmail);
+        sendTemplateEmail(to, "Room Allocation Proposal - Student Accommodation",
+                         "allocation-proposal", variables);
+    }
+
+    public void sendAllocationConfirmedEmail(String to, String studentName, String roomNumber,
+                                             String buildingName, Integer floorNumber, String roomType,
+                                             String allocationId, String moveInDate, String startDate,
+                                             String endDate, String portalUrl, String supportEmail,
+                                             String contactPhone) {
+        java.util.Map<String, Object> variables = new java.util.HashMap<>();
+        variables.put("studentName", studentName);
+        variables.put("roomNumber", roomNumber);
+        variables.put("buildingName", buildingName);
+        variables.put("floorNumber", floorNumber);
+        variables.put("roomType", roomType);
+        variables.put("allocationId", allocationId);
+        variables.put("moveInDate", moveInDate);
+        variables.put("startDate", startDate);
+        variables.put("endDate", endDate);
+        variables.put("portalUrl", portalUrl);
+        variables.put("supportEmail", supportEmail);
+        variables.put("contactPhone", contactPhone);
+        sendTemplateEmail(to, "Room Allocation Confirmed - Student Accommodation",
+                         "allocation-confirmed", variables);
+    }
+
+    public void sendAllocationRejectedEmail(String to, String studentName, String roomNumber,
+                                            String buildingName, String proposalId, String reason,
+                                            Integer waitingListPosition, String portalUrl,
+                                            String supportEmail, String contactPhone) {
+        java.util.Map<String, Object> variables = new java.util.HashMap<>();
+        variables.put("studentName", studentName);
+        variables.put("roomNumber", roomNumber);
+        variables.put("buildingName", buildingName);
+        variables.put("proposalId", proposalId);
+        variables.put("reason", reason);
+        variables.put("waitingListPosition", waitingListPosition);
+        variables.put("portalUrl", portalUrl);
+        variables.put("supportEmail", supportEmail);
+        variables.put("contactPhone", contactPhone);
+        sendTemplateEmail(to, "Room Allocation Update - Student Accommodation",
+                         "allocation-rejected", variables);
+    }
+
+    public void sendAllocationMovedEmail(String to, String studentName, String oldRoomNumber,
+                                         String oldBuildingName, Integer oldFloorNumber,
+                                         String newRoomNumber, String newBuildingName,
+                                         Integer newFloorNumber, String newRoomType,
+                                         String effectiveDate, String reason, String portalUrl,
+                                         String supportEmail, String contactPhone) {
+        java.util.Map<String, Object> variables = new java.util.HashMap<>();
+        variables.put("studentName", studentName);
+        variables.put("oldRoomNumber", oldRoomNumber);
+        variables.put("oldBuildingName", oldBuildingName);
+        variables.put("oldFloorNumber", oldFloorNumber);
+        variables.put("newRoomNumber", newRoomNumber);
+        variables.put("newBuildingName", newBuildingName);
+        variables.put("newFloorNumber", newFloorNumber);
+        variables.put("newRoomType", newRoomType);
+        variables.put("effectiveDate", effectiveDate);
+        variables.put("reason", reason);
+        variables.put("portalUrl", portalUrl);
+        variables.put("supportEmail", supportEmail);
+        variables.put("contactPhone", contactPhone);
+        sendTemplateEmail(to, "Room Change Notification - Student Accommodation",
+                         "allocation-moved", variables);
+    }
+
+    public void sendDocumentCommentEmail(String to, String studentName, String documentType,
+                                         String documentName, String applicationId, String uploadDate,
+                                         String documentStatus, String comment, String reviewerName,
+                                         String commentDate, String portalUrl, String supportEmail,
+                                         String contactPhone) {
+        java.util.Map<String, Object> variables = new java.util.HashMap<>();
+        variables.put("studentName", studentName);
+        variables.put("documentType", documentType);
+        variables.put("documentName", documentName);
+        variables.put("applicationId", applicationId);
+        variables.put("uploadDate", uploadDate);
+        variables.put("documentStatus", documentStatus);
+        variables.put("comment", comment);
+        variables.put("reviewerName", reviewerName);
+        variables.put("commentDate", commentDate);
+        variables.put("portalUrl", portalUrl);
+        variables.put("supportEmail", supportEmail);
+        variables.put("contactPhone", contactPhone);
+        sendTemplateEmail(to, "Document Review: Action Required - Student Accommodation",
+                         "document-comment", variables);
+    }
 }
