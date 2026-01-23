@@ -22,12 +22,19 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
 import { SelectionModel } from '@angular/cdk/collections';
 
 // Modern UI Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import {
+  ApplicationDetailDialogComponent,
+  ApplicationDetailDialogData,
+  ApplicationDetailDialogResult,
+} from './application-detail-dialog/application-detail-dialog.component';
 
 @Component({
   selector: 'app-application-review',
@@ -51,6 +58,8 @@ import { ErrorDisplayComponent } from '../../../shared/error-display/error-displ
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
+    MatDialogModule,
+    MatDividerModule,
     ModernStatusBadgeComponent,
     ErrorDisplayComponent,
   ],
@@ -85,7 +94,8 @@ export class ApplicationReviewComponent implements OnInit {
     private adminService: AdminService,
     private fb: FormBuilder,
     private snackBar: MatSnackBar,
-    private errorService: ErrorHandlingService
+    private errorService: ErrorHandlingService,
+    private dialog: MatDialog
   ) {
     this.filterForm = this.fb.group({
       applicationCode: [''],
@@ -261,5 +271,21 @@ export class ApplicationReviewComponent implements OnInit {
       default:
         return 'help';
     }
+  }
+
+  openDetailDialog(application: ApplicationResponse): void {
+    const dialogRef = this.dialog.open(ApplicationDetailDialogComponent, {
+      width: '90vw',
+      maxWidth: '1000px',
+      maxHeight: '90vh',
+      data: { applicationId: application.id } as ApplicationDetailDialogData,
+      disableClose: false,
+    });
+
+    dialogRef.afterClosed().subscribe((result: ApplicationDetailDialogResult | undefined) => {
+      if (result && (result.action === 'allocated' || result.action === 'rejected' || result.action === 'saved')) {
+        this.loadApplications();
+      }
+    });
   }
 }

@@ -160,10 +160,18 @@
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let application">
-                <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Actions">
+                <button mat-icon-button color="primary" (click)="openDetailDialog(application)" matTooltip="View Details">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+                <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Quick Actions">
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="openDetailDialog(application)">
+                    <mat-icon>open_in_new</mat-icon>
+                    <span>Review Details</span>
+                  </button>
+                  <mat-divider></mat-divider>
                   <button mat-menu-item (click)="updateStatus(application, 'APPROVED')"
                     [disabled]="application.status === 'APPROVED'">
                     <mat-icon>check_circle</mat-icon>
