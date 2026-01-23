@@ -1,0 +1,77 @@
+<div class="comment-section">
+  <h3 class="section-title">
+    <mat-icon>comment</mat-icon>
+    Comments
+    <span class="comment-count" *ngIf="comments.length > 0">({{ comments.length }})</span>
+  </h3>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner diameter="32"></mat-spinner>
+    <span>Loading comments...</span>
+  </div>
+
+  <!-- No comments state -->
+  <div *ngIf="!isLoading && comments.length === 0" class="no-comments">
+    <mat-icon>chat_bubble_outline</mat-icon>
+    <p>No comments yet</p>
+  </div>
+
+  <!-- Comments list -->
+  <div *ngIf="!isLoading && comments.length > 0" class="comments-list">
+    <div *ngFor="let comment of comments" class="comment">
+      <div class="comment-header">
+        <div class="comment-author">
+          <mat-icon class="author-icon">person</mat-icon>
+          <strong>{{ comment.adminName }}</strong>
+        </div>
+        <div class="comment-meta">
+          <span class="timestamp">{{ comment.createdAt | timeago }}</span>
+          <button
+            *ngIf="isAdmin"
+            mat-icon-button
+            class="delete-btn"
+            (click)="deleteComment(comment)"
+            matTooltip="Delete comment">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+      </div>
+      <p class="comment-text">{{ comment.commentText }}</p>
+    </div>
+  </div>
+
+  <!-- Add comment form (Admin only) -->
+  <div *ngIf="isAdmin" class="add-comment">
+    <mat-form-field appearance="outline" class="comment-field">
+      <mat-label>Leave a comment</mat-label>
+      <textarea
+        matInput
+        [formControl]="commentControl"
+        placeholder="Leave a comment..."
+        rows="4"
+        maxlength="500"></textarea>
+      <mat-hint align="start" *ngIf="commentControl.value && commentControl.value.length < 10">
+        Minimum 10 characters required
+      </mat-hint>
+      <mat-hint align="end">{{ charactersRemaining }} characters remaining</mat-hint>
+      <mat-error *ngIf="commentControl.hasError('minlength')">
+        Comment must be at least 10 characters
+      </mat-error>
+      <mat-error *ngIf="commentControl.hasError('maxlength')">
+        Comment cannot exceed 500 characters
+      </mat-error>
+    </mat-form-field>
+    <div class="submit-row">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="submitComment()"
+        [disabled]="!canSubmit">
+        <mat-icon *ngIf="!isSubmitting">send</mat-icon>
+        <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
+        <span>{{ isSubmitting ? 'Submitting...' : 'Submit' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
