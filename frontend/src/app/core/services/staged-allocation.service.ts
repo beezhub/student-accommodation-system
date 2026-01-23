@@ -1,0 +1,106 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { StagedAllocation, BatchAllocationProposal } from '../../model/staged-allocation.model';
+import { WaitingListEntry } from '../../model/waiting-list-entry.model';
+import { RoomAllocationResponse } from './room-allocation.service';
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class StagedAllocationService {
+  private apiUrl = `${environment.apiUrl}/staged-allocations`;
+
+  constructor(private http: HttpClient) {}
+
+  proposeAllocation(studentIds: number[], batchId: string): Observable<BatchAllocationProposal> {
+    return this.http.post<BatchAllocationProposal>(`${this.apiUrl}/propose`, {
+      studentIds,
+      batchId,
+    });
+  }
+
+  getProposals(
+    batchId: string,
+    status?: string,
+    page: number = 0,
+    size: number = 20
+  ): Observable<PageResponse<StagedAllocation>> {
+    let params = new HttpParams()
+      .set('batchId', batchId)
+      .set('page', page.toString())
+      .set('size', size.toString());
+
+    if (status) {
+      params = params.set('status', status);
+    }
+
+    return this.http.get<PageResponse<StagedAllocation>>(this.apiUrl, { params });
+  }
+
+  confirmAllocation(stagedId: number): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${stagedId}/confirm`, {});
+  }
+
+  rejectAllocation(stagedId: number, reason: string): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(`${this.apiUrl}/${stagedId}/reject`, { reason });
+  }
+
+  confirmBatch(
+    batchId: string
+  ): Observable<{ success: boolean; confirmed: number; failed: number }> {
+    return this.http.post<{ success: boolean; confirmed: number; failed: number }>(
+      `${this.apiUrl}/batch/${batchId}/confirm`,
+      {}
+    );
+  }
+
+  moveStudent(
+    allocationId: number,
+    newRoomId: number,
+    reason: string
+  ): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${allocationId}/move`, {
+      newRoomId,
+      reason,
+    });
+  }
+
+  overrideConstraints(
+    studentId: number,
+    roomId: number,
+    reason: string,
+    bypass: string[]
+  ): Observable<StagedAllocation> {
+    return this.http.post<StagedAllocation>(`${this.apiUrl}/override`, {
+      studentId,
+      roomId,
+      reason,
+      bypass,
+    });
+  }
+
+  getWaitingList(buildingId?: number): Observable<WaitingListEntry[]> {
+    let params = new HttpParams();
+    if (buildingId) {
+      params = params.set('buildingId', buildingId.toString());
+    }
+    return this.http.get<WaitingListEntry[]>(`${this.apiUrl}/waiting-list`, { params });
+  }
+
+  rescoreWaitingList(): Observable<{ success: boolean; rescored: number }> {
+    return this.http.post<{ success: boolean; rescored: number }>(
+      `${this.apiUrl}/waiting-list/rescore`,
+      {}
+    );
+  }
+}

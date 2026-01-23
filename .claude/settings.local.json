@@ -40,7 +40,8 @@
       "Bash(grep:*)",
       "Bash(./mvnw compile:*)",
       "Bash(./gradlew.bat compileJava:*)",
-      "Bash(xargs basename:*)"
+      "Bash(xargs basename:*)",
+      "Bash(npx ng build:*)"
     ],
     "deny": [],
     "ask": []
