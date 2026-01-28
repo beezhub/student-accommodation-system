@@ -162,4 +162,9 @@ export class YearOfStudyManagementComponent implements OnInit {
       });
     }
   }
+
+  getYearNumber(index: number): string {
+    const num = this.currentPage * this.pageSize + index + 1;
+    return num.toString().padStart(2, '0');
+  }
 }

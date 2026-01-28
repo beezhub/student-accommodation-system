@@ -19,6 +19,8 @@ export interface RoomResponse {
   status: string;
   buildingId: number;
   buildingName: string;
+  accessibilityCompliant?: boolean;
+  genderRestriction?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -53,6 +55,8 @@ export class RoomService {
     buildingId?: number;
     minCapacity?: number;
     maxCapacity?: number;
+    onlyAccessible?: boolean;
+    onlyAvailable?: boolean;
     page?: number;
     size?: number;
   }): Observable<PageResponse<RoomResponse>> {
@@ -64,6 +68,8 @@ export class RoomService {
     if (filters.buildingId) params = params.set('buildingId', filters.buildingId.toString());
     if (filters.minCapacity) params = params.set('minCapacity', filters.minCapacity.toString());
     if (filters.maxCapacity) params = params.set('maxCapacity', filters.maxCapacity.toString());
+    if (filters.onlyAccessible) params = params.set('accessibility', 'true');
+    if (filters.onlyAvailable) params = params.set('onlyAvailable', 'true');
 
     return this.http.get<PageResponse<RoomResponse>>(`${this.apiUrl}/search`, { params });
   }

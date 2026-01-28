@@ -23,6 +23,8 @@ public interface StagedAllocationRepository extends JpaRepository<StagedAllocati
 
     List<StagedAllocation> findByApplication_Id(Long applicationId);
 
+    List<StagedAllocation> findByApplication_IdIn(List<Long> applicationIds);
+
     List<StagedAllocation> findByBatchIdAndStatus(String batchId, StagedAllocationStatus status);
 
     Optional<StagedAllocation> findByStudent_IdAndStatus(Long studentId, StagedAllocationStatus status);

@@ -2,8 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { StagedAllocation, BatchAllocationProposal } from '../../model/staged-allocation.model';
-import { WaitingListEntry } from '../../model/waiting-list-entry.model';
+import { StagedAllocation, BatchAllocationProposal, WaitingListEntry } from '../models/allocation.models';
 import { RoomAllocationResponse } from './room-allocation.service';
 
 export interface PageResponse<T> {
@@ -18,12 +17,12 @@ export interface PageResponse<T> {
   providedIn: 'root',
 })
 export class StagedAllocationService {
-  private apiUrl = `${environment.apiUrl}/staged-allocations`;
+  private apiUrl = `${environment.apiUrl}/admin/allocation`;
 
   constructor(private http: HttpClient) {}
 
   proposeAllocation(studentIds: number[], batchId: string): Observable<BatchAllocationProposal> {
-    return this.http.post<BatchAllocationProposal>(`${this.apiUrl}/propose`, {
+    return this.http.post<BatchAllocationProposal>(`${this.apiUrl}/propose-batch`, {
       studentIds,
       batchId,
     });
@@ -48,18 +47,18 @@ export class StagedAllocationService {
   }
 
   confirmAllocation(stagedId: number): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${stagedId}/confirm`, {});
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/staged/${stagedId}/confirm`, {});
   }
 
   rejectAllocation(stagedId: number, reason: string): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/${stagedId}/reject`, { reason });
+    return this.http.post<{ success: boolean }>(`${this.apiUrl}/staged/${stagedId}/reject`, { reason });
   }
 
   confirmBatch(
     batchId: string
   ): Observable<{ success: boolean; confirmed: number; failed: number }> {
     return this.http.post<{ success: boolean; confirmed: number; failed: number }>(
-      `${this.apiUrl}/batch/${batchId}/confirm`,
+      `${this.apiUrl}/batch/${batchId}/confirm-all`,
       {}
     );
   }
@@ -79,13 +78,13 @@ export class StagedAllocationService {
     studentId: number,
     roomId: number,
     reason: string,
-    bypass: string[]
+    bypassConstraints: string[]
   ): Observable<StagedAllocation> {
     return this.http.post<StagedAllocation>(`${this.apiUrl}/override`, {
       studentId,
       roomId,
       reason,
-      bypass,
+      bypassConstraints,
     });
   }
 

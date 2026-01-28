@@ -29,146 +29,319 @@ import { AuthService } from '../../../../core/services/auth.service';
     MatProgressSpinnerModule,
   ],
   template: `
-    <h2 mat-dialog-title>Change Password</h2>
-    <mat-dialog-content>
-      <form [formGroup]="passwordForm">
-        <mat-form-field appearance="fill" class="full-width">
-          <mat-label>Current Password</mat-label>
-          <input
-            matInput
-            [type]="hideCurrentPassword ? 'password' : 'text'"
-            formControlName="currentPassword"
-            autocomplete="current-password"
-          />
-          <button
-            mat-icon-button
-            matSuffix
-            (click)="hideCurrentPassword = !hideCurrentPassword"
-            type="button"
-            [attr.aria-label]="'Hide password'"
-            [attr.aria-pressed]="!hideCurrentPassword"
-          >
-            <mat-icon>{{ hideCurrentPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-          @if (passwordForm.get('currentPassword')?.invalid &&
-          passwordForm.get('currentPassword')?.touched) {
-          <mat-error> Current password is required </mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="fill" class="full-width">
-          <mat-label>New Password</mat-label>
-          <input
-            matInput
-            [type]="hideNewPassword ? 'password' : 'text'"
-            formControlName="newPassword"
-            autocomplete="new-password"
-          />
-          <button
-            mat-icon-button
-            matSuffix
-            (click)="hideNewPassword = !hideNewPassword"
-            type="button"
-            [attr.aria-label]="'Hide password'"
-            [attr.aria-pressed]="!hideNewPassword"
-          >
-            <mat-icon>{{ hideNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-          @if (passwordForm.get('newPassword')?.hasError('required') &&
-          passwordForm.get('newPassword')?.touched) {
-          <mat-error> New password is required </mat-error>
-          } @if (passwordForm.get('newPassword')?.hasError('minlength')) {
-          <mat-error> Password must be at least 8 characters </mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="fill" class="full-width">
-          <mat-label>Confirm New Password</mat-label>
-          <input
-            matInput
-            [type]="hideConfirmPassword ? 'password' : 'text'"
-            formControlName="confirmPassword"
-            autocomplete="new-password"
-          />
-          <button
-            mat-icon-button
-            matSuffix
-            (click)="hideConfirmPassword = !hideConfirmPassword"
-            type="button"
-            [attr.aria-label]="'Hide password'"
-            [attr.aria-pressed]="!hideConfirmPassword"
-          >
-            <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-          @if (passwordForm.get('confirmPassword')?.hasError('required') &&
-          passwordForm.get('confirmPassword')?.touched) {
-          <mat-error> Please confirm your password </mat-error>
-          } @if (passwordForm.get('confirmPassword')?.hasError('passwordMismatch')) {
-          <mat-error> Passwords do not match </mat-error>
-          }
-        </mat-form-field>
-
-        @if (errorMessage) {
-        <div class="error-message">
-          {{ errorMessage }}
+    <div class="dialog-container">
+      <div class="dialog-header">
+        <div class="header-icon">
+          <mat-icon>vpn_key</mat-icon>
         </div>
-        }
-      </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
-      <button
-        mat-flat-button
-        color="primary"
-        (click)="onSubmit()"
-        [disabled]="!passwordForm.valid || isSubmitting"
-      >
-        @if (isSubmitting) {
-        <mat-progress-spinner
-          mode="indeterminate"
-          diameter="18"
-          strokeWidth="3"
-        ></mat-progress-spinner>
-        }
-        <span>{{ isSubmitting ? 'Changing...' : 'Change Password' }}</span>
-      </button>
-    </mat-dialog-actions>
+        <h2>Change Password</h2>
+        <p>Update your password to keep your account secure</p>
+      </div>
+
+      <mat-dialog-content>
+        <form [formGroup]="passwordForm">
+          <div class="form-field-wrapper">
+            <label class="field-label">
+              <mat-icon>lock</mat-icon>
+              Current Password
+            </label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                [type]="hideCurrentPassword ? 'password' : 'text'"
+                formControlName="currentPassword"
+                placeholder="Enter current password"
+                autocomplete="current-password"
+              />
+              <button
+                mat-icon-button
+                matSuffix
+                (click)="hideCurrentPassword = !hideCurrentPassword"
+                type="button"
+                class="visibility-toggle"
+              >
+                <mat-icon>{{ hideCurrentPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              @if (passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched) {
+                <mat-error>Current password is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="form-field-wrapper">
+            <label class="field-label">
+              <mat-icon>lock_open</mat-icon>
+              New Password
+            </label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                [type]="hideNewPassword ? 'password' : 'text'"
+                formControlName="newPassword"
+                placeholder="Enter new password"
+                autocomplete="new-password"
+              />
+              <button
+                mat-icon-button
+                matSuffix
+                (click)="hideNewPassword = !hideNewPassword"
+                type="button"
+                class="visibility-toggle"
+              >
+                <mat-icon>{{ hideNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              @if (passwordForm.get('newPassword')?.hasError('required') && passwordForm.get('newPassword')?.touched) {
+                <mat-error>New password is required</mat-error>
+              }
+              @if (passwordForm.get('newPassword')?.hasError('minlength')) {
+                <mat-error>Password must be at least 8 characters</mat-error>
+              }
+            </mat-form-field>
+            <div class="password-hint">
+              <mat-icon>info_outline</mat-icon>
+              <span>Minimum 8 characters required</span>
+            </div>
+          </div>
+
+          <div class="form-field-wrapper">
+            <label class="field-label">
+              <mat-icon>check_circle</mat-icon>
+              Confirm Password
+            </label>
+            <mat-form-field appearance="outline" class="full-width">
+              <input
+                matInput
+                [type]="hideConfirmPassword ? 'password' : 'text'"
+                formControlName="confirmPassword"
+                placeholder="Confirm new password"
+                autocomplete="new-password"
+              />
+              <button
+                mat-icon-button
+                matSuffix
+                (click)="hideConfirmPassword = !hideConfirmPassword"
+                type="button"
+                class="visibility-toggle"
+              >
+                <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              @if (passwordForm.get('confirmPassword')?.hasError('required') && passwordForm.get('confirmPassword')?.touched) {
+                <mat-error>Please confirm your password</mat-error>
+              }
+              @if (passwordForm.get('confirmPassword')?.hasError('passwordMismatch')) {
+                <mat-error>Passwords do not match</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          @if (errorMessage) {
+            <div class="error-message">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ errorMessage }}</span>
+            </div>
+          }
+        </form>
+      </mat-dialog-content>
+
+      <mat-dialog-actions>
+        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+          Cancel
+        </button>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="onSubmit()"
+          [disabled]="!passwordForm.valid || isSubmitting"
+          class="submit-btn"
+        >
+          @if (isSubmitting) {
+            <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+            <span>Updating...</span>
+          } @else {
+            <mat-icon>vpn_key</mat-icon>
+            <span>Change Password</span>
+          }
+        </button>
+      </mat-dialog-actions>
+    </div>
   `,
   styles: [
     `
-      .full-width {
-        width: 100%;
+      .dialog-container {
+        min-width: 420px;
+      }
+
+      /* Dialog Header */
+      .dialog-header {
+        text-align: center;
+        padding: 24px 24px 0 24px;
+      }
+
+      .header-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
         margin-bottom: 16px;
       }
 
+      .header-icon mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+        color: #ffffff;
+      }
+
+      .dialog-header h2 {
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0 0 6px 0;
+        color: #1e293b;
+      }
+
+      .dialog-header p {
+        font-size: 13px;
+        color: #64748b;
+        margin: 0;
+      }
+
+      /* Dialog Content */
       mat-dialog-content {
-        min-height: 300px;
-        padding: 24px;
+        padding: 24px !important;
+        max-height: 60vh;
       }
 
-      mat-dialog-actions {
-        padding: 16px 24px;
-        gap: 12px;
+      /* Form Field Wrapper */
+      .form-field-wrapper {
+        margin-bottom: 16px;
       }
 
-      .error-message {
-        color: #f44336;
+      .field-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .field-label mat-icon {
         font-size: 14px;
-        margin-top: 8px;
-        padding: 12px;
-        background-color: #ffebee;
-        border-radius: 4px;
+        width: 14px;
+        height: 14px;
+        color: #64748b;
       }
 
-      button[mat-flat-button] {
+      .full-width {
+        width: 100%;
+      }
+
+      /* Visibility Toggle */
+      .visibility-toggle {
+        color: #94a3b8 !important;
+      }
+
+      .visibility-toggle:hover {
+        color: #64748b !important;
+      }
+
+      /* Password Hint */
+      .password-hint {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 4px;
+      }
+
+      .password-hint mat-icon {
+        font-size: 12px;
+        width: 12px;
+        height: 12px;
+      }
+
+      /* Error Message */
+      .error-message {
         display: flex;
         align-items: center;
         gap: 8px;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border: 1px solid #fca5a5;
+        border-radius: 10px;
+        color: #dc2626;
+        font-size: 13px;
+        margin-top: 8px;
       }
 
-      mat-progress-spinner {
-        display: inline-block;
-        margin-right: 8px;
+      .error-message mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+
+      /* Dialog Actions */
+      mat-dialog-actions {
+        padding: 16px 24px 24px 24px !important;
+        gap: 12px;
+        justify-content: flex-end;
+      }
+
+      .cancel-btn {
+        height: 42px;
+        border-radius: 10px !important;
+        font-weight: 500;
+        color: #64748b;
+        border-color: #e2e8f0 !important;
+        padding: 0 20px !important;
+      }
+
+      .cancel-btn:hover {
+        background: #f8fafc !important;
+      }
+
+      .submit-btn {
+        height: 42px;
+        border-radius: 10px !important;
+        font-weight: 600;
+        padding: 0 20px !important;
+        display: flex !important;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .submit-btn mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      .button-spinner {
+        margin-right: 6px;
+      }
+
+      /* Responsive */
+      @media (max-width: 480px) {
+        .dialog-container {
+          min-width: 100%;
+        }
+
+        mat-dialog-actions {
+          flex-direction: column-reverse;
+        }
+
+        .cancel-btn,
+        .submit-btn {
+          width: 100%;
+        }
       }
     `,
   ],

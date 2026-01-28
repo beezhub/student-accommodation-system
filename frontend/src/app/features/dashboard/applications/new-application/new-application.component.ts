@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -6,6 +6,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { ApplicationService } from '../../../../core/services/application.service';
 import { StudentService } from '../../../../core/services/student.service';
 import { InstitutionService } from '../../../../core/services/institution.service';
+import { BuildingService, BuildingResponse } from '../../../../core/services/building.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Institution } from '../../../../core/models/institution.model';
 
@@ -28,7 +29,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
   selector: 'app-new-application',
   templateUrl: './new-application.component.html',
   styleUrls: ['./new-application.component.css'],
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
     RouterModule,
@@ -48,42 +49,45 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
   ],
 })
 export class NewApplicationComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly applicationService = inject(ApplicationService);
+  private readonly studentService = inject(StudentService);
+  private readonly institutionService = inject(InstitutionService);
+  private readonly buildingService = inject(BuildingService);
+  private readonly snackBar = inject(MatSnackBar);
+
   applicationForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
   studentId: number | null = null;
-  institutions: Institution[] = [];
+  institutions: readonly Institution[] = [];
+  buildings: readonly BuildingResponse[] = [];
 
   // Accommodation types for the dropdown
-  accommodationTypes = [
+  readonly accommodationTypes = [
     { value: 'SINGLE', viewValue: 'Single Room' },
     { value: 'DOUBLE', viewValue: 'Double Room' },
     { value: 'STUDIO', viewValue: 'Studio Apartment' },
     { value: 'ENSUITE', viewValue: 'En-suite Room' },
-  ];
+  ] as const;
 
   // Room type options for the dropdown
-  roomTypeOptions = [
+  readonly roomTypeOptions = [
     { value: 'STANDARD', viewValue: 'Standard Room' },
     { value: 'PREMIUM', viewValue: 'Premium Room' },
     { value: 'ACCESSIBLE', viewValue: 'Accessible Room' },
     { value: 'QUIET_FLOOR', viewValue: 'Quiet Study Floor' },
-  ];
+  ] as const;
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: AuthService,
-    private applicationService: ApplicationService,
-    private studentService: StudentService,
-    private institutionService: InstitutionService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.applicationForm = this.fb.group({
       preferredAccommodationType: ['', Validators.required],
       preferredMoveInDate: ['', Validators.required],
       preferredDurationMonths: ['', [Validators.required, Validators.min(1), Validators.max(12)]],
       preferredRoomType: ['', Validators.required],
+      preferredBuildingId: [''],
       specialRequirements: [''],
       institutionId: ['', Validators.required],
       courseName: ['', Validators.required],
@@ -109,6 +113,16 @@ export class NewApplicationComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load institutions', error);
+      },
+    });
+
+    // Load buildings for preferred building selection
+    this.buildingService.getAllBuildingsNoPagination().subscribe({
+      next: (buildings) => {
+        this.buildings = buildings;
+      },
+      error: (error) => {
+        console.error('Failed to load buildings', error);
       },
     });
 
@@ -177,6 +191,7 @@ export class NewApplicationComponent implements OnInit {
         preferredMoveInDate: formattedDate,
         preferredDurationMonths: formValue.preferredDurationMonths,
         preferredRoomType: formValue.preferredRoomType,
+        preferredBuildingId: formValue.preferredBuildingId || null,
         specialRequirements: formValue.specialRequirements || null,
         institutionName: institutionName,
         courseName: formValue.courseName,

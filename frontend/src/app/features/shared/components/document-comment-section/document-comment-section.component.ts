@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DocumentCommentService } from '../../../../core/services/document-comment.service';
-import { DocumentComment } from '../../../../model/document-comment.model';
+import { DocumentComment } from '../../../../core/models/allocation.models';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TimeagoPipe } from '../../../../shared/pipes/timeago.pipe';
 

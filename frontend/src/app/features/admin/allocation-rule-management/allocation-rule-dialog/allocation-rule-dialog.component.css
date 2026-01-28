@@ -1,0 +1,52 @@
+.rule-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-top: 8px;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.half-width {
+    width: calc(50% - 8px);
+}
+
+.description {
+    width: 100%;
+    color: #64748b;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+.slider-group {
+    width: 100%;
+    margin-bottom: 16px;
+}
+
+.slider-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #1e293b;
+}
+
+mat-slider {
+    width: 100%;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    /* Match form field height */
+}
+
+h3 {
+    margin-top: 16px;
+    margin-bottom: 4px;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 500;
+}

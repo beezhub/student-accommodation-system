@@ -29,21 +29,21 @@ export class SystemSettingsComponent {
       description: 'Configure document types required for student applications',
       icon: 'description',
       route: '/admin/document-types',
-      color: 'primary',
+      class: 'documents',
     },
     {
       title: 'Institutions',
       description: 'Manage partner educational institutions',
       icon: 'school',
       route: '/admin/institutions',
-      color: 'accent',
+      class: 'institutions',
     },
     {
       title: 'Year of Study',
       description: 'Configure available years of study',
       icon: 'calendar_today',
       route: '/admin/year-of-study',
-      color: 'primary',
+      class: 'years',
     },
   ];
 }

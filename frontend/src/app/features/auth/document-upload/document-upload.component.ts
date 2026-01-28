@@ -1,5 +1,4 @@
-import { Component, OnInit } from '@angular/core';
-
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -21,7 +20,7 @@ import { ErrorDisplayComponent } from '../../../shared/error-display/error-displ
   selector: 'app-document-upload',
   templateUrl: './document-upload.component.html',
   styleUrls: ['./document-upload.component.css'],
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
     RouterModule,
@@ -36,6 +35,14 @@ import { ErrorDisplayComponent } from '../../../shared/error-display/error-displ
   ],
 })
 export class DocumentUploadComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly documentTypeService = inject(DocumentTypeService);
+  private readonly documentService = inject(DocumentService);
+  private readonly errorService = inject(ErrorHandlingService);
+  private readonly applicationService = inject(ApplicationService);
+
   uploadForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
@@ -57,15 +64,7 @@ export class DocumentUploadComponent implements OnInit {
   hasActiveApplication = false;
   isCheckingApplication = true;
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: AuthService,
-    private documentTypeService: DocumentTypeService,
-    private documentService: DocumentService,
-    private errorService: ErrorHandlingService,
-    private applicationService: ApplicationService
-  ) {
+  constructor() {
     this.uploadForm = this.fb.group({});
   }
 

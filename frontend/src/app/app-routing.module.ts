@@ -28,6 +28,20 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./features/auth/forgot-password/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent
+      ),
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./features/auth/reset-password/reset-password.component').then(
+        (m) => m.ResetPasswordComponent
+      ),
+  },
+  {
     path: 'email-verification-required',
     loadComponent: () =>
       import(
@@ -224,6 +238,34 @@ export const routes: Routes = [
           import('./features/admin/system-settings/system-settings.component').then(
             (m) => m.SystemSettingsComponent
           ),
+      },
+      {
+        path: 'allocation-rules',
+        loadComponent: () =>
+          import(
+            './features/admin/allocation-rule-management/allocation-rule-management.component'
+          ).then((m) => m.AllocationRuleManagementComponent),
+      },
+      {
+        path: 'allocations/staged',
+        loadComponent: () =>
+          import('./features/admin/staged-allocation/staged-allocation.component').then(
+            (m) => m.StagedAllocationComponent
+          ),
+      },
+      {
+        path: 'buildings/:buildingId/attributes',
+        loadComponent: () =>
+          import(
+            './features/admin/building-attributes-management/building-attributes-management.component'
+          ).then((m) => m.BuildingAttributesManagementComponent),
+      },
+      {
+        path: 'waiting-list',
+        loadComponent: () =>
+          import(
+            './features/admin/waiting-list-dashboard/waiting-list-dashboard.component'
+          ).then((m) => m.WaitingListDashboardComponent),
       },
     ],
   },

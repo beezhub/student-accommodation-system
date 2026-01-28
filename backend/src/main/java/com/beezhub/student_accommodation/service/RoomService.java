@@ -9,18 +9,21 @@ import com.beezhub.student_accommodation.model.dto.RoomResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.specification.RoomSpecification;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +33,7 @@ public class RoomService {
 
     private final RoomRepository roomRepository;
     private final BuildingRepository buildingRepository;
+    private final RoomAllocationRepository roomAllocationRepository;
     private final RoomMapper roomMapper;
 
     public List<RoomResponse> getAllRooms() {
@@ -48,11 +52,28 @@ public class RoomService {
         return PageMapper.toPageResponse(responsePage);
     }
 
-    public PageResponse<RoomResponse> searchRooms(String roomNumber, Long buildingId, Integer minCapacity, Integer maxCapacity, Pageable pageable) {
-        log.info("Searching rooms with filters - roomNumber: {}, buildingId: {}, minCapacity: {}, maxCapacity: {}",
-                roomNumber, buildingId, minCapacity, maxCapacity);
+    public PageResponse<RoomResponse> searchRooms(String roomNumber, Long buildingId, Integer minCapacity,
+            Integer maxCapacity, Boolean onlyAvailable, Pageable pageable) {
+        log.info(
+                "Searching rooms with filters - roomNumber: {}, buildingId: {}, minCapacity: {}, maxCapacity: {}, onlyAvailable: {}",
+                roomNumber, buildingId, minCapacity, maxCapacity, onlyAvailable);
         Specification<Room> spec = RoomSpecification.filterBy(roomNumber, buildingId, minCapacity, maxCapacity);
         Page<Room> rooms = roomRepository.findAll(spec, pageable);
+
+        // Filter for available rooms if requested
+        if (Boolean.TRUE.equals(onlyAvailable)) {
+            List<Room> availableRooms = rooms.getContent().stream()
+                    .filter(room -> {
+                        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
+                        return activeAllocations < room.getCapacity();
+                    })
+                    .collect(Collectors.toList());
+            Page<Room> availableRoomsPage = new PageImpl<>(availableRooms, pageable, availableRooms.size());
+            Page<RoomResponse> responsePage = availableRoomsPage.map(roomMapper::toResponse);
+            log.info("Found {} available rooms matching criteria", availableRooms.size());
+            return PageMapper.toPageResponse(responsePage);
+        }
+
         Page<RoomResponse> responsePage = rooms.map(roomMapper::toResponse);
         log.info("Found {} rooms matching criteria", rooms.getNumberOfElements());
         return PageMapper.toPageResponse(responsePage);
@@ -75,7 +96,8 @@ public class RoomService {
 
         if (request.getBuildingId() != null) {
             Building building = buildingRepository.findById(request.getBuildingId())
-                    .orElseThrow(() -> new BuildingNotFoundException("Building not found with id: " + request.getBuildingId()));
+                    .orElseThrow(() -> new BuildingNotFoundException(
+                            "Building not found with id: " + request.getBuildingId()));
             room.setBuilding(building);
         }
 
@@ -98,7 +120,8 @@ public class RoomService {
         if (request.getBuildingId() != null) {
             log.info("Fetching building with id: {}", request.getBuildingId());
             Building building = buildingRepository.findById(request.getBuildingId())
-                    .orElseThrow(() -> new BuildingNotFoundException("Building not found with id: " + request.getBuildingId()));
+                    .orElseThrow(() -> new BuildingNotFoundException(
+                            "Building not found with id: " + request.getBuildingId()));
             room.setBuilding(building);
             log.info("Building set to: {}", building.getName());
         } else {

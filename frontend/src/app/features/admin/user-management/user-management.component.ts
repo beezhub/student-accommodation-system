@@ -15,6 +15,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CreateUserDialogComponent } from './create-user-dialog/create-user-dialog.component';
 
 @Component({
@@ -35,6 +36,7 @@ import { CreateUserDialogComponent } from './create-user-dialog/create-user-dial
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatChipsModule,
+    MatTooltipModule,
   ],
 })
 export class UserManagementComponent implements OnInit {

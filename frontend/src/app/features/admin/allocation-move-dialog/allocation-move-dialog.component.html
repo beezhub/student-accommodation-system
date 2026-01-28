@@ -1,0 +1,112 @@
+<h2 mat-dialog-title>Move Student</h2>
+
+<mat-dialog-content>
+  <div class="dialog-layout">
+    
+    <!-- Current Allocation Info -->
+    <div class="current-info-panel">
+      <h3>Current Allocation</h3>
+      <div class="info-grid">
+        <div class="label">Student:</div>
+        <div class="value">{{data.studentName}}</div>
+        
+        <div class="label">Current Room:</div>
+        <div class="value">
+          <strong>{{data.currentRoom.buildingName}}</strong> - {{data.currentRoom.roomNumber}}
+        </div>
+      </div>
+    </div>
+
+    <mat-divider style="margin: 16px 0;"></mat-divider>
+
+    <!-- Room Search -->
+    <h3>Select New Room</h3>
+    <form [formGroup]="searchForm" (ngSubmit)="searchRooms()" class="search-form">
+      <mat-form-field appearance="outline" class="building-select">
+        <mat-label>Building</mat-label>
+        <mat-select formControlName="buildingId">
+          <mat-option value="">All Buildings</mat-option>
+          <mat-option *ngFor="let b of buildings" [value]="b.id">{{b.name}}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="room-input">
+        <mat-label>Room No.</mat-label>
+        <input matInput formControlName="roomNumber" placeholder="e.g. 101">
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="isLoadingRooms">
+        Search
+      </button>
+    </form>
+
+    <!-- Results Table -->
+    <div class="results-area" *ngIf="rooms.length > 0">
+      <table mat-table [dataSource]="rooms" class="match-table">
+        <ng-container matColumnDef="roomNumber">
+          <th mat-header-cell *matHeaderCellDef> Room </th>
+          <td mat-cell *matCellDef="let room"> <strong>{{room.roomNumber}}</strong> </td>
+        </ng-container>
+
+        <ng-container matColumnDef="building">
+          <th mat-header-cell *matHeaderCellDef> Building </th>
+          <td mat-cell *matCellDef="let room"> {{room.buildingName}} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="capacity">
+          <th mat-header-cell *matHeaderCellDef> Cap </th>
+          <td mat-cell *matCellDef="let room"> {{room.currentOccupancy}}/{{room.capacity}} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef> Action </th>
+          <td mat-cell *matCellDef="let room">
+            <button mat-stroked-button color="primary" 
+                    [disabled]="selectedRoom?.id === room.id"
+                    (click)="selectRoom(room)">
+              {{selectedRoom?.id === room.id ? 'Selected' : 'Select'}}
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </div>
+    
+    <div class="no-results" *ngIf="!isLoadingRooms && rooms.length === 0">
+      <p>Search for rooms to see available options.</p>
+    </div>
+
+    <!-- Confirmation Area -->
+    <div class="confirmation-panel" *ngIf="selectedRoom">
+      <mat-card class="selected-room-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar color="primary">check_circle</mat-icon>
+          <mat-card-title>Target: {{selectedRoom.buildingName}} - {{selectedRoom.roomNumber}}</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="reasonForm">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Reason for Move (Required)</mat-label>
+              <textarea matInput formControlName="reason" rows="3" placeholder="e.g. Student requested due to noise issues"></textarea>
+              <mat-error *ngIf="reasonForm.get('reason')?.hasError('required')">Reason is required</mat-error>
+              <mat-error *ngIf="reasonForm.get('reason')?.hasError('minlength')">Min 10 characters</mat-error>
+            </mat-form-field>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-raised-button color="warn" 
+          [disabled]="!selectedRoom || reasonForm.invalid || isMoving"
+          (click)="confirmMove()">
+    <mat-spinner diameter="20" *ngIf="isMoving" style="display:inline-block; margin-right: 8px"></mat-spinner>
+    Confirm Move
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,77 @@
+.dialog-layout {
+    min-width: 500px;
+    max-width: 800px;
+}
+
+.current-info-panel {
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.current-info-panel h3 {
+    margin-top: 0;
+    font-size: 14px;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.5px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px;
+    align-items: center;
+}
+
+.label {
+    color: #475569;
+    font-weight: 500;
+}
+
+.search-form {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.building-select {
+    flex: 2;
+}
+
+.room-input {
+    flex: 1;
+}
+
+.results-area {
+    max-height: 250px;
+    overflow: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.match-table {
+    width: 100%;
+}
+
+.no-results {
+    text-align: center;
+    color: #94a3b8;
+    padding: 24px;
+    font-style: italic;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.selected-room-card {
+    background: #eff6ff !important;
+    border: 1px solid #bfdbfe;
+}
+
+.full-width {
+    width: 100%;
+    margin-top: 8px;
+}

@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ApplicationService } from '../../../core/services/application.service';
+import { Application } from '../../../core/models/application.model';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -10,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 // Shared Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
@@ -18,7 +21,6 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
   selector: 'app-applications',
   templateUrl: './applications.component.html',
   styleUrls: ['./applications.component.css'],
-  standalone: true,
   imports: [
     CommonModule,
     RouterModule,
@@ -28,32 +30,22 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatCardModule,
     MatTableModule,
     MatChipsModule,
+    MatProgressSpinnerModule,
     ModernStatusBadgeComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ApplicationsComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly applicationService = inject(ApplicationService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   currentUser: any;
-  applications = [
-    {
-      id: '1',
-      year: '2024',
-      status: 'Pending',
-      submittedDate: '2024-01-15',
-      type: 'Single Room',
-      duration: '1 Year',
-    },
-    {
-      id: '2',
-      year: '2023',
-      status: 'Approved',
-      submittedDate: '2023-01-10',
-      type: 'Studio Apartment',
-      duration: '2 Semesters',
-    },
-  ];
+  applications: Application[] = [];
+  isLoading = false;
 
   // Material table
-  displayedColumns: string[] = [
+  readonly displayedColumns: readonly string[] = [
     'applicationId',
     'year',
     'status',
@@ -61,14 +53,44 @@ export class ApplicationsComponent implements OnInit {
     'type',
     'duration',
     'actions',
-  ];
-  dataSource = new MatTableDataSource<any>(this.applications);
-
-  constructor(private authService: AuthService) {}
+  ] as const;
+  dataSource = new MatTableDataSource<Application>(this.applications);
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
-    this.dataSource.data = this.applications;
+    this.loadApplications();
+  }
+
+  loadApplications(): void {
+    this.isLoading = true;
+    this.applicationService.getMyApplications().subscribe({
+      next: (applications) => {
+        // Sort by date descending (newest first)
+        this.applications = applications.sort((a, b) => {
+          const dateA = a.createdAt
+            ? new Date(a.createdAt).getTime()
+            : a.applicationDate
+            ? new Date(a.applicationDate).getTime()
+            : 0;
+          const dateB = b.createdAt
+            ? new Date(b.createdAt).getTime()
+            : b.applicationDate
+            ? new Date(b.applicationDate).getTime()
+            : 0;
+          return dateB - dateA;
+        });
+        this.dataSource.data = this.applications;
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Failed to fetch applications:', err);
+        this.applications = [];
+        this.dataSource.data = [];
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   getStatusClass(status: string): string {
@@ -84,9 +106,9 @@ export class ApplicationsComponent implements OnInit {
     }
   }
 
-  cancelApplication(applicationId: string) {
-    // simple client-side cancellation; replace with API call as needed
-    this.applications = this.applications.filter((a) => a.id !== applicationId);
-    this.dataSource.data = this.applications;
+  cancelApplication(applicationId: number) {
+    // Note: Application cancellation is not currently supported by the backend API
+    // This is a placeholder for future implementation
+    alert('Application cancellation is not currently available. Please contact support if you need to cancel your application.');
   }
 }

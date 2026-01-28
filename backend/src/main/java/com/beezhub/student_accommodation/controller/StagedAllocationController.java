@@ -1,0 +1,221 @@
+package com.beezhub.student_accommodation.controller;
+
+import com.beezhub.student_accommodation.model.dto.*;
+import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
+import com.beezhub.student_accommodation.service.RoomAllocationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * REST Controller for managing staged allocations and batch allocation
+ * workflows.
+ * All endpoints require ADMIN role.
+ */
+@RestController
+@RequestMapping("/api/admin/allocation")
+@RequiredArgsConstructor
+@Slf4j
+@Tag(name = "Staged Allocation Management", description = "Batch allocation proposal and confirmation workflows")
+@PreAuthorize("hasRole('ADMIN')")
+public class StagedAllocationController {
+
+        private final RoomAllocationService roomAllocationService;
+
+        /**
+         * Proposes allocation for a batch of students.
+         * Creates staged allocations that require admin confirmation.
+         *
+         * @param request BatchAllocationRequest with student IDs and batch ID
+         * @param auth    Authentication context
+         * @return BatchAllocationProposalResponse with proposals and warnings
+         */
+        @PostMapping("/propose-batch")
+        @Operation(summary = "Propose batch allocation", description = "Creates proposals for allocating multiple students to rooms. Max 50 students per batch.")
+        public ResponseEntity<BatchAllocationProposalResponse> proposeBatchAllocation(
+                        @Valid @RequestBody BatchAllocationRequest request,
+                        Authentication auth) {
+
+                log.info("Admin {} proposing batch allocation for {} students, batch: {}",
+                                auth.getName(), request.getStudentIds().size(), request.getBatchId());
+
+                Long adminId = extractAdminId(auth);
+                BatchAllocationProposalResponse response = roomAllocationService.proposeAllocation(request, adminId);
+
+                log.info("Batch proposal created: {} successful, {} failed",
+                                response.getSuccessfulProposals(), response.getFailedProposals());
+
+                return ResponseEntity.ok(response);
+        }
+
+        /**
+         * Confirms a single staged allocation.
+         *
+         * @param stagedAllocationId ID of the staged allocation
+         * @param auth               Authentication context
+         * @return RoomAllocationResponse for the confirmed allocation
+         */
+        @PostMapping("/staged/{stagedAllocationId}/confirm")
+        @Operation(summary = "Confirm staged allocation", description = "Confirms a proposed allocation and creates the actual room allocation")
+        public ResponseEntity<RoomAllocationResponse> confirmStagedAllocation(
+                        @PathVariable Long stagedAllocationId,
+                        Authentication auth) {
+
+                log.info("Admin {} confirming staged allocation {}", auth.getName(), stagedAllocationId);
+
+                Long adminId = extractAdminId(auth);
+                RoomAllocationResponse response = roomAllocationService.confirmAllocation(stagedAllocationId, adminId);
+
+                log.info("Staged allocation {} confirmed successfully", stagedAllocationId);
+                return ResponseEntity.ok(response);
+        }
+
+        /**
+         * Rejects a staged allocation.
+         *
+         * @param stagedAllocationId ID of the staged allocation
+         * @param request            RejectionRequest with reason
+         * @param auth               Authentication context
+         * @return Success message
+         */
+        @PostMapping("/staged/{stagedAllocationId}/reject")
+        @Operation(summary = "Reject staged allocation", description = "Rejects a proposed allocation with a reason")
+        public ResponseEntity<MessageResponse> rejectStagedAllocation(
+                        @PathVariable Long stagedAllocationId,
+                        @Valid @RequestBody RejectAllocationRequest request,
+                        Authentication auth) {
+
+                log.info("Admin {} rejecting staged allocation {}: {}",
+                                auth.getName(), stagedAllocationId, request.getReason());
+
+                Long adminId = extractAdminId(auth);
+                roomAllocationService.rejectAllocation(stagedAllocationId, request.getReason(), adminId);
+
+                return ResponseEntity.ok(new MessageResponse("Staged allocation rejected successfully"));
+        }
+
+        /**
+         * Confirms all proposed allocations in a batch.
+         *
+         * @param batchId Batch identifier
+         * @param auth    Authentication context
+         * @return BatchConfirmationResult with statistics
+         */
+        @PostMapping("/batch/{batchId}/confirm-all")
+        @Operation(summary = "Confirm entire batch", description = "Confirms all proposed allocations in a batch")
+        public ResponseEntity<BatchConfirmationResult> confirmBatchAllocations(
+                        @PathVariable String batchId,
+                        Authentication auth) {
+
+                log.info("Admin {} confirming all allocations in batch {}", auth.getName(), batchId);
+
+                Long adminId = extractAdminId(auth);
+                BatchConfirmationResult result = roomAllocationService.confirmBatchAllocationsWithResult(batchId,
+                                adminId);
+
+                log.info("Batch {} confirmed: {} successful, {} failed",
+                                batchId, result.getConfirmed(), result.getFailed());
+
+                return ResponseEntity.ok(result);
+        }
+
+        /**
+         * Queries staged allocations with optional filters.
+         *
+         * @param batchId  Optional batch ID filter
+         * @param status   Optional status filter
+         * @param pageable Pagination parameters
+         * @return Page of StagedAllocationResponse
+         */
+        @GetMapping("/staged")
+        @Operation(summary = "List staged allocations", description = "Retrieves staged allocations with optional filters")
+        public ResponseEntity<PageResponse<StagedAllocationResponse>> getStagedAllocations(
+                        @RequestParam(required = false) String batchId,
+                        @RequestParam(required = false) StagedAllocationStatus status,
+                        @PageableDefault(size = 20) Pageable pageable) {
+
+                log.info("Fetching staged allocations - batchId: {}, status: {}", batchId, status);
+
+                PageResponse<StagedAllocationResponse> response = roomAllocationService.getStagedAllocations(batchId,
+                                status,
+                                pageable);
+
+                log.info("Found {} staged allocations", response.getTotalElements());
+                return ResponseEntity.ok(response);
+        }
+
+        /**
+         * Moves a student from one room to another.
+         *
+         * @param allocationId ID of the room allocation
+         * @param request      MoveStudentRequest with new room and reason
+         * @param auth         Authentication context
+         * @return Updated RoomAllocationResponse
+         */
+        @PostMapping("/{allocationId}/move")
+        @Operation(summary = "Move student to different room", description = "Moves a student from their current room to a new room")
+        public ResponseEntity<RoomAllocationResponse> moveStudent(
+                        @PathVariable Long allocationId,
+                        @Valid @RequestBody MoveAllocationRequest request,
+                        Authentication auth) {
+
+                log.info("Admin {} moving allocation {} to room {}: {}",
+                                auth.getName(), allocationId, request.getNewRoomId(), request.getReason());
+
+                Long adminId = extractAdminId(auth);
+                RoomAllocationResponse response = roomAllocationService.moveStudent(
+                                allocationId,
+                                request.getNewRoomId(),
+                                request.getReason(),
+                                adminId);
+
+                log.info("Student moved successfully to room {}", request.getNewRoomId());
+                return ResponseEntity.ok(response);
+        }
+
+        /**
+         * Overrides constraints to force allocate a student to a room.
+         *
+         * @param request ConstraintOverrideRequest with student, room, and constraints
+         *                bypassed
+         * @param auth    Authentication context
+         * @return StagedAllocationResponse for the override proposal
+         */
+        @PostMapping("/override")
+        @Operation(summary = "Override constraints for allocation", description = "Bypasses hard constraints to propose allocation (requires admin approval)")
+        public ResponseEntity<StagedAllocationResponse> overrideConstraints(
+                        @Valid @RequestBody OverrideAllocationRequest request,
+                        Authentication auth) {
+
+                log.info("Admin {} overriding constraints for student {} to room {}: {}",
+                                auth.getName(), request.getStudentId(), request.getRoomId(), request.getReason());
+
+                Long adminId = extractAdminId(auth);
+                StagedAllocationResponse response = roomAllocationService.overrideConstraints(
+                                request.getStudentId(),
+                                request.getRoomId(),
+                                request.getReason(),
+                                adminId,
+                                request.getBypassConstraints());
+
+                log.info("Constraint override proposal created for student {}", request.getStudentId());
+                return ResponseEntity.ok(response);
+        }
+
+        /**
+         * Extracts admin user ID from authentication context.
+         */
+        private Long extractAdminId(Authentication auth) {
+                // Extract from UserDetails or custom authentication object
+                // This is a placeholder - adjust based on your security implementation
+                return 1L; // TODO: Extract actual admin ID from authentication
+        }
+}

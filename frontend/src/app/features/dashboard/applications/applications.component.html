@@ -1,70 +1,131 @@
 <main class="main-content">
   <div class="page-container">
     <div class="page-header">
-      <h2>My Applications</h2>
-      <button mat-flat-button color="primary" routerLink="/applications/new">
-        <mat-icon>add</mat-icon>
+      <div class="header-content">
+        <h2><mat-icon>description</mat-icon> My Applications</h2>
+        <p class="page-subtitle">Track and manage your accommodation applications</p>
+      </div>
+      <button mat-flat-button class="new-application-btn" routerLink="/applications/new">
+        <mat-icon>add_circle</mat-icon>
         New Application
       </button>
     </div>
 
-    <mat-card class="applications-card">
-      <mat-card-content>
-        <div class="table-container">
-          <table mat-table [dataSource]="dataSource" class="mat-elevation-z1" aria-label="Applications table">
-
-            <!-- ID Column -->
-            <ng-container matColumnDef="applicationId">
-              <th mat-header-cell *matHeaderCellDef> Application ID </th>
-              <td mat-cell *matCellDef="let app"> #{{app.id}} </td>
-            </ng-container>
-
-            <!-- Year Column -->
-            <ng-container matColumnDef="year">
-              <th mat-header-cell *matHeaderCellDef> Year </th>
-              <td mat-cell *matCellDef="let app"> {{app.year}} </td>
-            </ng-container>
-
-            <!-- Status Column -->
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef> Status </th>
-              <td mat-cell *matCellDef="let app"> <app-modern-status-badge [status]="app.status" size="sm"></app-modern-status-badge> </td>
-            </ng-container>
-
-            <!-- Submitted Date Column -->
-            <ng-container matColumnDef="submittedDate">
-              <th mat-header-cell *matHeaderCellDef> Submitted Date </th>
-              <td mat-cell *matCellDef="let app"> {{app.submittedDate | date}} </td>
-            </ng-container>
-
-            <!-- Type Column -->
-            <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef> Type </th>
-              <td mat-cell *matCellDef="let app"> {{app.type}} </td>
-            </ng-container>
-
-            <!-- Duration Column -->
-            <ng-container matColumnDef="duration">
-              <th mat-header-cell *matHeaderCellDef> Duration </th>
-              <td mat-cell *matCellDef="let app"> {{app.duration}} </td>
-            </ng-container>
-
-            <!-- Actions Column -->
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef> Actions </th>
-              <td mat-cell *matCellDef="let app">
-                <button mat-stroked-button color="primary" [routerLink]="['/applications', app.id]">View Details</button>
-                @if (app.status === 'Pending') {
-                  <button mat-stroked-button color="warn" (click)="cancelApplication(app.id)">Cancel</button>
-                }
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-          </table>
+    @if (isLoading) {
+      <mat-card class="applications-card">
+        <mat-card-content>
+          <div class="loading-container">
+            <mat-spinner diameter="50"></mat-spinner>
+            <p>Loading applications...</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    } @else if (applications.length > 0) {
+      <mat-card class="applications-card">
+        <div class="card-header">
+          <h3 class="card-title"><mat-icon>folder_open</mat-icon> Application History</h3>
+          <span class="application-count">{{applications.length}} application(s)</span>
         </div>
-      </mat-card-content>
-    </mat-card>
+        <mat-card-content>
+          <div class="table-container">
+            <table mat-table [dataSource]="dataSource" class="applications-table" aria-label="Applications table">
+
+              <!-- ID Column -->
+              <ng-container matColumnDef="applicationId">
+                <th mat-header-cell *matHeaderCellDef> Application ID </th>
+                <td mat-cell *matCellDef="let app">
+                  <div class="app-id-cell">
+                    <div class="app-icon"><mat-icon>assignment</mat-icon></div>
+                    <span class="app-id">#{{app.id}}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Year Column -->
+              <ng-container matColumnDef="year">
+                <th mat-header-cell *matHeaderCellDef> Year </th>
+                <td mat-cell *matCellDef="let app">
+                  <span class="year-badge"><mat-icon>calendar_today</mat-icon> {{(app.applicationDate || app.createdAt || '') | date:'yyyy'}}</span>
+                </td>
+              </ng-container>
+
+              <!-- Status Column -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef> Status </th>
+                <td mat-cell *matCellDef="let app">
+                  <app-modern-status-badge [status]="app.status" size="sm"></app-modern-status-badge>
+                </td>
+              </ng-container>
+
+              <!-- Submitted Date Column -->
+              <ng-container matColumnDef="submittedDate">
+                <th mat-header-cell *matHeaderCellDef> Submitted Date </th>
+                <td mat-cell *matCellDef="let app">
+                  <div class="date-cell">
+                    <mat-icon>schedule</mat-icon>
+                    {{(app.applicationDate || app.createdAt) | date:'mediumDate'}}
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Type Column -->
+              <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef> Type </th>
+                <td mat-cell *matCellDef="let app">
+                  <span class="type-badge"><mat-icon>hotel</mat-icon> {{app.preferredAccommodationType || app.preferredRoomType || 'N/A'}}</span>
+                </td>
+              </ng-container>
+
+              <!-- Duration Column -->
+              <ng-container matColumnDef="duration">
+                <th mat-header-cell *matHeaderCellDef> Duration </th>
+                <td mat-cell *matCellDef="let app">
+                  <div class="duration-cell">
+                    <mat-icon>timelapse</mat-icon>
+                    {{app.preferredDurationMonths ? app.preferredDurationMonths + ' month(s)' : 'N/A'}}
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef> Actions </th>
+                <td mat-cell *matCellDef="let app">
+                  <div class="actions-cell">
+                    <button mat-flat-button class="view-btn" [routerLink]="['/applications', app.id]">
+                      <mat-icon>visibility</mat-icon> View
+                    </button>
+                    @if (app.status?.toUpperCase() === 'PENDING') {
+                      <button mat-flat-button class="cancel-btn" (click)="cancelApplication(app.id)">
+                        <mat-icon>cancel</mat-icon> Cancel
+                      </button>
+                    }
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            </table>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <mat-card class="applications-card">
+        <mat-card-content>
+          <div class="no-applications">
+            <div class="no-applications-icon">
+              <mat-icon>inbox</mat-icon>
+            </div>
+            <h3>No Applications Yet</h3>
+            <p>Start your accommodation journey by creating your first application</p>
+            <button mat-flat-button class="no-applications-action" routerLink="/applications/new">
+              <mat-icon>add_circle</mat-icon>
+              Create Application
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
   </div>
 </main>

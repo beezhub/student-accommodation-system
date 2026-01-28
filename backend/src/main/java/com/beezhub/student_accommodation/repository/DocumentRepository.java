@@ -13,12 +13,21 @@ import java.util.Optional;
 public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSpecificationExecutor<Document> {
 
     List<Document> findAllByStudent_AppUser_Id(Long userId);
+
     List<Document> findAllByStudent_Id(Long studentId);
+
     long countByDocumentStatus(DocumentStatus status);
+
     void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 
     // Queries by application
     List<Document> findByApplicationId(Long applicationId);
+
     List<Document> findByApplicationIdAndDocumentType_Id(Long applicationId, Long documentTypeId);
-    Optional<Document> findTopByApplicationIdAndDocumentType_IdOrderByCreatedAtDesc(Long applicationId, Long documentTypeId);
+
+    Optional<Document> findTopByApplicationIdAndDocumentType_IdOrderByCreatedAtDesc(Long applicationId,
+            Long documentTypeId);
+
+    // Batch query
+    List<Document> findByApplicationIdIn(List<Long> applicationIds);
 }

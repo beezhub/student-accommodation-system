@@ -1,29 +1,44 @@
 <div class="room-management-container">
   <div class="page-header">
-    <h1>
-      <mat-icon>meeting_room</mat-icon>
-      Room Management
-    </h1>
-    <button mat-raised-button color="primary" (click)="openCreateDialog()">
-      <mat-icon>add</mat-icon>
-      Add Room
-    </button>
+    <div class="header-content">
+      <h1>
+        <mat-icon>meeting_room</mat-icon>
+        Room Management
+      </h1>
+      <p class="subtitle">Manage rooms, capacity, and occupancy</p>
+    </div>
+    <div class="header-actions">
+      <div class="stat-item">
+        <span class="stat-value">{{ totalElements }}</span>
+        <span class="stat-label">Total Rooms</span>
+      </div>
+      <button mat-raised-button color="primary" (click)="openCreateDialog()" class="add-btn">
+        <mat-icon>add</mat-icon>
+        Add Room
+      </button>
+    </div>
   </div>
 
-  <!-- Filters -->
+  <!-- Filter Card -->
   <mat-card class="filter-card">
     <mat-card-content>
+      <div class="filter-header">
+        <mat-icon>filter_list</mat-icon>
+        <span>Filter Rooms</span>
+      </div>
       <form [formGroup]="filterForm" class="filter-form">
         <mat-form-field appearance="outline">
           <mat-label>Room Number</mat-label>
+          <mat-icon matPrefix>meeting_room</mat-icon>
           <input matInput formControlName="roomNumber" placeholder="Search by room number">
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Building</mat-label>
+          <mat-icon matPrefix>apartment</mat-icon>
           <mat-select formControlName="buildingId">
             <mat-option value="">All Buildings</mat-option>
-            @for (building of buildings; track building) {
+            @for (building of buildings; track building.id) {
               <mat-option [value]="building.id">
                 {{ building.name }}
               </mat-option>
@@ -33,119 +48,149 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Min Capacity</mat-label>
+          <mat-icon matPrefix>person</mat-icon>
           <input matInput type="number" formControlName="minCapacity" placeholder="Min" min="1">
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Max Capacity</mat-label>
+          <mat-icon matPrefix>groups</mat-icon>
           <input matInput type="number" formControlName="maxCapacity" placeholder="Max" min="1">
         </mat-form-field>
 
         <div class="filter-actions">
-          <button mat-raised-button color="primary" (click)="onFilter()">
+          <button mat-raised-button color="primary" (click)="onFilter()" class="search-btn">
             <mat-icon>search</mat-icon>
             Search
           </button>
-          <button mat-button (click)="onClearFilters()">
-            <mat-icon>clear</mat-icon>
-            Clear
+          <button mat-stroked-button (click)="onClearFilters()" class="clear-btn">
+            <mat-icon>refresh</mat-icon>
+            Reset
           </button>
         </div>
       </form>
     </mat-card-content>
   </mat-card>
 
-  <!-- Data Table -->
-  <mat-card>
+  <!-- Table Card -->
+  <mat-card class="table-card">
     <mat-card-content>
       @if (isLoading) {
         <div class="loading-container">
-          <mat-spinner></mat-spinner>
+          <mat-spinner diameter="48"></mat-spinner>
+          <p>Loading rooms...</p>
         </div>
       }
 
       @if (!isLoading) {
-        <div>
+        <div class="table-wrapper">
           <table mat-table [dataSource]="rooms" class="rooms-table">
             <!-- Room Number Column -->
             <ng-container matColumnDef="roomNumber">
-              <th mat-header-cell *matHeaderCellDef>Room Number</th>
+              <th mat-header-cell *matHeaderCellDef>Room</th>
               <td mat-cell *matCellDef="let room">
-                <strong>{{ room.roomNumber }}</strong>
+                <div class="room-cell">
+                  <div class="room-icon">
+                    <mat-icon>meeting_room</mat-icon>
+                  </div>
+                  <span class="room-number">{{ room.roomNumber }}</span>
+                </div>
               </td>
             </ng-container>
+
             <!-- Building Name Column -->
             <ng-container matColumnDef="buildingName">
               <th mat-header-cell *matHeaderCellDef>Building</th>
               <td mat-cell *matCellDef="let room">
-                {{ room.buildingName }}
+                <div class="building-cell">
+                  <mat-icon>apartment</mat-icon>
+                  <span>{{ room.buildingName }}</span>
+                </div>
               </td>
             </ng-container>
+
             <!-- Capacity Column -->
             <ng-container matColumnDef="capacity">
               <th mat-header-cell *matHeaderCellDef>Capacity</th>
               <td mat-cell *matCellDef="let room">
-                {{ room.capacity }}
+                <span class="capacity-badge">
+                  <mat-icon>group</mat-icon>
+                  {{ room.capacity }}
+                </span>
               </td>
             </ng-container>
+
             <!-- Occupancy Column -->
             <ng-container matColumnDef="currentOccupancy">
               <th mat-header-cell *matHeaderCellDef>Occupancy</th>
               <td mat-cell *matCellDef="let room">
-                <span [class]="'occupancy ' + getOccupancyClass(room)">
-                  {{ getOccupancyText(room) }}
-                </span>
+                <div class="occupancy-cell">
+                  <div class="occupancy-bar">
+                    <div class="occupancy-fill" [class]="getOccupancyClass(room)"
+                         [style.width.%]="room.capacity > 0 ? (room.currentOccupancy / room.capacity * 100) : 0">
+                    </div>
+                  </div>
+                  <span class="occupancy-text" [class]="getOccupancyClass(room)">
+                    {{ getOccupancyText(room) }}
+                  </span>
+                </div>
               </td>
             </ng-container>
+
             <!-- Status Column -->
             <ng-container matColumnDef="status">
               <th mat-header-cell *matHeaderCellDef>Status</th>
               <td mat-cell *matCellDef="let room">
-                <app-modern-status-badge [status]="room.status || 'available'" size="sm"></app-modern-status-badge>
+                <span class="status-badge" [class]="getStatusClass(room.status)">
+                  <mat-icon>{{ getStatusIcon(room.status) }}</mat-icon>
+                  {{ room.status }}
+                </span>
               </td>
             </ng-container>
+
             <!-- Actions Column -->
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let room">
-                <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Actions">
-                  <mat-icon>more_vert</mat-icon>
-                </button>
-                <mat-menu #menu="matMenu">
-                  <button mat-menu-item (click)="openEditDialog(room)">
+                <div class="actions-cell">
+                  <button mat-icon-button (click)="openEditDialog(room)" matTooltip="Edit Room" class="action-btn edit">
                     <mat-icon>edit</mat-icon>
-                    <span>Edit</span>
                   </button>
-                  <button mat-menu-item (click)="deleteRoom(room)">
+                  <button mat-icon-button (click)="deleteRoom(room)" matTooltip="Delete Room" class="action-btn delete">
                     <mat-icon>delete</mat-icon>
-                    <span>Delete</span>
                   </button>
-                </mat-menu>
+                </div>
               </td>
             </ng-container>
+
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
           </table>
+
           @if (rooms.length === 0) {
             <div class="no-data">
-              <mat-icon>meeting_room</mat-icon>
-              <p>No rooms found</p>
+              <div class="no-data-icon">
+                <mat-icon>door_sliding</mat-icon>
+              </div>
+              <h3>No Rooms Found</h3>
+              <p>Get started by adding your first room to a building.</p>
               <button mat-raised-button color="primary" (click)="openCreateDialog()">
                 <mat-icon>add</mat-icon>
                 Add First Room
               </button>
             </div>
           }
-          @if (rooms.length > 0) {
-            <mat-paginator
-              [length]="totalElements"
-              [pageSize]="pageSize"
-              [pageSizeOptions]="[10, 20, 50, 100]"
-              (page)="onPageChange($event)"
-              showFirstLastButtons>
-            </mat-paginator>
-          }
         </div>
+
+        @if (rooms.length > 0) {
+          <mat-paginator
+            [length]="totalElements"
+            [pageSize]="pageSize"
+            [pageSizeOptions]="[10, 20, 50, 100]"
+            (page)="onPageChange($event)"
+            showFirstLastButtons>
+          </mat-paginator>
+        }
       }
     </mat-card-content>
   </mat-card>

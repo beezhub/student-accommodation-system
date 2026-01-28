@@ -16,6 +16,7 @@ public class DocumentSpecification {
     public static Specification<Document> filterBy(
             String documentName,
             Long studentId,
+            String studentName,
             Long documentTypeId,
             String status,
             String applicationStatus,
@@ -37,6 +38,19 @@ public class DocumentSpecification {
                         root.get("student").get("id"),
                         studentId
                 ));
+            }
+
+            if (studentName != null && !studentName.trim().isEmpty()) {
+                String searchTerm = "%" + studentName.toLowerCase() + "%";
+                Predicate firstNameMatch = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("student").get("firstName")),
+                        searchTerm
+                );
+                Predicate lastNameMatch = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("student").get("lastName")),
+                        searchTerm
+                );
+                predicates.add(criteriaBuilder.or(firstNameMatch, lastNameMatch));
             }
 
             if (documentTypeId != null) {

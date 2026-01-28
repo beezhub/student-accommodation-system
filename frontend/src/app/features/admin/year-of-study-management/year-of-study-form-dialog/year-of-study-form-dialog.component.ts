@@ -101,4 +101,8 @@ export class YearOfStudyFormDialogComponent implements OnInit {
   getSubmitButtonText(): string {
     return this.mode === 'create' ? 'Create' : 'Update';
   }
+
+  setYear(year: string): void {
+    this.yearOfStudyForm.patchValue({ yearOfStudy: year });
+  }
 }

@@ -49,6 +49,8 @@ dependencies {
 	implementation 'org.mapstruct:mapstruct:1.6.3'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 	implementation 'io.minio:minio:8.5.17'
+	implementation 'org.ff4j:ff4j-spring-boot-starter:1.9'
+	implementation 'org.ff4j:ff4j-store-springjdbc:1.9'
 }
 
 test {

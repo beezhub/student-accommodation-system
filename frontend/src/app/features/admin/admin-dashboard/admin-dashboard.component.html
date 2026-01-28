@@ -1,194 +1,306 @@
 <div class="admin-dashboard-container">
-  <div class="dashboard-header">
-    <h1>
-      <mat-icon>admin_panel_settings</mat-icon>
-      Admin Dashboard
-    </h1>
-    <p class="subtitle">Manage users and system settings</p>
+  <div class="page-header">
+    <div class="header-content">
+      <h1>
+        <mat-icon>dashboard</mat-icon>
+        Admin Dashboard
+      </h1>
+      <p class="subtitle">System overview and real-time analytics</p>
+    </div>
+    <div class="header-actions">
+      <div class="date-display">
+        <mat-icon>calendar_today</mat-icon>
+        <span>{{ today | date: 'EEEE, MMMM d, y' }}</span>
+      </div>
+    </div>
   </div>
 
   <!-- Loading Spinner -->
   @if (isLoading) {
     <div class="loading-container">
-      <mat-spinner></mat-spinner>
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Loading dashboard data...</p>
     </div>
   }
 
-  <!-- Stats Cards -->
   @if (!isLoading) {
-    <div>
-      <h2 class="section-title">Application Overview</h2>
-      <div class="stats-grid">
-        <mat-card class="stat-card">
-          <mat-card-content>
-            <div class="stat-content">
-              <div class="stat-icon primary">
-                <mat-icon>assignment</mat-icon>
-              </div>
-              <div class="stat-info">
-                <h2>{{ stats.totalApplications }}</h2>
-                <p>Total Applications</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card class="stat-card pending">
-          <mat-card-content>
-            <div class="stat-content">
-              <div class="stat-icon warn">
-                <mat-icon>pending_actions</mat-icon>
-              </div>
-              <div class="stat-info">
-                <h2>{{ stats.pendingApplications }}</h2>
-                <p>Pending Review</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card class="stat-card approved">
-          <mat-card-content>
-            <div class="stat-content">
-              <div class="stat-icon success">
-                <mat-icon>check_circle</mat-icon>
-              </div>
-              <div class="stat-info">
-                <h2>{{ stats.approvedApplications }}</h2>
-                <p>Approved</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card class="stat-card rejected">
-          <mat-card-content>
-            <div class="stat-content">
-              <div class="stat-icon danger">
-                <mat-icon>cancel</mat-icon>
-              </div>
-              <div class="stat-info">
-                <h2>{{ stats.rejectedApplications }}</h2>
-                <p>Rejected</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </div>
-      <h2 class="section-title">Document Overview</h2>
-      <div class="stats-grid">
-        <mat-card class="stat-card">
-          <mat-card-content>
-            <div class="stat-content">
-              <div class="stat-icon accent">
-                <mat-icon>description</mat-icon>
-              </div>
-              <div class="stat-info">
-                <h2>{{ stats.totalDocuments }}</h2>
-                <p>Total Documents</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card class="stat-card pending">
-          <mat-card-content>
-            <div class="stat-content">
-              <div class="stat-icon warn">
-                <mat-icon>hourglass_empty</mat-icon>
-              </div>
-              <div class="stat-info">
-                <h2>{{ stats.pendingDocuments }}</h2>
-                <p>Pending Verification</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card class="stat-card approved">
-          <mat-card-content>
-            <div class="stat-content">
-              <div class="stat-icon success">
-                <mat-icon>verified</mat-icon>
-              </div>
-              <div class="stat-info">
-                <h2>{{ stats.approvedDocuments }}</h2>
-                <p>Verified</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card class="stat-card rejected">
-          <mat-card-content>
-            <div class="stat-content">
-              <div class="stat-icon danger">
-                <mat-icon>error</mat-icon>
-              </div>
-              <div class="stat-info">
-                <h2>{{ stats.rejectedDocuments }}</h2>
-                <p>Rejected</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </div>
-      <h2 class="section-title">User Overview</h2>
-      <div class="stats-grid-small">
-        <mat-card class="stat-card">
-          <mat-card-content>
-            <div class="stat-content">
-              <div class="stat-icon primary">
-                <mat-icon>school</mat-icon>
-              </div>
-              <div class="stat-info">
-                <h2>{{ stats.totalStudents }}</h2>
-                <p>Students</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        <mat-card class="stat-card">
-          <mat-card-content>
-            <div class="stat-content">
-              <div class="stat-icon accent">
-                <mat-icon>admin_panel_settings</mat-icon>
-              </div>
-              <div class="stat-info">
-                <h2>{{ stats.totalAdmins }}</h2>
-                <p>Administrators</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </div>
-    </div>
-  }
+    <!-- Summary Cards Row -->
+    <div class="summary-cards">
+      <mat-card class="summary-card applications">
+        <mat-card-content>
+          <div class="card-icon-wrapper">
+            <mat-icon>description</mat-icon>
+          </div>
+          <div class="card-details">
+            <span class="card-value">{{ stats.totalApplications }}</span>
+            <span class="card-label">Total Applications</span>
+          </div>
+          <div class="card-trend">
+            <span class="pending-count">{{ stats.pendingApplications }} pending</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
 
-  <!-- Quick Links -->
-  <div class="quick-links-section">
-    <h2>Quick Access</h2>
+      <mat-card class="summary-card rooms">
+        <mat-card-content>
+          <div class="card-icon-wrapper">
+            <mat-icon>meeting_room</mat-icon>
+          </div>
+          <div class="card-details">
+            <span class="card-value">{{ stats.totalRooms }}</span>
+            <span class="card-label">Total Rooms</span>
+          </div>
+          <div class="card-trend">
+            <span class="available-count">{{ stats.availableRooms }} available</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="summary-card students">
+        <mat-card-content>
+          <div class="card-icon-wrapper">
+            <mat-icon>school</mat-icon>
+          </div>
+          <div class="card-details">
+            <span class="card-value">{{ stats.totalStudents }}</span>
+            <span class="card-label">Registered Students</span>
+          </div>
+          <div class="card-trend">
+            <mat-icon>trending_up</mat-icon>
+            <span>Active</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="summary-card occupancy">
+        <mat-card-content>
+          <div class="card-icon-wrapper" [class]="getOccupancyClass(stats.overallOccupancyRate)">
+            <mat-icon>analytics</mat-icon>
+          </div>
+          <div class="card-details">
+            <span class="card-value">{{ stats.overallOccupancyRate }}%</span>
+            <span class="card-label">Overall Occupancy</span>
+          </div>
+          <div class="occupancy-bar">
+            <div class="occupancy-fill" [style.width.%]="stats.overallOccupancyRate" [class]="getOccupancyClass(stats.overallOccupancyRate)"></div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="section-header">
+      <h2>
+        <mat-icon>insights</mat-icon>
+        Analytics Overview
+      </h2>
+    </div>
+    <div class="charts-grid">
+      <!-- Application Status Chart -->
+      <mat-card class="chart-card">
+        <mat-card-content>
+          <div class="chart-header">
+            <div class="chart-title">
+              <mat-icon class="applications">assignment</mat-icon>
+              <span>Application Status</span>
+            </div>
+          </div>
+          <div class="chart-container">
+            <div class="donut-chart" [style.background]="getConicGradient(applicationChartSegments)">
+              <div class="donut-hole">
+                <span class="donut-value">{{ stats.totalApplications }}</span>
+                <span class="donut-label">Total</span>
+              </div>
+            </div>
+            <div class="chart-legend">
+              @for (segment of applicationChartSegments; track segment.label) {
+                <div class="legend-item">
+                  <span class="legend-color" [style.background-color]="segment.color"></span>
+                  <span class="legend-text">{{ segment.label }}</span>
+                  <span class="legend-value">{{ segment.value }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Document Status Chart -->
+      <mat-card class="chart-card">
+        <mat-card-content>
+          <div class="chart-header">
+            <div class="chart-title">
+              <mat-icon class="documents">folder</mat-icon>
+              <span>Document Status</span>
+            </div>
+          </div>
+          <div class="chart-container">
+            <div class="donut-chart" [style.background]="getConicGradient(documentChartSegments)">
+              <div class="donut-hole">
+                <span class="donut-value">{{ stats.totalDocuments }}</span>
+                <span class="donut-label">Total</span>
+              </div>
+            </div>
+            <div class="chart-legend">
+              @for (segment of documentChartSegments; track segment.label) {
+                <div class="legend-item">
+                  <span class="legend-color" [style.background-color]="segment.color"></span>
+                  <span class="legend-text">{{ segment.label }}</span>
+                  <span class="legend-value">{{ segment.value }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Room Status Chart -->
+      <mat-card class="chart-card">
+        <mat-card-content>
+          <div class="chart-header">
+            <div class="chart-title">
+              <mat-icon class="rooms">door_sliding</mat-icon>
+              <span>Room Status</span>
+            </div>
+          </div>
+          <div class="chart-container">
+            <div class="donut-chart" [style.background]="getConicGradient(roomChartSegments)">
+              <div class="donut-hole">
+                <span class="donut-value">{{ stats.totalRooms }}</span>
+                <span class="donut-label">Total</span>
+              </div>
+            </div>
+            <div class="chart-legend">
+              @for (segment of roomChartSegments; track segment.label) {
+                <div class="legend-item">
+                  <span class="legend-color" [style.background-color]="segment.color"></span>
+                  <span class="legend-text">{{ segment.label }}</span>
+                  <span class="legend-value">{{ segment.value }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Building Occupancy Section -->
+    <div class="section-header">
+      <h2>
+        <mat-icon>apartment</mat-icon>
+        Building Occupancy
+      </h2>
+    </div>
+
+    @if (isLoadingOccupancy) {
+      <div class="loading-container small">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Loading occupancy data...</p>
+      </div>
+    }
+
+    @if (!isLoadingOccupancy && occupancyStats) {
+      <mat-card class="table-card">
+        <mat-card-content>
+          <div class="table-wrapper">
+            <table mat-table [dataSource]="occupancyStats.buildingOccupancies" class="occupancy-table">
+              <!-- Building Name Column -->
+              <ng-container matColumnDef="buildingName">
+                <th mat-header-cell *matHeaderCellDef>Building</th>
+                <td mat-cell *matCellDef="let building">
+                  <div class="building-cell">
+                    <div class="building-icon">
+                      <mat-icon>apartment</mat-icon>
+                    </div>
+                    <span class="building-name">{{ building.buildingName }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Room Count Column -->
+              <ng-container matColumnDef="roomCount">
+                <th mat-header-cell *matHeaderCellDef>Rooms</th>
+                <td mat-cell *matCellDef="let building">
+                  <span class="room-count-badge">{{ building.roomCount }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Capacity Column -->
+              <ng-container matColumnDef="capacity">
+                <th mat-header-cell *matHeaderCellDef>Capacity</th>
+                <td mat-cell *matCellDef="let building">
+                  <div class="capacity-cell">
+                    <mat-icon>king_bed</mat-icon>
+                    <span>{{ building.totalCapacity }} beds</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Occupancy Column -->
+              <ng-container matColumnDef="occupancy">
+                <th mat-header-cell *matHeaderCellDef>Occupied</th>
+                <td mat-cell *matCellDef="let building">
+                  <span class="occupancy-numbers">{{ building.currentOccupancy }} / {{ building.totalCapacity }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Rate Column -->
+              <ng-container matColumnDef="rate">
+                <th mat-header-cell *matHeaderCellDef>Occupancy Rate</th>
+                <td mat-cell *matCellDef="let building">
+                  <div class="occupancy-rate-cell">
+                    <div class="rate-bar">
+                      <div class="rate-fill" [style.width.%]="building.occupancyRate" [class]="getOccupancyClass(building.occupancyRate)"></div>
+                    </div>
+                    <span class="rate-value" [class]="getOccupancyClass(building.occupancyRate)">
+                      {{ building.occupancyRate }}%
+                    </span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="buildingOccupancyColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: buildingOccupancyColumns;"></tr>
+            </table>
+
+            @if (occupancyStats.buildingOccupancies.length === 0) {
+              <div class="no-data">
+                <div class="no-data-icon">
+                  <mat-icon>apartment</mat-icon>
+                </div>
+                <h3>No Building Data</h3>
+                <p>No building occupancy data available</p>
+              </div>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Quick Links -->
+    <div class="section-header">
+      <h2>
+        <mat-icon>rocket_launch</mat-icon>
+        Quick Access
+      </h2>
+    </div>
     <div class="quick-links-grid">
-      @for (link of quickLinks; track link) {
-        <mat-card
-          class="quick-link-card"
-          [class.disabled]="link.disabled"
-          [routerLink]="link.disabled ? null : link.route"
-          >
+      @for (link of quickLinks; track link.route) {
+        <mat-card class="quick-link-card" [class]="link.class" [routerLink]="link.route">
           <mat-card-content>
-            <div class="quick-link-content">
-              <mat-icon [color]="link.color">{{ link.icon }}</mat-icon>
+            <div class="quick-link-icon">
+              <mat-icon>{{ link.icon }}</mat-icon>
+            </div>
+            <div class="quick-link-info">
               <h3>{{ link.title }}</h3>
               <p>{{ link.description }}</p>
-              <button
-                mat-raised-button
-                [color]="link.color"
-                [disabled]="link.disabled"
-                [routerLink]="link.disabled ? null : link.route"
-                >
-                {{ link.disabled ? 'Coming Soon' : 'Open' }}
-                @if (!link.disabled) {
-                  <mat-icon>arrow_forward</mat-icon>
-                }
-              </button>
+            </div>
+            <div class="quick-link-arrow">
+              <mat-icon>arrow_forward</mat-icon>
             </div>
           </mat-card-content>
         </mat-card>
       }
     </div>
-  </div>
+  }
 </div>

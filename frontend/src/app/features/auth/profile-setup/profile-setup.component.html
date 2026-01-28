@@ -76,7 +76,7 @@
           <div class="form-row">
             <mat-form-field appearance="outline" class="half-width">
               <mat-label>Date of Birth</mat-label>
-              <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth">
+              <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth" placeholder="Select your date of birth">
               <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
               <mat-datepicker #dobPicker></mat-datepicker>
               <mat-icon matPrefix>cake</mat-icon>

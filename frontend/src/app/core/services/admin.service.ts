@@ -30,6 +30,19 @@ export interface ApplicationResponse {
   studentFirstName: string;
   studentLastName: string;
   studentEmail: string;
+  // Allocation & Review Details
+  preferredBuildingName?: string;
+  documentCompletionPercent?: number;
+  approvedDocuments?: number;
+  totalRequiredDocuments?: number;
+  allocationStatus?: string; // PENDING_ALLOCATION, ALLOCATED, REJECTED
+  allocationScore?: number; // Priority score for allocation (0-100)
+  // Preference fields for quick view
+  preferredAccommodationType?: string;
+  preferredRoomType?: string;
+  preferredMoveInDate?: string;
+  preferredDurationMonths?: number;
+  specialRequirements?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -59,16 +72,51 @@ export interface PageResponse<T> {
 }
 
 export interface DashboardStats {
+  // Application stats
   totalApplications: number;
   pendingApplications: number;
   approvedApplications: number;
   rejectedApplications: number;
+  inReviewApplications: number;
+  allocatedApplications: number;
+  // Document stats
   totalDocuments: number;
   pendingDocuments: number;
   approvedDocuments: number;
   rejectedDocuments: number;
+  // User stats
   totalStudents: number;
   totalAdmins: number;
+  // Room stats
+  totalRooms: number;
+  availableRooms: number;
+  occupiedRooms: number;
+  fullRooms: number;
+  maintenanceRooms: number;
+  // Building stats
+  totalBuildings: number;
+  // Occupancy summary
+  totalCapacity: number;
+  totalOccupancy: number;
+  overallOccupancyRate: number;
+}
+
+export interface BuildingOccupancy {
+  buildingId: number;
+  buildingName: string;
+  roomCount: number;
+  totalCapacity: number;
+  currentOccupancy: number;
+  occupancyRate: number;
+}
+
+export interface OccupancyStats {
+  totalBuildings: number;
+  totalRooms: number;
+  totalCapacity: number;
+  totalOccupancy: number;
+  overallOccupancyRate: number;
+  buildingOccupancies: BuildingOccupancy[];
 }
 
 export interface BulkStatusUpdateRequest {
@@ -121,6 +169,8 @@ export class AdminService {
     applicationCode?: string;
     studentName?: string;
     status?: string;
+    allocationStatus?: string;
+    preferredBuilding?: string;
     startDate?: string;
     endDate?: string;
     page?: number;
@@ -133,6 +183,8 @@ export class AdminService {
     if (filters.applicationCode) params = params.set('applicationCode', filters.applicationCode);
     if (filters.studentName) params = params.set('studentName', filters.studentName);
     if (filters.status) params = params.set('status', filters.status);
+    if (filters.allocationStatus) params = params.set('allocationStatus', filters.allocationStatus);
+    if (filters.preferredBuilding) params = params.set('preferredBuilding', filters.preferredBuilding);
     if (filters.startDate) params = params.set('startDate', filters.startDate);
     if (filters.endDate) params = params.set('endDate', filters.endDate);
 
@@ -162,7 +214,7 @@ export class AdminService {
   // Document Management
   searchDocuments(filters: {
     studentName?: string;
-    documentType?: string;
+    documentTypeId?: number;
     status?: string;
     page?: number;
     size?: number;
@@ -172,7 +224,7 @@ export class AdminService {
       .set('size', (filters.size || 20).toString());
 
     if (filters.studentName) params = params.set('studentName', filters.studentName);
-    if (filters.documentType) params = params.set('documentType', filters.documentType);
+    if (filters.documentTypeId) params = params.set('documentTypeId', filters.documentTypeId.toString());
     if (filters.status) params = params.set('status', filters.status);
 
     return this.http.get<PageResponse<DocumentResponse>>(`${this.documentApiUrl}/search`, {
@@ -198,5 +250,9 @@ export class AdminService {
   // Statistics
   getDashboardStats(): Observable<DashboardStats> {
     return this.http.get<DashboardStats>(`${environment.apiUrl}/admin/stats`);
+  }
+
+  getOccupancyStats(): Observable<OccupancyStats> {
+    return this.http.get<OccupancyStats>(`${environment.apiUrl}/admin/stats/occupancy`);
   }
 }

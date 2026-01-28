@@ -34,344 +34,348 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ApplicationServiceSearchTest {
 
-    @Mock
-    private ApplicationRepository applicationRepository;
+        @Mock
+        private ApplicationRepository applicationRepository;
 
-    @Mock
-    private StudentRepository studentRepository;
+        @Mock
+        private StudentRepository studentRepository;
 
-    @Mock
-    private ApplicationMapper applicationMapper;
+        @Mock
+        private ApplicationMapper applicationMapper;
 
-    @Mock
-    private AuthService authService;
+        @Mock
+        private AuthService authService;
 
-    @InjectMocks
-    private ApplicationService applicationService;
+        @InjectMocks
+        private ApplicationService applicationService;
 
-    private Application application1;
-    private Application application2;
-    private Application application3;
-    private ApplicationResponse response1;
-    private ApplicationResponse response2;
-    private ApplicationResponse response3;
-    private Student student1;
-    private Student student2;
-    private AppUser appUser1;
-    private AppUser appUser2;
-    private Pageable pageable;
+        private Application application1;
+        private Application application2;
+        private Application application3;
+        private ApplicationResponse response1;
+        private ApplicationResponse response2;
+        private ApplicationResponse response3;
+        private Student student1;
+        private Student student2;
+        private AppUser appUser1;
+        private AppUser appUser2;
+        private Pageable pageable;
 
-    @BeforeEach
-    void setUp() {
-        appUser1 = AppUser.builder()
-                .id(1L)
-                .email("student1@test.com")
-                .firstName("John")
-                .lastName("Doe")
-                .userRole(UserRole.STUDENT)
-                .build();
+        @BeforeEach
+        void setUp() {
+                appUser1 = AppUser.builder()
+                                .id(1L)
+                                .email("student1@test.com")
+                                .firstName("John")
+                                .lastName("Doe")
+                                .userRole(UserRole.STUDENT)
+                                .build();
 
-        appUser2 = AppUser.builder()
-                .id(2L)
-                .email("student2@test.com")
-                .firstName("Jane")
-                .lastName("Smith")
-                .userRole(UserRole.STUDENT)
-                .build();
+                appUser2 = AppUser.builder()
+                                .id(2L)
+                                .email("student2@test.com")
+                                .firstName("Jane")
+                                .lastName("Smith")
+                                .userRole(UserRole.STUDENT)
+                                .build();
 
-        student1 = new Student();
-        student1.setId(1L);
-        student1.setStudentNumber("STU001");
-        student1.setAppUser(appUser1);
+                student1 = new Student();
+                student1.setId(1L);
+                student1.setStudentNumber("STU001");
+                student1.setAppUser(appUser1);
 
-        student2 = new Student();
-        student2.setId(2L);
-        student2.setStudentNumber("STU002");
-        student2.setAppUser(appUser2);
+                student2 = new Student();
+                student2.setId(2L);
+                student2.setStudentNumber("STU002");
+                student2.setAppUser(appUser2);
 
-        application1 = Application.builder()
-                .id(1L)
-                .applicationCode("APP-2025-001")
-                .applicationDate(LocalDate.of(2025, 1, 15))
-                .status(ApplicationStatus.PENDING)
-                .student(student1)
-                .build();
+                application1 = Application.builder()
+                                .id(1L)
+                                .applicationCode("APP-2025-001")
+                                .applicationDate(LocalDate.of(2025, 1, 15))
+                                .status(ApplicationStatus.PENDING)
+                                .student(student1)
+                                .build();
 
-        application2 = Application.builder()
-                .id(2L)
-                .applicationCode("APP-2025-002")
-                .applicationDate(LocalDate.of(2025, 2, 20))
-                .status(ApplicationStatus.APPROVED)
-                .student(student2)
-                .build();
+                application2 = Application.builder()
+                                .id(2L)
+                                .applicationCode("APP-2025-002")
+                                .applicationDate(LocalDate.of(2025, 2, 20))
+                                .status(ApplicationStatus.APPROVED)
+                                .student(student2)
+                                .build();
 
-        application3 = Application.builder()
-                .id(3L)
-                .applicationCode("APP-2025-003")
-                .applicationDate(LocalDate.of(2025, 3, 10))
-                .status(ApplicationStatus.REJECTED)
-                .student(student1)
-                .build();
+                application3 = Application.builder()
+                                .id(3L)
+                                .applicationCode("APP-2025-003")
+                                .applicationDate(LocalDate.of(2025, 3, 10))
+                                .status(ApplicationStatus.REJECTED)
+                                .student(student1)
+                                .build();
 
-        response1 = new ApplicationResponse();
-        response1.setId(1L);
-        response1.setApplicationCode("APP-2025-001");
-        response1.setApplicationDate(LocalDate.of(2025, 1, 15));
-        response1.setStatus("PENDING");
+                response1 = new ApplicationResponse();
+                response1.setId(1L);
+                response1.setApplicationCode("APP-2025-001");
+                response1.setApplicationDate(LocalDate.of(2025, 1, 15));
+                response1.setStatus("PENDING");
 
-        response2 = new ApplicationResponse();
-        response2.setId(2L);
-        response2.setApplicationCode("APP-2025-002");
-        response2.setApplicationDate(LocalDate.of(2025, 2, 20));
-        response2.setStatus("APPROVED");
+                response2 = new ApplicationResponse();
+                response2.setId(2L);
+                response2.setApplicationCode("APP-2025-002");
+                response2.setApplicationDate(LocalDate.of(2025, 2, 20));
+                response2.setStatus("APPROVED");
 
-        response3 = new ApplicationResponse();
-        response3.setId(3L);
-        response3.setApplicationCode("APP-2025-003");
-        response3.setApplicationDate(LocalDate.of(2025, 3, 10));
-        response3.setStatus("REJECTED");
+                response3 = new ApplicationResponse();
+                response3.setId(3L);
+                response3.setApplicationCode("APP-2025-003");
+                response3.setApplicationDate(LocalDate.of(2025, 3, 10));
+                response3.setStatus("REJECTED");
 
-        pageable = PageRequest.of(0, 20);
-    }
+                pageable = PageRequest.of(0, 20);
+        }
 
-    @Test
-    void getAllApplications_ShouldReturnList() {
-        // Arrange
-        when(applicationRepository.findAll()).thenReturn(Arrays.asList(application1, application2, application3));
-        when(applicationMapper.toResponse(application1)).thenReturn(response1);
-        when(applicationMapper.toResponse(application2)).thenReturn(response2);
-        when(applicationMapper.toResponse(application3)).thenReturn(response3);
+        @Test
+        void getAllApplications_ShouldReturnList() {
+                // Arrange
+                when(applicationRepository.findAll())
+                                .thenReturn(Arrays.asList(application1, application2, application3));
+                when(applicationMapper.toResponse(application1)).thenReturn(response1);
+                when(applicationMapper.toResponse(application2)).thenReturn(response2);
+                when(applicationMapper.toResponse(application3)).thenReturn(response3);
 
-        // Act
-        List<ApplicationResponse> result = applicationService.getAllApplications();
+                // Act
+                List<ApplicationResponse> result = applicationService.getAllApplications();
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(3, result.size());
-        verify(applicationRepository).findAll();
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(3, result.size());
+                verify(applicationRepository).findAll();
+        }
 
-    @Test
-    void getAllApplications_WithPageable_ShouldReturnPageResponse() {
-        // Arrange
-        Page<Application> page = new PageImpl<>(Arrays.asList(application1, application2), pageable, 2);
-        when(applicationRepository.findAll(pageable)).thenReturn(page);
-        when(applicationMapper.toResponse(application1)).thenReturn(response1);
-        when(applicationMapper.toResponse(application2)).thenReturn(response2);
+        @Test
+        void getAllApplications_WithPageable_ShouldReturnPageResponse() {
+                // Arrange
+                Page<Application> page = new PageImpl<>(Arrays.asList(application1, application2), pageable, 2);
+                when(applicationRepository.findAll(pageable)).thenReturn(page);
+                when(applicationMapper.toResponse(application1)).thenReturn(response1);
+                when(applicationMapper.toResponse(application2)).thenReturn(response2);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.getAllApplications(pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.getAllApplications(pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(2, result.getContent().size());
-        assertEquals(2, result.getTotalElements());
-        verify(applicationRepository).findAll(pageable);
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(2, result.getContent().size());
+                assertEquals(2, result.getTotalElements());
+                verify(applicationRepository).findAll(pageable);
+        }
 
-    @Test
-    void searchApplications_WithApplicationCodeFilter_ShouldReturnFilteredResults() {
-        // Arrange
-        Page<Application> page = new PageImpl<>(Arrays.asList(application1), pageable, 1);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application1)).thenReturn(response1);
+        @Test
+        void searchApplications_WithApplicationCodeFilter_ShouldReturnFilteredResults() {
+                // Arrange
+                Page<Application> page = new PageImpl<>(Arrays.asList(application1), pageable, 1);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application1)).thenReturn(response1);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                "APP-2025-001", null, null, null, null, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                "APP-2025-001", null, null, null, null, null, null, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
-        assertEquals("APP-2025-001", result.getContent().get(0).getApplicationCode());
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(1, result.getContent().size());
+                assertEquals("APP-2025-001", result.getContent().get(0).getApplicationCode());
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 
-    @Test
-    void searchApplications_WithStudentNameFilter_ShouldReturnFilteredResults() {
-        // Arrange
-        Page<Application> page = new PageImpl<>(Arrays.asList(application1, application3), pageable, 2);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application1)).thenReturn(response1);
-        when(applicationMapper.toResponse(application3)).thenReturn(response3);
+        @Test
+        void searchApplications_WithStudentNameFilter_ShouldReturnFilteredResults() {
+                // Arrange
+                Page<Application> page = new PageImpl<>(Arrays.asList(application1, application3), pageable, 2);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application1)).thenReturn(response1);
+                when(applicationMapper.toResponse(application3)).thenReturn(response3);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                null, "John", null, null, null, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                null, "John", null, null, null, null, null, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(2, result.getContent().size());
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(2, result.getContent().size());
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 
-    @Test
-    void searchApplications_WithStatusFilter_ShouldReturnFilteredResults() {
-        // Arrange
-        Page<Application> page = new PageImpl<>(Arrays.asList(application1), pageable, 1);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application1)).thenReturn(response1);
+        @Test
+        void searchApplications_WithStatusFilter_ShouldReturnFilteredResults() {
+                // Arrange
+                Page<Application> page = new PageImpl<>(Arrays.asList(application1), pageable, 1);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application1)).thenReturn(response1);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                null, null, ApplicationStatus.PENDING, null, null, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                null, null, ApplicationStatus.PENDING, null, null, null, null, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
-        assertEquals("PENDING", result.getContent().get(0).getStatus());
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(1, result.getContent().size());
+                assertEquals("PENDING", result.getContent().get(0).getStatus());
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 
-    @Test
-    void searchApplications_WithDateRangeFilter_ShouldReturnFilteredResults() {
-        // Arrange
-        LocalDate startDate = LocalDate.of(2025, 2, 1);
-        LocalDate endDate = LocalDate.of(2025, 2, 28);
-        Page<Application> page = new PageImpl<>(Arrays.asList(application2), pageable, 1);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application2)).thenReturn(response2);
+        @Test
+        void searchApplications_WithDateRangeFilter_ShouldReturnFilteredResults() {
+                // Arrange
+                LocalDate startDate = LocalDate.of(2025, 2, 1);
+                LocalDate endDate = LocalDate.of(2025, 2, 28);
+                Page<Application> page = new PageImpl<>(Arrays.asList(application2), pageable, 1);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application2)).thenReturn(response2);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                null, null, null, startDate, endDate, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                null, null, null, null, null, startDate, endDate, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
-        assertTrue(result.getContent().get(0).getApplicationDate().isAfter(startDate.minusDays(1)));
-        assertTrue(result.getContent().get(0).getApplicationDate().isBefore(endDate.plusDays(1)));
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(1, result.getContent().size());
+                assertTrue(result.getContent().get(0).getApplicationDate().isAfter(startDate.minusDays(1)));
+                assertTrue(result.getContent().get(0).getApplicationDate().isBefore(endDate.plusDays(1)));
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 
-    @Test
-    void searchApplications_WithStartDateOnly_ShouldReturnFilteredResults() {
-        // Arrange
-        LocalDate startDate = LocalDate.of(2025, 2, 15);
-        Page<Application> page = new PageImpl<>(Arrays.asList(application2, application3), pageable, 2);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application2)).thenReturn(response2);
-        when(applicationMapper.toResponse(application3)).thenReturn(response3);
+        @Test
+        void searchApplications_WithStartDateOnly_ShouldReturnFilteredResults() {
+                // Arrange
+                LocalDate startDate = LocalDate.of(2025, 2, 15);
+                Page<Application> page = new PageImpl<>(Arrays.asList(application2, application3), pageable, 2);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application2)).thenReturn(response2);
+                when(applicationMapper.toResponse(application3)).thenReturn(response3);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                null, null, null, startDate, null, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                null, null, null, null, null, startDate, null, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(2, result.getContent().size());
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(2, result.getContent().size());
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 
-    @Test
-    void searchApplications_WithEndDateOnly_ShouldReturnFilteredResults() {
-        // Arrange
-        LocalDate endDate = LocalDate.of(2025, 2, 25);
-        Page<Application> page = new PageImpl<>(Arrays.asList(application1, application2), pageable, 2);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application1)).thenReturn(response1);
-        when(applicationMapper.toResponse(application2)).thenReturn(response2);
+        @Test
+        void searchApplications_WithEndDateOnly_ShouldReturnFilteredResults() {
+                // Arrange
+                LocalDate endDate = LocalDate.of(2025, 2, 25);
+                Page<Application> page = new PageImpl<>(Arrays.asList(application1, application2), pageable, 2);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application1)).thenReturn(response1);
+                when(applicationMapper.toResponse(application2)).thenReturn(response2);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                null, null, null, null, endDate, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                null, null, null, null, null, null, endDate, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(2, result.getContent().size());
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(2, result.getContent().size());
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 
-    @Test
-    void searchApplications_WithMultipleFilters_ShouldReturnFilteredResults() {
-        // Arrange
-        LocalDate startDate = LocalDate.of(2025, 1, 1);
-        LocalDate endDate = LocalDate.of(2025, 1, 31);
-        Page<Application> page = new PageImpl<>(Arrays.asList(application1), pageable, 1);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application1)).thenReturn(response1);
+        @Test
+        void searchApplications_WithMultipleFilters_ShouldReturnFilteredResults() {
+                // Arrange
+                LocalDate startDate = LocalDate.of(2025, 1, 1);
+                LocalDate endDate = LocalDate.of(2025, 1, 31);
+                Page<Application> page = new PageImpl<>(Arrays.asList(application1), pageable, 1);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application1)).thenReturn(response1);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                "APP-2025", "John", ApplicationStatus.PENDING, startDate, endDate, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                "APP-2025", "John", ApplicationStatus.PENDING, null, null, startDate, endDate,
+                                pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(1, result.getContent().size());
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 
-    @Test
-    void searchApplications_NoFilters_ShouldReturnAllResults() {
-        // Arrange
-        Page<Application> page = new PageImpl<>(Arrays.asList(application1, application2, application3), pageable, 3);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application1)).thenReturn(response1);
-        when(applicationMapper.toResponse(application2)).thenReturn(response2);
-        when(applicationMapper.toResponse(application3)).thenReturn(response3);
+        @Test
+        void searchApplications_NoFilters_ShouldReturnAllResults() {
+                // Arrange
+                Page<Application> page = new PageImpl<>(Arrays.asList(application1, application2, application3),
+                                pageable, 3);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application1)).thenReturn(response1);
+                when(applicationMapper.toResponse(application2)).thenReturn(response2);
+                when(applicationMapper.toResponse(application3)).thenReturn(response3);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                null, null, null, null, null, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                null, null, null, null, null, null, null, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(3, result.getContent().size());
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(3, result.getContent().size());
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 
-    @Test
-    void searchApplications_WithApprovedStatus_ShouldReturnOnlyApproved() {
-        // Arrange
-        Page<Application> page = new PageImpl<>(Arrays.asList(application2), pageable, 1);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application2)).thenReturn(response2);
+        @Test
+        void searchApplications_WithApprovedStatus_ShouldReturnOnlyApproved() {
+                // Arrange
+                Page<Application> page = new PageImpl<>(Arrays.asList(application2), pageable, 1);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application2)).thenReturn(response2);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                null, null, ApplicationStatus.APPROVED, null, null, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                null, null, ApplicationStatus.APPROVED, null, null, null, null, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
-        assertEquals("APPROVED", result.getContent().get(0).getStatus());
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(1, result.getContent().size());
+                assertEquals("APPROVED", result.getContent().get(0).getStatus());
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 
-    @Test
-    void searchApplications_WithRejectedStatus_ShouldReturnOnlyRejected() {
-        // Arrange
-        Page<Application> page = new PageImpl<>(Arrays.asList(application3), pageable, 1);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application3)).thenReturn(response3);
+        @Test
+        void searchApplications_WithRejectedStatus_ShouldReturnOnlyRejected() {
+                // Arrange
+                Page<Application> page = new PageImpl<>(Arrays.asList(application3), pageable, 1);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application3)).thenReturn(response3);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                null, null, ApplicationStatus.REJECTED, null, null, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                null, null, ApplicationStatus.REJECTED, null, null, null, null, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
-        assertEquals("REJECTED", result.getContent().get(0).getStatus());
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(1, result.getContent().size());
+                assertEquals("REJECTED", result.getContent().get(0).getStatus());
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 
-    @Test
-    void searchApplications_PartialCodeMatch_ShouldReturnMatchingResults() {
-        // Arrange
-        Page<Application> page = new PageImpl<>(Arrays.asList(application1, application2, application3), pageable, 3);
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(applicationMapper.toResponse(application1)).thenReturn(response1);
-        when(applicationMapper.toResponse(application2)).thenReturn(response2);
-        when(applicationMapper.toResponse(application3)).thenReturn(response3);
+        @Test
+        void searchApplications_PartialCodeMatch_ShouldReturnMatchingResults() {
+                // Arrange
+                Page<Application> page = new PageImpl<>(Arrays.asList(application1, application2, application3),
+                                pageable, 3);
+                when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+                when(applicationMapper.toResponse(application1)).thenReturn(response1);
+                when(applicationMapper.toResponse(application2)).thenReturn(response2);
+                when(applicationMapper.toResponse(application3)).thenReturn(response3);
 
-        // Act
-        PageResponse<ApplicationResponse> result = applicationService.searchApplications(
-                "2025", null, null, null, null, pageable);
+                // Act
+                PageResponse<ApplicationResponse> result = applicationService.searchApplications(
+                                "2025", null, null, null, null, null, null, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(3, result.getContent().size());
-        verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
-    }
+                // Assert
+                assertNotNull(result);
+                assertEquals(3, result.getContent().size());
+                verify(applicationRepository).findAll(any(Specification.class), eq(pageable));
+        }
 }

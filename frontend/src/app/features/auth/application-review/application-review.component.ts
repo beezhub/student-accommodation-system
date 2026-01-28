@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -26,7 +26,7 @@ import { ApplicationService } from '../../../core/services/application.service';
   selector: 'app-application-review',
   templateUrl: './application-review.component.html',
   styleUrls: ['./application-review.component.css'],
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -41,23 +41,21 @@ import { ApplicationService } from '../../../core/services/application.service';
   ],
 })
 export class ApplicationReviewComponent implements OnInit {
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly documentService = inject(DocumentService);
+  private readonly studentService = inject(StudentService);
+  private readonly yearOfStudyService = inject(YearOfStudyService);
+  private readonly institutionService = inject(InstitutionService);
+  private readonly applicationService = inject(ApplicationService);
+
   isSubmitting = false;
   termsAccepted = false;
   currentUser: User | null = null;
   studentProfile: StudentResponse | null = null;
-  documents: DocumentData[] = [];
-  yearOfStudy: YearOfStudy[] = [];
-  institutions: Institution[] = [];
-
-  constructor(
-    private router: Router,
-    private authService: AuthService,
-    private documentService: DocumentService,
-    private studentService: StudentService,
-    private yearOfStudyService: YearOfStudyService,
-    private institutionService: InstitutionService,
-    private ApplicationService: ApplicationService
-  ) {}
+  documents: readonly DocumentData[] = [];
+  yearOfStudy: readonly YearOfStudy[] = [];
+  institutions: readonly Institution[] = [];
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
@@ -117,7 +115,7 @@ export class ApplicationReviewComponent implements OnInit {
     this.isSubmitting = true;
 
     // Get the most recent application for this student
-    this.ApplicationService.getMyApplications().subscribe({
+    this.applicationService.getMyApplications().subscribe({
       next: (applications) => {
         console.log('Applications retrieved:', applications);
         this.isSubmitting = false;

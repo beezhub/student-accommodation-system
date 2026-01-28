@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -28,7 +28,7 @@ import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/mod
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     RouterModule,
@@ -46,15 +46,23 @@ import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/mod
   ],
 })
 export class DashboardComponent implements OnInit {
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly documentService = inject(DocumentService);
+  private readonly studentService = inject(StudentService);
+  private readonly roomAllocationService = inject(RoomAllocationService);
+  private readonly applicationService = inject(ApplicationService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   currentUser: any;
   selectedDocument: any = null;
   currentApplication: Application | null = null;
   isLoadingCurrentApplication = false;
 
-  applicationHistory: Application[] = [];
+  applicationHistory: readonly Application[] = [];
   isLoadingApplications = false;
 
-  uploadedDocuments = [
+  uploadedDocuments: any[] = [
     { name: 'Student ID', date: '2024-01-15', status: 'Rejected' },
     { name: 'Proof of Enrollment', date: '2024-01-15', status: 'Pending' },
     { name: 'Passport', date: '2024-01-15', status: 'Verified' },
@@ -62,15 +70,6 @@ export class DashboardComponent implements OnInit {
 
   roomAllocation: RoomAllocationResponse | null = null;
   isLoadingRoom = false;
-
-  constructor(
-    private router: Router,
-    private authService: AuthService,
-    private documentService: DocumentService,
-    private studentService: StudentService,
-    private roomAllocationService: RoomAllocationService,
-    private applicationService: ApplicationService
-  ) {}
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
@@ -92,6 +91,7 @@ export class DashboardComponent implements OnInit {
           date: doc.UploadedDate,
           status: doc.documentStatus,
         }));
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Failed to fetch documents:', err);
@@ -109,12 +109,14 @@ export class DashboardComponent implements OnInit {
           next: (allocation) => {
             this.roomAllocation = allocation;
             this.isLoadingRoom = false;
+            this.cdr.markForCheck();
           },
           error: (err) => {
             // Student might not have a room allocation yet
             console.log('No active room allocation found:', err);
             this.roomAllocation = null;
             this.isLoadingRoom = false;
+            this.cdr.markForCheck();
           },
         });
       },
@@ -151,6 +153,7 @@ export class DashboardComponent implements OnInit {
 
         this.isLoadingApplications = false;
         this.isLoadingCurrentApplication = false;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Failed to fetch application history:', err);
@@ -158,6 +161,7 @@ export class DashboardComponent implements OnInit {
         this.currentApplication = null;
         this.isLoadingApplications = false;
         this.isLoadingCurrentApplication = false;
+        this.cdr.markForCheck();
       },
     });
   }

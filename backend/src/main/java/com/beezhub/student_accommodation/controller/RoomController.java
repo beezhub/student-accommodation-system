@@ -51,10 +51,13 @@ public class RoomController {
             @RequestParam(required = false) Long buildingId,
             @RequestParam(required = false) Integer minCapacity,
             @RequestParam(required = false) Integer maxCapacity,
+            @RequestParam(required = false, defaultValue = "false") Boolean onlyAvailable,
             @PageableDefault(size = 20, sort = "roomNumber") Pageable pageable) {
-        log.info("Searching rooms with filters - roomNumber: {}, buildingId: {}, minCapacity: {}, maxCapacity: {}",
-                roomNumber, buildingId, minCapacity, maxCapacity);
-        PageResponse<RoomResponse> page = roomService.searchRooms(roomNumber, buildingId, minCapacity, maxCapacity, pageable);
+        log.info(
+                "Searching rooms with filters - roomNumber: {}, buildingId: {}, minCapacity: {}, maxCapacity: {}, onlyAvailable: {}",
+                roomNumber, buildingId, minCapacity, maxCapacity, onlyAvailable);
+        PageResponse<RoomResponse> page = roomService.searchRooms(roomNumber, buildingId, minCapacity, maxCapacity,
+                onlyAvailable, pageable);
         return ResponseEntity.ok(page);
     }
 
@@ -78,7 +81,7 @@ public class RoomController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update room", description = "Updates an existing room. Admin only.")
     public ResponseEntity<RoomResponse> updateRoom(@PathVariable Long id,
-                                                     @Valid @RequestBody RoomRequest request) {
+            @Valid @RequestBody RoomRequest request) {
         log.info("Updating room with id: {}", id);
         return ResponseEntity.ok(roomService.updateRoom(id, request));
     }

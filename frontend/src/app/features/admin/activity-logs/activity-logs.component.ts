@@ -190,4 +190,17 @@ export class ActivityLogsComponent implements OnInit {
   getFormattedTimestamp(timestamp: string): string {
     return new Date(timestamp).toLocaleString();
   }
+
+  getEntityIcon(entityType: string): string {
+    const iconMap: { [key: string]: string } = {
+      APPLICATION: 'description',
+      DOCUMENT: 'folder',
+      USER: 'person',
+      ROOM: 'meeting_room',
+      PAYMENT: 'payment',
+      NOTIFICATION: 'notifications',
+      SYSTEM: 'settings',
+    };
+    return iconMap[entityType] || 'category';
+  }
 }

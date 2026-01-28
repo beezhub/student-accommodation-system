@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -22,16 +22,26 @@ import { ErrorDisplayComponent } from '../../../shared/error-display/error-displ
   selector: 'app-profile',
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.css'],
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterModule, ReactiveFormsModule, MaterialModule, ErrorDisplayComponent],
 })
 export class ProfileComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly studentService = inject(StudentService);
+  private readonly institutionService = inject(InstitutionService);
+  private readonly yearOfStudyService = inject(YearOfStudyService);
+  private readonly fb = inject(FormBuilder);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
+  private readonly router = inject(Router);
+  private readonly errorService = inject(ErrorHandlingService);
+
   currentUser: any;
   profileForm: FormGroup;
   isEditing = false;
   isSaving = false;
-  institutions: Institution[] = [];
-  yearsOfStudy: YearOfStudy[] = [];
+  institutions: readonly Institution[] = [];
+  yearsOfStudy: readonly YearOfStudy[] = [];
   studentProfile: StudentProfile | null = null;
 
   // Error state
@@ -39,17 +49,7 @@ export class ProfileComponent implements OnInit {
   saveError: ParsedError | null = null;
   isRetrying = false;
 
-  constructor(
-    private authService: AuthService,
-    private studentService: StudentService,
-    private institutionService: InstitutionService,
-    private yearOfStudyService: YearOfStudyService,
-    private fb: FormBuilder,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog,
-    private router: Router,
-    private errorService: ErrorHandlingService
-  ) {
+  constructor() {
     this.profileForm = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],

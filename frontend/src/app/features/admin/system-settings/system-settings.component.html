@@ -1,36 +1,54 @@
 <div class="system-settings-container">
   <div class="page-header">
-    <h1>
-      <mat-icon>settings</mat-icon>
-      System Settings
-    </h1>
-    <p class="subtitle">Configure system-wide settings and master data</p>
+    <div class="header-content">
+      <h1>
+        <mat-icon>settings</mat-icon>
+        System Settings
+      </h1>
+      <p class="subtitle">Configure system-wide settings and master data</p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-item">
+        <span class="stat-value">{{ settingsCategories.length }}</span>
+        <span class="stat-label">Categories</span>
+      </div>
+    </div>
   </div>
 
   <div class="settings-grid">
-    @for (category of settingsCategories; track category) {
-      <mat-card
-        class="settings-card"
-        [routerLink]="category.route"
-        >
+    @for (category of settingsCategories; track category.route) {
+      <mat-card class="settings-card" [class]="category.class" [routerLink]="category.route">
         <mat-card-content>
-          <div class="card-content">
-            <div class="icon-wrapper" [ngClass]="category.color">
-              <mat-icon>{{ category.icon }}</mat-icon>
-            </div>
+          <div class="card-icon">
+            <mat-icon>{{ category.icon }}</mat-icon>
+          </div>
+          <div class="card-info">
             <h2>{{ category.title }}</h2>
             <p>{{ category.description }}</p>
-            <button
-              mat-raised-button
-              [color]="category.color"
-              [routerLink]="category.route"
-              >
-              Manage
+          </div>
+          <div class="card-action">
+            <span class="manage-text">Manage</span>
+            <div class="arrow-circle">
               <mat-icon>arrow_forward</mat-icon>
-            </button>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
     }
+  </div>
+
+  <!-- Info Section -->
+  <div class="info-section">
+    <mat-card class="info-card">
+      <mat-card-content>
+        <div class="info-icon">
+          <mat-icon>info</mat-icon>
+        </div>
+        <div class="info-content">
+          <h3>About System Settings</h3>
+          <p>Use these settings to configure master data that affects how the student accommodation system operates. Changes here will be reflected across all relevant modules.</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
   </div>
 </div>

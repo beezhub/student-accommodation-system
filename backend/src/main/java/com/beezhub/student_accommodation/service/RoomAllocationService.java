@@ -48,6 +48,7 @@ public class RoomAllocationService {
     private final BuildingRepository buildingRepository;
     private final UserNotificationService userNotificationService;
     private final ObjectMapper objectMapper;
+    private final org.ff4j.FF4j ff4j;
 
     public List<RoomAllocationResponse> getAllRoomAllocations() {
         log.info("Fetching all room allocations");
@@ -66,11 +67,13 @@ public class RoomAllocationService {
     }
 
     public PageResponse<RoomAllocationResponse> searchRoomAllocations(Long studentId, Long roomId, Long buildingId,
-                                                                       LocalDateTime fromDate, LocalDateTime toDate,
-                                                                       Pageable pageable) {
-        log.info("Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}",
+            LocalDateTime fromDate, LocalDateTime toDate,
+            Pageable pageable) {
+        log.info(
+                "Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}",
                 studentId, roomId, buildingId, fromDate, toDate);
-        Specification<RoomAllocation> spec = RoomAllocationSpecification.filterBy(studentId, roomId, buildingId, fromDate, toDate);
+        Specification<RoomAllocation> spec = RoomAllocationSpecification.filterBy(studentId, roomId, buildingId,
+                fromDate, toDate);
         Page<RoomAllocation> allocations = roomAllocationRepository.findAll(spec, pageable);
         Page<RoomAllocationResponse> responsePage = allocations.map(roomAllocationMapper::toResponse);
         log.info("Found {} room allocations matching criteria", allocations.getNumberOfElements());
@@ -86,35 +89,29 @@ public class RoomAllocationService {
 
     /**
      * Creates a new room allocation with comprehensive business rule validation.
-     *
-     * Business Rules:
-     * 1. Only APPROVED applications can be allocated rooms
-     * 2. Room must have available capacity (not fully occupied)
-     * 3. Student cannot have multiple active allocations
-     * 4. Application can only be allocated once
-     * 5. Room status updates to occupied when allocated
-     * 6. TODO: Send notification email to student
      */
     @Transactional
     public RoomAllocationResponse createRoomAllocation(RoomAllocationRequest request) {
-        log.info("Creating new room allocation for student: {} to room: {}", request.getStudentId(), request.getRoomId());
+        log.info("Creating new room allocation for student: {} to room: {}", request.getStudentId(),
+                request.getRoomId());
 
         // Validate student exists
         Student student = studentRepository.findById(request.getStudentId())
-                .orElseThrow(() -> new StudentNotFoundException("Student not found with id: " + request.getStudentId()));
+                .orElseThrow(
+                        () -> new StudentNotFoundException("Student not found with id: " + request.getStudentId()));
 
         // Validate room exists
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + request.getRoomId()));
 
-        // Business Rule 3: Student cannot have multiple active allocations
+        // Student cannot have multiple active allocations
         if (roomAllocationRepository.existsActiveAllocationByStudentId(student.getId())) {
             log.error("Student {} already has an active room allocation", student.getId());
             throw new StudentAlreadyAllocatedException(
                     "Student with ID " + student.getId() + " already has an active room allocation");
         }
 
-        // Business Rule 2: Room must have available capacity
+        // Room must have available capacity
         validateRoomCapacity(room);
 
         // If application ID is provided, validate application
@@ -128,53 +125,48 @@ public class RoomAllocationService {
         allocation.setStudent(student);
         allocation.setRoom(room);
         allocation.setApplication(application);
-        allocation.setAllocationDate(request.getAllocationDate() != null ? request.getAllocationDate() : LocalDateTime.now());
+        allocation.setAllocationDate(
+                request.getAllocationDate() != null ? request.getAllocationDate() : LocalDateTime.now());
         allocation.setEndDate(request.getEndDate());
         allocation.setStatus("ACTIVE");
 
         // Save allocation
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
-        // Business Rule 6: Update room occupancy and status
+        // Update room occupancy and status
         updateRoomOccupancy(room, 1);
 
         log.info("Successfully created room allocation with id: {}", saved.getId());
 
-        // Business Rule 5: Send notification email to student
+        // Send notification email to student
         try {
-            log.info("Triggering room allocation notification for student {} to room {}", student.getId(), room.getRoomNumber());
+            log.info("Triggering room allocation notification for student {} to room {}", student.getId(),
+                    room.getRoomNumber());
             notificationService.sendRoomAllocationNotification(saved);
         } catch (Exception e) {
-            // Log error but don't fail the request - notification will be retried
-            log.error("Failed to trigger notification for room allocation {} - notification will be retried by scheduler",
+            log.error(
+                    "Failed to trigger notification for room allocation {} - notification will be retried by scheduler",
                     saved.getId(), e);
         }
 
         return roomAllocationMapper.toResponse(saved);
     }
 
-    /**
-     * Validates that the application is APPROVED and belongs to the student.
-     * Business Rule 1: Only APPROVED applications can be allocated rooms
-     * Business Rule 4: Application can only be allocated once
-     */
     private Application validateAndGetApplication(Long applicationId, Long studentId) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with id: " + applicationId));
 
-        // Check if application belongs to the student
         if (!application.getStudent().getId().equals(studentId)) {
             throw new IllegalArgumentException("Application does not belong to the specified student");
         }
 
-        // Business Rule 1: Only APPROVED applications can be allocated
         if (!"APPROVED".equalsIgnoreCase(String.valueOf(application.getStatus()))) {
             log.error("Application {} is not approved. Current status: {}", applicationId, application.getStatus());
             throw new ApplicationNotApprovedException(
-                    "Application must be APPROVED before allocating a room. Current status: " + application.getStatus());
+                    "Application must be APPROVED before allocating a room. Current status: "
+                            + application.getStatus());
         }
 
-        // Business Rule 4: Application can only be allocated once
         if (roomAllocationRepository.existsByApplicationId(applicationId)) {
             log.error("Application {} has already been allocated a room", applicationId);
             throw new ApplicationAlreadyAllocatedException(
@@ -184,10 +176,6 @@ public class RoomAllocationService {
         return application;
     }
 
-    /**
-     * Validates room has available capacity.
-     * Business Rule 2: Room must have available capacity
-     */
     private void validateRoomCapacity(Room room) {
         long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
 
@@ -202,14 +190,10 @@ public class RoomAllocationService {
                 room.getRoomNumber(), activeAllocations, room.getCapacity());
     }
 
-    /**
-     * Updates room occupancy and status when allocation is created or removed.
-     */
     private void updateRoomOccupancy(Room room, int change) {
         int newOccupancy = (room.getCurrentOccupancy() != null ? room.getCurrentOccupancy() : 0) + change;
         room.setCurrentOccupancy(newOccupancy);
 
-        // Update room status based on occupancy
         if (newOccupancy == 0) {
             room.setStatus("AVAILABLE");
         } else if (newOccupancy >= room.getCapacity()) {
@@ -224,6 +208,31 @@ public class RoomAllocationService {
     }
 
     @Transactional
+    public void deleteRoomAllocation(Long id) {
+        log.info("Deleting room allocation with id: {}", id);
+        RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
+
+        Room room = allocation.getRoom();
+        updateRoomOccupancy(room, -1);
+
+        roomAllocationRepository.delete(allocation);
+        log.info("Successfully deleted room allocation with id: {}", id);
+
+        try {
+            allocateNextFromWaitingList();
+        } catch (Exception e) {
+            log.error("Failed to allocate next from waiting list after deletion {}", id, e);
+        }
+    }
+
+    public Room findAvailableRoom() {
+        Optional<Room> room = roomRepository.findFirstByStatusOrderByBuilding_IdAscRoomNumberAsc("AVAILABLE");
+        room.ifPresent(r -> log.info("Found available room {}", r.getRoomNumber()));
+        return room.orElse(null);
+    }
+
+    @Transactional
     public RoomAllocationResponse updateRoomAllocation(Long id, RoomAllocationRequest request) {
         log.info("Updating room allocation with id: {}", id);
         RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
@@ -231,7 +240,8 @@ public class RoomAllocationService {
 
         Room oldRoom = allocation.getRoom();
         Student student = studentRepository.findById(request.getStudentId())
-                .orElseThrow(() -> new StudentNotFoundException("Student not found with id: " + request.getStudentId()));
+                .orElseThrow(
+                        () -> new StudentNotFoundException("Student not found with id: " + request.getStudentId()));
 
         Room newRoom = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + request.getRoomId()));
@@ -240,8 +250,8 @@ public class RoomAllocationService {
         boolean roomChanged = false;
         if (!oldRoom.getId().equals(newRoom.getId())) {
             validateRoomCapacity(newRoom);
-            updateRoomOccupancy(oldRoom, -1);  // Decrease old room
-            updateRoomOccupancy(newRoom, 1);    // Increase new room
+            updateRoomOccupancy(oldRoom, -1);
+            updateRoomOccupancy(newRoom, 1);
             roomChanged = true;
         }
 
@@ -266,8 +276,8 @@ public class RoomAllocationService {
                         student.getId(), oldRoom.getRoomNumber(), newRoom.getRoomNumber());
                 notificationService.sendRoomAllocationNotification(updated);
             } catch (Exception e) {
-                // Log error but don't fail the request - notification will be retried
-                log.error("Failed to trigger notification for room allocation update {} - notification will be retried by scheduler",
+                log.error(
+                        "Failed to trigger notification for room allocation update {} - notification will be retried by scheduler",
                         updated.getId(), e);
             }
         }
@@ -275,30 +285,6 @@ public class RoomAllocationService {
         return roomAllocationMapper.toResponse(updated);
     }
 
-    @Transactional
-    public void deleteRoomAllocation(Long id) {
-        log.info("Deleting room allocation with id: {}", id);
-        RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
-
-        Room room = allocation.getRoom();
-
-        // Update room occupancy
-        updateRoomOccupancy(room, -1);
-
-        roomAllocationRepository.delete(allocation);
-        log.info("Successfully deleted room allocation with id: {}", id);
-
-        try {
-            allocateNextFromWaitingList();
-        } catch (Exception e) {
-            log.error("Failed to allocate next from waiting list after deletion {}", id, e);
-        }
-    }
-
-    /**
-     * Ends an active allocation (soft delete approach).
-     */
     @Transactional
     public RoomAllocationResponse endAllocation(Long id) {
         log.info("Ending room allocation with id: {}", id);
@@ -327,9 +313,6 @@ public class RoomAllocationService {
         return roomAllocationMapper.toResponse(updated);
     }
 
-    /**
-     * Gets the active allocation for a specific student.
-     */
     public RoomAllocationResponse getActiveAllocationByStudentId(Long studentId) {
         log.info("Fetching active allocation for student: {}", studentId);
         RoomAllocation allocation = roomAllocationRepository.findActiveAllocationByStudentId(studentId)
@@ -338,31 +321,24 @@ public class RoomAllocationService {
         return roomAllocationMapper.toResponse(allocation);
     }
 
-    /**
-     * Allocates a room based on an approved application.
-     * This is the primary method for processing approved applications.
-     */
     @Transactional
     public RoomAllocationResponse allocateRoomByApplication(Long applicationId, Long roomId) {
         log.info("Allocating room {} for application: {}", roomId, applicationId);
 
-        // Get and validate application
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with id: " + applicationId));
 
-        // Validate application is APPROVED
         if (!"APPROVED".equalsIgnoreCase(String.valueOf(application.getStatus()))) {
             throw new ApplicationNotApprovedException(
-                    "Application must be APPROVED before allocating a room. Current status: " + application.getStatus());
+                    "Application must be APPROVED before allocating a room. Current status: "
+                            + application.getStatus());
         }
 
-        // Check if application already allocated
         if (roomAllocationRepository.existsByApplicationId(applicationId)) {
             throw new ApplicationAlreadyAllocatedException(
                     "Application with ID " + applicationId + " has already been allocated a room");
         }
 
-        // Create allocation request
         RoomAllocationRequest request = new RoomAllocationRequest();
         request.setStudentId(application.getStudent().getId());
         request.setRoomId(roomId);
@@ -371,9 +347,6 @@ public class RoomAllocationService {
         return createRoomAllocation(request);
     }
 
-    /**
-     * Checks if a room has available capacity.
-     */
     public boolean isRoomAvailable(Long roomId) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + roomId));
@@ -387,9 +360,6 @@ public class RoomAllocationService {
         return available;
     }
 
-    /**
-     * Gets available capacity for a room.
-     */
     public int getRoomAvailableCapacity(Long roomId) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + roomId));
@@ -403,14 +373,9 @@ public class RoomAllocationService {
         return Math.max(0, available);
     }
 
-    /**
-     * Validates if a student is eligible for room allocation.
-     * Returns validation result with reasons if not eligible.
-     */
     public AllocationEligibilityResponse checkStudentEligibility(Long studentId) {
         log.info("Checking allocation eligibility for student: {}", studentId);
 
-        // Check if student exists
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found with id: " + studentId));
 
@@ -418,7 +383,6 @@ public class RoomAllocationService {
         response.setStudentId(studentId);
         response.setEligible(true);
 
-        // Check if student already has active allocation
         boolean hasActiveAllocation = roomAllocationRepository.existsActiveAllocationByStudentId(studentId);
         response.setHasActiveAllocation(hasActiveAllocation);
 
@@ -429,11 +393,9 @@ public class RoomAllocationService {
             return response;
         }
 
-        // Check if student has approved application
         boolean hasApprovedApplication = applicationRepository.existsByStudent_IdAndStatus(
-            studentId,
-            com.beezhub.student_accommodation.model.enums.ApplicationStatus.APPROVED
-        );
+                studentId,
+                com.beezhub.student_accommodation.model.enums.ApplicationStatus.APPROVED);
         response.setHasApprovedApplication(hasApprovedApplication);
 
         response.setReason("Student is eligible for room allocation");
@@ -441,15 +403,11 @@ public class RoomAllocationService {
         return response;
     }
 
-    /**
-     * Gets all allocations by status.
-     */
     public PageResponse<RoomAllocationResponse> getAllocationsByStatus(String status, Pageable pageable) {
         log.info("Fetching allocations with status: {}", status);
 
-        // Simple specification for status filtering
-        Specification<RoomAllocation> spec = (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("status"), status);
+        Specification<RoomAllocation> spec = (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("status"),
+                status);
 
         Page<RoomAllocation> allocations = roomAllocationRepository.findAll(spec, pageable);
         Page<RoomAllocationResponse> responsePage = allocations.map(roomAllocationMapper::toResponse);
@@ -458,9 +416,6 @@ public class RoomAllocationService {
         return PageMapper.toPageResponse(responsePage);
     }
 
-    /**
-     * Gets detailed room availability information.
-     */
     public RoomAvailabilityResponse getRoomAvailability(Long roomId) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + roomId));
@@ -484,18 +439,18 @@ public class RoomAllocationService {
         return response;
     }
 
-    public Room findAvailableRoom() {
-        Optional<Room> room = roomRepository.findFirstByStatusOrderByBuilding_IdAscRoomNumberAsc("AVAILABLE");
-        room.ifPresent(r -> log.info("Found available room {}", r.getRoomNumber()));
-        return room.orElse(null);
-    }
-
     /**
      * Attempts to allocate next waiting student when a room frees up.
      * Uses scoring-based allocation instead of FIFO.
      */
     @Transactional
     public void allocateNextFromWaitingList() {
+        // Check Feature Toggle
+        if (!ff4j.check(com.beezhub.student_accommodation.config.FF4jConfig.FEATURE_AUTO_ALLOCATION)) {
+            log.info("Auto-allocation is disabled via Feature Toggle. Skipping.");
+            return;
+        }
+
         log.info("Attempting to allocate from waiting list using scoring-based allocation");
 
         // Get all waiting students
@@ -520,7 +475,8 @@ public class RoomAllocationService {
             }
 
             Building preferredBuilding = application != null ? application.getPreferredBuilding() : null;
-            List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application, preferredBuilding);
+            List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application,
+                    preferredBuilding);
 
             if (!scoredRooms.isEmpty()) {
                 ScoredRoom topRoom = scoredRooms.get(0);
@@ -605,8 +561,7 @@ public class RoomAllocationService {
                     userNotificationService.createAllocationProposalNotification(
                             studentRepository.findById(studentId).get().getAppUser().getId(),
                             proposal.getRoomNumber(),
-                            proposal.getBuildingName()
-                    );
+                            proposal.getBuildingName());
                 } catch (Exception e) {
                     log.error("Failed to send proposal notification for student {}", studentId, e);
                 }
@@ -629,7 +584,7 @@ public class RoomAllocationService {
     }
 
     private StagedAllocationResponse createProposalForStudent(Long studentId, String batchId,
-                                                               Building preferredBuilding, AppUser admin) {
+            Building preferredBuilding, AppUser admin) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found: " + studentId));
 
@@ -637,7 +592,8 @@ public class RoomAllocationService {
         Application application = applicationRepository.findByStudent_Id(studentId).stream()
                 .filter(app -> app.getStatus() == ApplicationStatus.AWAITING_ALLOCATION)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("No AWAITING_ALLOCATION application for student: " + studentId));
+                .orElseThrow(
+                        () -> new RuntimeException("No AWAITING_ALLOCATION application for student: " + studentId));
 
         // Check if student already has active allocation
         if (roomAllocationRepository.existsActiveAllocationByStudentId(studentId)) {
@@ -655,7 +611,8 @@ public class RoomAllocationService {
         Building effectiveBuilding = preferredBuilding != null ? preferredBuilding : application.getPreferredBuilding();
 
         // Score available rooms
-        List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application, effectiveBuilding);
+        List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application,
+                effectiveBuilding);
         if (scoredRooms.isEmpty()) {
             throw new RuntimeException("No available rooms for student");
         }
@@ -736,8 +693,7 @@ public class RoomAllocationService {
             userNotificationService.createAllocationConfirmationNotification(
                     staged.getStudent().getAppUser().getId(),
                     staged.getRoom().getRoomNumber(),
-                    staged.getRoom().getBuilding().getName()
-            );
+                    staged.getRoom().getBuilding().getName());
         } catch (Exception e) {
             log.error("Failed to send confirmation notification", e);
         }
@@ -774,8 +730,7 @@ public class RoomAllocationService {
             userNotificationService.createAllocationRejectionNotification(
                     staged.getStudent().getAppUser().getId(),
                     staged.getRoom().getRoomNumber(),
-                    reason
-            );
+                    reason);
         } catch (Exception e) {
             log.error("Failed to send rejection notification", e);
         }
@@ -860,8 +815,7 @@ public class RoomAllocationService {
                     allocation.getStudent().getAppUser().getId(),
                     oldRoom.getRoomNumber(),
                     newRoom.getRoomNumber(),
-                    reason
-            );
+                    reason);
         } catch (Exception e) {
             log.error("Failed to send move notification", e);
         }
@@ -877,7 +831,7 @@ public class RoomAllocationService {
      */
     @Transactional
     public StagedAllocationResponse overrideConstraints(Long studentId, Long roomId, String reason,
-                                                         Long adminId, List<String> constraintsBypassed) {
+            Long adminId, List<String> constraintsBypassed) {
         log.info("Override allocation for student {} to room {} by admin {}: {}",
                 studentId, roomId, adminId, reason);
 
@@ -896,6 +850,11 @@ public class RoomAllocationService {
                 .findFirst()
                 .orElse(null);
 
+        if (application == null) {
+            throw new ApplicationNotFoundException(
+                    "No application awaiting allocation found for student ID: " + studentId);
+        }
+
         AppUser admin = appUserRepository.findById(adminId)
                 .orElseThrow(() -> new RuntimeException("Admin not found: " + adminId));
 
@@ -905,7 +864,7 @@ public class RoomAllocationService {
                 .room(room)
                 .application(application)
                 .status(StagedAllocationStatus.PROPOSED)
-                .score(BigDecimal.ZERO) // Override score is zero
+                .score(allocationScoringService.scoreSingleRoom(student, application, room).getTotalScore())
                 .warnings(serializeWarnings(List.of("CONSTRAINT_OVERRIDE: " + String.join(", ", constraintsBypassed))))
                 .proposedBy(admin)
                 .batchId("OVERRIDE-" + System.currentTimeMillis())
@@ -922,8 +881,7 @@ public class RoomAllocationService {
             userNotificationService.createAllocationProposalNotification(
                     student.getAppUser().getId(),
                     room.getRoomNumber(),
-                    room.getBuilding().getName()
-            );
+                    room.getBuilding().getName());
         } catch (Exception e) {
             log.error("Failed to send override proposal notification", e);
         }
@@ -939,7 +897,7 @@ public class RoomAllocationService {
      * Gets paginated staged allocations filtered by batch and/or status.
      */
     public PageResponse<StagedAllocationResponse> getStagedAllocations(String batchId, StagedAllocationStatus status,
-                                                                        Pageable pageable) {
+            Pageable pageable) {
         log.info("Getting staged allocations - batchId: {}, status: {}", batchId, status);
 
         Page<StagedAllocation> page;
@@ -1013,8 +971,7 @@ public class RoomAllocationService {
         List<WaitingListEntry> entries = waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING");
         List<WaitingListEntryResponse> responses = new ArrayList<>();
 
-        Building targetBuilding = buildingId != null ?
-                buildingRepository.findById(buildingId).orElse(null) : null;
+        Building targetBuilding = buildingId != null ? buildingRepository.findById(buildingId).orElse(null) : null;
 
         AtomicInteger position = new AtomicInteger(1);
 
@@ -1046,9 +1003,10 @@ public class RoomAllocationService {
             }
 
             // Score available rooms for this student
-            Building effectiveBuilding = targetBuilding != null ? targetBuilding :
-                    (application != null ? application.getPreferredBuilding() : null);
-            List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application, effectiveBuilding);
+            Building effectiveBuilding = targetBuilding != null ? targetBuilding
+                    : (application != null ? application.getPreferredBuilding() : null);
+            List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application,
+                    effectiveBuilding);
 
             if (!scoredRooms.isEmpty()) {
                 ScoredRoom bestRoom = scoredRooms.get(0);
@@ -1077,7 +1035,8 @@ public class RoomAllocationService {
 
     /**
      * Rescores all waiting list entries using the latest allocation rules.
-     * This is an idempotent operation that refreshes scores based on current rules and room availability.
+     * This is an idempotent operation that refreshes scores based on current rules
+     * and room availability.
      *
      * @return RescoreResult with count of rescored entries
      */
@@ -1106,7 +1065,8 @@ public class RoomAllocationService {
                 List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(
                         student, application, preferredBuilding);
 
-                // The actual score is computed and stored in responses during getWaitingListWithScores
+                // The actual score is computed and stored in responses during
+                // getWaitingListWithScores
                 // This operation effectively validates that scoring works for each entry
                 rescored++;
             } catch (Exception e) {
@@ -1127,13 +1087,13 @@ public class RoomAllocationService {
     // ==================== Helper Methods ====================
 
     private void logAuditAction(RoomAllocation allocation, AllocationAuditActionType actionType,
-                                AppUser admin, String reason, Room oldRoom, Room newRoom) {
+            AppUser admin, String reason, Room oldRoom, Room newRoom) {
         logAuditActionWithConstraint(allocation, actionType, admin, reason, oldRoom, newRoom, null);
     }
 
     private void logAuditActionWithConstraint(RoomAllocation allocation, AllocationAuditActionType actionType,
-                                              AppUser admin, String reason, Room oldRoom, Room newRoom,
-                                              String constraintBypassed) {
+            AppUser admin, String reason, Room oldRoom, Room newRoom,
+            String constraintBypassed) {
         AllocationAuditLog auditLog = AllocationAuditLog.builder()
                 .allocation(allocation)
                 .actionType(actionType)
@@ -1144,7 +1104,8 @@ public class RoomAllocationService {
                 .constraintBypassed(constraintBypassed)
                 .build();
         allocationAuditLogRepository.save(auditLog);
-        log.info("Audit log created: {} for allocation {}", actionType, allocation != null ? allocation.getId() : "N/A");
+        log.info("Audit log created: {} for allocation {}", actionType,
+                allocation != null ? allocation.getId() : "N/A");
     }
 
     private String serializeWarnings(List<String> warnings) {
@@ -1204,8 +1165,9 @@ public class RoomAllocationService {
                 .applicationCode(application != null ? application.getApplicationCode() : null)
                 .applicationStatus(application != null ? application.getStatus().name() : null)
                 .proposedById(staged.getProposedBy() != null ? staged.getProposedBy().getId() : null)
-                .proposedByName(staged.getProposedBy() != null ?
-                        staged.getProposedBy().getFirstName() + " " + staged.getProposedBy().getLastName() : null)
+                .proposedByName(staged.getProposedBy() != null
+                        ? staged.getProposedBy().getFirstName() + " " + staged.getProposedBy().getLastName()
+                        : null)
                 .build();
     }
 }

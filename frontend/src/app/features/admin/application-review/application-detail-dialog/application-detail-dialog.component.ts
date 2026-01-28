@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -27,8 +27,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import {
   ApplicationService,
   ApplicationFullDetails,
-  ApplicationDocument,
-  DocumentTypeChecklist,
+  DocumentWithComments,
+  DocumentChecklistItem,
   StudentProfile,
 } from '../../../../core/services/application.service';
 import { AdminService } from '../../../../core/services/admin.service';
@@ -36,6 +36,7 @@ import { Application } from '../../../../core/models/application.model';
 import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-badge/modern-status-badge.component';
 import { DocumentCommentSectionComponent } from '../../../shared/components/document-comment-section/document-comment-section.component';
 import { TimeagoPipe } from '../../../../shared/pipes/timeago.pipe';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 export interface ApplicationDetailDialogData {
   applicationId: number;
@@ -83,18 +84,18 @@ interface DocumentStatusChange {
   templateUrl: './application-detail-dialog.component.html',
   styleUrls: ['./application-detail-dialog.component.css'],
 })
-export class ApplicationDetailDialogComponent implements OnInit {
+export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   isLoading = true;
   isSaving = false;
   isRejecting = false;
+  isApproving = false;
   isMovingToAllocation = false;
   loadError: string | null = null;
 
   applicationDetails: ApplicationFullDetails | null = null;
-  application: Application | null = null;
   student: StudentProfile | null = null;
-  documents: ApplicationDocument[] = [];
-  documentChecklist: DocumentTypeChecklist[] = [];
+  documents: DocumentWithComments[] = [];
+  documentChecklist: DocumentChecklistItem[] = [];
 
   // Track document status changes
   documentStatusChanges: Map<number, DocumentStatusChange> = new Map();
@@ -106,6 +107,15 @@ export class ApplicationDetailDialogComponent implements OnInit {
   // Expanded document panels
   expandedDocumentId: number | null = null;
 
+  // Document preview states
+  documentPreviews: Map<number, SafeResourceUrl | null> = new Map();
+  documentPreviewTypes: Map<number, 'pdf' | 'image' | 'unknown'> = new Map();
+  documentLoadingStates: Map<number, boolean> = new Map();
+  documentPreviewErrors: Map<number, boolean> = new Map();
+
+  // Expanded comments section
+  expandedCommentsId: number | null = null;
+
   constructor(
     private fb: FormBuilder,
     private applicationService: ApplicationService,
@@ -113,7 +123,8 @@ export class ApplicationDetailDialogComponent implements OnInit {
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     public dialogRef: MatDialogRef<ApplicationDetailDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: ApplicationDetailDialogData
+    @Inject(MAT_DIALOG_DATA) public data: ApplicationDetailDialogData,
+    private sanitizer: DomSanitizer
   ) {
     this.rejectionForm = this.fb.group({
       reason: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
@@ -131,10 +142,9 @@ export class ApplicationDetailDialogComponent implements OnInit {
     this.applicationService.getApplicationFullDetails(this.data.applicationId).subscribe({
       next: (details) => {
         this.applicationDetails = details;
-        this.application = details.application;
-        this.student = details.student;
-        this.documents = details.documents;
-        this.documentChecklist = details.documentChecklist;
+        this.student = details.studentProfile;
+        this.documents = details.documents || [];
+        this.documentChecklist = details.requiredDocumentsChecklist?.documents || [];
         this.isLoading = false;
       },
       error: (error) => {
@@ -146,19 +156,19 @@ export class ApplicationDetailDialogComponent implements OnInit {
   }
 
   // Document status management
-  getDocumentCurrentStatus(doc: ApplicationDocument): string {
+  getDocumentCurrentStatus(doc: DocumentWithComments): string {
     const change = this.documentStatusChanges.get(doc.id);
-    return change ? change.newStatus : doc.documentStatus;
+    return change ? change.newStatus : doc.status;
   }
 
-  onDocumentStatusChange(doc: ApplicationDocument, newStatus: string): void {
-    if (doc.documentStatus === newStatus) {
+  onDocumentStatusChange(doc: DocumentWithComments, newStatus: string): void {
+    if (doc.status === newStatus) {
       // If reverting to original, remove from changes
       this.documentStatusChanges.delete(doc.id);
     } else {
       this.documentStatusChanges.set(doc.id, {
         documentId: doc.id,
-        originalStatus: doc.documentStatus,
+        originalStatus: doc.status,
         newStatus: newStatus,
       });
     }
@@ -167,7 +177,9 @@ export class ApplicationDetailDialogComponent implements OnInit {
 
   private updateChecklistFromChanges(): void {
     // Update the checklist based on current status changes
-    this.documentChecklist = this.documentChecklist.map((item) => {
+    if (!this.applicationDetails?.requiredDocumentsChecklist?.documents) return;
+
+    this.documentChecklist = this.applicationDetails.requiredDocumentsChecklist.documents.map((item) => {
       if (item.documentId) {
         const change = this.documentStatusChanges.get(item.documentId);
         if (change) {
@@ -202,7 +214,7 @@ export class ApplicationDetailDialogComponent implements OnInit {
     return (this.requiredApprovedCount / this.requiredTotalCount) * 100;
   }
 
-  getChecklistIcon(item: DocumentTypeChecklist): string {
+  getChecklistIcon(item: DocumentChecklistItem): string {
     switch (item.status) {
       case 'APPROVED':
         return 'check_circle';
@@ -217,18 +229,18 @@ export class ApplicationDetailDialogComponent implements OnInit {
     }
   }
 
-  getChecklistClass(item: DocumentTypeChecklist): string {
+  getChecklistClass(item: DocumentChecklistItem): string {
     return item.status.toLowerCase().replace('_', '-');
   }
 
   // Document actions
-  downloadDocument(doc: ApplicationDocument): void {
+  downloadDocument(doc: DocumentWithComments): void {
     this.adminService.downloadDocument(doc.id).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = doc.documentName;
+        link.download = doc.fileName;
         link.click();
         window.URL.revokeObjectURL(url);
         this.snackBar.open('Document downloaded', 'Close', { duration: 2000 });
@@ -244,6 +256,10 @@ export class ApplicationDetailDialogComponent implements OnInit {
     this.expandedDocumentId = this.expandedDocumentId === docId ? null : docId;
   }
 
+  toggleComments(docId: number): void {
+    this.expandedCommentsId = this.expandedCommentsId === docId ? null : docId;
+  }
+
   // Save progress
   saveProgress(): void {
     if (!this.hasUnsavedChanges()) {
@@ -254,52 +270,43 @@ export class ApplicationDetailDialogComponent implements OnInit {
     this.isSaving = true;
     const documentUpdates = Array.from(this.documentStatusChanges.values()).map((change) => ({
       documentId: change.documentId,
-      status: change.newStatus,
+      newStatus: change.newStatus,
     }));
 
-    // Save each document status change
-    let completed = 0;
-    let failed = 0;
-    const total = documentUpdates.length;
+    const request = {
+      applicationId: this.data.applicationId,
+      documentUpdates: documentUpdates
+    };
 
-    documentUpdates.forEach((update) => {
-      this.adminService.updateDocumentStatus(update.documentId, update.status).subscribe({
-        next: () => {
-          completed++;
-          if (completed + failed === total) {
-            this.finalizeSaveProgress(completed, failed);
-          }
-        },
-        error: (error) => {
-          console.error('Failed to update document status:', error);
-          failed++;
-          if (completed + failed === total) {
-            this.finalizeSaveProgress(completed, failed);
-          }
-        },
-      });
+    this.applicationService.saveReviewProgress(request).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.snackBar.open('Progress saved successfully', 'Close', { duration: 3000 });
+          // Update local document statuses
+          this.documents = this.documents.map((doc) => {
+            const change = this.documentStatusChanges.get(doc.id);
+            if (change) {
+              return { ...doc, status: change.newStatus };
+            }
+            return doc;
+          });
+          this.documentStatusChanges.clear();
+        } else {
+          this.snackBar.open('Failed to save progress', 'Close', { duration: 3000 });
+        }
+        this.isSaving = false;
+      },
+      error: (error) => {
+        console.error('Failed to save progress:', error);
+        this.snackBar.open(
+          error.error?.message || 'Failed to save progress',
+          'Close',
+          { duration: 5000 }
+        );
+        this.isSaving = false;
+      }
     });
   }
-
-  private finalizeSaveProgress(completed: number, failed: number): void {
-    this.isSaving = false;
-    if (failed === 0) {
-      this.snackBar.open('Progress saved successfully', 'Close', { duration: 3000 });
-      // Update local document statuses
-      this.documents = this.documents.map((doc) => {
-        const change = this.documentStatusChanges.get(doc.id);
-        if (change) {
-          return { ...doc, documentStatus: change.newStatus };
-        }
-        return doc;
-      });
-      this.documentStatusChanges.clear();
-    } else {
-      this.snackBar.open(`${completed} saved, ${failed} failed`, 'Close', { duration: 5000 });
-    }
-  }
-
-  // Move to allocation
   moveToAllocation(): void {
     if (!this.allRequiredApproved) {
       this.snackBar.open('All required documents must be approved first', 'Close', {
@@ -335,6 +342,67 @@ export class ApplicationDetailDialogComponent implements OnInit {
           { duration: 5000 }
         );
         this.isMovingToAllocation = false;
+      },
+    });
+  }
+
+  // Approve Application and move to allocation
+  approveApplication(): void {
+    if (!this.allRequiredApproved) {
+      this.snackBar.open('All required documents must be approved first', 'Close', {
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (this.hasUnsavedChanges()) {
+      this.snackBar.open('Please save your progress before approving', 'Close', {
+        duration: 3000,
+      });
+      return;
+    }
+
+    this.isApproving = true;
+    
+    // First approve the application, then move to allocation
+    this.adminService.updateApplicationStatus(this.data.applicationId, 'APPROVED').subscribe({
+      next: () => {
+        // Now move to allocation phase
+        this.applicationService.moveToAllocationPhase(this.data.applicationId).subscribe({
+          next: () => {
+            this.snackBar.open('Application approved and moved to allocation', 'Close', { duration: 3000 });
+            this.isApproving = false;
+            this.dialogRef.close({
+              action: 'allocated',
+              applicationId: this.data.applicationId,
+              newStatus: 'AWAITING_ALLOCATION',
+            } as ApplicationDetailDialogResult);
+          },
+          error: (error) => {
+            console.error('Failed to move to allocation:', error);
+            this.snackBar.open(
+              'Application approved, but failed to move to allocation',
+              'Close',
+              { duration: 5000 }
+            );
+            this.isApproving = false;
+            // Still close with approved status
+            this.dialogRef.close({
+              action: 'saved',
+              applicationId: this.data.applicationId,
+              newStatus: 'APPROVED',
+            } as ApplicationDetailDialogResult);
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Failed to approve application:', error);
+        this.snackBar.open(
+          error.error?.message || 'Failed to approve application',
+          'Close',
+          { duration: 5000 }
+        );
+        this.isApproving = false;
       },
     });
   }
@@ -402,6 +470,81 @@ export class ApplicationDetailDialogComponent implements OnInit {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+    });
+  }
+
+  // Document preview methods
+  viewDocument(doc: DocumentWithComments): void {
+    // Toggle preview off if already showing
+    if (this.documentPreviews.has(doc.id)) {
+      this.cleanupDocumentPreview(doc.id);
+      return;
+    }
+
+    // Start loading the preview
+    this.loadDocumentPreview(doc);
+  }
+
+  retryPreview(doc: DocumentWithComments): void {
+    this.loadDocumentPreview(doc);
+  }
+
+  private loadDocumentPreview(doc: DocumentWithComments): void {
+    this.documentLoadingStates.set(doc.id, true);
+    this.documentPreviewErrors.set(doc.id, false);
+    this.documentPreviews.set(doc.id, null); // Mark as being loaded
+
+    this.adminService.downloadDocument(doc.id).subscribe({
+      next: (blob: Blob) => {
+        const url = URL.createObjectURL(blob);
+
+        // Determine file type from blob type or filename
+        let fileType: 'pdf' | 'image' | 'unknown' = 'unknown';
+        if (blob.type.includes('pdf')) {
+          fileType = 'pdf';
+        } else if (blob.type.includes('image')) {
+          fileType = 'image';
+        } else {
+          // Try to determine from document name
+          const fileName = doc.fileName?.toLowerCase() || '';
+          if (fileName.endsWith('.pdf')) {
+            fileType = 'pdf';
+          } else if (fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) {
+            fileType = 'image';
+          }
+        }
+
+        this.documentPreviewTypes.set(doc.id, fileType);
+        this.documentPreviews.set(doc.id, this.sanitizer.bypassSecurityTrustResourceUrl(url));
+        this.documentLoadingStates.set(doc.id, false);
+      },
+      error: (error) => {
+        console.error('Failed to load document preview:', error);
+        this.documentLoadingStates.set(doc.id, false);
+        this.documentPreviewErrors.set(doc.id, true);
+      }
+    });
+  }
+
+  private cleanupDocumentPreview(docId: number): void {
+    const previewUrl = this.documentPreviews.get(docId);
+    if (previewUrl) {
+      // Extract the actual URL string and revoke it
+      const urlString = (previewUrl as any).changingThisBreaksApplicationSecurity;
+      if (urlString && urlString.startsWith('blob:')) {
+        URL.revokeObjectURL(urlString);
+      }
+    }
+    this.documentPreviews.delete(docId);
+    this.documentPreviewTypes.delete(docId);
+    this.documentLoadingStates.delete(docId);
+    this.documentPreviewErrors.delete(docId);
+  }
+
+  ngOnDestroy(): void {
+    // Cleanup all blob URLs when component is destroyed
+    this.documentPreviews.forEach((_, docId) => {
+      this.cleanupDocumentPreview(docId);
     });
   }
 }

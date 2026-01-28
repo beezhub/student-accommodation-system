@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { DatePipe } from '@angular/common';
@@ -34,7 +34,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
   selector: 'app-documents',
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.css'],
-  standalone: true,
   imports: [
     CommonModule,
     RouterModule,
@@ -58,8 +57,16 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     ModernStatusBadgeComponent,
     ErrorDisplayComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DocumentsComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly fb = inject(FormBuilder);
+  private readonly documentService = inject(DocumentService);
+  private readonly documentTypeService = inject(DocumentTypeService);
+  private readonly errorService = inject(ErrorHandlingService);
+  private readonly applicationService = inject(ApplicationService);
+  private readonly router = inject(Router);
   currentUser: any;
   selectedDocument: any = null;
   isUploading = false;
@@ -105,22 +112,16 @@ export class DocumentsComponent implements OnInit {
   ];
 
   // Material table configuration
-  displayedColumns: string[] = ['name', 'type', 'uploadDate', 'status', 'size', 'actions'];
+  readonly displayedColumns: readonly string[] = ['name', 'type', 'uploadDate', 'status', 'size', 'actions'] as const;
   dataSource = new MatTableDataSource<any>(this.documents);
 
   // Application check state
   hasActiveApplication = false;
   isCheckingApplication = true;
 
-  constructor(
-    private authService: AuthService,
-    private fb: FormBuilder,
-    private documentService: DocumentService,
-    private documentTypeService: DocumentTypeService,
-    private errorService: ErrorHandlingService,
-    private applicationService: ApplicationService,
-    private router: Router
-  ) {
+  requiredDocumentTypes: DocumentType[] = [];
+
+  constructor() {
     this.uploadForm = this.fb.group({
       documentType: ['', Validators.required],
     });
@@ -367,6 +368,4 @@ export class DocumentsComponent implements OnInit {
       this.dataSource.data = this.documents;
     }
   }
-
-  requiredDocumentTypes: DocumentType[] = [];
 }

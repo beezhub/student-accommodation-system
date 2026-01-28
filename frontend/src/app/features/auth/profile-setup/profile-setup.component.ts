@@ -1,5 +1,4 @@
-import { Component, OnInit } from '@angular/core';
-
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -8,8 +7,6 @@ import { YearOfStudyService } from '../../../core/services/year-of-study.service
 import { StudentService } from '../../../core/services/student.service';
 import { Institution } from '../../../core/models/institution.model';
 import { YearOfStudy } from '../../../core/models/year-of-study.model';
-
-// Material imports
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -27,7 +24,6 @@ import { MatDividerModule } from '@angular/material/divider';
   selector: 'app-profile-setup',
   templateUrl: './profile-setup.component.html',
   styleUrls: ['./profile-setup.component.css'],
-  standalone: true,
   imports: [
     ReactiveFormsModule,
     MatCardModule,
@@ -43,30 +39,30 @@ import { MatDividerModule } from '@angular/material/divider';
     MatNativeDateModule,
     MatDividerModule,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileSetupComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly institutionService = inject(InstitutionService);
+  private readonly yearOfStudyService = inject(YearOfStudyService);
+  private readonly studentService = inject(StudentService);
+
   profileForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
   institutions: Institution[] = [];
   yearsOfStudy: YearOfStudy[] = [];
 
-  // Gender options for the select dropdown
-  genderOptions = [
+  readonly genderOptions = [
     { value: 'male', viewValue: 'Male' },
     { value: 'female', viewValue: 'Female' },
     { value: 'other', viewValue: 'Other' },
     { value: 'prefer-not-to-say', viewValue: 'Prefer not to say' },
-  ];
+  ] as const;
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: AuthService,
-    private institutionService: InstitutionService,
-    private yearOfStudyService: YearOfStudyService,
-    private studentService: StudentService
-  ) {
+  constructor() {
     this.profileForm = this.fb.group({
       studentNumber: ['', [Validators.required]],
       phoneNumber: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],

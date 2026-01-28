@@ -1,36 +1,60 @@
-<h2 mat-dialog-title>
-  <mat-icon>school</mat-icon>
-  {{ getTitle() }}
-</h2>
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="header-icon">
+      <mat-icon>{{ mode === 'create' ? 'add_circle' : 'edit' }}</mat-icon>
+    </div>
+    <h2>{{ getTitle() }}</h2>
+    <p>{{ mode === 'create' ? 'Add a new academic year level' : 'Update year of study details' }}</p>
+  </div>
 
-<mat-dialog-content>
-  <form [formGroup]="yearOfStudyForm" class="year-of-study-form">
-    <mat-form-field appearance="outline">
-      <mat-label>Year of Study</mat-label>
-      <input matInput formControlName="yearOfStudy" placeholder="e.g., 1st Year, 2nd Year, Final Year" required>
-      <mat-hint>Enter the year level (e.g., 1st Year, 2nd Year, 3rd Year, 4th Year)</mat-hint>
-      @if (yearOfStudyForm.get('yearOfStudy')?.hasError('required')) {
-        <mat-error>
-          Year of study is required
-        </mat-error>
-      }
-      @if (yearOfStudyForm.get('yearOfStudy')?.hasError('maxlength')) {
-        <mat-error>
-          Year of study cannot exceed 50 characters
-        </mat-error>
-      }
-    </mat-form-field>
-  </form>
-</mat-dialog-content>
+  <mat-dialog-content>
+    <form [formGroup]="yearOfStudyForm" class="year-of-study-form">
+      <div class="form-field-wrapper">
+        <label class="field-label">
+          <mat-icon>calendar_today</mat-icon>
+          Year of Study
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input matInput formControlName="yearOfStudy" placeholder="e.g., 1st Year, 2nd Year, Final Year">
+          @if (yearOfStudyForm.get('yearOfStudy')?.hasError('required') && yearOfStudyForm.get('yearOfStudy')?.touched) {
+            <mat-error>Year of study is required</mat-error>
+          }
+          @if (yearOfStudyForm.get('yearOfStudy')?.hasError('maxlength')) {
+            <mat-error>Cannot exceed 50 characters</mat-error>
+          }
+        </mat-form-field>
+        <div class="field-hint">
+          <mat-icon>info_outline</mat-icon>
+          <span>Enter the year level (e.g., 1st Year, 2nd Year, 3rd Year, Final Year)</span>
+        </div>
+      </div>
 
-<mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()" [disabled]="isLoading">Cancel</button>
-  <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isLoading">
-    @if (isLoading) {
-      <mat-spinner diameter="20"></mat-spinner>
-    }
-    @if (!isLoading) {
-      <span>{{ getSubmitButtonText() }}</span>
-    }
-  </button>
-</mat-dialog-actions>
+      <!-- Quick Options -->
+      <div class="quick-options">
+        <span class="quick-label">Quick Add:</span>
+        <div class="quick-buttons">
+          <button type="button" mat-stroked-button (click)="setYear('1st Year')" class="quick-btn">1st Year</button>
+          <button type="button" mat-stroked-button (click)="setYear('2nd Year')" class="quick-btn">2nd Year</button>
+          <button type="button" mat-stroked-button (click)="setYear('3rd Year')" class="quick-btn">3rd Year</button>
+          <button type="button" mat-stroked-button (click)="setYear('4th Year')" class="quick-btn">4th Year</button>
+          <button type="button" mat-stroked-button (click)="setYear('Final Year')" class="quick-btn">Final Year</button>
+        </div>
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button mat-stroked-button (click)="onCancel()" [disabled]="isLoading" class="cancel-btn">
+      Cancel
+    </button>
+    <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isLoading || yearOfStudyForm.invalid" class="submit-btn">
+      @if (isLoading) {
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>{{ mode === 'create' ? 'Creating...' : 'Updating...' }}</span>
+      } @else {
+        <mat-icon>{{ mode === 'create' ? 'add' : 'save' }}</mat-icon>
+        <span>{{ getSubmitButtonText() }}</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</div>

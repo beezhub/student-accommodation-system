@@ -1,14 +1,12 @@
-import { Component, OnInit } from '@angular/core';
-
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ApplicationService } from '../../../core/services/application.service';
 import { StudentService } from '../../../core/services/student.service';
 import { InstitutionService } from '../../../core/services/institution.service';
+import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
-
-// Material imports
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -19,15 +17,12 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
-
-// Shared components
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 
 @Component({
   selector: 'app-application-submission',
   templateUrl: './application-submission.component.html',
   styleUrls: ['./application-submission.component.css'],
-  standalone: true,
   imports: [
     ReactiveFormsModule,
     MatCardModule,
@@ -42,49 +37,49 @@ import { ErrorDisplayComponent } from '../../../shared/error-display/error-displ
     MatIconModule,
     ErrorDisplayComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ApplicationSubmissionComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly applicationService = inject(ApplicationService);
+  private readonly studentService = inject(StudentService);
+  private readonly institutionService = inject(InstitutionService);
+  private readonly buildingService = inject(BuildingService);
+  private readonly errorService = inject(ErrorHandlingService);
+
   applicationForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
   studentId: number | null = null;
-  institutionName: string = '';
-
-  // Error state
+  institutionName = '';
+  buildings: BuildingResponse[] = [];
   submitError: ParsedError | null = null;
   loadError: ParsedError | null = null;
   isRetrying = false;
 
-  // Accommodation types for the dropdown
-  accommodationTypes = [
+  readonly accommodationTypes = [
     { value: 'SINGLE', viewValue: 'Single Room' },
     { value: 'DOUBLE', viewValue: 'Double Room' },
     { value: 'STUDIO', viewValue: 'Studio Apartment' },
     { value: 'ENSUITE', viewValue: 'En-suite Room' },
-  ];
+  ] as const;
 
-  // Room type options for the dropdown
-  roomTypeOptions = [
+  readonly roomTypeOptions = [
     { value: 'STANDARD', viewValue: 'Standard Room' },
     { value: 'PREMIUM', viewValue: 'Premium Room' },
     { value: 'ACCESSIBLE', viewValue: 'Accessible Room' },
     { value: 'QUIET_FLOOR', viewValue: 'Quiet Study Floor' },
-  ];
+  ] as const;
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: AuthService,
-    private applicationService: ApplicationService,
-    private studentService: StudentService,
-    private institutionService: InstitutionService,
-    private errorService: ErrorHandlingService
-  ) {
+  constructor() {
     this.applicationForm = this.fb.group({
       preferredAccommodationType: ['', Validators.required],
       preferredMoveInDate: ['', Validators.required],
       preferredDurationMonths: ['', [Validators.required, Validators.min(1), Validators.max(12)]],
       preferredRoomType: ['', Validators.required],
+      preferredBuildingId: [''],
       specialRequirements: [''],
       courseName: ['', Validators.required],
     });
@@ -98,6 +93,18 @@ export class ApplicationSubmissionComponent implements OnInit {
     }
 
     this.loadStudentProfile();
+    this.loadBuildings();
+  }
+
+  loadBuildings(): void {
+    this.buildingService.getAllBuildingsNoPagination().subscribe({
+      next: (buildings) => {
+        this.buildings = buildings;
+      },
+      error: (error) => {
+        console.error('Failed to load buildings', error);
+      },
+    });
   }
 
   loadStudentProfile(): void {
@@ -181,6 +188,7 @@ export class ApplicationSubmissionComponent implements OnInit {
         preferredMoveInDate: formattedDate,
         preferredDurationMonths: parsedDuration,
         preferredRoomType: formValue.preferredRoomType,
+        preferredBuildingId: formValue.preferredBuildingId || null,
         specialRequirements: formValue.specialRequirements || null,
         institutionName: this.institutionName || 'Not specified',
         courseName: formValue.courseName,

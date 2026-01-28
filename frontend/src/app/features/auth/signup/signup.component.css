@@ -1,7 +1,9 @@
+/* Modern Signup Page Styling */
 .signup-container {
-  max-width: 900px;
-  margin: 2rem auto;
-  padding: 1rem;
+  max-width: 680px;
+  margin: 3rem auto;
+  padding: 2rem 1.5rem;
+  min-height: calc(100vh - 6rem);
 }
 
 /* Progress Indicator Styles */
@@ -9,11 +11,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 3rem;
+  padding: 1.5rem 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08), 0 2px 10px rgba(8, 145, 178, 0.04);
+  border: 1px solid rgba(241, 245, 249, 0.8);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 .step {
@@ -21,105 +26,126 @@
   flex-direction: column;
   align-items: center;
   position: relative;
+  z-index: 1;
 }
 
 .step-number {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: #e0e0e0;
-  color: #757575;
+  background: #f1f5f9;
+  color: #94a3b8;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  font-weight: 700;
+  font-size: 1.125rem;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 2px solid #e2e8f0;
 }
 
 .step-label {
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   font-size: 0.875rem;
-  color: #757575;
+  color: #94a3b8;
   white-space: nowrap;
   font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .step.completed .step-number {
-  background: #4caf50;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
+  border-color: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .step.completed .step-label {
-  color: #4caf50;
-}
-
-.step.active .step-number {
-  background: #2196f3;
-  color: white;
-  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.2);
-}
-
-.step.active .step-label {
-  color: #2196f3;
+  color: #10b981;
   font-weight: 600;
 }
 
+.step.active .step-number {
+  background: linear-gradient(135deg, #0F172A 0%, #0891B2 100%);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.15), 0 4px 12px rgba(15, 23, 42, 0.25);
+  border-color: transparent;
+  transform: scale(1.1);
+}
+
+.step.active .step-label {
+  color: #0F172A;
+  font-weight: 700;
+}
+
 .step-line {
-  width: 80px;
-  height: 2px;
-  background: #e0e0e0;
+  width: 64px;
+  height: 3px;
+  background: #e2e8f0;
   margin: 0 1rem;
   position: relative;
-  top: -20px;
+  top: -24px;
+  border-radius: 2px;
+  transition: all 0.3s ease;
 }
 
 /* Signup Card Styles */
 .signup-card {
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12), 0 4px 16px rgba(8, 145, 178, 0.06) !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(241, 245, 249, 0.8);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.98) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
 }
 
 .signup-card mat-card-header {
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2.5rem 2rem 2rem;
+  background: linear-gradient(135deg, #0F172A 0%, #0891B2 100%);
   color: white;
+  border: none;
 }
 
 .signup-card mat-card-title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
   color: white;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .signup-card mat-card-title mat-icon {
-  font-size: 2rem;
-  width: 2rem;
-  height: 2rem;
+  font-size: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
 .signup-card mat-card-subtitle {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 1.0625rem;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 .signup-card mat-card-content {
-  padding: 2rem;
+  padding: 2.5rem;
 }
 
 /* Form Styles */
 form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .name-row {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .name-field {
@@ -130,29 +156,79 @@ form {
   width: 100%;
 }
 
+/* Material Form Field Overrides */
+::ng-deep .signup-card .mat-mdc-form-field {
+  width: 100%;
+}
+
+::ng-deep .signup-card .mat-mdc-text-field-wrapper {
+  border-radius: 12px !important;
+  background-color: #f8fafc;
+}
+
+::ng-deep .signup-card .mdc-notched-outline {
+  border-radius: 12px !important;
+  border-width: 1.5px !important;
+  border-color: #e2e8f0 !important;
+}
+
+::ng-deep .signup-card .mat-mdc-form-field:hover .mdc-notched-outline {
+  border-color: #cbd5e1 !important;
+}
+
+::ng-deep .signup-card .mat-mdc-form-field.mat-focused .mdc-notched-outline {
+  border-color: #0891B2 !important;
+  border-width: 2px !important;
+}
+
+::ng-deep .signup-card .mat-mdc-form-field-icon-suffix {
+  color: #64748b;
+}
+
+::ng-deep .signup-card .mat-mdc-form-field.mat-focused .mat-mdc-form-field-icon-suffix {
+  color: #0891B2;
+}
+
 /* Terms Section */
 .terms-section {
-  margin: 1rem 0;
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .terms-checkbox {
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
+  color: #475569;
+}
+
+::ng-deep .terms-checkbox .mdc-checkbox {
+  border-radius: 6px !important;
+}
+
+::ng-deep .terms-checkbox .mdc-checkbox__background {
+  border-radius: 6px !important;
+  border-width: 2px !important;
 }
 
 .terms-link {
-  color: #667eea;
+  color: #0891B2;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+  transition: color 0.2s ease;
 }
 
 .terms-link:hover {
+  color: #0F172A;
   text-decoration: underline;
 }
 
 .terms-error {
-  color: #f44336;
-  font-size: 0.75rem;
-  margin-top: 0.5rem;
+  color: #ef4444;
+  font-size: 0.8125rem;
+  margin-top: 0.75rem;
+  font-weight: 500;
 }
 
 /* Action Buttons */
@@ -160,9 +236,11 @@ form {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
-  gap: 1rem;
-  margin-top: 1rem;
+  padding: 2rem 2.5rem;
+  gap: 1.5rem;
+  margin: 0 !important;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
 }
 
 .login-link-section {
@@ -171,26 +249,48 @@ form {
 
 .login-text {
   margin: 0;
-  color: #757575;
-  font-size: 0.9rem;
+  color: #64748b;
+  font-size: 0.9375rem;
+  font-weight: 500;
 }
 
 .login-link {
-  color: #667eea;
-  font-weight: 500;
-  margin-left: 0.5rem;
+  color: #0891B2 !important;
+  font-weight: 600 !important;
+  margin-left: 0.25rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.login-link:hover {
+  color: #0F172A !important;
+  text-decoration: underline;
 }
 
 .submit-button {
   min-width: 200px;
-  height: 48px;
-  font-size: 1rem;
-  font-weight: 500;
+  height: 52px !important;
+  font-size: 1.0625rem !important;
+  font-weight: 600 !important;
+  border-radius: 26px !important;
+  letter-spacing: -0.01em;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2) !important;
+}
+
+.submit-button:not(:disabled):hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.3), 0 4px 12px rgba(8, 145, 178, 0.2) !important;
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .button-spinner {
   display: inline-block;
-  margin-right: 0.5rem;
+  margin-right: 0.75rem;
 }
 
 .submit-button mat-icon {
@@ -200,42 +300,85 @@ form {
 /* Help Text */
 .help-text {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
-  padding: 1rem;
-  background: #e3f2fd;
-  border-radius: 8px;
-  color: #1976d2;
-  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 16px;
+  color: #0c4a6e;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.08);
 }
 
 .help-text mat-icon {
-  color: #1976d2;
+  color: #0891B2;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
 }
 
 .help-text p {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #0c4a6e;
+  font-weight: 500;
+}
+
+/* Divider Spacing */
+mat-divider {
+  margin: 2rem 0 !important;
+  border-top-color: #e2e8f0 !important;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .signup-container {
-    padding: 0.5rem;
+    padding: 1rem;
+    margin: 1.5rem auto;
   }
 
   .progress-indicator {
-    padding: 0.5rem;
+    padding: 1rem;
     overflow-x: auto;
+    margin-bottom: 2rem;
+  }
+
+  .step-number {
+    width: 44px;
+    height: 44px;
+    font-size: 1rem;
   }
 
   .step-line {
-    width: 40px;
-    margin: 0 0.5rem;
+    width: 48px;
+    margin: 0 0.75rem;
+    top: -22px;
   }
 
   .step-label {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .signup-card mat-card-header {
+    padding: 2rem 1.5rem 1.5rem;
+  }
+
+  .signup-card mat-card-title {
+    font-size: 1.625rem;
+  }
+
+  .signup-card mat-card-title mat-icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .signup-card mat-card-subtitle {
+    font-size: 0.9375rem;
+  }
+
+  .signup-card mat-card-content {
+    padding: 1.5rem;
   }
 
   .name-row {
@@ -249,7 +392,8 @@ form {
 
   .action-buttons {
     flex-direction: column-reverse;
-    gap: 1rem;
+    gap: 1.25rem;
+    padding: 1.5rem;
   }
 
   .login-link-section {
@@ -259,10 +403,60 @@ form {
 
   .submit-button {
     width: 100%;
+    min-width: unset;
+  }
+
+  .help-text {
+    padding: 1.25rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .signup-container {
+    padding: 0.75rem;
+    margin: 1rem auto;
+  }
+
+  .progress-indicator {
+    padding: 0.75rem;
+  }
+
+  .step-number {
+    width: 40px;
+    height: 40px;
+    font-size: 0.9375rem;
+  }
+
+  .step-line {
+    width: 32px;
+    margin: 0 0.5rem;
+  }
+
+  .step-label {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .signup-card mat-card-header {
+    padding: 1.5rem 1.25rem 1.25rem;
+  }
+
+  .signup-card mat-card-title {
+    font-size: 1.5rem;
   }
 
   .signup-card mat-card-content {
-    padding: 1rem;
+    padding: 1.25rem;
+  }
+
+  .action-buttons {
+    padding: 1.25rem;
+  }
+
+  .submit-button {
+    height: 48px !important;
+    font-size: 1rem !important;
   }
 }
 

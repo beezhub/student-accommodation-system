@@ -28,11 +28,10 @@
                 [disabled]="isRetrying">
                 @if (isRetrying) {
                   <mat-icon class="spinning">sync</mat-icon>
-                  Retrying...
                 } @else {
                   <mat-icon>refresh</mat-icon>
-                  {{ retryLabel }}
                 }
+                {{ isRetrying ? 'Retrying...' : retryLabel }}
               </button>
             }
 
@@ -79,11 +78,13 @@
           color="primary"
           (click)="onRetry()"
           [disabled]="isRetrying">
-          @if (isRetrying) {
-            <mat-icon class="spinning">sync</mat-icon>
-          } @else {
-            <mat-icon>refresh</mat-icon>
-          }
+          <ng-container>
+            @if (isRetrying) {
+              <mat-icon class="spinning">sync</mat-icon>
+            } @else {
+              <mat-icon>refresh</mat-icon>
+            }
+          </ng-container>
           {{ isRetrying ? 'Retrying...' : retryLabel }}
         </button>
       }
@@ -113,11 +114,13 @@
           (click)="onRetry()"
           [disabled]="isRetrying"
           class="banner-retry-btn">
-          @if (isRetrying) {
-            <mat-icon class="spinning">sync</mat-icon>
-          } @else {
-            <mat-icon>refresh</mat-icon>
-          }
+          <ng-container>
+            @if (isRetrying) {
+              <mat-icon class="spinning">sync</mat-icon>
+            } @else {
+              <mat-icon>refresh</mat-icon>
+            }
+          </ng-container>
           {{ isRetrying ? 'Retrying...' : retryLabel }}
         </button>
       }

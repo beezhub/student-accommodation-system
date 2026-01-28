@@ -6,19 +6,16 @@ import { Application } from '../models/application.model';
 
 export interface StudentProfile {
   id: number;
+  studentNumber: string;
   firstName: string;
   lastName: string;
+  fullName?: string;
   email: string;
-  phoneNumber: string;
-  studentNumber: string;
-  dateOfBirth: string;
-  gender: string;
-  specialRequirements: string;
-  institutionId: number;
+  phoneNumber?: string;
+  gender?: string;
+  specialRequirements?: string;
   institutionName?: string;
-  yearOfStudyId: number;
-  yearOfStudyName?: string;
-  registrationDate: string;
+  yearOfStudy?: string;
 }
 
 export interface ApplicationDocument {
@@ -41,19 +38,83 @@ export interface DocumentTypeChecklist {
   documentId?: number;
 }
 
+// Matches backend ApplicationFullDetailsResponse
 export interface ApplicationFullDetails {
-  application: Application;
-  student: StudentProfile;
-  documents: ApplicationDocument[];
-  documentChecklist: DocumentTypeChecklist[];
-  requiredDocumentsApproved: number;
-  requiredDocumentsTotal: number;
-  allRequiredApproved: boolean;
+  // Application data (flat)
+  id: number;
+  applicationCode: string;
+  status: string;
+  applicationDate: string;
+  createdAt: string;
+  updatedAt: string;
+  remarks?: string;
+  // Preferences
+  preferredAccommodationType?: string;
+  preferredMoveInDate?: string;
+  preferredDurationMonths?: number;
+  preferredRoomType?: string;
+  specialRequirements?: string;
+  institutionName?: string;
+  courseName?: string;
+  preferredBuildingId?: number;
+  preferredBuildingName?: string;
+  allocationMethod?: string;
+  // Nested objects
+  studentProfile: StudentProfile;
+  documents: DocumentWithComments[];
+  requiredDocumentsChecklist: RequiredDocumentsChecklist;
+  allocationEligibility: AllocationEligibility;
+}
+
+export interface DocumentWithComments {
+  id: number;
+  fileName: string;
+  type: string;
+  status: string;
+  uploadedAt: string;
+  documentTypeId: number;
+  documentTypeName: string;
+  comments: DocumentComment[];
+}
+
+export interface DocumentComment {
+  id: number;
+  adminName: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface RequiredDocumentsChecklist {
+  applicationId: number;
+  totalRequired: number;
+  approved: number;
+  pending: number;
+  rejected: number;
+  notUploaded: number;
+  documents: DocumentChecklistItem[];
+  allApproved: boolean;
+}
+
+export interface DocumentChecklistItem {
+  documentTypeId: number;
+  type: string;
+  status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'NOT_UPLOADED';
+  uploadedAt?: string;
+  documentId?: number;
+  documentName?: string;
+  isRequired: boolean;
+}
+
+export interface AllocationEligibility {
+  eligible: boolean;
+  applicationApproved: boolean;
+  allDocumentsApproved: boolean;
+  reason?: string;
 }
 
 export interface ReviewProgressRequest {
   applicationId: number;
-  documentUpdates: { documentId: number; status: string }[];
+  documentUpdates: { documentId: number; newStatus: string }[];
 }
 
 @Injectable({
@@ -124,7 +185,7 @@ export class ApplicationService {
    * @returns Observable<{ success: boolean }>
    */
   saveReviewProgress(request: ReviewProgressRequest): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/review-progress`, request);
+    return this.http.post<{ success: boolean }>(`${this.apiUrl}/${request.applicationId}/save-review-progress`, request);
   }
 
   /**
@@ -133,7 +194,7 @@ export class ApplicationService {
    * @returns Observable<Application> Updated application
    */
   moveToAllocationPhase(applicationId: number): Observable<Application> {
-    return this.http.patch<Application>(`${this.apiUrl}/${applicationId}/move-to-allocation`, {});
+    return this.http.post<Application>(`${this.apiUrl}/${applicationId}/move-to-allocation`, {});
   }
 
   /**

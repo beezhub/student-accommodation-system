@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AllocationRule } from '../../model/allocation-rule.model';
+import { AllocationRule } from '../models/allocation.models';
 
 @Injectable({
   providedIn: 'root',

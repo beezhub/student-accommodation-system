@@ -402,6 +402,7 @@ public class DocumentService {
     public Page<DocumentResponse> searchDocuments(
             String documentName,
             Long studentId,
+            String studentName,
             Long documentTypeId,
             String status,
             String applicationStatus,
@@ -412,7 +413,7 @@ public class DocumentService {
     ) {
         var user = getUserByEmail(username);
         Specification<Document> spec = DocumentSpecification.filterBy(
-                documentName, studentId, documentTypeId, status, applicationStatus, createdAfter, createdBefore
+                documentName, studentId, studentName, documentTypeId, status, applicationStatus, createdAfter, createdBefore
         );
 
         // If not admin, restrict to user's own documents
@@ -436,7 +437,7 @@ public class DocumentService {
         var currentUser = authService.getCurrentUser();
         Specification<Document> spec = DocumentSpecification.belongsToUser(currentUser.getId())
                 .and(DocumentSpecification.filterBy(
-                        documentName, null, documentTypeId, status, applicationStatus, createdAfter, createdBefore
+                        documentName, null, null, documentTypeId, status, applicationStatus, createdAfter, createdBefore
                 ));
 
         Page<Document> documentsPage = documentRepository.findAll(spec, pageable);

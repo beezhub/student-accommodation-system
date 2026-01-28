@@ -6,9 +6,12 @@ import {
   ApplicationResponse,
   PageResponse,
 } from '../../../core/services/admin.service';
+import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
+import { Observable, startWith, map, debounceTime, distinctUntilChanged } from 'rxjs';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatMenuModule } from '@angular/material/menu';
@@ -24,6 +28,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { SelectionModel } from '@angular/cdk/collections';
 
 // Modern UI Components
@@ -35,6 +41,14 @@ import {
   ApplicationDetailDialogData,
   ApplicationDetailDialogResult,
 } from './application-detail-dialog/application-detail-dialog.component';
+import {
+  AllocationChoiceDialogComponent,
+  AllocationChoiceDialogData,
+} from './allocation-choice-dialog/allocation-choice-dialog.component';
+import {
+  PreferencesDialogComponent,
+  PreferencesDialogData,
+} from './preferences-dialog/preferences-dialog.component';
 
 @Component({
   selector: 'app-application-review',
@@ -45,6 +59,7 @@ import {
     CommonModule,
     ReactiveFormsModule,
     MatCardModule,
+    MatProgressBarModule,
     MatTableModule,
     MatPaginatorModule,
     MatButtonModule,
@@ -52,6 +67,7 @@ import {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatChipsModule,
     MatCheckboxModule,
     MatMenuModule,
@@ -60,6 +76,8 @@ import {
     MatTooltipModule,
     MatDialogModule,
     MatDividerModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
     ModernStatusBadgeComponent,
     ErrorDisplayComponent,
   ],
@@ -67,12 +85,15 @@ import {
 export class ApplicationReviewComponent implements OnInit {
   applications: ApplicationResponse[] = [];
   displayedColumns: string[] = [
-    'select',
     'applicationCode',
     'studentName',
     'studentEmail',
-    'applicationDate',
+    'preferredBuilding',
+    'allocationScore',
+    'documentStatus',
+    'allocationStatus',
     'status',
+    'applicationDate',
     'actions',
   ];
 
@@ -82,9 +103,25 @@ export class ApplicationReviewComponent implements OnInit {
   currentPage = 0;
 
   filterForm: FormGroup;
-  selection = new SelectionModel<ApplicationResponse>(true, []);
+  
+  // Dropdown options
+  statuses = [
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'APPROVED', label: 'Approved' },
+    { value: 'REJECTED', label: 'Rejected' },
+    { value: 'AWAITING_ALLOCATION', label: 'Awaiting Allocation' },
+    { value: 'ALLOCATED', label: 'Allocated' }
+  ];
+  
+  allocationStatuses = [
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'ALLOCATED', label: 'Allocated' },
+    { value: 'REJECTED', label: 'Rejected' }
+  ];
 
-  statuses = ['PENDING', 'APPROVED', 'REJECTED'];
+  // Buildings for autocomplete
+  buildings: BuildingResponse[] = [];
+  filteredBuildings$!: Observable<BuildingResponse[]>;
 
   // Error state
   loadError: ParsedError | null = null;
@@ -92,6 +129,7 @@ export class ApplicationReviewComponent implements OnInit {
 
   constructor(
     private adminService: AdminService,
+    private buildingService: BuildingService,
     private fb: FormBuilder,
     private snackBar: MatSnackBar,
     private errorService: ErrorHandlingService,
@@ -101,13 +139,56 @@ export class ApplicationReviewComponent implements OnInit {
       applicationCode: [''],
       studentName: [''],
       status: [''],
+      allocationStatus: [''],
+      preferredBuilding: [''],
       startDate: [''],
       endDate: [''],
     });
   }
 
   ngOnInit(): void {
+    this.loadBuildings();
+    this.setupBuildingAutocomplete();
     this.loadApplications();
+  }
+
+  loadBuildings(): void {
+    this.buildingService.getAllBuildingsNoPagination().subscribe({
+      next: (buildings) => {
+        this.buildings = buildings;
+      },
+      error: (error) => {
+        console.error('Failed to load buildings:', error);
+      }
+    });
+  }
+
+  setupBuildingAutocomplete(): void {
+    this.filteredBuildings$ = this.filterForm.get('preferredBuilding')!.valueChanges.pipe(
+      startWith(''),
+      debounceTime(200),
+      distinctUntilChanged(),
+      map(value => this.filterBuildings(value || ''))
+    );
+  }
+
+  filterBuildings(value: string): BuildingResponse[] {
+    const filterValue = value.toLowerCase();
+    return this.buildings.filter(building => 
+      building.name.toLowerCase().includes(filterValue)
+    );
+  }
+
+  displayBuilding(building: BuildingResponse | string): string {
+    if (typeof building === 'string') return building;
+    return building ? building.name : '';
+  }
+
+  onBuildingSelected(event: any): void {
+    const building = event.option.value;
+    if (typeof building === 'object') {
+      this.filterForm.get('preferredBuilding')!.setValue(building.name);
+    }
   }
 
   loadApplications(): void {
@@ -115,8 +196,17 @@ export class ApplicationReviewComponent implements OnInit {
     this.loadError = null;
     this.isRetrying = true;
 
+    const formValue = this.filterForm.value;
     const filters = {
-      ...this.filterForm.value,
+      applicationCode: formValue.applicationCode,
+      studentName: formValue.studentName,
+      status: formValue.status,
+      allocationStatus: formValue.allocationStatus || undefined,
+      preferredBuilding: formValue.preferredBuilding && typeof formValue.preferredBuilding === 'object' 
+        ? formValue.preferredBuilding.name 
+        : formValue.preferredBuilding || undefined,
+      startDate: formValue.startDate ? this.formatDate(formValue.startDate) : undefined,
+      endDate: formValue.endDate ? this.formatDate(formValue.endDate) : undefined,
       page: this.currentPage,
       size: this.pageSize,
     };
@@ -127,7 +217,6 @@ export class ApplicationReviewComponent implements OnInit {
         this.totalElements = response.totalElements;
         this.isLoading = false;
         this.isRetrying = false;
-        this.selection.clear();
       },
       error: (error) => {
         console.error('Failed to load applications:', error);
@@ -177,87 +266,18 @@ export class ApplicationReviewComponent implements OnInit {
     });
   }
 
-  bulkApprove(): void {
-    if (this.selection.isEmpty()) {
-      this.errorService.showWarning('Please select applications to approve');
-      return;
-    }
-
-    const selectedIds = this.selection.selected.map((app) => app.id);
-    let completed = 0;
-    let failed = 0;
-
-    selectedIds.forEach((id) => {
-      this.adminService.updateApplicationStatus(id, 'APPROVED').subscribe({
-        next: () => {
-          completed++;
-          if (completed + failed === selectedIds.length) {
-            this.finalizeBulkOperation(completed, failed, 'approved');
-          }
-        },
-        error: () => {
-          failed++;
-          if (completed + failed === selectedIds.length) {
-            this.finalizeBulkOperation(completed, failed, 'approved');
-          }
-        },
-      });
-    });
-  }
-
-  bulkReject(): void {
-    if (this.selection.isEmpty()) {
-      this.errorService.showWarning('Please select applications to reject');
-      return;
-    }
-
-    const selectedIds = this.selection.selected.map((app) => app.id);
-    let completed = 0;
-    let failed = 0;
-
-    selectedIds.forEach((id) => {
-      this.adminService.updateApplicationStatus(id, 'REJECTED').subscribe({
-        next: () => {
-          completed++;
-          if (completed + failed === selectedIds.length) {
-            this.finalizeBulkOperation(completed, failed, 'rejected');
-          }
-        },
-        error: () => {
-          failed++;
-          if (completed + failed === selectedIds.length) {
-            this.finalizeBulkOperation(completed, failed, 'rejected');
-          }
-        },
-      });
-    });
-  }
-
-  private finalizeBulkOperation(completed: number, failed: number, action: string): void {
-    if (failed === 0) {
-      this.errorService.showSuccess(`Successfully ${action} ${completed} application(s)`);
-    } else {
-      this.errorService.showWarning(`${completed} application(s) ${action}, ${failed} failed`);
-    }
-    this.loadApplications();
-  }
-
-  isAllSelected(): boolean {
-    return (
-      this.selection.selected.length === this.applications.length && this.applications.length > 0
-    );
-  }
-
-  toggleAllRows(): void {
-    if (this.isAllSelected()) {
-      this.selection.clear();
-    } else {
-      this.applications.forEach((row) => this.selection.select(row));
-    }
-  }
-
   getStatusClass(status: string): string {
     return status.toLowerCase();
+  }
+
+  private formatDate(date: Date | string): string {
+    if (!date) return '';
+    if (typeof date === 'string') return date;
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   getStatusIcon(status: string): string {
@@ -275,8 +295,8 @@ export class ApplicationReviewComponent implements OnInit {
 
   openDetailDialog(application: ApplicationResponse): void {
     const dialogRef = this.dialog.open(ApplicationDetailDialogComponent, {
-      width: '90vw',
-      maxWidth: '1000px',
+      width: '850px',
+      maxWidth: '96vw',
       maxHeight: '90vh',
       data: { applicationId: application.id } as ApplicationDetailDialogData,
       disableClose: false,
@@ -287,5 +307,37 @@ export class ApplicationReviewComponent implements OnInit {
         this.loadApplications();
       }
     });
+  }
+
+  openAllocationDialog(application: ApplicationResponse): void {
+    const dialogRef = this.dialog.open(AllocationChoiceDialogComponent, {
+      width: '650px',
+      maxWidth: '95vw',
+      panelClass: 'allocation-choice-dialog',
+      data: {
+        applicationId: application.id,
+        studentId: application.studentId
+      } as AllocationChoiceDialogData,
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result && result.action === 'allocated') {
+        this.loadApplications();
+      }
+    });
+  }
+
+  openPreferencesDialog(application: ApplicationResponse): void {
+    this.dialog.open(PreferencesDialogComponent, {
+      width: '500px',
+      data: { application } as PreferencesDialogData,
+    });
+  }
+
+  getScoreClass(score: number | undefined): string {
+    if (score === undefined || score === null) return '';
+    if (score >= 80) return 'score-high';
+    if (score >= 50) return 'score-medium';
+    return 'score-low';
   }
 }

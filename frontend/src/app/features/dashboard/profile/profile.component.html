@@ -54,7 +54,7 @@
           <div class="grid">
             <mat-form-field appearance="fill">
               <mat-label>First Name</mat-label>
-              <input matInput type="text" formControlName="firstName" [readonly]="!isEditing">
+              <input matInput type="text" formControlName="firstName" [readonly]="!isEditing" placeholder="Enter first name">
               @if (profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched) {
                 <mat-error>First name is required</mat-error>
               }
@@ -62,7 +62,7 @@
 
             <mat-form-field appearance="fill">
               <mat-label>Last Name</mat-label>
-              <input matInput type="text" formControlName="lastName" [readonly]="!isEditing">
+              <input matInput type="text" formControlName="lastName" [readonly]="!isEditing" placeholder="Enter last name">
               @if (profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched) {
                 <mat-error>Last name is required</mat-error>
               }
@@ -70,7 +70,7 @@
 
             <mat-form-field appearance="fill">
               <mat-label>Email</mat-label>
-              <input matInput type="email" formControlName="email" [readonly]="!isEditing">
+              <input matInput type="email" formControlName="email" [readonly]="!isEditing" placeholder="Enter email address">
               @if (profileForm.get('email')?.invalid && profileForm.get('email')?.touched) {
                 <mat-error>Please enter a valid email</mat-error>
               }
@@ -78,7 +78,7 @@
 
             <mat-form-field appearance="fill">
               <mat-label>Phone Number</mat-label>
-              <input matInput type="text" formControlName="phoneNumber" [readonly]="!isEditing">
+              <input matInput type="text" formControlName="phoneNumber" [readonly]="!isEditing" placeholder="Enter phone number">
               @if (profileForm.get('phoneNumber')?.invalid && profileForm.get('phoneNumber')?.touched) {
                 <mat-error>Phone number must be 10 digits</mat-error>
               }
@@ -86,7 +86,7 @@
 
             <mat-form-field appearance="fill">
               <mat-label>Student Number</mat-label>
-              <input matInput type="text" formControlName="studentNumber" [readonly]="!isEditing">
+              <input matInput type="text" formControlName="studentNumber" [readonly]="!isEditing" placeholder="Enter student number">
               @if (profileForm.get('studentNumber')?.invalid && profileForm.get('studentNumber')?.touched) {
                 <mat-error>Student number is required</mat-error>
               }
@@ -108,7 +108,7 @@
             } @else {
               <mat-form-field appearance="fill">
                 <mat-label>Institution</mat-label>
-                <input matInput [value]="getInstitutionName(profileForm.get('institutionId')?.value)" readonly>
+                <input matInput [value]="getInstitutionName(profileForm.get('institutionId')?.value)" readonly placeholder="Institution name">
               </mat-form-field>
             }
 
@@ -128,14 +128,14 @@
             } @else {
               <mat-form-field appearance="fill">
                 <mat-label>Year of Study</mat-label>
-                <input matInput [value]="getYearOfStudyName(profileForm.get('yearOfStudyId')?.value)" readonly>
+                <input matInput [value]="getYearOfStudyName(profileForm.get('yearOfStudyId')?.value)" readonly placeholder="Year of study">
               </mat-form-field>
             }
 
             @if (isEditing) {
               <mat-form-field appearance="fill">
                 <mat-label>Date of Birth</mat-label>
-                <input matInput [matDatepicker]="picker" formControlName="dateOfBirth">
+                <input matInput [matDatepicker]="picker" formControlName="dateOfBirth" placeholder="Select date of birth">
                 <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
                 <mat-datepicker #picker></mat-datepicker>
                 @if (profileForm.get('dateOfBirth')?.invalid && profileForm.get('dateOfBirth')?.touched) {
@@ -145,7 +145,7 @@
             } @else {
               <mat-form-field appearance="fill">
                 <mat-label>Date of Birth</mat-label>
-                <input matInput [value]="profileForm.get('dateOfBirth')?.value" readonly>
+                <input matInput [value]="profileForm.get('dateOfBirth')?.value" readonly placeholder="Date of birth">
               </mat-form-field>
             }
 
@@ -162,7 +162,7 @@
             } @else {
               <mat-form-field appearance="fill">
                 <mat-label>Gender</mat-label>
-                <input matInput [value]="profileForm.get('gender')?.value || 'Not specified'" readonly>
+                <input matInput [value]="profileForm.get('gender')?.value || 'Not specified'" readonly placeholder="Gender">
               </mat-form-field>
             }
 

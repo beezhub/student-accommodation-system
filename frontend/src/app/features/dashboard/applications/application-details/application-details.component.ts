@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -30,7 +30,6 @@ import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-bad
   selector: 'app-application-details',
   templateUrl: './application-details.component.html',
   styleUrls: ['./application-details.component.css'],
-  standalone: true,
   imports: [
     CommonModule,
     RouterModule,
@@ -51,8 +50,19 @@ import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-bad
     MatInputModule,
     ModernStatusBadgeComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ApplicationDetailsComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly applicationService = inject(ApplicationService);
+  private readonly adminService = inject(AdminService);
+  private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
+  private readonly fb = inject(FormBuilder);
+
   currentUser: any;
   applicationId: number = 0;
   application: ApplicationResponse | null = null;
@@ -67,24 +77,14 @@ export class ApplicationDetailsComponent implements OnInit {
   }> = [];
 
   // Table columns definition for the documents table
-  displayedColumns: string[] = ['name', 'status', 'date', 'actions'];
+  readonly displayedColumns: string[] = ['name', 'status', 'date', 'actions'];
 
   isSmallScreen = false;
   showRejectDialog = false;
   showApproveDialog = false;
   remarksForm: FormGroup;
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private authService: AuthService,
-    private applicationService: ApplicationService,
-    private adminService: AdminService,
-    private breakpointObserver: BreakpointObserver,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog,
-    private fb: FormBuilder
-  ) {
+  constructor() {
     this.remarksForm = this.fb.group({
       remarks: ['', Validators.required],
     });

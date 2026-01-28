@@ -68,49 +68,6 @@
   font-weight: 600;
 }
 
-/* Bulk Actions - Floating Style */
-.bulk-actions {
-  margin-bottom: 20px;
-}
-
-.bulk-actions mat-card {
-  border-radius: 16px !important;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border: 1px solid #93c5fd;
-}
-
-.bulk-actions-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.selection-count {
-  font-weight: 700;
-  font-size: 15px;
-  color: #1d4ed8;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.selection-count::before {
-  content: '✨';
-  font-size: 16px;
-}
-
-.bulk-buttons {
-  display: flex;
-  gap: 12px;
-}
-
-.bulk-buttons button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 12px;
-  font-weight: 600;
-}
 
 /* Loading */
 .loading-container {
@@ -129,7 +86,7 @@
 }
 
 /* Table Card */
-mat-card:not(.filter-card):not(.bulk-actions mat-card) {
+mat-card:not(.filter-card) {
   border-radius: 24px !important;
   border: 1px solid rgba(226, 232, 240, 0.6);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06) !important;
@@ -155,11 +112,12 @@ mat-card:not(.filter-card):not(.bulk-actions mat-card) {
 }
 
 .applications-table td {
-  padding: 20px 16px;
+  padding: 16px;
   font-size: 14px;
   color: #475569;
   border-bottom: 1px solid #f1f5f9;
   transition: all 0.2s ease;
+  vertical-align: middle;
 }
 
 .applications-table tr {
@@ -188,39 +146,71 @@ mat-card:not(.filter-card):not(.bulk-actions mat-card) {
   border: 1px solid #bae6fd;
 }
 
-/* Status Chips - Legacy support (now using modern-status-badge) */
-.status-chip {
+/* Student Info */
+.student-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.student-email {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Progress Cell */
+.progress-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.progress-cell small {
+  font-size: 11px;
+  color: #64748b;
+  text-align: right;
+}
+
+/* Allocation Score */
+.allocation-score {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 8px 16px;
+  justify-content: center;
+  min-width: 40px;
+  padding: 6px 12px;
   border-radius: 20px;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.2s ease;
 }
 
-.status-chip mat-icon {
-  font-size: 16px;
-  width: 16px;
-  height: 16px;
+.allocation-score.score-high {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #166534;
+  border: 1px solid #86efac;
 }
 
-.status-chip.pending {
+.allocation-score.score-medium {
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  color: #b45309;
-  border: 1.5px solid #fcd34d;
+  color: #92400e;
+  border: 1px solid #fcd34d;
 }
 
-.status-chip.approved {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  color: #047857;
-  border: 1.5px solid #6ee7b7;
-}
-
-.status-chip.rejected {
+.allocation-score.score-low {
   background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  color: #b91c1c;
-  border: 1.5px solid #f87171;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.no-score {
+  color: #94a3b8;
+  font-style: italic;
 }
 
 /* No Data - Friendly Empty State */
@@ -274,11 +264,6 @@ button[mat-icon-button]:hover {
   transform: scale(1.1);
 }
 
-/* Checkbox styling */
-mat-checkbox {
-  --mat-checkbox-selected-checkmark-color: white;
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
   .application-review-container {
@@ -293,21 +278,6 @@ mat-checkbox {
     grid-template-columns: 1fr;
   }
 
-  .bulk-actions-content {
-    flex-direction: column;
-    gap: 16px;
-    align-items: flex-start;
-  }
-
-  .bulk-buttons {
-    width: 100%;
-    flex-direction: column;
-  }
-
-  .bulk-buttons button {
-    width: 100%;
-  }
-
   .applications-table {
     font-size: 13px;
   }
@@ -316,4 +286,34 @@ mat-checkbox {
   .applications-table td {
     padding: 12px 8px;
   }
+
+  .applications-table td strong {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Autocomplete and Select Options */
+.autocomplete-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.autocomplete-option mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Form field icons */
+::ng-deep .mat-mdc-form-field-icon-suffix {
+  color: #94a3b8 !important;
 }

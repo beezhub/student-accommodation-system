@@ -171,7 +171,7 @@ public class DocumentController {
 
     @Operation(
             summary = "Search documents with pagination and filters (admin)",
-            description = "Admin endpoint to search all documents with filters: name, studentId, documentTypeId, status, date range"
+            description = "Admin endpoint to search all documents with filters: name, studentName, studentId, documentTypeId, status, date range"
     )
     @ApiResponse(responseCode = "200", description = "Search results returned")
     @PreAuthorize("hasRole('ADMIN')")
@@ -179,6 +179,7 @@ public class DocumentController {
     public ResponseEntity<PageResponse<DocumentResponse>> searchDocuments(
             @RequestParam(required = false) String documentName,
             @RequestParam(required = false) Long studentId,
+            @RequestParam(required = false) String studentName,
             @RequestParam(required = false) Long documentTypeId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String applicationStatus,
@@ -194,7 +195,7 @@ public class DocumentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<DocumentResponse> documentsPage = documentService.searchDocuments(
-                documentName, studentId, documentTypeId, status, applicationStatus, createdAfter, createdBefore,
+                documentName, studentId, studentName, documentTypeId, status, applicationStatus, createdAfter, createdBefore,
                 pageable, authentication.getName()
         );
 

@@ -60,7 +60,7 @@
           <div class="form-row">
             <mat-form-field appearance="outline" class="half-width">
               <mat-label>Preferred Move-in Date</mat-label>
-              <input matInput [matDatepicker]="picker" formControlName="preferredMoveInDate">
+              <input matInput [matDatepicker]="picker" formControlName="preferredMoveInDate" placeholder="Select move-in date">
               <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
               <mat-datepicker #picker></mat-datepicker>
               <mat-icon matPrefix>event</mat-icon>
@@ -92,6 +92,25 @@
                     Maximum duration is 12 months
                   </mat-error>
                 }
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Preferred Building (Optional)</mat-label>
+                <mat-select formControlName="preferredBuildingId">
+                  <mat-option [value]="null">No preference</mat-option>
+                  @for (building of buildings; track building.id) {
+                    <mat-option [value]="building.id">
+                      {{ building.name }}
+                      @if (building.address) {
+                        <span class="building-address"> - {{ building.address }}</span>
+                      }
+                    </mat-option>
+                  }
+                </mat-select>
+                <mat-icon matPrefix>apartment</mat-icon>
+                <mat-hint>Select your preferred residence building if you have one</mat-hint>
               </mat-form-field>
             </div>
           </div>

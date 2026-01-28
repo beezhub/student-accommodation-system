@@ -1,22 +1,18 @@
-import { Component } from '@angular/core';
-
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
-
-// Material imports
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatGridListModule } from '@angular/material/grid-list';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css'],
-  standalone: true,
-  imports: [RouterModule, MatCardModule, MatButtonModule, MatIconModule, MatGridListModule],
+  imports: [RouterModule, MatCardModule, MatButtonModule, MatIconModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {
-  features = [
+  readonly features = [
     {
       title: 'Easy Registration',
       description: 'Simple and quick registration process for students',
@@ -32,5 +28,5 @@ export class HomeComponent {
       description: 'Safe and secure platform for all transactions',
       icon: 'security',
     },
-  ];
+  ] as const;
 }

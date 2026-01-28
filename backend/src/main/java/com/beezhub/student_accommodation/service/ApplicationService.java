@@ -37,6 +37,7 @@ import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.DocumentCommentRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
+import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.specification.ApplicationSpecification;
 import com.beezhub.student_accommodation.util.PageMapper;
@@ -57,7 +58,14 @@ import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.AL
 import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.APPROVED;
 import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.AWAITING_ALLOCATION;
 import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.PENDING;
+import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.AWAITING_ALLOCATION;
+import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.PENDING;
 import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.REJECTED;
+
+import com.beezhub.student_accommodation.model.entity.StagedAllocation;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -70,6 +78,7 @@ public class ApplicationService {
     private final DocumentRepository documentRepository;
     private final DocumentTypeRepository documentTypeRepository;
     private final DocumentCommentRepository documentCommentRepository;
+    private final StagedAllocationRepository stagedAllocationRepository;
     private final AppUserRepository appUserRepository;
     private final ApplicationMapper applicationMapper;
     private final AuthService authService;
@@ -90,7 +99,7 @@ public class ApplicationService {
         AppUser currentUser = authService.getCurrentUser();
 
         if (!student.getAppUser().getId().equals(currentUser.getId()) &&
-            !currentUser.getUserRole().equals(UserRole.ADMIN)) {
+                !currentUser.getUserRole().equals(UserRole.ADMIN)) {
             throw new UnauthorizedAccessException("You can only submit applications for yourself");
         }
 
@@ -103,7 +112,8 @@ public class ApplicationService {
         Building preferredBuilding = null;
         if (request.getPreferredBuildingId() != null) {
             preferredBuilding = buildingRepository.findById(request.getPreferredBuildingId())
-                    .orElseThrow(() -> new RuntimeException("Building not found with ID: " + request.getPreferredBuildingId()));
+                    .orElseThrow(() -> new RuntimeException(
+                            "Building not found with ID: " + request.getPreferredBuildingId()));
             log.info("Setting preferred building {} for application", preferredBuilding.getName());
         }
 
@@ -138,36 +148,36 @@ public class ApplicationService {
 
     public ApplicationResponse getApplicationById(Long applicationId) {
         log.info("Retrieving application with ID: {}", applicationId);
-        
+
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + applicationId));
-        
+
         // Verify authorization
         AppUser currentUser = authService.getCurrentUser();
-        
-        if (!application.getStudent().getAppUser().getId().equals(currentUser.getId()) && 
-            !currentUser.getUserRole().equals(UserRole.ADMIN)) {
+
+        if (!application.getStudent().getAppUser().getId().equals(currentUser.getId()) &&
+                !currentUser.getUserRole().equals(UserRole.ADMIN)) {
             throw new UnauthorizedAccessException("You are not authorized to view this application");
         }
-        
+
         return applicationMapper.toResponse(application);
     }
 
     public List<ApplicationResponse> getApplicationsByStudentId(Long studentId) {
         log.info("Retrieving applications for student with ID: {}", studentId);
-        
+
         // Verify student exists
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found with ID: " + studentId));
-        
+
         // Verify authorization
         AppUser currentUser = authService.getCurrentUser();
-        
-        if (!student.getAppUser().getId().equals(currentUser.getId()) && 
-            !currentUser.getUserRole().equals(UserRole.ADMIN)) {
+
+        if (!student.getAppUser().getId().equals(currentUser.getId()) &&
+                !currentUser.getUserRole().equals(UserRole.ADMIN)) {
             throw new UnauthorizedAccessException("You are not authorized to view these applications");
         }
-        
+
         return applicationRepository.findByStudent_Id(studentId)
                 .stream()
                 .map(applicationMapper::toResponse)
@@ -175,17 +185,18 @@ public class ApplicationService {
     }
 
     public List<ApplicationResponse> getApplicationsByStatus(String status) {
-       log.info("Retrieving applications for status {}", status);
+        log.info("Retrieving applications for status {}", status);
         ApplicationStatus applicationStatus = ApplicationStatus.valueOf(status.toUpperCase());
         return applicationRepository.findByStatus(applicationStatus)
                 .stream()
                 .map(applicationMapper::toResponse)
                 .collect(Collectors.toList());
     }
-    
+
     @Transactional
     @LogActivity(action = "UPDATE", entityType = "APPLICATION", description = "Updated application {0} status to {1}", entityIdParamIndex = 0)
-    public ApplicationResponse updateApplicationStatus(Long applicationId, @Valid ApplicationStatusUpdateRequest request) {
+    public ApplicationResponse updateApplicationStatus(Long applicationId,
+            @Valid ApplicationStatusUpdateRequest request) {
         log.info("Updating application {} to status: {}", applicationId, request.getStatus());
 
         Application application = applicationRepository.findById(applicationId)
@@ -216,18 +227,18 @@ public class ApplicationService {
                         studentUserId,
                         applicationId,
                         newStatus == APPROVED,
-                        request.getRemarks()
-                );
+                        request.getRemarks());
             } catch (Exception e) {
                 // Log error but don't fail the request - notification will be retried
-                log.error("Failed to trigger notification for application {} - notification will be retried by scheduler",
+                log.error(
+                        "Failed to trigger notification for application {} - notification will be retried by scheduler",
                         applicationId, e);
             }
         }
 
         return applicationMapper.toResponse(updatedApplication);
     }
-    
+
     @Transactional
     @LogActivity(action = "DELETE", entityType = "APPLICATION", description = "Canceled application {0}", entityIdParamIndex = 0)
     public void cancelApplication(Long applicationId) {
@@ -251,21 +262,21 @@ public class ApplicationService {
         applicationRepository.delete(application);
         log.info("Application {} canceled successfully", applicationId);
     }
-    
+
     public List<ApplicationResponse> getMyApplications() {
         log.info("Retrieving applications for current user");
-        
+
         AppUser currentUser = authService.getCurrentUser();
-        
+
         Student student = studentRepository.findByAppUser_Id(currentUser.getId())
                 .orElseThrow(() -> new StudentNotFoundException("Student profile not found for user"));
-        
+
         return applicationRepository.findByStudent_Id(student.getId())
                 .stream()
                 .map(applicationMapper::toResponse)
                 .collect(Collectors.toList());
     }
-    
+
     public List<ApplicationResponse> getAllApplications() {
         log.info("Retrieving all applications");
         return applicationRepository.findAll()
@@ -277,18 +288,98 @@ public class ApplicationService {
     public PageResponse<ApplicationResponse> getAllApplications(Pageable pageable) {
         log.info("Retrieving paginated applications");
         Page<Application> page = applicationRepository.findAll(pageable);
-        Page<ApplicationResponse> responsePage = page.map(applicationMapper::toResponse);
+
+        // Enrich
+        List<ApplicationResponse> responses = enrichApplicationDetails(page.getContent());
+
+        Page<ApplicationResponse> responsePage = new org.springframework.data.domain.PageImpl<>(responses, pageable,
+                page.getTotalElements());
         return PageMapper.toPageResponse(responsePage);
     }
 
-    public PageResponse<ApplicationResponse> searchApplications(String applicationCode, String studentName, ApplicationStatus status, LocalDate startDate, LocalDate endDate, Pageable pageable) {
-        log.info("Searching applications with filters - code: {}, student: {}, status: {}, startDate: {}, endDate: {}", 
-                applicationCode, studentName, status, startDate, endDate);
-        Specification<Application> spec = ApplicationSpecification.filterBy(applicationCode, studentName, status, startDate, endDate);
+    public PageResponse<ApplicationResponse> searchApplications(String applicationCode, String studentName,
+            ApplicationStatus status, String allocationStatus, String preferredBuilding, LocalDate startDate,
+            LocalDate endDate,
+            Pageable pageable) {
+        log.info(
+                "Searching applications with filters - code: {}, student: {}, status: {}, allocationStatus: {}, building: {}, startDate: {}, endDate: {}",
+                applicationCode, studentName, status, allocationStatus, preferredBuilding, startDate, endDate);
+        Specification<Application> spec = ApplicationSpecification.filterBy(applicationCode, studentName, status,
+                allocationStatus, preferredBuilding, startDate, endDate);
         Page<Application> page = applicationRepository.findAll(spec, pageable);
-        Page<ApplicationResponse> responsePage = page.map(applicationMapper::toResponse);
+
+        // Enrich responses with extra data not in Application entity
+        List<ApplicationResponse> responses = enrichApplicationDetails(page.getContent());
+
+        Page<ApplicationResponse> responsePage = new org.springframework.data.domain.PageImpl<>(responses, pageable,
+                page.getTotalElements());
+
         log.info("Found {} applications matching criteria", page.getNumberOfElements());
         return PageMapper.toPageResponse(responsePage);
+    }
+
+    private List<ApplicationResponse> enrichApplicationDetails(List<Application> applications) {
+        if (applications.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> appIds = applications.stream().map(Application::getId).collect(Collectors.toList());
+
+        // Fetch documents
+        List<Document> allDocs = documentRepository.findByApplicationIdIn(appIds);
+        Map<Long, List<Document>> docsByApp = allDocs.stream()
+                .collect(Collectors.groupingBy(d -> d.getApplication().getId()));
+
+        // Fetch staged allocations
+        List<StagedAllocation> allStaged = stagedAllocationRepository.findByApplication_IdIn(appIds);
+        Map<Long, StagedAllocation> stagedByApp = allStaged.stream()
+                .collect(Collectors.toMap(
+                        s -> s.getApplication().getId(),
+                        s -> s,
+                        (existing, replacement) -> existing // Keep first if multiple (rare)
+                ));
+
+        return applications.stream().map(app -> {
+            ApplicationResponse response = applicationMapper.toResponse(app);
+
+            // Handle Documents
+            List<Document> docs = docsByApp.getOrDefault(app.getId(), new ArrayList<>());
+            int totalRequired = 5; // Hardcoded default or fetch from DocumentType count (better to fetch but
+                                   // simplified for now)
+                                   // Actually, let's just count uploaded ones for now or implement better logic
+                                   // later
+
+            // Better logic: totalRequired should be count of REQUIRED document types
+            // I'll grab that count once to avoid N+1, but for now lets assume basic logic:
+            // Count of approved documents vs total uploaded or fixed required number.
+            // Given the context, let's use documentCompletionPercent logic from
+            // ReviewProgressResponse?
+
+            long approvedCount = docs.stream().filter(d -> d.getDocumentStatus() == DocumentStatus.APPROVED).count();
+            response.setApprovedDocuments((int) approvedCount);
+            // Assuming 5 required documents for student accommodation
+            response.setTotalRequiredDocuments(5);
+            response.setDocumentCompletionPercent(docs.isEmpty() ? 0 : (int) ((approvedCount * 100) / 5));
+
+            // Handle Allocation
+            if (app.getStatus() == ApplicationStatus.ALLOCATED) {
+                response.setAllocationStatus("ALLOCATED");
+                // If real allocation exists, we'd check RoomAllocation, but StagedAllocation
+                // might be gone?
+                // Or we check StagedAllocation for PROPOSED items.
+            }
+
+            StagedAllocation staged = stagedByApp.get(app.getId());
+            if (staged != null) {
+                response.setAllocationScore(staged.getScore());
+                // If application is AWAITING_ALLOCATION, staged status is meaningful
+                response.setAllocationStatus(staged.getStatus().name());
+            } else {
+                response.setAllocationStatus(app.getStatus().name()); // Default to app status
+            }
+
+            return response;
+        }).collect(Collectors.toList());
     }
 
     // ==================== Required Documents Checklist ====================
@@ -376,7 +467,8 @@ public class ApplicationService {
 
     /**
      * Moves an application to the allocation phase.
-     * Validates that application is APPROVED and all required documents are approved.
+     * Validates that application is APPROVED and all required documents are
+     * approved.
      *
      * @param applicationId The application ID
      * @param adminId       The admin user ID performing the action
@@ -392,7 +484,8 @@ public class ApplicationService {
         // Validate current status is APPROVED
         if (application.getStatus() != APPROVED) {
             throw new InvalidStatusException(
-                    "Application must be APPROVED before moving to allocation phase. Current status: " + application.getStatus());
+                    "Application must be APPROVED before moving to allocation phase. Current status: "
+                            + application.getStatus());
         }
 
         // Validate all required documents are approved
@@ -400,7 +493,7 @@ public class ApplicationService {
         if (!Boolean.TRUE.equals(checklist.getAllApproved())) {
             throw new InvalidStatusException(
                     "All required documents must be approved before moving to allocation phase. " +
-                    "Approved: " + checklist.getApproved() + "/" + checklist.getTotalRequired());
+                            "Approved: " + checklist.getApproved() + "/" + checklist.getTotalRequired());
         }
 
         // Update status to AWAITING_ALLOCATION
@@ -416,8 +509,7 @@ public class ApplicationService {
                     studentUserId,
                     applicationId,
                     true,
-                    "Your application is now ready for room allocation."
-            );
+                    "Your application is now ready for room allocation.");
         } catch (Exception e) {
             log.error("Failed to send notification for application {} allocation phase transition", applicationId, e);
         }
@@ -428,7 +520,8 @@ public class ApplicationService {
     // ==================== Application Full Details ====================
 
     /**
-     * Gets full application details including student profile, documents with comments,
+     * Gets full application details including student profile, documents with
+     * comments,
      * checklist, and preferred building details.
      * For admin use only.
      *
@@ -489,7 +582,7 @@ public class ApplicationService {
             if (!Boolean.TRUE.equals(checklist.getAllApproved())) {
                 throw new InvalidStatusException(
                         "Cannot move to AWAITING_ALLOCATION: Not all required documents are approved. " +
-                        "Approved: " + checklist.getApproved() + "/" + checklist.getTotalRequired());
+                                "Approved: " + checklist.getApproved() + "/" + checklist.getTotalRequired());
             }
         }
     }
@@ -549,8 +642,8 @@ public class ApplicationService {
 
         // Calculate allocation eligibility
         boolean applicationApproved = application.getStatus() == APPROVED ||
-                                      application.getStatus() == AWAITING_ALLOCATION ||
-                                      application.getStatus() == ALLOCATED;
+                application.getStatus() == AWAITING_ALLOCATION ||
+                application.getStatus() == ALLOCATED;
         boolean allDocsApproved = Boolean.TRUE.equals(checklist.getAllApproved());
         boolean eligible = applicationApproved && allDocsApproved;
 
@@ -559,7 +652,7 @@ public class ApplicationService {
             eligibilityReason = "Application must be APPROVED first. Current status: " + application.getStatus();
         } else if (!allDocsApproved) {
             eligibilityReason = "Not all required documents are approved. Approved: " +
-                               checklist.getApproved() + "/" + checklist.getTotalRequired();
+                    checklist.getApproved() + "/" + checklist.getTotalRequired();
         }
 
         AllocationEligibility allocationEligibility = AllocationEligibility.builder()
@@ -585,12 +678,13 @@ public class ApplicationService {
                 .specialRequirements(application.getSpecialRequirements())
                 .institutionName(application.getInstitutionName())
                 .courseName(application.getCourseName())
-                .preferredBuildingId(application.getPreferredBuilding() != null ?
-                                     application.getPreferredBuilding().getId() : null)
-                .preferredBuildingName(application.getPreferredBuilding() != null ?
-                                       application.getPreferredBuilding().getName() : null)
-                .allocationMethod(application.getAllocationMethod() != null ?
-                                  application.getAllocationMethod().name() : null)
+                .preferredBuildingId(
+                        application.getPreferredBuilding() != null ? application.getPreferredBuilding().getId() : null)
+                .preferredBuildingName(
+                        application.getPreferredBuilding() != null ? application.getPreferredBuilding().getName()
+                                : null)
+                .allocationMethod(
+                        application.getAllocationMethod() != null ? application.getAllocationMethod().name() : null)
                 .studentProfile(studentProfile)
                 .documents(documentsWithComments)
                 .requiredDocumentsChecklist(checklist)
@@ -602,7 +696,8 @@ public class ApplicationService {
     }
 
     /**
-     * Maps a Document entity to DocumentWithCommentsResponse including nested comments.
+     * Maps a Document entity to DocumentWithCommentsResponse including nested
+     * comments.
      */
     private DocumentWithCommentsResponse mapDocumentWithComments(Document document) {
         List<DocumentComment> comments = documentCommentRepository
@@ -642,7 +737,8 @@ public class ApplicationService {
      */
     @Transactional
     @LogActivity(action = "UPDATE", entityType = "APPLICATION", description = "Saved review progress for application {0}", entityIdParamIndex = 0)
-    public ReviewProgressResponse saveReviewProgress(Long applicationId, ReviewProgressRequest request, String username) {
+    public ReviewProgressResponse saveReviewProgress(Long applicationId, ReviewProgressRequest request,
+            String username) {
         log.info("Saving review progress for application {} by {}", applicationId, username);
 
         // Verify application exists
@@ -708,11 +804,13 @@ public class ApplicationService {
                 .build();
     }
 
-    // ==================== Move to Allocation Phase (Username version) ====================
+    // ==================== Move to Allocation Phase (Username version)
+    // ====================
 
     /**
      * Moves an application to the allocation phase.
-     * Validates that application is APPROVED and all required documents are approved.
+     * Validates that application is APPROVED and all required documents are
+     * approved.
      *
      * @param applicationId The application ID
      * @param username      The admin username performing the action

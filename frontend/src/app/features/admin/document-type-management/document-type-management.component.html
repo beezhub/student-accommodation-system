@@ -1,136 +1,183 @@
-<div class="document-type-management-container">
+<div class="document-type-container">
   <div class="page-header">
-    <h1>
-      <mat-icon>description</mat-icon>
-      Document Type Management
-    </h1>
-    <button mat-raised-button color="primary" (click)="openCreateDialog()">
-      <mat-icon>add</mat-icon>
-      Add Document Type
-    </button>
+    <div class="header-content">
+      <h1>
+        <mat-icon>description</mat-icon>
+        Document Types
+      </h1>
+      <p class="subtitle">Configure document types required for student applications</p>
+    </div>
+    <div class="header-actions">
+      <div class="stat-item">
+        <span class="stat-value">{{ totalElements }}</span>
+        <span class="stat-label">Total Types</span>
+      </div>
+      <button mat-raised-button color="primary" (click)="openCreateDialog()" class="add-btn">
+        <mat-icon>add</mat-icon>
+        Add Document Type
+      </button>
+    </div>
   </div>
 
-  <!-- Filters -->
+  <!-- Filter Card -->
   <mat-card class="filter-card">
     <mat-card-content>
+      <div class="filter-header">
+        <mat-icon>filter_list</mat-icon>
+        <span>Filter Document Types</span>
+      </div>
       <form [formGroup]="filterForm" class="filter-form">
         <mat-form-field appearance="outline">
           <mat-label>Document Type Name</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
           <input matInput formControlName="name" placeholder="Search by name">
         </mat-form-field>
 
         <mat-form-field appearance="outline">
           <mat-label>Required Status</mat-label>
+          <mat-icon matPrefix>flag</mat-icon>
           <mat-select formControlName="isRequired">
             <mat-option value="">All Types</mat-option>
-            <mat-option [value]="true">Required Only</mat-option>
-            <mat-option [value]="false">Optional Only</mat-option>
+            <mat-option [value]="true">
+              <div class="status-option">
+                <mat-icon class="required">check_circle</mat-icon>
+                Required Only
+              </div>
+            </mat-option>
+            <mat-option [value]="false">
+              <div class="status-option">
+                <mat-icon class="optional">remove_circle</mat-icon>
+                Optional Only
+              </div>
+            </mat-option>
           </mat-select>
         </mat-form-field>
 
         <div class="filter-actions">
-          <button mat-raised-button color="primary" (click)="onFilter()">
+          <button mat-raised-button color="primary" (click)="onFilter()" class="search-btn">
             <mat-icon>search</mat-icon>
             Search
           </button>
-          <button mat-button (click)="onClearFilters()">
-            <mat-icon>clear</mat-icon>
-            Clear
+          <button mat-stroked-button (click)="onClearFilters()" class="clear-btn">
+            <mat-icon>refresh</mat-icon>
+            Reset
           </button>
         </div>
       </form>
     </mat-card-content>
   </mat-card>
 
-  <!-- Data Table -->
-  <mat-card>
+  <!-- Table Card -->
+  <mat-card class="table-card">
     <mat-card-content>
       @if (isLoading) {
         <div class="loading-container">
-          <mat-spinner></mat-spinner>
+          <mat-spinner diameter="48"></mat-spinner>
+          <p>Loading document types...</p>
         </div>
       }
 
       @if (!isLoading) {
-        <div>
+        <div class="table-wrapper">
           <table mat-table [dataSource]="documentTypes" class="document-types-table">
             <!-- Type Name Column -->
             <ng-container matColumnDef="typeName">
               <th mat-header-cell *matHeaderCellDef>Document Type</th>
               <td mat-cell *matCellDef="let docType">
-                <strong>{{ docType.typeName }}</strong>
+                <div class="type-cell">
+                  <div class="type-icon">
+                    <mat-icon>description</mat-icon>
+                  </div>
+                  <span class="type-name">{{ docType.typeName }}</span>
+                </div>
               </td>
             </ng-container>
+
             <!-- Description Column -->
             <ng-container matColumnDef="description">
               <th mat-header-cell *matHeaderCellDef>Description</th>
               <td mat-cell *matCellDef="let docType">
-                {{ docType.description || '-' }}
+                <span class="description-text">{{ docType.description || '—' }}</span>
               </td>
             </ng-container>
+
             <!-- Is Required Column -->
             <ng-container matColumnDef="isRequired">
               <th mat-header-cell *matHeaderCellDef>Status</th>
               <td mat-cell *matCellDef="let docType">
-                <app-modern-status-badge
-                  [status]="getRequiredBadgeStatus(docType.isRequired)"
-                  size="sm">
-                </app-modern-status-badge>
+                <span class="status-badge" [class]="docType.isRequired ? 'required' : 'optional'">
+                  <mat-icon>{{ docType.isRequired ? 'check_circle' : 'remove_circle' }}</mat-icon>
+                  {{ docType.isRequired ? 'Required' : 'Optional' }}
+                </span>
               </td>
             </ng-container>
+
             <!-- Created At Column -->
             <ng-container matColumnDef="createdAt">
               <th mat-header-cell *matHeaderCellDef>Created</th>
               <td mat-cell *matCellDef="let docType">
-                {{ docType.createdAt | date: 'MMM d, y' }}
+                <div class="date-cell">
+                  <mat-icon>calendar_today</mat-icon>
+                  <span>{{ docType.createdAt | date: 'MMM d, y' }}</span>
+                </div>
               </td>
             </ng-container>
+
             <!-- Actions Column -->
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let docType">
-                <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Actions">
-                  <mat-icon>more_vert</mat-icon>
-                </button>
-                <mat-menu #menu="matMenu">
-                  <button mat-menu-item (click)="openEditDialog(docType)">
+                <div class="actions-cell">
+                  <button mat-icon-button
+                          (click)="openEditDialog(docType)"
+                          matTooltip="Edit"
+                          class="action-btn edit">
                     <mat-icon>edit</mat-icon>
-                    <span>Edit</span>
                   </button>
-                  <button mat-menu-item (click)="toggleRequiredFlag(docType)">
+                  <button mat-icon-button
+                          (click)="toggleRequiredFlag(docType)"
+                          [matTooltip]="docType.isRequired ? 'Mark as Optional' : 'Mark as Required'"
+                          class="action-btn toggle">
                     <mat-icon>{{ docType.isRequired ? 'toggle_off' : 'toggle_on' }}</mat-icon>
-                    <span>Mark as {{ docType.isRequired ? 'Optional' : 'Required' }}</span>
                   </button>
-                  <button mat-menu-item (click)="deleteDocumentType(docType)">
+                  <button mat-icon-button
+                          (click)="deleteDocumentType(docType)"
+                          matTooltip="Delete"
+                          class="action-btn delete">
                     <mat-icon>delete</mat-icon>
-                    <span>Delete</span>
                   </button>
-                </mat-menu>
+                </div>
               </td>
             </ng-container>
+
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
           </table>
+
           @if (documentTypes.length === 0) {
             <div class="no-data">
-              <mat-icon>description</mat-icon>
-              <p>No document types found</p>
+              <div class="no-data-icon">
+                <mat-icon>description</mat-icon>
+              </div>
+              <h3>No Document Types Found</h3>
+              <p>Create your first document type to get started.</p>
               <button mat-raised-button color="primary" (click)="openCreateDialog()">
                 <mat-icon>add</mat-icon>
                 Add First Document Type
               </button>
             </div>
           }
-          @if (documentTypes.length > 0) {
-            <mat-paginator
-              [length]="totalElements"
-              [pageSize]="pageSize"
-              [pageSizeOptions]="[10, 20, 50, 100]"
-              (page)="onPageChange($event)"
-              showFirstLastButtons>
-            </mat-paginator>
-          }
         </div>
+
+        @if (documentTypes.length > 0) {
+          <mat-paginator
+            [length]="totalElements"
+            [pageSize]="pageSize"
+            [pageSizeOptions]="[10, 20, 50, 100]"
+            (page)="onPageChange($event)"
+            showFirstLastButtons>
+          </mat-paginator>
+        }
       }
     </mat-card-content>
   </mat-card>

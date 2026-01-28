@@ -1,17 +1,49 @@
-h2[mat-dialog-title] {
-  display: flex;
+/* Institution Form Dialog - Modern Styling */
+.dialog-container {
+  min-width: 520px;
+}
+
+/* Dialog Header */
+.dialog-header {
+  text-align: center;
+  padding: 24px 24px 0 24px;
+}
+
+.header-icon {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  margin: 0 0 16px 0;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  margin-bottom: 16px;
 }
 
-h2[mat-dialog-title] mat-icon {
-  color: #1976d2;
+.header-icon mat-icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  color: #ffffff;
 }
 
+.dialog-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: #1e293b;
+}
+
+.dialog-header p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Dialog Content */
 mat-dialog-content {
-  padding: 0 24px;
-  min-width: 500px;
+  padding: 24px !important;
+  max-height: 60vh;
 }
 
 .institution-form {
@@ -20,28 +52,122 @@ mat-dialog-content {
   gap: 16px;
 }
 
-.institution-form mat-form-field {
+/* Form Row (for side-by-side fields) */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Form Field Wrapper */
+.form-field-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.field-label mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  color: #64748b;
+}
+
+.full-width {
   width: 100%;
 }
 
+/* Dialog Actions */
 mat-dialog-actions {
-  padding: 16px 24px;
+  padding: 16px 24px 24px 24px !important;
   gap: 12px;
+  justify-content: flex-end;
 }
 
-mat-dialog-actions button {
-  min-width: 100px;
+.cancel-btn {
+  height: 42px;
+  border-radius: 10px !important;
+  font-weight: 500;
+  color: #64748b;
+  border-color: #e2e8f0 !important;
+  padding: 0 20px !important;
 }
 
-mat-spinner {
-  display: inline-block;
-  margin-right: 8px;
+.cancel-btn:hover {
+  background: #f8fafc !important;
 }
 
-/* Responsive design */
+.submit-btn {
+  height: 42px;
+  border-radius: 10px !important;
+  font-weight: 600;
+  padding: 0 20px !important;
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.submit-btn mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.submit-btn mat-spinner {
+  margin-right: 6px;
+}
+
+/* Responsive */
 @media (max-width: 600px) {
+  .dialog-container {
+    min-width: 100%;
+  }
+
+  .dialog-header {
+    padding: 20px 20px 0 20px;
+  }
+
+  .header-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .header-icon mat-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .dialog-header h2 {
+    font-size: 20px;
+  }
+
   mat-dialog-content {
-    min-width: unset;
+    padding: 20px !important;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  mat-dialog-actions {
+    padding: 16px 20px 20px 20px !important;
+    flex-direction: column-reverse;
+  }
+
+  .cancel-btn,
+  .submit-btn {
     width: 100%;
   }
 }

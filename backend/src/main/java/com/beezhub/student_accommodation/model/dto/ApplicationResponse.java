@@ -44,4 +44,14 @@ public class ApplicationResponse {
 
     // Remarks (for rejection reasons, etc.)
     private String remarks;
+
+    // Review Status & Stats
+    // @Column(precision = 10, scale = 4) in StagedAllocation, so BigDecimal here
+    private java.math.BigDecimal allocationScore;
+
+    private Integer documentCompletionPercent;
+    private Integer approvedDocuments;
+    private Integer totalRequiredDocuments;
+
+    private String allocationStatus;
 }

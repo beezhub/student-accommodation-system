@@ -157,4 +157,17 @@ export class AuthService {
       this.currentUserSubject.next(currentUser);
     }
   }
+
+  // Password Reset Methods
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/forgot-password`, { email });
+  }
+
+  verifyResetToken(token: string): Observable<{ valid: boolean; message: string }> {
+    return this.http.post<{ valid: boolean; message: string }>(`${this.apiUrl}/verify-reset-token`, { token });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/reset-password`, { token, newPassword });
+  }
 }

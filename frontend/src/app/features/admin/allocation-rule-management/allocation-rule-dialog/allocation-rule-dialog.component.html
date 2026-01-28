@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>{{ isEditMode ? 'Edit Rule' : 'Create New Rule' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="ruleForm" class="rule-form">
+    
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Rule Name</mat-label>
+      <input matInput formControlName="ruleName" placeholder="e.g. Standard Allocation">
+      <mat-error *ngIf="ruleForm.get('ruleName')?.hasError('required')">Name is required</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="half-width">
+      <mat-label>Priority</mat-label>
+      <input matInput type="number" formControlName="priority" min="1">
+      <mat-hint>Lower number = Higher execution priority</mat-hint>
+    </mat-form-field>
+
+    <div class="checkbox-container half-width">
+      <mat-checkbox formControlName="active" color="primary">Active</mat-checkbox>
+    </div>
+
+    <h3>Scoring Weights (0-100)</h3>
+    <p class="description">Adjust how important each factor is when calculating match scores.</p>
+
+    <div class="slider-group">
+      <label>Preference Match: {{ruleForm.get('preferenceMatchWeight')?.value}}</label>
+      <mat-slider min="0" max="100" step="1" showTickMarks discrete>
+        <input matSliderThumb formControlName="preferenceMatchWeight">
+      </mat-slider>
+    </div>
+
+    <div class="slider-group">
+      <label>Desirability Score: {{ruleForm.get('desirabilityWeight')?.value}}</label>
+      <mat-slider min="0" max="100" step="1" showTickMarks discrete>
+        <input matSliderThumb formControlName="desirabilityWeight">
+      </mat-slider>
+    </div>
+
+    <div class="slider-group">
+      <label>Accessibility Needs: {{ruleForm.get('accessibilityWeight')?.value}}</label>
+      <mat-slider min="0" max="100" step="1" showTickMarks discrete>
+        <input matSliderThumb formControlName="accessibilityWeight">
+      </mat-slider>
+    </div>
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="ruleForm.invalid || isSaving">
+    {{ isSaving ? 'Saving...' : (isEditMode ? 'Update' : 'Create') }}
+  </button>
+</mat-dialog-actions>

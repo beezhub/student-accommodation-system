@@ -25,213 +25,451 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
 @Component({
   selector: 'app-allocate-dialog',
   template: `
-    <h2 mat-dialog-title>Allocate Room to Student</h2>
-    <mat-dialog-content>
-      <form [formGroup]="allocateForm" class="allocate-form">
-        <!-- Student ID -->
-        <mat-form-field appearance="outline">
-          <mat-label>Student ID *</mat-label>
-          <input
-            matInput
-            type="number"
-            formControlName="studentId"
-            placeholder="Enter student ID"
-            required
-            (blur)="checkEligibility()"
-          />
-          @if (allocateForm.get('studentId')?.hasError('required')) {
-          <mat-error> Student ID is required </mat-error>
-          } @if (allocateForm.get('studentId')?.hasError('min')) {
-          <mat-error> Invalid student ID </mat-error>
-          }
-        </mat-form-field>
-
-        <!-- Eligibility Status -->
-        @if (eligibilityChecked) {
-        <div class="status-message">
-          @if (eligibility?.isEligible) {
-          <div class="success-message">
-            <mat-icon>check_circle</mat-icon>
-            <span>Student is eligible for room allocation</span>
-          </div>
-          } @if (!eligibility?.isEligible) {
-          <div class="error-message">
-            <mat-icon>error</mat-icon>
-            <span>{{ eligibility?.reason || 'Student is not eligible' }}</span>
-          </div>
-          }
+    <div class="dialog-container">
+      <div class="dialog-header">
+        <div class="header-icon">
+          <mat-icon>assignment_ind</mat-icon>
         </div>
-        }
-
-        <!-- Room Selection -->
-        <mat-form-field appearance="outline">
-          <mat-label>Room *</mat-label>
-          <mat-select formControlName="roomId" required (selectionChange)="checkAvailability()">
-            @for (room of availableRooms; track room) {
-            <mat-option [value]="room.id">
-              {{ room.roomNumber }} - {{ room.buildingName }} ({{ room.currentOccupancy }}/{{
-                room.capacity
-              }}
-              occupied)
-            </mat-option>
-            }
-          </mat-select>
-          @if (allocateForm.get('roomId')?.hasError('required')) {
-          <mat-error> Room is required </mat-error>
-          }
-        </mat-form-field>
-
-        <!-- Room Availability Status -->
-        @if (availabilityChecked) {
-        <div class="status-message">
-          @if (availability?.isAvailable) {
-          <div class="success-message">
-            <mat-icon>check_circle</mat-icon>
-            <span>Room is available ({{ availability?.availableSpots }} spots remaining)</span>
-          </div>
-          } @if (!availability?.isAvailable) {
-          <div class="error-message">
-            <mat-icon>error</mat-icon>
-            <span>Room is not available ({{ availability?.status }})</span>
-          </div>
-          }
+        <div class="header-text">
+          <h2 mat-dialog-title>Allocate Room to Student</h2>
+          <p class="subtitle">Assign a room to an eligible student</p>
         </div>
-        }
+      </div>
 
-        <!-- Application Selection (Optional) -->
-        <mat-form-field appearance="outline">
-          <mat-label>Application (Optional)</mat-label>
-          <mat-select formControlName="applicationId" (selectionChange)="onApplicationSelected()">
-            <mat-option value="">No Application</mat-option>
-            @for (app of studentApplications; track app) {
-            <mat-option [value]="app.id"> {{ app.applicationCode }} - {{ app.status }} </mat-option>
+      <mat-dialog-content>
+        <form [formGroup]="allocateForm" class="allocate-form">
+          <!-- Student ID -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Student ID</mat-label>
+            <mat-icon matPrefix>badge</mat-icon>
+            <input
+              matInput
+              type="number"
+              formControlName="studentId"
+              placeholder="Enter student ID"
+              required
+              (blur)="checkEligibility()"
+            />
+            @if (allocateForm.get('studentId')?.hasError('required')) {
+              <mat-error>Student ID is required</mat-error>
             }
-          </mat-select>
-          <mat-hint>Link this allocation to an existing application</mat-hint>
-        </mat-form-field>
+            @if (allocateForm.get('studentId')?.hasError('min')) {
+              <mat-error>Invalid student ID</mat-error>
+            }
+          </mat-form-field>
 
-        <!-- Allocation Date -->
-        <mat-form-field appearance="outline">
-          <mat-label>Allocation Date *</mat-label>
-          <input matInput [matDatepicker]="picker" formControlName="allocationDate" required />
-          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
-          @if (allocateForm.get('allocationDate')?.hasError('required')) {
-          <mat-error> Allocation date is required </mat-error>
-          }
-        </mat-form-field>
-
-        <!-- Information Panel -->
-        @if (allocateForm.get('studentId')?.value) {
-        <div class="info-panel">
-          <mat-icon>info</mat-icon>
-          <div>
-            <strong>Allocation Process:</strong>
-            <ul>
-              <li>Student eligibility will be verified</li>
-              <li>Room availability will be checked</li>
-              <li>Allocation will be created with ACTIVE status</li>
-              @if (allocateForm.get('applicationId')?.value) {
-              <li>Application status will be updated</li>
+          <!-- Eligibility Status -->
+          @if (eligibilityChecked) {
+            <div class="status-message" [class.success]="eligibility?.isEligible" [class.error]="!eligibility?.isEligible">
+              @if (eligibility?.isEligible) {
+                <mat-icon>check_circle</mat-icon>
+                <span>Student is eligible for room allocation</span>
               }
-            </ul>
-          </div>
-        </div>
-        }
-      </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
-      <button
-        mat-raised-button
-        color="primary"
-        (click)="onSubmit()"
-        [disabled]="!canSubmit() || isSubmitting"
-      >
-        @if (isSubmitting) {
-        <mat-spinner diameter="20"></mat-spinner>
-        } @if (!isSubmitting) {
-        <span>Allocate Room</span>
-        }
-      </button>
-    </mat-dialog-actions>
+              @if (!eligibility?.isEligible) {
+                <mat-icon>error</mat-icon>
+                <span>{{ eligibility?.reason || 'Student is not eligible' }}</span>
+              }
+            </div>
+          }
+
+          <!-- Room Selection -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Room</mat-label>
+            <mat-icon matPrefix>meeting_room</mat-icon>
+            <mat-select formControlName="roomId" required (selectionChange)="checkAvailability()">
+              @for (room of availableRooms; track room.id) {
+                <mat-option [value]="room.id">
+                  <div class="room-option">
+                    <span class="room-name">{{ room.roomNumber }} - {{ room.buildingName }}</span>
+                    <span class="room-capacity">({{ room.currentOccupancy }}/{{ room.capacity }})</span>
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+            @if (allocateForm.get('roomId')?.hasError('required')) {
+              <mat-error>Room is required</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Room Availability Status -->
+          @if (availabilityChecked) {
+            <div class="status-message" [class.success]="availability?.isAvailable" [class.error]="!availability?.isAvailable">
+              @if (availability?.isAvailable) {
+                <mat-icon>check_circle</mat-icon>
+                <span>Room is available ({{ availability?.availableSpots }} spots remaining)</span>
+              }
+              @if (!availability?.isAvailable) {
+                <mat-icon>error</mat-icon>
+                <span>Room is not available ({{ availability?.status }})</span>
+              }
+            </div>
+          }
+
+          <!-- Application Selection (Optional) -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Application (Optional)</mat-label>
+            <mat-icon matPrefix>description</mat-icon>
+            <mat-select formControlName="applicationId" (selectionChange)="onApplicationSelected()">
+              <mat-option value="">No Application</mat-option>
+              @for (app of studentApplications; track app.id) {
+                <mat-option [value]="app.id">
+                  <div class="app-option">
+                    <span class="app-code">{{ app.applicationCode }}</span>
+                    <span class="app-status" [class]="app.status.toLowerCase()">{{ app.status }}</span>
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+            <mat-hint>
+              <mat-icon class="hint-icon">info</mat-icon>
+              Link this allocation to an existing application
+            </mat-hint>
+          </mat-form-field>
+
+          <!-- Allocation Date -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Allocation Date</mat-label>
+            <mat-icon matPrefix>event</mat-icon>
+            <input matInput [matDatepicker]="picker" formControlName="allocationDate" required />
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+            @if (allocateForm.get('allocationDate')?.hasError('required')) {
+              <mat-error>Allocation date is required</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Information Panel -->
+          @if (allocateForm.get('studentId')?.value) {
+            <div class="info-panel">
+              <mat-icon>lightbulb</mat-icon>
+              <div class="info-content">
+                <strong>Allocation Process</strong>
+                <ul>
+                  <li>Student eligibility will be verified</li>
+                  <li>Room availability will be checked</li>
+                  <li>Allocation will be created with ACTIVE status</li>
+                  @if (allocateForm.get('applicationId')?.value) {
+                    <li>Application status will be updated</li>
+                  }
+                </ul>
+              </div>
+            </div>
+          }
+        </form>
+      </mat-dialog-content>
+
+      <mat-dialog-actions align="end">
+        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+          Cancel
+        </button>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="onSubmit()"
+          [disabled]="!canSubmit() || isSubmitting"
+          class="submit-btn"
+        >
+          @if (isSubmitting) {
+            <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+            Allocating...
+          }
+          @if (!isSubmitting) {
+            <mat-icon>assignment_turned_in</mat-icon>
+            Allocate Room
+          }
+        </button>
+      </mat-dialog-actions>
+    </div>
   `,
   styles: [
     `
-      .allocate-form {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        min-width: 500px;
-        padding: 16px 0;
+      .dialog-container {
+        min-width: 550px;
       }
 
+      /* Dialog Header */
+      .dialog-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 24px 24px 0;
+      }
+
+      .header-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+        border-radius: 16px;
+        border: 1px solid #ddd6fe;
+      }
+
+      .header-icon mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+        color: #7c3aed;
+      }
+
+      .header-text h2 {
+        margin: 0 0 4px 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: #1e293b;
+      }
+
+      .header-text .subtitle {
+        margin: 0;
+        font-size: 14px;
+        color: #64748b;
+      }
+
+      /* Dialog Content */
       mat-dialog-content {
-        max-height: 70vh;
+        padding: 24px !important;
+        max-height: 60vh;
         overflow-y: auto;
       }
 
-      mat-dialog-actions button {
-        margin-left: 8px;
+      .allocate-form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
 
-      mat-spinner {
-        display: inline-block;
+      .full-width {
+        width: 100%;
+      }
+
+      mat-icon[matPrefix] {
+        color: #94a3b8;
         margin-right: 8px;
       }
 
+      /* Room Option */
+      .room-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+      }
+
+      .room-name {
+        font-weight: 500;
+      }
+
+      .room-capacity {
+        font-size: 12px;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 2px 8px;
+        border-radius: 4px;
+      }
+
+      /* App Option */
+      .app-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+      }
+
+      .app-code {
+        font-weight: 500;
+        font-family: 'SF Mono', 'Fira Code', monospace;
+      }
+
+      .app-status {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 10px;
+        text-transform: uppercase;
+      }
+
+      .app-status.approved {
+        background: #d1fae5;
+        color: #059669;
+      }
+
+      .app-status.pending {
+        background: #fef3c7;
+        color: #d97706;
+      }
+
+      /* Hint styling */
+      mat-hint {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #64748b;
+      }
+
+      .hint-icon {
+        font-size: 14px !important;
+        width: 14px !important;
+        height: 14px !important;
+        color: #94a3b8;
+      }
+
+      /* Status Messages */
       .status-message {
-        padding: 12px;
-        border-radius: 4px;
-        margin: -8px 0;
-      }
-
-      .success-message {
-        background-color: #e8f5e9;
-        color: #2e7d32;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        margin: -4px 0 8px 0;
       }
 
-      .success-message mat-icon {
-        color: #2e7d32;
+      .status-message mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
       }
 
-      .error-message {
-        background-color: #ffebee;
-        color: #c62828;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+      .status-message.success {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        color: #047857;
+        border: 1px solid #a7f3d0;
       }
 
-      .error-message mat-icon {
-        color: #c62828;
+      .status-message.success mat-icon {
+        color: #10b981;
       }
 
+      .status-message.error {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        color: #b91c1c;
+        border: 1px solid #fca5a5;
+      }
+
+      .status-message.error mat-icon {
+        color: #ef4444;
+      }
+
+      /* Info Panel */
       .info-panel {
-        background-color: #e3f2fd;
-        padding: 12px;
-        border-radius: 4px;
         display: flex;
-        gap: 12px;
-        align-items: flex-start;
+        gap: 14px;
+        padding: 16px;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border-radius: 12px;
+        border: 1px solid #93c5fd;
+        margin-top: 8px;
       }
 
-      .info-panel mat-icon {
-        color: #1976d2;
+      .info-panel > mat-icon {
+        color: #2563eb;
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
         margin-top: 2px;
       }
 
+      .info-content strong {
+        display: block;
+        color: #1e40af;
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+
       .info-panel ul {
-        margin: 8px 0 0 0;
-        padding-left: 20px;
+        margin: 0;
+        padding-left: 18px;
       }
 
       .info-panel li {
         margin: 4px 0;
-        font-size: 14px;
+        font-size: 13px;
+        color: #1e40af;
+      }
+
+      /* Dialog Actions */
+      mat-dialog-actions {
+        padding: 16px 24px 24px !important;
+        gap: 12px;
+        border-top: 1px solid #f1f5f9;
+        margin-top: 8px;
+      }
+
+      .cancel-btn {
+        border-radius: 10px !important;
+        padding: 0 20px !important;
+        height: 44px;
+        color: #64748b;
+        border-color: #e2e8f0 !important;
+      }
+
+      .cancel-btn:hover {
+        background-color: #f8fafc;
+      }
+
+      .submit-btn {
+        border-radius: 10px !important;
+        padding: 0 24px !important;
+        height: 44px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .submit-btn mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      .button-spinner {
+        display: inline-block;
+        margin-right: 8px;
+      }
+
+      /* Responsive */
+      @media (max-width: 600px) {
+        .dialog-container {
+          min-width: unset;
+          width: 100%;
+        }
+
+        mat-dialog-content {
+          padding: 16px !important;
+        }
+
+        .dialog-header {
+          padding: 16px 16px 0;
+        }
+
+        .header-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+        }
+
+        .header-icon mat-icon {
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+
+        .header-text h2 {
+          font-size: 18px;
+        }
+
+        mat-dialog-actions {
+          flex-direction: column-reverse;
+          padding: 16px !important;
+        }
+
+        .cancel-btn,
+        .submit-btn {
+          width: 100%;
+        }
       }
     `,
   ],

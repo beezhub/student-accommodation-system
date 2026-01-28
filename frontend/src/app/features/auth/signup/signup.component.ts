@@ -1,10 +1,7 @@
-import { Component } from '@angular/core';
-
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-
-// Material imports
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -19,7 +16,6 @@ import { MatDividerModule } from '@angular/material/divider';
   selector: 'app-signup',
   templateUrl: './signup.component.html',
   styleUrls: ['./signup.component.css'],
-  standalone: true,
   imports: [
     ReactiveFormsModule,
     RouterModule,
@@ -33,20 +29,21 @@ import { MatDividerModule } from '@angular/material/divider';
     MatCheckboxModule,
     MatDividerModule,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SignupComponent {
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly snackBar = inject(MatSnackBar);
+
   signupForm: FormGroup;
   isSubmitting = false;
-  errorMessage: string = '';
+  errorMessage = '';
   hidePassword = true;
   hideConfirmPassword = true;
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.signupForm = this.fb.group(
       {
         firstName: ['', [Validators.required]],
