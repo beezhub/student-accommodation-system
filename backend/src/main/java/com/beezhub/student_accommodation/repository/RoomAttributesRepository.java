@@ -18,6 +18,4 @@ public interface RoomAttributesRepository extends JpaRepository<RoomAttributes, 
     List<RoomAttributes> findByGenderRestriction(GenderRestriction genderRestriction);
 
     List<RoomAttributes> findByRoom_Building_Id(Long buildingId);
-
-    List<RoomAttributes> findByDesirabilityOverrideIsNotNull();
 }

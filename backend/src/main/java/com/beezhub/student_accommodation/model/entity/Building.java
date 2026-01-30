@@ -5,7 +5,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "building")
@@ -30,6 +32,14 @@ public class Building {
 
     @OneToMany(mappedBy = "building", fetch = FetchType.LAZY)
     private List<Room> rooms = new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(
+        name = "building_institution",
+        joinColumns = @JoinColumn(name = "building_id"),
+        inverseJoinColumns = @JoinColumn(name = "institution_id")
+    )
+    private Set<Institution> institutions = new HashSet<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -81,7 +81,7 @@ public class RoomService {
 
     public RoomResponse getRoomById(Long id) {
         log.info("Fetching room with id: {}", id);
-        Room room = roomRepository.findById(id)
+        Room room = roomRepository.findByIdWithAttributes(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
         return roomMapper.toResponse(room);
     }

@@ -84,10 +84,10 @@
                   <mat-icon>event</mat-icon>
                   <span>Submitted: {{currentApplication.applicationDate | date: 'MMM d, y'}}</span>
                 </div>
-                @if (currentApplication.preferredRoomType) {
+                @if (currentApplication.preferredAccommodationType) {
                   <div class="detail-row">
                     <mat-icon>bed</mat-icon>
-                    <span>{{currentApplication.preferredRoomType}}</span>
+                    <span>{{currentApplication.preferredAccommodationType}}</span>
                   </div>
                 }
                 @if (currentApplication.preferredMoveInDate) {

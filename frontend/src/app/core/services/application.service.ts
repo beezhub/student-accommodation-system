@@ -52,7 +52,7 @@ export interface ApplicationFullDetails {
   preferredAccommodationType?: string;
   preferredMoveInDate?: string;
   preferredDurationMonths?: number;
-  preferredRoomType?: string;
+  requiresAccessibility?: boolean;
   specialRequirements?: string;
   institutionName?: string;
   courseName?: string;

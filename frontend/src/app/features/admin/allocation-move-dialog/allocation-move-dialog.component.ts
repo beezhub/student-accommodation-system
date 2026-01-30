@@ -15,13 +15,15 @@ import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
+import { MatDividerModule } from '@angular/material/divider';
 
-import { RoomService, RoomResponse } from '../../../core/services/room.service';
+import { RoomService, EligibleRoomResponse } from '../../../core/services/room.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
 import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
 
 export interface AllocationMoveDialogData {
   allocationId: number;
+  studentId: number;
   studentName: string;
   currentRoom: {
     buildingName: string;
@@ -44,18 +46,18 @@ export interface AllocationMoveDialogData {
     MatTableModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatCardModule
+    MatCardModule,
+    MatDividerModule
   ],
   templateUrl: './allocation-move-dialog.component.html',
   styleUrls: ['./allocation-move-dialog.component.css']
 })
 export class AllocationMoveDialogComponent implements OnInit {
   searchForm: FormGroup;
-  reasonForm: FormGroup;
   
   buildings: BuildingResponse[] = [];
-  rooms: RoomResponse[] = [];
-  selectedRoom: RoomResponse | null = null;
+  rooms: EligibleRoomResponse[] = [];
+  selectedRoom: EligibleRoomResponse | null = null;
   
   isLoadingRooms = false;
   isMoving = false;
@@ -75,10 +77,6 @@ export class AllocationMoveDialogComponent implements OnInit {
       buildingId: [''],
       roomNumber: ['']
     });
-
-    this.reasonForm = this.fb.group({
-      reason: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]]
-    });
   }
 
   ngOnInit(): void {
@@ -97,40 +95,53 @@ export class AllocationMoveDialogComponent implements OnInit {
     this.selectedRoom = null; // Reset selection on new search
     const filters = this.searchForm.value;
     
-    this.roomService.searchRooms({
-      buildingId: filters.buildingId || undefined,
-      roomNumber: filters.roomNumber || undefined,
-      page: 0,
-      size: 20
-    }).subscribe({
-      next: (page) => {
-        // Client-side filter for availability (if backend doesn't support 'availableOnly' yet)
-        // Ideally backend should handle this, but for now we filter what we can
-        this.rooms = page.content.filter(r => r.currentOccupancy < r.capacity);
+    // Use getEligibleRoomsForStudent to only show rooms that meet student's constraints
+    this.roomService.getEligibleRoomsForStudent(
+      this.data.studentId,
+      filters.buildingId || undefined
+    ).subscribe({
+      next: (eligibleRooms) => {
+        console.log('Eligible rooms received:', eligibleRooms);
+        // Filter by room number if specified
+        this.rooms = filters.roomNumber 
+          ? eligibleRooms.filter(r => r.roomNumber.toLowerCase().includes(filters.roomNumber.toLowerCase()))
+          : eligibleRooms;
+        console.log('Filtered rooms:', this.rooms);
         this.isLoadingRooms = false;
       },
       error: (err) => {
-        console.error('Failed to search rooms', err);
+        console.error('Failed to load eligible rooms', err);
         this.isLoadingRooms = false;
-        this.snackBar.open('Error searching rooms', 'Close', { duration: 3000 });
+        this.snackBar.open('Error loading eligible rooms', 'Close', { duration: 3000 });
       }
     });
   }
 
-  selectRoom(room: RoomResponse): void {
+  selectRoom(room: EligibleRoomResponse): void {
+    console.log('Selected room object:', room);
+    console.log('Room ID:', room.roomId);
     this.selectedRoom = room;
   }
 
   confirmMove(): void {
-    if (!this.selectedRoom || this.reasonForm.invalid) return;
+    if (!this.selectedRoom) {
+      console.log('Validation failed:', { 
+        hasSelectedRoom: !!this.selectedRoom
+      });
+      return;
+    }
     
     this.isMoving = true;
-    const reason = this.reasonForm.get('reason')?.value;
+    
+    console.log('Moving student:', {
+      allocationId: this.data.allocationId,
+      newRoomId: this.selectedRoom.roomId
+    });
 
     this.stagedAllocationService.moveStudent(
       this.data.allocationId,
-      this.selectedRoom.id,
-      reason
+      this.selectedRoom.roomId,
+      'Manual Move'
     ).subscribe({
       next: (result) => {
         this.snackBar.open('Student moved successfully', 'Close', { duration: 3000 });
@@ -139,7 +150,8 @@ export class AllocationMoveDialogComponent implements OnInit {
       error: (err) => {
         console.error('Move failed', err);
         this.isMoving = false;
-        this.snackBar.open('Failed to move student. Please try again.', 'Close', { duration: 5000 });
+        const errorMessage = err.error?.message || err.error?.error || 'Failed to move student. Please try again.';
+        this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
       }
     });
   }

@@ -86,6 +86,9 @@ export class RoomAllocationService {
     buildingId?: number;
     fromDate?: string;
     toDate?: string;
+    studentName?: string;
+    roomNumber?: string;
+    status?: string;
     page?: number;
     size?: number;
   }): Observable<PageResponse<RoomAllocationResponse>> {
@@ -98,6 +101,9 @@ export class RoomAllocationService {
     if (filters.buildingId) params = params.set('buildingId', filters.buildingId.toString());
     if (filters.fromDate) params = params.set('fromDate', filters.fromDate);
     if (filters.toDate) params = params.set('toDate', filters.toDate);
+    if (filters.studentName) params = params.set('studentName', filters.studentName);
+    if (filters.roomNumber) params = params.set('roomNumber', filters.roomNumber);
+    if (filters.status) params = params.set('status', filters.status);
 
     return this.http.get<PageResponse<RoomAllocationResponse>>(`${this.apiUrl}/search`, { params });
   }

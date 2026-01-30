@@ -104,9 +104,9 @@
             <mat-form-field appearance="outline" class="half-width">
               <mat-label>Preferred Accommodation Type</mat-label>
               <mat-select formControlName="preferredAccommodationType">
-                @for (type of accommodationTypes; track type) {
-                  <mat-option [value]="type.value">
-                    {{ type.viewValue }}
+                @for (type of accommodationTypes; track type.id) {
+                  <mat-option [value]="type.name">
+                    {{ type.name }}
                   </mat-option>
                 }
               </mat-select>
@@ -119,25 +119,6 @@
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Preferred Room Type</mat-label>
-              <mat-select formControlName="preferredRoomType">
-                @for (roomType of roomTypeOptions; track roomType) {
-                  <mat-option [value]="roomType.value">
-                    {{ roomType.viewValue }}
-                  </mat-option>
-                }
-              </mat-select>
-              <mat-icon matPrefix>bed</mat-icon>
-              @if (applicationForm.get('preferredRoomType')?.hasError('required')) {
-                <mat-error>
-                  Please select a room type
-                </mat-error>
-              }
-            </mat-form-field>
-          </div>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
               <mat-label>Preferred Move-in Date</mat-label>
               <input matInput [matDatepicker]="picker" formControlName="preferredMoveInDate" placeholder="Select your move-in date">
               <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
@@ -149,30 +130,30 @@
                 </mat-error>
               }
             </mat-form-field>
-
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Duration (Months)</mat-label>
-              <input matInput type="number" formControlName="preferredDurationMonths"
-                placeholder="e.g., 12" min="1" max="12">
-              <mat-icon matPrefix>schedule</mat-icon>
-              <mat-hint>Minimum 1 month, Maximum 12 months</mat-hint>
-              @if (applicationForm.get('preferredDurationMonths')?.hasError('required')) {
-                <mat-error>
-                  Duration is required
-                </mat-error>
-              }
-              @if (applicationForm.get('preferredDurationMonths')?.hasError('min')) {
-                <mat-error>
-                  Minimum duration is 1 month
-                </mat-error>
-              }
-              @if (applicationForm.get('preferredDurationMonths')?.hasError('max')) {
-                <mat-error>
-                  Maximum duration is 12 months
-                </mat-error>
-              }
-            </mat-form-field>
           </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Duration (Months)</mat-label>
+            <input matInput type="number" formControlName="preferredDurationMonths"
+              placeholder="e.g., 12" min="1" max="12">
+            <mat-icon matPrefix>schedule</mat-icon>
+            <mat-hint>Minimum 1 month, Maximum 12 months</mat-hint>
+            @if (applicationForm.get('preferredDurationMonths')?.hasError('required')) {
+              <mat-error>
+                Duration is required
+              </mat-error>
+            }
+            @if (applicationForm.get('preferredDurationMonths')?.hasError('min')) {
+              <mat-error>
+                Minimum duration is 1 month
+              </mat-error>
+            }
+            @if (applicationForm.get('preferredDurationMonths')?.hasError('max')) {
+              <mat-error>
+                Maximum duration is 12 months
+              </mat-error>
+            }
+          </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Preferred Building (Optional)</mat-label>
@@ -190,6 +171,12 @@
             <mat-icon matPrefix>apartment</mat-icon>
             <mat-hint>Select your preferred residence building if you have one</mat-hint>
           </mat-form-field>
+
+          <div class="checkbox-section">
+            <mat-checkbox formControlName="requiresAccessibility" color="primary">
+              I require an accessible room (wheelchair accessible, mobility support, etc.)
+            </mat-checkbox>
+          </div>
         </div>
 
         <mat-divider></mat-divider>

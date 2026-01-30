@@ -6,18 +6,33 @@ export interface Application {
   createdAt?: string;
   updatedAt?: string;
 
-  // Optional student info fields
+  // Student info fields
   studentId?: number;
   studentNumber?: string;
   studentName?: string;
   studentEmail?: string;
 
-  // Optional preference fields
+  // Preference fields
   preferredAccommodationType?: string;
   preferredMoveInDate?: string;
   preferredDurationMonths?: number;
-  preferredRoomType?: string;
+  requiresAccessibility?: boolean;
   specialRequirements?: string;
   institutionName?: string;
   courseName?: string;
+
+  // Building preference fields
+  preferredBuildingId?: number;
+  preferredBuildingName?: string;
+
+  // Allocation fields
+  allocationMethod?: string;
+  remarks?: string;
+
+  // Review status & statistics
+  allocationScore?: number;
+  documentCompletionPercent?: number;
+  approvedDocuments?: number;
+  totalRequiredDocuments?: number;
+  allocationStatus?: string;
 }

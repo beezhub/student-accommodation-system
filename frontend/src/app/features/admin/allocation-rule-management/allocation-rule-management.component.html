@@ -7,21 +7,50 @@
     <p class="subtitle">Configure automated room allocation scoring rules per building</p>
   </div>
 
+  <!-- Info Card -->
+  <mat-card class="info-card">
+    <mat-card-content>
+      <div class="info-icon">
+        <mat-icon>info</mat-icon>
+      </div>
+      <div class="info-content">
+        <h3>How Allocation Rules Work</h3>
+        <p>
+          Allocation rules define how rooms are scored for each student. The system considers three factors:
+          <strong>Preference Match</strong> (student's building preference),
+          <strong>Desirability</strong> (room/building quality), and
+          <strong>Accessibility</strong> (special needs compliance).
+          Weights must sum to 100%.
+        </p>
+        <p class="info-note">
+          <mat-icon>lightbulb</mat-icon>
+          <span>Select "Global Rules" for default rules that apply to all buildings without specific rules.</span>
+        </p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
   <mat-card class="filter-card">
     <mat-card-content>
       <form [formGroup]="buildingForm">
         <mat-form-field appearance="outline" class="building-select">
           <mat-label>Select Building to Configure</mat-label>
           <mat-select formControlName="buildingId">
+            <mat-option [value]="null">
+              <mat-icon>public</mat-icon>
+              Global Rules (Default for all buildings)
+            </mat-option>
+            <mat-divider></mat-divider>
             <mat-option *ngFor="let b of buildings" [value]="b.id">
+              <mat-icon>apartment</mat-icon>
               {{b.name}}
             </mat-option>
           </mat-select>
         </mat-form-field>
       </form>
 
-      <button mat-raised-button color="primary" 
-              [disabled]="!buildingForm.get('buildingId')?.value"
+      <button mat-raised-button color="primary"
+              [disabled]="buildingForm.get('buildingId')?.value === ''"
               (click)="openRuleDialog()">
         <mat-icon>add</mat-icon>
         Create New Rule
@@ -39,26 +68,43 @@
       <!-- Empty State -->
       <div *ngIf="!isLoading && !rules.length" class="empty-state">
         <mat-icon>rule_folder</mat-icon>
-        <p *ngIf="!buildingForm.get('buildingId')?.value">Select a building to view rules</p>
-        <p *ngIf="buildingForm.get('buildingId')?.value">No rules configured for this building yet</p>
+        <h3 *ngIf="buildingForm.get('buildingId')?.value === ''">Select a Building</h3>
+        <p *ngIf="buildingForm.get('buildingId')?.value === ''">Choose a building from the dropdown to view or create allocation rules</p>
+        <h3 *ngIf="buildingForm.get('buildingId')?.value !== ''">No Rules Configured</h3>
+        <p *ngIf="buildingForm.get('buildingId')?.value !== '' && buildingForm.get('buildingId')?.value === null">
+          No global rules configured yet. Global rules apply to buildings without specific rules.
+        </p>
+        <p *ngIf="buildingForm.get('buildingId')?.value !== '' && buildingForm.get('buildingId')?.value !== null">
+          No rules configured for this building. It will use global rules if available.
+        </p>
+        <button mat-stroked-button color="primary" (click)="openRuleDialog()"
+                *ngIf="buildingForm.get('buildingId')?.value !== ''">
+          <mat-icon>add</mat-icon>
+          Create First Rule
+        </button>
       </div>
 
       <!-- Data Table -->
       <table mat-table [dataSource]="rules" *ngIf="!isLoading && rules.length" class="rules-table">
-        
+
         <!-- Priority Column -->
         <ng-container matColumnDef="priority">
           <th mat-header-cell *matHeaderCellDef> Priority </th>
-          <td mat-cell *matCellDef="let rule"> 
-            <span class="priority-badge">{{rule.priority}}</span>
+          <td mat-cell *matCellDef="let rule">
+            <span class="priority-badge" [class.high-priority]="rule.priority >= 10">
+              {{rule.priority}}
+            </span>
           </td>
         </ng-container>
 
         <!-- Name Column -->
         <ng-container matColumnDef="ruleName">
           <th mat-header-cell *matHeaderCellDef> Rule Name </th>
-          <td mat-cell *matCellDef="let rule"> 
-            <strong>{{rule.ruleName}}</strong>
+          <td mat-cell *matCellDef="let rule">
+            <div class="rule-name-cell">
+              <strong>{{rule.ruleName}}</strong>
+              <span class="rule-scope" *ngIf="!rule.buildingId">Global</span>
+            </div>
           </td>
         </ng-container>
 
@@ -66,26 +112,38 @@
         <ng-container matColumnDef="weights">
           <th mat-header-cell *matHeaderCellDef> Scoring Weights </th>
           <td mat-cell *matCellDef="let rule">
-            <div class="weights-list">
-              <mat-chip-set>
-                <mat-chip matTooltip="Preference Match Weight">Pref: {{rule.preferenceMatchWeight}}</mat-chip>
-                <mat-chip matTooltip="Desirability Weight">Desir: {{rule.desirabilityWeight}}</mat-chip>
-                <mat-chip matTooltip="Accessibility Weight">Access: {{rule.accessibilityWeight}}</mat-chip>
-              </mat-chip-set>
+            <div class="weights-display">
+              <div class="weight-item pref" matTooltip="Preference Match Weight">
+                <mat-icon>favorite</mat-icon>
+                <span>{{rule.preferenceMatchWeight}}%</span>
+              </div>
+              <div class="weight-item desir" matTooltip="Desirability Weight">
+                <mat-icon>star</mat-icon>
+                <span>{{rule.desirabilityWeight}}%</span>
+              </div>
+              <div class="weight-item access" matTooltip="Accessibility Weight">
+                <mat-icon>accessible</mat-icon>
+                <span>{{rule.accessibilityWeight}}%</span>
+              </div>
             </div>
           </td>
         </ng-container>
 
         <!-- Active Column -->
         <ng-container matColumnDef="active">
-          <th mat-header-cell *matHeaderCellDef> Active </th>
+          <th mat-header-cell *matHeaderCellDef> Status </th>
           <td mat-cell *matCellDef="let rule">
-            <mat-slide-toggle 
-              [checked]="rule.active"
-              color="primary"
-              (change)="toggleRuleActive(rule)"
-              matTooltip="Toggle Activation">
-            </mat-slide-toggle>
+            <div class="status-cell">
+              <mat-slide-toggle
+                [checked]="rule.active"
+                color="primary"
+                (change)="toggleRuleActive(rule)"
+                matTooltip="Toggle Activation">
+              </mat-slide-toggle>
+              <span class="status-label" [class.active]="rule.active">
+                {{rule.active ? 'Active' : 'Inactive'}}
+              </span>
+            </div>
           </td>
         </ng-container>
 
@@ -103,7 +161,7 @@
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.inactive-row]="!row.active"></tr>
       </table>
     </mat-card-content>
   </mat-card>

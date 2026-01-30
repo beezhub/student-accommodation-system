@@ -25,7 +25,8 @@ public class RoomAttributesResponse {
     private String buildingName;
     private Boolean accessibilityCompliant;
     private GenderRestriction genderRestriction;
-    private Integer desirabilityOverride;
+    private Integer minYearOfStudy;
+    private Integer maxYearOfStudy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

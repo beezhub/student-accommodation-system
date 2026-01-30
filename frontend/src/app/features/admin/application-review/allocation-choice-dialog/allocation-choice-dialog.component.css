@@ -564,6 +564,29 @@
   margin-right: 6px;
 }
 
+/* No Rooms State */
+.no-rooms-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px dashed #e5e7eb;
+  border-radius: 12px;
+}
+
+.waitlist-btn {
+  margin-top: 8px;
+  border-radius: 10px !important;
+  font-weight: 500;
+}
+
+.waitlist-btn mat-spinner {
+  margin-right: 6px;
+}
+
 /* Actions */
 .actions {
   display: flex;

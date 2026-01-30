@@ -22,7 +22,11 @@ public class RoomAttributesRequest {
 
     private GenderRestriction genderRestriction;
 
-    @Min(value = 1, message = "Desirability override must be at least 1")
-    @Max(value = 10, message = "Desirability override must not exceed 10")
-    private Integer desirabilityOverride;
+    @Min(value = 1, message = "Minimum year of study must be at least 1")
+    @Max(value = 10, message = "Minimum year of study must not exceed 10")
+    private Integer minYearOfStudy;
+
+    @Min(value = 1, message = "Maximum year of study must be at least 1")
+    @Max(value = 10, message = "Maximum year of study must not exceed 10")
+    private Integer maxYearOfStudy;
 }

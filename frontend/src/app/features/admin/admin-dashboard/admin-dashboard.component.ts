@@ -92,6 +92,20 @@ export class AdminDashboardComponent implements OnInit {
       class: 'allocations',
     },
     {
+      title: 'Building Management',
+      description: 'Manage buildings and institutions',
+      icon: 'apartment',
+      route: '/admin/buildings',
+      class: 'buildings',
+    },
+    {
+      title: 'Waiting List',
+      description: 'View student waiting list',
+      icon: 'hourglass_empty',
+      route: '/admin/waiting-list',
+      class: 'waiting-list',
+    },
+    {
       title: 'System Settings',
       description: 'Configure system-wide settings',
       icon: 'settings',

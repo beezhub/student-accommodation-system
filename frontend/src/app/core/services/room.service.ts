@@ -20,9 +20,27 @@ export interface RoomResponse {
   buildingId: number;
   buildingName: string;
   accessibilityCompliant?: boolean;
-  genderRestriction?: string;
+  genderRestriction?: 'ANY' | 'MALE_ONLY' | 'FEMALE_ONLY';
+  minYearOfStudy?: number;
+  maxYearOfStudy?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface EligibleRoomResponse {
+  roomId: number;
+  roomNumber: string;
+  capacity: number;
+  currentOccupancy: number;
+  availableSpots: number;
+  status: string;
+  buildingId: number;
+  buildingName: string;
+  buildingAddress?: string;
+  genderRestriction?: string;
+  accessibilityCompliant?: boolean;
+  minYearOfStudy?: number;
+  maxYearOfStudy?: number;
 }
 
 export interface PageResponse<T> {
@@ -88,5 +106,19 @@ export class RoomService {
 
   deleteRoom(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Get eligible rooms for a student based on their restrictions (gender, year of study, accessibility, institution).
+   * @param studentId The student ID to check eligibility for
+   * @param buildingId Optional building ID to filter by
+   */
+  getEligibleRoomsForStudent(studentId: number, buildingId?: number): Observable<EligibleRoomResponse[]> {
+    let url = `${environment.apiUrl}/room-allocation/admin/student/${studentId}/eligible-rooms`;
+    let params = new HttpParams();
+    if (buildingId) {
+      params = params.set('buildingId', buildingId.toString());
+    }
+    return this.http.get<EligibleRoomResponse[]>(url, { params });
   }
 }

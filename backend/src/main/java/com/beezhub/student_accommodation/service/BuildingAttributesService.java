@@ -171,9 +171,9 @@ public class BuildingAttributesService {
         if (request.getGenderRestriction() != null) {
             attributes.setGenderRestriction(request.getGenderRestriction());
         }
-        if (request.getDesirabilityOverride() != null) {
-            attributes.setDesirabilityOverride(request.getDesirabilityOverride());
-        }
+        // Year of study restrictions
+        attributes.setMinYearOfStudy(request.getMinYearOfStudy());
+        attributes.setMaxYearOfStudy(request.getMaxYearOfStudy());
 
         RoomAttributes savedAttributes = roomAttributesRepository.save(attributes);
         log.info("Saved attributes for room {} with ID {}", roomId, savedAttributes.getId());
@@ -229,7 +229,8 @@ public class BuildingAttributesService {
                 .buildingName(room.getBuilding().getName())
                 .accessibilityCompliant(attributes.getAccessibilityCompliant())
                 .genderRestriction(attributes.getGenderRestriction())
-                .desirabilityOverride(attributes.getDesirabilityOverride())
+                .minYearOfStudy(attributes.getMinYearOfStudy())
+                .maxYearOfStudy(attributes.getMaxYearOfStudy())
                 .createdAt(attributes.getCreatedAt())
                 .updatedAt(attributes.getUpdatedAt())
                 .build();

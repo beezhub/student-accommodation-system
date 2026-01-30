@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.model.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 
 @Getter
@@ -12,6 +13,11 @@ public enum GenderRestriction {
 
     GenderRestriction(String displayName) {
         this.displayName = displayName;
+    }
+
+    @JsonValue
+    public String getName() {
+        return this.name();
     }
 
     public static GenderRestriction fromString(String value) {

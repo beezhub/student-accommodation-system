@@ -25,6 +25,11 @@ public class BuildingAttributes {
     @JoinColumn(name = "building_id", nullable = false, unique = true)
     private Building building;
 
+    /**
+     * @deprecated Gender restrictions are now managed at the room level only.
+     *             This field will be removed in a future version.
+     */
+    @Deprecated(since = "2.0", forRemoval = true)
     @Column(name = "gender_restriction")
     @Enumerated(EnumType.STRING)
     @Builder.Default
@@ -33,9 +38,19 @@ public class BuildingAttributes {
     @Column(name = "accessibility_features", columnDefinition = "JSONB")
     private String accessibilityFeatures;
 
+    /**
+     * @deprecated Desirability scoring has been removed from the allocation system.
+     *             This field will be removed in a future version.
+     */
+    @Deprecated(since = "2.0", forRemoval = true)
     @Column(name = "desirability_score")
     private Integer desirabilityScore;
 
+    /**
+     * @deprecated Gender restrictions are now managed at the room level only.
+     *             This field will be removed in a future version.
+     */
+    @Deprecated(since = "2.0", forRemoval = true)
     @Column(name = "allow_mixed_gender", nullable = false)
     @Builder.Default
     private Boolean allowMixedGender = false;

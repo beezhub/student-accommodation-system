@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of, tap } from 'rxjs';
+import { Observable, of, tap, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { YearOfStudy } from '../models/year-of-study.model';
 
@@ -38,9 +38,17 @@ export class YearOfStudyService {
       return of(this.yearsCache);
     }
 
+    // Fetch all years with a large page size to get all records
+    const params = new HttpParams()
+      .set('page', '0')
+      .set('size', '100');
+
     return this.http
-      .get<YearOfStudy[]>(this.yearsOfStudyUrl)
-      .pipe(tap((data) => (this.yearsCache = data)));
+      .get<PageResponse<YearOfStudy>>(this.yearsOfStudyUrl, { params })
+      .pipe(
+        map((response) => response.content),
+        tap((data) => (this.yearsCache = data))
+      );
   }
 
   getAllYearsOfStudyPaginated(filters: any): Observable<PageResponse<YearOfStudyResponse>> {

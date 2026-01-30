@@ -51,8 +51,8 @@ public class Application {
     @Column(name = "preferred_duration_months")
     private Integer preferredDurationMonths;
 
-    @Column(name = "preferred_room_type", length = 50)
-    private String preferredRoomType;
+    @Column(name = "requires_accessibility")
+    private Boolean requiresAccessibility = false;
 
     @Column(name = "special_requirements", length = 500)
     private String specialRequirements;

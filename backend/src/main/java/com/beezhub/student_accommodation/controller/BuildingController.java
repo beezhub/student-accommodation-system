@@ -44,6 +44,14 @@ public class BuildingController {
         return ResponseEntity.ok(buildings);
     }
 
+    @GetMapping("/by-institution/{institutionId}")
+    @Operation(summary = "Get buildings by institution", description = "Returns all buildings that serve a specific institution")
+    public ResponseEntity<List<BuildingResponse>> getBuildingsByInstitution(@PathVariable Long institutionId) {
+        log.info("Fetching buildings for institution: {}", institutionId);
+        List<BuildingResponse> buildings = buildingService.getBuildingsByInstitution(institutionId);
+        return ResponseEntity.ok(buildings);
+    }
+
     @GetMapping("/search")
     @Operation(summary = "Search buildings", description = "Search and filter buildings by name or address")
     public ResponseEntity<PageResponse<BuildingResponse>> searchBuildings(

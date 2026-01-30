@@ -12,6 +12,12 @@ public class RoomAllocationSpecification {
 
     public static Specification<RoomAllocation> filterBy(Long studentId, Long roomId, Long buildingId,
                                                           LocalDateTime fromDate, LocalDateTime toDate) {
+        return filterBy(studentId, roomId, buildingId, fromDate, toDate, null, null, null);
+    }
+
+    public static Specification<RoomAllocation> filterBy(Long studentId, Long roomId, Long buildingId,
+                                                          LocalDateTime fromDate, LocalDateTime toDate,
+                                                          String studentName, String roomNumber, String status) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -33,6 +39,34 @@ public class RoomAllocationSpecification {
 
             if (toDate != null) {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("allocationDate"), toDate));
+            }
+
+            // Filter by student name (searches first name or last name, case-insensitive)
+            if (studentName != null && !studentName.trim().isEmpty()) {
+                String searchPattern = "%" + studentName.trim().toLowerCase() + "%";
+                Predicate firstNameMatch = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("student").get("appUser").get("firstName")),
+                        searchPattern
+                );
+                Predicate lastNameMatch = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("student").get("appUser").get("lastName")),
+                        searchPattern
+                );
+                predicates.add(criteriaBuilder.or(firstNameMatch, lastNameMatch));
+            }
+
+            // Filter by room number (partial match, case-insensitive)
+            if (roomNumber != null && !roomNumber.trim().isEmpty()) {
+                String searchPattern = "%" + roomNumber.trim().toLowerCase() + "%";
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("room").get("roomNumber")),
+                        searchPattern
+                ));
+            }
+
+            // Filter by status
+            if (status != null && !status.trim().isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), status.trim().toUpperCase()));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

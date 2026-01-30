@@ -3,9 +3,9 @@
     <div class="header-content">
       <div class="header-title-row">
         <mat-icon class="header-icon">apartment</mat-icon>
-        <h2>Allocation Choice</h2>
+        <h2>Select Room for Allocation</h2>
       </div>
-      <span class="header-subtitle">Select how to allocate a room for this student</span>
+      <span class="header-subtitle">Only rooms matching the student's restrictions are shown</span>
     </div>
     <button mat-icon-button mat-dialog-close class="close-button">
       <mat-icon>close</mat-icon>
@@ -16,7 +16,7 @@
     <!-- Loading State -->
     <div *ngIf="isLoading" class="loading-state">
       <mat-spinner diameter="48"></mat-spinner>
-      <p>Processing allocation...</p>
+      <p>Loading eligible rooms...</p>
     </div>
 
     <!-- Error State -->
@@ -26,116 +26,11 @@
       <button mat-stroked-button mat-dialog-close>Close</button>
     </div>
 
-    <!-- Initial Method Selection -->
-    <div *ngIf="!isLoading && !error && !proposal && rooms.length === 0" class="method-selection">
-      <form [formGroup]="methodForm" (ngSubmit)="onMethodSubmit()">
-        <p class="description">Choose your preferred allocation method for this application.</p>
-
-        <mat-radio-group formControlName="method" class="method-group">
-          <div class="method-option" [class.selected]="methodForm.get('method')?.value === 'auto'" [class.disabled]="!autoAllocationEnabled">
-            <mat-radio-button value="auto" [disabled]="!autoAllocationEnabled">
-              <div class="option-content">
-                <div class="option-header">
-                  <mat-icon class="option-icon">auto_awesome</mat-icon>
-                  <strong>Auto-Allocate</strong>
-                </div>
-                <span class="option-desc">System selects the best available room based on configured allocation rules and student preferences.</span>
-                <span *ngIf="!autoAllocationEnabled" class="badge-disabled">Feature Disabled</span>
-              </div>
-            </mat-radio-button>
-          </div>
-
-          <div class="method-option" [class.selected]="methodForm.get('method')?.value === 'manual'">
-            <mat-radio-button value="manual">
-              <div class="option-content">
-                <div class="option-header">
-                  <mat-icon class="option-icon">touch_app</mat-icon>
-                  <strong>Manual Selection</strong>
-                </div>
-                <span class="option-desc">Browse available rooms and manually select a specific room for this student.</span>
-              </div>
-            </mat-radio-button>
-          </div>
-        </mat-radio-group>
-
-        <div class="actions">
-          <button mat-button mat-dialog-close type="button">Cancel</button>
-          <button mat-raised-button color="primary" type="submit">
-            <mat-icon>arrow_forward</mat-icon>
-            Continue
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Auto Allocation Result -->
-    <div *ngIf="!isLoading && proposal" class="result-state">
-      <div class="result-header">
-        <mat-icon class="success-icon">check_circle</mat-icon>
-        <h3>Proposed Allocation</h3>
-      </div>
-
-      <div class="proposal-card">
-        <div class="proposal-header">
-          <div class="room-info">
-            <span class="building-name">{{ proposal?.roomDetails?.buildingName }}</span>
-            <span class="room-number">Room {{ proposal?.roomDetails?.roomNumber }}</span>
-          </div>
-          <div class="score-badge">
-            <mat-icon>star</mat-icon>
-            <span>Score: {{ proposal?.score }}</span>
-          </div>
-        </div>
-
-        <div class="proposal-details">
-          <div class="detail-item">
-            <mat-icon>layers</mat-icon>
-            <span class="label">Floor</span>
-            <span class="value">{{ proposal?.roomDetails?.floor }}</span>
-          </div>
-          <div class="detail-item">
-            <mat-icon>group</mat-icon>
-            <span class="label">Capacity</span>
-            <span class="value">{{ proposal?.roomDetails?.capacity }}</span>
-          </div>
-        </div>
-
-        <div *ngIf="proposal?.warnings?.length" class="warnings-section">
-          <div class="warnings-header">
-            <mat-icon>warning</mat-icon>
-            <span>Warnings</span>
-          </div>
-          <div class="warning-chips">
-            <span class="warning-chip" *ngFor="let w of proposal?.warnings">{{ w }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button mat-button (click)="proposal = null" type="button">
-          <mat-icon>arrow_back</mat-icon>
-          Back
-        </button>
-        <button mat-raised-button color="primary" (click)="confirmAutoAllocation()">
-          <mat-icon>check</mat-icon>
-          Confirm Allocation
-        </button>
-      </div>
-    </div>
-
-    <!-- Manual Allocation Room List -->
-    <div *ngIf="!isLoading && !proposal && rooms.length > 0" class="manual-state">
-      <div class="manual-header">
-        <h3>Select a Room</h3>
-        <button mat-button (click)="rooms = []" class="back-link">
-          <mat-icon>arrow_back</mat-icon>
-          Back to Method Selection
-        </button>
-      </div>
-
+    <!-- Room Selection -->
+    <div *ngIf="!isLoading && !error" class="room-selection-state">
       <form [formGroup]="searchForm" class="search-form">
         <mat-form-field appearance="outline" class="building-select">
-          <mat-label>Building</mat-label>
+          <mat-label>Filter by Building</mat-label>
           <mat-select formControlName="buildingId">
             <mat-option value="">All Buildings</mat-option>
             <mat-option *ngFor="let b of buildings" [value]="b.id">{{ b.name }}</mat-option>
@@ -147,14 +42,19 @@
           <input matInput formControlName="roomNumber" placeholder="e.g., 101">
         </mat-form-field>
 
-        <button mat-flat-button color="primary" type="button" (click)="searchRooms()" class="search-btn">
+        <button mat-flat-button color="primary" type="button" (click)="onSearch()" class="search-btn">
           <mat-icon>search</mat-icon>
           Search
         </button>
       </form>
 
-      <div class="table-container">
-        <table mat-table [dataSource]="rooms">
+      <div class="info-banner" *ngIf="eligibleRooms.length > 0">
+        <mat-icon>info</mat-icon>
+        <span>Showing <strong>{{ eligibleRooms.length }}</strong> eligible rooms based on student's gender, year of study, accessibility needs, and institution.</span>
+      </div>
+
+      <div class="table-container" *ngIf="eligibleRooms.length > 0">
+        <table mat-table [dataSource]="eligibleRooms">
           <ng-container matColumnDef="roomNumber">
             <th mat-header-cell *matHeaderCellDef>Room</th>
             <td mat-cell *matCellDef="let room">
@@ -168,18 +68,27 @@
           </ng-container>
 
           <ng-container matColumnDef="capacity">
-            <th mat-header-cell *matHeaderCellDef>Features</th>
+            <th mat-header-cell *matHeaderCellDef>Occupancy</th>
             <td mat-cell *matCellDef="let room">
-              <div class="features-cell">
-                <span class="cap-badge" matTooltip="Current Occupancy / Capacity">
-                  <mat-icon>group</mat-icon>
-                  {{ room.currentOccupancy }}/{{ room.capacity }}
-                </span>
+              <span class="cap-badge" matTooltip="Current Occupancy / Capacity">
+                <mat-icon>group</mat-icon>
+                {{ room.currentOccupancy }}/{{ room.capacity }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="restrictions">
+            <th mat-header-cell *matHeaderCellDef>Restrictions</th>
+            <td mat-cell *matCellDef="let room">
+              <div class="restrictions-cell">
                 <span *ngIf="room.accessibilityCompliant" class="feature-badge accessible" matTooltip="Wheelchair Accessible">
                   <mat-icon>accessible</mat-icon>
                 </span>
-                <span *ngIf="room.genderRestriction !== 'NONE'" class="gender-badge" [ngClass]="room.genderRestriction">
-                  {{ room.genderRestriction === 'MALE_ONLY' ? 'Male' : 'Female' }}
+                <span *ngIf="room.genderRestriction && room.genderRestriction !== 'ANY'" class="gender-badge" [ngClass]="room.genderRestriction">
+                  {{ room.genderRestriction === 'MALE_ONLY' ? 'Male Only' : 'Female Only' }}
+                </span>
+                <span *ngIf="getYearRestrictionLabel(room)" class="year-badge">
+                  {{ getYearRestrictionLabel(room) }}
                 </span>
               </div>
             </td>
@@ -199,6 +108,16 @@
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
         </table>
+      </div>
+
+      <div *ngIf="eligibleRooms.length === 0 && !isLoading" class="no-rooms-state">
+        <mat-icon>meeting_room</mat-icon>
+        <h3>No Eligible Rooms Found</h3>
+        <p>There are no available rooms that match this student's restrictions (gender, year of study, accessibility needs, institution).</p>
+        <button mat-stroked-button color="primary" type="button" class="waitlist-btn" [disabled]="isAddingToWaitingList" (click)="addToWaitingList()">
+          <mat-spinner *ngIf="isAddingToWaitingList" diameter="18"></mat-spinner>
+          {{ isAddingToWaitingList ? 'Adding...' : 'Add to Waiting List' }}
+        </button>
       </div>
 
       <div class="actions footer-actions">

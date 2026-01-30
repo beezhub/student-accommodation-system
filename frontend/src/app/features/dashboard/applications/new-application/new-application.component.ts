@@ -1,5 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
-
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -7,8 +6,8 @@ import { ApplicationService } from '../../../../core/services/application.servic
 import { StudentService } from '../../../../core/services/student.service';
 import { InstitutionService } from '../../../../core/services/institution.service';
 import { BuildingService, BuildingResponse } from '../../../../core/services/building.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Institution } from '../../../../core/models/institution.model';
+import { AccommodationTypeService, AccommodationType } from '../../../../core/services/accommodation-type.service';
+import { ErrorHandlingService, ParsedError } from '../../../../core/services/error-handling.service';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -23,7 +22,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { ErrorDisplayComponent } from '../../../../shared/error-display/error-display.component';
 
 @Component({
   selector: 'app-new-application',
@@ -45,7 +44,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatDividerModule,
-    MatSnackBarModule,
+    ErrorDisplayComponent,
   ],
 })
 export class NewApplicationComponent implements OnInit {
@@ -56,42 +55,32 @@ export class NewApplicationComponent implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly institutionService = inject(InstitutionService);
   private readonly buildingService = inject(BuildingService);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly accommodationTypeService = inject(AccommodationTypeService);
+  private readonly errorService = inject(ErrorHandlingService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   applicationForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
   studentId: number | null = null;
-  institutions: readonly Institution[] = [];
-  buildings: readonly BuildingResponse[] = [];
+  studentInstitutionId: number | null = null;
+  institutionName = '';
+  buildings: BuildingResponse[] = [];
+  submitError: ParsedError | null = null;
+  loadError: ParsedError | null = null;
+  isRetrying = false;
 
-  // Accommodation types for the dropdown
-  readonly accommodationTypes = [
-    { value: 'SINGLE', viewValue: 'Single Room' },
-    { value: 'DOUBLE', viewValue: 'Double Room' },
-    { value: 'STUDIO', viewValue: 'Studio Apartment' },
-    { value: 'ENSUITE', viewValue: 'En-suite Room' },
-  ] as const;
-
-  // Room type options for the dropdown
-  readonly roomTypeOptions = [
-    { value: 'STANDARD', viewValue: 'Standard Room' },
-    { value: 'PREMIUM', viewValue: 'Premium Room' },
-    { value: 'ACCESSIBLE', viewValue: 'Accessible Room' },
-    { value: 'QUIET_FLOOR', viewValue: 'Quiet Study Floor' },
-  ] as const;
+  accommodationTypes: AccommodationType[] = [];
 
   constructor() {
     this.applicationForm = this.fb.group({
       preferredAccommodationType: ['', Validators.required],
       preferredMoveInDate: ['', Validators.required],
       preferredDurationMonths: ['', [Validators.required, Validators.min(1), Validators.max(12)]],
-      preferredRoomType: ['', Validators.required],
+      requiresAccessibility: [false],
       preferredBuildingId: [''],
       specialRequirements: [''],
-      institutionId: ['', Validators.required],
       courseName: ['', Validators.required],
-      agreeToTerms: [false, Validators.requiredTrue],
     });
   }
 
@@ -102,69 +91,119 @@ export class NewApplicationComponent implements OnInit {
       return;
     }
 
-    // Load institutions
-    this.institutionService.getInstitutions().subscribe({
-      next: (response: any) => {
-        this.institutions = Array.isArray((response as any).content)
-          ? (response as any).content
-          : Array.isArray(response)
-          ? response
-          : [];
-      },
-      error: (error) => {
-        console.error('Failed to load institutions', error);
-      },
-    });
+    this.loadAccommodationTypes();
+    this.loadStudentProfile();
+  }
 
-    // Load buildings for preferred building selection
+  loadBuildings(): void {
+    // If student has an institution, only show buildings that serve that institution
+    if (this.studentInstitutionId) {
+      this.buildingService.getBuildingsByInstitution(this.studentInstitutionId).subscribe({
+        next: (buildings) => {
+          this.buildings = buildings;
+          this.cdr.markForCheck();
+        },
+        error: (error) => {
+          console.error('Failed to load buildings for institution', error);
+          // Fall back to all buildings
+          this.loadAllBuildings();
+        },
+      });
+    } else {
+      this.loadAllBuildings();
+    }
+  }
+
+  private loadAllBuildings(): void {
     this.buildingService.getAllBuildingsNoPagination().subscribe({
       next: (buildings) => {
         this.buildings = buildings;
+        this.cdr.markForCheck();
       },
       error: (error) => {
         console.error('Failed to load buildings', error);
       },
     });
+  }
 
-    // Get student ID from student profile
+  loadStudentProfile(): void {
+    this.loadError = null;
+    this.isRetrying = true;
+
     this.studentService.getStudentProfile().subscribe({
       next: (profile) => {
+        this.isRetrying = false;
         this.studentId = profile.id;
+        this.studentInstitutionId = profile.institutionId || null;
 
-        // Pre-fill institution if available
+        // Get institution name and load buildings after we know the institution
         if (profile.institutionId) {
-          this.applicationForm.patchValue({
-            institutionId: profile.institutionId,
+          this.institutionService.getInstitutions().subscribe({
+            next: (response: any) => {
+              const institutions = Array.isArray((response as any).content)
+                ? (response as any).content
+                : Array.isArray(response)
+                ? response
+                : [];
+
+              const institution = institutions.find(
+                (inst: any) => String(inst.id) === String(profile.institutionId)
+              );
+
+              if (institution) {
+                this.institutionName = institution.name;
+              }
+              // Load buildings after we know the institution
+              this.loadBuildings();
+              this.cdr.markForCheck();
+            },
+            error: (error) => {
+              console.error('Error fetching institution:', error);
+              this.loadBuildings();
+              this.cdr.markForCheck();
+            },
           });
+        } else {
+          this.loadBuildings();
         }
+        this.cdr.markForCheck();
       },
       error: (error) => {
+        this.isRetrying = false;
         console.error('Error fetching student profile:', error);
-        this.snackBar.open(
-          'Failed to load student profile. Please complete your profile first.',
-          'Close',
-          {
-            duration: 5000,
-            horizontalPosition: 'end',
-            verticalPosition: 'top',
-          }
-        );
-        this.router.navigate(['/profile']);
+        this.loadError = this.errorService.parseError(error);
+
+        if (this.loadError.statusCode === 404) {
+          this.errorService.showWarning('Please complete your profile first.');
+          this.router.navigate(['/profile']);
+        }
+        this.cdr.markForCheck();
       },
     });
   }
 
+  loadAccommodationTypes(): void {
+    this.accommodationTypeService.getActiveTypes().subscribe({
+      next: (types) => {
+        this.accommodationTypes = types;
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.error('Failed to load accommodation types', error);
+      },
+    });
+  }
+
+  retryLoadProfile(): void {
+    this.loadStudentProfile();
+  }
+
   onSubmit() {
+    // Clear previous errors
+    this.submitError = null;
+
     if (!this.studentId) {
-      this.snackBar.open(
-        'Student profile not found. Please complete your profile first.',
-        'Close',
-        {
-          duration: 5000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
-        }
-      );
+      this.errorService.showWarning('Student profile not found. Please complete your profile first.');
       this.router.navigate(['/profile']);
       return;
     }
@@ -179,56 +218,53 @@ export class NewApplicationComponent implements OnInit {
       const formattedDate =
         moveInDate instanceof Date ? moveInDate.toISOString().split('T')[0] : moveInDate;
 
-      // Get institution name from selected institution ID
-      const selectedInstitution = this.institutions.find(
-        (inst) => inst.id === formValue.institutionId
-      );
-      const institutionName = selectedInstitution ? selectedInstitution.name : '';
+      // Ensure numeric fields are sent as numbers
+      const durationMonths = formValue.preferredDurationMonths;
+      const parsedDuration =
+        typeof durationMonths === 'string' ? parseInt(durationMonths, 10) : durationMonths;
 
       const applicationData = {
         studentId: this.studentId,
         preferredAccommodationType: formValue.preferredAccommodationType,
         preferredMoveInDate: formattedDate,
-        preferredDurationMonths: formValue.preferredDurationMonths,
-        preferredRoomType: formValue.preferredRoomType,
+        preferredDurationMonths: parsedDuration,
+        requiresAccessibility: formValue.requiresAccessibility || false,
         preferredBuildingId: formValue.preferredBuildingId || null,
         specialRequirements: formValue.specialRequirements || null,
-        institutionName: institutionName,
+        institutionName: this.institutionName || 'Not specified',
         courseName: formValue.courseName,
       };
 
       this.applicationService.createApplication(applicationData).subscribe({
-        next: (response) => {
+        next: () => {
           this.isSubmitting = false;
-          this.snackBar.open('Application submitted successfully!', 'Close', {
-            duration: 3000,
-            horizontalPosition: 'end',
-            verticalPosition: 'top',
-            panelClass: ['success-snackbar'],
-          });
+          this.errorService.showSuccess('Application submitted successfully!');
           this.router.navigate(['/applications']);
+          this.cdr.markForCheck();
         },
         error: (error) => {
           this.isSubmitting = false;
           console.error('Error submitting application:', error);
+          this.submitError = this.errorService.parseError(error);
 
-          const errorMessage =
-            error.error?.message || 'Failed to submit application. Please try again.';
-          this.snackBar.open(errorMessage, 'Close', {
-            duration: 5000,
-            horizontalPosition: 'end',
-            verticalPosition: 'top',
-            panelClass: ['error-snackbar'],
-          });
+          // Don't show snackbar for validation errors - they'll see the inline error
+          if (this.submitError.type !== 'validation') {
+            this.errorService.showErrorSnackbar(this.submitError);
+          }
+          this.cdr.markForCheck();
         },
       });
     } else {
       this.applicationForm.markAllAsTouched();
-      this.snackBar.open('Please fill in all required fields correctly', 'Close', {
-        duration: 3000,
-        horizontalPosition: 'end',
-        verticalPosition: 'top',
-      });
+      this.errorService.showWarning('Please fill in all required fields correctly');
     }
+  }
+
+  dismissError(): void {
+    this.submitError = null;
+  }
+
+  retrySubmit(): void {
+    this.onSubmit();
   }
 }

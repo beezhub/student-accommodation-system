@@ -12,6 +12,16 @@
         <span class="stat-value">{{ totalElements }}</span>
         <span class="stat-label">Total Rooms</span>
       </div>
+      @if (selection.selected.length > 0) {
+        <button mat-raised-button color="accent" (click)="openBulkAttributesDialog()" class="bulk-edit-btn">
+          <mat-icon>edit_note</mat-icon>
+          Edit {{ selection.selected.length }} Selected
+        </button>
+        <button mat-stroked-button (click)="clearSelection()" class="clear-selection-btn">
+          <mat-icon>clear</mat-icon>
+          Clear
+        </button>
+      }
       <button mat-raised-button color="primary" (click)="openCreateDialog()" class="add-btn">
         <mat-icon>add</mat-icon>
         Add Room
@@ -59,11 +69,11 @@
         </mat-form-field>
 
         <div class="filter-actions">
-          <button mat-raised-button color="primary" (click)="onFilter()" class="search-btn">
+          <button type="button" mat-raised-button color="primary" (click)="onFilter()" class="search-btn">
             <mat-icon>search</mat-icon>
             Search
           </button>
-          <button mat-stroked-button (click)="onClearFilters()" class="clear-btn">
+          <button type="button" mat-stroked-button (click)="onClearFilters()" class="clear-btn">
             <mat-icon>refresh</mat-icon>
             Reset
           </button>
@@ -85,6 +95,26 @@
       @if (!isLoading) {
         <div class="table-wrapper">
           <table mat-table [dataSource]="rooms" class="rooms-table">
+            <!-- Checkbox Column -->
+            <ng-container matColumnDef="select">
+              <th mat-header-cell *matHeaderCellDef>
+                <mat-checkbox
+                  (change)="$event ? toggleAllRows() : null"
+                  [checked]="isAllSelected()"
+                  [indeterminate]="isSomeSelected()"
+                  color="primary">
+                </mat-checkbox>
+              </th>
+              <td mat-cell *matCellDef="let room">
+                <mat-checkbox
+                  (click)="$event.stopPropagation()"
+                  (change)="$event ? selection.toggle(room) : null"
+                  [checked]="selection.isSelected(room)"
+                  color="primary">
+                </mat-checkbox>
+              </td>
+            </ng-container>
+
             <!-- Room Number Column -->
             <ng-container matColumnDef="roomNumber">
               <th mat-header-cell *matHeaderCellDef>Room</th>
@@ -137,14 +167,43 @@
               </td>
             </ng-container>
 
+            <!-- Attributes Column -->
+            <ng-container matColumnDef="attributes">
+              <th mat-header-cell *matHeaderCellDef>Attributes</th>
+              <td mat-cell *matCellDef="let room">
+                <div class="attributes-cell">
+                  <span class="attribute-badge gender"
+                        [class.male]="room.genderRestriction === 'MALE_ONLY'"
+                        [class.female]="room.genderRestriction === 'FEMALE_ONLY'"
+                        *ngIf="room.genderRestriction && room.genderRestriction !== 'ANY'"
+                        matTooltip="Gender Restriction">
+                    <mat-icon>{{ room.genderRestriction === 'MALE_ONLY' ? 'male' : 'female' }}</mat-icon>
+                    {{ room.genderRestriction === 'MALE_ONLY' ? 'Male' : 'Female' }}
+                  </span>
+                  <span class="attribute-badge accessible"
+                        *ngIf="room.accessibilityCompliant === true"
+                        matTooltip="Accessibility Compliant">
+                    <mat-icon>accessible</mat-icon>
+                  </span>
+                  <span class="attribute-badge year-restriction"
+                        *ngIf="room.minYearOfStudy || room.maxYearOfStudy"
+                        [matTooltip]="getYearRestrictionTooltip(room)">
+                    <mat-icon>school</mat-icon>
+                  </span>
+                  @if ((!room.genderRestriction || room.genderRestriction === 'ANY') && room.accessibilityCompliant !== true && !room.minYearOfStudy && !room.maxYearOfStudy) {
+                    <span class="no-attributes">
+                      —
+                    </span>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
             <!-- Status Column -->
             <ng-container matColumnDef="status">
               <th mat-header-cell *matHeaderCellDef>Status</th>
               <td mat-cell *matCellDef="let room">
-                <span class="status-badge" [class]="getStatusClass(room.status)">
-                  <mat-icon>{{ getStatusIcon(room.status) }}</mat-icon>
-                  {{ room.status }}
-                </span>
+                <app-modern-status-badge [status]="room.status" size="sm"></app-modern-status-badge>
               </td>
             </ng-container>
 
@@ -153,6 +212,9 @@
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let room">
                 <div class="actions-cell">
+                  <button mat-icon-button (click)="openAttributesDialog(room)" matTooltip="Room Attributes (Gender, Accessibility)" class="action-btn attributes">
+                    <mat-icon>tune</mat-icon>
+                  </button>
                   <button mat-icon-button (click)="openEditDialog(room)" matTooltip="Edit Room" class="action-btn edit">
                     <mat-icon>edit</mat-icon>
                   </button>
@@ -164,7 +226,9 @@
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+                [class.selected-row]="selection.isSelected(row)"
+                (click)="selection.toggle(row)"></tr>
           </table>
 
           @if (rooms.length === 0) {

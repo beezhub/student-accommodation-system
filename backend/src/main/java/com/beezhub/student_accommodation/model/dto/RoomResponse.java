@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.model.dto;
 
+import com.beezhub.student_accommodation.model.enums.GenderRestriction;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -16,4 +17,11 @@ public class RoomResponse {
     private BuildingResponse building;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Room attributes
+    private Boolean accessibilityCompliant;
+    private GenderRestriction genderRestriction;
+    private Integer desirabilityOverride;
+    private Integer minYearOfStudy;
+    private Integer maxYearOfStudy;
 }

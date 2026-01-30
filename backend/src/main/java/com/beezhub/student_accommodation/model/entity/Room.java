@@ -34,6 +34,9 @@ public class Room {
     @JoinColumn(name = "building_id")
     private Building building;
 
+    @OneToOne(mappedBy = "room", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private RoomAttributes attributes;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

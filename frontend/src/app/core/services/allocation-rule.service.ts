@@ -1,19 +1,30 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AllocationRule } from '../models/allocation.models';
+
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class AllocationRuleService {
-  private apiUrl = `${environment.apiUrl}/allocation-rules`;
+  private apiUrl = `${environment.apiUrl}/admin/allocation-rules`;
 
   constructor(private http: HttpClient) {}
 
-  getRulesForBuilding(buildingId: number): Observable<AllocationRule[]> {
-    return this.http.get<AllocationRule[]>(`${this.apiUrl}/building/${buildingId}`);
+  getRulesForBuilding(buildingId: number | null): Observable<AllocationRule[]> {
+    const params = buildingId !== null ? `?buildingId=${buildingId}&size=100` : '?size=100';
+    return this.http.get<PageResponse<AllocationRule>>(`${this.apiUrl}${params}`).pipe(
+      map(response => response.content)
+    );
   }
 
   getRule(ruleId: number): Observable<AllocationRule> {

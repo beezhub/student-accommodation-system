@@ -8,6 +8,12 @@ export interface BuildingRequest {
   address?: string;
   description?: string;
   totalFloors?: number;
+  institutionIds?: number[];
+}
+
+export interface InstitutionSummary {
+  id: number;
+  name: string;
 }
 
 export interface BuildingResponse {
@@ -16,6 +22,7 @@ export interface BuildingResponse {
   address?: string;
   description?: string;
   totalFloors?: number;
+  institutions?: InstitutionSummary[];
   createdAt: string;
   updatedAt: string;
 }
@@ -75,5 +82,9 @@ export class BuildingService {
 
   deleteBuilding(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  getBuildingsByInstitution(institutionId: number): Observable<BuildingResponse[]> {
+    return this.http.get<BuildingResponse[]>(`${this.apiUrl}/by-institution/${institutionId}`);
   }
 }

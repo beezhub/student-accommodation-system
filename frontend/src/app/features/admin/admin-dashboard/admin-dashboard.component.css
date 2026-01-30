@@ -424,7 +424,7 @@
 }
 
 .occupancy-table tbody tr:hover {
-  background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%) !important;
+  background: linear-gradient(90deg, #fff7ed 0%, #ffedd5 50%, #fff7ed 100%) !important;
 }
 
 /* Building Cell */
@@ -440,16 +440,16 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
   border-radius: 10px;
-  border: 1px solid #ddd6fe;
+  border: 1px solid #fed7aa;
 }
 
 .building-icon mat-icon {
   font-size: 20px;
   width: 20px;
   height: 20px;
-  color: #7c3aed;
+  color: #ea580c;
 }
 
 .building-name {
@@ -647,8 +647,24 @@
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
 }
 
+.quick-link-card.buildings .quick-link-icon {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.quick-link-card.accommodation-types .quick-link-icon {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
 .quick-link-card.settings .quick-link-icon {
   background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+}
+
+.quick-link-card.rules .quick-link-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.quick-link-card.waiting-list .quick-link-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
 .quick-link-info {

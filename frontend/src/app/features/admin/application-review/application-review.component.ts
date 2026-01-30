@@ -7,6 +7,7 @@ import {
   PageResponse,
 } from '../../../core/services/admin.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
+import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
 import { Observable, startWith, map, debounceTime, distinctUntilChanged } from 'rxjs';
 
 // Material imports
@@ -130,6 +131,7 @@ export class ApplicationReviewComponent implements OnInit {
   constructor(
     private adminService: AdminService,
     private buildingService: BuildingService,
+    private stagedAllocationService: StagedAllocationService,
     private fb: FormBuilder,
     private snackBar: MatSnackBar,
     private errorService: ErrorHandlingService,
@@ -339,5 +341,64 @@ export class ApplicationReviewComponent implements OnInit {
     if (score >= 80) return 'score-high';
     if (score >= 50) return 'score-medium';
     return 'score-low';
+  }
+
+  runAutoAllocation(application: ApplicationResponse): void {
+    if (application.status !== 'AWAITING_ALLOCATION') {
+      this.errorService.showWarning('Application must be in "Awaiting Allocation" status for auto-allocation.');
+      return;
+    }
+
+    const batchId = `auto-${application.id}-${Date.now()}`;
+
+    this.snackBar.open('Running auto-allocation...', 'Close', { duration: 2000 });
+
+    this.stagedAllocationService.proposeAllocation([application.studentId], batchId).subscribe({
+      next: (proposal) => {
+        if (proposal.proposals && proposal.proposals.length > 0) {
+          const stagedAllocation = proposal.proposals[0];
+          // Auto-confirm the allocation
+          this.stagedAllocationService.confirmAllocation(stagedAllocation.id).subscribe({
+            next: () => {
+              this.errorService.showSuccess('Room allocated successfully!');
+              this.loadApplications();
+            },
+            error: (error) => {
+              console.error('Failed to confirm allocation:', error);
+              this.errorService.showErrorSnackbar(this.errorService.parseError(error));
+            }
+          });
+        } else {
+          this.enqueueWaitingListForAutoAllocation(application);
+        }
+      },
+      error: (error) => {
+        console.error('Failed to run auto-allocation:', error);
+        const parsedError = this.errorService.parseError(error);
+        if (
+          parsedError.message.includes('No eligible') ||
+          parsedError.message.includes('no room') ||
+          parsedError.message.includes('No available rooms')
+        ) {
+          this.enqueueWaitingListForAutoAllocation(application);
+        } else {
+          this.errorService.showErrorSnackbar(parsedError);
+        }
+      }
+    });
+  }
+
+  private enqueueWaitingListForAutoAllocation(application: ApplicationResponse): void {
+    this.stagedAllocationService.enqueueWaitingList(application.studentId, application.id).subscribe({
+      next: (res) => {
+        this.errorService.showWarning(
+          res.message || 'No suitable room found. Student added to waiting list.'
+        );
+        this.loadApplications();
+      },
+      error: () => {
+        this.errorService.showWarning('No suitable room found for auto-allocation.');
+      }
+    });
   }
 }

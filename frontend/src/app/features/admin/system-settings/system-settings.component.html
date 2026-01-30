@@ -15,6 +15,29 @@
     </div>
   </div>
 
+  <!-- Feature Flags / Global Settings -->
+  <div class="global-settings-section">
+    <mat-card class="settings-card feature-flag-card">
+        <mat-card-content>
+            <div class="card-icon">
+                <mat-icon>toggle_on</mat-icon>
+            </div>
+            <div class="card-info">
+                <h2>Auto-Allocation</h2>
+                <p>Enable automatic room allocation for approved applications.</p>
+            </div>
+            <div class="card-action">
+                <mat-slide-toggle
+                    [checked]="autoAllocationEnabled"
+                    (change)="toggleAutoAllocation()"
+                    color="primary">
+                    {{ autoAllocationEnabled ? 'Enabled' : 'Disabled' }}
+                </mat-slide-toggle>
+            </div>
+        </mat-card-content>
+    </mat-card>
+  </div>
+
   <div class="settings-grid">
     @for (category of settingsCategories; track category.route) {
       <mat-card class="settings-card" [class]="category.class" [routerLink]="category.route">

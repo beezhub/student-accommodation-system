@@ -23,6 +23,10 @@ export type StatusType =
   | 'ACTIVE'
   | 'inactive'
   | 'INACTIVE'
+  | 'allocated'
+  | 'ALLOCATED'
+  | 'awaiting_allocation'
+  | 'AWAITING_ALLOCATION'
   | string;
 
 interface StatusConfig {
@@ -254,6 +258,28 @@ interface StatusConfig {
         background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
       }
 
+      /* Allocated - Success Green */
+      .status-allocated {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        color: #047857;
+        border: 1.5px solid #6ee7b7;
+      }
+
+      .status-allocated:hover {
+        background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
+      }
+
+      /* Awaiting Allocation - Blue */
+      .status-awaiting_allocation {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #1e40af;
+        border: 1.5px solid #93c5fd;
+      }
+
+      .status-awaiting_allocation:hover {
+        background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+      }
+
       /* Default */
       .status-default {
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -337,6 +363,18 @@ export class ModernStatusBadgeComponent {
         label: 'Inactive',
         colorClass: 'status-inactive',
         emoji: '⚪',
+      },
+      allocated: {
+        icon: 'assignment_turned_in',
+        label: 'Allocated',
+        colorClass: 'status-allocated',
+        emoji: '✅',
+      },
+      awaiting_allocation: {
+        icon: 'hourglass_empty',
+        label: 'Awaiting Allocation',
+        colorClass: 'status-awaiting_allocation',
+        emoji: '⏳',
       },
     };
 

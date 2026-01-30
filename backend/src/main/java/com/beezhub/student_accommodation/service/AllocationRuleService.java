@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Deprecated(since = "2.0", forRemoval = true)
 public class AllocationRuleService {
 
     private final AllocationRuleRepository allocationRuleRepository;

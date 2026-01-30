@@ -40,11 +40,11 @@
         </mat-form-field>
 
         <div class="filter-actions">
-          <button mat-raised-button color="primary" (click)="onFilter()" class="search-btn">
+          <button type="button" mat-raised-button color="primary" (click)="onFilter()" class="search-btn">
             <mat-icon>search</mat-icon>
             Search
           </button>
-          <button mat-stroked-button (click)="onClearFilters()" class="clear-btn">
+          <button type="button" mat-stroked-button (click)="onClearFilters()" class="clear-btn">
             <mat-icon>refresh</mat-icon>
             Reset
           </button>
@@ -104,6 +104,25 @@
               </td>
             </ng-container>
 
+            <!-- Institutions Column -->
+            <ng-container matColumnDef="institutions">
+              <th mat-header-cell *matHeaderCellDef>Institutions</th>
+              <td mat-cell *matCellDef="let building">
+                <div class="institutions-cell">
+                  @if (building.institutions && building.institutions.length > 0) {
+                    @for (institution of building.institutions.slice(0, 2); track institution.id) {
+                      <span class="institution-chip">{{ institution.name }}</span>
+                    }
+                    @if (building.institutions.length > 2) {
+                      <span class="more-badge">+{{ building.institutions.length - 2 }}</span>
+                    }
+                  } @else {
+                    <span class="all-institutions">All Institutions</span>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
             <!-- Created At Column -->
             <ng-container matColumnDef="createdAt">
               <th mat-header-cell *matHeaderCellDef>Created</th>
@@ -119,7 +138,7 @@
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let building">
-                <div class="actions-cell">
+                  <div class="actions-cell">
                   <button mat-icon-button (click)="openEditDialog(building)" matTooltip="Edit Building" class="action-btn edit">
                     <mat-icon>edit</mat-icon>
                   </button>

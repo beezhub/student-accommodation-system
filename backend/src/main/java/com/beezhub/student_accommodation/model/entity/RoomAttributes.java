@@ -33,8 +33,11 @@ public class RoomAttributes {
     @Enumerated(EnumType.STRING)
     private GenderRestriction genderRestriction;
 
-    @Column(name = "desirability_override")
-    private Integer desirabilityOverride;
+    @Column(name = "min_year_of_study")
+    private Integer minYearOfStudy;
+
+    @Column(name = "max_year_of_study")
+    private Integer maxYearOfStudy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

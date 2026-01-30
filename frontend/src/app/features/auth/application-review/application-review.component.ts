@@ -11,8 +11,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
 import { AuthService } from '../../../core/services/auth.service';
-import { DocumentData } from '../../../core/models/document.model';
-import { DocumentService } from '../../../core/services/document.service';
 import { User } from '../../../core/models/user.model';
 import { StudentService } from '../../../core/services/student.service';
 import { StudentResponse } from '../../../core/models/student.model';
@@ -20,7 +18,7 @@ import { YearOfStudy } from '../../../core/models/year-of-study.model';
 import { InstitutionService } from '../../../core/services/institution.service';
 import { YearOfStudyService } from '../../../core/services/year-of-study.service';
 import { Institution } from '../../../core/models/institution.model';
-import { ApplicationService } from '../../../core/services/application.service';
+import { ApplicationService, ApplicationDocument } from '../../../core/services/application.service';
 
 @Component({
   selector: 'app-application-review',
@@ -43,7 +41,6 @@ import { ApplicationService } from '../../../core/services/application.service';
 export class ApplicationReviewComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
-  private readonly documentService = inject(DocumentService);
   private readonly studentService = inject(StudentService);
   private readonly yearOfStudyService = inject(YearOfStudyService);
   private readonly institutionService = inject(InstitutionService);
@@ -53,9 +50,10 @@ export class ApplicationReviewComponent implements OnInit {
   termsAccepted = false;
   currentUser: User | null = null;
   studentProfile: StudentResponse | null = null;
-  documents: readonly DocumentData[] = [];
+  documents: ApplicationDocument[] = [];
   yearOfStudy: readonly YearOfStudy[] = [];
   institutions: readonly Institution[] = [];
+  currentApplication: any = null;
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
@@ -73,11 +71,6 @@ export class ApplicationReviewComponent implements OnInit {
         console.error('Failed to load student profile', err);
         this.router.navigate(['/login']);
       },
-    });
-
-    this.documentService.getUploadedDocuments().subscribe({
-      next: (docsInfo) => (this.documents = docsInfo),
-      error: (err) => console.error('Failed to load documents', err),
     });
 
     this.yearOfStudyService.getYearsOfStudy().subscribe({
@@ -107,6 +100,30 @@ export class ApplicationReviewComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load institutions', err);
+      },
+    });
+
+    // Load application data
+    this.applicationService.getMyApplications().subscribe({
+      next: (applications) => {
+        if (applications && applications.length > 0) {
+          this.currentApplication = applications[0];
+          console.log('Application data loaded:', this.currentApplication);
+          
+          // Load documents for this specific application
+          if (this.currentApplication.id) {
+            this.applicationService.getApplicationDocuments(this.currentApplication.id).subscribe({
+              next: (docsInfo) => {
+                this.documents = docsInfo;
+                console.log('Application documents loaded:', docsInfo);
+              },
+              error: (err) => console.error('Failed to load application documents', err),
+            });
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Failed to load application', err);
       },
     });
   }

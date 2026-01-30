@@ -21,11 +21,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@Tag(name = "Allocation Rules", description = "Admin endpoints for managing room allocation rules")
+@Tag(name = "Allocation Rules", description = "DEPRECATED: Admin endpoints for managing room allocation rules. These endpoints will be removed in a future version.")
 @RestController
 @RequestMapping("/api/admin/allocation-rules")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
+@Deprecated(since = "2.0", forRemoval = true)
 public class AllocationRuleController {
 
     private final AllocationRuleService allocationRuleService;

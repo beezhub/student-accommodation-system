@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RoomService, RoomResponse, PageResponse } from '../../../core/services/room.service';
@@ -19,6 +20,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { SelectionModel } from '@angular/cdk/collections';
 
 // Modern UI Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
@@ -29,6 +32,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
   styleUrls: ['./room-management.component.css'],
   standalone: true,
   imports: [
+    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
@@ -44,6 +48,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatTooltipModule,
     MatMenuModule,
     MatChipsModule,
+    MatCheckboxModule,
     ModernStatusBadgeComponent,
   ],
 })
@@ -51,10 +56,12 @@ export class RoomManagementComponent implements OnInit {
   rooms: RoomResponse[] = [];
   buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
+    'select',
     'roomNumber',
     'buildingName',
     'capacity',
     'currentOccupancy',
+    'attributes',
     'status',
     'actions',
   ];
@@ -67,6 +74,9 @@ export class RoomManagementComponent implements OnInit {
   filterForm: FormGroup;
 
   statuses = ['AVAILABLE', 'OCCUPIED', 'FULL', 'MAINTENANCE'];
+
+  // Selection model for bulk operations
+  selection = new SelectionModel<RoomResponse>(true, []);
 
   constructor(
     private roomService: RoomService,
@@ -101,6 +111,7 @@ export class RoomManagementComponent implements OnInit {
 
   loadRooms(): void {
     this.isLoading = true;
+    this.selection.clear(); // Clear selection when loading new data
     const filters = {
       ...this.filterForm.value,
       page: this.currentPage,
@@ -189,24 +200,28 @@ export class RoomManagementComponent implements OnInit {
     }
   }
 
-  getStatusClass(status: string): string {
-    return status.toLowerCase();
+  openAttributesDialog(room: RoomResponse): void {
+    import('./room-attributes-dialog/room-attributes-dialog.component').then((m) => {
+      const dialogRef = this.dialog.open(m.RoomAttributesDialogComponent, {
+        width: '95vw',
+        maxWidth: '550px',
+        data: {
+          roomId: room.id,
+          roomNumber: room.roomNumber,
+          buildingName: room.buildingName
+        }
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          // Refresh rooms data to show updated attributes
+          this.loadRooms();
+        }
+      });
+    });
   }
 
-  getStatusIcon(status: string): string {
-    switch (status) {
-      case 'AVAILABLE':
-        return 'check_circle';
-      case 'OCCUPIED':
-        return 'people';
-      case 'FULL':
-        return 'do_not_disturb';
-      case 'MAINTENANCE':
-        return 'build';
-      default:
-        return 'help';
-    }
-  }
+
 
   getOccupancyText(room: RoomResponse): string {
     if (!room || room.currentOccupancy === undefined || room.capacity === undefined) {
@@ -228,5 +243,70 @@ export class RoomManagementComponent implements OnInit {
     if (percentage === 0) return 'empty';
     if (percentage < 100) return 'partial';
     return 'full';
+  }
+
+  getYearRestrictionTooltip(room: RoomResponse): string {
+    const min = room.minYearOfStudy;
+    const max = room.maxYearOfStudy;
+    
+    if (min && max) {
+      return `Year ${min} - ${max} students only`;
+    } else if (min) {
+      return `Year ${min}+ students only`;
+    } else if (max) {
+      return `Up to Year ${max} students only`;
+    }
+    return 'Year of Study Restriction';
+  }
+
+  // Selection methods for bulk operations
+  isAllSelected(): boolean {
+    const numSelected = this.selection.selected.length;
+    const numRows = this.rooms.length;
+    return numSelected === numRows && numRows > 0;
+  }
+
+  isSomeSelected(): boolean {
+    return this.selection.selected.length > 0 && !this.isAllSelected();
+  }
+
+  toggleAllRows(): void {
+    if (this.isAllSelected()) {
+      this.selection.clear();
+    } else {
+      this.rooms.forEach(row => this.selection.select(row));
+    }
+  }
+
+  clearSelection(): void {
+    this.selection.clear();
+  }
+
+  openBulkAttributesDialog(): void {
+    if (this.selection.selected.length === 0) {
+      this.snackBar.open('Please select at least one room', 'Close', { duration: 3000 });
+      return;
+    }
+
+    import('./bulk-attributes-dialog/bulk-attributes-dialog.component').then((m) => {
+      const dialogRef = this.dialog.open(m.BulkAttributesDialogComponent, {
+        width: '95vw',
+        maxWidth: '600px',
+        data: {
+          rooms: this.selection.selected.map(room => ({
+            id: room.id,
+            roomNumber: room.roomNumber,
+            buildingName: room.buildingName
+          }))
+        }
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          this.selection.clear();
+          this.loadRooms();
+        }
+      });
+    });
   }
 }

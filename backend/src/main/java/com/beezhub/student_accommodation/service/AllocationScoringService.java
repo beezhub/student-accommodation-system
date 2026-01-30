@@ -119,7 +119,7 @@ public class AllocationScoringService {
         // Calculate individual scores
         BigDecimal preferenceMatchScore = calculatePreferenceMatchScore(room, effectivePreferredBuilding);
         BigDecimal desirabilityScore = calculateDesirabilityScore(room, roomAttrs.orElse(null), buildingAttrs.orElse(null));
-        BigDecimal accessibilityScore = calculateAccessibilityScore(student, roomAttrs.orElse(null));
+        BigDecimal accessibilityScore = calculateAccessibilityScore(student, application, roomAttrs.orElse(null));
 
         // Apply weights from rule
         BigDecimal weightedPreference = preferenceMatchScore.multiply(rule.getPreferenceMatchWeight());
@@ -239,7 +239,89 @@ public class AllocationScoringService {
             return false;
         }
 
+        // Check year of study constraint
+        if (!isYearOfStudyCompatible(student, roomAttrs.orElse(null))) {
+            log.debug("Year of study constraint failed for student {} and room {}", student.getId(), room.getRoomNumber());
+            return false;
+        }
+
+        // Check building-institution constraint
+        if (!isBuildingInstitutionCompatible(student, room.getBuilding())) {
+            log.debug("Building-institution constraint failed for student {} and room {}", student.getId(), room.getRoomNumber());
+            return false;
+        }
+
         return true;
+    }
+
+    /**
+     * Gets eligible rooms for a student without scoring.
+     * Filters rooms based on hard constraints (gender, accessibility, year of study, institution).
+     *
+     * @param student  The student
+     * @param building Optional building to filter by (if null, searches all buildings)
+     * @return List of eligible rooms (no scoring, unordered)
+     */
+    public List<Room> getEligibleRoomsForStudent(Student student, Building building) {
+        log.info("Getting eligible rooms for student: {}, building: {}",
+                student.getId(), building != null ? building.getId() : "all");
+
+        List<Room> availableRooms;
+        if (building != null) {
+            availableRooms = roomRepository.findByBuildingId(building.getId()).stream()
+                    .filter(room -> {
+                        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
+                        return activeAllocations < room.getCapacity();
+                    })
+                    .collect(Collectors.toList());
+        } else {
+            availableRooms = getAvailableRooms();
+        }
+
+        List<Room> eligibleRooms = availableRooms.stream()
+                .filter(room -> validateHardConstraints(student, room, false))
+                .collect(Collectors.toList());
+
+        log.info("Found {} eligible rooms for student {}", eligibleRooms.size(), student.getId());
+        return eligibleRooms;
+    }
+
+    /**
+     * Gets eligible rooms for a student filtered by institution.
+     * Only shows rooms in buildings that serve the student's institution.
+     *
+     * @param student The student
+     * @return List of eligible rooms filtered by institution
+     */
+    public List<Room> getEligibleRoomsForStudentByInstitution(Student student) {
+        log.info("Getting eligible rooms for student {} by institution", student.getId());
+
+        Institution studentInstitution = student.getInstitution();
+        if (studentInstitution == null) {
+            log.warn("Student {} has no institution, returning all eligible rooms", student.getId());
+            return getEligibleRoomsForStudent(student, null);
+        }
+
+        // Get buildings that serve the student's institution
+        List<Room> availableRooms = getAvailableRooms().stream()
+                .filter(room -> {
+                    Building building = room.getBuilding();
+                    if (building == null || building.getInstitutions() == null || building.getInstitutions().isEmpty()) {
+                        // Building with no institution restriction accepts all students
+                        return true;
+                    }
+                    return building.getInstitutions().stream()
+                            .anyMatch(inst -> inst.getId().equals(studentInstitution.getId()));
+                })
+                .collect(Collectors.toList());
+
+        List<Room> eligibleRooms = availableRooms.stream()
+                .filter(room -> validateHardConstraints(student, room, false))
+                .collect(Collectors.toList());
+
+        log.info("Found {} eligible rooms for student {} filtered by institution {}",
+                eligibleRooms.size(), student.getId(), studentInstitution.getId());
+        return eligibleRooms;
     }
 
     /**
@@ -271,14 +353,13 @@ public class AllocationScoringService {
                     tempScore.getTotalScore(), room.getRoomNumber());
         }
 
-        // Check partial preference match (room type)
-        if (application != null && application.getPreferredRoomType() != null) {
-            // Simple room type matching logic - can be expanded based on room entity
-            String preferredType = application.getPreferredRoomType().toLowerCase();
-            boolean typeMatches = matchesRoomType(room, preferredType);
-            if (!typeMatches) {
-                warnings.add("PARTIAL_PREFERENCE_MATCH");
-                log.debug("Warning: Room type mismatch for room {}", room.getRoomNumber());
+        // Check accessibility mismatch
+        if (application != null && Boolean.TRUE.equals(application.getRequiresAccessibility())) {
+            Optional<RoomAttributes> roomAttrs = roomAttributesRepository.findByRoom_Id(room.getId());
+            boolean roomIsAccessible = roomAttrs.map(RoomAttributes::getAccessibilityCompliant).orElse(false);
+            if (!roomIsAccessible) {
+                warnings.add("ACCESSIBILITY_MISMATCH");
+                log.debug("Warning: Accessibility mismatch for room {}", room.getRoomNumber());
             }
         }
 
@@ -323,8 +404,8 @@ public class AllocationScoringService {
         return new BigDecimal(desirability).multiply(DESIRABILITY_MULTIPLIER);
     }
 
-    private BigDecimal calculateAccessibilityScore(Student student, RoomAttributes roomAttrs) {
-        boolean requiresAccessibility = hasAccessibilityRequirements(student);
+    private BigDecimal calculateAccessibilityScore(Student student, Application application, RoomAttributes roomAttrs) {
+        boolean requiresAccessibility = hasAccessibilityRequirements(student, application);
         boolean roomIsAccessible = roomAttrs != null && Boolean.TRUE.equals(roomAttrs.getAccessibilityCompliant());
 
         if (requiresAccessibility && roomIsAccessible) {
@@ -380,7 +461,11 @@ public class AllocationScoringService {
     }
 
     private boolean isAccessibilityCompliant(Student student, RoomAttributes roomAttrs) {
-        boolean requiresAccessibility = hasAccessibilityRequirements(student);
+        return isAccessibilityCompliant(student, null, roomAttrs);
+    }
+
+    private boolean isAccessibilityCompliant(Student student, Application application, RoomAttributes roomAttrs) {
+        boolean requiresAccessibility = hasAccessibilityRequirements(student, application);
 
         if (!requiresAccessibility) {
             return true; // No accessibility requirements
@@ -390,7 +475,78 @@ public class AllocationScoringService {
         return roomAttrs != null && Boolean.TRUE.equals(roomAttrs.getAccessibilityCompliant());
     }
 
+    private boolean isYearOfStudyCompatible(Student student, RoomAttributes roomAttrs) {
+        if (roomAttrs == null) {
+            return true; // No room attributes, no restriction
+        }
+
+        Integer minYear = roomAttrs.getMinYearOfStudy();
+        Integer maxYear = roomAttrs.getMaxYearOfStudy();
+
+        // No year restrictions
+        if (minYear == null && maxYear == null) {
+            return true;
+        }
+
+        // Get student's year of study
+        Integer studentYear = null;
+        if (student.getYearOfStudy() != null && student.getYearOfStudy().getYearOfStudy() != null) {
+            try {
+                studentYear = Integer.parseInt(student.getYearOfStudy().getYearOfStudy());
+            } catch (NumberFormatException e) {
+                log.warn("Could not parse year of study: {}", student.getYearOfStudy().getYearOfStudy());
+            }
+        }
+
+        if (studentYear == null) {
+            // Student has no year of study set - allow by default
+            return true;
+        }
+
+        // Check year range
+        if (minYear != null && studentYear < minYear) {
+            return false;
+        }
+        if (maxYear != null && studentYear > maxYear) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isBuildingInstitutionCompatible(Student student, Building building) {
+        if (building == null) {
+            return true;
+        }
+
+        // If building has no institution restrictions, it accepts all students
+        if (building.getInstitutions() == null || building.getInstitutions().isEmpty()) {
+            return true;
+        }
+
+        // Get student's institution
+        Institution studentInstitution = student.getInstitution();
+        if (studentInstitution == null) {
+            // Student has no institution - allow by default (or could deny, depending on policy)
+            return true;
+        }
+
+        // Check if building serves the student's institution
+        return building.getInstitutions().stream()
+                .anyMatch(inst -> inst.getId().equals(studentInstitution.getId()));
+    }
+
     private boolean hasAccessibilityRequirements(Student student) {
+        return hasAccessibilityRequirements(student, null);
+    }
+
+    private boolean hasAccessibilityRequirements(Student student, Application application) {
+        // Primary: check application's explicit accessibility flag
+        if (application != null && Boolean.TRUE.equals(application.getRequiresAccessibility())) {
+            return true;
+        }
+
+        // Fallback: parse student's specialRequirements text (legacy)
         String specialRequirements = student.getSpecialRequirements();
         if (specialRequirements == null || specialRequirements.isEmpty()) {
             return false;
@@ -423,27 +579,11 @@ public class AllocationScoringService {
     }
 
     private Integer getEffectiveDesirability(RoomAttributes roomAttrs, BuildingAttributes buildingAttrs) {
-        // Room override takes precedence
-        if (roomAttrs != null && roomAttrs.getDesirabilityOverride() != null) {
-            return roomAttrs.getDesirabilityOverride();
-        }
-        // Fall back to building desirability
+        // Fall back to building desirability (desirabilityOverride removed from room)
         if (buildingAttrs != null && buildingAttrs.getDesirabilityScore() != null) {
             return buildingAttrs.getDesirabilityScore();
         }
         return null;
-    }
-
-    private boolean matchesRoomType(Room room, String preferredType) {
-        // Match based on room capacity as a proxy for room type
-        // Single = 1, Double = 2, etc.
-        return switch (preferredType) {
-            case "single" -> room.getCapacity() == 1;
-            case "double", "shared" -> room.getCapacity() == 2;
-            case "triple" -> room.getCapacity() == 3;
-            case "quad" -> room.getCapacity() == 4;
-            default -> true; // Unknown type, assume match
-        };
     }
 
     private ScoredRoom scoreSingleRoomWithoutWarnings(Student student, Application application, Room room) {
@@ -459,7 +599,7 @@ public class AllocationScoringService {
 
         BigDecimal preferenceMatchScore = calculatePreferenceMatchScore(room, preferredBuilding);
         BigDecimal desirabilityScore = calculateDesirabilityScore(room, roomAttrs.orElse(null), buildingAttrs.orElse(null));
-        BigDecimal accessibilityScore = calculateAccessibilityScore(student, roomAttrs.orElse(null));
+        BigDecimal accessibilityScore = calculateAccessibilityScore(student, application, roomAttrs.orElse(null));
 
         BigDecimal totalScore = preferenceMatchScore.multiply(rule.getPreferenceMatchWeight())
                 .add(desirabilityScore.multiply(rule.getDesirabilityWeight()))

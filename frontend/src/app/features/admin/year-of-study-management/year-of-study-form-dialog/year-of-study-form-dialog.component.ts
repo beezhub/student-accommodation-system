@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
 
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import {
   YearOfStudyService,
@@ -15,6 +15,44 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
+
+/**
+ * Validates that a year of study value can be parsed to a numeric year.
+ * Accepts formats like: "1", "First Year", "1st Year", "Year 1", etc.
+ */
+function numericYearValidator(control: AbstractControl): ValidationErrors | null {
+  if (!control.value) return null;
+
+  const value = control.value.toLowerCase().trim();
+
+  // Direct numeric parse
+  const directParse = parseInt(value, 10);
+  if (!isNaN(directParse) && directParse > 0) return null;
+
+  // Word to number mapping
+  const validPatterns = [
+    'first', 'one', '1st',
+    'second', 'two', '2nd',
+    'third', 'three', '3rd',
+    'fourth', 'four', '4th',
+    'fifth', 'five', '5th',
+    'sixth', 'six', '6th',
+    'seventh', 'seven', '7th',
+    'eighth', 'eight', '8th',
+    'ninth', 'nine', '9th',
+    'tenth', 'ten', '10th'
+  ];
+
+  // Check if value contains any valid pattern
+  for (const pattern of validPatterns) {
+    if (value.includes(pattern)) return null;
+  }
+
+  // Check for embedded number (e.g., "Year 3")
+  if (/\d+/.test(value)) return null;
+
+  return { invalidYearFormat: true };
+}
 
 @Component({
   selector: 'app-year-of-study-form-dialog',
@@ -49,7 +87,7 @@ export class YearOfStudyFormDialogComponent implements OnInit {
     this.yearOfStudy = data.yearOfStudy;
 
     this.yearOfStudyForm = this.fb.group({
-      yearOfStudy: ['', [Validators.required, Validators.maxLength(50)]],
+      yearOfStudy: ['', [Validators.required, Validators.maxLength(50), numericYearValidator]],
     });
   }
 

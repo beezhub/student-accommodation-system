@@ -3,6 +3,11 @@
     max-width: 800px;
 }
 
+mat-dialog-content {
+    overflow-x: hidden !important;
+    overflow-y: auto;
+}
+
 .current-info-panel {
     background: #f8fafc;
     padding: 16px;
@@ -34,14 +39,17 @@
     gap: 12px;
     align-items: center;
     margin-bottom: 16px;
+    flex-wrap: wrap;
 }
 
 .building-select {
-    flex: 2;
+    flex: 1 1 200px;
+    min-width: 150px;
 }
 
 .room-input {
-    flex: 1;
+    flex: 1 1 120px;
+    min-width: 100px;
 }
 
 .results-area {

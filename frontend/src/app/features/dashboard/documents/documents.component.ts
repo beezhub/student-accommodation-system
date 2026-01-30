@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { DatePipe } from '@angular/common';
@@ -67,6 +67,7 @@ export class DocumentsComponent implements OnInit {
   private readonly errorService = inject(ErrorHandlingService);
   private readonly applicationService = inject(ApplicationService);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   currentUser: any;
   selectedDocument: any = null;
   isUploading = false;
@@ -84,42 +85,17 @@ export class DocumentsComponent implements OnInit {
   uploadProgress = 0;
   uploadStatus: 'idle' | 'validating' | 'uploading' | 'complete' | 'error' = 'idle';
 
-  documents = [
-    {
-      id: '1',
-      name: 'Student ID',
-      type: 'Identity',
-      uploadDate: '2024-01-15',
-      status: 'Verified',
-      size: '1.2 MB',
-    },
-    {
-      id: '2',
-      name: 'Proof of Enrollment',
-      type: 'Academic',
-      uploadDate: '2024-01-15',
-      status: 'Pending',
-      size: '2.1 MB',
-    },
-    {
-      id: '3',
-      name: 'Passport',
-      type: 'Identity',
-      uploadDate: '2024-01-15',
-      status: 'Verified',
-      size: '3.5 MB',
-    },
-  ];
+  documents: any[] = [];
 
   // Material table configuration
   readonly displayedColumns: readonly string[] = ['name', 'type', 'uploadDate', 'status', 'size', 'actions'] as const;
-  dataSource = new MatTableDataSource<any>(this.documents);
+  dataSource = new MatTableDataSource<any>([]);
 
   // Application check state
   hasActiveApplication = false;
   isCheckingApplication = true;
 
-  requiredDocumentTypes: DocumentType[] = [];
+  allDocumentTypes: DocumentType[] = [];
 
   constructor() {
     this.uploadForm = this.fb.group({
@@ -151,12 +127,14 @@ export class DocumentsComponent implements OnInit {
           this.loadDocuments();
           this.loadDocumentTypes();
         }
+        this.cdr.markForCheck(); // Trigger change detection
       },
       error: () => {
         this.isCheckingApplication = false;
         this.hasActiveApplication = false;
         this.errorService.showWarning('Unable to verify application status. Please create an application first.');
         this.router.navigate(['/applications/new']);
+        this.cdr.markForCheck(); // Trigger change detection
       },
     });
   }
@@ -168,33 +146,50 @@ export class DocumentsComponent implements OnInit {
     this.documentService.getUploadedDocuments().subscribe({
       next: (docs) => {
         this.isRetrying = false;
+        console.log('Documents received from API:', docs);
         this.documents = docs.map((doc) => ({
           id: String(doc.id),
           name: doc.documentName,
           type: doc.documentTypeName,
-          uploadDate: doc.UploadedDate,
+          uploadDate: doc.uploadDate,
           status: doc.documentStatus,
-          size: '', // Size not provided by API, can be updated if available
+          size: doc.fileSize ? this.formatFileSize(doc.fileSize) : 'Unknown',
+          fileUrl: doc.fileUrl,
         }));
+        console.log('Mapped documents:', this.documents);
         this.dataSource.data = this.documents;
+        this.cdr.markForCheck(); // Trigger change detection
       },
       error: (err) => {
         this.isRetrying = false;
         console.error('Failed to fetch documents:', err);
+        this.loadError = this.errorService.parseError(err);
+        this.cdr.markForCheck(); // Trigger change detection
         this.loadError = this.errorService.parseError(err);
       },
     });
   }
 
   loadDocumentTypes(): void {
-    this.documentTypeService.getRequiredDocumentTypes().subscribe({
-      next: (types: DocumentType[]) => {
-        this.requiredDocumentTypes = types;
+    this.documentTypeService.getAllDocumentTypes().subscribe({
+      next: (types: any) => {
+        // Handle both array and paginated response formats
+        if (Array.isArray(types)) {
+          this.allDocumentTypes = types;
+        } else if (types && Array.isArray(types.content)) {
+          this.allDocumentTypes = types.content;
+        } else {
+          this.allDocumentTypes = [];
+        }
+        console.log('Document types loaded:', this.allDocumentTypes);
+        this.cdr.markForCheck(); // Trigger change detection
       },
       error: (err) => {
         console.error('Failed to load document types', err);
+        this.allDocumentTypes = [];
         // Show a warning but don't block the page
         this.errorService.showWarning('Failed to load document types. Please try refreshing.');
+        this.cdr.markForCheck();
       },
     });
   }
@@ -287,7 +282,7 @@ export class DocumentsComponent implements OnInit {
 
             // Optimistically add new doc to the list with basic info
             const typeName =
-              this.requiredDocumentTypes.find((t) => t.id === selectedTypeId)?.name ||
+              this.allDocumentTypes.find((t) => t.id === selectedTypeId)?.name ||
               String(selectedTypeId);
             const newDoc = {
               id: String(Date.now()),
@@ -307,11 +302,13 @@ export class DocumentsComponent implements OnInit {
                   id: String(doc.id),
                   name: doc.documentName,
                   type: doc.documentTypeName,
-                  uploadDate: doc.UploadedDate,
+                  uploadDate: doc.uploadDate,
                   status: doc.documentStatus,
-                  size: '',
+                  size: doc.fileSize ? this.formatFileSize(doc.fileSize) : 'Unknown',
+                  fileUrl: doc.fileUrl,
                 }));
                 this.dataSource.data = this.documents;
+                this.cdr.markForCheck();
               },
               error: (err) => console.error('Failed to refresh documents:', err),
             });
@@ -353,7 +350,12 @@ export class DocumentsComponent implements OnInit {
   }
 
   viewDocument(document: any) {
-    this.selectedDocument = document;
+    // Convert id back to number for the viewer component
+    this.selectedDocument = {
+      ...document,
+      id: Number(document.id)
+    };
+    console.log('Viewing document:', this.selectedDocument);
   }
 
   closeViewer() {

@@ -46,6 +46,7 @@ public class RoomAllocationService {
     private final AllocationScoringService allocationScoringService;
     private final AppUserRepository appUserRepository;
     private final BuildingRepository buildingRepository;
+    private final RoomAttributesRepository roomAttributesRepository;
     private final UserNotificationService userNotificationService;
     private final ObjectMapper objectMapper;
     private final org.ff4j.FF4j ff4j;
@@ -69,11 +70,18 @@ public class RoomAllocationService {
     public PageResponse<RoomAllocationResponse> searchRoomAllocations(Long studentId, Long roomId, Long buildingId,
             LocalDateTime fromDate, LocalDateTime toDate,
             Pageable pageable) {
+        return searchRoomAllocations(studentId, roomId, buildingId, fromDate, toDate, null, null, null, pageable);
+    }
+
+    public PageResponse<RoomAllocationResponse> searchRoomAllocations(Long studentId, Long roomId, Long buildingId,
+            LocalDateTime fromDate, LocalDateTime toDate,
+            String studentName, String roomNumber, String status,
+            Pageable pageable) {
         log.info(
-                "Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}",
-                studentId, roomId, buildingId, fromDate, toDate);
+                "Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}, studentName: {}, roomNumber: {}, status: {}",
+                studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status);
         Specification<RoomAllocation> spec = RoomAllocationSpecification.filterBy(studentId, roomId, buildingId,
-                fromDate, toDate);
+                fromDate, toDate, studentName, roomNumber, status);
         Page<RoomAllocation> allocations = roomAllocationRepository.findAll(spec, pageable);
         Page<RoomAllocationResponse> responsePage = allocations.map(roomAllocationMapper::toResponse);
         log.info("Found {} room allocations matching criteria", allocations.getNumberOfElements());
@@ -403,6 +411,60 @@ public class RoomAllocationService {
         return response;
     }
 
+    /**
+     * Gets eligible rooms for a student based on hard constraints.
+     * Filters rooms by gender, accessibility, year of study, and institution.
+     *
+     * @param studentId  The student ID
+     * @param buildingId Optional building ID to filter by
+     * @return List of eligible rooms
+     */
+    public List<EligibleRoomResponse> getEligibleRoomsForStudent(Long studentId, Long buildingId) {
+        log.info("Getting eligible rooms for student: {}, building: {}", studentId, buildingId);
+
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new StudentNotFoundException("Student not found with id: " + studentId));
+
+        Building building = null;
+        if (buildingId != null) {
+            building = buildingRepository.findById(buildingId).orElse(null);
+        }
+
+        List<Room> eligibleRooms = allocationScoringService.getEligibleRoomsForStudent(student, building);
+
+        List<EligibleRoomResponse> responses = eligibleRooms.stream()
+                .map(room -> mapToEligibleRoomResponse(room))
+                .collect(java.util.stream.Collectors.toList());
+
+        log.info("Found {} eligible rooms for student {}", responses.size(), studentId);
+        return responses;
+    }
+
+    private EligibleRoomResponse mapToEligibleRoomResponse(Room room) {
+        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
+        int availableSpots = room.getCapacity() - (int) activeAllocations;
+
+        // Get room attributes via repository lookup
+        RoomAttributes roomAttrs = roomAttributesRepository.findByRoom_Id(room.getId()).orElse(null);
+        
+        return EligibleRoomResponse.builder()
+                .roomId(room.getId())
+                .roomNumber(room.getRoomNumber())
+                .capacity(room.getCapacity())
+                .currentOccupancy((int) activeAllocations)
+                .availableSpots(Math.max(0, availableSpots))
+                .status(room.getStatus())
+                .buildingId(room.getBuilding() != null ? room.getBuilding().getId() : null)
+                .buildingName(room.getBuilding() != null ? room.getBuilding().getName() : null)
+                .buildingAddress(room.getBuilding() != null ? room.getBuilding().getAddress() : null)
+                .genderRestriction(roomAttrs != null && roomAttrs.getGenderRestriction() != null 
+                        ? roomAttrs.getGenderRestriction().name() : null)
+                .accessibilityCompliant(roomAttrs != null ? roomAttrs.getAccessibilityCompliant() : null)
+                .minYearOfStudy(roomAttrs != null ? roomAttrs.getMinYearOfStudy() : null)
+                .maxYearOfStudy(roomAttrs != null ? roomAttrs.getMaxYearOfStudy() : null)
+                .build();
+    }
+
     public PageResponse<RoomAllocationResponse> getAllocationsByStatus(String status, Pageable pageable) {
         log.info("Fetching allocations with status: {}", status);
 
@@ -512,6 +574,33 @@ public class RoomAllocationService {
                 bestEntry.getStudent().getId(), room.getRoomNumber(), highestScore);
     }
 
+    @Transactional
+    public MessageResponse enqueueWaitingList(Long studentId, Long applicationId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new StudentNotFoundException("Student not found with id: " + studentId));
+
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ApplicationNotFoundException(
+                        "Application not found with id: " + applicationId));
+
+        if (waitingListRepository.existsByStudent_IdAndStatus(studentId, "WAITING")) {
+            log.info("Student {} is already on the waiting list", studentId);
+            return new MessageResponse("Student is already on the waiting list");
+        }
+
+        enqueueWaitingList(student, application);
+        return new MessageResponse("Student added to waiting list");
+    }
+
+    private void enqueueWaitingList(Student student, Application application) {
+        WaitingListEntry entry = new WaitingListEntry();
+        entry.setStudent(student);
+        entry.setApplication(application);
+        entry.setStatus("WAITING");
+        waitingListRepository.save(entry);
+        log.warn("No rooms available; student {} placed on waiting list", student.getId());
+    }
+
     // ==================== Batch Allocation Proposal Methods ====================
 
     /**
@@ -614,7 +703,8 @@ public class RoomAllocationService {
         List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application,
                 effectiveBuilding);
         if (scoredRooms.isEmpty()) {
-            throw new RuntimeException("No available rooms for student");
+            enqueueWaitingList(student, application);
+            throw new RuntimeException("No available rooms for student; added to waiting list");
         }
 
         ScoredRoom bestRoom = scoredRooms.get(0);

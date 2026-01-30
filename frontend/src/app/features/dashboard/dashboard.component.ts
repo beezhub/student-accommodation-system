@@ -88,7 +88,7 @@ export class DashboardComponent implements OnInit {
       next: (docs) => {
         this.uploadedDocuments = docs.map((doc) => ({
           name: doc.documentName,
-          date: doc.UploadedDate,
+          date: doc.uploadDate,
           status: doc.documentStatus,
         }));
         this.cdr.markForCheck();

@@ -69,6 +69,72 @@
 
         <mat-divider></mat-divider>
 
+        <!-- Application Preferences -->
+        @if (currentApplication) {
+          <div class="review-section">
+            <h3 class="section-title">
+              <mat-icon>home</mat-icon>
+              Accommodation Preferences
+            </h3>
+            <mat-card class="info-card">
+              <mat-card-content>
+                <div class="info-grid">
+                  @if (currentApplication.preferredAccommodationType) {
+                    <div class="info-item">
+                      <span class="info-label">Accommodation Type:</span>
+                      <span class="info-value">{{ currentApplication.preferredAccommodationType }}</span>
+                    </div>
+                  }
+                  @if (currentApplication.preferredBuildingName) {
+                    <div class="info-item">
+                      <span class="info-label">Preferred Building:</span>
+                      <span class="info-value">{{ currentApplication.preferredBuildingName }}</span>
+                    </div>
+                  }
+                  @if (currentApplication.preferredMoveInDate) {
+                    <div class="info-item">
+                      <span class="info-label">Move-in Date:</span>
+                      <span class="info-value">{{ currentApplication.preferredMoveInDate | date: 'longDate' }}</span>
+                    </div>
+                  }
+                  @if (currentApplication.preferredDurationMonths) {
+                    <div class="info-item">
+                      <span class="info-label">Duration:</span>
+                      <span class="info-value">{{ currentApplication.preferredDurationMonths }} months</span>
+                    </div>
+                  }
+                  @if (currentApplication.requiresAccessibility !== null && currentApplication.requiresAccessibility !== undefined) {
+                    <div class="info-item">
+                      <span class="info-label">Accessibility Required:</span>
+                      <span class="info-value">{{ currentApplication.requiresAccessibility ? 'Yes' : 'No' }}</span>
+                    </div>
+                  }
+                  @if (currentApplication.specialRequirements) {
+                    <div class="info-item full-width">
+                      <span class="info-label">Special Requirements:</span>
+                      <span class="info-value">{{ currentApplication.specialRequirements }}</span>
+                    </div>
+                  }
+                  @if (currentApplication.institutionName) {
+                    <div class="info-item">
+                      <span class="info-label">Institution:</span>
+                      <span class="info-value">{{ currentApplication.institutionName }}</span>
+                    </div>
+                  }
+                  @if (currentApplication.courseName) {
+                    <div class="info-item">
+                      <span class="info-label">Course:</span>
+                      <span class="info-value">{{ currentApplication.courseName }}</span>
+                    </div>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <mat-divider></mat-divider>
+        }
+
         <!-- Documents -->
         <div class="review-section">
           <h3 class="section-title">

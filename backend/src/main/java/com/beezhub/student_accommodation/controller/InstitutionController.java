@@ -15,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/institution")
 @RequiredArgsConstructor
@@ -22,6 +24,13 @@ import org.springframework.web.bind.annotation.*;
 public class InstitutionController {
 
     private final InstitutionService institutionService;
+
+    @GetMapping("/all")
+    @Operation(summary = "Get all institutions (unpaginated)", description = "Returns a list of all institutions without pagination")
+    public ResponseEntity<List<InstitutionResponse>> getAllInstitutions() {
+        List<InstitutionResponse> institutions = institutionService.getAllInstitutions();
+        return ResponseEntity.ok(institutions);
+    }
 
     @GetMapping
     @Operation(summary = "Get all institutions", description = "Returns a list of all registered institutions. Supports pagination with query params: page, size, sort")
@@ -42,7 +51,7 @@ public class InstitutionController {
         return ResponseEntity.ok(page);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:[0-9]+}")
     @Operation(summary = "Get institution by ID", description = "Returns a single institution by its ID")
     public ResponseEntity<InstitutionResponse> getInstitutionById(@PathVariable Long id) {
         return ResponseEntity.ok(institutionService.getInstitutionById(id));
@@ -56,7 +65,7 @@ public class InstitutionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:[0-9]+}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update institution", description = "Updates an existing institution. Admin only.")
     public ResponseEntity<InstitutionResponse> updateInstitution(@PathVariable Long id,
@@ -64,7 +73,7 @@ public class InstitutionController {
         return ResponseEntity.ok(institutionService.updateInstitution(id, request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:[0-9]+}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete institution", description = "Deletes an institution. Admin only.")
     public ResponseEntity<Void> deleteInstitution(@PathVariable Long id) {

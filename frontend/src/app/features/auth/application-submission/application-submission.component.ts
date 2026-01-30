@@ -6,6 +6,7 @@ import { ApplicationService } from '../../../core/services/application.service';
 import { StudentService } from '../../../core/services/student.service';
 import { InstitutionService } from '../../../core/services/institution.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
+import { AccommodationTypeService, AccommodationType } from '../../../core/services/accommodation-type.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -17,6 +18,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 
 @Component({
@@ -35,6 +37,7 @@ import { ErrorDisplayComponent } from '../../../shared/error-display/error-displ
     MatProgressSpinnerModule,
     MatDividerModule,
     MatIconModule,
+    MatCheckboxModule,
     ErrorDisplayComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,38 +50,28 @@ export class ApplicationSubmissionComponent implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly institutionService = inject(InstitutionService);
   private readonly buildingService = inject(BuildingService);
+  private readonly accommodationTypeService = inject(AccommodationTypeService);
   private readonly errorService = inject(ErrorHandlingService);
 
   applicationForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
   studentId: number | null = null;
+  studentInstitutionId: number | null = null;
   institutionName = '';
   buildings: BuildingResponse[] = [];
   submitError: ParsedError | null = null;
   loadError: ParsedError | null = null;
   isRetrying = false;
 
-  readonly accommodationTypes = [
-    { value: 'SINGLE', viewValue: 'Single Room' },
-    { value: 'DOUBLE', viewValue: 'Double Room' },
-    { value: 'STUDIO', viewValue: 'Studio Apartment' },
-    { value: 'ENSUITE', viewValue: 'En-suite Room' },
-  ] as const;
-
-  readonly roomTypeOptions = [
-    { value: 'STANDARD', viewValue: 'Standard Room' },
-    { value: 'PREMIUM', viewValue: 'Premium Room' },
-    { value: 'ACCESSIBLE', viewValue: 'Accessible Room' },
-    { value: 'QUIET_FLOOR', viewValue: 'Quiet Study Floor' },
-  ] as const;
+  accommodationTypes: AccommodationType[] = [];
 
   constructor() {
     this.applicationForm = this.fb.group({
       preferredAccommodationType: ['', Validators.required],
       preferredMoveInDate: ['', Validators.required],
       preferredDurationMonths: ['', [Validators.required, Validators.min(1), Validators.max(12)]],
-      preferredRoomType: ['', Validators.required],
+      requiresAccessibility: [false],
       preferredBuildingId: [''],
       specialRequirements: [''],
       courseName: ['', Validators.required],
@@ -92,11 +85,29 @@ export class ApplicationSubmissionComponent implements OnInit {
       return;
     }
 
+    this.loadAccommodationTypes();
     this.loadStudentProfile();
-    this.loadBuildings();
   }
 
   loadBuildings(): void {
+    // If student has an institution, only show buildings that serve that institution
+    if (this.studentInstitutionId) {
+      this.buildingService.getBuildingsByInstitution(this.studentInstitutionId).subscribe({
+        next: (buildings) => {
+          this.buildings = buildings;
+        },
+        error: (error) => {
+          console.error('Failed to load buildings for institution', error);
+          // Fall back to all buildings
+          this.loadAllBuildings();
+        },
+      });
+    } else {
+      this.loadAllBuildings();
+    }
+  }
+
+  private loadAllBuildings(): void {
     this.buildingService.getAllBuildingsNoPagination().subscribe({
       next: (buildings) => {
         this.buildings = buildings;
@@ -115,8 +126,9 @@ export class ApplicationSubmissionComponent implements OnInit {
       next: (profile) => {
         this.isRetrying = false;
         this.studentId = profile.id;
+        this.studentInstitutionId = profile.institutionId || null;
 
-        // Get institution name
+        // Get institution name and load buildings after we know the institution
         if (profile.institutionId) {
           this.institutionService.getInstitutions().subscribe({
             next: (response: any) => {
@@ -133,11 +145,16 @@ export class ApplicationSubmissionComponent implements OnInit {
               if (institution) {
                 this.institutionName = institution.name;
               }
+              // Load buildings after we know the institution
+              this.loadBuildings();
             },
             error: (error) => {
               console.error('Error fetching institution:', error);
+              this.loadBuildings();
             },
           });
+        } else {
+          this.loadBuildings();
         }
       },
       error: (error) => {
@@ -149,6 +166,17 @@ export class ApplicationSubmissionComponent implements OnInit {
           this.errorService.showWarning('Please complete your profile first.');
           this.router.navigate(['/profile-setup']);
         }
+      },
+    });
+  }
+
+  loadAccommodationTypes(): void {
+    this.accommodationTypeService.getActiveTypes().subscribe({
+      next: (types) => {
+        this.accommodationTypes = types;
+      },
+      error: (error) => {
+        console.error('Failed to load accommodation types', error);
       },
     });
   }
@@ -187,7 +215,7 @@ export class ApplicationSubmissionComponent implements OnInit {
         preferredAccommodationType: formValue.preferredAccommodationType,
         preferredMoveInDate: formattedDate,
         preferredDurationMonths: parsedDuration,
-        preferredRoomType: formValue.preferredRoomType,
+        requiresAccessibility: formValue.requiresAccessibility || false,
         preferredBuildingId: formValue.preferredBuildingId || null,
         specialRequirements: formValue.specialRequirements || null,
         institutionName: this.institutionName || 'Not specified',

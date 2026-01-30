@@ -1,0 +1,169 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="header-icon">
+      <mat-icon>edit_note</mat-icon>
+    </div>
+    <div class="header-content">
+      <h2>Bulk Edit Attributes</h2>
+      <p class="selection-info">
+        <mat-icon>check_circle</mat-icon>
+        <span>{{ getSelectedCount() }} rooms selected</span>
+      </p>
+    </div>
+    <button mat-icon-button mat-dialog-close class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content>
+    <!-- Selected Rooms Preview -->
+    <div class="selected-rooms-preview">
+      <div class="preview-label">Selected Rooms:</div>
+      <div class="room-chips">
+        @for (room of data.rooms.slice(0, 8); track room.id) {
+          <span class="room-chip">
+            <mat-icon>meeting_room</mat-icon>
+            {{ room.roomNumber }}
+          </span>
+        }
+        @if (data.rooms.length > 8) {
+          <span class="room-chip more">+{{ data.rooms.length - 8 }} more</span>
+        }
+      </div>
+    </div>
+
+    <div class="info-banner">
+      <mat-icon>info</mat-icon>
+      <span>Select which attributes to update. Only checked attributes will be modified.</span>
+    </div>
+
+    <form [formGroup]="attributesForm" class="attributes-form">
+
+      <!-- Gender Restriction -->
+      <div class="form-section" [class.disabled]="!updateGender">
+        <div class="section-header">
+          <mat-checkbox [(ngModel)]="updateGender" [ngModelOptions]="{standalone: true}" color="primary">
+            <h3>
+              <mat-icon>wc</mat-icon>
+              Gender Restriction
+            </h3>
+          </mat-checkbox>
+        </div>
+
+        @if (updateGender) {
+          <div class="section-content">
+            <div class="gender-options">
+              @for (option of genderOptions; track option.value) {
+                <div class="gender-option"
+                     [class.selected]="attributesForm.get('genderRestriction')?.value === option.value"
+                     (click)="attributesForm.patchValue({genderRestriction: option.value})">
+                  <mat-icon>{{ option.icon }}</mat-icon>
+                  <span>{{ option.label }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Accessibility -->
+      <div class="form-section" [class.disabled]="!updateAccessibility">
+        <div class="section-header">
+          <mat-checkbox [(ngModel)]="updateAccessibility" [ngModelOptions]="{standalone: true}" color="primary">
+            <h3>
+              <mat-icon>accessible</mat-icon>
+              Accessibility
+            </h3>
+          </mat-checkbox>
+        </div>
+
+        @if (updateAccessibility) {
+          <div class="section-content">
+            <div class="accessibility-toggle">
+              <mat-checkbox formControlName="accessibilityCompliant" color="accent">
+                <span class="checkbox-label">
+                  <strong>Mark as Accessibility Compliant</strong>
+                  <span class="checkbox-hint">These rooms meet accessibility standards</span>
+                </span>
+              </mat-checkbox>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Year of Study Restriction -->
+      <div class="form-section" [class.disabled]="!updateYearRange">
+        <div class="section-header">
+          <mat-checkbox [(ngModel)]="updateYearRange" [ngModelOptions]="{standalone: true}" color="primary">
+            <h3>
+              <mat-icon>school</mat-icon>
+              Year of Study Restriction
+            </h3>
+          </mat-checkbox>
+        </div>
+
+        @if (updateYearRange) {
+          <div class="section-content">
+            <div class="year-range-control">
+              <mat-form-field appearance="outline" class="year-field">
+                <mat-label>Minimum Year</mat-label>
+                <mat-select formControlName="minYearOfStudy">
+                  <mat-option [value]="null">Any</mat-option>
+                  @for (year of yearOptions; track year.value) {
+                    <mat-option [value]="year.value">{{ year.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <span class="range-separator">to</span>
+
+              <mat-form-field appearance="outline" class="year-field">
+                <mat-label>Maximum Year</mat-label>
+                <mat-select formControlName="maxYearOfStudy">
+                  <mat-option [value]="null">Any</mat-option>
+                  @for (year of yearOptions; track year.value) {
+                    <mat-option [value]="year.value">{{ year.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              @if (attributesForm.get('minYearOfStudy')?.value || attributesForm.get('maxYearOfStudy')?.value) {
+                <button mat-stroked-button type="button" (click)="clearYearRestriction()" class="clear-btn">
+                  <mat-icon>clear</mat-icon>
+                  Clear
+                </button>
+              }
+            </div>
+
+            <!-- Warning for unparseable years -->
+            @if (unparseableYears.length > 0) {
+              <div class="unparseable-warning">
+                <mat-icon>warning</mat-icon>
+                <span>
+                  Cannot use for restrictions: <strong>{{ unparseableYears.join(', ') }}</strong>.
+                  Use numeric values in system settings.
+                </span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close [disabled]="isSaving">Cancel</button>
+    <button mat-raised-button color="primary"
+            (click)="onSubmit()"
+            [disabled]="isSaving || (!updateGender && !updateAccessibility && !updateYearRange)">
+      @if (isSaving) {
+        <mat-spinner diameter="18"></mat-spinner>
+        Updating...
+      } @else {
+        <mat-icon>save</mat-icon>
+        Update {{ getSelectedCount() }} Rooms
+      }
+    </button>
+  </mat-dialog-actions>
+</div>

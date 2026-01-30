@@ -39,10 +39,11 @@ export interface ApplicationResponse {
   allocationScore?: number; // Priority score for allocation (0-100)
   // Preference fields for quick view
   preferredAccommodationType?: string;
-  preferredRoomType?: string;
   preferredMoveInDate?: string;
   preferredDurationMonths?: number;
+  requiresAccessibility?: boolean;
   specialRequirements?: string;
+  courseName?: string;
   createdAt: string;
   updatedAt: string;
 }

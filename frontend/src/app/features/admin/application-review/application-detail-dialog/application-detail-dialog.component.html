@@ -89,7 +89,7 @@
       <!-- Application Preferences Section -->
       <mat-card class="section-card">
         <mat-card-header>
-          <mat-icon mat-card-avatar class="section-icon">settings</mat-icon>
+          <mat-icon mat-card-avatar class="section-icon">tune</mat-icon>
           <mat-card-title>Application Preferences</mat-card-title>
           <mat-card-subtitle>Submitted on {{ formatDate(applicationDetails?.applicationDate) }}</mat-card-subtitle>
         </mat-card-header>
@@ -97,11 +97,11 @@
           <div class="preferences-grid" *ngIf="applicationDetails">
             <div class="preference-item">
               <span class="label">Accommodation Type</span>
-              <span class="value">{{ applicationDetails.preferredAccommodationType || 'Not specified' }}</span>
+              <span class="value">{{ applicationDetails.preferredAccommodationType || 'Any Type' }}</span>
             </div>
             <div class="preference-item">
-              <span class="label">Room Type</span>
-              <span class="value">{{ applicationDetails.preferredRoomType || 'Not specified' }}</span>
+              <span class="label">Preferred Building</span>
+              <span class="value">{{ applicationDetails.preferredBuildingName || 'Any Building' }}</span>
             </div>
             <div class="preference-item">
               <span class="label">Move-in Date</span>
@@ -111,9 +111,25 @@
               <span class="label">Duration</span>
               <span class="value">{{ applicationDetails.preferredDurationMonths ? applicationDetails.preferredDurationMonths + ' months' : 'Not specified' }}</span>
             </div>
-            <div class="preference-item" *ngIf="applicationDetails.preferredBuildingName">
-              <span class="label">Preferred Building</span>
-              <span class="value">{{ applicationDetails.preferredBuildingName }}</span>
+            <div class="preference-item">
+              <span class="label">Course Name</span>
+              <span class="value">{{ applicationDetails.courseName || 'Not specified' }}</span>
+            </div>
+            <div class="preference-item">
+              <span class="label">Institution</span>
+              <span class="value">{{ applicationDetails.institutionName || 'Not specified' }}</span>
+            </div>
+            <div class="preference-item">
+              <span class="label">Requires Accessibility</span>
+              <span class="value">
+                <span *ngIf="applicationDetails.requiresAccessibility" class="accessibility-badge yes">
+                  <mat-icon>accessible</mat-icon>
+                  Yes
+                </span>
+                <span *ngIf="!applicationDetails.requiresAccessibility" class="accessibility-badge no">
+                  No
+                </span>
+              </span>
             </div>
             <div class="preference-item full-width" *ngIf="applicationDetails.specialRequirements">
               <span class="label">Special Requirements</span>

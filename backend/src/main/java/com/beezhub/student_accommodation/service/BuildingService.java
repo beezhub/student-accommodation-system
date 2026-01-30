@@ -1,12 +1,15 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.mapper.BuildingMapper;
 import com.beezhub.student_accommodation.model.dto.BuildingRequest;
 import com.beezhub.student_accommodation.model.dto.BuildingResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
+import com.beezhub.student_accommodation.model.entity.Institution;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.repository.InstitutionRepository;
 import com.beezhub.student_accommodation.specification.BuildingSpecification;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +20,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +31,7 @@ import java.util.List;
 public class BuildingService {
 
     private final BuildingRepository buildingRepository;
+    private final InstitutionRepository institutionRepository;
     private final BuildingMapper buildingMapper;
 
     public List<BuildingResponse> getAllBuildings() {
@@ -60,6 +66,17 @@ public class BuildingService {
         return buildingMapper.toResponse(building);
     }
 
+    public List<BuildingResponse> getBuildingsByInstitution(Long institutionId) {
+        log.info("Fetching buildings for institution id: {}", institutionId);
+        // Verify institution exists
+        if (!institutionRepository.existsById(institutionId)) {
+            throw new ResourceNotFoundException("Institution not found with id: " + institutionId);
+        }
+        List<Building> buildings = buildingRepository.findByInstitutionId(institutionId);
+        log.info("Found {} buildings for institution {}", buildings.size(), institutionId);
+        return buildingMapper.toResponseList(buildings);
+    }
+
     public BuildingResponse createBuilding(BuildingRequest request) {
         log.info("Creating new building with name: {}", request.getName());
         Building building = new Building();
@@ -67,6 +84,14 @@ public class BuildingService {
         building.setAddress(request.getAddress());
         building.setDescription(request.getDescription());
         building.setTotalFloors(request.getTotalFloors());
+        
+        // Handle institution IDs
+        if (request.getInstitutionIds() != null && !request.getInstitutionIds().isEmpty()) {
+            Set<Institution> institutions = new HashSet<>(institutionRepository.findAllById(request.getInstitutionIds()));
+            building.setInstitutions(institutions);
+            log.info("Assigned {} institutions to building", institutions.size());
+        }
+        
         Building saved = buildingRepository.save(building);
         log.info("Successfully created building with id: {}", saved.getId());
         return buildingMapper.toResponse(saved);
@@ -80,6 +105,16 @@ public class BuildingService {
         building.setAddress(request.getAddress());
         building.setDescription(request.getDescription());
         building.setTotalFloors(request.getTotalFloors());
+        
+        // Handle institution IDs
+        if (request.getInstitutionIds() != null) {
+            Set<Institution> institutions = new HashSet<>(institutionRepository.findAllById(request.getInstitutionIds()));
+            building.setInstitutions(institutions);
+            log.info("Updated building with {} institutions", institutions.size());
+        } else {
+            building.getInstitutions().clear();
+        }
+        
         Building updated = buildingRepository.save(building);
         log.info("Successfully updated building with id: {}", id);
         return buildingMapper.toResponse(updated);

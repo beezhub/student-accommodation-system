@@ -36,7 +36,7 @@ public class ApplicationFullDetailsResponse {
     private String preferredAccommodationType;
     private LocalDate preferredMoveInDate;
     private Integer preferredDurationMonths;
-    private String preferredRoomType;
+    private Boolean requiresAccessibility;
     private String specialRequirements;
     private String institutionName;
     private String courseName;

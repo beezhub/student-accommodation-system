@@ -211,11 +211,59 @@ public class StagedAllocationController {
         }
 
         /**
+         * Adds a student to the waiting list.
+         *
+         * @param request WaitingListEnqueueRequest with student and application IDs
+         * @return Success message
+         */
+        @PostMapping("/waiting-list/enqueue")
+        @Operation(summary = "Add student to waiting list", description = "Adds a student to the waiting list for allocation")
+        public ResponseEntity<MessageResponse> enqueueWaitingList(
+                        @Valid @RequestBody WaitingListEnqueueRequest request) {
+                MessageResponse response = roomAllocationService.enqueueWaitingList(
+                                request.getStudentId(),
+                                request.getApplicationId());
+                return ResponseEntity.ok(response);
+        }
+
+        /**
          * Extracts admin user ID from authentication context.
          */
         private Long extractAdminId(Authentication auth) {
                 // Extract from UserDetails or custom authentication object
                 // This is a placeholder - adjust based on your security implementation
                 return 1L; // TODO: Extract actual admin ID from authentication
+        }
+
+        /**
+         * Gets waiting list with priority scores.
+         *
+         * @param buildingId Optional building filter
+         * @param sortBy     Sort field
+         * @return List of waiting list entries with scores
+         */
+        @GetMapping("/waiting-list")
+        @Operation(summary = "Get waiting list with scores", description = "Returns the waiting list with priority scores calculated using the latest allocation rules. Sorted by score descending.")
+        public ResponseEntity<java.util.List<WaitingListEntryResponse>> getWaitingListWithScores(
+                        @RequestParam(required = false) Long buildingId,
+                        @RequestParam(required = false, defaultValue = "score") String sortBy) {
+
+                log.info("Getting waiting list with scores for buildingId: {}", buildingId);
+                java.util.List<WaitingListEntryResponse> response = roomAllocationService
+                                .getWaitingListWithScores(buildingId);
+                return ResponseEntity.ok(response);
+        }
+
+        /**
+         * Rescores waiting list using current allocation rules.
+         *
+         * @return RescoreResult with number of rescored entries
+         */
+        @PostMapping("/waiting-list/rescore")
+        @Operation(summary = "Rescore waiting list", description = "Rescores all waiting list entries using the latest allocation rules. This is an idempotent operation.")
+        public ResponseEntity<RescoreResult> rescoreWaitingList() {
+                log.info("Rescoring waiting list");
+                RescoreResult result = roomAllocationService.rescoreWaitingList();
+                return ResponseEntity.ok(result);
         }
 }

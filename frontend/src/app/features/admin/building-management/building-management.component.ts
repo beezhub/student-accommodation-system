@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import {
   BuildingService,
   BuildingResponse,
@@ -30,6 +31,7 @@ import { MatMenuModule } from '@angular/material/menu';
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    RouterModule,
     MatCardModule,
     MatTableModule,
     MatPaginatorModule,
@@ -46,7 +48,7 @@ import { MatMenuModule } from '@angular/material/menu';
 })
 export class BuildingManagementComponent implements OnInit {
   buildings: BuildingResponse[] = [];
-  displayedColumns: string[] = ['name', 'address', 'totalFloors', 'createdAt', 'actions'];
+  displayedColumns: string[] = ['name', 'address', 'institutions', 'totalFloors', 'createdAt', 'actions'];
 
   isLoading = false;
   totalElements = 0;
@@ -59,7 +61,8 @@ export class BuildingManagementComponent implements OnInit {
     private buildingService: BuildingService,
     private fb: FormBuilder,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private router: Router
   ) {
     this.filterForm = this.fb.group({
       name: [''],
@@ -159,5 +162,12 @@ export class BuildingManagementComponent implements OnInit {
         },
       });
     }
+  }
+
+  navigateToAllocationRules(buildingId: number): void {
+    // Navigate to allocation rules page with the building pre-selected
+    this.router.navigate(['/admin/allocation-rules'], {
+      queryParams: { buildingId: buildingId }
+    });
   }
 }

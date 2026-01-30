@@ -41,19 +41,9 @@ export interface PreferencesDialogData {
 
     <mat-dialog-content class="dialog-content">
       <div class="preferences-container">
-        <!-- Building & Accommodation Section -->
-        <div class="section-title">Accommodation Choices</div>
+        <!-- Accommodation Preferences Section -->
+        <div class="section-title">Accommodation Preferences</div>
         <div class="grid-layout">
-          <div class="info-card">
-            <div class="icon-wrapper primary">
-              <mat-icon>apartment</mat-icon>
-            </div>
-            <div class="info-content">
-              <span class="label">Preferred Building</span>
-              <span class="value">{{ data.application.preferredBuildingName || 'Any Building' }}</span>
-            </div>
-          </div>
-
           <div class="info-card">
             <div class="icon-wrapper accent">
               <mat-icon>home</mat-icon>
@@ -65,21 +55,15 @@ export interface PreferencesDialogData {
           </div>
 
           <div class="info-card">
-            <div class="icon-wrapper warn">
-              <mat-icon>meeting_room</mat-icon>
+            <div class="icon-wrapper primary">
+              <mat-icon>apartment</mat-icon>
             </div>
             <div class="info-content">
-              <span class="label">Room Type</span>
-              <span class="value">{{ data.application.preferredRoomType || 'Any Room' }}</span>
+              <span class="label">Preferred Building</span>
+              <span class="value">{{ data.application.preferredBuildingName || 'Any Building' }}</span>
             </div>
           </div>
-        </div>
 
-        <mat-divider class="section-divider"></mat-divider>
-
-        <!-- Timing & Score Section -->
-        <div class="section-title">Timing & Status</div>
-        <div class="grid-layout">
           <div class="info-card">
             <div class="icon-wrapper success">
               <mat-icon>event</mat-icon>
@@ -97,8 +81,24 @@ export interface PreferencesDialogData {
             <div class="info-content">
               <span class="label">Duration</span>
               <span class="value">
-                {{ data.application.preferredDurationMonths ? data.application.preferredDurationMonths + ' Months' : 'Standard' }}
+                {{ data.application.preferredDurationMonths ? data.application.preferredDurationMonths + ' Months' : 'Not specified' }}
               </span>
+            </div>
+          </div>
+        </div>
+
+        <mat-divider class="section-divider"></mat-divider>
+
+        <!-- Academic Info Section -->
+        <div class="section-title">Academic Information</div>
+        <div class="grid-layout">
+          <div class="info-card">
+            <div class="icon-wrapper info">
+              <mat-icon>school</mat-icon>
+            </div>
+            <div class="info-content">
+              <span class="label">Course Name</span>
+              <span class="value">{{ data.application.courseName || 'Not specified' }}</span>
             </div>
           </div>
 
@@ -109,9 +109,9 @@ export interface PreferencesDialogData {
               </div>
               <div class="info-content">
                 <span class="label">Allocation Score</span>
-                <span class="value score-badge" 
-                      [class.high]="data.application.allocationScore >= 80" 
-                      [class.medium]="data.application.allocationScore >= 50 && data.application.allocationScore < 80" 
+                <span class="value score-badge"
+                      [class.high]="data.application.allocationScore >= 80"
+                      [class.medium]="data.application.allocationScore >= 50 && data.application.allocationScore < 80"
                       [class.low]="data.application.allocationScore < 50">
                   {{ data.application.allocationScore | number:'1.0-0' }}
                 </span>
@@ -120,12 +120,26 @@ export interface PreferencesDialogData {
           }
         </div>
 
+        <!-- Accessibility Section -->
+        @if (data.application.requiresAccessibility) {
+          <mat-divider class="section-divider"></mat-divider>
+          <div class="accessibility-section">
+            <div class="section-title accessibility">
+              <mat-icon>accessible</mat-icon>
+              Accessibility Required
+            </div>
+            <div class="accessibility-box">
+              This applicant requires an accessible room (wheelchair accessible, mobility support, etc.)
+            </div>
+          </div>
+        }
+
         <!-- Special Requirements Section -->
         @if (data.application.specialRequirements) {
           <mat-divider class="section-divider"></mat-divider>
           <div class="special-req-section">
             <div class="section-title alert">
-              <mat-icon>accessibility_new</mat-icon>
+              <mat-icon>notes</mat-icon>
               Special Requirements
             </div>
             <div class="req-box">
@@ -294,6 +308,24 @@ export interface PreferencesDialogData {
       &.high { background: #dcfce7; color: #15803d; }
       &.medium { background: #fef3c7; color: #b45309; }
       &.low { background: #fee2e2; color: #b91c1c; }
+    }
+
+    .accessibility-section {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid #93c5fd;
+
+      .accessibility-box {
+        color: #1e40af;
+        font-size: 13px;
+        line-height: 1.4;
+        font-weight: 500;
+      }
+    }
+
+    .section-title.accessibility {
+      color: #2563eb;
     }
 
     .special-req-section {

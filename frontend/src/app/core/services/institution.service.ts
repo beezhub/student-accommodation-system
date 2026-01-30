@@ -47,7 +47,7 @@ export class InstitutionService {
     }
 
     return this.http
-      .get<Institution[]>(this.apiUrl)
+      .get<Institution[]>(`${this.apiUrl}/all`)
       .pipe(tap((data) => (this.institutions = data)));
   }
 

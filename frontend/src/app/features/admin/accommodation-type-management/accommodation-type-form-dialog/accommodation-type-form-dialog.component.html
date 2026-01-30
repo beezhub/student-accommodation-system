@@ -1,0 +1,88 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="header-icon">
+      <mat-icon>{{ isEditMode ? 'edit' : 'add_circle' }}</mat-icon>
+    </div>
+    <h2>{{ dialogTitle }}</h2>
+    <p>{{ isEditMode ? 'Update accommodation type details' : 'Create a new accommodation type for students' }}</p>
+  </div>
+
+  <mat-dialog-content>
+    <form [formGroup]="form" class="accommodation-type-form">
+      <div class="form-field-wrapper">
+        <label class="field-label">
+          <mat-icon>label</mat-icon>
+          Type Name
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input matInput formControlName="name" placeholder="e.g., Single Room, Double Room" />
+          @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
+            <mat-error>Name is required</mat-error>
+          }
+          @if (form.get('name')?.hasError('maxlength')) {
+            <mat-error>Name must be 100 characters or less</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="form-field-wrapper">
+        <label class="field-label">
+          <mat-icon>notes</mat-icon>
+          Description
+          <span class="optional-badge">Optional</span>
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <textarea
+            matInput
+            formControlName="description"
+            placeholder="Describe this accommodation type..."
+            rows="3"
+          ></textarea>
+          @if (form.get('description')?.hasError('maxlength')) {
+            <mat-error>Description must be 500 characters or less</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="checkbox-wrapper">
+        <div class="checkbox-card" [class.active]="form.get('isActive')?.value">
+          <mat-slide-toggle formControlName="isActive" color="primary">
+            <div class="toggle-content">
+              <div class="toggle-icon">
+                <mat-icon>{{ form.get('isActive')?.value ? 'check_circle' : 'cancel' }}</mat-icon>
+              </div>
+              <div class="toggle-text">
+                <span class="toggle-label">Active Status</span>
+                <span class="toggle-hint">Inactive types will not appear in student application forms.</span>
+              </div>
+            </div>
+          </mat-slide-toggle>
+        </div>
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="isLoading" class="cancel-btn">
+      Cancel
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      type="submit"
+      (click)="onSubmit()"
+      [disabled]="isLoading || form.invalid"
+      class="submit-btn"
+    >
+      @if (isLoading) {
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>{{ isEditMode ? 'Updating...' : 'Creating...' }}</span>
+      } @else {
+        <ng-container>
+          <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
+          <span>{{ isEditMode ? 'Update' : 'Create' }}</span>
+        </ng-container>
+      }
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -15,7 +15,7 @@ public interface ApplicationMapper {
     @Mapping(target = "preferredAccommodationType", source = "preferredAccommodationType")
     @Mapping(target = "preferredMoveInDate", source = "preferredMoveInDate")
     @Mapping(target = "preferredDurationMonths", source = "preferredDurationMonths")
-    @Mapping(target = "preferredRoomType", source = "preferredRoomType")
+    @Mapping(target = "requiresAccessibility", source = "requiresAccessibility")
     @Mapping(target = "specialRequirements", source = "specialRequirements")
     @Mapping(target = "institutionName", source = "institutionName")
     @Mapping(target = "courseName", source = "courseName")

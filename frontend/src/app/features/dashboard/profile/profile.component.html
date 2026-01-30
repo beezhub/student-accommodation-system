@@ -97,8 +97,8 @@
                 <mat-label>Institution</mat-label>
                 <mat-select formControlName="institutionId">
                   <mat-option value="">Select institution</mat-option>
-                  @for (institution of institutions; track institution) {
-                    <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
+                  @for (institution of institutions; track institution.id) {
+                    <mat-option [value]="institution.id.toString()">{{ institution.name }}</mat-option>
                   }
                 </mat-select>
                 @if (profileForm.get('institutionId')?.invalid && profileForm.get('institutionId')?.touched) {
@@ -117,8 +117,8 @@
                 <mat-label>Year of Study</mat-label>
                 <mat-select formControlName="yearOfStudyId">
                   <mat-option value="">Select year</mat-option>
-                  @for (year of yearsOfStudy; track year) {
-                    <mat-option [value]="year.id">{{ year.yearOfStudy }}</mat-option>
+                  @for (year of yearsOfStudy; track year.id) {
+                    <mat-option [value]="year.id.toString()">{{ year.yearOfStudy }}</mat-option>
                   }
                 </mat-select>
                 @if (profileForm.get('yearOfStudyId')?.invalid && profileForm.get('yearOfStudyId')?.touched) {
@@ -145,7 +145,7 @@
             } @else {
               <mat-form-field appearance="fill">
                 <mat-label>Date of Birth</mat-label>
-                <input matInput [value]="profileForm.get('dateOfBirth')?.value" readonly placeholder="Date of birth">
+                <input matInput [value]="formatDateForDisplay(profileForm.get('dateOfBirth')?.value)" readonly placeholder="Date of birth">
               </mat-form-field>
             }
 

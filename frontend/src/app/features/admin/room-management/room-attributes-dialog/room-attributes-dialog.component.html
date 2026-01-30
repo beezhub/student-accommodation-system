@@ -1,0 +1,144 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="header-icon">
+      <mat-icon>tune</mat-icon>
+    </div>
+    <div class="header-content">
+      <h2>Room Attributes</h2>
+      <p class="room-info">
+        <mat-icon>meeting_room</mat-icon>
+        <span>{{ data.roomNumber }}</span>
+        <span class="separator">•</span>
+        <mat-icon>apartment</mat-icon>
+        <span>{{ data.buildingName }}</span>
+      </p>
+    </div>
+    <button mat-icon-button mat-dialog-close class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content>
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading attributes...</p>
+    </div>
+
+    <!-- Form -->
+    <form *ngIf="!isLoading" [formGroup]="attributesForm" class="attributes-form">
+
+      <!-- Gender Restriction -->
+      <div class="form-section">
+        <h3>
+          <mat-icon>wc</mat-icon>
+          Gender Restriction
+        </h3>
+        <p class="section-desc">Set who can be allocated to this room based on gender.</p>
+
+        <div class="gender-options">
+          <div *ngFor="let option of genderOptions"
+               class="gender-option"
+               [class.selected]="attributesForm.get('genderRestriction')?.value === option.value"
+               (click)="attributesForm.patchValue({genderRestriction: option.value})">
+            <mat-icon>{{ option.icon }}</mat-icon>
+            <span>{{ option.label }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accessibility -->
+      <div class="form-section">
+        <h3>
+          <mat-icon>accessible</mat-icon>
+          Accessibility
+        </h3>
+        <p class="section-desc">Mark if this room is compliant with accessibility requirements.</p>
+
+        <div class="accessibility-toggle">
+          <mat-checkbox formControlName="accessibilityCompliant" color="primary">
+            <span class="checkbox-label">
+              <strong>Accessibility Compliant</strong>
+              <span class="checkbox-hint">This room meets accessibility standards (wheelchair accessible, etc.)</span>
+            </span>
+          </mat-checkbox>
+        </div>
+      </div>
+
+      <!-- Year of Study Restriction -->
+      <div class="form-section">
+        <h3>
+          <mat-icon>school</mat-icon>
+          Year of Study Restriction
+        </h3>
+        <p class="section-desc">Restrict this room to students in specific years of study.</p>
+
+        <div class="year-range-control">
+          <mat-form-field appearance="outline" class="year-field">
+            <mat-label>Minimum Year</mat-label>
+            <mat-select formControlName="minYearOfStudy">
+              <mat-option [value]="null">Any</mat-option>
+              <mat-option *ngFor="let year of yearOptions" [value]="year.value">{{ year.label }}</mat-option>
+            </mat-select>
+            <mat-hint>Lowest year allowed</mat-hint>
+          </mat-form-field>
+
+          <span class="range-separator">to</span>
+
+          <mat-form-field appearance="outline" class="year-field">
+            <mat-label>Maximum Year</mat-label>
+            <mat-select formControlName="maxYearOfStudy">
+              <mat-option [value]="null">Any</mat-option>
+              <mat-option *ngFor="let year of yearOptions" [value]="year.value">{{ year.label }}</mat-option>
+            </mat-select>
+            <mat-hint>Highest year allowed</mat-hint>
+          </mat-form-field>
+
+          <button mat-stroked-button type="button" (click)="clearYearRestriction()"
+                  *ngIf="attributesForm.get('minYearOfStudy')?.value || attributesForm.get('maxYearOfStudy')?.value">
+            <mat-icon>clear</mat-icon>
+            Clear
+          </button>
+        </div>
+
+        <div class="year-preview" *ngIf="attributesForm.get('minYearOfStudy')?.value || attributesForm.get('maxYearOfStudy')?.value">
+          <mat-icon>info</mat-icon>
+          <span>
+            This room is restricted to
+            <strong>
+              @if (attributesForm.get('minYearOfStudy')?.value && attributesForm.get('maxYearOfStudy')?.value) {
+                {{ getYearLabel(attributesForm.get('minYearOfStudy')?.value) }} - {{ getYearLabel(attributesForm.get('maxYearOfStudy')?.value) }} students
+              } @else if (attributesForm.get('minYearOfStudy')?.value) {
+                {{ getYearLabel(attributesForm.get('minYearOfStudy')?.value) }}+ students
+              } @else {
+                Up to {{ getYearLabel(attributesForm.get('maxYearOfStudy')?.value) }} students
+              }
+            </strong>
+          </span>
+        </div>
+
+        <!-- Warning for unparseable years -->
+        <div class="unparseable-warning" *ngIf="unparseableYears.length > 0">
+          <mat-icon>warning</mat-icon>
+          <span>
+            The following year values cannot be used for numeric restrictions:
+            <strong>{{ unparseableYears.join(', ') }}</strong>.
+            Consider using numeric values (e.g., "1", "2") or ordinals (e.g., "First Year", "2nd Year") in system settings.
+          </span>
+        </div>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close [disabled]="isSaving">Cancel</button>
+    <button mat-raised-button color="primary"
+            (click)="onSubmit()"
+            [disabled]="attributesForm.invalid || isSaving || isLoading">
+      <mat-icon *ngIf="!isSaving">save</mat-icon>
+      <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+      {{ isSaving ? 'Saving...' : 'Save Attributes' }}
+    </button>
+  </mat-dialog-actions>
+</div>

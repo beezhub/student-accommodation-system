@@ -53,18 +53,21 @@ public class RoomAllocationController {
     }
 
     @GetMapping("/search")
-    @Operation(summary = "Search room allocations", description = "Search and filter room allocations by student, room, building, or date range")
+    @Operation(summary = "Search room allocations", description = "Search and filter room allocations by student name, room number, building, status, or date range")
     public ResponseEntity<PageResponse<RoomAllocationResponse>> searchRoomAllocations(
             @RequestParam(required = false) Long studentId,
             @RequestParam(required = false) Long roomId,
             @RequestParam(required = false) Long buildingId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
+            @RequestParam(required = false) String studentName,
+            @RequestParam(required = false) String roomNumber,
+            @RequestParam(required = false) String status,
             @PageableDefault(size = 20, sort = "allocationDate") Pageable pageable) {
-        log.info("Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}",
-                studentId, roomId, buildingId, fromDate, toDate);
+        log.info("Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}, studentName: {}, roomNumber: {}, status: {}",
+                studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status);
         PageResponse<RoomAllocationResponse> page = roomAllocationService.searchRoomAllocations(
-                studentId, roomId, buildingId, fromDate, toDate, pageable);
+                studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status, pageable);
         return ResponseEntity.ok(page);
     }
 
@@ -161,6 +164,24 @@ public class RoomAllocationController {
     public ResponseEntity<AllocationEligibilityResponse> checkStudentEligibility(@PathVariable Long studentId) {
         log.info("Checking eligibility for student: {}", studentId);
         AllocationEligibilityResponse response = roomAllocationService.checkStudentEligibility(studentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/admin/student/{studentId}/eligible-rooms")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get eligible rooms for student", 
+               description = "Returns rooms that meet all hard constraints for a student (gender, accessibility, year of study, institution)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Eligible rooms retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Student not found")
+    })
+    public ResponseEntity<List<EligibleRoomResponse>> getEligibleRoomsForStudent(
+            @Parameter(description = "Student ID", required = true)
+            @PathVariable Long studentId,
+            @Parameter(description = "Filter by building ID")
+            @RequestParam(required = false) Long buildingId) {
+        log.info("Getting eligible rooms for student: {}, building: {}", studentId, buildingId);
+        List<EligibleRoomResponse> response = roomAllocationService.getEligibleRoomsForStudent(studentId, buildingId);
         return ResponseEntity.ok(response);
     }
 

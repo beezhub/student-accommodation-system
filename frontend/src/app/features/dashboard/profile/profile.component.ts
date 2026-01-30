@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -35,6 +35,7 @@ export class ProfileComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   private readonly errorService = inject(ErrorHandlingService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   currentUser: any;
   profileForm: FormGroup;
@@ -79,10 +80,16 @@ export class ProfileComponent implements OnInit {
       this.studentService.getStudentProfile().subscribe({
         next: (profile) => {
           this.isRetrying = false;
+          // Convert date string to Date object for the datepicker
+          const dateOfBirth = profile.dateOfBirth ? new Date(profile.dateOfBirth) : null;
+          // Normalize gender to match option values (capitalize first letter)
+          const normalizedGender = this.normalizeGender(profile.gender);
+
           this.studentProfile = {
             ...profile,
             institutionId: String(profile.institutionId),
             yearOfStudyId: String(profile.yearOfStudyId),
+            gender: normalizedGender,
           };
           this.profileForm.patchValue({
             firstName: profile.firstName,
@@ -92,15 +99,17 @@ export class ProfileComponent implements OnInit {
             studentNumber: profile.studentNumber,
             institutionId: String(profile.institutionId),
             yearOfStudyId: String(profile.yearOfStudyId),
-            dateOfBirth: profile.dateOfBirth,
-            gender: profile.gender || '',
+            dateOfBirth: dateOfBirth,
+            gender: normalizedGender,
             specialRequirements: profile.specialRequirements || '',
           });
+          this.cdr.markForCheck();
         },
         error: (error) => {
           this.isRetrying = false;
           console.error('Error fetching student profile:', error);
           this.loadError = this.errorService.parseError(error);
+          this.cdr.markForCheck();
         },
       });
     }
@@ -125,10 +134,12 @@ export class ProfileComponent implements OnInit {
           this.institutions = [];
         }
         console.log('Loaded institutions:', this.institutions);
+        this.cdr.markForCheck();
       },
       error: (error) => {
         console.error('Error loading institutions:', error);
         this.institutions = [];
+        this.cdr.markForCheck();
       },
     });
   }
@@ -146,10 +157,12 @@ export class ProfileComponent implements OnInit {
           this.yearsOfStudy = [];
         }
         console.log('Loaded years of study:', this.yearsOfStudy);
+        this.cdr.markForCheck();
       },
       error: (error) => {
         console.error('Error loading years of study:', error);
         this.yearsOfStudy = [];
+        this.cdr.markForCheck();
       },
     });
   }
@@ -170,10 +183,28 @@ export class ProfileComponent implements OnInit {
     return year ? year.yearOfStudy : 'Not found';
   }
 
+  private normalizeGender(gender: string | undefined | null): string {
+    if (!gender) return '';
+    // Handle different backend formats (MALE, male, Male, etc.)
+    const normalized = gender.toLowerCase();
+    if (normalized === 'male') return 'Male';
+    if (normalized === 'female') return 'Female';
+    if (normalized === 'other') return 'Other';
+    return gender; // Return as-is if doesn't match known values
+  }
+
+  formatDateForDisplay(date: Date | string | null): string {
+    if (!date) return 'Not specified';
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (isNaN(dateObj.getTime())) return 'Invalid date';
+    return dateObj.toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
   toggleEdit() {
     this.isEditing = !this.isEditing;
     if (!this.isEditing && this.studentProfile) {
       // Reset form to original values
+      const dateOfBirth = this.studentProfile.dateOfBirth ? new Date(this.studentProfile.dateOfBirth) : null;
       this.profileForm.patchValue({
         firstName: this.studentProfile.firstName,
         lastName: this.studentProfile.lastName,
@@ -182,7 +213,7 @@ export class ProfileComponent implements OnInit {
         studentNumber: this.studentProfile.studentNumber,
         institutionId: this.studentProfile.institutionId,
         yearOfStudyId: this.studentProfile.yearOfStudyId,
-        dateOfBirth: this.studentProfile.dateOfBirth,
+        dateOfBirth: dateOfBirth,
         gender: this.studentProfile.gender || '',
         specialRequirements: this.studentProfile.specialRequirements || '',
       });
@@ -197,6 +228,10 @@ export class ProfileComponent implements OnInit {
       this.isSaving = true;
 
       const formValue = this.profileForm.value;
+      // Format date as YYYY-MM-DD for the API
+      const dateOfBirth = formValue.dateOfBirth instanceof Date
+        ? formValue.dateOfBirth.toISOString().split('T')[0]
+        : formValue.dateOfBirth;
       const updateRequest: StudentRequest = {
         firstName: formValue.firstName,
         lastName: formValue.lastName,
@@ -205,7 +240,7 @@ export class ProfileComponent implements OnInit {
         studentNumber: formValue.studentNumber,
         institutionId: Number(formValue.institutionId),
         yearOfStudyId: Number(formValue.yearOfStudyId),
-        dateOfBirth: formValue.dateOfBirth,
+        dateOfBirth: dateOfBirth,
         gender: formValue.gender || undefined,
         specialRequirements: formValue.specialRequirements || undefined,
       };
@@ -231,6 +266,7 @@ export class ProfileComponent implements OnInit {
           };
 
           this.errorService.showSuccess('Profile updated successfully!');
+          this.cdr.markForCheck();
         },
         error: (error) => {
           this.isSaving = false;
@@ -241,6 +277,7 @@ export class ProfileComponent implements OnInit {
           if (this.saveError.type !== 'validation') {
             this.errorService.showErrorSnackbar(this.saveError);
           }
+          this.cdr.markForCheck();
         },
       });
     } else {

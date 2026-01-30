@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDividerModule } from '@angular/material/divider';
 
 import { AllocationRuleService } from '../../../core/services/allocation-rule.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
@@ -38,7 +40,8 @@ import { AllocationRuleDialogComponent } from './allocation-rule-dialog/allocati
     MatTooltipModule,
     MatDialogModule,
     MatSlideToggleModule,
-    MatChipsModule
+    MatChipsModule,
+    MatDividerModule
   ],
   templateUrl: './allocation-rule-management.component.html',
   styleUrls: ['./allocation-rule-management.component.css']
@@ -55,7 +58,8 @@ export class AllocationRuleManagementComponent implements OnInit {
     private allocationRuleService: AllocationRuleService,
     private buildingService: BuildingService,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private route: ActivatedRoute
   ) {
     this.buildingForm = this.fb.group({
       buildingId: ['']
@@ -64,13 +68,26 @@ export class AllocationRuleManagementComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadBuildings();
-    
+
     // Listen for building changes to load rules
     this.buildingForm.get('buildingId')?.valueChanges.subscribe(buildingId => {
-      if (buildingId) {
+      if (buildingId !== '') {
         this.loadRules(buildingId);
       } else {
         this.rules = [];
+      }
+    });
+
+    // Check for buildingId in query params (e.g., from building management page)
+    this.route.queryParams.subscribe(params => {
+      if (params['buildingId']) {
+        const buildingId = parseInt(params['buildingId'], 10);
+        if (!isNaN(buildingId)) {
+          // Wait for buildings to load, then set the form value
+          setTimeout(() => {
+            this.buildingForm.patchValue({ buildingId: buildingId });
+          }, 500);
+        }
       }
     });
   }
@@ -85,11 +102,11 @@ export class AllocationRuleManagementComponent implements OnInit {
     });
   }
 
-  loadRules(buildingId: number): void {
+  loadRules(buildingId: number | null): void {
     this.isLoading = true;
     this.allocationRuleService.getRulesForBuilding(buildingId).subscribe({
       next: (rules) => {
-        this.rules = rules.sort((a, b) => a.priority - b.priority); // Sort by priority asc
+        this.rules = rules.sort((a, b) => b.priority - a.priority); // Sort by priority desc (higher = more important)
         this.isLoading = false;
       },
       error: (err) => {
@@ -102,14 +119,15 @@ export class AllocationRuleManagementComponent implements OnInit {
 
   openRuleDialog(rule?: AllocationRule): void {
     const buildingId = this.buildingForm.get('buildingId')?.value;
-    if (!buildingId && !rule) {
+    if (buildingId === '' && !rule) {
       this.snackBar.open('Please select a building first', 'Close', { duration: 3000 });
       return;
     }
 
     const dialogRef = this.dialog.open(AllocationRuleDialogComponent, {
-      width: '600px',
-      data: { 
+      width: '650px',
+      maxHeight: '90vh',
+      data: {
         rule,
         buildingId: buildingId
       }

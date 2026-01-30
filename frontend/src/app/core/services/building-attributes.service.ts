@@ -23,37 +23,40 @@ export interface BuildingAttributes {
 }
 
 export interface RoomAttributes {
-  id: number;
+  id?: number;
   roomId: number;
-  roomNumber: string;
+  roomNumber?: string;
+  buildingId?: number;
+  buildingName?: string;
+  accessibilityCompliant: boolean;
   genderRestriction: GenderRestriction;
-  wheelchairAccessible: boolean;
-  desirabilityScore: number;
-  capacity: number;
-  floor: number;
+  minYearOfStudy?: number;
+  maxYearOfStudy?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class BuildingAttributesService {
-  private apiUrl = `${environment.apiUrl}/building-attributes`;
+  private apiUrl = `${environment.apiUrl}/admin`;
 
   constructor(private http: HttpClient) {}
 
   getBuildingAttributes(buildingId: number): Observable<BuildingAttributes> {
-    return this.http.get<BuildingAttributes>(`${this.apiUrl}/building/${buildingId}`);
+    return this.http.get<BuildingAttributes>(`${this.apiUrl}/buildings/${buildingId}/attributes`);
   }
 
   saveBuildingAttributes(buildingId: number, attributes: Partial<BuildingAttributes>): Observable<BuildingAttributes> {
-    return this.http.post<BuildingAttributes>(`${this.apiUrl}/building/${buildingId}`, attributes);
+    return this.http.put<BuildingAttributes>(`${this.apiUrl}/buildings/${buildingId}/attributes`, attributes);
   }
 
   getRoomAttributes(buildingId: number): Observable<RoomAttributes[]> {
-    return this.http.get<RoomAttributes[]>(`${this.apiUrl}/building/${buildingId}/rooms`);
+    return this.http.get<RoomAttributes[]>(`${this.apiUrl}/buildings/${buildingId}/rooms/attributes`);
   }
 
   saveRoomAttributes(roomId: number, attributes: Partial<RoomAttributes>): Observable<RoomAttributes> {
-    return this.http.put<RoomAttributes>(`${this.apiUrl}/room/${roomId}`, attributes);
+    return this.http.put<RoomAttributes>(`${this.apiUrl}/rooms/${roomId}/attributes`, attributes);
   }
 }

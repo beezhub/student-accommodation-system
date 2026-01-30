@@ -18,6 +18,7 @@ public class DocumentResponse {
     private String documentName;
     private String documentTypeName;
     private String fileUrl;
+    private Long fileSize; // File size in bytes
     private String documentStatus;
     private LocalDate uploadDate;
     // Application context

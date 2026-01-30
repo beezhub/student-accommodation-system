@@ -301,6 +301,56 @@
   color: #64748b;
 }
 
+/* Institutions Cell */
+.institutions-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.institution-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.more-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 20px;
+}
+
+.all-institutions {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* Date Cell */
 .date-cell {
   display: flex;
@@ -342,6 +392,11 @@
 .action-btn.delete:hover {
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
   color: #dc2626 !important;
+}
+
+.action-btn.rules:hover {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #059669 !important;
 }
 
 /* No Data State */
@@ -466,9 +521,31 @@ mat-paginator {
     gap: 8px;
   }
 
+  .building-info {
+    width: 100%;
+  }
+
+  .building-desc {
+    max-width: none;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .institutions-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
   .buildings-table th,
   .buildings-table td {
-    padding: 12px 10px !important;
+    padding: 12px 8px !important;
+    font-size: 13px;
+  }
+
+  .buildings-table th {
+    font-size: 11px;
   }
 
   .actions-cell {
@@ -484,6 +561,15 @@ mat-paginator {
   .add-btn {
     width: 100%;
   }
+
+  /* Hide less important columns on mobile */
+  .buildings-table .mat-column-createdAt {
+    display: none;
+  }
+
+  .buildings-table .mat-column-address {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {
@@ -493,5 +579,67 @@ mat-paginator {
 
   .header-actions {
     width: 100%;
+  }
+
+  .page-header h1 {
+    font-size: 20px;
+  }
+
+  .page-header h1 mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Show only essential columns on very small screens */
+  .buildings-table .mat-column-totalFloors {
+    display: none;
+  }
+
+  .buildings-table .mat-column-institutions {
+    display: none;
+  }
+
+  .building-cell {
+    gap: 6px;
+  }
+
+  .building-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .building-icon mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .building-name {
+    font-size: 13px;
+  }
+
+  .building-desc {
+    font-size: 11px;
+  }
+
+  .actions-cell {
+    flex-direction: row;
+    gap: 2px;
+    justify-content: flex-end;
+  }
+
+  .action-btn {
+    padding: 6px;
+    min-width: 32px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .action-btn mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
   }
 }

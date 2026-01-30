@@ -247,18 +247,18 @@ export const routes: Routes = [
           ).then((m) => m.AllocationRuleManagementComponent),
       },
       {
+        path: 'accommodation-types',
+        loadComponent: () =>
+          import(
+            './features/admin/accommodation-type-management/accommodation-type-management.component'
+          ).then((m) => m.AccommodationTypeManagementComponent),
+      },
+      {
         path: 'allocations/staged',
         loadComponent: () =>
           import('./features/admin/staged-allocation/staged-allocation.component').then(
             (m) => m.StagedAllocationComponent
           ),
-      },
-      {
-        path: 'buildings/:buildingId/attributes',
-        loadComponent: () =>
-          import(
-            './features/admin/building-attributes-management/building-attributes-management.component'
-          ).then((m) => m.BuildingAttributesManagementComponent),
       },
       {
         path: 'waiting-list',

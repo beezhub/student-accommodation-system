@@ -543,6 +543,20 @@
   color: #0891B2;
 }
 
+/* Required Badge in Dropdown */
+.required-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #fbbf24;
+  vertical-align: middle;
+}
+
 /* Error States */
 .error-message {
   display: flex;

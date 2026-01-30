@@ -78,8 +78,8 @@ export class RoomAllocationComponent implements OnInit {
     private snackBar: MatSnackBar
   ) {
     this.filterForm = this.fb.group({
-      studentId: [''],
-      roomId: [''],
+      studentName: [''],
+      roomNumber: [''],
       buildingId: [''],
       status: [''],
     });
@@ -145,6 +145,29 @@ export class RoomAllocationComponent implements OnInit {
       const dialogRef = this.dialog.open(m.AllocateDialogComponent, {
         width: '700px',
         data: {},
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          this.loadAllocations();
+        }
+      });
+    });
+  }
+
+  moveStudent(allocation: RoomAllocationResponse): void {
+    import('../allocation-move-dialog/allocation-move-dialog.component').then((m) => {
+      const dialogRef = this.dialog.open(m.AllocationMoveDialogComponent, {
+        width: '600px',
+        data: { 
+          allocationId: allocation.id,
+          studentId: allocation.studentId,
+          studentName: `${allocation.studentFirstName} ${allocation.studentLastName}`,
+          currentRoom: {
+            buildingName: allocation.buildingName,
+            roomNumber: allocation.roomNumber
+          }
+        },
       });
 
       dialogRef.afterClosed().subscribe((result) => {

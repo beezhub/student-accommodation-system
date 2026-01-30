@@ -246,6 +246,19 @@
                     <mat-icon>tune</mat-icon>
                     <span>View Preferences</span>
                   </button>
+                  <mat-divider></mat-divider>
+                  <button mat-menu-item
+                    (click)="openAllocationDialog(application)"
+                    [disabled]="application.status !== 'AWAITING_ALLOCATION'">
+                    <mat-icon>assignment_turned_in</mat-icon>
+                    <span>Manual Room Allocation</span>
+                  </button>
+                  <button mat-menu-item
+                    (click)="runAutoAllocation(application)"
+                    [disabled]="application.status !== 'AWAITING_ALLOCATION'">
+                    <mat-icon>auto_fix_high</mat-icon>
+                    <span>Auto Allocation</span>
+                  </button>
                 </mat-menu>
               </td>
             </ng-container>

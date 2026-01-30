@@ -27,6 +27,8 @@ public class Document {
     private String documentName;
     @Column(name = "document_path", nullable = false)
     private String documentPath;
+    @Column(name = "file_size")
+    private Long fileSize; // File size in bytes
     @Column(name ="document_status", nullable = false)
     @Enumerated(EnumType.STRING)
     private DocumentStatus documentStatus;

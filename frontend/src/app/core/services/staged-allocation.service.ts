@@ -102,4 +102,11 @@ export class StagedAllocationService {
       {}
     );
   }
+
+  enqueueWaitingList(studentId: number, applicationId: number): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/waiting-list/enqueue`, {
+      studentId,
+      applicationId,
+    });
+  }
 }

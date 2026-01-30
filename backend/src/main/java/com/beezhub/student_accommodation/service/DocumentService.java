@@ -188,6 +188,7 @@ public class DocumentService {
                 .documentName(file.getOriginalFilename())
                 .documentType(docType)
                 .documentPath(objectPath)
+                .fileSize(file.getSize())
                 .student(student)
                 .application(application)
                 .documentStatus(PENDING)

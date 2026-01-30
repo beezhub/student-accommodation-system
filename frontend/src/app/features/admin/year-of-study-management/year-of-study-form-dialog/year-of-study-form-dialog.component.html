@@ -15,17 +15,20 @@
           Year of Study
         </label>
         <mat-form-field appearance="outline" class="full-width">
-          <input matInput formControlName="yearOfStudy" placeholder="e.g., 1st Year, 2nd Year, Final Year">
+          <input matInput formControlName="yearOfStudy" placeholder="e.g., 1, 1st Year, First Year">
           @if (yearOfStudyForm.get('yearOfStudy')?.hasError('required') && yearOfStudyForm.get('yearOfStudy')?.touched) {
             <mat-error>Year of study is required</mat-error>
           }
           @if (yearOfStudyForm.get('yearOfStudy')?.hasError('maxlength')) {
             <mat-error>Cannot exceed 50 characters</mat-error>
           }
+          @if (yearOfStudyForm.get('yearOfStudy')?.hasError('invalidYearFormat')) {
+            <mat-error>Must be a numeric year (e.g., "1", "1st Year", "First Year", "Year 2")</mat-error>
+          }
         </mat-form-field>
         <div class="field-hint">
           <mat-icon>info_outline</mat-icon>
-          <span>Enter the year level (e.g., 1st Year, 2nd Year, 3rd Year, Final Year)</span>
+          <span>Use numeric formats for room restriction compatibility: "1", "1st Year", "First Year", "Year 1"</span>
         </div>
       </div>
 
@@ -37,7 +40,8 @@
           <button type="button" mat-stroked-button (click)="setYear('2nd Year')" class="quick-btn">2nd Year</button>
           <button type="button" mat-stroked-button (click)="setYear('3rd Year')" class="quick-btn">3rd Year</button>
           <button type="button" mat-stroked-button (click)="setYear('4th Year')" class="quick-btn">4th Year</button>
-          <button type="button" mat-stroked-button (click)="setYear('Final Year')" class="quick-btn">Final Year</button>
+          <button type="button" mat-stroked-button (click)="setYear('5th Year')" class="quick-btn">5th Year</button>
+          <button type="button" mat-stroked-button (click)="setYear('6th Year')" class="quick-btn">6th Year</button>
         </div>
       </div>
     </form>

@@ -14,6 +14,17 @@ import java.util.Optional;
 public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificationExecutor<Room> {
     Optional<Room> findFirstByStatusOrderByBuilding_IdAscRoomNumberAsc(String status);
     
+    // Find rooms by building with attributes loaded
+    @Query("SELECT r FROM Room r LEFT JOIN FETCH r.attributes LEFT JOIN FETCH r.building WHERE r.building.id = :buildingId")
+    List<Room> findByBuildingIdWithAttributes(@Param("buildingId") Long buildingId);
+    
+    // Find rooms by building
+    List<Room> findByBuildingId(Long buildingId);
+    
+    // Find room by ID with attributes loaded
+    @Query("SELECT r FROM Room r LEFT JOIN FETCH r.attributes LEFT JOIN FETCH r.building WHERE r.id = :roomId")
+    Optional<Room> findByIdWithAttributes(@Param("roomId") Long roomId);
+    
     // Room status counts
     long countByStatus(String status);
     
