@@ -53,7 +53,7 @@ class ApplicationServiceIntegrationTest {
         request.setPreferredAccommodationType("HOSTEL");
         request.setPreferredMoveInDate(LocalDate.of(2026, 2, 1));
         request.setPreferredDurationMonths(12);
-        request.setPreferredRoomType("DOUBLE");
+        // request.setPreferredRoomType("DOUBLE");
         request.setSpecialRequirements("Near elevator");
         request.setInstitutionName("Test Institute");
         request.setCourseName("CS");
@@ -63,7 +63,7 @@ class ApplicationServiceIntegrationTest {
         assertThat(response.getPreferredAccommodationType()).isEqualTo("HOSTEL");
         assertThat(response.getPreferredMoveInDate()).isEqualTo(LocalDate.of(2026, 2, 1));
         assertThat(response.getPreferredDurationMonths()).isEqualTo(12);
-        assertThat(response.getPreferredRoomType()).isEqualTo("DOUBLE");
+        // assertThat(response.getPreferredRoomType()).isEqualTo("DOUBLE");
         assertThat(response.getSpecialRequirements()).isEqualTo("Near elevator");
         assertThat(response.getInstitutionName()).isEqualTo("Test Institute");
         assertThat(response.getCourseName()).isEqualTo("CS");

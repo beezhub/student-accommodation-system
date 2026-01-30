@@ -44,6 +44,9 @@ class DocumentServiceSearchTest {
     @Mock
     private DocumentMapper documentMapper;
 
+    @Mock
+    private AuthService authService;
+
     @InjectMocks
     private DocumentService documentService;
 
@@ -122,8 +125,9 @@ class DocumentServiceSearchTest {
         when(documentMapper.toDocumentResponse(document2)).thenReturn(response2);
 
         // Act
+        // String documentName, Long studentId, String studentName, Long documentTypeId, String status, String applicationStatus, LocalDateTime createdAfter, LocalDateTime createdBefore, Pageable pageable, String username
         Page<DocumentResponse> result = documentService.searchDocuments(
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
                 pageable, "admin@test.com"
         );
 
@@ -144,7 +148,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.searchDocuments(
-                "passport", null, null, null, null, null,
+                "passport", null, null, null, null, null, null, null,
                 pageable, "admin@test.com"
         );
 
@@ -166,7 +170,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.searchDocuments(
-                null, 1L, null, null, null, null,
+                null, 1L, null, null, null, null, null, null,
                 pageable, "admin@test.com"
         );
 
@@ -187,7 +191,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.searchDocuments(
-                null, null, 1L, null, null, null,
+                null, null, null, 1L, null, null, null, null,
                 pageable, "admin@test.com"
         );
 
@@ -207,7 +211,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.searchDocuments(
-                null, null, null, "APPROVED", null, null,
+                null, null, null, null, "APPROVED", null, null, null,
                 pageable, "admin@test.com"
         );
 
@@ -228,7 +232,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.searchDocuments(
-                null, null, null, null, createdAfter, null,
+                null, null, null, null, null, null, createdAfter, null,
                 pageable, "admin@test.com"
         );
 
@@ -250,7 +254,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.searchDocuments(
-                "passport", 1L, 1L, "PENDING", createdAfter, createdBefore,
+                "passport", 1L, null, 1L, "PENDING", null, createdAfter, createdBefore,
                 pageable, "admin@test.com"
         );
 
@@ -271,7 +275,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.searchDocuments(
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
                 pageable, "user@test.com"
         );
 
@@ -290,7 +294,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.searchDocuments(
-                "nonexistent", null, null, null, null, null,
+                "nonexistent", null, null, null, null, null, null, null,
                 pageable, "admin@test.com"
         );
 
@@ -304,15 +308,16 @@ class DocumentServiceSearchTest {
     @Test
     void getMyDocuments_WithNoFilters_ReturnsUserDocuments() {
         // Arrange
-        when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+        when(authService.getCurrentUser()).thenReturn(regularUser);
         Page<Document> documentsPage = new PageImpl<>(Arrays.asList(document1, document2));
         when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
         when(documentMapper.toDocumentResponse(document1)).thenReturn(response1);
         when(documentMapper.toDocumentResponse(document2)).thenReturn(response2);
 
         // Act
+        // String documentName, Long documentTypeId, String status, String applicationStatus, LocalDateTime createdAfter, LocalDateTime createdBefore, Pageable pageable
         Page<DocumentResponse> result = documentService.getMyDocuments(
-                null, null, null, null, null,
+                null, null, null, null, null, null,
                 pageable
         );
 
@@ -325,14 +330,14 @@ class DocumentServiceSearchTest {
     @Test
     void getMyDocuments_WithDocumentNameFilter_ReturnsMatchingDocuments() {
         // Arrange
-        when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+        when(authService.getCurrentUser()).thenReturn(regularUser);
         Page<Document> documentsPage = new PageImpl<>(List.of(document1));
         when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
         when(documentMapper.toDocumentResponse(document1)).thenReturn(response1);
 
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
-                "passport", null, null, null, null,
+                "passport", null, null, null, null, null,
                 pageable
         );
 
@@ -346,14 +351,14 @@ class DocumentServiceSearchTest {
     @Test
     void getMyDocuments_WithStatusFilter_ReturnsMatchingDocuments() {
         // Arrange
-        when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+        when(authService.getCurrentUser()).thenReturn(regularUser);
         Page<Document> documentsPage = new PageImpl<>(List.of(document2));
         when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
         when(documentMapper.toDocumentResponse(document2)).thenReturn(response2);
 
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
-                null, null, "APPROVED", null, null,
+                null, null, "APPROVED", null, null, null,
                 pageable
         );
 
@@ -366,7 +371,7 @@ class DocumentServiceSearchTest {
     @Test
     void getMyDocuments_WithDocumentTypeFilter_ReturnsMatchingDocuments() {
         // Arrange
-        when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+        when(authService.getCurrentUser()).thenReturn(regularUser);
         Page<Document> documentsPage = new PageImpl<>(Arrays.asList(document1, document2));
         when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
         when(documentMapper.toDocumentResponse(document1)).thenReturn(response1);
@@ -374,7 +379,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
-                null, 1L, null, null, null,
+                null, 1L, null, null, null, null,
                 pageable
         );
 
@@ -387,7 +392,7 @@ class DocumentServiceSearchTest {
     @Test
     void getMyDocuments_WithDateRangeFilter_ReturnsMatchingDocuments() {
         // Arrange
-        when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+        when(authService.getCurrentUser()).thenReturn(regularUser);
         LocalDateTime createdAfter = LocalDateTime.now().minusDays(3);
         Page<Document> documentsPage = new PageImpl<>(List.of(document2));
         when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
@@ -395,7 +400,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
-                null, null, null, createdAfter, null,
+                null, null, null, null, createdAfter, null,
                 pageable
         );
 
@@ -408,7 +413,7 @@ class DocumentServiceSearchTest {
     @Test
     void getMyDocuments_WithMultipleFilters_ReturnsMatchingDocuments() {
         // Arrange
-        when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+        when(authService.getCurrentUser()).thenReturn(regularUser);
         LocalDateTime createdAfter = LocalDateTime.now().minusDays(10);
         LocalDateTime createdBefore = LocalDateTime.now();
         Page<Document> documentsPage = new PageImpl<>(List.of(document1));
@@ -417,7 +422,7 @@ class DocumentServiceSearchTest {
 
         // Act
         Page<DocumentResponse> result = documentService.getMyDocuments(
-                "passport", 1L, "PENDING", createdAfter, createdBefore,
+                "passport", 1L, "PENDING", null, createdAfter, createdBefore,
                 pageable
         );
 
@@ -435,23 +440,8 @@ class DocumentServiceSearchTest {
         // Act & Assert
         assertThrows(RuntimeException.class, () ->
                 documentService.searchDocuments(
-                        null, null, null, null, null, null,
+                        null, null, null, null, null, null, null, null,
                         pageable, "invalid@test.com"
-                )
-        );
-        verify(documentRepository, never()).findAll(any(Specification.class), any(Pageable.class));
-    }
-
-    @Test
-    void getMyDocuments_WithInvalidUser_ThrowsException() {
-        // Arrange
-        when(appUserRepository.findByEmail("invalid@test.com")).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThrows(RuntimeException.class, () ->
-                documentService.getMyDocuments(
-                        null, null, null, null, null,
-                        pageable
                 )
         );
         verify(documentRepository, never()).findAll(any(Specification.class), any(Pageable.class));

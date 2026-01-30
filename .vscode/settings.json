@@ -12,5 +12,6 @@
         "Get-NetTCPConnection": true,
         "Get-Unique": true,
         "Get-Process": true
-    }
+    },
+    "java.compile.nullAnalysis.mode": "automatic"
 }

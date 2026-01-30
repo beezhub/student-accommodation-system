@@ -15,4 +15,32 @@ public class UserData {
     private String userRole;
     private Boolean mustChangePassword;
     private Boolean emailVerified;
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public String getUserRole() {
+        return userRole;
+    }
+
+    public Boolean getMustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public Boolean getEmailVerified() {
+        return emailVerified;
+    }
 }

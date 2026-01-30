@@ -62,13 +62,11 @@ class InstitutionServiceTest {
         institution2.setEmailAddress("info@college.com");
 
         response1 = new InstitutionResponse();
-        response1.setId("1");
-        response1.setName("University of Test");
-        response1.setAddress("123 Test St");
-        response1.setEmailAddress("test@university.com");
-
-        response2 = new InstitutionResponse();
-        response2.setId("2");
+        response1.setId(1L);
+        response1.setName("University A");
+        
+        InstitutionResponse response2 = new InstitutionResponse();
+        response2.setId(2L);
         response2.setName("College of Science");
         response2.setAddress("456 Science Ave");
         response2.setEmailAddress("info@college.com");
