@@ -148,147 +148,47 @@ interface StatusConfig {
 
       /* Status Colors - Vibrant, Student-Friendly Palette */
 
-      /* Success/Approved - Fresh Green */
-      .status-approved {
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        color: #047857;
-        border: 1.5px solid #6ee7b7;
+      /* Status Colors - Mapped to Functional Palette */
+
+      /* Success/Approved */
+      .status-approved, .status-verified, .status-allocated, .status-active {
+        background: var(--color-success-bg, linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%));
+        color: var(--color-success, #047857);
+        border: 1px solid var(--color-success-border, #6ee7b7);
       }
 
-      .status-approved:hover {
-        background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
+      /* Warning/Pending/Full */
+      .status-pending, .status-full, .status-awaiting_allocation {
+        background: var(--color-warning-bg, linear-gradient(135deg, #fef3c7 0%, #fde68a 100%));
+        color: var(--color-warning, #b45309);
+        border: 1px solid var(--color-warning-border, #fcd34d);
       }
 
-      /* Verified - Teal */
-      .status-verified {
-        background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
-        color: #0f766e;
-        border: 1.5px solid #5eead4;
-      }
-
-      .status-verified:hover {
-        background: linear-gradient(135deg, #99f6e4 0%, #5eead4 100%);
-      }
-
-      /* Pending - Warm Amber */
-      .status-pending {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        color: #b45309;
-        border: 1.5px solid #fcd34d;
-      }
-
-      .status-pending:hover {
-        background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
-      }
-
-      /* Rejected - Soft Red */
+      /* Error/Rejected */
       .status-rejected {
-        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-        color: #b91c1c;
-        border: 1.5px solid #f87171;
+        background: var(--color-error-bg, linear-gradient(135deg, #fee2e2 0%, #fecaca 100%));
+        color: var(--color-error, #b91c1c);
+        border: 1px solid var(--color-error-border, #f87171);
       }
 
-      .status-rejected:hover {
-        background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
-      }
-
-      /* Available - Sky Blue */
+      /* Info/Available */
       .status-available {
-        background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-        color: #0369a1;
-        border: 1.5px solid #7dd3fc;
+        background: var(--color-info-bg, linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%));
+        color: var(--color-info, #0369a1);
+        border: 1px solid var(--color-info-border, #7dd3fc);
       }
 
-      .status-available:hover {
-        background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%);
+      /* Neutral/Maintenance/Inactive */
+      .status-maintenance, .status-inactive, .status-occupied {
+        background: var(--color-slate-100, #f1f5f9);
+        color: var(--color-slate-600, #475569);
+        border: 1px solid var(--color-slate-200, #cbd5e1);
       }
 
-      /* Occupied - Purple */
-      .status-occupied {
-        background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
-        color: #6d28d9;
-        border: 1.5px solid #a78bfa;
-      }
-
-      .status-occupied:hover {
-        background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
-      }
-
-      /* Full - Orange */
-      .status-full {
-        background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
-        color: #c2410c;
-        border: 1.5px solid #fdba74;
-      }
-
-      .status-full:hover {
-        background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
-      }
-
-      /* Maintenance - Gray */
-      .status-maintenance {
-        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-        color: #374151;
-        border: 1.5px solid #d1d5db;
-      }
-
-      .status-maintenance:hover {
-        background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
-      }
-
-      /* Active - Cyan */
-      .status-active {
-        background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
-        color: #0e7490;
-        border: 1.5px solid #22d3ee;
-      }
-
-      .status-active:hover {
-        background: linear-gradient(135deg, #a5f3fc 0%, #67e8f9 100%);
-      }
-
-      /* Inactive - Slate */
-      .status-inactive {
-        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-        color: #475569;
-        border: 1.5px solid #cbd5e1;
-      }
-
-      .status-inactive:hover {
-        background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
-      }
-
-      /* Allocated - Success Green */
-      .status-allocated {
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        color: #047857;
-        border: 1.5px solid #6ee7b7;
-      }
-
-      .status-allocated:hover {
-        background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
-      }
-
-      /* Awaiting Allocation - Blue */
-      .status-awaiting_allocation {
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        color: #1e40af;
-        border: 1.5px solid #93c5fd;
-      }
-
-      .status-awaiting_allocation:hover {
-        background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
-      }
-
-      /* Default */
       .status-default {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        color: #64748b;
-        border: 1.5px solid #e2e8f0;
-      }
-
-      .status-default:hover {
-        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        background: var(--color-slate-50, #f8fafc);
+        color: var(--color-slate-500, #64748b);
+        border: 1px solid var(--color-slate-200, #e2e8f0);
       }
     `,
   ],

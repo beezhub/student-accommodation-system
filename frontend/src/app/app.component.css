@@ -54,40 +54,7 @@
   flex: 1;
 }
 
-/* Desktop Navigation */
-.desktop-nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.desktop-nav .mat-mdc-button {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  padding: 8px 16px !important;
-  border-radius: 10px !important;
-  color: rgba(0, 0, 0, 0.7) !important;
-  font-weight: 500 !important;
-  min-width: auto !important;
-  transition: all 0.2s ease !important;
-}
-
-.desktop-nav .mat-mdc-button:hover {
-  background-color: rgba(0, 0, 0, 0.04) !important;
-  color: var(--color-primary) !important;
-}
-
-.desktop-nav .mat-mdc-button.active-link {
-  background-color: rgba(12, 140, 228, 0.1) !important;
-  color: var(--color-primary) !important;
-}
-
-.desktop-nav .mat-mdc-raised-button {
-  background-color: var(--color-accent) !important;
-  color: white !important;
-  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3) !important;
-}
+/* Desktop Navigation styles moved to app-nav-menu.component.scss */
 
 /* Menu Styling */
 .user-menu .mat-mdc-menu-item,

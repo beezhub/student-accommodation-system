@@ -1,0 +1,97 @@
+@use './_variables.scss' as vars;
+
+// Utility Classes for HTML usage
+
+.text-slate-500 {
+    color: vars.$slate-500 !important;
+}
+
+.text-slate-600 {
+    color: vars.$slate-600 !important;
+}
+
+.text-slate-800 {
+    color: vars.$slate-800 !important;
+}
+
+.fw-bold {
+    font-weight: 700 !important;
+}
+
+.fw-semibold {
+    font-weight: 600 !important;
+}
+
+.fw-normal {
+    font-weight: 400 !important;
+}
+
+.w-full {
+    width: 100% !important;
+}
+
+.d-flex {
+    display: flex !important;
+}
+
+.flex-column {
+    flex-direction: column !important;
+}
+
+.align-center {
+    align-items: center !important;
+}
+
+.justify-between {
+    justify-content: space-between !important;
+}
+
+.justify-center {
+    justify-content: center !important;
+}
+
+.gap-1 {
+    gap: vars.$space-1 !important;
+}
+
+.gap-2 {
+    gap: vars.$space-2 !important;
+}
+
+.gap-3 {
+    gap: vars.$space-3 !important;
+}
+
+.gap-4 {
+    gap: vars.$space-4 !important;
+}
+
+.mb-4 {
+    margin-bottom: vars.$space-4 !important;
+}
+
+.mb-6 {
+    margin-bottom: vars.$space-6 !important;
+}
+
+// Modern Scrollbar
+.custom-scrollbar {
+    &::-webkit-scrollbar {
+        height: 6px;
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: vars.$slate-100;
+        border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: vars.$slate-300;
+        border-radius: 3px;
+
+        &:hover {
+            background: vars.$slate-400;
+        }
+    }
+}

@@ -140,7 +140,7 @@ import { NotificationsComponent } from './notifications/notifications.component'
       </div>
     </nav>
   `,
-  styleUrls: ['./app-nav-menu.component.css'],
+  styleUrls: ['./app-nav-menu.component.scss'],
 })
 export class AppNavMenuComponent {
   @Output() logout = new EventEmitter<void>();

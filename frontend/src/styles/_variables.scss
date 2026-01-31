@@ -1,0 +1,171 @@
+// Design Tokens - Source of Truth
+// Based on Audit Report Specs
+
+// -----------------------------------------------------------------------------
+// 1. Colors
+// -----------------------------------------------------------------------------
+
+// Slate Scale (Neutrals)
+$slate-50: #f8fafc;
+$slate-100: #f1f5f9;
+$slate-200: #e2e8f0;
+$slate-300: #cbd5e1;
+$slate-400: #94a3b8;
+$slate-500: #64748b;
+$slate-600: #475569;
+$slate-700: #334155;
+$slate-800: #1e293b;
+$slate-900: #0f172a;
+
+// Module Accents
+$accent-purple-light: #8b5cf6;
+$accent-purple-dark: #7c3aed; // Dashboard, Users, Allocations, Institutions
+
+$accent-blue-light: #3b82f6;
+$accent-blue-dark: #1d4ed8; // Applications, Documents
+
+$accent-cyan-light: #06b6d4;
+$accent-cyan-dark: #0891b2; // Rooms
+
+$accent-orange-light: #f59e0b;
+$accent-orange-dark: #d97706; // Buildings
+
+$accent-green-light: #10b981;
+$accent-green-dark: #059669; // Year of Study
+
+$accent-gray-light: $slate-500;
+$accent-gray-dark: $slate-600; // Activity Logs, Settings
+
+// Functional Colors
+$success: #059669;
+$warning: #d97706;
+$error: #dc2626;
+$info: #0284c7;
+
+// -----------------------------------------------------------------------------
+// 2. Typography
+// -----------------------------------------------------------------------------
+
+$font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+$font-size-h1: 32px;
+$font-weight-h1: 700;
+
+$font-size-h2: 22px;
+$font-weight-h2: 700;
+
+$font-size-title: 20px;
+$font-weight-title: 700;
+
+$font-size-card-title: 18px;
+$font-weight-card-title: 600;
+
+$font-size-body: 14px;
+$font-weight-body: 400;
+
+$font-size-small: 13px;
+$font-size-tiny: 12px;
+
+$font-size-badge: 11px;
+$font-weight-badge: 600;
+
+// -----------------------------------------------------------------------------
+// 3. Spacing & Layout
+// -----------------------------------------------------------------------------
+
+$spacing-unit: 4px; // Base unit
+
+// Common spacings
+$space-1: 4px;
+$space-2: 8px;
+$space-3: 12px;
+$space-4: 16px;
+$space-5: 20px;
+$space-6: 24px;
+$space-8: 32px;
+$space-10: 40px;
+$space-12: 48px;
+
+// Border Radius
+$radius-sm: 6px;
+$radius-md: 10px; // Standard buttons
+$radius-lg: 20px; // Filter cards
+$radius-xl: 24px; // Table cards
+$radius-pill: 9999px; // Badges
+
+// -----------------------------------------------------------------------------
+// 4. Shadows
+// -----------------------------------------------------------------------------
+
+$shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.04);
+$shadow-medium: 0 8px 32px rgba(0, 0, 0, 0.06);
+$shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.1);
+
+// -----------------------------------------------------------------------------
+// 5. Breakpoints
+// -----------------------------------------------------------------------------
+
+$breakpoint-mobile: 480px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+$breakpoint-large: 1200px;
+
+// -----------------------------------------------------------------------------
+// 7. Motion
+// -----------------------------------------------------------------------------
+
+$motion-fast: 150ms;
+$motion-medium: 250ms;
+$motion-spring: cubic-bezier(0.2, 0.9, 0.3, 1);
+
+// -----------------------------------------------------------------------------
+// 8. CSS Custom Properties Export (Root Variables)
+// -----------------------------------------------------------------------------
+:root {
+    // Colors
+    --color-slate-50: #{$slate-50};
+    --color-slate-100: #{$slate-100};
+    --color-slate-200: #{$slate-200};
+    --color-slate-300: #{$slate-300};
+    --color-slate-400: #{$slate-400};
+    --color-slate-500: #{$slate-500};
+    --color-slate-600: #{$slate-600};
+    --color-slate-700: #{$slate-700};
+    --color-slate-800: #{$slate-800};
+    --color-slate-900: #{$slate-900};
+
+    --color-primary: #{$accent-purple-dark}; // Default primary
+    --color-accent: #{$accent-purple-light};
+
+    --gradient-dashboard: linear-gradient(135deg, #{$accent-purple-light} 0%, #{$accent-purple-dark} 100%);
+    --gradient-applications: linear-gradient(135deg, #{$accent-blue-light} 0%, #{$accent-blue-dark} 100%);
+    // Other module gradients can be defined here or locally using vars
+
+    // Grid & Spacing
+    --grid-unit: 8px;
+    --space-0: 0px;
+    --space-1: #{$space-1};
+    --space-2: #{$space-2};
+    --space-3: #{$space-3};
+    --space-4: #{$space-4};
+    --space-6: #{$space-6};
+
+    // Typography Scale
+    --type-base: 16px;
+    --type-scale-ratio: 1.125;
+
+    // Radii
+    --radius-sm: #{$radius-sm};
+    --radius-md: #{$radius-md};
+    --radius-lg: #{$radius-lg};
+    --radius-xl: #{$radius-xl};
+    --radius-pill: #{$radius-pill};
+
+    // Shadows
+    --shadow-subtle: #{$shadow-subtle};
+    --shadow-medium: #{$shadow-medium};
+    --shadow-elevated: #{$shadow-elevated};
+
+    // Typography
+    --font-sans: #{$font-sans};
+}

@@ -54,7 +54,7 @@ import {
 @Component({
   selector: 'app-application-review',
   templateUrl: './application-review.component.html',
-  styleUrls: ['./application-review.component.css'],
+  styleUrls: ['./application-review.component.scss'],
   standalone: true,
   imports: [
     CommonModule,

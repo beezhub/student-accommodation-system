@@ -35,8 +35,7 @@
             ],
             "scripts": [],
             "styles": [
-              "src/custom-theme.scss",
-              "src/global_styles.css"
+              "src/styles.scss"
             ],
             "tsConfig": "tsconfig.app.json"
           }

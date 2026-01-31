@@ -82,7 +82,7 @@ interface DocumentStatusChange {
     TimeagoPipe,
   ],
   templateUrl: './application-detail-dialog.component.html',
-  styleUrls: ['./application-detail-dialog.component.css'],
+  styleUrls: ['./application-detail-dialog.component.scss'],
 })
 export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   isLoading = true;

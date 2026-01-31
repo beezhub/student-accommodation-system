@@ -93,7 +93,7 @@
 .signup-card {
   margin-bottom: 2rem;
   box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12), 0 4px 16px rgba(8, 145, 178, 0.06) !important;
-  border-radius: 24px !important;
+  border-radius: var(--radius-xl) !important;
   border: 1px solid rgba(241, 245, 249, 0.8);
   overflow: hidden;
   background: rgba(255, 255, 255, 0.98) !important;
@@ -162,23 +162,49 @@ form {
 }
 
 ::ng-deep .signup-card .mat-mdc-text-field-wrapper {
-  border-radius: 12px !important;
+  border-radius: var(--radius-sm) !important;
   background-color: #f8fafc;
 }
 
 ::ng-deep .signup-card .mdc-notched-outline {
-  border-radius: 12px !important;
-  border-width: 1.5px !important;
+  border-radius: var(--radius-sm) !important;
+  border-width: 1px !important;
   border-color: #e2e8f0 !important;
+  transition: all 0.2s ease;
+}
+
+::ng-deep .signup-card .mdc-notched-outline__leading {
+  border-radius: 6px 0 0 6px !important;
+  border-right: none !important;
+}
+
+::ng-deep .signup-card .mdc-notched-outline__notch {
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+::ng-deep .signup-card .mdc-notched-outline__trailing {
+  border-radius: 0 6px 6px 0 !important;
+  border-left: none !important;
 }
 
 ::ng-deep .signup-card .mat-mdc-form-field:hover .mdc-notched-outline {
   border-color: #cbd5e1 !important;
 }
 
+::ng-deep .signup-card .mat-mdc-form-field:hover .mdc-notched-outline__notch {
+  border-top-color: #cbd5e1 !important;
+}
+
 ::ng-deep .signup-card .mat-mdc-form-field.mat-focused .mdc-notched-outline {
   border-color: #0891B2 !important;
   border-width: 2px !important;
+}
+
+::ng-deep .signup-card .mat-mdc-form-field.mat-focused .mdc-notched-outline__notch {
+  border-top: 2px solid #0891B2 !important;
 }
 
 ::ng-deep .signup-card .mat-mdc-form-field-icon-suffix {

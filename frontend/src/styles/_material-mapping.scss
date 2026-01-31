@@ -1,42 +1,9 @@
-// Map design tokens to Angular Material palettes and theme configuration
-@use '@angular/material/theming' as mat;
-@use './_tokens.scss' as tokens;
-
-// Define a primary palette from our color token. Angular Material palettes expect a map of shades; we'll supply a minimal map.
-$primary-palette: mat.define-palette((
-  50: tokens.$neutral-50,
-  100: tokens.$neutral-100,
-  200: tokens.$neutral-200,
-  300: tokens.$neutral-300,
-  400: tokens.$neutral-400,
-  500: tokens.$neutral-500,
-  600: tokens.$neutral-600,
-  700: tokens.$neutral-700,
-  800: tokens.$neutral-800,
-  900: tokens.$color-primary,
-  A100: tokens.$color-primary,
-  A200: tokens.$color-primary-700,
-  A400: tokens.$color-primary-700,
-  A700: tokens.$color-primary-700,
-));
-
-$accent-palette: mat.define-palette((
-  500: tokens.$color-accent,
-  A200: tokens.$color-accent,
-));
-
-// Warn palette
-$warn-palette: mat.define-palette(mat.$red-palette);
-
-// Create light theme
-$theme: mat.define-light-theme((
-  color: (
-    primary: $primary-palette,
-    accent: $accent-palette,
-    warn: $warn-palette,
-  ),
-  typography: mat.define-typography-config(),
-));
+$theme: mat.define-light-theme((color: (primary: $primary-palette,
+        accent: $accent-palette,
+        warn: $warn-palette,
+      ),
+      typography: mat.define-typography-config(),
+    ));
 
 // Export a mixin to include in the app
 @mixin app-material-theme() {

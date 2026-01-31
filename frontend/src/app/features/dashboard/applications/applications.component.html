@@ -27,7 +27,54 @@
           <span class="application-count">{{applications.length}} application(s)</span>
         </div>
         <mat-card-content>
-          <div class="table-container">
+
+          <!-- Mobile Card View -->
+          <div class="mobile-cards-container">
+            @for (app of applications; track app.id) {
+              <div class="mobile-application-card">
+                <div class="mobile-card-header">
+                  <div class="mobile-card-id">
+                    <mat-icon>assignment</mat-icon>
+                    <span>#{{app.id}}</span>
+                  </div>
+                  <app-modern-status-badge [status]="app.status" size="sm"></app-modern-status-badge>
+                </div>
+                
+                <div class="mobile-card-body">
+                  <div class="mobile-info-row">
+                    <span class="label">Year</span>
+                    <span class="value">{{(app.applicationDate || app.createdAt || '') | date:'yyyy'}}</span>
+                  </div>
+                  <div class="mobile-info-row">
+                    <span class="label">Date</span>
+                    <span class="value">{{(app.applicationDate || app.createdAt) | date:'mediumDate'}}</span>
+                  </div>
+                  <div class="mobile-info-row">
+                    <span class="label">Type</span>
+                    <span class="value">{{app.preferredAccommodationType || 'N/A'}}</span>
+                  </div>
+                  <div class="mobile-info-row">
+                    <span class="label">Duration</span>
+                    <span class="value">{{app.preferredDurationMonths ? app.preferredDurationMonths + ' month(s)' : 'N/A'}}</span>
+                  </div>
+                </div>
+
+                <div class="mobile-card-actions">
+                  <button mat-stroked-button class="view-btn" [routerLink]="['/applications', app.id]">
+                    View Details
+                  </button>
+                  @if (app.status?.toUpperCase() === 'PENDING') {
+                    <button mat-flat-button color="warn" class="cancel-btn" (click)="cancelApplication(app.id)">
+                      Cancel
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Desktop Table View -->
+          <div class="desktop-table-container">
             <table mat-table [dataSource]="dataSource" class="applications-table" aria-label="Applications table">
 
               <!-- ID Column -->
@@ -72,7 +119,7 @@
               <ng-container matColumnDef="type">
                 <th mat-header-cell *matHeaderCellDef> Type </th>
                 <td mat-cell *matCellDef="let app">
-                  <span class="type-badge"><mat-icon>hotel</mat-icon> {{app.preferredAccommodationType || app.preferredRoomType || 'N/A'}}</span>
+                  <span class="type-badge"><mat-icon>hotel</mat-icon> {{app.preferredAccommodationType || 'N/A'}}</span>
                 </td>
               </ng-container>
 

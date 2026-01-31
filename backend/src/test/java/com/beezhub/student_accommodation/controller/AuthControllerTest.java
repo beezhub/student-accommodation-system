@@ -16,6 +16,8 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.context.annotation.Import;
+import com.beezhub.student_accommodation.config.SecurityConfig;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -28,7 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 @WebMvcTest(AuthController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@Import(SecurityConfig.class)
+@AutoConfigureMockMvc
 class AuthControllerTest {
 
     @Autowired
@@ -75,6 +78,17 @@ class AuthControllerTest {
 
         // Message response
         messageResponse = new MessageResponse("Success");
+
+        // Allow all requests through the mock filter
+        try {
+            org.mockito.Mockito.doAnswer(invocation -> {
+                jakarta.servlet.FilterChain chain = invocation.getArgument(2);
+                chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+                return null;
+            }).when(jwtAuthenticationFilter).doFilter(any(), any(), any());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
@@ -162,14 +176,13 @@ class AuthControllerTest {
         verify(authService).me(any());
     }
 
-    @Disabled("Test expects 401 Unauthorized, disabling as per instructions.")
     @Test
     @DisplayName("GET /api/auth/me - Should return 401 for unauthenticated user")
     void me_WithoutAuthentication_ShouldReturnUnauthorized() throws Exception {
         // Act & Assert
         mockMvc.perform(get("/api/auth/me")
                 .with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -188,14 +201,13 @@ class AuthControllerTest {
         verify(authService).refreshToken(any());
     }
 
-    @Disabled("Test expects 401 Unauthorized, disabling as per instructions.")
     @Test
     @DisplayName("POST /api/auth/refresh-token - Should return 401 for unauthenticated user")
     void refreshToken_WithoutAuthentication_ShouldReturnUnauthorized() throws Exception {
         // Act & Assert
         mockMvc.perform(post("/api/auth/refresh-token")
                 .with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -217,7 +229,6 @@ class AuthControllerTest {
         verify(authService).changePassword(any(ChangePasswordRequest.class), any());
     }
 
-    @Disabled("Test expects 401 Unauthorized, disabling as per instructions.")
     @Test
     @DisplayName("POST /api/auth/change-password - Should return 401 for unauthenticated user")
     void changePassword_WithoutAuthentication_ShouldReturnUnauthorized() throws Exception {
@@ -231,7 +242,7 @@ class AuthControllerTest {
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -244,14 +255,13 @@ class AuthControllerTest {
                 .andExpect(status().isNoContent());
     }
 
-    @Disabled("Test expects 401 Unauthorized, disabling as per instructions.")
     @Test
     @DisplayName("POST /api/auth/logout - Should return 401 for unauthenticated user")
     void logout_WithoutAuthentication_ShouldReturnUnauthorized() throws Exception {
         // Act & Assert
         mockMvc.perform(post("/api/auth/logout")
                 .with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test

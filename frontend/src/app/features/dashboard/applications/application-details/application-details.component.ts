@@ -1,8 +1,8 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
-import { ApplicationService } from '../../../../core/services/application.service';
+import { ApplicationService, ApplicationFullDetails } from '../../../../core/services/application.service';
 import { AdminService, ApplicationResponse } from '../../../../core/services/admin.service';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -29,7 +29,7 @@ import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-bad
 @Component({
   selector: 'app-application-details',
   templateUrl: './application-details.component.html',
-  styleUrls: ['./application-details.component.css'],
+  styleUrls: ['./application-details.component.scss'],
   imports: [
     CommonModule,
     RouterModule,
@@ -62,6 +62,7 @@ export class ApplicationDetailsComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
   private readonly fb = inject(FormBuilder);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   currentUser: any;
   applicationId: number = 0;
@@ -105,34 +106,50 @@ export class ApplicationDetailsComponent implements OnInit {
       .observe([Breakpoints.Handset, Breakpoints.Tablet])
       .subscribe((result) => {
         this.isSmallScreen = result.matches;
+        this.cdr.markForCheck();
       });
   }
 
   loadApplicationDetails(): void {
     this.isLoading = true;
-    this.applicationService.getApplicationById(this.applicationId).subscribe({
-      next: (application) => {
-        // Map the basic application data
+    this.cdr.markForCheck(); // Mark explicitly for loading state
+
+    this.applicationService.getApplicationFullDetails(this.applicationId).subscribe({
+      next: (fullDetails) => {
+        console.log('Application full details loaded:', fullDetails);
+        // Map ApplicationFullDetails to ApplicationResponse structure for compatibility
         this.application = {
-          id: application.id,
-          applicationCode: application.applicationCode,
-          applicationDate: application.applicationDate,
-          status: application.status,
-          studentId: 0,
-          studentFirstName: '',
-          studentLastName: '',
-          studentEmail: '',
-          createdAt: '',
-          updatedAt: '',
-        };
+          id: fullDetails.id,
+          applicationCode: fullDetails.applicationCode,
+          applicationDate: fullDetails.applicationDate,
+          status: fullDetails.status,
+          remarks: fullDetails.remarks,
+          studentId: fullDetails.studentProfile.id,
+          studentFirstName: fullDetails.studentProfile.firstName,
+          studentLastName: fullDetails.studentProfile.lastName,
+          studentEmail: fullDetails.studentProfile.email,
+          // Optional fields
+          preferredBuildingName: fullDetails.preferredBuildingName,
+          preferredAccommodationType: fullDetails.preferredAccommodationType,
+          preferredMoveInDate: fullDetails.preferredMoveInDate,
+          preferredDurationMonths: fullDetails.preferredDurationMonths,
+          requiresAccessibility: fullDetails.requiresAccessibility,
+          specialRequirements: fullDetails.specialRequirements,
+          courseName: fullDetails.courseName,
+          allocationScore: 0,
+          createdAt: fullDetails.createdAt,
+          updatedAt: fullDetails.updatedAt,
+        } as ApplicationResponse;
 
         this.buildTimeline();
         this.isLoading = false;
+        this.cdr.markForCheck(); // Mark for check after data update
       },
       error: (error) => {
         console.error('Error loading application:', error);
         this.snackBar.open('Failed to load application details', 'Close', { duration: 3000 });
         this.isLoading = false;
+        this.cdr.markForCheck(); // Mark for check after error
       },
     });
   }
@@ -172,6 +189,13 @@ export class ApplicationDetailsComponent implements OnInit {
         description: 'Application is being reviewed by the housing team',
         icon: 'hourglass_empty',
       });
+    } else if (this.application.status === 'ALLOCATED') {
+       this.timeline.push({
+        date: this.application.updatedAt || this.application.applicationDate,
+        status: 'Room Allocated',
+        description: `Room allocation complete. Building: ${this.application.preferredBuildingName || 'Assigned Building'}`,
+        icon: 'home',
+      });
     }
   }
 
@@ -179,6 +203,7 @@ export class ApplicationDetailsComponent implements OnInit {
     switch (status.toUpperCase()) {
       case 'VERIFIED':
       case 'APPROVED':
+      case 'ALLOCATED':
         return 'status-success';
       case 'PENDING':
       case 'UNDER REVIEW':
@@ -199,6 +224,7 @@ export class ApplicationDetailsComponent implements OnInit {
     this.remarksForm.reset();
     this.remarksForm.get('remarks')?.clearValidators();
     this.remarksForm.get('remarks')?.updateValueAndValidity();
+    this.cdr.markForCheck();
   }
 
   openRejectDialog(): void {
@@ -206,12 +232,14 @@ export class ApplicationDetailsComponent implements OnInit {
     this.remarksForm.reset();
     this.remarksForm.get('remarks')?.setValidators(Validators.required);
     this.remarksForm.get('remarks')?.updateValueAndValidity();
+    this.cdr.markForCheck();
   }
 
   closeDialogs(): void {
     this.showApproveDialog = false;
     this.showRejectDialog = false;
     this.remarksForm.reset();
+    this.cdr.markForCheck();
   }
 
   approveApplication(): void {
@@ -261,6 +289,7 @@ export class ApplicationDetailsComponent implements OnInit {
     if (statusLower.includes('review')) return 'hourglass_empty';
     if (statusLower.includes('approved')) return 'check_circle';
     if (statusLower.includes('rejected')) return 'cancel';
+    if (statusLower.includes('allocated')) return 'home';
     return 'info';
   }
 

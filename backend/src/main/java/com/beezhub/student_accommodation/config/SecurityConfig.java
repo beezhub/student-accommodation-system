@@ -45,16 +45,22 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/signup",
+                                "/api/auth/forgot-password",
+                                "/api/auth/verify-reset-token",
+                                "/api/auth/reset-password",
+                                "/api/auth/verify-email",
+                                "/api/auth/resend-verification")
+                        .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/swagger-ui.html").permitAll()
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -72,7 +78,8 @@ public class SecurityConfig {
 
     /**
      * Configure method security expression handler with role hierarchy.
-     * This ensures that @PreAuthorize and @PostAuthorize annotations respect the role hierarchy.
+     * This ensures that @PreAuthorize and @PostAuthorize annotations respect the
+     * role hierarchy.
      */
     @Bean
     public MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
@@ -90,7 +97,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
+
         // Get allowed origins from environment variable or use defaults for development
         String allowedOrigins = System.getenv("ALLOWED_ORIGINS");
         if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
@@ -100,37 +107,35 @@ public class SecurityConfig {
             configuration.setAllowedOrigins(Arrays.asList(
                     "http://localhost:3000",
                     "http://localhost:4200",
-                    "http://localhost:8080"
-            ));
+                    "http://localhost:8080"));
         }
-        
+
         // Allow all standard HTTP methods
         configuration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
-        ));
-        
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
         // Allow all headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        
+
         // Allow credentials (cookies, authorization headers)
         configuration.setAllowCredentials(true);
-        
+
         // Expose authorization header
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
-        
+
         // Max age for preflight requests
         configuration.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        
+
         // Apply CORS configuration to all endpoints
         source.registerCorsConfiguration("/**", configuration);
-        
+
         // Specific configuration for admin endpoints can be added if needed
         // CorsConfiguration adminConfig = new CorsConfiguration(configuration);
         // adminConfig.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
         // source.registerCorsConfiguration("/api/admin/**", adminConfig);
-        
+
         return source;
     }
 

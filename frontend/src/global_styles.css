@@ -9,53 +9,36 @@
   - Rounded corners and elevation per Material
   - Light / Dark support via prefers-color-scheme
 */
+/* :root variables are now managed in styles/_variables.scss */
+/*
 :root {
-  /* Typography */
   --font-sans: -apple-system, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue',
     Arial, sans-serif;
   --type-base: 16px;
   --type-scale-ratio: 1.125;
-  /* modest scale for clean UI */
-
-  /* Grid (8dp baseline) */
   --grid-unit: 8px;
   --space-0: 0px;
   --space-1: calc(var(--grid-unit) * 1);
-  /* 8px */
   --space-2: calc(var(--grid-unit) * 2);
-  /* 16px */
   --space-3: calc(var(--grid-unit) * 3);
-  /* 24px */
   --space-4: calc(var(--grid-unit) * 4);
-  /* 32px */
   --space-6: calc(var(--grid-unit) * 6);
-  /* 48px */
-
-  /* Border radii (Modern, bold rounded corners) */
   --radius-sm: 12px;
   --radius-md: 16px;
   --radius-lg: 24px;
   --radius-xl: 32px;
-
-  /* Color system (Modern neutral with vibrant accents) */
   --color-primary: #1E293B;
-  /* Deep slate */
   --color-primary-dark: #0F172A;
   --color-primary-light: #334155;
   --color-primary-gradient: linear-gradient(135deg, #1E293B 0%, #0EA5E9 100%);
   --color-on-primary: #ffffff;
-
   --color-secondary: #06B6D4;
-  /* Bright cyan */
   --color-secondary-dark: #0891B2;
   --color-accent: #F97316;
-  /* Vibrant orange */
   --color-accent-gradient: linear-gradient(135deg, #F97316 0%, #FB923C 100%);
-
   --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
-
   --neutral-50: #ffffff;
   --neutral-100: #f2f2f7;
   --neutral-200: #e6e6ea;
@@ -65,22 +48,17 @@
   --neutral-600: #636366;
   --neutral-700: #3a3a3c;
   --neutral-800: #1c1c1e;
-
-  /* Elevation shadows following Material-ish scale, tuned for Apple softness */
   --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
   --elevation-2: 0 2px 6px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
   --elevation-3: 0 6px 18px rgba(0, 0, 0, 0.12);
   --elevation-4: 0 12px 36px rgba(0, 0, 0, 0.16);
-
-  /* Motion */
   --motion-fast: 150ms;
   --motion-medium: 250ms;
   --motion-spring: cubic-bezier(0.2, 0.9, 0.3, 1);
-
-  /* Accessibility */
   --focus-ring-color: rgba(10, 132, 255, 0.35);
   --focus-ring-width: 3px;
 }
+*/
 
 /* Dark theme overrides */
 @media (prefers-color-scheme: dark) {
