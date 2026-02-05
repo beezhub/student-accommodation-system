@@ -26,7 +26,7 @@ import { MatMenuModule } from '@angular/material/menu';
 @Component({
   selector: 'app-building-management',
   templateUrl: './building-management.component.html',
-  styleUrls: ['./building-management.component.css'],
+  styleUrls: ['./building-management.component.scss'],
   standalone: true,
   imports: [
     CommonModule,

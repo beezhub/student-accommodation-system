@@ -40,7 +40,7 @@ import { Router } from '@angular/router';
     MatTooltipModule
   ],
   templateUrl: './waiting-list-dashboard.component.html',
-  styleUrls: ['./waiting-list-dashboard.component.css']
+  styleUrls: ['./waiting-list-dashboard.component.scss']
 })
 export class WaitingListDashboardComponent implements OnInit {
   filterForm: FormGroup;

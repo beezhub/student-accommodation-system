@@ -23,11 +23,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
+import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 
 @Component({
   selector: 'app-room-allocation',
   templateUrl: './room-allocation.component.html',
-  styleUrls: ['./room-allocation.component.css'],
+  styleUrls: ['./room-allocation.component.scss'],
   standalone: true,
   imports: [
     CommonModule,
@@ -46,6 +47,7 @@ import { MatChipsModule } from '@angular/material/chips';
     MatTooltipModule,
     MatMenuModule,
     MatChipsModule,
+    ModernStatusBadgeComponent
   ],
 })
 export class RoomAllocationComponent implements OnInit {

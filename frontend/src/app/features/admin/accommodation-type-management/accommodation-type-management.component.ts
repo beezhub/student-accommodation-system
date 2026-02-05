@@ -26,7 +26,7 @@ import { MatChipsModule } from '@angular/material/chips';
 @Component({
   selector: 'app-accommodation-type-management',
   templateUrl: './accommodation-type-management.component.html',
-  styleUrls: ['./accommodation-type-management.component.css'],
+  styleUrls: ['./accommodation-type-management.component.scss'],
   standalone: true,
   imports: [
     CommonModule,

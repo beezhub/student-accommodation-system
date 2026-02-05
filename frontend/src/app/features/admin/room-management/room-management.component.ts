@@ -29,7 +29,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
 @Component({
   selector: 'app-room-management',
   templateUrl: './room-management.component.html',
-  styleUrls: ['./room-management.component.css'],
+  styleUrls: ['./room-management.component.scss'],
   standalone: true,
   imports: [
     CommonModule,

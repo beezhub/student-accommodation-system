@@ -21,7 +21,7 @@ import { CreateUserDialogComponent } from './create-user-dialog/create-user-dial
 @Component({
   selector: 'app-user-management',
   templateUrl: './user-management.component.html',
-  styleUrls: ['./user-management.component.css'],
+  styleUrls: ['./user-management.component.scss'],
   standalone: true,
   imports: [
     ReactiveFormsModule,

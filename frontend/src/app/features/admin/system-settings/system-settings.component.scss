@@ -1,0 +1,334 @@
+@use '../../../../styles/variables' as vars;
+@use '../../../../styles/mixins' as mixins;
+
+.system-settings-container {
+    padding: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        padding: 2rem;
+    }
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 2rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+}
+
+.header-content {
+    h1 {
+        @include mixins.page-title;
+        margin-bottom: 0.5rem;
+
+        mat-icon {
+            font-size: 2rem;
+            width: 2rem;
+            height: 2rem;
+            color: vars.$slate-600;
+        }
+    }
+
+    .subtitle {
+        @include mixins.page-subtitle;
+    }
+}
+
+.header-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        margin-top: 0;
+    }
+}
+
+.stat-item {
+    @include mixins.card-base;
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: vars.$slate-50;
+    border: 1px solid vars.$slate-200;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: vars.$slate-900;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: vars.$slate-500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Global Settings Section */
+.global-settings-section {
+    margin-bottom: 2rem;
+}
+
+.feature-flag-card {
+    background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+    border-color: #fcd34d !important;
+
+    .card-icon {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .card-info {
+        h2 {
+            color: #92400e;
+        }
+
+        p {
+            color: #b45309;
+        }
+    }
+}
+
+/* Settings Grid */
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    }
+}
+
+/* Settings Card */
+.settings-card {
+    @include mixins.card-base;
+    padding: 0 !important;
+    cursor: pointer;
+    overflow: hidden;
+    height: 100%;
+    border: 1px solid vars.$slate-200;
+    background: white;
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: vars.$shadow-elevated;
+    }
+
+    ::ng-deep .mat-mdc-card-content {
+        padding: 1.5rem !important;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        height: 100%;
+    }
+
+    // Contextual Colors
+    &.accommodation-types {
+        .card-icon {
+            background: linear-gradient(135deg, vars.$accent-orange-light, vars.$accent-orange-dark);
+        }
+
+        &:hover {
+            border-color: vars.$accent-orange-light;
+        }
+    }
+
+    &.documents {
+        .card-icon {
+            background: linear-gradient(135deg, vars.$accent-blue-light, vars.$accent-blue-dark);
+        }
+
+        &:hover {
+            border-color: vars.$accent-blue-light;
+        }
+    }
+
+    &.institutions {
+        .card-icon {
+            background: linear-gradient(135deg, vars.$accent-purple-light, vars.$accent-purple-dark);
+        }
+
+        &:hover {
+            border-color: vars.$accent-purple-light;
+        }
+    }
+
+    &.years {
+        .card-icon {
+            background: linear-gradient(135deg, vars.$accent-green-light, vars.$accent-green-dark);
+        }
+
+        &:hover {
+            border-color: vars.$accent-green-light;
+        }
+    }
+}
+
+/* Card Icon */
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: vars.$radius-lg;
+    flex-shrink: 0;
+    color: white;
+    box-shadow: vars.$shadow-subtle;
+    transition: transform 0.3s ease;
+
+    mat-icon {
+        font-size: 1.5rem;
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
+
+.settings-card:hover .card-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Card Info */
+.card-info {
+    flex: 1;
+    min-width: 0;
+
+    h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: vars.$slate-900;
+        margin-bottom: 0.25rem;
+    }
+
+    p {
+        font-size: 0.875rem;
+        color: vars.$slate-500;
+        margin: 0;
+        line-height: 1.4;
+    }
+}
+
+/* Card Action */
+.card-action {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.manage-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: vars.$slate-400;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s ease;
+
+    @media (max-width: vars.$breakpoint-tablet) {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.settings-card:hover .manage-text {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.arrow-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: vars.$slate-50;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+
+    mat-icon {
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        color: vars.$slate-400;
+        transition: all 0.3s ease;
+    }
+}
+
+.settings-card:hover .arrow-circle {
+    background: vars.$slate-100;
+    transform: translateX(5px);
+
+    mat-icon {
+        color: vars.$slate-900;
+    }
+}
+
+/* Info Section */
+.info-section {
+    margin-top: 3rem;
+}
+
+.info-card {
+    @include mixins.card-base;
+    background: linear-gradient(135deg, vars.$slate-50 0%, white 100%);
+    border: 1px dashed vars.$slate-200;
+
+    ::ng-deep .mat-mdc-card-content {
+        padding: 1.5rem !important;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .info-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        background: rgba(vars.$accent-purple-light, 0.1);
+        border-radius: vars.$radius-md;
+        flex-shrink: 0;
+
+        mat-icon {
+            color: vars.$accent-purple-dark;
+            font-size: 1.25rem;
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+    }
+
+    .info-content {
+        h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: vars.$slate-900;
+            margin-bottom: 0.25rem;
+        }
+
+        p {
+            font-size: 0.875rem;
+            color: vars.$slate-500;
+            line-height: 1.5;
+            margin: 0;
+        }
+    }
+}

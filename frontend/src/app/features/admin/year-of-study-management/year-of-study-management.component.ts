@@ -24,7 +24,7 @@ import { MatMenuModule } from '@angular/material/menu';
 @Component({
   selector: 'app-year-of-study-management',
   templateUrl: './year-of-study-management.component.html',
-  styleUrls: ['./year-of-study-management.component.css'],
+  styleUrls: ['./year-of-study-management.component.scss'],
   standalone: true,
   imports: [
     ReactiveFormsModule,

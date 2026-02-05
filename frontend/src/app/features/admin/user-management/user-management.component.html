@@ -75,7 +75,63 @@
       }
 
       @if (!isLoading) {
-        <div class="table-wrapper">
+        <!-- Mobile Card View -->
+        <div class="mobile-cards-container">
+          @for (user of users; track user.id) {
+            <div class="mobile-card">
+              <div class="mobile-card-header">
+                <div class="mobile-user-info">
+                   <div class="mobile-avatar" [class]="user.userRole.toLowerCase()">
+                      {{ user.firstName?.charAt(0) }}{{ user.lastName?.charAt(0) }}
+                   </div>
+                   <div class="mobile-name-col">
+                      <span class="mobile-name">{{ user.firstName }} {{ user.lastName }}</span>
+                      <span class="mobile-email">{{ user.email }}</span>
+                   </div>
+                </div>
+                <!-- Actions in header for mobile -->
+                 <div class="mobile-actions-top">
+                    <button mat-icon-button color="warn" (click)="deleteUser(user)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                 </div>
+              </div>
+
+              <div class="mobile-details">
+                <div class="mobile-detail-item">
+                   <span class="label">Role</span>
+                   <span class="role-badge" [class]="user.userRole.toLowerCase()">
+                      <mat-icon>
+                        {{ user.userRole === 'ADMIN' ? 'admin_panel_settings' : user.userRole === 'LANDLORD' ? 'apartment' : 'school' }}
+                      </mat-icon>
+                      {{ user.userRole }}
+                   </span>
+                </div>
+                 <div class="mobile-detail-item">
+                   <span class="label">ID</span>
+                   <span class="id-badge">#{{ user.id }}</span>
+                 </div>
+                 <div class="mobile-detail-item">
+                    <span class="label">Password</span>
+                    @if (user.mustChangePassword) {
+                      <span class="password-badge warning">
+                        <mat-icon>lock_reset</mat-icon>
+                        Change Req.
+                      </span>
+                    } @else {
+                      <span class="password-badge success">
+                        <mat-icon>check_circle</mat-icon>
+                        OK
+                      </span>
+                    }
+                 </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-container">
           <table mat-table [dataSource]="users" class="users-table">
             <!-- ID Column -->
             <ng-container matColumnDef="id">

@@ -64,7 +64,66 @@
       }
 
       @if (!isLoading) {
-        <div class="table-wrapper">
+        <!-- Mobile Card View -->
+        <div class="mobile-cards-container">
+          @for (building of buildings; track building.id) {
+            <div class="mobile-card">
+              <div class="mobile-card-header">
+                <div class="mobile-building-info">
+                   <div class="mobile-icon">
+                      <mat-icon>apartment</mat-icon>
+                   </div>
+                   <div class="mobile-name-col">
+                      <span class="mobile-name">{{ building.name }}</span>
+                      <span class="mobile-desc">{{ building.description || 'No description' }}</span>
+                   </div>
+                </div>
+                <!-- Actions in header for mobile -->
+                 <div class="mobile-actions-top">
+                    <button mat-icon-button class="action-btn edit" (click)="openEditDialog(building)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button class="action-btn delete" (click)="deleteBuilding(building)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                    <button mat-icon-button class="action-btn rules" (click)="navigateToAllocationRules(building.id)">
+                      <mat-icon>rule</mat-icon>
+                    </button>
+                 </div>
+              </div>
+
+              <div class="mobile-details">
+                <div class="mobile-detail-item">
+                   <span class="label">Address</span>
+                   <span class="value">{{ building.address || 'No address' }}</span>
+                </div>
+                 <div class="mobile-detail-item">
+                   <span class="label">Floors</span>
+                   <span class="floors-badge">
+                      <mat-icon>layers</mat-icon>
+                      {{ building.totalFloors || '—' }}
+                   </span>
+                </div>
+                 <div class="mobile-detail-item">
+                    <span class="label">Institutions</span>
+                    <div class="value">
+                       @if (building.institutions && building.institutions.length > 0) {
+                          <span class="institution-chip">{{ building.institutions[0].name }}</span>
+                          @if (building.institutions.length > 1) {
+                            <span class="more-badge">+{{ building.institutions.length - 1 }}</span>
+                          }
+                       } @else {
+                          <span class="all-institutions">All</span>
+                       }
+                    </div>
+                 </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-container">
           <table mat-table [dataSource]="buildings" class="buildings-table">
             <!-- Name Column -->
             <ng-container matColumnDef="name">

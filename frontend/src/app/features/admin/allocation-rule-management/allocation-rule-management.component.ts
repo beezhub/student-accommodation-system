@@ -44,7 +44,7 @@ import { AllocationRuleDialogComponent } from './allocation-rule-dialog/allocati
     MatDividerModule
   ],
   templateUrl: './allocation-rule-management.component.html',
-  styleUrls: ['./allocation-rule-management.component.css']
+  styleUrls: ['./allocation-rule-management.component.scss']
 })
 export class AllocationRuleManagementComponent implements OnInit {
   buildingForm: FormGroup;

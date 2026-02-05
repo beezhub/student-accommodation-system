@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.css'],
+  styleUrls: ['./home.component.scss'],
   imports: [RouterModule, MatCardModule, MatButtonModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

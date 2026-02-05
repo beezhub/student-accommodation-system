@@ -1,0 +1,337 @@
+@use '../../../../styles/variables' as vars;
+@use '../../../../styles/mixins' as mixins;
+
+// Fix for icons rendering as text
+mat-icon {
+    font-family: 'Material Icons' !important;
+    font-weight: normal;
+    font-style: normal;
+}
+
+.dashboard-container {
+    padding: 1rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    min-height: calc(100vh - 64px);
+    margin-top: 64px;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        padding: 1.5rem;
+    }
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        padding: 2rem;
+    }
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+    }
+}
+
+.header-left h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: vars.$slate-900;
+
+    mat-icon {
+        font-size: 1.75rem;
+        width: 1.75rem;
+        height: 1.75rem;
+        color: vars.$accent-orange-dark;
+    }
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        font-size: 1.875rem;
+
+        mat-icon {
+            font-size: 2rem;
+            width: 2rem;
+            height: 2rem;
+        }
+    }
+}
+
+.subtitle {
+    color: vars.$slate-500;
+    font-size: 0.9375rem;
+    margin: 0;
+    font-weight: 500;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        font-size: 1rem;
+        margin-left: 2.5rem;
+    }
+}
+
+.header-right {
+    display: flex;
+    width: 100%;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        width: auto;
+    }
+
+    button {
+        flex: 1;
+        height: 48px;
+        border-radius: vars.$radius-md !important;
+
+        @media (min-width: vars.$breakpoint-tablet) {
+            flex: 0 1 auto;
+        }
+    }
+}
+
+/* Content Card */
+.content-card {
+    @include mixins.card-base;
+    overflow: visible !important;
+}
+
+/* Filter Form */
+.filter-form {
+    padding-top: 0.5rem;
+}
+
+.building-select {
+    width: 100%;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        width: 300px;
+    }
+}
+
+/* Loading State */
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4rem;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Table (Desktop) */
+.table-container {
+    display: none;
+    overflow: auto;
+    border-radius: vars.$radius-xl;
+    box-shadow: vars.$shadow-subtle;
+    background: white;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        display: block;
+    }
+}
+
+.waiting-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+
+    th {
+        font-weight: 600;
+        color: vars.$slate-600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 1rem 1.25rem;
+        background: vars.$slate-50;
+        border-bottom: 1px solid vars.$slate-200;
+    }
+
+    td {
+        padding: 1rem 1.25rem;
+        font-size: 0.875rem;
+        color: vars.$slate-700;
+        border-bottom: 1px solid vars.$slate-100;
+        vertical-align: middle;
+    }
+
+    tr:hover td {
+        background: vars.$slate-50;
+    }
+}
+
+/* Rank Badge */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: vars.$slate-100;
+    font-weight: 700;
+    color: vars.$slate-600;
+    font-size: 0.875rem;
+
+    &.top-3 {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #d97706;
+        border: 2px solid #fbbf24;
+        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+    }
+}
+
+/* Score Display */
+.score-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.score-val {
+    font-weight: 800;
+    font-size: 1.125rem;
+    color: vars.$accent-cyan-dark;
+    min-width: 40px;
+}
+
+.code-text {
+    font-size: 0.75rem;
+    color: vars.$slate-500;
+    font-weight: 500;
+    margin-top: 0.125rem;
+}
+
+/* Spin Animation */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Mobile Cards */
+.mobile-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 0;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        display: none;
+    }
+}
+
+.mobile-card {
+    @include mixins.card-base;
+    padding: 1rem;
+    border: 1px solid vars.$slate-200;
+    background: white;
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid vars.$slate-100;
+}
+
+.mobile-student-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.mobile-student-name {
+    font-weight: 600;
+    color: vars.$slate-900;
+    font-size: 0.9375rem;
+}
+
+.mobile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mobile-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .label {
+        font-size: 0.8125rem;
+        color: vars.$slate-500;
+    }
+
+    .value {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: vars.$slate-700;
+    }
+}
+
+.mobile-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid vars.$slate-100;
+}
+
+/* No Data State */
+.no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    text-align: center;
+    color: vars.$slate-500;
+
+    .no-data-icon {
+        width: 64px;
+        height: 64px;
+        background: vars.$slate-100;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+
+        mat-icon {
+            font-size: 2rem;
+            width: 2rem;
+            height: 2rem;
+            color: vars.$slate-400;
+        }
+    }
+
+    h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: vars.$slate-900;
+    }
+
+    p {
+        margin: 0;
+        max-width: 400px;
+        color: vars.$slate-500;
+    }
+}

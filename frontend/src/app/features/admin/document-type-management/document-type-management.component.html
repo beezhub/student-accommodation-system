@@ -78,6 +78,53 @@
       }
 
       @if (!isLoading) {
+        <!-- Mobile Cards List -->
+        <div class="mobile-cards-container">
+          @for (docType of documentTypes; track docType.id) {
+            <div class="mobile-card">
+              <div class="mobile-card-header">
+                <div class="mobile-type-info">
+                  <div class="type-icon">
+                    <mat-icon>description</mat-icon>
+                  </div>
+                  <span class="type-name">{{ docType.typeName }}</span>
+                </div>
+                <span class="status-badge" [class]="docType.isRequired ? 'required' : 'optional'">
+                  {{ docType.isRequired ? 'Required' : 'Optional' }}
+                </span>
+              </div>
+              
+              <div class="mobile-card-body">
+                <div class="mobile-data-row">
+                  <p class="description-label">Description</p>
+                  <p class="description-text">{{ docType.description || 'No description available' }}</p>
+                </div>
+                
+                <div class="mobile-data-row">
+                  <p class="description-label">Created</p>
+                  <div class="date-cell">
+                    <mat-icon>calendar_today</mat-icon>
+                    <span>{{ docType.createdAt | date: 'MMM d, y' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mobile-card-actions">
+                <button mat-button class="toggle-btn" (click)="toggleRequiredFlag(docType)">
+                  <mat-icon>{{ docType.isRequired ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                  {{ docType.isRequired ? 'Make Optional' : 'Make Required' }}
+                </button>
+                <button mat-button color="primary" (click)="openEditDialog(docType)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-button color="warn" (click)="deleteDocumentType(docType)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
         <div class="table-wrapper">
           <table mat-table [dataSource]="documentTypes" class="document-types-table">
             <!-- Type Name Column -->

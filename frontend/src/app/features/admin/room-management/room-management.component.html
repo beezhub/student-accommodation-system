@@ -93,7 +93,96 @@
       }
 
       @if (!isLoading) {
-        <div class="table-wrapper">
+        <!-- Mobile Card View -->
+        <div class="mobile-cards-container">
+          @for (room of rooms; track room.id) {
+            <div class="mobile-card" [class.selected-card]="selection.isSelected(room)">
+              <div class="mobile-card-header">
+                <div class="mobile-room-info">
+                   <div class="mobile-icon" [class.has-checkbox]="true">
+                      <!-- Mobile Checkbox -->
+                      <mat-checkbox
+                        (click)="$event.stopPropagation()"
+                        (change)="$event ? selection.toggle(room) : null"
+                        [checked]="selection.isSelected(room)"
+                        color="primary">
+                      </mat-checkbox> 
+                      <mat-icon *ngIf="!selection.isSelected(room)">meeting_room</mat-icon>
+                   </div>
+                   <div class="mobile-name-col">
+                      <span class="mobile-name">{{ room.roomNumber }}</span>
+                      <span class="mobile-building">{{ room.buildingName }}</span>
+                   </div>
+                </div>
+                <!-- Actions in header for mobile -->
+                 <div class="mobile-actions-top">
+                    <!-- Attributes Button -->
+                    <button mat-icon-button class="action-btn attributes" (click)="openAttributesDialog(room)">
+                      <mat-icon>tune</mat-icon>
+                    </button>
+                    <!-- Edit Button -->
+                    <button mat-icon-button class="action-btn edit" (click)="openEditDialog(room)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <!-- Delete Button -->
+                    <button mat-icon-button class="action-btn delete" (click)="deleteRoom(room)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                 </div>
+              </div>
+
+              <div class="mobile-details">
+                <!-- Capacity & Occupancy -->
+                <div class="mobile-detail-item">
+                   <span class="label">Occupancy</span>
+                   <div class="value">
+                      <div class="occupancy-cell" style="width: 100px;">
+                        <div class="occupancy-bar">
+                           <div class="occupancy-fill" [class]="getOccupancyClass(room)"
+                                [style.width.%]="room.capacity > 0 ? (room.currentOccupancy / room.capacity * 100) : 0">
+                           </div>
+                        </div>
+                        <span class="occupancy-text" [class]="getOccupancyClass(room)">
+                           {{ getOccupancyText(room) }}
+                        </span>
+                      </div>
+                   </div>
+                </div>
+
+                <!-- Attributes -->
+                 <div class="mobile-detail-item">
+                    <span class="label">Attributes</span>
+                    <div class="attributes-cell">
+                        <span class="attribute-badge gender"
+                            [class.male]="room.genderRestriction === 'MALE_ONLY'"
+                            [class.female]="room.genderRestriction === 'FEMALE_ONLY'"
+                            *ngIf="room.genderRestriction && room.genderRestriction !== 'ANY'">
+                        <mat-icon>{{ room.genderRestriction === 'MALE_ONLY' ? 'male' : 'female' }}</mat-icon>
+                        </span>
+                        <span class="attribute-badge accessible" *ngIf="room.accessibilityCompliant === true">
+                            <mat-icon>accessible</mat-icon>
+                        </span>
+                         <span class="attribute-badge year-restriction" *ngIf="room.minYearOfStudy || room.maxYearOfStudy">
+                            <mat-icon>school</mat-icon>
+                        </span>
+                         @if ((!room.genderRestriction || room.genderRestriction === 'ANY') && room.accessibilityCompliant !== true && !room.minYearOfStudy && !room.maxYearOfStudy) {
+                            <span class="no-attributes">—</span>
+                        }
+                    </div>
+                 </div>
+
+                 <!-- Status -->
+                 <div class="mobile-detail-item">
+                    <span class="label">Status</span>
+                    <app-modern-status-badge [status]="room.status" size="sm"></app-modern-status-badge>
+                 </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-container">
           <table mat-table [dataSource]="rooms" class="rooms-table">
             <!-- Checkbox Column -->
             <ng-container matColumnDef="select">

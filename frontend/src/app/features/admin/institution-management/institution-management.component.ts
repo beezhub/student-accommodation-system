@@ -24,7 +24,7 @@ import { MatMenuModule } from '@angular/material/menu';
 @Component({
   selector: 'app-institution-management',
   templateUrl: './institution-management.component.html',
-  styleUrls: ['./institution-management.component.css'],
+  styleUrls: ['./institution-management.component.scss'],
   standalone: true,
   imports: [
     ReactiveFormsModule,

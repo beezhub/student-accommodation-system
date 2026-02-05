@@ -23,7 +23,7 @@ import { MatChipsModule } from '@angular/material/chips';
 @Component({
   selector: 'app-activity-logs',
   templateUrl: './activity-logs.component.html',
-  styleUrls: ['./activity-logs.component.css'],
+  styleUrls: ['./activity-logs.component.scss'],
   standalone: true,
   imports: [
     CommonModule,

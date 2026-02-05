@@ -95,7 +95,70 @@
       }
 
       @if (!isLoading) {
-        <div class="table-wrapper">
+        <!-- Mobile Card View -->
+        <div class="mobile-cards-container">
+          @for (allocation of allocations; track allocation.id) {
+            <div class="mobile-card">
+              <div class="mobile-card-header">
+                <div class="mobile-student-info">
+                   <div class="student-avatar">
+                      {{ allocation.studentFirstName?.charAt(0) }}{{ allocation.studentLastName?.charAt(0) }}
+                   </div>
+                   <div class="student-info">
+                      <span class="student-name">{{ allocation.studentFirstName }} {{ allocation.studentLastName }}</span>
+                      <span class="student-email">{{ allocation.studentEmail }}</span>
+                   </div>
+                </div>
+                <app-modern-status-badge [status]="allocation.status" size="sm"></app-modern-status-badge>
+              </div>
+
+              <div class="mobile-details">
+                 <div class="mobile-detail-item">
+                    <span class="label">Room</span>
+                    <div class="value">
+                       <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #7c3aed;">meeting_room</mat-icon>
+                       <span style="font-family: monospace; font-weight: 600;">{{ allocation.roomNumber }}</span>
+                    </div>
+                 </div>
+                 <div class="mobile-detail-item">
+                    <span class="label">Building</span>
+                    <div class="value">
+                        <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #94a3b8;">apartment</mat-icon>
+                        {{ allocation.buildingName }}
+                    </div>
+                 </div>
+                 <div class="mobile-detail-item">
+                    <span class="label">Allocated</span>
+                    <div class="value">
+                        <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #94a3b8;">calendar_today</mat-icon>
+                        {{ allocation.allocationDate | date: 'shortDate' }}
+                    </div>
+                 </div>
+              </div>
+              
+              <div class="mobile-actions">
+                 <button mat-stroked-button color="primary"
+                         (click)="moveStudent(allocation)"
+                         [disabled]="allocation.status !== 'ACTIVE'">
+                    <mat-icon>transfer_within_a_station</mat-icon>
+                    Move
+                 </button>
+                 <button mat-stroked-button color="warn"
+                         (click)="endAllocation(allocation)"
+                          [disabled]="allocation.status !== 'ACTIVE'">
+                    <mat-icon>event_busy</mat-icon>
+                    End
+                 </button>
+                 <button mat-icon-button color="warn" (click)="deleteAllocation(allocation)">
+                    <mat-icon>delete</mat-icon>
+                 </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-container">
           <table mat-table [dataSource]="allocations" class="allocations-table">
             <!-- Student Name Column -->
             <ng-container matColumnDef="studentName">

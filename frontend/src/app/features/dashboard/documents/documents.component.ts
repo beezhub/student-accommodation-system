@@ -33,7 +33,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 @Component({
   selector: 'app-documents',
   templateUrl: './documents.component.html',
-  styleUrls: ['./documents.component.css'],
+  styleUrls: ['./documents.component.scss'],
   imports: [
     CommonModule,
     RouterModule,

@@ -22,7 +22,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 @Component({
   selector: 'app-document-verification',
   templateUrl: './document-verification.component.html',
-  styleUrls: ['./document-verification.component.css'],
+  styleUrls: ['./document-verification.component.scss'],
   standalone: true,
   imports: [
     CommonModule,

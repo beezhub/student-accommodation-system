@@ -12,7 +12,7 @@ import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-bad
 @Component({
   selector: 'app-document-viewer',
   templateUrl: './document-viewer.component.html',
-  styleUrls: ['./document-viewer.component.css'],
+  styleUrls: ['./document-viewer.component.scss'],
   standalone: true,
   imports: [
     CommonModule,

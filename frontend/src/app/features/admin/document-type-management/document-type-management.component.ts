@@ -30,7 +30,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
 @Component({
   selector: 'app-document-type-management',
   templateUrl: './document-type-management.component.html',
-  styleUrls: ['./document-type-management.component.css'],
+  styleUrls: ['./document-type-management.component.scss'],
   standalone: true,
   imports: [
     CommonModule,

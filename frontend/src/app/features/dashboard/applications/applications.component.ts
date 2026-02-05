@@ -20,7 +20,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
 @Component({
   selector: 'app-applications',
   templateUrl: './applications.component.html',
-  styleUrls: ['./applications.component.v2.scss'],
+  styleUrls: ['./applications.component.scss'],
   imports: [
     CommonModule,
     RouterModule,

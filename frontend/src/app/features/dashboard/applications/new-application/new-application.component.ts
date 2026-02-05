@@ -27,7 +27,7 @@ import { ErrorDisplayComponent } from '../../../../shared/error-display/error-di
 @Component({
   selector: 'app-new-application',
   templateUrl: './new-application.component.html',
-  styleUrls: ['./new-application.component.css'],
+  styleUrls: ['./new-application.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,

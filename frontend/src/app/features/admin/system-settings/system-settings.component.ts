@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-system-settings',
   templateUrl: './system-settings.component.html',
-  styleUrls: ['./system-settings.component.css'],
+  styleUrls: ['./system-settings.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [

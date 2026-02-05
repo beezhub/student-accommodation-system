@@ -1,0 +1,499 @@
+@use '../../../../styles/variables' as vars;
+@use '../../../../styles/mixins' as mixins;
+
+// Fix for icons rendering as text
+mat-icon {
+    font-family: 'Material Icons' !important;
+    font-weight: normal;
+    font-style: normal;
+}
+
+.rule-management-container {
+    padding: 1rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: calc(100vh - 64px);
+    margin-top: 64px;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        padding: 1.5rem;
+    }
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        padding: 2rem;
+    }
+}
+
+/* Page Header */
+.page-header {
+    margin-bottom: 1.5rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        margin-bottom: 2rem;
+    }
+
+    h1 {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        color: vars.$slate-900;
+
+        mat-icon {
+            font-size: 1.75rem;
+            width: 1.75rem;
+            height: 1.75rem;
+            color: vars.$accent-purple-dark;
+        }
+
+        @media (min-width: vars.$breakpoint-tablet) {
+            font-size: 1.875rem;
+
+            mat-icon {
+                font-size: 2rem;
+                width: 2rem;
+                height: 2rem;
+            }
+        }
+    }
+}
+
+.subtitle {
+    color: vars.$slate-500;
+    font-size: 0.9375rem;
+    margin: 0;
+    font-weight: 500;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        font-size: 1rem;
+        margin-left: 3rem;
+    }
+}
+
+/* Info Card */
+.info-card {
+    @include mixins.card-base;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, vars.$slate-50 0%, vars.$slate-100 100%) !important;
+    border: 1px solid vars.$slate-200 !important;
+}
+
+.info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.info-icon {
+    display: none; // Hide on mobile to save space
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        background: vars.$accent-purple-light;
+        border-radius: vars.$radius-md;
+        color: white;
+        flex-shrink: 0;
+
+        mat-icon {
+            font-size: 1.5rem;
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+    }
+}
+
+.info-tips {
+    h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: vars.$slate-800;
+    }
+
+    p {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.875rem;
+        color: vars.$slate-600;
+        line-height: 1.5;
+    }
+}
+
+.info-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(vars.$warning, 0.1);
+    border-radius: vars.$radius-md;
+    font-size: 0.8125rem;
+    color: vars.$slate-700;
+
+    mat-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+        color: vars.$warning;
+    }
+}
+
+/* Filter Card */
+.filter-card {
+    @include mixins.card-base;
+    margin-bottom: 1.5rem;
+    overflow: visible !important;
+}
+
+.filter-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+}
+
+.building-select-form {
+    width: 100%;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        max-width: 400px;
+    }
+
+    mat-form-field {
+        width: 100%;
+        margin-bottom: -1.25em;
+    }
+}
+
+/* Data Card (Desktop) */
+.data-card {
+    display: none; // Hide desktop table on mobile
+    @include mixins.card-base;
+    padding: 0 !important;
+    overflow: hidden;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        display: block;
+    }
+}
+
+/* Mobile Cards */
+.mobile-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        display: none;
+    }
+}
+
+.mobile-card {
+    @include mixins.card-base;
+    padding: 1rem;
+    border: 1px solid vars.$slate-200;
+    background: white;
+
+    &.inactive {
+        opacity: 0.8;
+        background: vars.$slate-50;
+    }
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid vars.$slate-100;
+}
+
+.mobile-rule-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.priority-badge-sm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: vars.$slate-100;
+    color: vars.$accent-purple-dark;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border: 2px solid vars.$slate-200;
+
+    &.high-priority {
+        background: rgba(vars.$warning, 0.1);
+        color: vars.$warning;
+        border-color: rgba(vars.$warning, 0.3);
+    }
+}
+
+.mobile-name-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-name {
+    font-weight: 600;
+    color: vars.$slate-900;
+    font-size: 0.9375rem;
+}
+
+.rule-scope {
+    font-size: 0.75rem;
+    color: vars.$accent-purple-dark;
+    font-weight: 600;
+    text-transform: uppercase;
+
+    &.global {
+        color: vars.$slate-500;
+    }
+}
+
+.mobile-actions-top {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.mobile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.weights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.weight-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: vars.$radius-sm;
+    background: vars.$slate-50;
+    text-align: center;
+
+    .label {
+        font-size: 0.625rem;
+        text-transform: uppercase;
+        color: vars.$slate-500;
+        margin-bottom: 0.25rem;
+    }
+
+    .value {
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+
+    &.pref {
+        background: rgba(vars.$accent-purple-light, 0.1);
+
+        .value {
+            color: vars.$accent-purple-dark;
+        }
+    }
+
+    &.desir {
+        background: rgba(vars.$warning, 0.1);
+
+        .value {
+            color: vars.$warning;
+        }
+    }
+
+    &.access {
+        background: rgba(vars.$accent-blue-light, 0.1);
+
+        .value {
+            color: vars.$accent-blue-dark;
+        }
+    }
+}
+
+.mobile-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid vars.$slate-100;
+}
+
+/* Rules Table (Desktop) */
+.rules-table {
+    width: 100%;
+
+    th {
+        padding: 1rem 1.5rem;
+        background: vars.$slate-50;
+        color: vars.$slate-600;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid vars.$slate-200;
+    }
+
+    td {
+        padding: 1rem 1.5rem;
+        background: white;
+        border-bottom: 1px solid vars.$slate-100;
+        color: vars.$slate-700;
+        font-size: 0.875rem;
+    }
+
+    tr:hover td {
+        background: vars.$slate-50;
+    }
+
+    .inactive-row td {
+        opacity: 0.6;
+        background: vars.$slate-50;
+    }
+}
+
+.priority-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: vars.$slate-100;
+    color: vars.$accent-purple-dark;
+    font-weight: 700;
+    border: 2px solid vars.$slate-200;
+
+    &.high-priority {
+        background: rgba(vars.$warning, 0.1);
+        color: vars.$warning;
+        border-color: rgba(vars.$warning, 0.3);
+    }
+}
+
+.weights-display {
+    display: flex;
+    gap: 1rem;
+}
+
+.weight-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: vars.$radius-md;
+    font-size: 0.8125rem;
+    font-weight: 600;
+
+    mat-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+    }
+
+    &.pref {
+        background: rgba(vars.$accent-purple-light, 0.1);
+        color: vars.$accent-purple-dark;
+    }
+
+    &.desir {
+        background: rgba(vars.$warning, 0.1);
+        color: vars.$warning;
+    }
+
+    &.access {
+        background: rgba(vars.$accent-blue-light, 0.1);
+        color: vars.$accent-blue-dark;
+    }
+}
+
+.status-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.status-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: vars.$slate-500;
+    text-transform: uppercase;
+
+    &.active {
+        color: vars.$success;
+    }
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+
+    mat-icon {
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    &.edit {
+        color: vars.$accent-blue-dark;
+    }
+
+    &.delete {
+        color: vars.$error;
+    }
+}
+
+/* Empty && Loading States */
+.loading-container,
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    text-align: center;
+    color: vars.$slate-500;
+    background: white;
+    border-radius: vars.$radius-xl;
+
+    mat-icon {
+        font-size: 3rem;
+        height: 3rem;
+        width: 3rem;
+        margin-bottom: 1rem;
+        color: vars.$slate-300;
+    }
+
+    h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: vars.$slate-900;
+    }
+
+    p {
+        margin: 0 0 1.5rem 0;
+        max-width: 400px;
+        line-height: 1.5;
+    }
+}

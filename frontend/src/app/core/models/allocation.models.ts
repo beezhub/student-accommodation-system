@@ -76,12 +76,22 @@ export interface AllocationAuditLog {
 }
 
 export interface WaitingListEntry {
+  id: number;
   studentId: number;
+  studentNumber: string;
+  studentName: string;
+  studentEmail: string;
+  studentGender: string;
   applicationId: number;
   applicationCode: string;
-  studentName: string;
+  applicationStatus: string;
+  preferredBuildingId: number;
+  preferredBuildingName: string;
   priorityScore: number;
-  buildingPreference: string;
+  bestRoomScore: number;
+  bestMatchRoomId: number;
+  bestMatchRoomNumber: string;
+  status: string;
   createdAt: Date;
   position: number;
 }

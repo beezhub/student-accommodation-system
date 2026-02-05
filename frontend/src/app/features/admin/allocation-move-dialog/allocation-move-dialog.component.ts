@@ -50,7 +50,7 @@ export interface AllocationMoveDialogData {
     MatDividerModule
   ],
   templateUrl: './allocation-move-dialog.component.html',
-  styleUrls: ['./allocation-move-dialog.component.css']
+  styleUrls: ['./allocation-move-dialog.component.scss']
 })
 export class AllocationMoveDialogComponent implements OnInit {
   searchForm: FormGroup;

@@ -70,6 +70,65 @@
       }
 
       @if (!isLoading) {
+        <!-- Mobile Cards List -->
+        <div class="mobile-cards-container">
+          @for (institution of institutions; track institution.id) {
+            <div class="mobile-card">
+              <div class="mobile-card-header">
+                <div class="mobile-type-info">
+                  <div class="institution-icon">
+                    <mat-icon>account_balance</mat-icon>
+                  </div>
+                  <span class="institution-name">{{ institution.name }}</span>
+                </div>
+              </div>
+              
+              <div class="mobile-card-body">
+                @if (institution.address) {
+                  <div class="mobile-data-row">
+                    <p class="description-label">Address</p>
+                    <div class="address-cell">
+                      <mat-icon>location_on</mat-icon>
+                      <span>{{ institution.address }}</span>
+                    </div>
+                  </div>
+                }
+
+                @if (institution.emailAddress) {
+                  <div class="mobile-data-row">
+                    <p class="description-label">Email</p>
+                    <div class="contact-cell email">
+                      <mat-icon>email</mat-icon>
+                      <span>{{ institution.emailAddress }}</span>
+                    </div>
+                  </div>
+                }
+
+                @if (institution.phoneNumber) {
+                  <div class="mobile-data-row">
+                    <p class="description-label">Phone</p>
+                    <div class="contact-cell">
+                      <mat-icon>phone</mat-icon>
+                      <span>{{ institution.phoneNumber }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <div class="mobile-card-actions">
+                <button mat-button color="primary" (click)="openEditDialog(institution)">
+                  <mat-icon>edit</mat-icon>
+                  Edit
+                </button>
+                <button mat-button color="warn" (click)="deleteInstitution(institution)">
+                  <mat-icon>delete</mat-icon>
+                  Delete
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
         <div class="table-wrapper">
           <table mat-table [dataSource]="institutions" class="institutions-table">
             <!-- Name Column -->

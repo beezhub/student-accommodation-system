@@ -200,7 +200,54 @@
     }
 
     @if (!isLoadingOccupancy && occupancyStats) {
-      <mat-card class="table-card">
+      
+      <!-- Mobile Occupancy Cards -->
+      <div class="mobile-cards-container">
+        @for (building of occupancyStats.buildingOccupancies; track building.buildingName) {
+          <div class="mobile-card">
+            <div class="mobile-card-header">
+              <div class="mobile-building-info">
+                <mat-icon>apartment</mat-icon>
+                <span>{{ building.buildingName }}</span>
+              </div>
+              <span class="room-count-badge">{{ building.roomCount }} Rooms</span>
+            </div>
+            
+            <div class="mobile-details">
+              <div class="mobile-detail-item">
+                <span class="label">Total Beds</span>
+                <span class="value">{{ building.totalCapacity }}</span>
+              </div>
+              <div class="mobile-detail-item">
+                 <span class="label">Occupied</span>
+                 <span class="value">{{ building.currentOccupancy }}</span>
+              </div>
+              
+              <div class="occupancy-rate-cell" style="margin-top: 8px;">
+                 <div class="rate-bar">
+                    <div class="rate-fill" [style.width.%]="building.occupancyRate" [class]="getOccupancyClass(building.occupancyRate)"></div>
+                 </div>
+                 <span class="rate-value" [class]="getOccupancyClass(building.occupancyRate)">
+                    {{ building.occupancyRate }}%
+                 </span>
+              </div>
+            </div>
+          </div>
+        }
+        
+        @if (occupancyStats.buildingOccupancies.length === 0) {
+           <div class="no-data small">
+              <div class="no-data-icon">
+                <mat-icon>apartment</mat-icon>
+              </div>
+              <h3>No Building Data</h3>
+              <p>No building occupancy data available</p>
+           </div>
+        }
+      </div>
+
+      <!-- Desktop Occupancy Table -->
+      <mat-card class="table-container">
         <mat-card-content>
           <div class="table-wrapper">
             <table mat-table [dataSource]="occupancyStats.buildingOccupancies" class="occupancy-table">
