@@ -8,6 +8,8 @@ import {
 } from '../../../core/services/admin.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
 import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
+import { ApplicationService } from '../../../core/services/application.service';
+
 import { Observable, startWith, map, debounceTime, distinctUntilChanged } from 'rxjs';
 
 // Material imports
@@ -130,6 +132,8 @@ export class ApplicationReviewComponent implements OnInit {
 
   constructor(
     private adminService: AdminService,
+    private applicationService: ApplicationService,
+
     private buildingService: BuildingService,
     private stagedAllocationService: StagedAllocationService,
     private fb: FormBuilder,
@@ -396,9 +400,41 @@ export class ApplicationReviewComponent implements OnInit {
         );
         this.loadApplications();
       },
+
       error: () => {
         this.errorService.showWarning('No suitable room found for auto-allocation.');
       }
     });
   }
+
+  markUnderReview(application: ApplicationResponse): void {
+    this.applicationService.markUnderReview(application.id).subscribe({
+      next: () => {
+        this.errorService.showSuccess('Application marked as Under Review');
+        this.loadApplications();
+      },
+      error: (error) => {
+        console.error('Failed to mark under review:', error);
+        this.errorService.showErrorSnackbar(this.errorService.parseError(error));
+      }
+    });
+  }
+
+  requestChanges(application: ApplicationResponse): void {
+    const reason = prompt('Please enter the reason for requesting changes:');
+    if (!reason) return;
+
+    this.applicationService.requestChanges(application.id, reason).subscribe({
+      next: () => {
+        this.errorService.showSuccess('Changes requested successfully');
+        this.loadApplications();
+      },
+      error: (error) => {
+        console.error('Failed to request changes:', error);
+        this.errorService.showErrorSnackbar(this.errorService.parseError(error));
+      }
+    });
+  }
+
+
 }

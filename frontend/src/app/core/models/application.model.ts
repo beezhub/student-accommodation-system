@@ -1,8 +1,10 @@
+import { ApplicationStatus } from './status.model';
+
 export interface Application {
   id: number;
   applicationCode: string;
   applicationDate: string;
-  status: string;
+  status: ApplicationStatus | string;
   createdAt?: string;
   updatedAt?: string;
 
@@ -13,9 +15,6 @@ export interface Application {
   studentEmail?: string;
 
   // Preference fields
-  preferredAccommodationType?: string;
-  preferredMoveInDate?: string;
-  preferredDurationMonths?: number;
   requiresAccessibility?: boolean;
   specialRequirements?: string;
   institutionName?: string;

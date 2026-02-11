@@ -96,20 +96,8 @@
         <mat-card-content>
           <div class="preferences-grid" *ngIf="applicationDetails">
             <div class="preference-item">
-              <span class="label">Accommodation Type</span>
-              <span class="value">{{ applicationDetails.preferredAccommodationType || 'Any Type' }}</span>
-            </div>
-            <div class="preference-item">
               <span class="label">Preferred Building</span>
               <span class="value">{{ applicationDetails.preferredBuildingName || 'Any Building' }}</span>
-            </div>
-            <div class="preference-item">
-              <span class="label">Move-in Date</span>
-              <span class="value">{{ formatDate(applicationDetails.preferredMoveInDate) }}</span>
-            </div>
-            <div class="preference-item">
-              <span class="label">Duration</span>
-              <span class="value">{{ applicationDetails.preferredDurationMonths ? applicationDetails.preferredDurationMonths + ' months' : 'Not specified' }}</span>
             </div>
             <div class="preference-item">
               <span class="label">Course Name</span>

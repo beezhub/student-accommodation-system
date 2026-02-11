@@ -3,6 +3,20 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export enum DeclineReason {
+  WRONG_LOCATION = 'WRONG_LOCATION',
+  TOO_EXPENSIVE = 'TOO_EXPENSIVE',
+  FOUND_ALTERNATIVE = 'FOUND_ALTERNATIVE',
+  ACCESSIBILITY_ISSUES = 'ACCESSIBILITY_ISSUES',
+  PERSONAL_REASONS = 'PERSONAL_REASONS',
+  OTHER = 'OTHER'
+}
+
+export interface DeclineOfferRequest {
+  declineReason: DeclineReason;
+  declineReasonText?: string;
+}
+
 export interface RoomAllocationRequest {
   studentId: number;
   roomId: number;
@@ -24,6 +38,10 @@ export interface RoomAllocationResponse {
   allocationDate: string;
   endDate?: string;
   status: string;
+  offerExpiryDate?: string;
+  checkInExpiryDate?: string;
+  declineReason?: DeclineReason;
+  declineReasonText?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -165,5 +183,22 @@ export class RoomAllocationService {
     return this.http.get<AllocationEligibilityResponse>(
       `${this.apiUrl}/student/${studentId}/eligibility`
     );
+  }
+
+
+  acceptOffer(id: number, expectedCheckInDate: string): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/accept`, { expectedCheckInDate });
+  }
+
+  declineOffer(id: number, request: DeclineOfferRequest): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/decline`, request);
+  }
+
+  checkIn(id: number): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/check-in`, {});
+  }
+
+  checkOut(id: number): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/check-out`, {});
   }
 }

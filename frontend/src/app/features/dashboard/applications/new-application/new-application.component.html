@@ -78,61 +78,6 @@
             Accommodation Preferences
           </h3>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Preferred Accommodation Type</mat-label>
-              <mat-select formControlName="preferredAccommodationType">
-                @for (type of accommodationTypes; track type.id) {
-                  <mat-option [value]="type.name">
-                    {{ type.name }}
-                  </mat-option>
-                }
-              </mat-select>
-              <mat-icon matPrefix>meeting_room</mat-icon>
-              @if (applicationForm.get('preferredAccommodationType')?.hasError('required')) {
-                <mat-error>
-                  Please select an accommodation type
-                </mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Preferred Move-in Date</mat-label>
-              <input matInput [matDatepicker]="picker" formControlName="preferredMoveInDate" placeholder="Select your move-in date">
-              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-              <mat-datepicker #picker></mat-datepicker>
-              <mat-icon matPrefix>event</mat-icon>
-              @if (applicationForm.get('preferredMoveInDate')?.hasError('required')) {
-                <mat-error>
-                  Move-in date is required
-                </mat-error>
-              }
-            </mat-form-field>
-          </div>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Duration (Months)</mat-label>
-            <input matInput type="number" formControlName="preferredDurationMonths"
-              placeholder="e.g., 12" min="1" max="12">
-            <mat-icon matPrefix>schedule</mat-icon>
-            <mat-hint>Minimum 1 month, Maximum 12 months</mat-hint>
-            @if (applicationForm.get('preferredDurationMonths')?.hasError('required')) {
-              <mat-error>
-                Duration is required
-              </mat-error>
-            }
-            @if (applicationForm.get('preferredDurationMonths')?.hasError('min')) {
-              <mat-error>
-                Minimum duration is 1 month
-              </mat-error>
-            }
-            @if (applicationForm.get('preferredDurationMonths')?.hasError('max')) {
-              <mat-error>
-                Maximum duration is 12 months
-              </mat-error>
-            }
-          </mat-form-field>
-
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Preferred Building (Optional)</mat-label>
             <mat-select formControlName="preferredBuildingId">

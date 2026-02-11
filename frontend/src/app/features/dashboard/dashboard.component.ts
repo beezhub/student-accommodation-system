@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { DocumentViewerComponent } from './documents/document-viewer/document-viewer.component';
 import { DocumentService } from '../../core/services/document.service';
@@ -11,6 +12,7 @@ import {
 } from '../../core/services/room-allocation.service';
 import { ApplicationService } from '../../core/services/application.service';
 import { Application } from '../../core/models/application.model';
+import { AllocationStatus } from '../../core/models/status.model';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -22,7 +24,11 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/modern-status-badge.component';
+import { AcceptOfferDialogComponent } from './accept-offer-dialog/accept-offer-dialog.component';
+import { DeclineOfferDialogComponent, DeclineOfferDialogData } from './decline-offer-dialog/decline-offer-dialog.component';
+import { DeclineOfferRequest } from '../../core/services/room-allocation.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -42,6 +48,7 @@ import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/mod
     MatProgressSpinnerModule,
     MatGridListModule,
     MatDividerModule,
+    MatDialogModule,
     ModernStatusBadgeComponent,
   ],
 })
@@ -53,11 +60,15 @@ export class DashboardComponent implements OnInit {
   private readonly roomAllocationService = inject(RoomAllocationService);
   private readonly applicationService = inject(ApplicationService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly dialog = inject(MatDialog);
 
   currentUser: any;
   selectedDocument: any = null;
   currentApplication: Application | null = null;
+
   isLoadingCurrentApplication = false;
+  processing = false;
+  readonly AllocationStatus = AllocationStatus;
 
   applicationHistory: readonly Application[] = [];
   isLoadingApplications = false;
@@ -124,6 +135,111 @@ export class DashboardComponent implements OnInit {
         console.error('Failed to fetch student profile:', err);
         this.isLoadingRoom = false;
       },
+    });
+
+  }
+
+  acceptOffer(): void {
+    if (!this.roomAllocation) return;
+
+    const dialogRef = this.dialog.open(AcceptOfferDialogComponent, {
+      width: '400px',
+      data: { allocation: this.roomAllocation }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.processing = true;
+        this.roomAllocationService.acceptOffer(this.roomAllocation!.id, result.toISOString()).subscribe({
+          next: (updatedAlloc) => {
+            this.roomAllocation = updatedAlloc;
+            this.processing = false;
+            this.cdr.markForCheck();
+          },
+          error: (err) => {
+            console.error('Failed to accept offer', err);
+            this.processing = false;
+            this.cdr.markForCheck();
+          }
+        });
+      }
+    });
+  }
+
+  declineOffer(): void {
+    if (!this.roomAllocation || !this.currentApplication) return;
+
+    // Count previous declines for this application
+    this.getPreviousDeclineCount(this.currentApplication.id).subscribe({
+      next: (declineCount: number) => {
+        const dialogData: DeclineOfferDialogData = {
+          previousDeclineCount: declineCount,
+          roomNumber: this.roomAllocation!.roomNumber,
+          buildingName: this.roomAllocation!.buildingName
+        };
+
+        const dialogRef = this.dialog.open(DeclineOfferDialogComponent, {
+          width: '500px',
+          data: dialogData,
+          disableClose: false
+        });
+
+        dialogRef.afterClosed().subscribe((request: DeclineOfferRequest | undefined) => {
+          if (request && this.roomAllocation) {
+            this.processing = true;
+            this.roomAllocationService.declineOffer(this.roomAllocation.id, request).subscribe({
+              next: (updatedAlloc) => {
+                this.roomAllocation = updatedAlloc;
+                this.processing = false;
+                // Reload application to get updated status
+                this.loadApplicationHistory();
+                this.cdr.markForCheck();
+              },
+              error: (err) => {
+                console.error('Failed to decline offer', err);
+                this.processing = false;
+
+                // Handle max decline error (403)
+                if (err.status === 403) {
+                  alert('Your application has been closed due to reaching the maximum number of declines.');
+                  this.loadApplicationHistory();
+                } else {
+                  alert('Failed to decline offer. Please try again or contact support.');
+                }
+
+                this.cdr.markForCheck();
+              }
+            });
+          }
+        });
+      },
+      error: (err: any) => {
+        console.error('Failed to get decline count', err);
+        alert('Unable to process decline request. Please try again.');
+      }
+    });
+  }
+
+  private getPreviousDeclineCount(applicationId: number): Observable<number> {
+    // Search for all DECLINED allocations for this application
+    return new Observable(observer => {
+      this.roomAllocationService.searchAllocations({
+        status: 'DECLINED',
+        page: 0,
+        size: 100 // Should be enough to capture all declines
+      }).subscribe({
+        next: (response) => {
+          // Filter by application ID and count
+          const declineCount = response.content.filter(
+            alloc => alloc.applicationId === applicationId
+          ).length;
+          observer.next(declineCount);
+          observer.complete();
+        },
+        error: (err) => {
+          observer.error(err);
+        }
+      });
     });
   }
 

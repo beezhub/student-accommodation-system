@@ -11,13 +11,13 @@ import java.util.List;
 public class RoomAllocationSpecification {
 
     public static Specification<RoomAllocation> filterBy(Long studentId, Long roomId, Long buildingId,
-                                                          LocalDateTime fromDate, LocalDateTime toDate) {
+            LocalDateTime fromDate, LocalDateTime toDate) {
         return filterBy(studentId, roomId, buildingId, fromDate, toDate, null, null, null);
     }
 
     public static Specification<RoomAllocation> filterBy(Long studentId, Long roomId, Long buildingId,
-                                                          LocalDateTime fromDate, LocalDateTime toDate,
-                                                          String studentName, String roomNumber, String status) {
+            LocalDateTime fromDate, LocalDateTime toDate,
+            String studentName, String roomNumber, String status) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -46,12 +46,10 @@ public class RoomAllocationSpecification {
                 String searchPattern = "%" + studentName.trim().toLowerCase() + "%";
                 Predicate firstNameMatch = criteriaBuilder.like(
                         criteriaBuilder.lower(root.get("student").get("appUser").get("firstName")),
-                        searchPattern
-                );
+                        searchPattern);
                 Predicate lastNameMatch = criteriaBuilder.like(
                         criteriaBuilder.lower(root.get("student").get("appUser").get("lastName")),
-                        searchPattern
-                );
+                        searchPattern);
                 predicates.add(criteriaBuilder.or(firstNameMatch, lastNameMatch));
             }
 
@@ -60,13 +58,20 @@ public class RoomAllocationSpecification {
                 String searchPattern = "%" + roomNumber.trim().toLowerCase() + "%";
                 predicates.add(criteriaBuilder.like(
                         criteriaBuilder.lower(root.get("room").get("roomNumber")),
-                        searchPattern
-                ));
+                        searchPattern));
             }
 
             // Filter by status
             if (status != null && !status.trim().isEmpty()) {
-                predicates.add(criteriaBuilder.equal(root.get("status"), status.trim().toUpperCase()));
+                try {
+                    com.beezhub.student_accommodation.model.enums.AllocationStatus statusEnum = com.beezhub.student_accommodation.model.enums.AllocationStatus
+                            .fromString(status.trim());
+                    predicates.add(criteriaBuilder.equal(root.get("status"), statusEnum));
+                } catch (IllegalArgumentException e) {
+                    // If invalid status, return empty result or ignore?
+                    // Better to return empty result for strict filtering
+                    predicates.add(criteriaBuilder.disjunction());
+                }
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

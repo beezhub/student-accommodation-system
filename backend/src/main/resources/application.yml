@@ -70,3 +70,15 @@ app:
   notification:
     retry-delay-minutes: ${NOTIFICATION_RETRY_DELAY_MINUTES:5}
     retry-check-interval-ms: ${NOTIFICATION_RETRY_CHECK_INTERVAL_MS:300000}
+  allocation:
+    offer-expiry-days: ${OFFER_EXPIRY_DAYS:7}
+    check-in-expiry-days: ${CHECK_IN_EXPIRY_DAYS:7}
+    expiry-check-interval-ms: ${EXPIRY_CHECK_INTERVAL_MS:3600000}
+    # Batch allocation properties
+    batch-enabled: ${BATCH_ENABLED:true}
+    batch-interval-ms: ${BATCH_INTERVAL_MS:21600000}  # 6 hours
+    batch-size: ${BATCH_SIZE:50}
+    batch-on-expiry: ${BATCH_ON_EXPIRY:true}
+  features:
+    auto-allocation:
+      enabled: ${AUTO_ALLOCATION_ENABLED:true}

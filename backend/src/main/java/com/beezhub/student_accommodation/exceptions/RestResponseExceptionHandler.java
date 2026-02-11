@@ -20,350 +20,342 @@ import java.util.stream.Collectors;
 @ControllerAdvice(basePackages = "com.beezhub.student_accommodation.controller")
 public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler({ IllegalArgumentException.class, IllegalStateException.class })
-    protected ResponseEntity<Object> handleConflict(RuntimeException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, new HttpHeaders(), HttpStatus.CONFLICT);
-    }
+        @ExceptionHandler({ IllegalArgumentException.class, IllegalStateException.class })
+        protected ResponseEntity<Object> handleConflict(RuntimeException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, new HttpHeaders(), HttpStatus.CONFLICT);
+        }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
+        @ExceptionHandler(RuntimeException.class)
+        public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.BAD_REQUEST.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
 
+        @ExceptionHandler(EmailAlreadyRegisteredException.class)
+        public ResponseEntity<ErrorResponse> handleEmailAlreadyRegistered(
+                        EmailAlreadyRegisteredException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
 
+        @ExceptionHandler(UserNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleUserNotFound(
+                        UserNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(EmailAlreadyRegisteredException.class)
-    public ResponseEntity<ErrorResponse> handleEmailAlreadyRegistered(
-            EmailAlreadyRegisteredException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
-    }
+        @ExceptionHandler(StudentNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleStudentNotFound(
+                        StudentNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUserNotFound(
-            UserNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
+        @ExceptionHandler(ApplicationNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleApplicationNotFound(
+                        ApplicationNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(StudentNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleStudentNotFound(
-            StudentNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
+        @ExceptionHandler(InstitutionNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleInstitutionNotFound(
+                        InstitutionNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(ApplicationNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleApplicationNotFound(
-            ApplicationNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
+        @ExceptionHandler(AcademicYearNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleAcademicYearNotFound(
+                        AcademicYearNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(InstitutionNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleInstitutionNotFound(
-            InstitutionNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
+        @ExceptionHandler(ApplicationWindowClosedException.class)
+        public ResponseEntity<ErrorResponse> handleApplicationWindowClosed(
+                        ApplicationWindowClosedException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.BAD_REQUEST.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
 
-    @ExceptionHandler(DocumentTypeNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleDocumentTypeNotFound(
-            DocumentTypeNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
+        @ExceptionHandler(DocumentTypeNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleDocumentTypeNotFound(
+                        DocumentTypeNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(YearOfStudyNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleYearOfStudyNotFound(
-            YearOfStudyNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
+        @ExceptionHandler(YearOfStudyNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleYearOfStudyNotFound(
+                        YearOfStudyNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(BuildingNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleBuildingNotFound(
-            BuildingNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
+        @ExceptionHandler(BuildingNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleBuildingNotFound(
+                        BuildingNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(RoomNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleRoomNotFound(
-            RoomNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
+        @ExceptionHandler(RoomNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleRoomNotFound(
+                        RoomNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(RoomAllocationNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleRoomAllocationNotFound(
-            RoomAllocationNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
+        @ExceptionHandler(RoomAllocationNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleRoomAllocationNotFound(
+                        RoomAllocationNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(RoomCapacityExceededException.class)
-    public ResponseEntity<ErrorResponse> handleRoomCapacityExceeded(
-            RoomCapacityExceededException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
-    }
+        @ExceptionHandler(RoomCapacityExceededException.class)
+        public ResponseEntity<ErrorResponse> handleRoomCapacityExceeded(
+                        RoomCapacityExceededException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
 
-    @ExceptionHandler(StudentAlreadyAllocatedException.class)
-    public ResponseEntity<ErrorResponse> handleStudentAlreadyAllocated(
-            StudentAlreadyAllocatedException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
-    }
+        @ExceptionHandler(StudentAlreadyAllocatedException.class)
+        public ResponseEntity<ErrorResponse> handleStudentAlreadyAllocated(
+                        StudentAlreadyAllocatedException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
 
-    @ExceptionHandler(ApplicationNotApprovedException.class)
-    public ResponseEntity<ErrorResponse> handleApplicationNotApproved(
-            ApplicationNotApprovedException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
+        @ExceptionHandler(ApplicationNotApprovedException.class)
+        public ResponseEntity<ErrorResponse> handleApplicationNotApproved(
+                        ApplicationNotApprovedException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.BAD_REQUEST.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
 
-    @ExceptionHandler(ApplicationAlreadyAllocatedException.class)
-    public ResponseEntity<ErrorResponse> handleApplicationAlreadyAllocated(
-            ApplicationAlreadyAllocatedException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
-    }
+        @ExceptionHandler(ApplicationAlreadyAllocatedException.class)
+        public ResponseEntity<ErrorResponse> handleApplicationAlreadyAllocated(
+                        ApplicationAlreadyAllocatedException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
 
-    @ExceptionHandler(DuplicateApplicationException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateApplication(
-            DuplicateApplicationException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
-    }
+        @ExceptionHandler(DuplicateApplicationException.class)
+        public ResponseEntity<ErrorResponse> handleDuplicateApplication(
+                        DuplicateApplicationException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFound(
-            ResourceNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
+        @ExceptionHandler(ResourceNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleResourceNotFound(
+                        ResourceNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
 
-    @ExceptionHandler(DuplicateResourceException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateResource(
-            DuplicateResourceException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
-    }
+        @ExceptionHandler(DuplicateResourceException.class)
+        public ResponseEntity<ErrorResponse> handleDuplicateResource(
+                        DuplicateResourceException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
 
-    @ExceptionHandler(UnauthorizedAccessException.class)
-    public ResponseEntity<ErrorResponse> handleUnauthorizedAccess(
-            UnauthorizedAccessException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.FORBIDDEN.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
-    }
+        @ExceptionHandler(UnauthorizedAccessException.class)
+        public ResponseEntity<ErrorResponse> handleUnauthorizedAccess(
+                        UnauthorizedAccessException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.FORBIDDEN.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+        }
 
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentials(
-            BadCredentialsException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.UNAUTHORIZED.value(),
-                "Invalid email or password",
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-    }
+        @ExceptionHandler(BadCredentialsException.class)
+        public ResponseEntity<ErrorResponse> handleBadCredentials(
+                        BadCredentialsException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.UNAUTHORIZED.value(),
+                                "Invalid email or password",
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+        }
 
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponse> handleAuthenticationException(
-            AuthenticationException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.UNAUTHORIZED.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-    }
+        @ExceptionHandler(AuthenticationException.class)
+        public ResponseEntity<ErrorResponse> handleAuthenticationException(
+                        AuthenticationException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.UNAUTHORIZED.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+        }
 
-    @ExceptionHandler(InvalidTokenException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidToken(
-            InvalidTokenException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
+        @ExceptionHandler(InvalidTokenException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidToken(
+                        InvalidTokenException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.BAD_REQUEST.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
 
-    @ExceptionHandler(TokenExpiredException.class)
-    public ResponseEntity<ErrorResponse> handleTokenExpired(
-            TokenExpiredException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
+        @ExceptionHandler(TokenExpiredException.class)
+        public ResponseEntity<ErrorResponse> handleTokenExpired(
+                        TokenExpiredException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.BAD_REQUEST.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
 
-    @ExceptionHandler(EmailAlreadyVerifiedException.class)
-    public ResponseEntity<ErrorResponse> handleEmailAlreadyVerified(
-            EmailAlreadyVerifiedException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.CONFLICT.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
-    }
+        @ExceptionHandler(EmailAlreadyVerifiedException.class)
+        public ResponseEntity<ErrorResponse> handleEmailAlreadyVerified(
+                        EmailAlreadyVerifiedException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
 
-    @ExceptionHandler(PasswordChangeRequiredException.class)
-    public ResponseEntity<ErrorResponse> handlePasswordChangeRequired(
-            PasswordChangeRequiredException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.FORBIDDEN.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
-    }
+        @ExceptionHandler(PasswordChangeRequiredException.class)
+        public ResponseEntity<ErrorResponse> handlePasswordChangeRequired(
+                        PasswordChangeRequiredException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.FORBIDDEN.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+        }
 
-    @ExceptionHandler(EmailNotVerifiedException.class)
-    public ResponseEntity<ErrorResponse> handleEmailNotVerified(
-            EmailNotVerifiedException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.FORBIDDEN.value(),
-                ex.getMessage(),
-                request.getDescription(false)
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
-    }
+        @ExceptionHandler(EmailNotVerifiedException.class)
+        public ResponseEntity<ErrorResponse> handleEmailNotVerified(
+                        EmailNotVerifiedException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.FORBIDDEN.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+        }
 
-    @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(
-            MethodArgumentNotValidException ex,
-            HttpHeaders headers,
-            org.springframework.http.HttpStatusCode status,
-            WebRequest request) {
+        @Override
+        protected ResponseEntity<Object> handleMethodArgumentNotValid(
+                        MethodArgumentNotValidException ex,
+                        HttpHeaders headers,
+                        org.springframework.http.HttpStatusCode status,
+                        WebRequest request) {
 
-        List<String> errors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                .collect(Collectors.toList());
+                List<String> errors = ex.getBindingResult()
+                                .getFieldErrors()
+                                .stream()
+                                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                                .collect(Collectors.toList());
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                status.value(),
-                errors,
-                request.getDescription(false)
-        );
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                status.value(),
+                                errors,
+                                request.getDescription(false));
 
-        return new ResponseEntity<>(errorResponse, headers, status);
-    }
+                return new ResponseEntity<>(errorResponse, headers, status);
+        }
 }

@@ -11,6 +11,10 @@ import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.service.AuthService;
+import com.beezhub.student_accommodation.service.AcademicYearService;
+import com.beezhub.student_accommodation.service.RoomAllocationService;
+import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.SystemSettingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,6 +66,14 @@ class ApplicationServiceTest {
     private NotificationService notificationService;
     @Mock
     private UserNotificationService userNotificationService;
+    @Mock
+    private AcademicYearService academicYearService;
+    @Mock
+    private RoomAllocationService roomAllocationService;
+    @Mock
+    private AllocationScoringService allocationScoringService;
+    @Mock
+    private SystemSettingService systemSettingService;
 
     @InjectMocks
     private ApplicationService applicationService;
@@ -92,17 +104,30 @@ class ApplicationServiceTest {
 
         applicationRequest = new ApplicationRequest();
         applicationRequest.setStudentId(1L);
-        applicationRequest.setPreferredMoveInDate(LocalDate.now().plusDays(30));
-        applicationRequest.setPreferredDurationMonths(12);
+        applicationRequest.setRequiresAccessibility(false);
+        applicationRequest.setCourseName("Computer Science");
     }
 
     @Test
     void submitApplication_shouldCreateApplication() {
         // Arrange
+        com.beezhub.student_accommodation.model.entity.AcademicYear academicYear =
+            com.beezhub.student_accommodation.model.entity.AcademicYear.builder()
+                .id(1L)
+                .name("2025/2026")
+                .startDate(LocalDate.now().minusMonths(2))
+                .endDate(LocalDate.now().plusMonths(10))
+                .applicationOpenDate(LocalDate.now().minusDays(10))
+                .applicationCloseDate(LocalDate.now().plusDays(30))
+                .isCurrent(true)
+                .build();
+
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(authService.getCurrentUser()).thenReturn(studentUser);
         when(applicationRepository.existsByStudent_IdAndStatus(1L, ApplicationStatus.PENDING)).thenReturn(false);
-        when(applicationRepository.countByApplicationCodeStartingWith(anyString())).thenReturn(0L);
+        when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+        when(academicYearService.isApplicationWindowOpen(academicYear)).thenReturn(true);
+        lenient().when(applicationRepository.countByApplicationCodeStartingWith(anyString())).thenReturn(0L);
         when(applicationRepository.save(any(Application.class))).thenReturn(application);
         when(applicationMapper.toResponse(any(Application.class))).thenReturn(new ApplicationResponse());
 
@@ -226,5 +251,237 @@ class ApplicationServiceTest {
                 null, null, null, null, null, null, null, pageable);
 
         assertThat(response.getTotalElements()).isEqualTo(1);
+    }
+
+    // ==================== Auto-Allocation Tests ====================
+
+    @Test
+    void autoAllocation_featureFlagEnabled_successfulAllocation() {
+        // Setup
+        application.setStatus(ApplicationStatus.APPROVED);
+
+        DocumentType docType = new DocumentType();
+        docType.setId(1L);
+        docType.setTypeName("ID");
+        docType.setIsRequired(true);
+
+        Document doc = new Document();
+        doc.setDocumentType(docType);
+        doc.setDocumentStatus(DocumentStatus.APPROVED);
+        doc.setApplication(application);
+
+        ScoredRoom scoredRoom = ScoredRoom.builder()
+                .roomId(1L)
+                .roomNumber("101")
+                .totalScore(new java.math.BigDecimal("100"))
+                .buildingName("Building A")
+                .build();
+
+        // Mocking
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(systemSettingService.isAutoAllocationEnabled()).thenReturn(true);
+        when(documentTypeRepository.findByIsRequiredTrue()).thenReturn(Collections.singletonList(docType));
+        when(documentRepository.findByApplicationId(1L)).thenReturn(Collections.singletonList(doc));
+        when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
+                .thenReturn(Collections.singletonList(scoredRoom));
+        when(roomAllocationService.createRoomAllocation(any())).thenReturn(new RoomAllocationResponse());
+        when(applicationRepository.save(any())).thenReturn(application);
+        when(applicationMapper.toResponse(any())).thenReturn(new ApplicationResponse());
+
+        // Execute
+        ApplicationStatusUpdateRequest request = new ApplicationStatusUpdateRequest();
+        request.setStatus("APPROVED");
+        ApplicationResponse response = applicationService.updateApplicationStatus(1L, request);
+
+        // Verify
+        verify(systemSettingService).isAutoAllocationEnabled();
+        verify(allocationScoringService).scoreAvailableRooms(any(), any(), any());
+        verify(roomAllocationService).createRoomAllocation(any(RoomAllocationRequest.class));
+        verify(applicationRepository, atLeastOnce()).save(any());
+    }
+
+    @Test
+    void autoAllocation_featureFlagDisabled_skipsAllocation() {
+        // Setup
+        application.setStatus(ApplicationStatus.APPROVED);
+
+        // Mocking
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(systemSettingService.isAutoAllocationEnabled()).thenReturn(false);
+        when(applicationRepository.save(any())).thenReturn(application);
+        when(applicationMapper.toResponse(any())).thenReturn(new ApplicationResponse());
+
+        // Execute
+        ApplicationStatusUpdateRequest request = new ApplicationStatusUpdateRequest();
+        request.setStatus("APPROVED");
+        applicationService.updateApplicationStatus(1L, request);
+
+        // Verify
+        verify(systemSettingService).isAutoAllocationEnabled();
+        verify(allocationScoringService, never()).scoreAvailableRooms(any(), any(), any());
+        verify(roomAllocationService, never()).createRoomAllocation(any());
+    }
+
+    @Test
+    void autoAllocation_noRoomsAvailable_movesToAwaitingAllocation() {
+        // Setup
+        application.setStatus(ApplicationStatus.APPROVED);
+
+        DocumentType docType = new DocumentType();
+        docType.setId(1L);
+        docType.setTypeName("ID");
+        docType.setIsRequired(true);
+
+        Document doc = new Document();
+        doc.setDocumentType(docType);
+        doc.setDocumentStatus(DocumentStatus.APPROVED);
+        doc.setApplication(application);
+
+        // Mocking - empty list means no rooms available
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(systemSettingService.isAutoAllocationEnabled()).thenReturn(true);
+        when(documentTypeRepository.findByIsRequiredTrue()).thenReturn(Collections.singletonList(docType));
+        when(documentRepository.findByApplicationId(1L)).thenReturn(Collections.singletonList(doc));
+        when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
+                .thenReturn(Collections.emptyList());
+        when(applicationRepository.save(any())).thenReturn(application);
+        when(roomAllocationService.enqueueWaitingList(anyLong(), anyLong()))
+                .thenReturn(new MessageResponse("Added to waiting list"));
+        when(applicationMapper.toResponse(any())).thenReturn(new ApplicationResponse());
+
+        // Execute
+        ApplicationStatusUpdateRequest request = new ApplicationStatusUpdateRequest();
+        request.setStatus("APPROVED");
+        applicationService.updateApplicationStatus(1L, request);
+
+        // Verify
+        verify(allocationScoringService).scoreAvailableRooms(any(), any(), any());
+        verify(roomAllocationService).enqueueWaitingList(anyLong(), anyLong());
+        verify(userNotificationService).createWaitingListNotification(anyLong(), anyLong());
+        verify(roomAllocationService, never()).createRoomAllocation(any());
+    }
+
+    @Test
+    void autoAllocation_documentsNotApproved_movesToAwaitingAllocation() {
+        // Setup
+        application.setStatus(ApplicationStatus.APPROVED);
+
+        DocumentType docType = new DocumentType();
+        docType.setId(1L);
+        docType.setTypeName("ID");
+        docType.setIsRequired(true);
+
+        Document doc = new Document();
+        doc.setDocumentType(docType);
+        doc.setDocumentStatus(DocumentStatus.PENDING); // Not approved
+        doc.setApplication(application);
+
+        // Mocking
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(systemSettingService.isAutoAllocationEnabled()).thenReturn(true);
+        when(documentTypeRepository.findByIsRequiredTrue()).thenReturn(Collections.singletonList(docType));
+        when(documentRepository.findByApplicationId(1L)).thenReturn(Collections.singletonList(doc));
+        when(applicationRepository.save(any())).thenReturn(application);
+        when(applicationMapper.toResponse(any())).thenReturn(new ApplicationResponse());
+
+        // Execute
+        ApplicationStatusUpdateRequest request = new ApplicationStatusUpdateRequest();
+        request.setStatus("APPROVED");
+        applicationService.updateApplicationStatus(1L, request);
+
+        // Verify - should not attempt allocation when docs not approved
+        verify(allocationScoringService, never()).scoreAvailableRooms(any(), any(), any());
+        verify(roomAllocationService, never()).createRoomAllocation(any());
+    }
+
+    @Test
+    void autoAllocation_roomCapacityExceeded_gracefulFallback() {
+        // Setup
+        application.setStatus(ApplicationStatus.APPROVED);
+
+        DocumentType docType = new DocumentType();
+        docType.setId(1L);
+        docType.setTypeName("ID");
+        docType.setIsRequired(true);
+
+        Document doc = new Document();
+        doc.setDocumentType(docType);
+        doc.setDocumentStatus(DocumentStatus.APPROVED);
+        doc.setApplication(application);
+
+        ScoredRoom scoredRoom = ScoredRoom.builder()
+                .roomId(1L)
+                .roomNumber("101")
+                .totalScore(new java.math.BigDecimal("100"))
+                .buildingName("Building A")
+                .build();
+
+        // Mocking
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(systemSettingService.isAutoAllocationEnabled()).thenReturn(true);
+        when(documentTypeRepository.findByIsRequiredTrue()).thenReturn(Collections.singletonList(docType));
+        when(documentRepository.findByApplicationId(1L)).thenReturn(Collections.singletonList(doc));
+        when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
+                .thenReturn(Collections.singletonList(scoredRoom));
+        when(roomAllocationService.createRoomAllocation(any()))
+                .thenThrow(new RoomCapacityExceededException("Room is full"));
+        when(applicationRepository.save(any())).thenReturn(application);
+        when(roomAllocationService.enqueueWaitingList(anyLong(), anyLong()))
+                .thenReturn(new MessageResponse("Added to waiting list"));
+        when(applicationMapper.toResponse(any())).thenReturn(new ApplicationResponse());
+
+        // Execute
+        ApplicationStatusUpdateRequest request = new ApplicationStatusUpdateRequest();
+        request.setStatus("APPROVED");
+        applicationService.updateApplicationStatus(1L, request);
+
+        // Verify - should catch exception gracefully and add to waiting list
+        verify(roomAllocationService).createRoomAllocation(any());
+        verify(roomAllocationService).enqueueWaitingList(anyLong(), anyLong());
+        verify(userNotificationService).createWaitingListNotification(anyLong(), anyLong());
+    }
+
+    @Test
+    void autoAllocation_unexpectedError_gracefulFallback() {
+        // Setup
+        application.setStatus(ApplicationStatus.APPROVED);
+
+        DocumentType docType = new DocumentType();
+        docType.setId(1L);
+        docType.setTypeName("ID");
+        docType.setIsRequired(true);
+
+        Document doc = new Document();
+        doc.setDocumentType(docType);
+        doc.setDocumentStatus(DocumentStatus.APPROVED);
+        doc.setApplication(application);
+
+        ScoredRoom scoredRoom = ScoredRoom.builder()
+                .roomId(1L)
+                .roomNumber("101")
+                .totalScore(new java.math.BigDecimal("100"))
+                .buildingName("Building A")
+                .build();
+
+        // Mocking
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(systemSettingService.isAutoAllocationEnabled()).thenReturn(true);
+        when(documentTypeRepository.findByIsRequiredTrue()).thenReturn(Collections.singletonList(docType));
+        when(documentRepository.findByApplicationId(1L)).thenReturn(Collections.singletonList(doc));
+        when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
+                .thenReturn(Collections.singletonList(scoredRoom));
+        when(roomAllocationService.createRoomAllocation(any()))
+                .thenThrow(new RuntimeException("Unexpected error"));
+        when(applicationRepository.save(any())).thenReturn(application);
+        when(applicationMapper.toResponse(any())).thenReturn(new ApplicationResponse());
+
+        // Execute - should not throw exception
+        ApplicationStatusUpdateRequest request = new ApplicationStatusUpdateRequest();
+        request.setStatus("APPROVED");
+        applicationService.updateApplicationStatus(1L, request);
+
+        // Verify - exception was caught gracefully
+        verify(roomAllocationService).createRoomAllocation(any());
+        verify(applicationRepository, atLeastOnce()).save(any());
     }
 }

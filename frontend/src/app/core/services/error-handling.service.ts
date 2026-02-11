@@ -82,6 +82,16 @@ export class ErrorHandlingService {
 
     switch (statusCode) {
       case 400:
+        // Special handling for application window closed error
+        if (backendMessage && backendMessage.includes('Applications are not currently open')) {
+          return {
+            type: 'validation',
+            title: 'Applications Closed',
+            message: 'Sorry, applications are currently closed. Please check back during the application window.',
+            canRetry: false,
+            statusCode,
+          };
+        }
         return {
           type: 'validation',
           title: 'Invalid Request',

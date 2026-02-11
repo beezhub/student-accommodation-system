@@ -38,9 +38,6 @@ export interface ApplicationResponse {
   allocationStatus?: string; // PENDING_ALLOCATION, ALLOCATED, REJECTED
   allocationScore?: number; // Priority score for allocation (0-100)
   // Preference fields for quick view
-  preferredAccommodationType?: string;
-  preferredMoveInDate?: string;
-  preferredDurationMonths?: number;
   requiresAccessibility?: boolean;
   specialRequirements?: string;
   courseName?: string;

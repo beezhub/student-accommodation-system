@@ -233,6 +233,13 @@ export const routes: Routes = [
           ).then((m) => m.YearOfStudyManagementComponent),
       },
       {
+        path: 'academic-years',
+        loadComponent: () =>
+          import(
+            './features/admin/academic-year-management/academic-year-management.component'
+          ).then((m) => m.AcademicYearManagementComponent),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./features/admin/system-settings/system-settings.component').then(

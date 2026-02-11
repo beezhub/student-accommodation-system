@@ -171,6 +171,20 @@ interface StatusConfig {
         border: 1px solid var(--color-error-border, #f87171);
       }
 
+      /* Expired */
+      .status-expired {
+        background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+        color: #c2410c;
+        border: 1px solid #fb923c;
+      }
+
+      /* Check-In Expired */
+      .status-check-in-expired {
+        background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+        color: #991b1b;
+        border: 1px solid #f87171;
+      }
+
       /* Info/Available */
       .status-available {
         background: var(--color-info-bg, linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%));
@@ -275,6 +289,18 @@ export class ModernStatusBadgeComponent {
         label: 'Awaiting Allocation',
         colorClass: 'status-awaiting_allocation',
         emoji: '⏳',
+      },
+      expired: {
+        icon: 'timer_off',
+        label: 'Expired',
+        colorClass: 'status-expired',
+        emoji: '⏰',
+      },
+      check_in_expired: {
+        icon: 'event_busy',
+        label: 'Check-In Expired',
+        colorClass: 'status-check-in-expired',
+        emoji: '🚫',
       },
     };
 

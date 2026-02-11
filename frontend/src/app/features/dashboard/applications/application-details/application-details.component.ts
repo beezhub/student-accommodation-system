@@ -130,9 +130,6 @@ export class ApplicationDetailsComponent implements OnInit {
           studentEmail: fullDetails.studentProfile.email,
           // Optional fields
           preferredBuildingName: fullDetails.preferredBuildingName,
-          preferredAccommodationType: fullDetails.preferredAccommodationType,
-          preferredMoveInDate: fullDetails.preferredMoveInDate,
-          preferredDurationMonths: fullDetails.preferredDurationMonths,
           requiresAccessibility: fullDetails.requiresAccessibility,
           specialRequirements: fullDetails.specialRequirements,
           courseName: fullDetails.courseName,

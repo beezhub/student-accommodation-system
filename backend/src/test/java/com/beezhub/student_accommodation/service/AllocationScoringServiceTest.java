@@ -109,4 +109,48 @@ class AllocationScoringServiceTest {
 
         assertThat(isValid).isTrue();
     }
+
+    @Test
+    void validateHardConstraints_shouldFail_whenStudentHasDeclinedRoom() {
+        // Given: Student has previously declined this room
+        when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
+        when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
+        when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(true);
+
+        // When: Validating hard constraints
+        boolean isValid = allocationScoringService.validateHardConstraints(student, room, false);
+
+        // Then: Should fail validation
+        assertThat(isValid).isFalse();
+    }
+
+    @Test
+    void validateHardConstraints_shouldPass_whenStudentHasNotDeclinedRoom() {
+        // Given: Student has not declined this room
+        when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
+        when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
+        when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
+
+        // When: Validating hard constraints
+        boolean isValid = allocationScoringService.validateHardConstraints(student, room, false);
+
+        // Then: Should pass validation
+        assertThat(isValid).isTrue();
+    }
+
+    @Test
+    void scoreAvailableRooms_shouldExcludeDeclinedRooms() {
+        // Given: Student has declined this room
+        when(roomRepository.findAll()).thenReturn(Collections.singletonList(room));
+        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
+        when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
+        when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(true);
+
+        // When: Scoring available rooms
+        List<ScoredRoom> scores = allocationScoringService.scoreAvailableRooms(student, application, null);
+
+        // Then: Declined room should not be in the list
+        assertThat(scores).isEmpty();
+    }
 }

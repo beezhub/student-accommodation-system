@@ -35,6 +35,6 @@ CREATE TABLE ff4j_roles (
     FOREIGN KEY(feat_uid) REFERENCES ff4j_features(feat_uid)
 );
 
--- Insert default feature: auto-allocation (disabled by default)
+-- Insert default feature: auto-allocation (enabled by default)
 INSERT INTO ff4j_features (feat_uid, enable, description, groupname)
-VALUES ('auto-allocation', 0, 'Enable automatic room allocation logic', 'system');
+VALUES ('auto-allocation', 1, 'Enable automatic room allocation logic', 'system');

@@ -6,7 +6,6 @@ import { ApplicationService } from '../../../core/services/application.service';
 import { StudentService } from '../../../core/services/student.service';
 import { InstitutionService } from '../../../core/services/institution.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
-import { AccommodationTypeService, AccommodationType } from '../../../core/services/accommodation-type.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -50,7 +49,6 @@ export class ApplicationSubmissionComponent implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly institutionService = inject(InstitutionService);
   private readonly buildingService = inject(BuildingService);
-  private readonly accommodationTypeService = inject(AccommodationTypeService);
   private readonly errorService = inject(ErrorHandlingService);
 
   applicationForm: FormGroup;
@@ -64,13 +62,8 @@ export class ApplicationSubmissionComponent implements OnInit {
   loadError: ParsedError | null = null;
   isRetrying = false;
 
-  accommodationTypes: AccommodationType[] = [];
-
   constructor() {
     this.applicationForm = this.fb.group({
-      preferredAccommodationType: ['', Validators.required],
-      preferredMoveInDate: ['', Validators.required],
-      preferredDurationMonths: ['', [Validators.required, Validators.min(1), Validators.max(12)]],
       requiresAccessibility: [false],
       preferredBuildingId: [''],
       specialRequirements: [''],
@@ -85,7 +78,6 @@ export class ApplicationSubmissionComponent implements OnInit {
       return;
     }
 
-    this.loadAccommodationTypes();
     this.loadStudentProfile();
   }
 
@@ -170,17 +162,6 @@ export class ApplicationSubmissionComponent implements OnInit {
     });
   }
 
-  loadAccommodationTypes(): void {
-    this.accommodationTypeService.getActiveTypes().subscribe({
-      next: (types) => {
-        this.accommodationTypes = types;
-      },
-      error: (error) => {
-        console.error('Failed to load accommodation types', error);
-      },
-    });
-  }
-
   retryLoadProfile(): void {
     this.loadStudentProfile();
   }
@@ -200,21 +181,8 @@ export class ApplicationSubmissionComponent implements OnInit {
 
       const formValue = this.applicationForm.value;
 
-      // Format the date to YYYY-MM-DD format for the backend
-      const moveInDate = formValue.preferredMoveInDate;
-      const formattedDate =
-        moveInDate instanceof Date ? moveInDate.toISOString().split('T')[0] : moveInDate;
-
-      // Ensure numeric fields are sent as numbers
-      const durationMonths = formValue.preferredDurationMonths;
-      const parsedDuration =
-        typeof durationMonths === 'string' ? parseInt(durationMonths, 10) : durationMonths;
-
       const applicationData = {
         studentId: this.studentId,
-        preferredAccommodationType: formValue.preferredAccommodationType,
-        preferredMoveInDate: formattedDate,
-        preferredDurationMonths: parsedDuration,
         requiresAccessibility: formValue.requiresAccessibility || false,
         preferredBuildingId: formValue.preferredBuildingId || null,
         specialRequirements: formValue.specialRequirements || null,

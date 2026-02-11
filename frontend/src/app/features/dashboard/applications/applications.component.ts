@@ -50,8 +50,6 @@ export class ApplicationsComponent implements OnInit {
     'year',
     'status',
     'submittedDate',
-    'type',
-    'duration',
     'actions',
   ] as const;
   dataSource = new MatTableDataSource<Application>(this.applications);

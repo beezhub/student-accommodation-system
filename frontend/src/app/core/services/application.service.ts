@@ -2,7 +2,9 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, catchError, of, forkJoin } from 'rxjs';
 import { environment } from '../../../environments/environment';
+
 import { Application } from '../models/application.model';
+import { ApplicationStatus } from '../models/status.model';
 
 export interface StudentProfile {
   id: number;
@@ -49,9 +51,6 @@ export interface ApplicationFullDetails {
   updatedAt: string;
   remarks?: string;
   // Preferences
-  preferredAccommodationType?: string;
-  preferredMoveInDate?: string;
-  preferredDurationMonths?: number;
   requiresAccessibility?: boolean;
   specialRequirements?: string;
   institutionName?: string;
@@ -149,8 +148,15 @@ export class ApplicationService {
   hasActiveApplication(): Observable<boolean> {
     return this.getMyApplications().pipe(
       map((applications) => {
-        const activeStatuses = ['PENDING', 'APPROVED', 'AWAITING_ALLOCATION'];
-        return applications.some((app) => activeStatuses.includes(app.status));
+        const activeStatuses = [
+          ApplicationStatus.PENDING,
+          ApplicationStatus.APPROVED,
+          ApplicationStatus.AWAITING_ALLOCATION,
+          ApplicationStatus.UNDER_REVIEW,
+          ApplicationStatus.CHANGES_REQUESTED,
+          ApplicationStatus.ALLOCATED
+        ];
+        return applications.some((app) => activeStatuses.includes(app.status as ApplicationStatus));
       }),
       catchError(() => of(false))
     );
@@ -204,5 +210,23 @@ export class ApplicationService {
    */
   getApplicationDocuments(applicationId: number): Observable<ApplicationDocument[]> {
     return this.http.get<ApplicationDocument[]>(`${this.apiUrl}/${applicationId}/documents`);
+  }
+
+
+  /**
+   * Marks an application as under review.
+   * @param applicationId The application ID
+   */
+  markUnderReview(applicationId: number): Observable<Application> {
+    return this.http.post<Application>(`${this.apiUrl}/${applicationId}/mark-under-review`, {});
+  }
+
+  /**
+   * Requests changes for an application.
+   * @param applicationId The application ID
+   * @param reason The reason for requesting changes
+   */
+  requestChanges(applicationId: number, reason: string): Observable<Application> {
+    return this.http.post<Application>(`${this.apiUrl}/${applicationId}/request-changes`, { reason });
   }
 }

@@ -150,6 +150,27 @@ public class ApplicationController {
                 return ResponseEntity.ok(response);
         }
 
+        @PostMapping("/{applicationId}/mark-under-review")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Mark application as under review", description = "Moves application to UNDER_REVIEW status. Admin only.")
+        public ResponseEntity<ApplicationResponse> markUnderReview(
+                        @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId) {
+                return ResponseEntity.ok(applicationService.markUnderReview(applicationId));
+        }
+
+        @PostMapping("/{applicationId}/request-changes")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Request changes for application", description = "Moves application to CHANGES_REQUESTED status with a reason. Admin only.")
+        public ResponseEntity<ApplicationResponse> requestChanges(
+                        @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId,
+                        @RequestBody java.util.Map<String, String> payload) {
+                String reason = payload.get("reason");
+                if (reason == null || reason.trim().isEmpty()) {
+                        throw new IllegalArgumentException("Reason is required");
+                }
+                return ResponseEntity.ok(applicationService.requestChanges(applicationId, reason));
+        }
+
         @Operation(summary = "Cancel application", description = "Cancels a pending application. Students can only cancel their own applications.")
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "204", description = "Application canceled successfully"),

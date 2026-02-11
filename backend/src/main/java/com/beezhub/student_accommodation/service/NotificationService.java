@@ -425,9 +425,8 @@ public class NotificationService {
             String proposalId = "PROP-" + stagedAllocation.getId();
             BigDecimal score = stagedAllocation.getScore();
             List<String> warnings = parseWarnings(stagedAllocation.getWarnings());
-            String moveInDate = stagedAllocation.getApplication() != null && stagedAllocation.getApplication().getPreferredMoveInDate() != null
-                    ? formatDate(stagedAllocation.getApplication().getPreferredMoveInDate())
-                    : null;
+            // Move-in date removed as it's no longer collected in applications
+            String moveInDate = null;
             String portalUrl = baseUrl + "/portal/allocations/proposal/" + stagedAllocation.getId();
 
             emailService.sendAllocationProposalEmail(
@@ -693,6 +692,107 @@ public class NotificationService {
         }
     }
 
+    /**
+     * Sends a notification when a student declines an offer and is re-queued.
+     *
+     * @param allocation The declined room allocation
+     * @param totalDeclineCount The total number of declines including this one
+     * @param maxDeclineCount The maximum allowed declines
+     */
+    @Async("notificationExecutor")
+    public void sendOfferDeclinedRequeueNotification(RoomAllocation allocation, int totalDeclineCount, int maxDeclineCount) {
+        Student student = allocation.getStudent();
+        AppUser user = student.getAppUser();
+        Room room = allocation.getRoom();
+
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+
+        log.info("Sending offer declined re-queue notification to {} for allocation {}", email, allocation.getId());
+
+        Notification notification = createNotification(
+                email,
+                "Room Offer Declined - Student Accommodation",
+                NotificationType.ROOM_ALLOCATED,
+                user,
+                allocation.getId(),
+                "RoomAllocation"
+        );
+
+        try {
+            String roomNumber = room.getRoomNumber();
+            String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "";
+            int declinesRemaining = maxDeclineCount - totalDeclineCount;
+            String declineReason = allocation.getDeclineReason() != null
+                    ? allocation.getDeclineReason().getDisplayName()
+                    : "Not specified";
+            String portalUrl = baseUrl + "/portal/applications";
+
+            String htmlContent = buildOfferDeclinedRequeueEmailContent(
+                    studentName,
+                    roomNumber,
+                    buildingName,
+                    totalDeclineCount,
+                    declinesRemaining,
+                    declineReason,
+                    portalUrl
+            );
+
+            emailService.sendHtmlEmail(email, notification.getSubject(), htmlContent);
+
+            markNotificationAsSent(notification);
+            log.info("Offer declined re-queue notification sent to {}", email);
+        } catch (Exception e) {
+            handleNotificationFailure(notification, e);
+        }
+    }
+
+    /**
+     * Sends a notification when a student reaches the maximum decline limit.
+     *
+     * @param allocation The final declined room allocation
+     * @param totalDeclineCount The total number of declines
+     */
+    @Async("notificationExecutor")
+    public void sendOfferDeclinedMaxReachedNotification(RoomAllocation allocation, int totalDeclineCount) {
+        Student student = allocation.getStudent();
+        AppUser user = student.getAppUser();
+        Application application = allocation.getApplication();
+
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+
+        log.info("Sending offer declined max reached notification to {} for allocation {}", email, allocation.getId());
+
+        Notification notification = createNotification(
+                email,
+                "Application Closed - Student Accommodation",
+                NotificationType.APPLICATION_REJECTED,
+                user,
+                allocation.getId(),
+                "RoomAllocation"
+        );
+
+        try {
+            String applicationCode = application != null ? application.getApplicationCode() : "N/A";
+            String portalUrl = baseUrl + "/portal/applications";
+
+            String htmlContent = buildOfferDeclinedMaxReachedEmailContent(
+                    studentName,
+                    totalDeclineCount,
+                    applicationCode,
+                    portalUrl
+            );
+
+            emailService.sendHtmlEmail(email, notification.getSubject(), htmlContent);
+
+            markNotificationAsSent(notification);
+            log.info("Offer declined max reached notification sent to {}", email);
+        } catch (Exception e) {
+            handleNotificationFailure(notification, e);
+        }
+    }
+
     @Async("notificationExecutor")
     public void sendWelcomeEmail(AppUser user) {
         String studentName = user.getFirstName() + " " + user.getLastName();
@@ -899,6 +999,128 @@ public class NotificationService {
                 """.formatted(studentName, resetUrl, resetUrl);
     }
 
+    private String buildOfferDeclinedRequeueEmailContent(String studentName, String roomNumber,
+                                                          String buildingName, int totalDeclineCount,
+                                                          int declinesRemaining, String declineReason,
+                                                          String portalUrl) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 20px auto; background: #fff;
+                                    border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                        .header { background: linear-gradient(135deg, #ffa500 0%%, #ff6b6b 100%%);
+                                 color: #fff; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .content { padding: 30px; }
+                        .info-box { background: #f8f9fa; border-left: 4px solid #ffa500; padding: 15px; margin: 20px 0; }
+                        .warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+                        .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+                                 color: #fff; padding: 12px 30px; text-decoration: none;
+                                 border-radius: 5px; margin: 20px 0; }
+                        .footer { background: #f8f9fa; padding: 20px; text-align: center;
+                                 font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>Room Offer Declined</h1>
+                        </div>
+                        <div class="content">
+                            <p>Dear %s,</p>
+                            <p>We have received your decision to decline the room offer. Your application has been updated accordingly.</p>
+                            <div class="info-box">
+                                <strong>Declined Room Details:</strong>
+                                <ul>
+                                    <li><strong>Room:</strong> %s</li>
+                                    <li><strong>Building:</strong> %s</li>
+                                    <li><strong>Reason:</strong> %s</li>
+                                </ul>
+                            </div>
+                            <div class="warning-box">
+                                <strong>⚠️ Decline Status:</strong>
+                                <p>You have declined <strong>%d of 2</strong> allowed offers.</p>
+                                <p>You have <strong>%d decline(s) remaining</strong>.</p>
+                                <p>Your application status has been updated to <strong>AWAITING ALLOCATION</strong> and you have been added back to the waiting list. We will notify you when another room becomes available.</p>
+                            </div>
+                            <center>
+                                <a href="%s" class="button">View Application Status</a>
+                            </center>
+                        </div>
+                        <div class="footer">
+                            <p>This is an automated message from the Student Accommodation System.</p>
+                            <p>If you have any questions, please contact our support team at %s</p>
+                            <p>&copy; 2025 %s Student Accommodation System. All rights reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(studentName, roomNumber, buildingName, declineReason,
+                              totalDeclineCount, declinesRemaining, portalUrl, supportEmail, universityName);
+    }
+
+    private String buildOfferDeclinedMaxReachedEmailContent(String studentName, int totalDeclineCount,
+                                                             String applicationCode, String portalUrl) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 20px auto; background: #fff;
+                                    border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                        .header { background: linear-gradient(135deg, #dc3545 0%%, #c82333 100%%);
+                                 color: #fff; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .content { padding: 30px; }
+                        .alert-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; }
+                        .info-box { background: #f8f9fa; border-left: 4px solid #6c757d; padding: 15px; margin: 20px 0; }
+                        .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+                                 color: #fff; padding: 12px 30px; text-decoration: none;
+                                 border-radius: 5px; margin: 20px 0; }
+                        .footer { background: #f8f9fa; padding: 20px; text-align: center;
+                                 font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>Application Closed</h1>
+                        </div>
+                        <div class="content">
+                            <p>Dear %s,</p>
+                            <div class="alert-box">
+                                <strong>⛔ Maximum Decline Limit Reached</strong>
+                                <p>You have declined <strong>%d room offers</strong>, which is the maximum allowed.</p>
+                                <p>As a result, your application (<strong>%s</strong>) has been <strong>CANCELLED</strong> and you have been removed from the waiting list.</p>
+                            </div>
+                            <div class="info-box">
+                                <strong>What This Means:</strong>
+                                <ul>
+                                    <li>Your current application is now closed</li>
+                                    <li>You will not receive any further room offers for this application</li>
+                                    <li>You may submit a new application in the next application period</li>
+                                </ul>
+                            </div>
+                            <p>If you have any questions or would like to discuss alternative accommodation options, please contact our accommodation office.</p>
+                            <center>
+                                <a href="%s" class="button">View Application</a>
+                            </center>
+                        </div>
+                        <div class="footer">
+                            <p>This is an automated message from the Student Accommodation System.</p>
+                            <p>For assistance, please contact our support team at %s</p>
+                            <p>&copy; 2025 %s Student Accommodation System. All rights reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(studentName, totalDeclineCount, applicationCode, portalUrl, supportEmail, universityName);
+    }
+
     private String formatDate(LocalDateTime dateTime) {
         if (dateTime == null) return "N/A";
         return dateTime.format(DATE_FORMATTER);
@@ -1000,5 +1222,214 @@ public class NotificationService {
             log.warn("Failed to parse warnings JSON: {}", warningsJson, e);
             return new ArrayList<>();
         }
+    }
+
+    @Async("notificationExecutor")
+    public void sendOfferExpiredNotification(RoomAllocation allocation) {
+        Student student = allocation.getStudent();
+        AppUser user = student.getAppUser();
+        Application application = allocation.getApplication();
+        Room room = allocation.getRoom();
+
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+
+        log.info("Sending offer expired notification to {} for allocation {}", email, allocation.getId());
+
+        Notification notification = createNotification(
+                email,
+                "Room Offer Expired - Student Accommodation",
+                NotificationType.APPLICATION_REJECTED,
+                user,
+                allocation.getId(),
+                "RoomAllocation"
+        );
+
+        try {
+            String applicationCode = application != null ? application.getApplicationCode() : "N/A";
+            String roomNumber = room.getRoomNumber();
+            String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
+            String portalUrl = baseUrl + "/portal/applications";
+
+            String htmlContent = buildOfferExpiredEmailContent(
+                    studentName,
+                    applicationCode,
+                    roomNumber,
+                    buildingName,
+                    portalUrl
+            );
+
+            emailService.sendHtmlEmail(email, notification.getSubject(), htmlContent);
+
+            markNotificationAsSent(notification);
+            log.info("Offer expired notification sent to {}", email);
+        } catch (Exception e) {
+            handleNotificationFailure(notification, e);
+        }
+    }
+
+    @Async("notificationExecutor")
+    public void sendCheckInExpiredNotification(RoomAllocation allocation) {
+        Student student = allocation.getStudent();
+        AppUser user = student.getAppUser();
+        Application application = allocation.getApplication();
+        Room room = allocation.getRoom();
+
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+
+        log.info("Sending check-in expired notification to {} for allocation {}", email, allocation.getId());
+
+        Notification notification = createNotification(
+                email,
+                "Check-In Deadline Expired - Student Accommodation",
+                NotificationType.APPLICATION_REJECTED,
+                user,
+                allocation.getId(),
+                "RoomAllocation"
+        );
+
+        try {
+            String applicationCode = application != null ? application.getApplicationCode() : "N/A";
+            String roomNumber = room.getRoomNumber();
+            String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
+            String portalUrl = baseUrl + "/portal/applications";
+
+            String htmlContent = buildCheckInExpiredEmailContent(
+                    studentName,
+                    applicationCode,
+                    roomNumber,
+                    buildingName,
+                    portalUrl
+            );
+
+            emailService.sendHtmlEmail(email, notification.getSubject(), htmlContent);
+
+            markNotificationAsSent(notification);
+            log.info("Check-in expired notification sent to {}", email);
+        } catch (Exception e) {
+            handleNotificationFailure(notification, e);
+        }
+    }
+
+    private String buildOfferExpiredEmailContent(String studentName, String applicationCode,
+                                                  String roomNumber, String buildingName, String portalUrl) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 20px auto; background: #fff;
+                                    border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                        .header { background: linear-gradient(135deg, #f59e0b 0%%, #d97706 100%%);
+                                 color: #fff; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .content { padding: 30px; }
+                        .alert-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+                        .info-box { background: #f8f9fa; border-left: 4px solid #6c757d; padding: 15px; margin: 20px 0; }
+                        .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+                                 color: #fff; padding: 12px 30px; text-decoration: none;
+                                 border-radius: 5px; margin: 20px 0; }
+                        .footer { background: #f8f9fa; padding: 20px; text-align: center;
+                                 font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>⏰ Room Offer Expired</h1>
+                        </div>
+                        <div class="content">
+                            <p>Dear %s,</p>
+                            <div class="alert-box">
+                                <strong>Your room offer has expired</strong>
+                                <p>The offer for <strong>Room %s</strong> in <strong>%s</strong> has expired because no response was received within 7 days.</p>
+                                <p>As a result, your application (<strong>%s</strong>) has been <strong>CANCELLED</strong>.</p>
+                            </div>
+                            <div class="info-box">
+                                <strong>What This Means:</strong>
+                                <ul>
+                                    <li>Your current application is now closed</li>
+                                    <li>The room has been released for other students</li>
+                                    <li>You will need to submit a new application if you still need accommodation</li>
+                                </ul>
+                            </div>
+                            <p>If you still require accommodation, please submit a new application during the next application period.</p>
+                            <p>If you have any questions, please contact our accommodation office.</p>
+                            <center>
+                                <a href="%s" class="button">View Application</a>
+                            </center>
+                        </div>
+                        <div class="footer">
+                            <p>This is an automated message from the Student Accommodation System.</p>
+                            <p>For assistance, please contact our support team at %s</p>
+                            <p>&copy; 2025 %s Student Accommodation System. All rights reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(studentName, roomNumber, buildingName, applicationCode, portalUrl, supportEmail, universityName);
+    }
+
+    private String buildCheckInExpiredEmailContent(String studentName, String applicationCode,
+                                                    String roomNumber, String buildingName, String portalUrl) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 20px auto; background: #fff;
+                                    border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                        .header { background: linear-gradient(135deg, #dc3545 0%%, #c82333 100%%);
+                                 color: #fff; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .content { padding: 30px; }
+                        .alert-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; }
+                        .info-box { background: #f8f9fa; border-left: 4px solid #6c757d; padding: 15px; margin: 20px 0; }
+                        .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+                                 color: #fff; padding: 12px 30px; text-decoration: none;
+                                 border-radius: 5px; margin: 20px 0; }
+                        .footer { background: #f8f9fa; padding: 20px; text-align: center;
+                                 font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>🚫 Check-In Deadline Expired</h1>
+                        </div>
+                        <div class="content">
+                            <p>Dear %s,</p>
+                            <div class="alert-box">
+                                <strong>Check-In Deadline Missed</strong>
+                                <p>You failed to check in to <strong>Room %s</strong> in <strong>%s</strong> within 7 days of accepting the offer.</p>
+                                <p>As a result, your application (<strong>%s</strong>) has been <strong>CANCELLED</strong>.</p>
+                            </div>
+                            <div class="info-box">
+                                <strong>What This Means:</strong>
+                                <ul>
+                                    <li>Your room allocation has been cancelled</li>
+                                    <li>The room has been released for other students</li>
+                                    <li>Your current application is now closed</li>
+                                    <li>You will need to submit a new application if you still need accommodation</li>
+                                </ul>
+                            </div>
+                            <p>If you still require accommodation, please submit a new application during the next application period.</p>
+                            <p>If you have any questions or concerns, please contact our accommodation office.</p>
+                            <center>
+                                <a href="%s" class="button">View Application</a>
+                            </center>
+                        </div>
+                        <div class="footer">
+                            <p>This is an automated message from the Student Accommodation System.</p>
+                            <p>For assistance, please contact our support team at %s</p>
+                            <p>&copy; 2025 %s Student Accommodation System. All rights reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(studentName, roomNumber, buildingName, applicationCode, portalUrl, supportEmail, universityName);
     }
 }

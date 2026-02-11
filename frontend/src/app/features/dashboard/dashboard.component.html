@@ -84,16 +84,10 @@
                   <mat-icon>event</mat-icon>
                   <span>Submitted: {{currentApplication.applicationDate | date: 'MMM d, y'}}</span>
                 </div>
-                @if (currentApplication.preferredAccommodationType) {
+                @if (currentApplication.preferredBuildingName) {
                   <div class="detail-row">
-                    <mat-icon>bed</mat-icon>
-                    <span>{{currentApplication.preferredAccommodationType}}</span>
-                  </div>
-                }
-                @if (currentApplication.preferredMoveInDate) {
-                  <div class="detail-row">
-                    <mat-icon>calendar_today</mat-icon>
-                    <span>Move-in: {{currentApplication.preferredMoveInDate | date: 'MMM d, y'}}</span>
+                    <mat-icon>apartment</mat-icon>
+                    <span>Building: {{currentApplication.preferredBuildingName}}</span>
                   </div>
                 }
               </div>
@@ -163,14 +157,48 @@
               <div class="allocation-status">
                 <app-modern-status-badge [status]="roomAllocation.status" size="sm"></app-modern-status-badge>
               </div>
+
+              @if (roomAllocation.status === AllocationStatus.OFFERED) {
+                @if (roomAllocation.offerExpiryDate) {
+                  <div class="offer-expiry-notice" style="margin-top: 10px; display: flex; align-items: center; gap: 8px; color: #f59e0b;">
+                    <mat-icon>timer</mat-icon>
+                    <span><strong>Offer expires:</strong> {{ roomAllocation.offerExpiryDate | date: 'MMM d, y, h:mm a' }}</span>
+                  </div>
+                }
+                <div class="offer-actions" style="margin-top: 15px; display: flex; gap: 10px;">
+                    <button mat-raised-button color="primary" (click)="acceptOffer()" [disabled]="processing">Accept Offer</button>
+                    <button mat-button color="warn" (click)="declineOffer()" [disabled]="processing">Decline</button>
+                </div>
+              }
+
+              @if (roomAllocation.status === AllocationStatus.ACCEPTED) {
+                @if (roomAllocation.checkInExpiryDate) {
+                  <div class="offer-expiry-notice" style="margin-top: 10px; display: flex; align-items: center; gap: 8px; color: #0369a1;">
+                    <mat-icon>event</mat-icon>
+                    <span><strong>Check-in by:</strong> {{ roomAllocation.checkInExpiryDate | date: 'MMM d, y, h:mm a' }}</span>
+                  </div>
+                }
+              }
             </div>
           }
 
           @if (!isLoadingRoom && !roomAllocation) {
             <div class="no-room">
-              <mat-icon class="no-room-icon">info</mat-icon>
-              <p>No room allocated yet</p>
-              <p class="no-room-hint">Your room will be allocated after your application and documents are approved.</p>
+              @if (currentApplication?.status?.toUpperCase() === 'AWAITING_ALLOCATION') {
+                <mat-icon class="no-room-icon">hourglass_empty</mat-icon>
+                <app-modern-status-badge status="AWAITING_ALLOCATION" size="sm"></app-modern-status-badge>
+                <p>You are on the waiting list for room allocation.</p>
+                <p class="no-room-hint">We will notify you as soon as a room becomes available.</p>
+              } @else if (currentApplication?.status?.toUpperCase() === 'CANCELLED') {
+                <mat-icon class="no-room-icon">cancel</mat-icon>
+                <app-modern-status-badge status="CANCELLED" size="sm"></app-modern-status-badge>
+                <p>Your application has been cancelled.</p>
+                <p class="no-room-hint">{{ currentApplication?.remarks || 'Please contact support or submit a new application.' }}</p>
+              } @else {
+                <mat-icon class="no-room-icon">info</mat-icon>
+                <p>No room allocated yet</p>
+                <p class="no-room-hint">Your room will be allocated after your application and documents are approved.</p>
+              }
             </div>
           }
         </mat-card-content>
@@ -273,3 +301,4 @@
     <app-document-viewer [document]="selectedDocument" (close)="closeViewer()">
     </app-document-viewer>
   }
+</div>

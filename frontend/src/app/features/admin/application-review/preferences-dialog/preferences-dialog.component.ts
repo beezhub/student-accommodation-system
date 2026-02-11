@@ -45,44 +45,12 @@ export interface PreferencesDialogData {
         <div class="section-title">Accommodation Preferences</div>
         <div class="grid-layout">
           <div class="info-card">
-            <div class="icon-wrapper accent">
-              <mat-icon>home</mat-icon>
-            </div>
-            <div class="info-content">
-              <span class="label">Accommodation Type</span>
-              <span class="value">{{ data.application.preferredAccommodationType || 'Any Type' }}</span>
-            </div>
-          </div>
-
-          <div class="info-card">
             <div class="icon-wrapper primary">
               <mat-icon>apartment</mat-icon>
             </div>
             <div class="info-content">
               <span class="label">Preferred Building</span>
               <span class="value">{{ data.application.preferredBuildingName || 'Any Building' }}</span>
-            </div>
-          </div>
-
-          <div class="info-card">
-            <div class="icon-wrapper success">
-              <mat-icon>event</mat-icon>
-            </div>
-            <div class="info-content">
-              <span class="label">Move-in Date</span>
-              <span class="value">{{ formatDate(data.application.preferredMoveInDate) }}</span>
-            </div>
-          </div>
-
-          <div class="info-card">
-            <div class="icon-wrapper info">
-              <mat-icon>schedule</mat-icon>
-            </div>
-            <div class="info-content">
-              <span class="label">Duration</span>
-              <span class="value">
-                {{ data.application.preferredDurationMonths ? data.application.preferredDurationMonths + ' Months' : 'Not specified' }}
-              </span>
             </div>
           </div>
         </div>

@@ -23,6 +23,7 @@ public class Application {
     private Long id;
     @Version
     @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    @Builder.Default
     private Long version = 0L;
     @Column(unique = true, nullable = false, name = "application_code")
     private String applicationCode;
@@ -42,15 +43,6 @@ public class Application {
     @JoinColumn(name = "student_id", referencedColumnName = "id", nullable = false)
     private Student student;
 
-    @Column(name = "preferred_accommodation_type", length = 50)
-    private String preferredAccommodationType;
-
-    @Column(name = "preferred_move_in_date")
-    private LocalDate preferredMoveInDate;
-
-    @Column(name = "preferred_duration_months")
-    private Integer preferredDurationMonths;
-
     @Column(name = "requires_accessibility")
     private Boolean requiresAccessibility = false;
 
@@ -66,6 +58,10 @@ public class Application {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "preferred_building_id")
     private Building preferredBuilding;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "academic_year_id")
+    private AcademicYear academicYear;
 
     @Column(name = "allocation_method")
     @Enumerated(EnumType.STRING)

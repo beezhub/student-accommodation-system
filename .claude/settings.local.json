@@ -41,7 +41,21 @@
       "Bash(./mvnw compile:*)",
       "Bash(./gradlew.bat compileJava:*)",
       "Bash(xargs basename:*)",
-      "Bash(npx ng build:*)"
+      "Bash(npx ng build:*)",
+      "Bash(while read f)",
+      "Bash(do basename \"$f\")",
+      "Bash(done)",
+      "Bash(./gradlew build:*)",
+      "Bash(./gradlew flywayInfo:*)",
+      "Bash(./gradlew test:*)",
+      "Bash(tee:*)",
+      "Bash(find:*)",
+      "Bash(mvn test:*)",
+      "Bash(./mvnw.cmd test:*)",
+      "Bash(./mvnw test:*)",
+      "Bash(git log:*)",
+      "Bash(mvnw.cmd clean compile:*)",
+      "Bash(./gradlew compileJava:*)"
     ],
     "deny": [],
     "ask": []

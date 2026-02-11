@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.model.dto.RoomAllocationRequest;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationResponse;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.UserRole;
+import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,7 +28,8 @@ import static org.mockito.Mockito.*;
  *
  * Acceptance Criteria:
  * ✅ Notification sent on successful room allocation
- * ✅ Email contains relevant details (student name, room number, building, allocation date)
+ * ✅ Email contains relevant details (student name, room number, building,
+ * allocation date)
  * ✅ Async sending doesn't block request
  * ✅ Failed emails logged but don't break flow
  * ✅ Integration tests verify notifications sent
@@ -53,6 +55,9 @@ class RoomAllocationServiceNotificationTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private WaitingListRepository waitingListRepository;
 
     @InjectMocks
     private RoomAllocationService roomAllocationService;
@@ -98,11 +103,11 @@ class RoomAllocationServiceNotificationTest {
         roomAllocation.setStudent(student);
         roomAllocation.setRoom(room);
         roomAllocation.setAllocationDate(LocalDateTime.now());
-        roomAllocation.setStatus("ACTIVE");
+        roomAllocation.setStatus(AllocationStatus.OFFERED);
 
         roomAllocationResponse = new RoomAllocationResponse();
         roomAllocationResponse.setId(1L);
-        roomAllocationResponse.setStatus("ACTIVE");
+        roomAllocationResponse.setStatus(AllocationStatus.OFFERED.name());
         roomAllocationResponse.setAllocationDate(LocalDateTime.now());
 
         roomAllocationRequest = new RoomAllocationRequest();
@@ -136,7 +141,7 @@ class RoomAllocationServiceNotificationTest {
         assertNotNull(capturedAllocation);
         assertEquals(student.getId(), capturedAllocation.getStudent().getId());
         assertEquals(room.getId(), capturedAllocation.getRoom().getId());
-        assertEquals("ACTIVE", capturedAllocation.getStatus());
+        assertEquals(AllocationStatus.OFFERED, capturedAllocation.getStatus());
 
         // Verify repository save was called
         verify(roomAllocationRepository, times(1)).save(any(RoomAllocation.class));
@@ -192,7 +197,7 @@ class RoomAllocationServiceNotificationTest {
         RoomAllocation capturedAllocation = allocationCaptor.getValue();
         assertEquals("A101", capturedAllocation.getRoom().getRoomNumber());
         assertEquals("North Hall", capturedAllocation.getRoom().getBuilding().getName());
-        assertEquals("ACTIVE", capturedAllocation.getStatus());
+        assertEquals(AllocationStatus.OFFERED, capturedAllocation.getStatus());
         assertEquals(student.getAppUser().getEmail(), capturedAllocation.getStudent().getAppUser().getEmail());
     }
 
@@ -375,6 +380,7 @@ class RoomAllocationServiceNotificationTest {
         assertNotNull(response);
         verify(roomAllocationRepository, times(1)).save(any(RoomAllocation.class)); // Allocation saved
         verify(roomRepository, times(1)).save(room); // Room updated
-        verify(notificationService, times(1)).sendRoomAllocationNotification(any(RoomAllocation.class)); // Notification attempted
+        verify(notificationService, times(1)).sendRoomAllocationNotification(any(RoomAllocation.class)); // Notification
+                                                                                                         // attempted
     }
 }

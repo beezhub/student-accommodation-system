@@ -27,9 +27,6 @@ public class ApplicationResponse {
     private String studentEmail;
 
     // Preferences
-    private String preferredAccommodationType;
-    private LocalDate preferredMoveInDate;
-    private Integer preferredDurationMonths;
     private Boolean requiresAccessibility;
     private String specialRequirements;
     private String institutionName;

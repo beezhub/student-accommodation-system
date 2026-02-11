@@ -1,0 +1,72 @@
+.management-card {
+    margin: 16px;
+}
+
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.loading-container {
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.status-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.current-chip {
+    background-color: #1976d2 !important;
+    color: white !important;
+}
+
+.open-chip {
+    background-color: #4caf50 !important;
+    color: white !important;
+}
+
+.closed-chip {
+    background-color: #9e9e9e !important;
+    color: white !important;
+}
+
+.no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px;
+    color: #666;
+
+    mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+    }
+
+    p {
+        margin: 0;
+        font-size: 16px;
+    }
+}
+
+table {
+    th {
+        font-weight: 600;
+        color: #333;
+    }
+
+    td {
+        vertical-align: middle;
+    }
+}

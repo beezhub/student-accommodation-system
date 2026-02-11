@@ -251,6 +251,12 @@ public class AllocationScoringService {
             return false;
         }
 
+        // Check if student has previously declined this room
+        if (roomAllocationRepository.hasStudentDeclinedRoom(student.getId(), room.getId())) {
+            log.debug("Student {} has previously declined room {}, excluding from allocation", student.getId(), room.getRoomNumber());
+            return false;
+        }
+
         return true;
     }
 

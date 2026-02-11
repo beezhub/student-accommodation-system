@@ -362,16 +362,8 @@ public class DocumentService {
     }
 
     private void enqueueWaitingList(Student student, Application application) {
-        if (waitingListRepository.existsByStudent_IdAndStatus(student.getId(), "WAITING")) {
-            log.info("Student {} is already on the waiting list", student.getId());
-            return;
-        }
-        WaitingListEntry entry = new WaitingListEntry();
-        entry.setStudent(student);
-        entry.setApplication(application);
-        entry.setStatus("WAITING");
-        waitingListRepository.save(entry);
-        log.warn("No rooms available; student {} placed on waiting list", student.getId());
+        // Delegate to RoomAllocationService for single source of truth
+        roomAllocationService.enqueueWaitingList(student.getId(), application.getId());
     }
 
     @LogActivity(action = "DELETE", entityType = "DOCUMENT", description = "Deleted document {0}", entityIdParamIndex = 0)

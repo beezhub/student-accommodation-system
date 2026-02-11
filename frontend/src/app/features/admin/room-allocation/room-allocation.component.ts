@@ -70,7 +70,7 @@ export class RoomAllocationComponent implements OnInit {
 
   filterForm: FormGroup;
 
-  statuses = ['ACTIVE', 'COMPLETED', 'CANCELLED'];
+  statuses = ['OFFERED', 'ACCEPTED', 'DECLINED', 'EXPIRED', 'CHECK_IN_EXPIRED', 'ACTIVE', 'COMPLETED', 'CANCELLED'];
 
   constructor(
     private allocationService: RoomAllocationService,
@@ -214,6 +214,36 @@ export class RoomAllocationComponent implements OnInit {
     }
   }
 
+  checkIn(allocation: RoomAllocationResponse): void {
+    if (confirm(`Confirm check-in for ${allocation.studentFirstName} ${allocation.studentLastName}?`)) {
+      this.allocationService.checkIn(allocation.id).subscribe({
+        next: () => {
+          this.snackBar.open('Check-in confirmed successfully', 'Close', { duration: 3000 });
+          this.loadAllocations();
+        },
+        error: (error) => {
+          console.error('Failed to confirm check-in:', error);
+          this.snackBar.open('Failed to confirm check-in', 'Close', { duration: 5000 });
+        },
+      });
+    }
+  }
+
+  checkOut(allocation: RoomAllocationResponse): void {
+    if (confirm(`Confirm check-out for ${allocation.studentFirstName} ${allocation.studentLastName}?`)) {
+      this.allocationService.checkOut(allocation.id).subscribe({
+        next: () => {
+          this.snackBar.open('Check-out confirmed successfully', 'Close', { duration: 3000 });
+          this.loadAllocations();
+        },
+        error: (error) => {
+          console.error('Failed to confirm check-out:', error);
+          this.snackBar.open('Failed to confirm check-out', 'Close', { duration: 5000 });
+        },
+      });
+    }
+  }
+
   getStatusClass(status: string): string {
     return status.toLowerCase();
   }
@@ -226,6 +256,10 @@ export class RoomAllocationComponent implements OnInit {
         return 'done_all';
       case 'CANCELLED':
         return 'cancel';
+      case 'EXPIRED':
+        return 'timer_off';
+      case 'CHECK_IN_EXPIRED':
+        return 'event_busy';
       default:
         return 'help';
     }

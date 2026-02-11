@@ -5,10 +5,13 @@ import com.beezhub.student_accommodation.exceptions.*;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
+import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import com.beezhub.student_accommodation.model.enums.DeclineReason;
 import com.beezhub.student_accommodation.repository.*;
 import org.ff4j.FF4j;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -205,4 +208,180 @@ class RoomAllocationServiceTest {
 
         assertThat(response.isEligible()).isTrue();
     }
+
+    @Test
+    void allocateNextFromWaitingList_shouldAutoAllocateWhenFeatureEnabled() {
+        // Given: FF4j auto-allocation is enabled
+        when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
+
+        // And: Student on waiting list with application
+        waitingListEntry.setStudent(student);
+        waitingListEntry.setApplication(application);
+        waitingListEntry.setStatus("WAITING");
+        when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING"))
+                .thenReturn(Collections.singletonList(waitingListEntry));
+
+        // And: No active allocation for student
+        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
+
+        // And: Scoring service finds suitable room
+        ScoredRoom scoredRoom = new ScoredRoom();
+        scoredRoom.setRoomId(1L);
+        scoredRoom.setRoomNumber("101");
+        scoredRoom.setTotalScore(new BigDecimal("85.5"));
+        when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
+                .thenReturn(Collections.singletonList(scoredRoom));
+
+        // And: Room exists
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+
+        // And: Student exists
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+
+        // And: Application exists
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+
+        // And: No existing allocation for application
+        when(roomAllocationRepository.existsByApplicationId(1L)).thenReturn(false);
+
+        // And: Save returns a valid allocation
+        RoomAllocation savedAllocation = new RoomAllocation();
+        savedAllocation.setId(1L);
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(savedAllocation);
+
+        // When: Auto-allocation runs
+        roomAllocationService.allocateNextFromWaitingList();
+
+        // Then: Room should be allocated
+        verify(roomAllocationRepository).save(any(RoomAllocation.class));
+        verify(waitingListRepository).save(any(WaitingListEntry.class));
+        verify(notificationService).sendRoomAllocationNotification(any());
+    }
+
+    @Test
+    void allocateNextFromWaitingList_shouldSkipWhenFeatureDisabled() {
+        // Given: FF4j auto-allocation is disabled
+        when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(false);
+
+        // When: Auto-allocation runs
+        roomAllocationService.allocateNextFromWaitingList();
+
+        // Then: No allocation should occur
+        verify(waitingListRepository, never()).findByStatusOrderByCreatedAtAsc(any());
+        verify(roomAllocationRepository, never()).save(any());
+    }
+
+    @Test
+    void allocateNextFromWaitingList_shouldHandleFF4jDatabaseError() {
+        // Given: FF4j database is unavailable
+        when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION))
+                .thenThrow(new org.ff4j.exception.FeatureAccessException("Database unavailable"));
+
+        // When: Auto-allocation runs
+        roomAllocationService.allocateNextFromWaitingList();
+
+        // Then: Should fail gracefully without allocating
+        verify(waitingListRepository, never()).findByStatusOrderByCreatedAtAsc(any());
+        verify(roomAllocationRepository, never()).save(any());
+    }
+
+    @Test
+    void allocateNextFromWaitingList_shouldSkipDeclinedRooms() {
+        // Given: FF4j auto-allocation is enabled
+        when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
+
+        // And: Student on waiting list
+        waitingListEntry.setStudent(student);
+        waitingListEntry.setApplication(application);
+        waitingListEntry.setStatus("WAITING");
+        when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING"))
+                .thenReturn(Collections.singletonList(waitingListEntry));
+
+        // And: No active allocation for student
+        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
+
+        // And: Scoring service returns empty list (declined rooms are filtered out by the service)
+        when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
+                .thenReturn(Collections.emptyList());
+
+        // When: Auto-allocation runs
+        roomAllocationService.allocateNextFromWaitingList();
+
+        // Then: No allocation should occur since all suitable rooms were filtered out
+        verify(roomAllocationRepository, never()).save(any());
+        verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
+    }
+
+    // ==================== Decline with Direct Reallocation Tests ====================
+
+    @Test
+    @DisplayName("Decline always adds student to waiting list")
+    void declineOffer_shouldAlwaysAddToWaitingList() {
+        // Given: An OFFERED allocation with student and application
+        RoomAllocation offeredAllocation = new RoomAllocation();
+        offeredAllocation.setId(10L);
+        offeredAllocation.setStatus(AllocationStatus.OFFERED);
+        offeredAllocation.setStudent(student);
+        offeredAllocation.setApplication(application);
+        offeredAllocation.setRoom(room);
+
+        when(roomAllocationRepository.findByIdWithDetails(10L)).thenReturn(Optional.of(offeredAllocation));
+        when(roomAllocationRepository.countDeclinedAllocationsByApplicationId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
+
+        // And: Student not already on waiting list
+        when(waitingListRepository.existsByStudent_IdAndStatus(1L, "WAITING")).thenReturn(false);
+
+        // And: FF4j disabled to avoid allocateNextFromWaitingList processing
+        when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(false);
+
+        DeclineOfferRequest declineRequest = new DeclineOfferRequest();
+        declineRequest.setDeclineReason(DeclineReason.WRONG_LOCATION);
+
+        // When
+        roomAllocationService.declineOffer(10L, declineRequest);
+
+        // Then: Application should be set to AWAITING_ALLOCATION
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
+        verify(applicationRepository).save(application);
+        // And: Student should be added to waiting list
+        verify(waitingListRepository).save(any(WaitingListEntry.class));
+    }
+
+    @Test
+    @DisplayName("Decline adds student to waiting list when declined")
+    void declineOffer_shouldAddToWaitingList_whenDeclined() {
+        // Given: An OFFERED allocation
+        RoomAllocation offeredAllocation = new RoomAllocation();
+        offeredAllocation.setId(10L);
+        offeredAllocation.setStatus(AllocationStatus.OFFERED);
+        offeredAllocation.setStudent(student);
+        offeredAllocation.setApplication(application);
+        offeredAllocation.setRoom(room);
+
+        when(roomAllocationRepository.findByIdWithDetails(10L)).thenReturn(Optional.of(offeredAllocation));
+        when(roomAllocationRepository.countDeclinedAllocationsByApplicationId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
+
+        // And: Student not already on waiting list
+        when(waitingListRepository.existsByStudent_IdAndStatus(1L, "WAITING")).thenReturn(false);
+
+        // And: FF4j disabled
+        when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(false);
+
+        DeclineOfferRequest declineRequest = new DeclineOfferRequest();
+        declineRequest.setDeclineReason(DeclineReason.WRONG_LOCATION);
+
+        // When
+        roomAllocationService.declineOffer(10L, declineRequest);
+
+        // Then: Application should be set to AWAITING_ALLOCATION
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
+        verify(applicationRepository).save(application);
+        // And: Student should be added to waiting list
+        verify(waitingListRepository).save(any(WaitingListEntry.class));
+    }
+
 }

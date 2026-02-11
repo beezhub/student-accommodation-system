@@ -50,12 +50,8 @@
                     <span class="value">{{(app.applicationDate || app.createdAt) | date:'mediumDate'}}</span>
                   </div>
                   <div class="mobile-info-row">
-                    <span class="label">Type</span>
-                    <span class="value">{{app.preferredAccommodationType || 'N/A'}}</span>
-                  </div>
-                  <div class="mobile-info-row">
-                    <span class="label">Duration</span>
-                    <span class="value">{{app.preferredDurationMonths ? app.preferredDurationMonths + ' month(s)' : 'N/A'}}</span>
+                    <span class="label">Building</span>
+                    <span class="value">{{app.preferredBuildingName || 'Any Building'}}</span>
                   </div>
                 </div>
 
@@ -111,25 +107,6 @@
                   <div class="date-cell">
                     <mat-icon>schedule</mat-icon>
                     {{(app.applicationDate || app.createdAt) | date:'mediumDate'}}
-                  </div>
-                </td>
-              </ng-container>
-
-              <!-- Type Column -->
-              <ng-container matColumnDef="type">
-                <th mat-header-cell *matHeaderCellDef> Type </th>
-                <td mat-cell *matCellDef="let app">
-                  <span class="type-badge"><mat-icon>hotel</mat-icon> {{app.preferredAccommodationType || 'N/A'}}</span>
-                </td>
-              </ng-container>
-
-              <!-- Duration Column -->
-              <ng-container matColumnDef="duration">
-                <th mat-header-cell *matHeaderCellDef> Duration </th>
-                <td mat-cell *matCellDef="let app">
-                  <div class="duration-cell">
-                    <mat-icon>timelapse</mat-icon>
-                    {{app.preferredDurationMonths ? app.preferredDurationMonths + ' month(s)' : 'N/A'}}
                   </div>
                 </td>
               </ng-container>

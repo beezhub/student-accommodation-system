@@ -14,9 +14,6 @@ public class ApplicationRequest {
     @NotNull(message = "Student ID is required")
     private Long studentId;
 
-    private String preferredAccommodationType;
-    private LocalDate preferredMoveInDate;
-    private Integer preferredDurationMonths;
     private Boolean requiresAccessibility;
     private String specialRequirements;
     private String institutionName;

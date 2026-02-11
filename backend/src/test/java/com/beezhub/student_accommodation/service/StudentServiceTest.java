@@ -44,6 +44,9 @@ class StudentServiceTest {
     @Mock
     private AuthService authService;
 
+    @Mock
+    private com.beezhub.student_accommodation.repository.UserRepository userRepository;
+
     @InjectMocks
     private StudentService studentService;
 

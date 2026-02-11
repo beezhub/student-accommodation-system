@@ -298,6 +298,94 @@ public class UserNotificationService {
     }
 
     /**
+     * Creates an in-app notification when a student is added to the waiting list.
+     *
+     * @param userId The app user ID
+     * @param applicationId The application ID
+     */
+    @Transactional
+    public void createWaitingListNotification(Long userId, Long applicationId) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("applicationId", applicationId);
+
+        createNotification(
+                userId,
+                "WAITING_LIST",
+                "Added to Waiting List",
+                "Your application has been approved! You've been added to the waiting list. " +
+                        "We'll notify you as soon as a room becomes available.",
+                data
+        );
+
+        log.info("Created waiting list notification for user {} and application {}", userId, applicationId);
+    }
+
+    /**
+     * Creates an in-app notification when a room offer expires without response.
+     *
+     * @param userId The app user ID
+     * @param roomNumber The room number
+     * @param buildingName The building name
+     */
+    @Transactional
+    public void createOfferExpiredNotification(Long userId, String roomNumber, String buildingName) {
+        createNotification(
+                userId,
+                "OFFER_EXPIRED",
+                "Room Offer Expired",
+                String.format("Your offer for Room %s in %s has expired. Your application has been cancelled. " +
+                        "Please submit a new application if you still need accommodation.", roomNumber, buildingName),
+                null
+        );
+
+        log.info("Created offer expired notification for user {}, room {}", userId, roomNumber);
+    }
+
+    /**
+     * Creates an in-app notification when check-in deadline is missed.
+     *
+     * @param userId The app user ID
+     * @param roomNumber The room number
+     * @param buildingName The building name
+     */
+    @Transactional
+    public void createCheckInExpiredNotification(Long userId, String roomNumber, String buildingName) {
+        createNotification(
+                userId,
+                "CHECK_IN_EXPIRED",
+                "Check-In Deadline Expired",
+                String.format("Your room allocation for Room %s in %s has expired due to failure to check in. " +
+                        "Your application has been cancelled. Please submit a new application if you still need accommodation.",
+                        roomNumber, buildingName),
+                null
+        );
+
+        log.info("Created check-in expired notification for user {}, room {}", userId, roomNumber);
+    }
+
+    /**
+     * Creates an in-app notification when admin confirms student check-in.
+     *
+     * @param userId The app user ID
+     * @param roomNumber The room number
+     * @param buildingName The building name
+     */
+    @Transactional
+    public void createCheckInConfirmedNotification(Long userId, String roomNumber, String buildingName) {
+        createNotification(
+                userId,
+                "CHECK_IN_CONFIRMED",
+                "Check-In Confirmed",
+                String.format("Welcome! Your check-in to Room %s in %s has been confirmed. " +
+                        "Your accommodation is now active. Enjoy your stay!",
+                        roomNumber, buildingName),
+                null
+        );
+
+        log.info("Created check-in confirmed notification for user {}, room {}", userId, roomNumber);
+    }
+
+    /**
      * Map entity to response DTO
      */
     private UserNotificationResponse mapToResponse(UserNotification notification) {

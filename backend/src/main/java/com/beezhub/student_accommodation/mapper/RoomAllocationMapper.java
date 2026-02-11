@@ -18,6 +18,8 @@ public interface RoomAllocationMapper {
     @Mapping(source = "room.roomNumber", target = "roomNumber")
     @Mapping(source = "room.building.name", target = "buildingName")
     @Mapping(source = "application.id", target = "applicationId")
+    @Mapping(source = "declineReason", target = "declineReason")
+    @Mapping(source = "declineReasonText", target = "declineReasonText")
     RoomAllocationResponse toResponse(RoomAllocation roomAllocation);
 
     List<RoomAllocationResponse> toResponseList(List<RoomAllocation> roomAllocations);

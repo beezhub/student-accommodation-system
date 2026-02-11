@@ -1,0 +1,380 @@
+﻿
+> Task :compileJava
+.\gradlew.bat : C:\Users\d
+ev_t\Documents\practice\Pr
+ojects\student-accommodati
+on-system\backend\src\main
+\java\com\beezhub\student_
+accommodation\model\entity
+\Notification.java:43: 
+warning: @Builder will 
+ignore the initializing 
+expression entirely. If 
+you want the initializing 
+expression to serve as 
+default, add 
+@Builder.Default. If it 
+is not supposed to be 
+settable during building, 
+make the field final.
+At line:1 char:1
++ .\gradlew.bat 
+compileJava > 
+build_log.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (C  
+  :\Users\dev_t\...he f   
+ ield final.:String) [    
+], RemoteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+    private Integer 
+retryCount = 0;
+                    ^
+C:\Users\dev_t\Documents\p
+ractice\Projects\student-a
+ccommodation-system\backen
+d\src\main\java\com\beezhu
+b\student_accommodation\mo
+del\entity\Notification.ja
+va:46: warning: @Builder 
+will ignore the 
+initializing expression 
+entirely. If you want the 
+initializing expression 
+to serve as default, add 
+@Builder.Default. If it 
+is not supposed to be 
+settable during building, 
+make the field final.
+    private Integer 
+maxRetries = 3;
+                    ^
+C:\Users\dev_t\Documents\p
+ractice\Projects\student-a
+ccommodation-system\backen
+d\src\main\java\com\beezhu
+b\student_accommodation\mo
+del\entity\AppUser.java:40
+: warning: @Builder will 
+ignore the initializing 
+expression entirely. If 
+you want the initializing 
+expression to serve as 
+default, add 
+@Builder.Default. If it 
+is not supposed to be 
+settable during building, 
+make the field final.
+    private Boolean 
+emailVerified = false;
+                    ^
+C:\Users\dev_t\Documents\p
+ractice\Projects\student-a
+ccommodation-system\backen
+d\src\main\java\com\beezhu
+b\student_accommodation\mo
+del\entity\Application.jav
+a:56: warning: @Builder 
+will ignore the 
+initializing expression 
+entirely. If you want the 
+initializing expression 
+to serve as default, add 
+@Builder.Default. If it 
+is not supposed to be 
+settable during building, 
+make the field final.
+    private Boolean 
+requiresAccessibility = 
+false;
+                    ^
+C:\Users\dev_t\Documents\p
+ractice\Projects\student-a
+ccommodation-system\backen
+d\src\main\java\com\beezhu
+b\student_accommodation\mo
+del\entity\UserNotificatio
+n.java:41: warning: 
+@Builder will ignore the 
+initializing expression 
+entirely. If you want the 
+initializing expression 
+to serve as default, add 
+@Builder.Default. If it 
+is not supposed to be 
+settable during building, 
+make the field final.
+    private Boolean 
+isRead = false;
+                    ^
+C:\Users\dev_t\Documents\p
+ractice\Projects\student-a
+ccommodation-system\backen
+d\src\main\java\com\beezhu
+b\student_accommodation\ma
+pper\StudentMapper.java:15
+: warning: Unmapped 
+target properties: "id, 
+registrationDate, 
+createdAt, updatedAt".
+    Student 
+toEntity(StudentRequest 
+studentRequest);
+            ^
+C:\Users\dev_t\Documents\p
+ractice\Projects\student-a
+ccommodation-system\backen
+d\src\main\java\com\beezhu
+b\student_accommodation\ma
+pper\ApplicationMapper.jav
+a:26: warning: Unmapped 
+target properties: 
+"allocationScore, document
+CompletionPercent, 
+approvedDocuments, 
+totalRequiredDocuments, 
+allocationStatus".
+    ApplicationResponse 
+toResponse(Application 
+application);
+                        ^
+C:\Users\dev_t\Documents\p
+ractice\Projects\student-a
+ccommodation-system\backen
+d\src\main\java\com\beezhu
+b\student_accommodation\se
+rvice\RoomAllocationServic
+e.java:1282: error: 
+cannot find symbol
+    private void logAuditA
+ction(RoomAllocation 
+allocation, 
+AllocationAuditActionType 
+actionType,
+                          
+                          
+       ^
+  symbol:   class 
+AllocationAuditActionType
+  location: class 
+RoomAllocationService
+C:\Users\dev_t\Documents\p
+ractice\Projects\student-a
+ccommodation-system\backen
+d\src\main\java\com\beezhu
+b\student_accommodation\se
+rvice\RoomAllocationServic
+e.java:1287: error: 
+cannot find symbol
+    private void logAuditA
+ctionWithConstraint(RoomAl
+location allocation, 
+AllocationAuditActionType 
+actionType,
+                          
+                          
+                     ^
+  symbol:   class 
+AllocationAuditActionType
+  location: class 
+RoomAllocationService
+2 errors
+7 warnings
+
+> Task :compileJava FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/dev_t/Documents/practice/Projects/student-accommodation-system/backend/build/reports/problems/problems-report.html
+
+FAILURE: Build failed 
+with an exception.
+
+* What went wrong:
+Execution failed for task 
+':compileJava'.
+> Compilation failed; see 
+the compiler output below.
+  C:\Users\dev_t\Documents
+\practice\Projects\student
+-accommodation-system\back
+end\src\main\java\com\beez
+hub\student_accommodation\
+model\entity\Notification.
+java:43: warning: 
+@Builder will ignore the 
+initializing expression 
+entirely. If you want the 
+initializing expression 
+to serve as default, add 
+@Builder.Default. If it 
+is not supposed to be 
+settable during building, 
+make the field final.
+      private Integer 
+retryCount = 0;
+                      ^
+  C:\Users\dev_t\Documents
+\practice\Projects\student
+-accommodation-system\back
+end\src\main\java\com\beez
+hub\student_accommodation\
+model\entity\Notification.
+java:46: warning: 
+@Builder will ignore the 
+initializing expression 
+entirely. If you want the 
+initializing expression 
+to serve as default, add 
+@Builder.Default. If it 
+is not supposed to be 
+settable during building, 
+make the field final.
+      private Integer 
+maxRetries = 3;
+                      ^
+  C:\Users\dev_t\Documents
+\practice\Projects\student
+-accommodation-system\back
+end\src\main\java\com\beez
+hub\student_accommodation\
+model\entity\AppUser.java:
+40: warning: @Builder 
+will ignore the 
+initializing expression 
+entirely. If you want the 
+initializing expression 
+to serve as default, add 
+@Builder.Default. If it 
+is not supposed to be 
+settable during building, 
+make the field final.
+      private Boolean 
+emailVerified = false;
+                      ^
+  C:\Users\dev_t\Documents
+\practice\Projects\student
+-accommodation-system\back
+end\src\main\java\com\beez
+hub\student_accommodation\
+model\entity\Application.j
+ava:56: warning: @Builder 
+will ignore the 
+initializing expression 
+entirely. If you want the 
+initializing expression 
+to serve as default, add 
+@Builder.Default. If it 
+is not supposed to be 
+settable during building, 
+make the field final.
+      private Boolean 
+requiresAccessibility = 
+false;
+                      ^
+  C:\Users\dev_t\Documents
+\practice\Projects\student
+-accommodation-system\back
+end\src\main\java\com\beez
+hub\student_accommodation\
+model\entity\UserNotificat
+ion.java:41: warning: 
+@Builder will ignore the 
+initializing expression 
+entirely. If you want the 
+initializing expression 
+to serve as default, add 
+@Builder.Default. If it 
+is not supposed to be 
+settable during building, 
+make the field final.
+      private Boolean 
+isRead = false;
+                      ^
+  C:\Users\dev_t\Documents
+\practice\Projects\student
+-accommodation-system\back
+end\src\main\java\com\beez
+hub\student_accommodation\
+mapper\StudentMapper.java:
+15: warning: Unmapped 
+target properties: "id, 
+registrationDate, 
+createdAt, updatedAt".
+      Student 
+toEntity(StudentRequest 
+studentRequest);
+              ^
+  C:\Users\dev_t\Documents
+\practice\Projects\student
+-accommodation-system\back
+end\src\main\java\com\beez
+hub\student_accommodation\
+mapper\ApplicationMapper.j
+ava:26: warning: Unmapped 
+target properties: 
+"allocationScore, document
+CompletionPercent, 
+approvedDocuments, 
+totalRequiredDocuments, 
+allocationStatus".
+      ApplicationResponse 
+toResponse(Application 
+application);
+                          
+^
+  C:\Users\dev_t\Documents
+\practice\Projects\student
+-accommodation-system\back
+end\src\main\java\com\beez
+hub\student_accommodation\
+service\RoomAllocationServ
+ice.java:1282: error: 
+cannot find symbol
+      private void logAudi
+tAction(RoomAllocation 
+allocation, 
+AllocationAuditActionType 
+actionType,
+                          
+                          
+         ^
+    symbol:   class 
+AllocationAuditActionType
+    location: class 
+RoomAllocationService
+  C:\Users\dev_t\Documents
+\practice\Projects\student
+-accommodation-system\back
+end\src\main\java\com\beez
+hub\student_accommodation\
+service\RoomAllocationServ
+ice.java:1287: error: 
+cannot find symbol
+      private void logAudi
+tActionWithConstraint(Room
+Allocation allocation, 
+AllocationAuditActionType 
+actionType,
+                          
+                          
+                       ^
+    symbol:   class 
+AllocationAuditActionType
+    location: class 
+RoomAllocationService
+  2 errors
+  7 warnings
+
+* Try:
+> Check your code and 
+dependencies to fix the 
+compilation error(s)
+> Run with --scan to get 
+full insights.
+
+BUILD FAILED in 14s
+1 actionable task: 1 executed

@@ -32,367 +32,380 @@ import java.util.Map;
 @Tag(name = "Room Allocation", description = "Endpoints for managing room assignments to students")
 public class RoomAllocationController {
 
-    private final RoomAllocationService roomAllocationService;
-    private final AppUserRepository appUserRepository;
+        private final RoomAllocationService roomAllocationService;
+        private final AppUserRepository appUserRepository;
 
-    @GetMapping
-    @Operation(summary = "Get all room allocations", description = "Returns a paginated list of all room allocations. Supports pagination with query params: page, size, sort")
-    public ResponseEntity<PageResponse<RoomAllocationResponse>> getAllRoomAllocations(
-            @PageableDefault(size = 20, sort = "allocationDate") Pageable pageable) {
-        log.info("Fetching all room allocations with pagination");
-        PageResponse<RoomAllocationResponse> page = roomAllocationService.getAllRoomAllocations(pageable);
-        return ResponseEntity.ok(page);
-    }
-
-    @GetMapping("/all")
-    @Operation(summary = "Get all room allocations without pagination", description = "Returns a list of all room allocations without pagination")
-    public ResponseEntity<List<RoomAllocationResponse>> getAllRoomAllocationsNoPagination() {
-        log.info("Fetching all room allocations without pagination");
-        List<RoomAllocationResponse> allocations = roomAllocationService.getAllRoomAllocations();
-        return ResponseEntity.ok(allocations);
-    }
-
-    @GetMapping("/search")
-    @Operation(summary = "Search room allocations", description = "Search and filter room allocations by student name, room number, building, status, or date range")
-    public ResponseEntity<PageResponse<RoomAllocationResponse>> searchRoomAllocations(
-            @RequestParam(required = false) Long studentId,
-            @RequestParam(required = false) Long roomId,
-            @RequestParam(required = false) Long buildingId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
-            @RequestParam(required = false) String studentName,
-            @RequestParam(required = false) String roomNumber,
-            @RequestParam(required = false) String status,
-            @PageableDefault(size = 20, sort = "allocationDate") Pageable pageable) {
-        log.info("Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}, studentName: {}, roomNumber: {}, status: {}",
-                studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status);
-        PageResponse<RoomAllocationResponse> page = roomAllocationService.searchRoomAllocations(
-                studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status, pageable);
-        return ResponseEntity.ok(page);
-    }
-
-    @GetMapping("/{id}")
-    @Operation(summary = "Get room allocation by ID", description = "Returns a single room allocation by its ID")
-    public ResponseEntity<RoomAllocationResponse> getRoomAllocationById(@PathVariable Long id) {
-        log.info("Fetching room allocation with id: {}", id);
-        return ResponseEntity.ok(roomAllocationService.getRoomAllocationById(id));
-    }
-
-    @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create room allocation", description = "Creates a new room allocation (assigns a student to a room). Admin only.")
-    public ResponseEntity<RoomAllocationResponse> createRoomAllocation(@Valid @RequestBody RoomAllocationRequest request) {
-        log.info("Creating new room allocation for student: {} to room: {}", request.getStudentId(), request.getRoomId());
-        RoomAllocationResponse response = roomAllocationService.createRoomAllocation(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update room allocation", description = "Updates an existing room allocation. Admin only.")
-    public ResponseEntity<RoomAllocationResponse> updateRoomAllocation(@PathVariable Long id,
-                                                                        @Valid @RequestBody RoomAllocationRequest request) {
-        log.info("Updating room allocation with id: {}", id);
-        return ResponseEntity.ok(roomAllocationService.updateRoomAllocation(id, request));
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete room allocation", description = "Deletes a room allocation (removes student from room). Admin only.")
-    public ResponseEntity<Void> deleteRoomAllocation(@PathVariable Long id) {
-        log.info("Deleting room allocation with id: {}", id);
-        roomAllocationService.deleteRoomAllocation(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}/end")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "End room allocation", description = "Ends an active room allocation by setting status to COMPLETED. Admin only.")
-    public ResponseEntity<RoomAllocationResponse> endRoomAllocation(@PathVariable Long id) {
-        log.info("Ending room allocation with id: {}", id);
-        RoomAllocationResponse response = roomAllocationService.endAllocation(id);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/student/{studentId}/active")
-    @Operation(summary = "Get active allocation by student ID", description = "Returns the active room allocation for a specific student")
-    public ResponseEntity<RoomAllocationResponse> getActiveAllocationByStudentId(@PathVariable Long studentId) {
-        log.info("Fetching active allocation for student: {}", studentId);
-        RoomAllocationResponse response = roomAllocationService.getActiveAllocationByStudentId(studentId);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/allocate-by-application")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Allocate room by application", description = "Allocates a room to a student based on an approved application. Validates business rules automatically. Admin only.")
-    public ResponseEntity<RoomAllocationResponse> allocateRoomByApplication(
-            @Valid @RequestBody AllocateByApplicationRequest request) {
-        log.info("Allocating room for application: {} to room: {}", request.getApplicationId(), request.getRoomId());
-        RoomAllocationResponse response = roomAllocationService.allocateRoomByApplication(
-                request.getApplicationId(), request.getRoomId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @GetMapping("/status/{status}")
-    @Operation(summary = "Get allocations by status", description = "Returns paginated room allocations filtered by status (ACTIVE, COMPLETED, CANCELLED)")
-    public ResponseEntity<PageResponse<RoomAllocationResponse>> getAllocationsByStatus(
-            @PathVariable String status,
-            @PageableDefault(size = 20, sort = "allocationDate") Pageable pageable) {
-        log.info("Fetching allocations with status: {}", status);
-        PageResponse<RoomAllocationResponse> page = roomAllocationService.getAllocationsByStatus(status, pageable);
-        return ResponseEntity.ok(page);
-    }
-
-    @GetMapping("/room/{roomId}/availability")
-    @Operation(summary = "Check room availability", description = "Returns detailed availability information for a specific room")
-    public ResponseEntity<RoomAvailabilityResponse> getRoomAvailability(@PathVariable Long roomId) {
-        log.info("Checking availability for room: {}", roomId);
-        RoomAvailabilityResponse response = roomAllocationService.getRoomAvailability(roomId);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/room/{roomId}/is-available")
-    @Operation(summary = "Simple room availability check", description = "Returns true if room has available capacity, false otherwise")
-    public ResponseEntity<Boolean> isRoomAvailable(@PathVariable Long roomId) {
-        log.info("Simple availability check for room: {}", roomId);
-        boolean available = roomAllocationService.isRoomAvailable(roomId);
-        return ResponseEntity.ok(available);
-    }
-
-    @GetMapping("/student/{studentId}/eligibility")
-    @Operation(summary = "Check student allocation eligibility", description = "Validates if a student is eligible for room allocation and returns the reason")
-    public ResponseEntity<AllocationEligibilityResponse> checkStudentEligibility(@PathVariable Long studentId) {
-        log.info("Checking eligibility for student: {}", studentId);
-        AllocationEligibilityResponse response = roomAllocationService.checkStudentEligibility(studentId);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/admin/student/{studentId}/eligible-rooms")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get eligible rooms for student", 
-               description = "Returns rooms that meet all hard constraints for a student (gender, accessibility, year of study, institution)")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Eligible rooms retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Student not found")
-    })
-    public ResponseEntity<List<EligibleRoomResponse>> getEligibleRoomsForStudent(
-            @Parameter(description = "Student ID", required = true)
-            @PathVariable Long studentId,
-            @Parameter(description = "Filter by building ID")
-            @RequestParam(required = false) Long buildingId) {
-        log.info("Getting eligible rooms for student: {}, building: {}", studentId, buildingId);
-        List<EligibleRoomResponse> response = roomAllocationService.getEligibleRoomsForStudent(studentId, buildingId);
-        return ResponseEntity.ok(response);
-    }
-
-    // ==================== Batch/Staged Allocation Endpoints ====================
-
-    @Operation(
-            summary = "Propose batch allocation",
-            description = "Creates allocation proposals for a batch of students. Each student is scored and " +
-                          "assigned the best available room. Maximum 50 students per batch."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Proposals created successfully"),
-            @ApiResponse(responseCode = "400", description = "Batch exceeds 50 students or validation failed"),
-            @ApiResponse(responseCode = "429", description = "Rate limit exceeded - max 1 request per 10 seconds")
-    })
-    @PostMapping("/admin/allocations/propose")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BatchAllocationProposalResponse> proposeAllocation(
-            @Valid @RequestBody BatchAllocationRequest request,
-            Authentication authentication) {
-        log.info("Proposing batch allocation for {} students, batch: {}",
-                request.getStudentIds().size(), request.getBatchId());
-
-        if (request.getStudentIds().size() > 50) {
-            throw new IllegalArgumentException("Batch cannot exceed 50 students");
+        @GetMapping
+        @Operation(summary = "Get all room allocations", description = "Returns a paginated list of all room allocations. Supports pagination with query params: page, size, sort")
+        public ResponseEntity<PageResponse<RoomAllocationResponse>> getAllRoomAllocations(
+                        @PageableDefault(size = 20, sort = "allocationDate") Pageable pageable) {
+                log.info("Fetching all room allocations with pagination");
+                PageResponse<RoomAllocationResponse> page = roomAllocationService.getAllRoomAllocations(pageable);
+                return ResponseEntity.ok(page);
         }
 
-        Long adminId = getAdminId(authentication);
-        BatchAllocationProposalResponse response = roomAllocationService.proposeAllocation(request, adminId);
-        return ResponseEntity.ok(response);
-    }
+        @GetMapping("/all")
+        @Operation(summary = "Get all room allocations without pagination", description = "Returns a list of all room allocations without pagination")
+        public ResponseEntity<List<RoomAllocationResponse>> getAllRoomAllocationsNoPagination() {
+                log.info("Fetching all room allocations without pagination");
+                List<RoomAllocationResponse> allocations = roomAllocationService.getAllRoomAllocations();
+                return ResponseEntity.ok(allocations);
+        }
 
-    @Operation(
-            summary = "Get staged allocations",
-            description = "Lists staged allocations filtered by batch ID and/or status. Supports pagination."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Staged allocations retrieved successfully")
-    })
-    @GetMapping("/admin/allocations/staged")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<PageResponse<StagedAllocationResponse>> getStagedAllocations(
-            @Parameter(description = "Batch ID to filter by")
-            @RequestParam(required = false) String batchId,
-            @Parameter(description = "Status to filter by (PROPOSED, CONFIRMED, REJECTED)")
-            @RequestParam(required = false) StagedAllocationStatus status,
-            @PageableDefault(size = 50, sort = "createdAt") Pageable pageable) {
-        log.info("Getting staged allocations - batchId: {}, status: {}", batchId, status);
-        PageResponse<StagedAllocationResponse> response = roomAllocationService.getStagedAllocations(
-                batchId, status, pageable);
-        return ResponseEntity.ok(response);
-    }
+        @GetMapping("/search")
+        @Operation(summary = "Search room allocations", description = "Search and filter room allocations by student name, room number, building, status, or date range")
+        public ResponseEntity<PageResponse<RoomAllocationResponse>> searchRoomAllocations(
+                        @RequestParam(required = false) Long studentId,
+                        @RequestParam(required = false) Long roomId,
+                        @RequestParam(required = false) Long buildingId,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
+                        @RequestParam(required = false) String studentName,
+                        @RequestParam(required = false) String roomNumber,
+                        @RequestParam(required = false) String status,
+                        @PageableDefault(size = 20, sort = "allocationDate") Pageable pageable) {
+                log.info("Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}, studentName: {}, roomNumber: {}, status: {}",
+                                studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status);
+                PageResponse<RoomAllocationResponse> page = roomAllocationService.searchRoomAllocations(
+                                studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status,
+                                pageable);
+                return ResponseEntity.ok(page);
+        }
 
-    @Operation(
-            summary = "Confirm single staged allocation",
-            description = "Confirms a single staged allocation, creating the actual room allocation."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Allocation confirmed successfully"),
-            @ApiResponse(responseCode = "404", description = "Staged allocation not found"),
-            @ApiResponse(responseCode = "409", description = "Room no longer available or already confirmed")
-    })
-    @PatchMapping("/admin/allocations/staged/{stagedAllocationId}/confirm")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<RoomAllocationResponse> confirmStagedAllocation(
-            @Parameter(description = "ID of the staged allocation", required = true)
-            @PathVariable Long stagedAllocationId,
-            Authentication authentication) {
-        log.info("Confirming staged allocation: {}", stagedAllocationId);
-        Long adminId = getAdminId(authentication);
-        RoomAllocationResponse response = roomAllocationService.confirmAllocation(stagedAllocationId, adminId);
-        return ResponseEntity.ok(response);
-    }
+        @GetMapping("/{id}")
+        @Operation(summary = "Get room allocation by ID", description = "Returns a single room allocation by its ID")
+        public ResponseEntity<RoomAllocationResponse> getRoomAllocationById(@PathVariable Long id) {
+                log.info("Fetching room allocation with id: {}", id);
+                return ResponseEntity.ok(roomAllocationService.getRoomAllocationById(id));
+        }
 
-    @Operation(
-            summary = "Reject staged allocation",
-            description = "Rejects a staged allocation with a reason. Student remains in AWAITING_ALLOCATION status."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Allocation rejected successfully"),
-            @ApiResponse(responseCode = "404", description = "Staged allocation not found")
-    })
-    @PatchMapping("/admin/allocations/staged/{stagedAllocationId}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Boolean>> rejectStagedAllocation(
-            @Parameter(description = "ID of the staged allocation", required = true)
-            @PathVariable Long stagedAllocationId,
-            @Valid @RequestBody RejectAllocationRequest request,
-            Authentication authentication) {
-        log.info("Rejecting staged allocation: {} with reason: {}", stagedAllocationId, request.getReason());
-        Long adminId = getAdminId(authentication);
-        roomAllocationService.rejectAllocation(stagedAllocationId, request.getReason(), adminId);
-        return ResponseEntity.ok(Map.of("success", true));
-    }
+        @PostMapping
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Create room allocation", description = "Creates a new room allocation (assigns a student to a room). Admin only.")
+        public ResponseEntity<RoomAllocationResponse> createRoomAllocation(
+                        @Valid @RequestBody RoomAllocationRequest request) {
+                log.info("Creating new room allocation for student: {} to room: {}", request.getStudentId(),
+                                request.getRoomId());
+                RoomAllocationResponse response = roomAllocationService.createRoomAllocation(request);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
 
-    @Operation(
-            summary = "Confirm batch allocations",
-            description = "Confirms all PROPOSED allocations in a batch at once."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Batch confirmation completed")
-    })
-    @PatchMapping("/admin/allocations/staged/batch/{batchId}/confirm")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BatchConfirmationResult> confirmBatchAllocations(
-            @Parameter(description = "Batch ID to confirm", required = true)
-            @PathVariable String batchId,
-            Authentication authentication) {
-        log.info("Confirming all allocations in batch: {}", batchId);
-        Long adminId = getAdminId(authentication);
-        BatchConfirmationResult result = roomAllocationService.confirmBatchAllocationsWithResult(batchId, adminId);
-        return ResponseEntity.ok(result);
-    }
+        @PutMapping("/{id}")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Update room allocation", description = "Updates an existing room allocation. Admin only.")
+        public ResponseEntity<RoomAllocationResponse> updateRoomAllocation(@PathVariable Long id,
+                        @Valid @RequestBody RoomAllocationRequest request) {
+                log.info("Updating room allocation with id: {}", id);
+                return ResponseEntity.ok(roomAllocationService.updateRoomAllocation(id, request));
+        }
 
-    // ==================== Move and Override Endpoints ====================
+        @PostMapping("/{id}/accept")
+        @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
+        @Operation(summary = "Accept allocation offer", description = "Accepts an offered room allocation. Student or Admin.")
+        public ResponseEntity<RoomAllocationResponse> acceptOffer(@PathVariable Long id,
+                        @Valid @RequestBody AcceptOfferRequest request) {
+                log.info("Accepting allocation offer with id: {}", id);
+                return ResponseEntity.ok(roomAllocationService.acceptOffer(id, request));
+        }
 
-    @Operation(
-            summary = "Move student to different room",
-            description = "Moves a student from their current room to a different room. " +
-                          "Validates hard constraints unless explicitly overridden."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Student moved successfully"),
-            @ApiResponse(responseCode = "404", description = "Allocation or room not found"),
-            @ApiResponse(responseCode = "409", description = "New room not available"),
-            @ApiResponse(responseCode = "422", description = "Hard constraints violated")
-    })
-    @PostMapping("/admin/allocations/{allocationId}/move")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<RoomAllocationResponse> moveStudentAllocation(
-            @Parameter(description = "ID of the allocation to move", required = true)
-            @PathVariable Long allocationId,
-            @Valid @RequestBody MoveAllocationRequest request,
-            Authentication authentication) {
-        log.info("Moving allocation {} to room {}", allocationId, request.getNewRoomId());
-        Long adminId = getAdminId(authentication);
-        RoomAllocationResponse response = roomAllocationService.moveStudent(
-                allocationId, request.getNewRoomId(), request.getReason(), adminId);
-        return ResponseEntity.ok(response);
-    }
+        @PostMapping("/{id}/decline")
+        @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
+        @Operation(summary = "Decline allocation offer", description = "Declines an offered room allocation with required reason. Student or Admin.")
+        public ResponseEntity<RoomAllocationResponse> declineOffer(@PathVariable Long id,
+                        @Valid @RequestBody DeclineOfferRequest request) {
+                log.info("Declining allocation offer with id: {} for reason: {}", id, request.getDeclineReason());
+                return ResponseEntity.ok(roomAllocationService.declineOffer(id, request));
+        }
 
-    @Operation(
-            summary = "Override constraints for allocation",
-            description = "Creates a staged allocation that bypasses specified hard constraints. " +
-                          "Requires explicit reason and list of constraints being bypassed."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Override proposal created"),
-            @ApiResponse(responseCode = "404", description = "Student or room not found"),
-            @ApiResponse(responseCode = "409", description = "Room not available")
-    })
-    @PostMapping("/admin/allocations/override")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<StagedAllocationResponse> overrideAllocationConstraints(
-            @Valid @RequestBody OverrideAllocationRequest request,
-            Authentication authentication) {
-        log.info("Creating override allocation for student {} to room {}", request.getStudentId(), request.getRoomId());
-        Long adminId = getAdminId(authentication);
-        StagedAllocationResponse response = roomAllocationService.overrideConstraints(
-                request.getStudentId(),
-                request.getRoomId(),
-                request.getReason(),
-                adminId,
-                request.getBypassConstraints() != null ? request.getBypassConstraints() : List.of()
-        );
-        return ResponseEntity.ok(response);
-    }
+        @PostMapping("/{id}/check-in")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(
+                summary = "Check in student", 
+                description = "Confirms student physical arrival and activates the allocation. " +
+                              "Sets allocation status to ACTIVE and application status to CHECKED_IN. " +
+                              "This should be done when the student arrives and receives room keys. Admin only."
+        )
+        public ResponseEntity<RoomAllocationResponse> checkIn(@PathVariable Long id) {
+                log.info("Checking in allocation with id: {}", id);
+                return ResponseEntity.ok(roomAllocationService.confirmCheckIn(id));
+        }
 
-    // ==================== Waiting List Endpoints ====================
+        @PostMapping("/{id}/check-out")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Check out student", description = "Confirms student departure and completes the allocation. Admin only.")
+        public ResponseEntity<RoomAllocationResponse> checkOut(@PathVariable Long id) {
+                log.info("Checking out allocation with id: {}", id);
+                return ResponseEntity.ok(roomAllocationService.confirmCheckOut(id));
+        }
 
-    @Operation(
-            summary = "Get waiting list with scores",
-            description = "Returns the waiting list with priority scores calculated using the latest allocation rules. " +
-                          "Sorted by score descending."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Waiting list retrieved successfully")
-    })
-    @GetMapping("/admin/waiting-list")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<WaitingListEntryResponse>> getWaitingListWithScores(
-            @Parameter(description = "Filter by preferred building ID")
-            @RequestParam(required = false) Long buildingId,
-            @Parameter(description = "Sort field (default: score)")
-            @RequestParam(required = false, defaultValue = "score") String sortBy) {
-        log.info("Getting waiting list with scores for buildingId: {}", buildingId);
-        List<WaitingListEntryResponse> response = roomAllocationService.getWaitingListWithScores(buildingId);
-        return ResponseEntity.ok(response);
-    }
+        @DeleteMapping("/{id}")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Delete room allocation", description = "Deletes a room allocation (removes student from room). Admin only.")
+        public ResponseEntity<Void> deleteRoomAllocation(@PathVariable Long id) {
+                log.info("Deleting room allocation with id: {}", id);
+                roomAllocationService.deleteRoomAllocation(id);
+                return ResponseEntity.noContent().build();
+        }
 
-    @Operation(
-            summary = "Rescore waiting list",
-            description = "Rescores all waiting list entries using the latest allocation rules. " +
-                          "This is an idempotent operation."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Rescore completed successfully")
-    })
-    @PostMapping("/admin/waiting-list/rescore")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<RescoreResult> rescoreWaitingList() {
-        log.info("Rescoring waiting list");
-        RescoreResult result = roomAllocationService.rescoreWaitingList();
-        return ResponseEntity.ok(result);
-    }
+        @PatchMapping("/{id}/end")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "End room allocation", description = "Ends an active room allocation by setting status to COMPLETED. Admin only.")
+        public ResponseEntity<RoomAllocationResponse> endRoomAllocation(@PathVariable Long id) {
+                log.info("Ending room allocation with id: {}", id);
+                RoomAllocationResponse response = roomAllocationService.endAllocation(id);
+                return ResponseEntity.ok(response);
+        }
 
-    // ==================== Helper Methods ====================
+        @GetMapping("/student/{studentId}/active")
+        @Operation(summary = "Get active allocation by student ID", description = "Returns the active room allocation for a specific student")
+        public ResponseEntity<RoomAllocationResponse> getActiveAllocationByStudentId(@PathVariable Long studentId) {
+                log.info("Fetching active allocation for student: {}", studentId);
+                RoomAllocationResponse response = roomAllocationService.getActiveAllocationByStudentId(studentId);
+                return ResponseEntity.ok(response);
+        }
 
-    private Long getAdminId(Authentication authentication) {
-        return appUserRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("Admin user not found"))
-                .getId();
-    }
+        @PostMapping("/allocate-by-application")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Allocate room by application", description = "Allocates a room to a student based on an approved application. Validates business rules automatically. Admin only.")
+        public ResponseEntity<RoomAllocationResponse> allocateRoomByApplication(
+                        @Valid @RequestBody AllocateByApplicationRequest request) {
+                log.info("Allocating room for application: {} to room: {}", request.getApplicationId(),
+                                request.getRoomId());
+                RoomAllocationResponse response = roomAllocationService.allocateRoomByApplication(
+                                request.getApplicationId(), request.getRoomId());
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
+
+        @GetMapping("/status/{status}")
+        @Operation(summary = "Get allocations by status", description = "Returns paginated room allocations filtered by status (ACTIVE, COMPLETED, CANCELLED)")
+        public ResponseEntity<PageResponse<RoomAllocationResponse>> getAllocationsByStatus(
+                        @PathVariable String status,
+                        @PageableDefault(size = 20, sort = "allocationDate") Pageable pageable) {
+                log.info("Fetching allocations with status: {}", status);
+                PageResponse<RoomAllocationResponse> page = roomAllocationService.getAllocationsByStatus(status,
+                                pageable);
+                return ResponseEntity.ok(page);
+        }
+
+        @GetMapping("/room/{roomId}/availability")
+        @Operation(summary = "Check room availability", description = "Returns detailed availability information for a specific room")
+        public ResponseEntity<RoomAvailabilityResponse> getRoomAvailability(@PathVariable Long roomId) {
+                log.info("Checking availability for room: {}", roomId);
+                RoomAvailabilityResponse response = roomAllocationService.getRoomAvailability(roomId);
+                return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/room/{roomId}/is-available")
+        @Operation(summary = "Simple room availability check", description = "Returns true if room has available capacity, false otherwise")
+        public ResponseEntity<Boolean> isRoomAvailable(@PathVariable Long roomId) {
+                log.info("Simple availability check for room: {}", roomId);
+                boolean available = roomAllocationService.isRoomAvailable(roomId);
+                return ResponseEntity.ok(available);
+        }
+
+        @GetMapping("/student/{studentId}/eligibility")
+        @Operation(summary = "Check student allocation eligibility", description = "Validates if a student is eligible for room allocation and returns the reason")
+        public ResponseEntity<AllocationEligibilityResponse> checkStudentEligibility(@PathVariable Long studentId) {
+                log.info("Checking eligibility for student: {}", studentId);
+                AllocationEligibilityResponse response = roomAllocationService.checkStudentEligibility(studentId);
+                return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/admin/student/{studentId}/eligible-rooms")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Get eligible rooms for student", description = "Returns rooms that meet all hard constraints for a student (gender, accessibility, year of study, institution)")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Eligible rooms retrieved successfully"),
+                        @ApiResponse(responseCode = "404", description = "Student not found")
+        })
+        public ResponseEntity<List<EligibleRoomResponse>> getEligibleRoomsForStudent(
+                        @Parameter(description = "Student ID", required = true) @PathVariable Long studentId,
+                        @Parameter(description = "Filter by building ID") @RequestParam(required = false) Long buildingId) {
+                log.info("Getting eligible rooms for student: {}, building: {}", studentId, buildingId);
+                List<EligibleRoomResponse> response = roomAllocationService.getEligibleRoomsForStudent(studentId,
+                                buildingId);
+                return ResponseEntity.ok(response);
+        }
+
+        // ==================== Batch/Staged Allocation Endpoints ====================
+
+        @Operation(summary = "Propose batch allocation", description = "Creates allocation proposals for a batch of students. Each student is scored and "
+                        +
+                        "assigned the best available room. Maximum 50 students per batch.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Proposals created successfully"),
+                        @ApiResponse(responseCode = "400", description = "Batch exceeds 50 students or validation failed"),
+                        @ApiResponse(responseCode = "429", description = "Rate limit exceeded - max 1 request per 10 seconds")
+        })
+        @PostMapping("/admin/allocations/propose")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<BatchAllocationProposalResponse> proposeAllocation(
+                        @Valid @RequestBody BatchAllocationRequest request,
+                        Authentication authentication) {
+                log.info("Proposing batch allocation for {} students, batch: {}",
+                                request.getStudentIds().size(), request.getBatchId());
+
+                if (request.getStudentIds().size() > 50) {
+                        throw new IllegalArgumentException("Batch cannot exceed 50 students");
+                }
+
+                Long adminId = getAdminId(authentication);
+                BatchAllocationProposalResponse response = roomAllocationService.proposeAllocation(request, adminId);
+                return ResponseEntity.ok(response);
+        }
+
+        @Operation(summary = "Get staged allocations", description = "Lists staged allocations filtered by batch ID and/or status. Supports pagination.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Staged allocations retrieved successfully")
+        })
+        @GetMapping("/admin/allocations/staged")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<PageResponse<StagedAllocationResponse>> getStagedAllocations(
+                        @Parameter(description = "Batch ID to filter by") @RequestParam(required = false) String batchId,
+                        @Parameter(description = "Status to filter by (PROPOSED, CONFIRMED, REJECTED)") @RequestParam(required = false) StagedAllocationStatus status,
+                        @PageableDefault(size = 50, sort = "createdAt") Pageable pageable) {
+                log.info("Getting staged allocations - batchId: {}, status: {}", batchId, status);
+                PageResponse<StagedAllocationResponse> response = roomAllocationService.getStagedAllocations(
+                                batchId, status, pageable);
+                return ResponseEntity.ok(response);
+        }
+
+        @Operation(summary = "Confirm single staged allocation", description = "Confirms a single staged allocation, creating the actual room allocation.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Allocation confirmed successfully"),
+                        @ApiResponse(responseCode = "404", description = "Staged allocation not found"),
+                        @ApiResponse(responseCode = "409", description = "Room no longer available or already confirmed")
+        })
+        @PatchMapping("/admin/allocations/staged/{stagedAllocationId}/confirm")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<RoomAllocationResponse> confirmStagedAllocation(
+                        @Parameter(description = "ID of the staged allocation", required = true) @PathVariable Long stagedAllocationId,
+                        Authentication authentication) {
+                log.info("Confirming staged allocation: {}", stagedAllocationId);
+                Long adminId = getAdminId(authentication);
+                RoomAllocationResponse response = roomAllocationService.confirmAllocation(stagedAllocationId, adminId);
+                return ResponseEntity.ok(response);
+        }
+
+        @Operation(summary = "Reject staged allocation", description = "Rejects a staged allocation with a reason. Student remains in AWAITING_ALLOCATION status.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Allocation rejected successfully"),
+                        @ApiResponse(responseCode = "404", description = "Staged allocation not found")
+        })
+        @PatchMapping("/admin/allocations/staged/{stagedAllocationId}/reject")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<Map<String, Boolean>> rejectStagedAllocation(
+                        @Parameter(description = "ID of the staged allocation", required = true) @PathVariable Long stagedAllocationId,
+                        @Valid @RequestBody RejectAllocationRequest request,
+                        Authentication authentication) {
+                log.info("Rejecting staged allocation: {} with reason: {}", stagedAllocationId, request.getReason());
+                Long adminId = getAdminId(authentication);
+                roomAllocationService.rejectAllocation(stagedAllocationId, request.getReason(), adminId);
+                return ResponseEntity.ok(Map.of("success", true));
+        }
+
+        @Operation(summary = "Confirm batch allocations", description = "Confirms all PROPOSED allocations in a batch at once.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Batch confirmation completed")
+        })
+        @PatchMapping("/admin/allocations/staged/batch/{batchId}/confirm")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<BatchConfirmationResult> confirmBatchAllocations(
+                        @Parameter(description = "Batch ID to confirm", required = true) @PathVariable String batchId,
+                        Authentication authentication) {
+                log.info("Confirming all allocations in batch: {}", batchId);
+                Long adminId = getAdminId(authentication);
+                BatchConfirmationResult result = roomAllocationService.confirmBatchAllocationsWithResult(batchId,
+                                adminId);
+                return ResponseEntity.ok(result);
+        }
+
+        // ==================== Move and Override Endpoints ====================
+
+        @Operation(summary = "Move student to different room", description = "Moves a student from their current room to a different room. "
+                        +
+                        "Validates hard constraints unless explicitly overridden.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Student moved successfully"),
+                        @ApiResponse(responseCode = "404", description = "Allocation or room not found"),
+                        @ApiResponse(responseCode = "409", description = "New room not available"),
+                        @ApiResponse(responseCode = "422", description = "Hard constraints violated")
+        })
+        @PostMapping("/admin/allocations/{allocationId}/move")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<RoomAllocationResponse> moveStudentAllocation(
+                        @Parameter(description = "ID of the allocation to move", required = true) @PathVariable Long allocationId,
+                        @Valid @RequestBody MoveAllocationRequest request,
+                        Authentication authentication) {
+                log.info("Moving allocation {} to room {}", allocationId, request.getNewRoomId());
+                Long adminId = getAdminId(authentication);
+                RoomAllocationResponse response = roomAllocationService.moveStudent(
+                                allocationId, request.getNewRoomId(), request.getReason(), adminId);
+                return ResponseEntity.ok(response);
+        }
+
+        @Operation(summary = "Override constraints for allocation", description = "Creates a staged allocation that bypasses specified hard constraints. "
+                        +
+                        "Requires explicit reason and list of constraints being bypassed.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Override proposal created"),
+                        @ApiResponse(responseCode = "404", description = "Student or room not found"),
+                        @ApiResponse(responseCode = "409", description = "Room not available")
+        })
+        @PostMapping("/admin/allocations/override")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<StagedAllocationResponse> overrideAllocationConstraints(
+                        @Valid @RequestBody OverrideAllocationRequest request,
+                        Authentication authentication) {
+                log.info("Creating override allocation for student {} to room {}", request.getStudentId(),
+                                request.getRoomId());
+                Long adminId = getAdminId(authentication);
+                StagedAllocationResponse response = roomAllocationService.overrideConstraints(
+                                request.getStudentId(),
+                                request.getRoomId(),
+                                request.getReason(),
+                                adminId,
+                                request.getBypassConstraints() != null ? request.getBypassConstraints() : List.of());
+                return ResponseEntity.ok(response);
+        }
+
+        // ==================== Waiting List Endpoints ====================
+
+        @Operation(summary = "Get waiting list with scores", description = "Returns the waiting list with priority scores calculated using the latest allocation rules. "
+                        +
+                        "Sorted by score descending.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Waiting list retrieved successfully")
+        })
+        @GetMapping("/admin/waiting-list")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<List<WaitingListEntryResponse>> getWaitingListWithScores(
+                        @Parameter(description = "Filter by preferred building ID") @RequestParam(required = false) Long buildingId,
+                        @Parameter(description = "Sort field (default: score)") @RequestParam(required = false, defaultValue = "score") String sortBy) {
+                log.info("Getting waiting list with scores for buildingId: {}", buildingId);
+                List<WaitingListEntryResponse> response = roomAllocationService.getWaitingListWithScores(buildingId);
+                return ResponseEntity.ok(response);
+        }
+
+        @Operation(summary = "Rescore waiting list", description = "Rescores all waiting list entries using the latest allocation rules. "
+                        +
+                        "This is an idempotent operation.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Rescore completed successfully")
+        })
+        @PostMapping("/admin/waiting-list/rescore")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<RescoreResult> rescoreWaitingList() {
+                log.info("Rescoring waiting list");
+                RescoreResult result = roomAllocationService.rescoreWaitingList();
+                return ResponseEntity.ok(result);
+        }
+
+        // ==================== Helper Methods ====================
+
+        private Long getAdminId(Authentication authentication) {
+                return appUserRepository.findByEmail(authentication.getName())
+                                .orElseThrow(() -> new RuntimeException("Admin user not found"))
+                                .getId();
+        }
 }
