@@ -117,6 +117,7 @@ export class BuildingManagementComponent implements OnInit {
     import('./building-form-dialog/building-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.BuildingFormDialogComponent, {
         width: '600px',
+        maxWidth: '95vw',
         data: { mode: 'create' },
       });
 
@@ -132,6 +133,7 @@ export class BuildingManagementComponent implements OnInit {
     import('./building-form-dialog/building-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.BuildingFormDialogComponent, {
         width: '600px',
+        maxWidth: '95vw',
         data: { mode: 'edit', building },
       });
 
@@ -168,6 +170,22 @@ export class BuildingManagementComponent implements OnInit {
     // Navigate to allocation rules page with the building pre-selected
     this.router.navigate(['/admin/allocation-rules'], {
       queryParams: { buildingId: buildingId }
+    });
+  }
+
+  openImageDialog(building: BuildingResponse): void {
+    import('./building-image-dialog/building-image-dialog.component').then((m) => {
+      const dialogRef = this.dialog.open(m.BuildingImageDialogComponent, {
+        width: '800px',
+        maxWidth: '95vw',
+        data: { building },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          this.loadBuildings();
+        }
+      });
     });
   }
 }

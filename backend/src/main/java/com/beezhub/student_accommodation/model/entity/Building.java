@@ -2,11 +2,16 @@ package com.beezhub.student_accommodation.model.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Entity
@@ -27,11 +32,30 @@ public class Building {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(precision = 10, scale = 8)
+    private BigDecimal latitude;
+
+    @Column(precision = 11, scale = 8)
+    private BigDecimal longitude;
+
+    @Column(name = "place_id", length = 255)
+    private String placeId;
+
+    @Column(name = "formatted_address", length = 500)
+    private String formattedAddress;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "address_components", columnDefinition = "jsonb")
+    private Map<String, String> addressComponents = new HashMap<>();
+
     @Column(name = "total_floors")
     private Integer totalFloors;
 
     @OneToMany(mappedBy = "building", fetch = FetchType.LAZY)
     private List<Room> rooms = new ArrayList<>();
+
+    @OneToMany(mappedBy = "building", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BuildingImage> images = new ArrayList<>();
 
     @ManyToMany
     @JoinTable(

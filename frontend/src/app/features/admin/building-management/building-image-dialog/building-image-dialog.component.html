@@ -1,0 +1,102 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="header-icon">
+      <mat-icon>photo_library</mat-icon>
+    </div>
+    <div class="header-text">
+      <h2 mat-dialog-title>Manage Building Images</h2>
+      <p class="subtitle">{{ data.building.name }}</p>
+    </div>
+  </div>
+
+  <mat-dialog-content>
+    <!-- File Upload Area -->
+    <div class="upload-area">
+      <input
+        type="file"
+        #fileInput
+        (change)="onFileSelected($event)"
+        accept="image/*"
+        multiple
+        hidden
+      />
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="fileInput.click()"
+        [disabled]="isUploading"
+        class="upload-btn"
+      >
+        <mat-icon>cloud_upload</mat-icon>
+        {{ isUploading ? 'Uploading...' : 'Upload Images' }}
+      </button>
+      <p class="upload-hint">Maximum 5MB per image. Supported: JPEG, PNG, GIF, WebP</p>
+    </div>
+
+    <!-- Loading State -->
+    @if (isLoading) {
+      <div class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Loading images...</p>
+      </div>
+    }
+
+    <!-- Images Grid -->
+    @if (!isLoading && images.length > 0) {
+      <div class="images-grid">
+        @for (image of images; track image.id) {
+          <div class="image-card">
+            <div class="image-wrapper">
+              <img [src]="image.imageUrl" [alt]="image.fileName" />
+              <div class="image-overlay">
+                <button
+                  mat-icon-button
+                  (click)="setPrimary(image)"
+                  [matTooltip]="image.isPrimary ? 'Primary Image' : 'Set as Primary'"
+                  [class.is-primary]="image.isPrimary"
+                  class="primary-btn"
+                >
+                  <mat-icon>{{ image.isPrimary ? 'star' : 'star_border' }}</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="deleteImage(image)"
+                  matTooltip="Delete Image"
+                  class="delete-btn"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+            <div class="image-info">
+              <p class="image-name" [matTooltip]="image.fileName">{{ image.fileName }}</p>
+              @if (image.isPrimary) {
+                <span class="primary-badge">Primary</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Empty State -->
+    @if (!isLoading && images.length === 0) {
+      <div class="empty-state">
+        <mat-icon>add_photo_alternate</mat-icon>
+        <p>No images uploaded yet</p>
+        <button mat-raised-button color="primary" (click)="fileInput.click()">
+          <mat-icon>cloud_upload</mat-icon>
+          Upload First Image
+        </button>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-raised-button color="primary" (click)="onClose()">
+      <mat-icon>check</mat-icon>
+      Done
+    </button>
+  </mat-dialog-actions>
+</div>

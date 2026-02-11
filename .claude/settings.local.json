@@ -55,7 +55,12 @@
       "Bash(./mvnw test:*)",
       "Bash(git log:*)",
       "Bash(mvnw.cmd clean compile:*)",
-      "Bash(./gradlew compileJava:*)"
+      "Bash(./gradlew compileJava:*)",
+      "Bash(npm install:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(timeout 5 curl:*)",
+      "Bash(curl:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

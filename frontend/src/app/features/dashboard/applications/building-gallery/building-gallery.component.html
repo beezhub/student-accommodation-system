@@ -1,0 +1,70 @@
+<div class="building-gallery">
+  <h3 class="gallery-title">Select Your Preferred Building</h3>
+  <p class="gallery-subtitle">Choose a building based on your preference or select "No Preference"</p>
+
+  <div class="gallery-grid">
+    <!-- No Preference Card -->
+    <div
+      class="building-card"
+      [class.selected]="isSelected(null)"
+      (click)="selectBuilding(null)"
+    >
+      <div class="card-image no-preference">
+        <mat-icon>clear_all</mat-icon>
+      </div>
+      <div class="card-content">
+        <h4 class="building-name">No Preference</h4>
+        <p class="building-description">Let the system assign a building based on availability</p>
+      </div>
+      @if (isSelected(null)) {
+        <div class="selected-indicator">
+          <mat-icon>check_circle</mat-icon>
+        </div>
+      }
+    </div>
+
+    <!-- Building Cards -->
+    @for (building of buildings; track building.id) {
+      <div
+        class="building-card"
+        [class.selected]="isSelected(building.id)"
+        (click)="selectBuilding(building.id)"
+      >
+        <div class="card-image">
+          @if (building.primaryImageUrl) {
+            <img [src]="building.primaryImageUrl" [alt]="building.name" />
+          } @else {
+            <div class="placeholder-image">
+              <mat-icon>apartment</mat-icon>
+            </div>
+          }
+        </div>
+        <div class="card-content">
+          <h4 class="building-name">{{ building.name }}</h4>
+          <div class="building-meta">
+            @if (building.address) {
+              <div class="meta-item">
+                <mat-icon>location_on</mat-icon>
+                <span>{{ building.address }}</span>
+              </div>
+            }
+            @if (building.totalFloors) {
+              <div class="meta-item">
+                <mat-icon>layers</mat-icon>
+                <span>{{ building.totalFloors }} floors</span>
+              </div>
+            }
+          </div>
+          @if (building.description) {
+            <p class="building-description">{{ building.description }}</p>
+          }
+        </div>
+        @if (isSelected(building.id)) {
+          <div class="selected-indicator">
+            <mat-icon>check_circle</mat-icon>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

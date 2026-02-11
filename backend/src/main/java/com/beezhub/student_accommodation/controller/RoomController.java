@@ -77,6 +77,15 @@ public class RoomController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create multiple rooms", description = "Creates multiple accommodation rooms at once. Admin only.")
+    public ResponseEntity<List<RoomResponse>> createBulkRooms(@Valid @RequestBody List<RoomRequest> requests) {
+        log.info("Bulk creating {} rooms", requests.size());
+        List<RoomResponse> responses = roomService.createBulkRooms(requests);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responses);
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update room", description = "Updates an existing room. Admin only.")

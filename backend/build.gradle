@@ -51,6 +51,8 @@ dependencies {
 	implementation 'io.minio:minio:8.5.17'
 	implementation 'org.ff4j:ff4j-spring-boot-starter:1.9'
 	implementation 'org.ff4j:ff4j-store-springjdbc:1.9'
+	implementation 'com.google.code.gson:gson:2.10.1'
+	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 }
 
 test {

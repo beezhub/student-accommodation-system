@@ -108,6 +108,10 @@ export class RoomService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
+  createBulkRooms(rooms: RoomRequest[]): Observable<RoomResponse[]> {
+    return this.http.post<RoomResponse[]>(`${this.apiUrl}/bulk`, rooms);
+  }
+
   /**
    * Get eligible rooms for a student based on their restrictions (gender, year of study, accessibility, institution).
    * @param studentId The student ID to check eligibility for

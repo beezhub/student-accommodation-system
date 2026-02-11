@@ -100,22 +100,11 @@
             Accommodation Preferences
           </h3>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Preferred Building (Optional)</mat-label>
-            <mat-select formControlName="preferredBuildingId">
-              <mat-option [value]="null">No preference</mat-option>
-              @for (building of buildings; track building.id) {
-                <mat-option [value]="building.id">
-                  {{ building.name }}
-                  @if (building.address) {
-                    <span class="building-address"> - {{ building.address }}</span>
-                  }
-                </mat-option>
-              }
-            </mat-select>
-            <mat-icon matPrefix>apartment</mat-icon>
-            <mat-hint>Select your preferred residence building if you have one</mat-hint>
-          </mat-form-field>
+          <app-building-gallery
+            [buildings]="buildings"
+            [selectedBuildingId]="applicationForm.get('preferredBuildingId')?.value"
+            (buildingSelected)="onBuildingSelected($event)"
+          ></app-building-gallery>
 
           <div class="checkbox-section">
             <mat-checkbox formControlName="requiresAccessibility" color="primary">

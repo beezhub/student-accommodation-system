@@ -6,6 +6,9 @@ import { environment } from '../../../environments/environment';
 export interface BuildingRequest {
   name: string;
   address?: string;
+  placeId?: string;
+  latitude?: number;
+  longitude?: number;
   description?: string;
   totalFloors?: number;
   institutionIds?: number[];
@@ -16,13 +19,30 @@ export interface InstitutionSummary {
   name: string;
 }
 
+export interface BuildingImageResponse {
+  id: number;
+  buildingId: number;
+  fileName: string;
+  imageUrl: string;
+  isPrimary: boolean;
+  displayOrder: number;
+  createdAt: string;
+}
+
 export interface BuildingResponse {
   id: number;
   name: string;
   address?: string;
+  latitude?: number;
+  longitude?: number;
+  placeId?: string;
+  formattedAddress?: string;
+  addressComponents?: { [key: string]: string };
   description?: string;
   totalFloors?: number;
   institutions?: InstitutionSummary[];
+  primaryImageUrl?: string;
+  images?: BuildingImageResponse[];
   createdAt: string;
   updatedAt: string;
 }
@@ -35,6 +55,11 @@ export interface PageResponse<T> {
   number: number;
 }
 
+export interface MapsConfig {
+  enabled: boolean;
+  apiKey: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -42,6 +67,10 @@ export class BuildingService {
   private apiUrl = `${environment.apiUrl}/building`;
 
   constructor(private http: HttpClient) {}
+
+  getMapsConfig(): Observable<MapsConfig> {
+    return this.http.get<MapsConfig>(`${this.apiUrl}/maps-config`);
+  }
 
   getAllBuildings(page: number = 0, size: number = 20): Observable<PageResponse<BuildingResponse>> {
     const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
@@ -86,5 +115,25 @@ export class BuildingService {
 
   getBuildingsByInstitution(institutionId: number): Observable<BuildingResponse[]> {
     return this.http.get<BuildingResponse[]>(`${this.apiUrl}/by-institution/${institutionId}`);
+  }
+
+  // Building Image Methods
+
+  getBuildingImages(buildingId: number): Observable<BuildingImageResponse[]> {
+    return this.http.get<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`);
+  }
+
+  uploadBuildingImages(buildingId: number, files: File[]): Observable<BuildingImageResponse[]> {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    return this.http.post<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`, formData);
+  }
+
+  deleteBuildingImage(buildingId: number, imageId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${buildingId}/images/${imageId}`);
+  }
+
+  setPrimaryImage(buildingId: number, imageId: number): Observable<BuildingImageResponse> {
+    return this.http.put<BuildingImageResponse>(`${this.apiUrl}/${buildingId}/images/${imageId}/primary`, {});
   }
 }

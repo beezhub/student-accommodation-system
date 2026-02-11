@@ -164,6 +164,22 @@ export class RoomManagementComponent implements OnInit {
     });
   }
 
+  openBulkCreateDialog(): void {
+    import('./bulk-room-form-dialog/bulk-room-form-dialog.component').then((m) => {
+      const dialogRef = this.dialog.open(m.BulkRoomFormDialogComponent, {
+        width: '600px',
+        maxWidth: '95vw',
+        data: { buildings: this.buildings },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          this.loadRooms();
+        }
+      });
+    });
+  }
+
   openEditDialog(room: RoomResponse): void {
     import('./room-form-dialog/room-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.RoomFormDialogComponent, {

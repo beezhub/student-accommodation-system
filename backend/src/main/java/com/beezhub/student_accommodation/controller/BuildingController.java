@@ -1,8 +1,11 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.config.GoogleMapsConfig;
+import com.beezhub.student_accommodation.model.dto.BuildingImageResponse;
 import com.beezhub.student_accommodation.model.dto.BuildingRequest;
 import com.beezhub.student_accommodation.model.dto.BuildingResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
+import com.beezhub.student_accommodation.service.BuildingImageService;
 import com.beezhub.student_accommodation.service.BuildingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,8 +18,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/building")
@@ -26,6 +32,18 @@ import java.util.List;
 public class BuildingController {
 
     private final BuildingService buildingService;
+    private final BuildingImageService buildingImageService;
+    private final GoogleMapsConfig googleMapsConfig;
+
+    @GetMapping("/maps-config")
+    @Operation(summary = "Get Google Maps configuration", description = "Returns Google Maps API configuration for frontend use")
+    public ResponseEntity<Map<String, Object>> getMapsConfig() {
+        log.info("Fetching Google Maps configuration");
+        Map<String, Object> config = new HashMap<>();
+        config.put("enabled", googleMapsConfig.isGeocodingEnabled());
+        config.put("apiKey", googleMapsConfig.getFrontendApiKey());
+        return ResponseEntity.ok(config);
+    }
 
     @GetMapping
     @Operation(summary = "Get all buildings", description = "Returns a paginated list of all accommodation buildings. Supports pagination with query params: page, size, sort")
@@ -95,5 +113,48 @@ public class BuildingController {
         log.info("Deleting building with id: {}", id);
         buildingService.deleteBuilding(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Building Image Endpoints
+
+    @PostMapping("/{buildingId}/images")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Upload building images", description = "Upload one or more images for a building. Admin only.")
+    public ResponseEntity<List<BuildingImageResponse>> uploadBuildingImages(
+            @PathVariable Long buildingId,
+            @RequestParam("files") List<MultipartFile> files) {
+        log.info("Uploading {} images for building {}", files.size(), buildingId);
+        List<BuildingImageResponse> responses = buildingImageService.uploadImages(buildingId, files);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responses);
+    }
+
+    @GetMapping("/{buildingId}/images")
+    @Operation(summary = "Get building images", description = "Returns all images for a building with presigned URLs")
+    public ResponseEntity<List<BuildingImageResponse>> getBuildingImages(@PathVariable Long buildingId) {
+        log.info("Fetching images for building {}", buildingId);
+        List<BuildingImageResponse> images = buildingImageService.getImages(buildingId);
+        return ResponseEntity.ok(images);
+    }
+
+    @DeleteMapping("/{buildingId}/images/{imageId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Delete building image", description = "Deletes a building image. Admin only.")
+    public ResponseEntity<Void> deleteBuildingImage(
+            @PathVariable Long buildingId,
+            @PathVariable Long imageId) {
+        log.info("Deleting image {} from building {}", imageId, buildingId);
+        buildingImageService.deleteImage(buildingId, imageId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{buildingId}/images/{imageId}/primary")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Set primary image", description = "Sets an image as the primary image for a building. Admin only.")
+    public ResponseEntity<BuildingImageResponse> setPrimaryImage(
+            @PathVariable Long buildingId,
+            @PathVariable Long imageId) {
+        log.info("Setting image {} as primary for building {}", imageId, buildingId);
+        BuildingImageResponse response = buildingImageService.setPrimaryImage(buildingId, imageId);
+        return ResponseEntity.ok(response);
     }
 }

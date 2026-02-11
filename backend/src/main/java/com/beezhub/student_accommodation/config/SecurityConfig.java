@@ -52,7 +52,8 @@ public class SecurityConfig {
                                 "/api/auth/verify-reset-token",
                                 "/api/auth/reset-password",
                                 "/api/auth/verify-email",
-                                "/api/auth/resend-verification")
+                                "/api/auth/resend-verification",
+                                "/api/building/maps-config")
                         .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/v3/api-docs/**").permitAll()

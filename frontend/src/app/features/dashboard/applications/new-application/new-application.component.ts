@@ -22,6 +22,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { ErrorDisplayComponent } from '../../../../shared/error-display/error-display.component';
+import { BuildingGalleryComponent } from '../building-gallery/building-gallery.component';
 
 @Component({
   selector: 'app-new-application',
@@ -44,6 +45,7 @@ import { ErrorDisplayComponent } from '../../../../shared/error-display/error-di
     MatProgressSpinnerModule,
     MatDividerModule,
     ErrorDisplayComponent,
+    BuildingGalleryComponent,
   ],
 })
 export class NewApplicationComponent implements OnInit {
@@ -225,6 +227,11 @@ export class NewApplicationComponent implements OnInit {
       this.applicationForm.markAllAsTouched();
       this.errorService.showWarning('Please fill in all required fields correctly');
     }
+  }
+
+  onBuildingSelected(buildingId: number | null): void {
+    this.applicationForm.patchValue({ preferredBuildingId: buildingId });
+    this.cdr.markForCheck();
   }
 
   dismissError(): void {

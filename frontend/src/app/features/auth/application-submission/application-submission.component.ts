@@ -19,6 +19,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import { BuildingGalleryComponent } from '../../dashboard/applications/building-gallery/building-gallery.component';
 
 @Component({
   selector: 'app-application-submission',
@@ -38,6 +39,7 @@ import { ErrorDisplayComponent } from '../../../shared/error-display/error-displ
     MatIconModule,
     MatCheckboxModule,
     ErrorDisplayComponent,
+    BuildingGalleryComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -211,6 +213,10 @@ export class ApplicationSubmissionComponent implements OnInit {
       this.applicationForm.markAllAsTouched();
       this.errorService.showWarning('Please fill in all required fields correctly');
     }
+  }
+
+  onBuildingSelected(buildingId: number | null): void {
+    this.applicationForm.patchValue({ preferredBuildingId: buildingId });
   }
 
   dismissError(): void {

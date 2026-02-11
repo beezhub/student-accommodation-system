@@ -13,6 +13,12 @@ public class BuildingRequest {
 
     private String address;
 
+    private String placeId;
+
+    private Double latitude;
+
+    private Double longitude;
+
     private String description;
 
     @Min(value = 1, message = "Total floors must be at least 1")

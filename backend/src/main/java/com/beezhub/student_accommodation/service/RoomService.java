@@ -106,6 +106,36 @@ public class RoomService {
         return roomMapper.toResponse(saved);
     }
 
+    public List<RoomResponse> createBulkRooms(List<RoomRequest> requests) {
+        log.info("Bulk creating {} rooms", requests.size());
+
+        // Cache building lookups to avoid repeated queries
+        java.util.Map<Long, Building> buildingCache = new java.util.HashMap<>();
+
+        List<RoomResponse> responses = new java.util.ArrayList<>();
+        for (RoomRequest request : requests) {
+            Room room = new Room();
+            room.setRoomNumber(request.getRoomNumber());
+            room.setCapacity(request.getCapacity());
+            room.setCurrentOccupancy(0);
+            room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+
+            if (request.getBuildingId() != null) {
+                Building building = buildingCache.computeIfAbsent(request.getBuildingId(),
+                        id -> buildingRepository.findById(id)
+                                .orElseThrow(() -> new BuildingNotFoundException(
+                                        "Building not found with id: " + id)));
+                room.setBuilding(building);
+            }
+
+            Room saved = roomRepository.save(room);
+            responses.add(roomMapper.toResponse(saved));
+        }
+
+        log.info("Successfully bulk created {} rooms", responses.size());
+        return responses;
+    }
+
     public RoomResponse updateRoom(Long id, RoomRequest request) {
         log.info("Updating room with id: {} and buildingId: {}", id, request.getBuildingId());
         Room room = roomRepository.findById(id)
