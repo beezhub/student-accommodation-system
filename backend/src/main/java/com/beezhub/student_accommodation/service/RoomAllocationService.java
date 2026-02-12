@@ -1841,9 +1841,10 @@ public class RoomAllocationService {
                 }
 
                 // Verify transition to EXPIRED is valid (might have been accepted in the meantime)
-                if (!current.getStatus().canTransitionTo(AllocationStatus.EXPIRED)) {
+                AllocationStatus currentStatus = current.getStatus();
+                if (currentStatus == null || !currentStatus.canTransitionTo(AllocationStatus.EXPIRED)) {
                     log.info("Allocation {} status {} cannot transition to EXPIRED, skipping expiry",
-                            current.getId(), current.getStatus());
+                            current.getId(), currentStatus);
                     return null;
                 }
 
