@@ -148,6 +148,8 @@ public class RoomAllocationService {
         allocation.setAllocationDate(
                 request.getAllocationDate() != null ? request.getAllocationDate() : LocalDateTime.now());
         allocation.setEndDate(request.getEndDate());
+        // Initial status for new allocation
+        validateStatusTransition(allocation, AllocationStatus.OFFERED);
         allocation.setStatus(AllocationStatus.OFFERED);
         allocation.setOfferExpiryDate(LocalDateTime.now().plusDays(offerExpiryDays));
 
@@ -242,11 +244,6 @@ public class RoomAllocationService {
         RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
-        if (allocation.getStatus() != AllocationStatus.OFFERED) {
-            throw new IllegalStateException(
-                    "Can only accept OFFERED allocations. Current status: " + allocation.getStatus());
-        }
-
         // Validate expected check-in date
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime maxDate = now.plusDays(7);
@@ -255,6 +252,8 @@ public class RoomAllocationService {
             throw new IllegalArgumentException("Expected check-in date must be within 7 days from now");
         }
 
+        // Validate status transition
+        validateStatusTransition(allocation, AllocationStatus.ACCEPTED);
         allocation.setStatus(AllocationStatus.ACCEPTED);
         allocation.setExpectedCheckInDate(request.getExpectedCheckInDate());
         allocation.setCheckInExpiryDate(LocalDateTime.now().plusDays(checkInExpiryDays));
@@ -287,11 +286,6 @@ public class RoomAllocationService {
         RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
-        if (allocation.getStatus() != AllocationStatus.OFFERED) {
-            throw new IllegalStateException(
-                    "Can only decline OFFERED allocations. Current status: " + allocation.getStatus());
-        }
-
         // Count previous declines for this application
         long previousDeclineCount = 0;
         if (allocation.getApplication() != null) {
@@ -303,7 +297,8 @@ public class RoomAllocationService {
         Room room = allocation.getRoom();
         updateRoomOccupancy(room, -1);
 
-        // Update allocation with decline details
+        // Validate status transition and update allocation with decline details
+        validateStatusTransition(allocation, AllocationStatus.DECLINED);
         allocation.setStatus(AllocationStatus.DECLINED);
         allocation.setEndDate(LocalDateTime.now());
         allocation.setDeclineReason(request.getDeclineReason());
@@ -413,11 +408,8 @@ public class RoomAllocationService {
         RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
-        if (allocation.getStatus() != AllocationStatus.ACCEPTED) {
-            throw new IllegalStateException(
-                    "Can only check-in ACCEPTED allocations. Current status: " + allocation.getStatus());
-        }
-
+        // Validate status transition
+        validateStatusTransition(allocation, AllocationStatus.ACTIVE);
         allocation.setStatus(AllocationStatus.ACTIVE);
         allocation.setCheckInDate(LocalDateTime.now());
 
@@ -455,10 +447,8 @@ public class RoomAllocationService {
         RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
-        if (allocation.getStatus() != AllocationStatus.ACTIVE) {
-            throw new IllegalStateException("Can only check-out ACTIVE allocations");
-        }
-
+        // Validate status transition
+        validateStatusTransition(allocation, AllocationStatus.COMPLETED);
         allocation.setStatus(AllocationStatus.COMPLETED);
         allocation.setCheckOutDate(LocalDateTime.now());
         allocation.setEndDate(LocalDateTime.now());
@@ -485,6 +475,7 @@ public class RoomAllocationService {
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
         // Use soft delete (CANCELLED) instead of hard delete
+        validateStatusTransition(allocation, AllocationStatus.CANCELLED);
         allocation.setStatus(AllocationStatus.CANCELLED);
         allocation.setEndDate(LocalDateTime.now());
 
@@ -566,10 +557,8 @@ public class RoomAllocationService {
         RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
-        if (allocation.getStatus() != AllocationStatus.ACTIVE) {
-            throw new IllegalStateException("Can only end ACTIVE allocations");
-        }
-
+        // Validate status transition
+        validateStatusTransition(allocation, AllocationStatus.COMPLETED);
         allocation.setStatus(AllocationStatus.COMPLETED);
         allocation.setEndDate(LocalDateTime.now());
 
@@ -1181,6 +1170,8 @@ public class RoomAllocationService {
         allocation.setRoom(staged.getRoom());
         allocation.setApplication(staged.getApplication());
         allocation.setAllocationDate(LocalDateTime.now());
+        // Initial status for new allocation from staged
+        validateStatusTransition(allocation, AllocationStatus.OFFERED);
         allocation.setStatus(AllocationStatus.OFFERED); // Staged allocation creates an OFFER that student must accept
         allocation.setAllocationMethod(AllocationMethod.AUTO);
 
@@ -1849,10 +1840,11 @@ public class RoomAllocationService {
                     return null;
                 }
 
-                // Verify still in OFFERED status (might have been accepted in the meantime)
-                if (current.getStatus() != AllocationStatus.OFFERED) {
-                    log.info("Allocation {} status changed to {}, skipping expiry",
-                            current.getId(), current.getStatus());
+                // Verify transition to EXPIRED is valid (might have been accepted in the meantime)
+                AllocationStatus currentStatus = current.getStatus();
+                if (currentStatus == null || !currentStatus.canTransitionTo(AllocationStatus.EXPIRED)) {
+                    log.info("Allocation {} status {} cannot transition to EXPIRED, skipping expiry",
+                            current.getId(), currentStatus);
                     return null;
                 }
 
@@ -1860,6 +1852,7 @@ public class RoomAllocationService {
                         current.getId(), current.getStudent().getId(), current.getRoom().getRoomNumber());
 
                 // Update allocation status
+                validateStatusTransition(current, AllocationStatus.EXPIRED);
                 current.setStatus(AllocationStatus.EXPIRED);
                 current.setEndDate(LocalDateTime.now());
                 roomAllocationRepository.save(current);
@@ -1907,9 +1900,9 @@ public class RoomAllocationService {
                     return null;
                 }
 
-                // Verify still in ACCEPTED status (might have been checked in in the meantime)
-                if (current.getStatus() != AllocationStatus.ACCEPTED) {
-                    log.info("Allocation {} status changed to {}, skipping check-in expiry",
+                // Verify transition to CHECK_IN_EXPIRED is valid (might have been checked in in the meantime)
+                if (!current.getStatus().canTransitionTo(AllocationStatus.CHECK_IN_EXPIRED)) {
+                    log.info("Allocation {} status {} cannot transition to CHECK_IN_EXPIRED, skipping check-in expiry",
                             current.getId(), current.getStatus());
                     return null;
                 }
@@ -1918,6 +1911,7 @@ public class RoomAllocationService {
                         current.getId(), current.getStudent().getId(), current.getRoom().getRoomNumber());
 
                 // Update allocation status
+                validateStatusTransition(current, AllocationStatus.CHECK_IN_EXPIRED);
                 current.setStatus(AllocationStatus.CHECK_IN_EXPIRED);
                 current.setEndDate(LocalDateTime.now());
                 roomAllocationRepository.save(current);
@@ -2009,5 +2003,21 @@ public class RoomAllocationService {
                     waitingListRepository.save(entry);
                     log.info("Cancelled waiting list entry for student {}", student.getId());
                 });
+    }
+
+    /**
+     * Validates that a status transition is allowed according to the AllocationStatus state machine.
+     * Throws InvalidAllocationStatusTransitionException if the transition is not valid.
+     *
+     * @param allocation the allocation being transitioned
+     * @param newStatus the target status
+     * @throws com.beezhub.student_accommodation.exceptions.InvalidAllocationStatusTransitionException if transition is invalid
+     */
+    private void validateStatusTransition(RoomAllocation allocation, AllocationStatus newStatus) {
+        AllocationStatus currentStatus = allocation.getStatus();
+        if (currentStatus != null && !currentStatus.canTransitionTo(newStatus)) {
+            throw new com.beezhub.student_accommodation.exceptions.InvalidAllocationStatusTransitionException(
+                    currentStatus, newStatus);
+        }
     }
 }

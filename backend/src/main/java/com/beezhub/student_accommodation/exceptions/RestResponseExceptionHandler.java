@@ -194,6 +194,17 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                 return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
         }
 
+        @ExceptionHandler(InvalidAllocationStatusTransitionException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidAllocationStatusTransition(
+                        InvalidAllocationStatusTransitionException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
+
         @ExceptionHandler(ApplicationNotApprovedException.class)
         public ResponseEntity<ErrorResponse> handleApplicationNotApproved(
                         ApplicationNotApprovedException ex, WebRequest request) {
