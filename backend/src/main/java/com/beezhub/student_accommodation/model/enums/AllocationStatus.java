@@ -29,4 +29,25 @@ public enum AllocationStatus {
         }
         throw new IllegalArgumentException("Invalid status: " + status);
     }
+
+    /**
+     * Checks if this status can transition to the target status.
+     * Valid transitions:
+     * - OFFERED -> ACCEPTED, DECLINED, EXPIRED, CANCELLED
+     * - ACCEPTED -> ACTIVE, CHECK_IN_EXPIRED, CANCELLED
+     * - ACTIVE -> COMPLETED, TERMINATED, CANCELLED
+     * - DECLINED, EXPIRED, CHECK_IN_EXPIRED, COMPLETED, TERMINATED, CANCELLED -> (terminal states)
+     */
+    public boolean canTransitionTo(AllocationStatus target) {
+        // Allow self-transition
+        if (this == target)
+            return true;
+
+        return switch (this) {
+            case OFFERED -> target == ACCEPTED || target == DECLINED || target == EXPIRED || target == CANCELLED;
+            case ACCEPTED -> target == ACTIVE || target == CHECK_IN_EXPIRED || target == CANCELLED;
+            case ACTIVE -> target == COMPLETED || target == TERMINATED || target == CANCELLED;
+            case DECLINED, EXPIRED, CHECK_IN_EXPIRED, COMPLETED, TERMINATED, CANCELLED -> false; // Terminal states
+        };
+    }
 }
