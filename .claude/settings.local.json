@@ -60,7 +60,16 @@
       "Bash(git check-ignore:*)",
       "Bash(timeout 5 curl:*)",
       "Bash(curl:*)",
-      "WebSearch"
+      "WebSearch",
+      "mcp__plugin_serena_serena__get_current_config",
+      "mcp__plugin_serena_serena__check_onboarding_performed",
+      "mcp__plugin_serena_serena__list_dir",
+      "mcp__plugin_serena_serena__activate_project",
+      "mcp__plugin_serena_serena__initial_instructions",
+      "mcp__plugin_serena_serena__read_file",
+      "mcp__plugin_serena_serena__find_symbol",
+      "mcp__plugin_serena_serena__find_file",
+      "mcp__plugin_serena_serena__search_for_pattern"
     ],
     "deny": [],
     "ask": []
