@@ -29,6 +29,17 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
     locations: classpath:db/migration
     out-of-order: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 60000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}

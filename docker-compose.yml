@@ -23,9 +23,14 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
-      - minio
-      - mailhog
+      db:
+        condition: service_started
+      minio:
+        condition: service_started
+      mailhog:
+        condition: service_started
+      redis:
+        condition: service_healthy
     environment:
       - POSTGRES_DB=studentaccommodationlocaldb
       - USER_DB=localadmin
@@ -44,6 +49,8 @@ services:
       - APP_BASE_URL=http://localhost:3000
       - APP_SUPPORT_EMAIL=accommodation@university.edu
       - APP_UNIVERSITY_NAME=University
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
 
   minio:
     image: minio/minio
@@ -67,6 +74,22 @@ services:
     logging:
       driver: "none"  # Disable logs to reduce noise
 
+  redis:
+    image: redis:7.4-alpine
+    container_name: student-accommodation-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 volumes:
   minio_data:
   postgres_data:
+  redis_data:
