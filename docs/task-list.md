@@ -117,7 +117,7 @@ Add `validateStatusTransition()` calls before every allocation status change in 
 
 ### TASK-1.03: Add AllocationScoringService Unit Tests
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 1
 - **Estimated Scope:** L (4–8 hrs)
@@ -146,12 +146,12 @@ Write comprehensive unit tests for `AllocationScoringService` (630 lines) target
 - Follow test naming convention: `methodName_scenario_expectedResult()` per [ARCH 5.1.1]
 
 **Acceptance Criteria:**
-- [ ] ≥90% line coverage on `AllocationScoringService` (verified by Jacoco)
-- [ ] All 3 scoring components tested independently
-- [ ] Tie-breaking logic tested
-- [ ] Edge cases covered: missing preferences, zero weights, boundary scores (0 and 100)
-- [ ] Null/empty input cases covered
-- [ ] Test naming follows convention `methodName_scenario_expectedResult()`
+- [x] ≥90% line coverage on `AllocationScoringService` (verified by Jacoco) — achieved 92%
+- [x] All 3 scoring components tested independently
+- [x] Tie-breaking logic tested
+- [x] Edge cases covered: missing preferences, zero weights, boundary scores (0 and 100)
+- [x] Null/empty input cases covered
+- [x] Test naming follows convention `methodName_scenario_expectedResult()`
 
 **Tests to Write:**
 - `calculateScore_perfectMatch_returns100` — all preferences match, all criteria met
