@@ -10,13 +10,13 @@
 
 | Phase | Total | Done | In Progress | Todo | Blocked | Progress |
 |-------|-------|------|-------------|------|---------|----------|
-| Phase 1: Critical Stabilisation | 10 | 0 | 0 | 10 | 0 | 0% |
+| Phase 1: Critical Stabilisation | 10 | 2 | 0 | 8 | 0 | 20% |
 | Phase 2: Structural Improvement | 13 | 0 | 0 | 13 | 0 | 0% |
 | Phase 3: Enhancement & Optimization | 10 | 0 | 0 | 10 | 0 | 0% |
-| **Total** | **33** | **0** | **0** | **33** | **0** | **0%** |
+| **Total** | **33** | **2** | **0** | **31** | **0** | **6%** |
 
 **Current Blockers:** None
-**Next Recommended Tasks:** TASK-1.01 (.env Credential Cleanup), TASK-1.02 (AllocationStatus State Machine), TASK-1.03 (Scoring Tests), TASK-1.04 (Redis), TASK-1.07 (EAGER Loading Fix), TASK-1.08 (CorsFilter Cleanup), TASK-1.09 (Database Indexes), TASK-1.10 (Async Queue) — all have no dependencies and can start in parallel
+**Next Recommended Tasks:** TASK-1.03 (Scoring Tests - HIGH), TASK-1.04 (Redis - HIGH, unblocks 2 tasks), TASK-1.07 (EAGER Loading Fix), TASK-1.08 (CorsFilter Cleanup), TASK-1.09 (Database Indexes), TASK-1.10 (Async Queue) — all have no dependencies and can start in parallel
 
 ---
 
@@ -28,7 +28,7 @@
 
 ### TASK-1.01: Remove .env from Repository and Rotate Credentials
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** CRITICAL
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -54,11 +54,11 @@ Add `.env` to `.gitignore`. Remove `.env` from git tracking using `git rm --cach
 - Reference `docker-compose.yml` for the full list of environment variables to include in `.env.example`
 
 **Acceptance Criteria:**
-- [ ] `.env` is listed in `.gitignore`
-- [ ] `.env` is not tracked by git (`git status` does not show `.env`)
-- [ ] `.env.example` exists with placeholder values (e.g., `JWT_SECRET=your-secret-here`)
-- [ ] `README.md` contains instructions for environment setup
-- [ ] No real credentials appear in any tracked file
+- [x] `.env` is listed in `.gitignore`
+- [x] `.env` is not tracked by git (`git status` does not show `.env`)
+- [x] `.env.example` exists with placeholder values (e.g., `JWT_SECRET=your-secret-here`)
+- [x] `README.md` contains instructions for environment setup
+- [x] No real credentials appear in any tracked file
 
 **Tests to Write:**
 - No automated tests required — manual verification of git tracking status
@@ -67,7 +67,7 @@ Add `.env` to `.gitignore`. Remove `.env` from git tracking using `git rm --cach
 
 ### TASK-1.02: Implement AllocationStatus State Machine
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 1
 - **Estimated Scope:** M (2–4 hrs)
@@ -100,12 +100,12 @@ Add `validateStatusTransition()` calls before every allocation status change in 
 - Reference Requirements.md Diagram 2 (Allocation Status State Machine) for the canonical transition diagram
 
 **Acceptance Criteria:**
-- [ ] `AllocationStatus.canTransitionTo()` method exists and returns `boolean`
-- [ ] All 9 statuses have defined valid transitions (including terminal states with empty sets)
-- [ ] Every allocation status change in the codebase passes through validation before applying
-- [ ] `InvalidAllocationStatusTransitionException` thrown for invalid transitions
-- [ ] Exception mapped to HTTP 409 CONFLICT in `RestResponseExceptionHandler`
-- [ ] No existing functionality broken (all existing tests pass)
+- [x] `AllocationStatus.canTransitionTo()` method exists and returns `boolean`
+- [x] All 9 statuses have defined valid transitions (including terminal states with empty sets)
+- [x] Every allocation status change in the codebase passes through validation before applying
+- [x] `InvalidAllocationStatusTransitionException` thrown for invalid transitions
+- [x] Exception mapped to HTTP 409 CONFLICT in `RestResponseExceptionHandler`
+- [x] No existing functionality broken (all existing tests pass)
 
 **Tests to Write:**
 - `AllocationStatusTest.java`: Test all valid transitions return `true`
