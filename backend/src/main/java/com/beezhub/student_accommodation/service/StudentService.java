@@ -40,20 +40,22 @@ public class StudentService {
         return studentMapper.toResponse(savedStudent);
     }
 
+    @Transactional(readOnly = true)
     public StudentResponse getStudentByUserId(Long userId) {
         var current = authService.getCurrentUser();
         // Allow access if admin or requesting own profile
         if (!current.getId().equals(userId) && current.getUserRole() != UserRole.ADMIN) {
             throw new RuntimeException("Unauthorized to access this student");
         }
-        Student student = studentRepository.findByAppUser_Id(userId)
+        Student student = studentRepository.findStudentWithDetailsByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Student not found with user ID: " + userId));
         return studentMapper.toResponse(student);
     }
 
+    @Transactional(readOnly = true)
     public StudentResponse getMyProfile() {
         var current = authService.getCurrentUser();
-        Student student = studentRepository.findByAppUser_Id(current.getId())
+        Student student = studentRepository.findStudentWithDetailsByUserId(current.getId())
                 .orElseThrow(() -> new RuntimeException("Student profile not found for current user"));
         return studentMapper.toResponse(student);
     }
@@ -64,7 +66,7 @@ public class StudentService {
         if (!current.getId().equals(userId) && current.getUserRole() != UserRole.ADMIN) {
             throw new RuntimeException("Unauthorized to update this student");
         }
-        Student student = studentRepository.findByAppUser_Id(userId)
+        Student student = studentRepository.findStudentWithDetailsByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Student not found with user ID: " + userId));
 
         // Update Student fields
@@ -111,16 +113,19 @@ public class StudentService {
         return studentMapper.toResponse(saved);
     }
 
+    @Transactional(readOnly = true)
     public List<StudentResponse> getAllStudents() {
-        return studentRepository.findAll().stream().map(studentMapper::toResponse).collect(Collectors.toList());
+        return studentRepository.findAllStudentsWithDetails().stream().map(studentMapper::toResponse).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public PageResponse<StudentResponse> getAllStudents(Pageable pageable) {
         Page<Student> page = studentRepository.findAll(pageable);
         Page<StudentResponse> responsePage = page.map(studentMapper::toResponse);
         return PageMapper.toPageResponse(responsePage);
     }
 
+    @Transactional(readOnly = true)
     public PageResponse<StudentResponse> searchStudents(String name, String studentNumber, String email, Long institutionId, Long yearOfStudyId, Pageable pageable) {
         Specification<Student> spec = StudentSpecification.filterBy(name, studentNumber, email, institutionId, yearOfStudyId);
         Page<Student> page = studentRepository.findAll(spec, pageable);

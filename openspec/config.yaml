@@ -132,7 +132,7 @@ rules:
     - Apply Jakarta Bean Validation on all DTOs
     - Hard limits: Service class <400 lines, Controller <200 lines, Method <30 lines
     - Constructor injection only (no @Autowired field injection)
-    - @Transactional on individual methods, not class level
+    - "@Transactional on individual methods, not class level"
     
     # Angular Architecture
     - Follow structure: components in features/, services in core/, guards for routes
@@ -258,9 +258,9 @@ rules:
     - No business logic in entities (JPA annotations + fields + lifecycle callbacks only)
     - MapStruct used for entity-DTO mapping (entities never exposed in API)
     - JPA Specifications for dynamic filtering (no JPQL concatenation)
-    - Constructor injection used (no @Autowired field injection)
-    - @Transactional on individual methods with readOnly=true for reads
-    - FetchType.LAZY on all associations (no EAGER), use @EntityGraph when needed
+    - "Constructor injection used (no @Autowired field injection)"
+    - "@Transactional on individual methods with readOnly=true for reads"
+    - "FetchType.LAZY on all associations (no EAGER), use @EntityGraph when needed"
     - Domain-specific exceptions thrown (no generic RuntimeException)
     - Exceptions mapped to HTTP codes in RestResponseExceptionHandler
     - No stack traces in API responses, no sensitive data in logs
@@ -285,7 +285,7 @@ rules:
     - NOT NULL added via nullable → backfill → constraint steps
     
     # Security Review
-    - @PreAuthorize correctly applied (ADMIN vs STUDENT roles)
+    - "@PreAuthorize correctly applied (ADMIN vs STUDENT roles)"
     - JWT authentication on all protected endpoints
     - Input validation with Jakarta Bean Validation
     - No SQL injection risk (parameterized queries via JPA)
