@@ -1,0 +1,20 @@
+name: dev-workflow
+version: 1
+
+artifacts:
+  # Agent 1: Senior Business Analyst
+  - id: business-analysis
+    generates: business-analysis.md
+    requires: []
+    template: business-analysis.md
+    description: "Senior Business Analyst - Requirements and user stories"
+
+  # Agent 3: Senior Full Stack Developer
+  - id: implementation-plan
+    generates: implementation-plan.md
+    requires: [solution-design]
+    apply_required: true
+    template: implementation-plan.md
+    description: "Senior Full Stack Developer - Implementation tasks and code structure"
+
+  # Note: "apply" phase is built-in, requires all artifacts above to exist

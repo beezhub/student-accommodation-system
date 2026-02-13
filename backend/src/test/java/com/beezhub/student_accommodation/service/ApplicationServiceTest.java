@@ -122,7 +122,7 @@ class ApplicationServiceTest {
                 .isCurrent(true)
                 .build();
 
-        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
         when(authService.getCurrentUser()).thenReturn(studentUser);
         when(applicationRepository.existsByStudent_IdAndStatus(1L, ApplicationStatus.PENDING)).thenReturn(false);
         when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
@@ -141,7 +141,7 @@ class ApplicationServiceTest {
 
     @Test
     void submitApplication_shouldThrowException_whenStudentNotFound() {
-        when(studentRepository.findById(1L)).thenReturn(Optional.empty());
+        when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> applicationService.submitApplication(applicationRequest))
                 .isInstanceOf(StudentNotFoundException.class);
@@ -149,7 +149,7 @@ class ApplicationServiceTest {
 
     @Test
     void submitApplication_shouldThrowException_whenDuplicateApplication() {
-        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
         when(authService.getCurrentUser()).thenReturn(studentUser);
         when(applicationRepository.existsByStudent_IdAndStatus(1L, ApplicationStatus.PENDING)).thenReturn(true);
 

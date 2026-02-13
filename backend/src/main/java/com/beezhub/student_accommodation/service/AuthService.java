@@ -56,6 +56,7 @@ public class AuthService {
     private final UserNotificationRepository userNotificationRepository;
     private final ActivityLogRepository activityLogRepository;
     private final TokenBlacklistService tokenBlacklistService;
+    private final LoginAttemptService loginAttemptService;
 
     @Value("${app.base-url:http://localhost:3000}")
     private String baseUrl;
@@ -91,19 +92,76 @@ public class AuthService {
     }
 
     public LoginResponse validateLogin(String username, String password) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password));
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        // 1. Check if user exists first to check lock status
+        var userOpt = userRepository.findByEmail(username);
+        if (userOpt.isPresent()) {
+            AppUser user = userOpt.get();
+            
+            // Check DB lock
+            if (user.getAccountLockedUntil() != null && user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
+                 log.warn("Login attempt for locked account: {}", user.getId());
+                 throw new BadCredentialsException("Invalid email or password");
+            }
+            
+            // Check Redis lock (fast path)
+            if (loginAttemptService.isBlocked(user.getId())) {
+                 log.warn("Login attempt for blocked account (Redis): {}", user.getId());
+                 throw new BadCredentialsException("Invalid email or password");
+            }
+        }
+        
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password));
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        var user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+            var user = userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        // Generate token and return user data
-        // The mustChangePassword flag will be included in userData
-        // Frontend should check this and enforce password change if needed
-        String token = jwtUtil.generateToken(userDetails);
-        var userData = appUserMapper.toUserData(user);
-        return new LoginResponse(token, userData);
+            // Login successful: reset counters
+            loginAttemptService.loginSucceeded(user.getId());
+            if (user.getFailedLoginAttempts() > 0 || user.getAccountLockedUntil() != null) {
+                user.setFailedLoginAttempts(0);
+                user.setAccountLockedUntil(null);
+                userRepository.save(user);
+            }
+
+            String token = jwtUtil.generateToken(userDetails);
+            var userData = appUserMapper.toUserData(user);
+            return new LoginResponse(token, userData);
+            
+        } catch (BadCredentialsException e) {
+            // Login failed: increment counters
+            if (userOpt.isPresent()) {
+                AppUser user = userOpt.get();
+                loginAttemptService.loginFailed(user.getId());
+                
+                int attempts = user.getFailedLoginAttempts() + 1;
+                user.setFailedLoginAttempts(attempts);
+                
+                if (attempts >= 5) { // Max attempts from LoginAttemptService is 5
+                    user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(15));
+                    log.warn("Account locked due to too many failed attempts: {}", user.getId());
+                }
+                userRepository.save(user);
+            }
+            throw e;
+        }
+    }
+
+    @Transactional
+    public void unlockAccount(Long userId) {
+        AppUser user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        user.setAccountLockedUntil(null);
+        user.setFailedLoginAttempts(0);
+        userRepository.save(user);
+
+        // Clear Redis
+        loginAttemptService.loginSucceeded(userId);
+
+        log.info("Account manually unlocked for user: {}", userId);
     }
 
     public UserData me(Authentication authentication) {

@@ -29,6 +29,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.beezhub.student_accommodation.exceptions.AccountLockedException;
+import java.time.LocalDateTime;
+
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
@@ -49,6 +52,9 @@ class AuthServiceTest {
 
     @Mock
     private TokenBlacklistService tokenBlacklistService;
+    
+    @Mock
+    private LoginAttemptService loginAttemptService;
 
     @InjectMocks
     private AuthService authService;
@@ -65,9 +71,11 @@ class AuthServiceTest {
         signupRequest.setPassword("password");
 
         appUser = AppUser.builder()
+                .id(1L)
                 .email("test@example.com")
                 .userPassword("encodedPassword")
                 .userRole(UserRole.STUDENT)
+                .failedLoginAttempts(0)
                 .build();
 
         userData = new UserData();
@@ -80,6 +88,117 @@ class AuthServiceTest {
                 appUser.getUserRole().name()
         );
     }
+
+    @Test
+    void validateLogin_AccountLockedInDB_ShouldThrowException() {
+        appUser.setAccountLockedUntil(LocalDateTime.now().plusMinutes(10));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
+        
+        assertThrows(BadCredentialsException.class, () -> authService.validateLogin("test@example.com", "password"));
+    }
+
+    @Test
+    void validateLogin_AccountBlockedInRedis_ShouldThrowException() {
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
+        when(loginAttemptService.isBlocked(1L)).thenReturn(true);
+        
+        assertThrows(BadCredentialsException.class, () -> authService.validateLogin("test@example.com", "password"));
+    }
+
+    @Test
+    void validateLogin_BadCredentials_ShouldIncrementAttempts() {
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("Bad credentials"));
+        
+        assertThrows(BadCredentialsException.class, () -> authService.validateLogin("test@example.com", "password"));
+        
+        verify(loginAttemptService).loginFailed(1L);
+        assertEquals(1, appUser.getFailedLoginAttempts());
+        verify(userRepository).save(appUser);
+    }
+    
+    @Test
+    void validateLogin_4thFailedAttempt_stillAllowed() {
+        appUser.setFailedLoginAttempts(3);
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("Bad credentials"));
+        
+        assertThrows(BadCredentialsException.class, () -> authService.validateLogin("test@example.com", "password"));
+        
+        verify(loginAttemptService).loginFailed(1L);
+        assertEquals(4, appUser.getFailedLoginAttempts());
+        assertNull(appUser.getAccountLockedUntil());
+        verify(userRepository).save(appUser);
+    }
+
+    @Test
+    void validateLogin_5thFailedAttempt_locksAccount() {
+        appUser.setFailedLoginAttempts(4);
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("Bad credentials"));
+        
+        assertThrows(BadCredentialsException.class, () -> authService.validateLogin("test@example.com", "password"));
+        
+        verify(loginAttemptService).loginFailed(1L);
+        assertEquals(5, appUser.getFailedLoginAttempts());
+        assertNotNull(appUser.getAccountLockedUntil());
+        verify(userRepository).save(appUser);
+    }
+
+    @Test
+    void unlockAccount_lockedUser_unlocked() {
+        appUser.setAccountLockedUntil(LocalDateTime.now().plusMinutes(10));
+        appUser.setFailedLoginAttempts(5);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(appUser));
+
+        authService.unlockAccount(1L);
+
+        assertNull(appUser.getAccountLockedUntil());
+        assertEquals(0, appUser.getFailedLoginAttempts());
+        verify(loginAttemptService).loginSucceeded(1L);
+        verify(userRepository).save(appUser);
+    }
+
+    @Test
+    void validateLogin_lockExpired_allowsLogin() {
+        appUser.setAccountLockedUntil(LocalDateTime.now().minusMinutes(1)); // Expired
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
+        
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(userDetails);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
+        when(jwtUtil.generateToken(userDetails)).thenReturn("token");
+        when(appUserMapper.toUserData(appUser)).thenReturn(userData);
+        
+        authService.validateLogin("test@example.com", "password");
+        
+        verify(loginAttemptService).loginSucceeded(1L);
+        // Should clear the lock
+        assertNull(appUser.getAccountLockedUntil());
+        verify(userRepository).save(appUser);
+    }
+    
+    @Test
+    void validateLogin_SuccessfulLogin_ShouldResetAttempts() {
+        appUser.setFailedLoginAttempts(3);
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
+        
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(userDetails);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
+        when(jwtUtil.generateToken(userDetails)).thenReturn("token");
+        when(appUserMapper.toUserData(appUser)).thenReturn(userData);
+        
+        authService.validateLogin("test@example.com", "password");
+        
+        verify(loginAttemptService).loginSucceeded(1L);
+        assertEquals(0, appUser.getFailedLoginAttempts());
+        verify(userRepository).save(appUser);
+    }
+
 
     @Test
     void logout_validToken_blacklisted() {

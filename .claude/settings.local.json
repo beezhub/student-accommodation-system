@@ -77,7 +77,11 @@
       "Bash(docker-compose config:*)",
       "Bash(git stash:*)",
       "Bash(git push:*)",
-      "Bash(gh pr list:*)"
+      "Bash(gh pr list:*)",
+      "Bash(openspec new:*)",
+      "Bash(openspec status:*)",
+      "Bash(openspec instructions proposal:*)",
+      "Bash(openspec instructions:*)"
     ],
     "deny": [],
     "ask": []

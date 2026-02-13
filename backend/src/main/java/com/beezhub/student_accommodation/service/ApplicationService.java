@@ -100,7 +100,7 @@ public class ApplicationService {
                 log.info("Submitting application for student with ID: {}", studentId);
 
                 // Get student
-                Student student = studentRepository.findById(studentId)
+                Student student = studentRepository.findStudentWithDetailsById(studentId)
                                 .orElseThrow(() -> new StudentNotFoundException(
                                                 "Student not found with ID: " + studentId));
 
@@ -194,7 +194,7 @@ public class ApplicationService {
                 log.info("Retrieving applications for student with ID: {}", studentId);
 
                 // Verify student exists
-                Student student = studentRepository.findById(studentId)
+                Student student = studentRepository.findStudentWithUserById(studentId)
                                 .orElseThrow(() -> new StudentNotFoundException(
                                                 "Student not found with ID: " + studentId));
 

@@ -1,0 +1,3 @@
+ALTER TABLE app_user
+ADD COLUMN IF NOT EXISTS account_locked_until TIMESTAMP,
+ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER DEFAULT 0;

@@ -127,7 +127,7 @@ class StudentServiceTest {
     @Test
     void getAllStudents_ShouldReturnList() {
         // Arrange
-        when(studentRepository.findAll()).thenReturn(Arrays.asList(student1, student2));
+        when(studentRepository.findAllStudentsWithDetails()).thenReturn(Arrays.asList(student1, student2));
         when(studentMapper.toResponse(student1)).thenReturn(response1);
         when(studentMapper.toResponse(student2)).thenReturn(response2);
 
@@ -137,7 +137,7 @@ class StudentServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
-        verify(studentRepository).findAll();
+        verify(studentRepository).findAllStudentsWithDetails();
     }
 
     @Test
@@ -279,7 +279,7 @@ class StudentServiceTest {
     void getStudentByUserId_AsOwner_ShouldReturnStudent() {
         // Arrange
         when(authService.getCurrentUser()).thenReturn(appUser1);
-        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student1));
+        when(studentRepository.findStudentWithDetailsByUserId(1L)).thenReturn(Optional.of(student1));
         when(studentMapper.toResponse(student1)).thenReturn(response1);
 
         // Act
@@ -288,14 +288,14 @@ class StudentServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(1L, result.getId());
-        verify(studentRepository).findByAppUser_Id(1L);
+        verify(studentRepository).findStudentWithDetailsByUserId(1L);
     }
 
     @Test
     void getStudentByUserId_AsAdmin_ShouldReturnStudent() {
         // Arrange
         when(authService.getCurrentUser()).thenReturn(adminUser);
-        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student1));
+        when(studentRepository.findStudentWithDetailsByUserId(1L)).thenReturn(Optional.of(student1));
         when(studentMapper.toResponse(student1)).thenReturn(response1);
 
         // Act
@@ -303,7 +303,7 @@ class StudentServiceTest {
 
         // Assert
         assertNotNull(result);
-        verify(studentRepository).findByAppUser_Id(1L);
+        verify(studentRepository).findStudentWithDetailsByUserId(1L);
     }
 
     @Test
@@ -319,7 +319,7 @@ class StudentServiceTest {
     void getMyProfile_ShouldReturnStudentProfile() {
         // Arrange
         when(authService.getCurrentUser()).thenReturn(appUser1);
-        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student1));
+        when(studentRepository.findStudentWithDetailsByUserId(1L)).thenReturn(Optional.of(student1));
         when(studentMapper.toResponse(student1)).thenReturn(response1);
 
         // Act
@@ -328,7 +328,7 @@ class StudentServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(1L, result.getId());
-        verify(studentRepository).findByAppUser_Id(1L);
+        verify(studentRepository).findStudentWithDetailsByUserId(1L);
     }
 
     @Test
@@ -339,7 +339,7 @@ class StudentServiceTest {
         request.setPhoneNumber("123-456-7890");
 
         when(authService.getCurrentUser()).thenReturn(appUser1);
-        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student1));
+        when(studentRepository.findStudentWithDetailsByUserId(1L)).thenReturn(Optional.of(student1));
         when(studentRepository.save(student1)).thenReturn(student1);
         when(studentMapper.toResponse(student1)).thenReturn(response1);
 
