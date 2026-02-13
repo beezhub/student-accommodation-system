@@ -18,6 +18,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.context.annotation.Import;
 import com.beezhub.student_accommodation.config.SecurityConfig;
+import com.beezhub.student_accommodation.security.RateLimitingFilter;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -48,6 +49,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private com.beezhub.student_accommodation.security.jwt.JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @MockitoBean
+    private RateLimitingFilter rateLimitingFilter;
 
     private LoginRequest loginRequest;
     private LoginResponse loginResponse;
@@ -86,6 +90,12 @@ class AuthControllerTest {
                 chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
                 return null;
             }).when(jwtAuthenticationFilter).doFilter(any(), any(), any());
+
+            org.mockito.Mockito.doAnswer(invocation -> {
+                jakarta.servlet.FilterChain chain = invocation.getArgument(2);
+                chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+                return null;
+            }).when(rateLimitingFilter).doFilter(any(), any(), any());
         } catch (Exception e) {
             e.printStackTrace();
         }
