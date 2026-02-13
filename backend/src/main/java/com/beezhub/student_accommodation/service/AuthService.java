@@ -55,6 +55,7 @@ public class AuthService {
     private final WaitingListRepository waitingListRepository;
     private final UserNotificationRepository userNotificationRepository;
     private final ActivityLogRepository activityLogRepository;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Value("${app.base-url:http://localhost:3000}")
     private String baseUrl;
@@ -121,6 +122,13 @@ public class AuthService {
         return new LoginResponse(token, userData);
     }
 
+    public void logout(Authentication authentication) {
+        if (authentication == null) {
+            return;
+        }
+        blacklistCurrentToken(authentication);
+    }
+
     @Transactional
     public void changePassword(ChangePasswordRequest request, Authentication authentication) {
         var user = userRepository.findByEmail(authentication.getName())
@@ -135,6 +143,9 @@ public class AuthService {
         user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setMustChangePassword(false);
         userRepository.save(user);
+        
+        // Blacklist current token
+        blacklistCurrentToken(authentication);
     }
 
     @Transactional
@@ -190,10 +201,30 @@ public class AuthService {
         emailVerificationTokenRepository.deleteByUser(user);
         log.info("Deleted tokens");
 
+        // Blacklist current token
+        blacklistCurrentToken(authentication);
+
         // Finally, delete user
         userRepository.delete(user);
 
         log.info("Account deleted successfully for user: {}", authentication.getName());
+    }
+
+    private void blacklistCurrentToken(Authentication authentication) {
+        Object credentials = authentication.getCredentials();
+        if (credentials instanceof String) {
+            String token = (String) credentials;
+            try {
+                String jti = jwtUtil.extractJti(token);
+                long remainingTtl = jwtUtil.getRemainingTtlSeconds(token);
+                
+                if (jti != null && remainingTtl > 0) {
+                    tokenBlacklistService.blacklistToken(jti, remainingTtl);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to blacklist token during logout/changePassword", e);
+            }
+        }
     }
 
     public AppUser getCurrentUser() {

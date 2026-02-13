@@ -31,6 +31,10 @@ public class JwtUtil {
         return extractClaim(token, Claims::getSubject);
     }
 
+    public String extractJti(String token) {
+        return extractClaim(token, Claims::getId);
+    }
+
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
@@ -58,6 +62,7 @@ public class JwtUtil {
         }
 
         return Jwts.builder()
+            .setId(java.util.UUID.randomUUID().toString())
             .setSubject(userDetails.getUsername())
             .claim("roles", roles)
             .setIssuedAt(new Date())
@@ -85,11 +90,17 @@ public class JwtUtil {
         return Collections.emptyList();
     }
 
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
-    private Date extractExpiration(String token) {
+    public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
+    }
+    
+    public long getRemainingTtlSeconds(String token) {
+        Date expiration = extractExpiration(token);
+        long remaining = (expiration.getTime() - System.currentTimeMillis()) / 1000;
+        return remaining > 0 ? remaining : 0;
     }
 }

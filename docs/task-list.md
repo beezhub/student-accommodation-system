@@ -10,13 +10,13 @@
 
 | Phase | Total | Done | In Progress | Todo | Blocked | Progress |
 |-------|-------|------|-------------|------|---------|----------|
-| Phase 1: Critical Stabilisation | 10 | 3 | 0 | 7 | 0 | 30% |
+| Phase 1: Critical Stabilisation | 10 | 4 | 0 | 6 | 0 | 40% |
 | Phase 2: Structural Improvement | 13 | 0 | 0 | 13 | 0 | 0% |
 | Phase 3: Enhancement & Optimization | 10 | 0 | 0 | 10 | 0 | 0% |
-| **Total** | **33** | **3** | **0** | **30** | **0** | **9%** |
+| **Total** | **33** | **4** | **0** | **29** | **0** | **12%** |
 
 **Current Blockers:** None
-**Next Recommended Tasks:** TASK-1.05 (JWT Blacklist - CRITICAL), TASK-1.06 (Brute Force Protection - HIGH), TASK-1.07 (EAGER Loading Fix), TASK-1.08 (CorsFilter Cleanup), TASK-1.09 (Database Indexes), TASK-1.10 (Async Queue)
+**Next Recommended Tasks:** TASK-1.06 (Brute Force Protection - HIGH), TASK-1.07 (EAGER Loading Fix), TASK-1.08 (CorsFilter Cleanup), TASK-1.09 (Database Indexes), TASK-1.10 (Async Queue)
 
 ---
 
@@ -212,7 +212,7 @@ Add a Redis 7.x service to `docker-compose.yml`. Add Spring Data Redis dependenc
 
 ### TASK-1.05: Implement JWT Token Blacklist (Redis-Based)
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** CRITICAL
 - **Phase:** 1
 - **Estimated Scope:** L (4–8 hrs)
@@ -247,13 +247,13 @@ Implement Redis-based JWT token blacklisting. Steps:
 - Follow [ARCH 5.1.1] logging standards — never log the token itself, only the jti
 
 **Acceptance Criteria:**
-- [ ] JWT tokens include `jti` claim (UUID)
-- [ ] `TokenBlacklistService` can blacklist and check tokens via Redis
-- [ ] Blacklisted tokens are rejected with 401 UNAUTHORIZED
-- [ ] Tokens invalidated within 1 second of logout/password change/disable
-- [ ] Redis TTL auto-cleans expired blacklist entries
-- [ ] Redis failure degrades gracefully (tokens accepted, WARNING logged)
-- [ ] All existing tests pass (backward compatible — existing tokens without jti handled gracefully)
+- [x] JWT tokens include `jti` claim (UUID)
+- [x] `TokenBlacklistService` can blacklist and check tokens via Redis
+- [x] Blacklisted tokens are rejected with 401 UNAUTHORIZED
+- [x] Tokens invalidated within 1 second of logout/password change/disable
+- [x] Redis TTL auto-cleans expired blacklist entries
+- [x] Redis failure degrades gracefully (tokens accepted, WARNING logged)
+- [x] All existing tests pass (backward compatible — existing tokens without jti handled gracefully)
 
 **Tests to Write:**
 - `TokenBlacklistServiceTest.blacklistToken_validJti_storedInRedis`

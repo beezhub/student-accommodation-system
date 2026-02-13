@@ -71,12 +71,12 @@ public class AuthController {
                 return ResponseEntity.noContent().build();
         }
 
-        @Operation(summary = "Logout (stateless)")
+        @Operation(summary = "Logout")
         @ApiResponse(responseCode = "204", description = "Logged out")
         @PostMapping("/logout")
         @PreAuthorize("isAuthenticated()")
-        public ResponseEntity<Void> logout() {
-                // Stateless JWT: client should discard token. No server action required.
+        public ResponseEntity<Void> logout(Authentication authentication) {
+                authService.logout(authentication);
                 return ResponseEntity.noContent().build();
         }
 
