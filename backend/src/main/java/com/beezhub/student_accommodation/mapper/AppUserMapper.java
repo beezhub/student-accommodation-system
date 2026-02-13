@@ -23,6 +23,8 @@ public interface AppUserMapper {
     @Mapping(target = "userRole", constant = "STUDENT")
     @Mapping(target = "emailVerified", constant = "false")
     @Mapping(target = "mustChangePassword", constant = "false")
+    @Mapping(target = "accountLockedUntil", ignore = true)
+    @Mapping(target = "failedLoginAttempts", ignore = true)
     AppUser toEntity(SignupRequest signupRequest, String password);
 
     // Admin-created users - ADMIN/LANDLORD only
@@ -36,8 +38,12 @@ public interface AppUserMapper {
     @Mapping(target = "userRole", expression = "java(mapAdminRole(request.getUserRole()))")
     @Mapping(target = "emailVerified", constant = "true")
     @Mapping(target = "mustChangePassword", constant = "false")
+    @Mapping(target = "accountLockedUntil", ignore = true)
+    @Mapping(target = "failedLoginAttempts", ignore = true)
     AppUser toEntityFromAdminRequest(CreateUserRequest request, String password);
 
+    @Mapping(target = "accountLockedUntil", source = "accountLockedUntil")
+    @Mapping(target = "failedLoginAttempts", source = "failedLoginAttempts")
     UserData toUserData(AppUser appUser);
 
     default UserRole mapRole(String role) {

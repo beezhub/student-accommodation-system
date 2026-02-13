@@ -61,6 +61,14 @@ class LoginAttemptServiceTest {
     }
 
     @Test
+    void isBlocked_keyExpired_returnsFalse() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("login:failed:1")).thenReturn(null);
+
+        assertFalse(loginAttemptService.isBlocked(1L));
+    }
+
+    @Test
     void isBlocked_redisUnavailable_returnsFalse() {
         when(redisTemplate.opsForValue()).thenThrow(new RuntimeException("Redis down"));
 

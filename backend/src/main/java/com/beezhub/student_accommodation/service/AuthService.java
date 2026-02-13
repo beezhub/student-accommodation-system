@@ -99,12 +99,14 @@ public class AuthService {
             
             // Check DB lock
             if (user.getAccountLockedUntil() != null && user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
-                 throw new AccountLockedException("Account is temporarily locked. Please try again later.");
+                 log.warn("Login attempt for locked account: {}", user.getId());
+                 throw new BadCredentialsException("Invalid email or password");
             }
             
             // Check Redis lock (fast path)
             if (loginAttemptService.isBlocked(user.getId())) {
-                 throw new AccountLockedException("Account is temporarily locked. Please try again later.");
+                 log.warn("Login attempt for blocked account (Redis): {}", user.getId());
+                 throw new BadCredentialsException("Invalid email or password");
             }
         }
         
@@ -139,11 +141,27 @@ public class AuthService {
                 
                 if (attempts >= 5) { // Max attempts from LoginAttemptService is 5
                     user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(15));
+                    log.warn("Account locked due to too many failed attempts: {}", user.getId());
                 }
                 userRepository.save(user);
             }
             throw e;
         }
+    }
+
+    @Transactional
+    public void unlockAccount(Long userId) {
+        AppUser user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        user.setAccountLockedUntil(null);
+        user.setFailedLoginAttempts(0);
+        userRepository.save(user);
+
+        // Clear Redis
+        loginAttemptService.loginSucceeded(userId);
+
+        log.info("Account manually unlocked for user: {}", userId);
     }
 
     public UserData me(Authentication authentication) {

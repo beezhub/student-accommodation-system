@@ -1,8 +1,10 @@
 package com.beezhub.student_accommodation.controller;
 
 import com.beezhub.student_accommodation.model.dto.CreateUserRequest;
+import com.beezhub.student_accommodation.model.dto.MessageResponse;
 import com.beezhub.student_accommodation.model.dto.UserData;
 import com.beezhub.student_accommodation.model.enums.UserRole;
+import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.UserManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,6 +24,7 @@ import java.util.List;
 public class UserManagementController {
 
     private final UserManagementService userManagementService;
+    private final AuthService authService;
 
     @Operation(
         summary = "Create new admin or landlord user",
@@ -59,5 +62,14 @@ public class UserManagementController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         userManagementService.deleteUser(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Unlock user account")
+    @ApiResponse(responseCode = "200", description = "Account unlocked")
+    @PutMapping("/{id}/unlock")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<MessageResponse> unlockAccount(@PathVariable Long id) {
+        authService.unlockAccount(id);
+        return ResponseEntity.ok(new MessageResponse("Account unlocked successfully"));
     }
 }
