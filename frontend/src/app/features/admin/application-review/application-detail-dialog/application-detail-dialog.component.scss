@@ -1,0 +1,421 @@
+@use '../../../../../styles/variables' as vars;
+@use '../../../../../styles/mixins' as mixins;
+
+/* Dialog Container */
+.application-detail-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 85vh;
+  width: 100%;
+  overflow: hidden;
+  background: white;
+  border-radius: vars.$radius-xl;
+}
+
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Header */
+.dialog-header {
+  background: white;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid vars.$slate-200;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.header-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 0.75rem;
+  width: 100%;
+
+  h2 {
+    margin: 0;
+    text-align: left;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: vars.$slate-900;
+  }
+}
+
+.student-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: vars.$slate-500;
+  flex-wrap: wrap;
+}
+
+.application-code {
+  font-family: monospace;
+  background: vars.$slate-100;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: vars.$slate-700;
+  font-weight: 600;
+}
+
+.separator {
+  color: vars.$slate-300;
+}
+
+.student-name {
+  font-weight: 500;
+  color: vars.$slate-700;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  button {
+    color: vars.$slate-400;
+    margin-right: -8px;
+
+    &:hover {
+      color: vars.$error;
+      background: #fef2f2;
+    }
+  }
+}
+
+/* Content Area */
+mat-dialog-content {
+  padding: 1rem !important;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  box-sizing: border-box;
+  max-height: none !important;
+  background: vars.$slate-50;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    padding: 1.5rem !important;
+  }
+}
+
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Section Cards */
+.section-card {
+  @include mixins.card-base;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 !important;
+
+  mat-card-header {
+    padding: 1rem;
+    background: white; // Changed from slate-50 for cleaner look
+    border-bottom: 1px solid vars.$slate-100;
+    display: flex;
+    align-items: center;
+
+    mat-card-title {
+      font-size: 1rem !important; // Slightly larger for section titles
+      font-weight: 700 !important;
+      color: vars.$slate-800;
+      margin-bottom: 0 !important;
+    }
+
+    mat-card-subtitle {
+      font-size: 0.75rem !important;
+      color: vars.$slate-500;
+      margin-top: 0.25rem !important;
+    }
+  }
+
+  mat-card-content {
+    padding: 1rem !important;
+  }
+}
+
+.section-icon {
+  color: vars.$slate-400 !important;
+  margin-right: 0.75rem !important;
+  font-size: 1.5rem !important;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+
+  &.warn {
+    color: vars.$error !important;
+  }
+}
+
+/* Grids */
+.profile-grid,
+.preferences-grid {
+  display: grid;
+  grid-template-columns: 1fr; // Single column on mobile
+  gap: 1rem;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); // Responsive grid
+  }
+}
+
+.profile-item,
+.preference-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: vars.$slate-50;
+  border-radius: vars.$radius-lg;
+  border: 1px solid vars.$slate-100;
+
+  &.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: vars.$slate-400;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .value {
+    font-size: 0.875rem;
+    color: vars.$slate-900;
+    font-weight: 500;
+  }
+}
+
+.special-requirements {
+  background: #fef2f2;
+  padding: 1rem;
+  border-radius: vars.$radius-lg;
+  border: 1px solid #fee2e2;
+  color: vars.$error;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* Checklist Section */
+.checklist-card .progress-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f0f9ff;
+  border-radius: vars.$radius-lg;
+  border: 1px solid #e0f2fe;
+
+  mat-progress-bar {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+  }
+}
+
+.checklist-list {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  mat-list-item {
+    border-radius: vars.$radius-lg;
+    background: white;
+    height: auto !important;
+    min-height: 3.5rem;
+    padding: 0.75rem 1rem !important;
+    border: 1px solid vars.$slate-200;
+
+    &.approved {
+      border-left: 3px solid vars.$success;
+      background: #f0fdf4;
+    }
+
+    &.pending {
+      border-left: 3px solid vars.$warning;
+      background: #fffbeb;
+    }
+
+    &.rejected {
+      border-left: 3px solid vars.$error;
+      background: #fef2f2;
+    }
+
+    &.not-uploaded {
+      border-left: 3px solid vars.$slate-400;
+      background: vars.$slate-50;
+    }
+
+    mat-icon {
+      font-size: 1.25rem;
+      width: 1.25rem;
+      height: 1.25rem;
+      margin-right: 1rem;
+
+      &.approved {
+        color: vars.$success;
+      }
+
+      &.pending {
+        color: vars.$warning;
+      }
+
+      &.rejected {
+        color: vars.$error;
+      }
+
+      &.not-uploaded {
+        color: vars.$slate-400;
+      }
+    }
+  }
+}
+
+/* Documents Section */
+.documents-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  mat-expansion-panel {
+    border-radius: vars.$radius-lg !important;
+    box-shadow: none !important;
+    border: 1px solid vars.$slate-200 !important;
+  }
+
+  mat-expansion-panel-header {
+    padding: 0 1rem !important;
+    height: 48px !important; // Compact header
+
+    @media (min-width: vars.$breakpoint-tablet) {
+      height: 56px !important;
+      padding: 0 1.25rem !important;
+    }
+  }
+
+  mat-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  mat-panel-description {
+    display: none; // Hide extra info on mobile header to save space
+
+    @media (min-width: vars.$breakpoint-tablet) {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      justify-content: flex-end;
+    }
+  }
+}
+
+/* Document Actions Refactor for Mobile */
+.document-details {
+  padding: 1rem;
+  background: vars.$slate-50;
+  border-top: 1px solid vars.$slate-200;
+}
+
+.document-actions {
+  display: flex;
+  flex-direction: column; // Stack actions on mobile
+  gap: 0.75rem;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  button {
+    width: 100%; // Full width buttons on mobile
+
+    @media (min-width: vars.$breakpoint-tablet) {
+      width: auto;
+    }
+  }
+
+  .status-select {
+    width: 100%;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+      width: 160px;
+    }
+  }
+}
+
+/* Dialog Footer Actions */
+mat-dialog-actions {
+  padding: 1rem !important;
+  gap: 0.75rem;
+  border-top: 1px solid vars.$slate-200;
+  background: white;
+  display: flex !important;
+  flex-direction: column-reverse; // Stack buttons, primary on top/bottom depending on preference (reverse keeps primary bottom)
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    flex-direction: row;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem !important;
+  }
+
+  button {
+    width: 100%;
+    height: 44px;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+      width: auto;
+    }
+  }
+}
+
+/* Rejection Form */
+.rejection-card {
+  border: 1px solid #fca5a5 !important;
+  background: #fef2f2 !important;
+
+  mat-card-header {
+    background: #fee2e2;
+    border-bottom: 1px solid #fecaca;
+  }
+}
+
+/* Scrollbar */
+mat-dialog-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+mat-dialog-content::-webkit-scrollbar-track {
+  background: transparent;
+}

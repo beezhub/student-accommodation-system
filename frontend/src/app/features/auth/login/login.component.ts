@@ -1,30 +1,49 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service'; // Adjust path as needed
+import { AuthService } from '../../../core/services/auth.service';
+
+// Material imports
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
-  providers: [AuthService]
+  imports: [
+    ReactiveFormsModule,
+    RouterModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+  ],
 })
 export class LoginComponent {
   loginForm: FormGroup;
   isSubmitting = false;
   errorMessage: string = '';
-
+  hidePassword = true;
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private snackBar: MatSnackBar
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(8)]]
+      password: ['', [Validators.required, Validators.minLength(8)]],
     });
   }
 
@@ -36,35 +55,63 @@ export class LoginComponent {
       return null;
     }
 
-    g.get('confirmPassword')?.setErrors({ 'mismatch': true });
-    return { 'mismatch': true };
+    g.get('confirmPassword')?.setErrors({ mismatch: true });
+    return { mismatch: true };
   }
-
   onSubmit(): void {
-    
     if (this.loginForm.valid) {
       this.isSubmitting = true;
       this.errorMessage = '';
-      console.log('Login form submitted:', this.loginForm.value);
+
       const loginData = {
         email: this.loginForm.get('email')?.value,
-        password: this.loginForm.get('password')?.value
+        password: this.loginForm.get('password')?.value,
       };
-      console.log('Login data:', loginData);
 
       this.authService.login(loginData).subscribe({
-        next: () => {
+        next: (user) => {
           this.isSubmitting = false;
-          this.router.navigate(['/student-registration']);
+
+          // Check if user must change password
+          if (user.mustChangePassword) {
+            this.snackBar.open('You must change your password before continuing.', 'Close', {
+              duration: 5000,
+              panelClass: ['warning-snackbar'],
+            });
+            this.router.navigate(['/change-password'], { queryParams: { forced: 'true' } });
+          } else {
+            this.snackBar.open('Login successful!', 'Close', {
+              duration: 3000,
+              panelClass: ['success-snackbar'],
+            });
+            // Redirect based on user role
+            if (user.userRole === 'ADMIN') {
+              this.router.navigate(['/admin']);
+            } else {
+              this.router.navigate(['/dashboard']);
+            }
+          }
         },
-        error: (error: { error: { message: string; }; }) => {
+        error: (error: any) => {
           this.isSubmitting = false;
-          this.errorMessage = error.error.message || 'Login failed. Please try again.';
-        }
+          this.errorMessage =
+            error?.error?.message || error?.message || 'Login failed. Please try again.';
+          this.snackBar.open(this.errorMessage, 'Close', {
+            duration: 5000,
+            panelClass: ['error-snackbar'],
+          });
+        },
       });
     } else {
       this.loginForm.markAllAsTouched();
-      console.log('Login form is invalid:', this.loginForm.errors);
+      this.snackBar.open('Please fill in all required fields correctly.', 'Close', {
+        duration: 3000,
+        panelClass: ['warning-snackbar'],
+      });
     }
+  }
+
+  togglePasswordVisibility(): void {
+    this.hidePassword = !this.hidePassword;
   }
 }

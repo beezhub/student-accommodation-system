@@ -1,0 +1,406 @@
+/* ==================== Card Mode ==================== */
+.error-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 24px;
+}
+
+.error-card {
+  max-width: 500px;
+  width: 100%;
+  border-radius: 16px;
+}
+
+.error-content {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.error-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 24px;
+}
+
+.error-icon mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+}
+
+.icon-warn {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #b91c1c;
+}
+
+.icon-accent {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #b45309;
+}
+
+.icon-primary {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  color: #0369a1;
+}
+
+.error-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+}
+
+.error-message {
+  font-size: 15px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+}
+
+.error-details {
+  text-align: left;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 12px 16px 12px 32px;
+  margin: 0 0 24px 0;
+  color: #991b1b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.error-details li {
+  margin-bottom: 4px;
+}
+
+.error-details li:last-child {
+  margin-bottom: 0;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-actions button {
+  min-width: 140px;
+}
+
+.error-actions button mat-icon {
+  margin-right: 8px;
+}
+
+/* ==================== Inline Mode ==================== */
+.error-inline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.inline-warn {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+}
+
+.inline-accent {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+}
+
+.inline-primary {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+}
+
+.inline-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.inline-icon {
+  flex-shrink: 0;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+}
+
+.inline-warn .inline-icon {
+  color: #dc2626;
+}
+
+.inline-accent .inline-icon {
+  color: #d97706;
+}
+
+.inline-primary .inline-icon {
+  color: #0284c7;
+}
+
+.inline-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inline-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.inline-warn .inline-title {
+  color: #991b1b;
+}
+
+.inline-accent .inline-title {
+  color: #92400e;
+}
+
+.inline-primary .inline-title {
+  color: #075985;
+}
+
+.inline-message {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.inline-warn .inline-message {
+  color: #b91c1c;
+}
+
+.inline-accent .inline-message {
+  color: #b45309;
+}
+
+.inline-primary .inline-message {
+  color: #0369a1;
+}
+
+.inline-details {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  font-size: 13px;
+}
+
+.inline-warn .inline-details {
+  color: #b91c1c;
+}
+
+.inline-accent .inline-details {
+  color: #b45309;
+}
+
+.inline-primary .inline-details {
+  color: #0369a1;
+}
+
+.inline-details li {
+  margin-bottom: 2px;
+}
+
+.inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ==================== Banner Mode ==================== */
+.error-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.banner-warn {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+}
+
+.banner-accent {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+}
+
+.banner-primary {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.banner-icon {
+  flex-shrink: 0;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.banner-warn .banner-icon {
+  color: #dc2626;
+}
+
+.banner-accent .banner-icon {
+  color: #d97706;
+}
+
+.banner-primary .banner-icon {
+  color: #0284c7;
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.banner-text strong {
+  font-size: 14px;
+}
+
+.banner-warn .banner-text strong {
+  color: #991b1b;
+}
+
+.banner-accent .banner-text strong {
+  color: #92400e;
+}
+
+.banner-primary .banner-text strong {
+  color: #075985;
+}
+
+.banner-text span {
+  font-size: 13px;
+}
+
+.banner-warn .banner-text span {
+  color: #b91c1c;
+}
+
+.banner-accent .banner-text span {
+  color: #b45309;
+}
+
+.banner-primary .banner-text span {
+  color: #0369a1;
+}
+
+.banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.banner-retry-btn {
+  font-size: 13px !important;
+}
+
+.banner-warn .banner-retry-btn {
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+
+.banner-accent .banner-retry-btn {
+  color: #d97706 !important;
+  border-color: #fcd34d !important;
+}
+
+.banner-primary .banner-retry-btn {
+  color: #0284c7 !important;
+  border-color: #7dd3fc !important;
+}
+
+.banner-dismiss-btn {
+  color: inherit !important;
+}
+
+/* ==================== Shared Styles ==================== */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==================== Responsive ==================== */
+@media (max-width: 600px) {
+  .error-content {
+    padding: 24px 12px;
+  }
+
+  .error-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .error-icon mat-icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .error-title {
+    font-size: 20px;
+  }
+
+  .error-actions {
+    flex-direction: column;
+  }
+
+  .error-actions button {
+    width: 100%;
+  }
+
+  .error-inline {
+    flex-direction: column;
+  }
+
+  .inline-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .error-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .banner-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

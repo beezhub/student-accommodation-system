@@ -1,0 +1,74 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="header-icon">
+      <mat-icon>{{ mode === 'create' ? 'add_circle' : 'edit' }}</mat-icon>
+    </div>
+    <h2>{{ getTitle() }}</h2>
+    <p>{{ mode === 'create' ? 'Create a new document type for student applications' : 'Update document type details' }}</p>
+  </div>
+
+  <mat-dialog-content>
+    <form [formGroup]="documentTypeForm" class="document-type-form">
+      <div class="form-field-wrapper">
+        <label class="field-label">
+          <mat-icon>label</mat-icon>
+          Document Type Name
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input matInput formControlName="name" placeholder="e.g., National ID, Proof of Enrollment">
+          @if (documentTypeForm.get('name')?.hasError('required') && documentTypeForm.get('name')?.touched) {
+            <mat-error>Document type name is required</mat-error>
+          }
+          @if (documentTypeForm.get('name')?.hasError('maxlength')) {
+            <mat-error>Name cannot exceed 50 characters</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="form-field-wrapper">
+        <label class="field-label">
+          <mat-icon>notes</mat-icon>
+          Description
+          <span class="optional-badge">Optional</span>
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <textarea matInput formControlName="description" placeholder="Brief description of this document type" rows="3"></textarea>
+          @if (documentTypeForm.get('description')?.hasError('maxlength')) {
+            <mat-error>Description cannot exceed 255 characters</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="checkbox-wrapper">
+        <div class="checkbox-card" [class.active]="documentTypeForm.get('isRequired')?.value">
+          <mat-checkbox formControlName="isRequired">
+            <div class="checkbox-content">
+              <div class="checkbox-icon">
+                <mat-icon>{{ documentTypeForm.get('isRequired')?.value ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+              </div>
+              <div class="checkbox-text">
+                <span class="checkbox-label">Mark as Required</span>
+                <span class="checkbox-hint">Required documents must be submitted by all students during application.</span>
+              </div>
+            </div>
+          </mat-checkbox>
+        </div>
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button mat-stroked-button (click)="onCancel()" [disabled]="isLoading" class="cancel-btn">
+      Cancel
+    </button>
+    <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isLoading || documentTypeForm.invalid" class="submit-btn">
+      @if (isLoading) {
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>{{ mode === 'create' ? 'Creating...' : 'Updating...' }}</span>
+      } @else {
+        <mat-icon>{{ mode === 'create' ? 'add' : 'save' }}</mat-icon>
+        <span>{{ getSubmitButtonText() }}</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</div>

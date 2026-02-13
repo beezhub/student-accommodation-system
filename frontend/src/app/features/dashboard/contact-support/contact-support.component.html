@@ -1,23 +1,40 @@
-<div class="card shadow-sm">
-    <div class="card-body">
-        <h5 class="card-title">Contact Support</h5>
-        <form (ngSubmit)="submitForm()" *ngIf="!submitted">
-            <div class="mb-3">
-                <label class="form-label">Name</label>
-                <input class="form-control" [(ngModel)]="name" name="name" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input class="form-control" [(ngModel)]="email" name="email" type="email" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Message</label>
-                <textarea class="form-control" [(ngModel)]="message" name="message" rows="4" required></textarea>
-            </div>
-            <button class="btn btn-primary" type="submit">Send</button>
+<div class="contact-support-container">
+  <mat-card class="contact-support-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon color="primary" class="contact-icon">support_agent</mat-icon>
+        Contact Support
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (!submitted) {
+        <form (ngSubmit)="submitForm()" autocomplete="off" class="contact-form">
+          <mat-form-field appearance="outline" class="form-field" floatLabel="always">
+            <mat-label>Name</mat-label>
+            <input matInput [(ngModel)]="name" name="name" required autocomplete="off">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="form-field" floatLabel="always">
+            <mat-label>Email</mat-label>
+            <input matInput [(ngModel)]="email" name="email" type="email" required autocomplete="off">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="form-field" floatLabel="always">
+            <mat-label>Message</mat-label>
+            <textarea matInput [(ngModel)]="message" name="message" rows="4" required></textarea>
+          </mat-form-field>
+          <div class="form-actions">
+            <button mat-raised-button color="primary" type="submit" class="send-button">
+              <mat-icon>send</mat-icon>
+              Send
+            </button>
+          </div>
         </form>
-        <div *ngIf="submitted" class="alert alert-success mt-3">
-            Your message has been sent. Support will contact you soon.
+      }
+      @if (submitted) {
+        <div class="success-message">
+          <mat-icon color="primary">check_circle</mat-icon>
+          Your message has been sent. Support will contact you soon.
         </div>
-    </div>
+      }
+    </mat-card-content>
+  </mat-card>
 </div>

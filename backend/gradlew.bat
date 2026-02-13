@@ -38,6 +38,12 @@ for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
+@rem Prefer Java 17+ for running Gradle (Spring Boot 3 requires 17+).
+@rem Users can set GRADLE_JAVA_HOME (e.g. via SDKMAN current) to force the JDK used by Gradle.
+if not "%GRADLE_JAVA_HOME%"=="" (
+  set "JAVA_HOME=%GRADLE_JAVA_HOME%"
+)
+
 @rem Find java.exe
 if defined JAVA_HOME goto findJavaFromJavaHome
 

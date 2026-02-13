@@ -1,24 +1,36 @@
-<div class="container">
+<div class="home-container">
   <!-- Hero Section -->
-  <div class="hero-section text-center py-5">
-    <h1 class="display-4 fw-bold mb-4">Find Your Perfect Student Accommodation</h1>
-    <p class="lead text-muted mb-5">Simple, secure, and hassle-free student housing management platform</p>
-    <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-      <a routerLink="/student-registration" class="btn btn-primary btn-lg px-4 gap-3">Register Now</a>
-      <a routerLink="/login" class="btn btn-outline-secondary btn-lg px-4">Sign In</a>
-    </div>
-  </div>
-
-  <!-- Features Section -->
-  <div class="row g-4 py-5">
-    <div class="col-md-4" *ngFor="let feature of features">
-      <div class="card h-100 border-0 shadow-sm hover-card">
-        <div class="card-body text-center p-4">
-          <i class="bi {{feature.icon}} feature-icon mb-3"></i>
-          <h3 class="card-title h5 mb-3">{{feature.title}}</h3>
-          <p class="card-text text-muted">{{feature.description}}</p>
-        </div>
+  <section class="hero-section">
+    <div class="hero-content">
+      <h1 class="hero-title">Find Your Perfect Student Accommodation</h1>
+      <p class="hero-subtitle">Simple, secure, and hassle-free student housing management platform</p>
+      <div class="hero-actions">
+        <button mat-raised-button color="primary" routerLink="/signup" class="hero-button primary-button">
+          <mat-icon>person_add</mat-icon>
+          Register Now
+        </button>
+        <button mat-outlined-button routerLink="/login" class="hero-button secondary-button">
+          <mat-icon>login</mat-icon>
+          Sign In
+        </button>
       </div>
     </div>
-  </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features-section">
+    <div class="features-grid">
+      @for (feature of features; track feature) {
+        <mat-card class="feature-card">
+          <mat-card-content class="feature-content">
+            <div class="feature-icon-container">
+              <mat-icon class="feature-icon">{{feature.icon}}</mat-icon>
+            </div>
+            <mat-card-title class="feature-title">{{feature.title}}</mat-card-title>
+            <mat-card-subtitle class="feature-description">{{feature.description}}</mat-card-subtitle>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  </section>
 </div>

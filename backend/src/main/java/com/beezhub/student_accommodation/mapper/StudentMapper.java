@@ -15,6 +15,9 @@ public interface StudentMapper {
     Student toEntity(StudentRequest studentRequest);
 
     @Mapping(source = "appUser.id", target = "userId")
+    @Mapping(source = "appUser.firstName", target = "firstName")
+    @Mapping(source = "appUser.lastName", target = "lastName")
+    @Mapping(source = "appUser.email", target = "email")
     @Mapping(source = "institution.id", target = "institutionId")
     @Mapping(source = "yearOfStudy.id", target = "yearOfStudyId")
     StudentResponse toResponse(Student savedStudent);

@@ -2,11 +2,15 @@ package com.beezhub.student_accommodation.model.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
-@Entity(name = "institution")
+@Entity
+@Table(name = "institution")
 @Data
 public class Institution {
 
@@ -23,6 +27,11 @@ public class Institution {
     private LocalDateTime createdAt;
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @ManyToMany(mappedBy = "institutions")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Set<Building> buildings = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {

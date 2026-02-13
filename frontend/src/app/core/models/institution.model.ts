@@ -1,7 +1,7 @@
 export interface Institution {
-  id: string;
+  id: number;
   name: string;
-  address: string;
-  phoneNumber: string;
-  emailAddress: string | null;
+  address?: string;
+  phoneNumber?: string;
+  emailAddress?: string | null;
 }

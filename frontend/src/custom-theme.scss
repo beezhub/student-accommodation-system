@@ -1,0 +1,82 @@
+// Custom Theming for Angular Material with Apple Design System
+@use '@angular/material' as mat;
+@use 'styles/variables' as vars;
+@use 'styles/mixins' as mixins;
+
+@include mat.elevation-classes();
+@include mat.app-background();
+
+$app-theme: mat.define-theme((color: (theme-type: light,
+        primary: mat.$azure-palette,
+        tertiary: mat.$orange-palette,
+      ),
+      typography: (brand-family: vars.$font-sans,
+        plain-family: vars.$font-sans,
+      ),
+      density: (scale: 0,
+      )));
+
+html {
+  @include mat.all-component-themes($app-theme);
+}
+
+// Customizations
+html {
+  --mat-button-filled-label-text-font: #{vars.$font-sans};
+  --mat-button-outlined-label-text-font: #{vars.$font-sans};
+  --mat-button-text-label-text-font: #{vars.$font-sans};
+}
+
+// Custom Material component styles
+.mat-mdc-card {
+  @include mixins.card-base;
+  border: 1px solid rgba(vars.$slate-200, 0.6);
+  backdrop-filter: blur(10px);
+  transition: all 0.5s vars.$motion-spring !important;
+}
+
+.mat-mdc-card:hover {
+  transform: translateY(-4px);
+  box-shadow: vars.$shadow-elevated !important;
+}
+
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-outlined-button,
+.mat-mdc-unelevated-button {
+  border-radius: vars.$radius-md !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+  min-height: 48px !important;
+  padding: 0 20px !important;
+}
+
+.mat-mdc-raised-button {
+  box-shadow: vars.$shadow-subtle !important;
+}
+
+.mat-mdc-outlined-button {
+  border-width: 1px !important;
+  border-color: vars.$slate-200 !important;
+}
+
+.mat-mdc-form-field {
+  .mat-mdc-text-field-wrapper {
+    border-radius: vars.$radius-md !important;
+    background-color: rgba(vars.$slate-50, 0.5);
+  }
+
+  .mdc-notched-outline {
+    border-radius: vars.$radius-sm !important;
+    border-width: 1px !important;
+  }
+}
+
+.mat-mdc-select .mat-mdc-select-trigger {
+  border-radius: vars.$radius-md !important;
+}
+
+.mat-mdc-checkbox .mdc-checkbox {
+  border-radius: 4px !important;
+}

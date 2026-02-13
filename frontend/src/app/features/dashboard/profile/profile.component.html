@@ -1,188 +1,206 @@
-<div class="container-fluid">
-    <div class="row">
-        <!-- Navigation Header -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="#">
-                    <h5 class="mb-0">Student Housing</h5>
-                </a>
+<mat-toolbar color="primary" class="app-toolbar" role="banner">
+  <div class="toolbar-content">
+    <span class="app-title">Student Housing</span>
+    <span class="spacer"></span>
+    <nav class="toolbar-nav" aria-label="Main navigation">
+      <a mat-button routerLink="/dashboard">Dashboard</a>
+      <a mat-button routerLink="/applications">Applications</a>
+      <a mat-button routerLink="/documents">Documents</a>
+      <a mat-button routerLink="/profile" aria-current="page">Profile</a>
+    </nav>
+  </div>
+</mat-toolbar>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" routerLink="/dashboard">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" routerLink="/applications">Applications</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" routerLink="/documents">Documents</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" routerLink="/profile">Profile</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="container">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h2>My Profile</h2>
-                            <button class="btn" [ngClass]="isEditing ? 'btn-outline-secondary' : 'btn-primary'" (click)="toggleEdit()">
-                                <i class="bi" [ngClass]="isEditing ? 'bi-x-lg' : 'bi-pencil'"></i>
-                                {{isEditing ? 'Cancel' : 'Edit Profile'}}
-                            </button>
-                        </div>
-
-                        <!-- Profile Information -->
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
-                                <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">First Name</label>
-                                            <input
-                                                    type="text"
-                                                    class="form-control"
-                                                    formControlName="firstName"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched}"
-                                            >
-                                            <div class="invalid-feedback">First name is required</div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">Last Name</label>
-                                            <input
-                                                    type="text"
-                                                    class="form-control"
-                                                    formControlName="lastName"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched}"
-                                            >
-                                            <div class="invalid-feedback">Last name is required</div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">Email</label>
-                                            <input
-                                                    type="email"
-                                                    class="form-control"
-                                                    formControlName="email"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('email')?.invalid && profileForm.get('email')?.touched}"
-                                            >
-                                            <div class="invalid-feedback">Please enter a valid email</div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">Phone Number</label>
-                                            <input
-                                                    type="tel"
-                                                    class="form-control"
-                                                    formControlName="phone"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('phone')?.invalid && profileForm.get('phone')?.touched}"
-                                            >
-                                            <div class="invalid-feedback">Please enter a valid phone number</div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">Student Number</label>
-                                            <input
-                                                    type="text"
-                                                    class="form-control"
-                                                    formControlName="studentNumber"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('studentNumber')?.invalid && profileForm.get('studentNumber')?.touched}"
-                                            >
-                                            <div class="invalid-feedback">Student number is required</div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">Institution</label>
-                                            <input
-                                                    type="text"
-                                                    class="form-control"
-                                                    formControlName="institution"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('institution')?.invalid && profileForm.get('institution')?.touched}"
-                                            >
-                                            <div class="invalid-feedback">Institution is required</div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">Year of Study</label>
-                                            <select
-                                                    class="form-select"
-                                                    formControlName="yearOfStudy"
-                                                    [disabled]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('yearOfStudy')?.invalid && profileForm.get('yearOfStudy')?.touched}"
-                                            >
-                                                <option value="">Select year</option>
-                                                <option value="1">First Year</option>
-                                                <option value="2">Second Year</option>
-                                                <option value="3">Third Year</option>
-                                                <option value="4">Fourth Year</option>
-                                                <option value="5">Fifth Year</option>
-                                                <option value="postgraduate">Postgraduate</option>
-                                            </select>
-                                            <div class="invalid-feedback">Year of study is required</div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <label class="form-label">Date of Birth</label>
-                                            <input
-                                                    type="date"
-                                                    class="form-control"
-                                                    formControlName="dateOfBirth"
-                                                    [readonly]="!isEditing"
-                                                    [ngClass]="{'is-invalid': profileForm.get('dateOfBirth')?.invalid && profileForm.get('dateOfBirth')?.touched}"
-                                            >
-                                            <div class="invalid-feedback">Date of birth is required</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="mt-4" *ngIf="isEditing">
-                                        <button
-                                                type="submit"
-                                                class="btn btn-primary"
-                                                [disabled]="!profileForm.valid || isSaving"
-                                        >
-                                            <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                            {{isSaving ? 'Saving...' : 'Save Changes'}}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
-                        <!-- Account Settings -->
-                        <div class="card border-0 shadow-sm mt-4">
-                            <div class="card-body">
-                                <h5 class="card-title">Account Settings</h5>
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-primary">
-                                        <i class="bi bi-lock me-2"></i>Change Password
-                                    </button>
-                                    <button class="btn btn-outline-danger">
-                                        <i class="bi bi-trash me-2"></i>Delete Account
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<main class="main-content">
+  <div class="page-container">
+    <div class="page-header">
+      <h2>My Profile</h2>
+      <button mat-stroked-button (click)="toggleEdit()" [color]="isEditing ? 'warn' : 'primary'" [attr.aria-pressed]="isEditing">
+        <mat-icon [attr.aria-hidden]="'false'" [attr.aria-label]="isEditing ? 'Cancel edit' : 'Edit profile'">{{ isEditing ? 'close' : 'edit' }}</mat-icon>
+        {{ isEditing ? 'Cancel' : 'Edit Profile' }}
+      </button>
     </div>
-</div>
+
+    <mat-card class="profile-card">
+      <mat-card-content>
+        <!-- Load Error Display -->
+        @if (loadError) {
+          <app-error-display
+            mode="inline"
+            [type]="loadError.type"
+            [message]="loadError.message"
+            [showRetry]="loadError.canRetry"
+            [isRetrying]="isRetrying"
+            (retry)="retryLoadProfile()">
+          </app-error-display>
+        }
+
+        <!-- Save Error Display -->
+        @if (saveError) {
+          <app-error-display
+            mode="inline"
+            [type]="saveError.type"
+            [message]="saveError.message"
+            [details]="saveError.details"
+            [showRetry]="saveError.canRetry"
+            [showDismiss]="true"
+            [isRetrying]="isSaving"
+            (retry)="retrySave()"
+            (dismiss)="dismissSaveError()">
+          </app-error-display>
+        }
+
+        <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+          <div class="grid">
+            <mat-form-field appearance="fill">
+              <mat-label>First Name</mat-label>
+              <input matInput type="text" formControlName="firstName" [readonly]="!isEditing" placeholder="Enter first name">
+              @if (profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched) {
+                <mat-error>First name is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="fill">
+              <mat-label>Last Name</mat-label>
+              <input matInput type="text" formControlName="lastName" [readonly]="!isEditing" placeholder="Enter last name">
+              @if (profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched) {
+                <mat-error>Last name is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="fill">
+              <mat-label>Email</mat-label>
+              <input matInput type="email" formControlName="email" [readonly]="!isEditing" placeholder="Enter email address">
+              @if (profileForm.get('email')?.invalid && profileForm.get('email')?.touched) {
+                <mat-error>Please enter a valid email</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="fill">
+              <mat-label>Phone Number</mat-label>
+              <input matInput type="text" formControlName="phoneNumber" [readonly]="!isEditing" placeholder="Enter phone number">
+              @if (profileForm.get('phoneNumber')?.invalid && profileForm.get('phoneNumber')?.touched) {
+                <mat-error>Phone number must be 10 digits</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="fill">
+              <mat-label>Student Number</mat-label>
+              <input matInput type="text" formControlName="studentNumber" [readonly]="!isEditing" placeholder="Enter student number">
+              @if (profileForm.get('studentNumber')?.invalid && profileForm.get('studentNumber')?.touched) {
+                <mat-error>Student number is required</mat-error>
+              }
+            </mat-form-field>
+
+            @if (isEditing) {
+              <mat-form-field appearance="fill">
+                <mat-label>Institution</mat-label>
+                <mat-select formControlName="institutionId">
+                  <mat-option value="">Select institution</mat-option>
+                  @for (institution of institutions; track institution.id) {
+                    <mat-option [value]="institution.id.toString()">{{ institution.name }}</mat-option>
+                  }
+                </mat-select>
+                @if (profileForm.get('institutionId')?.invalid && profileForm.get('institutionId')?.touched) {
+                  <mat-error>Institution is required</mat-error>
+                }
+              </mat-form-field>
+            } @else {
+              <mat-form-field appearance="fill">
+                <mat-label>Institution</mat-label>
+                <input matInput [value]="getInstitutionName(profileForm.get('institutionId')?.value)" readonly placeholder="Institution name">
+              </mat-form-field>
+            }
+
+            @if (isEditing) {
+              <mat-form-field appearance="fill">
+                <mat-label>Year of Study</mat-label>
+                <mat-select formControlName="yearOfStudyId">
+                  <mat-option value="">Select year</mat-option>
+                  @for (year of yearsOfStudy; track year.id) {
+                    <mat-option [value]="year.id.toString()">{{ year.yearOfStudy }}</mat-option>
+                  }
+                </mat-select>
+                @if (profileForm.get('yearOfStudyId')?.invalid && profileForm.get('yearOfStudyId')?.touched) {
+                  <mat-error>Year of study is required</mat-error>
+                }
+              </mat-form-field>
+            } @else {
+              <mat-form-field appearance="fill">
+                <mat-label>Year of Study</mat-label>
+                <input matInput [value]="getYearOfStudyName(profileForm.get('yearOfStudyId')?.value)" readonly placeholder="Year of study">
+              </mat-form-field>
+            }
+
+            @if (isEditing) {
+              <mat-form-field appearance="fill">
+                <mat-label>Date of Birth</mat-label>
+                <input matInput [matDatepicker]="picker" formControlName="dateOfBirth" placeholder="Select date of birth">
+                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-datepicker #picker></mat-datepicker>
+                @if (profileForm.get('dateOfBirth')?.invalid && profileForm.get('dateOfBirth')?.touched) {
+                  <mat-error>Date of birth is required</mat-error>
+                }
+              </mat-form-field>
+            } @else {
+              <mat-form-field appearance="fill">
+                <mat-label>Date of Birth</mat-label>
+                <input matInput [value]="formatDateForDisplay(profileForm.get('dateOfBirth')?.value)" readonly placeholder="Date of birth">
+              </mat-form-field>
+            }
+
+            @if (isEditing) {
+              <mat-form-field appearance="fill">
+                <mat-label>Gender</mat-label>
+                <mat-select formControlName="gender">
+                  <mat-option value="">Prefer not to say</mat-option>
+                  <mat-option value="Male">Male</mat-option>
+                  <mat-option value="Female">Female</mat-option>
+                  <mat-option value="Other">Other</mat-option>
+                </mat-select>
+              </mat-form-field>
+            } @else {
+              <mat-form-field appearance="fill">
+                <mat-label>Gender</mat-label>
+                <input matInput [value]="profileForm.get('gender')?.value || 'Not specified'" readonly placeholder="Gender">
+              </mat-form-field>
+            }
+
+            <mat-form-field appearance="fill" class="full-width">
+              <mat-label>Special Requirements</mat-label>
+              <textarea matInput formControlName="specialRequirements" [readonly]="!isEditing" rows="3"
+              placeholder="Enter any special requirements or accommodations needed"></textarea>
+            </mat-form-field>
+          </div>
+
+          @if (isEditing) {
+            <div class="actions">
+              <button mat-flat-button color="primary" type="submit" [disabled]="!profileForm.valid || isSaving">
+                @if (isSaving) {
+                  <mat-progress-spinner mode="indeterminate" diameter="18" strokeWidth="3"></mat-progress-spinner>
+                }
+                <span class="button-text">{{ isSaving ? 'Saving...' : 'Save Changes' }}</span>
+              </button>
+            </div>
+          }
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="account-card">
+      <mat-card-content>
+        <h3>Account Settings</h3>
+        <div class="account-actions">
+          <button mat-stroked-button (click)="openChangePasswordDialog()">
+            <mat-icon [attr.aria-hidden]="'false'" [attr.aria-label]="'Change password'">lock</mat-icon>
+            Change Password
+          </button>
+          <button mat-stroked-button color="warn" (click)="openDeleteAccountDialog()">
+            <mat-icon [attr.aria-hidden]="'false'" [attr.aria-label]="'Delete account'">delete</mat-icon>
+            Delete Account
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</main>

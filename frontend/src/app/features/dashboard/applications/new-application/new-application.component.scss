@@ -1,0 +1,370 @@
+@use '../../../../../styles/variables' as vars;
+@use '../../../../../styles/mixins' as mixins;
+
+/* Modern New Application Page Design */
+.page-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1rem;
+    background: linear-gradient(135deg, vars.$slate-50 0%, vars.$slate-200 100%);
+    min-height: calc(100vh - 64px);
+    margin-top: 64px;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        padding: 2rem 1.5rem;
+    }
+}
+
+/* Card Styles */
+.application-card {
+    @include mixins.card-base;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    padding: 0 !important;
+}
+
+.application-card mat-card-header {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, vars.$slate-900 0%, vars.$accent-cyan-dark 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        padding: 2rem 2.5rem;
+    }
+}
+
+.application-card mat-card-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(40px);
+    pointer-events: none;
+}
+
+::ng-deep .application-card .mat-mdc-card-header-text {
+    margin: 0;
+    width: 100%;
+}
+
+.application-card mat-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    /* Mobile first */
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: white;
+    position: relative;
+    z-index: 1;
+
+    mat-icon {
+        font-size: 2rem;
+        width: 2rem;
+        height: 2rem;
+    }
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        font-size: 1.75rem;
+
+        mat-icon {
+            font-size: 2.25rem;
+            width: 2.25rem;
+            height: 2.25rem;
+        }
+    }
+}
+
+.application-card mat-card-subtitle {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.9375rem;
+    /* Mobile first */
+    font-weight: 400;
+    position: relative;
+    z-index: 1;
+    line-height: 1.5;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        font-size: 1.0625rem;
+    }
+}
+
+.application-card mat-card-content {
+    padding: 1.5rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        padding: 2.5rem;
+    }
+}
+
+/* Form Section Styles */
+.form-section {
+    margin-bottom: 2rem;
+}
+
+.section-title {
+    @include mixins.section-title;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+
+    mat-icon {
+        color: vars.$accent-cyan-dark;
+        font-size: 1.5rem;
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        font-size: 1.375rem;
+
+        mat-icon {
+            font-size: 1.75rem;
+            width: 1.75rem;
+            height: 1.75rem;
+        }
+    }
+}
+
+.form-row {
+    display: flex;
+    flex-direction: column;
+    /* Mobile first */
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        flex-direction: row;
+        gap: 1.5rem;
+    }
+}
+
+.half-width {
+    flex: 1;
+    width: 100%;
+}
+
+.full-width {
+    width: 100%;
+    margin-bottom: 1.25rem;
+}
+
+/* Info Card Styles */
+.info-card {
+    display: flex;
+    align-items: flex-start;
+    /* Better for multiline text on mobile */
+    gap: 1rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: vars.$radius-md;
+    border: 1px solid #bae6fd;
+    margin-top: 1.25rem;
+    box-shadow: vars.$shadow-subtle;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        padding: 1.25rem 1.5rem;
+        align-items: center;
+        border-radius: vars.$radius-lg;
+    }
+}
+
+.info-card mat-icon {
+    color: vars.$accent-cyan-dark;
+    font-size: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        font-size: 1.75rem;
+        width: 1.75rem;
+        height: 1.75rem;
+    }
+}
+
+.info-content {
+    flex: 1;
+    font-size: 0.9375rem;
+    color: #0c4a6e;
+    line-height: 1.6;
+
+    strong {
+        color: vars.$slate-900;
+        font-weight: 600;
+    }
+}
+
+/* Checkbox Section */
+.checkbox-section {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+    border-radius: vars.$radius-md;
+    border: 1px solid #a5f3fc;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        padding: 1.25rem 1.5rem;
+        border-radius: vars.$radius-lg;
+    }
+}
+
+.checkbox-section mat-checkbox {
+    display: block;
+}
+
+::ng-deep .checkbox-section .mdc-checkbox__background {
+    border-color: vars.$accent-cyan-dark !important;
+}
+
+::ng-deep .checkbox-section .mdc-checkbox--selected .mdc-checkbox__background {
+    background-color: vars.$accent-cyan-dark !important;
+    border-color: vars.$accent-cyan-dark !important;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    flex-direction: column-reverse;
+    /* Mobile first: primary action on top/first in visual order or bottom usually? Material conventions: actions at bottom right. Stacked on mobile: Full width */
+    gap: 1rem;
+    margin-top: 2rem;
+    border-top: 1px solid vars.$slate-200;
+    padding-top: 1.5rem;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+.cancel-button {
+    width: 100%;
+    color: vars.$slate-500 !important;
+    font-weight: 600;
+    height: 48px;
+    border-radius: vars.$radius-md !important;
+
+    &:hover {
+        background: vars.$slate-100 !important;
+        color: vars.$slate-700 !important;
+    }
+
+    mat-icon {
+        margin-right: 0.5rem;
+    }
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        width: auto;
+        padding: 0 1.5rem !important;
+    }
+}
+
+.submit-button {
+    width: 100%;
+    height: 48px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 24px !important;
+    background: linear-gradient(135deg, vars.$accent-cyan-dark 0%, vars.$slate-900 100%) !important;
+    box-shadow: vars.$shadow-medium;
+    color: white !important;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+
+    &:hover:not([disabled]) {
+        transform: translateY(-2px);
+        box-shadow: vars.$shadow-elevated;
+    }
+
+    &[disabled] {
+        background: vars.$slate-400 !important;
+        box-shadow: none;
+        opacity: 0.7;
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    mat-icon {
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        margin: 0;
+    }
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        width: auto;
+        min-width: 220px;
+        height: 52px;
+    }
+}
+
+.button-spinner {
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+/* Help Text */
+.help-text {
+    display: flex;
+    flex-direction: column;
+    /* Mobile first */
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+    border-radius: vars.$radius-lg;
+    border: 1px solid #a5f3fc;
+    color: vars.$slate-900;
+
+    mat-icon {
+        color: vars.$accent-cyan-dark;
+        font-size: 1.5rem;
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+
+    p {
+        margin: 0;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        line-height: 1.5;
+    }
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        flex-direction: row;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        gap: 1rem;
+    }
+}
+
+/* Building Address in Dropdown */
+.building-address {
+    color: vars.$slate-500;
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+/* Divider Spacing */
+mat-divider {
+    margin: 2rem 0 !important;
+    border-top-color: vars.$slate-200 !important;
+}

@@ -2,12 +2,12 @@ package com.beezhub.student_accommodation.model.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.Date;
 
-@Entity(name = "student")
+@Entity
+@Table(name = "student")
 @Data
 public class Student {
 

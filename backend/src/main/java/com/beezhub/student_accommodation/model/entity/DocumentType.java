@@ -5,7 +5,8 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Entity(name = "document_type")
+@Entity
+@Table(name = "document_type")
 @Data
 public class DocumentType {
 
@@ -15,6 +16,10 @@ public class DocumentType {
 
     @Column(name = "type_name", nullable = false, unique = true)
     private String typeName;
+    @Column(name = "description")
+    private String description;
+    @Column(name = "is_required", nullable = false)
+    private  Boolean isRequired;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     @Column(name = "updated_at")

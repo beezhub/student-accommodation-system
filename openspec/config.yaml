@@ -1,0 +1,21 @@
+# openspec/config.yaml
+schema: dev-workflow
+
+context: |
+  [YOUR PROJECT TECH STACK AND CONVENTIONS]
+
+rules:
+  brd:
+    - Focus on user value and business impact
+    - Include acceptance criteria
+    - Identify stakeholders
+  
+  architecture:
+    - Follow existing patterns in src/
+    - Consider backwards compatibility
+    - Document any breaking changes
+  
+  tasks:
+    - Keep tasks under 2 hours each
+    - No task should touch more than 3 files
+    - Group related changes together

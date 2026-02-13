@@ -1,0 +1,12 @@
+{
+    "extends": "stylelint-config-standard",
+    "plugins": [
+        "stylelint-scss"
+    ],
+    "rules": {
+        "indentation": 2,
+        "string-quotes": "double",
+        "max-nesting-depth": 3,
+        "scss/dollar-variable-pattern": "^[a-z][a-z0-9-]*$"
+    }
+}

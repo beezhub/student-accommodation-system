@@ -1,0 +1,241 @@
+<div class="user-management-container">
+  <div class="page-header">
+    <div class="header-content">
+      <h1>
+        <mat-icon>people</mat-icon>
+        User Management
+      </h1>
+      <p class="subtitle">Manage admin and landlord users</p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-item">
+        <span class="stat-value">{{ users.length }}</span>
+        <span class="stat-label">Total Users</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Card -->
+  <mat-card class="filter-card">
+    <mat-card-content>
+      <div class="filter-header">
+        <mat-icon>filter_list</mat-icon>
+        <span>Filter Users</span>
+      </div>
+      <div class="filter-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Filter by Role</mat-label>
+          <mat-icon matPrefix>badge</mat-icon>
+          <mat-select [(value)]="filterRole" (selectionChange)="onFilterChange($event.value)">
+            <mat-option value="all">
+              <div class="role-option">
+                <mat-icon>groups</mat-icon>
+                All Users
+              </div>
+            </mat-option>
+            <mat-option value="ADMIN">
+              <div class="role-option">
+                <mat-icon class="admin">admin_panel_settings</mat-icon>
+                Admins Only
+              </div>
+            </mat-option>
+            <mat-option value="LANDLORD">
+              <div class="role-option">
+                <mat-icon class="landlord">apartment</mat-icon>
+                Landlords Only
+              </div>
+            </mat-option>
+            <mat-option value="STUDENT">
+              <div class="role-option">
+                <mat-icon class="student">school</mat-icon>
+                Students Only
+              </div>
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <div class="filter-actions">
+          <button mat-raised-button color="primary" (click)="openCreateUserDialog()" class="create-btn">
+            <mat-icon>person_add</mat-icon>
+            Create User
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Table Card -->
+  <mat-card class="table-card">
+    <mat-card-content>
+      @if (isLoading) {
+        <div class="loading-container">
+          <mat-spinner diameter="48"></mat-spinner>
+          <p>Loading users...</p>
+        </div>
+      }
+
+      @if (!isLoading) {
+        <!-- Mobile Card View -->
+        <div class="mobile-cards-container">
+          @for (user of users; track user.id) {
+            <div class="mobile-card">
+              <div class="mobile-card-header">
+                <div class="mobile-user-info">
+                   <div class="mobile-avatar" [class]="user.userRole.toLowerCase()">
+                      {{ user.firstName?.charAt(0) }}{{ user.lastName?.charAt(0) }}
+                   </div>
+                   <div class="mobile-name-col">
+                      <span class="mobile-name">{{ user.firstName }} {{ user.lastName }}</span>
+                      <span class="mobile-email">{{ user.email }}</span>
+                   </div>
+                </div>
+                <!-- Actions in header for mobile -->
+                 <div class="mobile-actions-top">
+                    <button mat-icon-button color="warn" (click)="deleteUser(user)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                 </div>
+              </div>
+
+              <div class="mobile-details">
+                <div class="mobile-detail-item">
+                   <span class="label">Role</span>
+                   <span class="role-badge" [class]="user.userRole.toLowerCase()">
+                      <mat-icon>
+                        {{ user.userRole === 'ADMIN' ? 'admin_panel_settings' : user.userRole === 'LANDLORD' ? 'apartment' : 'school' }}
+                      </mat-icon>
+                      {{ user.userRole }}
+                   </span>
+                </div>
+                 <div class="mobile-detail-item">
+                   <span class="label">ID</span>
+                   <span class="id-badge">#{{ user.id }}</span>
+                 </div>
+                 <div class="mobile-detail-item">
+                    <span class="label">Password</span>
+                    @if (user.mustChangePassword) {
+                      <span class="password-badge warning">
+                        <mat-icon>lock_reset</mat-icon>
+                        Change Req.
+                      </span>
+                    } @else {
+                      <span class="password-badge success">
+                        <mat-icon>check_circle</mat-icon>
+                        OK
+                      </span>
+                    }
+                 </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-container">
+          <table mat-table [dataSource]="users" class="users-table">
+            <!-- ID Column -->
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef>ID</th>
+              <td mat-cell *matCellDef="let user">
+                <span class="id-badge">#{{ user.id }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Name Column -->
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>User</th>
+              <td mat-cell *matCellDef="let user">
+                <div class="user-cell">
+                  <div class="user-avatar" [class]="user.userRole.toLowerCase()">
+                    {{ user.firstName?.charAt(0) }}{{ user.lastName?.charAt(0) }}
+                  </div>
+                  <div class="user-info">
+                    <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span>
+                    <span class="user-email">{{ user.email }}</span>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Email Column -->
+            <ng-container matColumnDef="email">
+              <th mat-header-cell *matHeaderCellDef>Email</th>
+              <td mat-cell *matCellDef="let user">
+                <div class="email-cell">
+                  <mat-icon>email</mat-icon>
+                  <span>{{ user.email }}</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Role Column -->
+            <ng-container matColumnDef="role">
+              <th mat-header-cell *matHeaderCellDef>Role</th>
+              <td mat-cell *matCellDef="let user">
+                <span class="role-badge" [class]="user.userRole.toLowerCase()">
+                  <mat-icon>
+                    {{ user.userRole === 'ADMIN' ? 'admin_panel_settings' : user.userRole === 'LANDLORD' ? 'apartment' : 'school' }}
+                  </mat-icon>
+                  {{ user.userRole }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Password Status Column -->
+            <ng-container matColumnDef="mustChangePassword">
+              <th mat-header-cell *matHeaderCellDef>Password Status</th>
+              <td mat-cell *matCellDef="let user">
+                @if (user.mustChangePassword) {
+                  <span class="password-badge warning">
+                    <mat-icon>lock_reset</mat-icon>
+                    Must Change
+                  </span>
+                }
+                @if (!user.mustChangePassword) {
+                  <span class="password-badge success">
+                    <mat-icon>check_circle</mat-icon>
+                    OK
+                  </span>
+                }
+              </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let user">
+                <div class="actions-cell">
+                  <button
+                    mat-icon-button
+                    (click)="deleteUser(user)"
+                    matTooltip="Delete user"
+                    class="action-btn delete"
+                    >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+
+          @if (users.length === 0) {
+            <div class="no-data">
+              <div class="no-data-icon">
+                <mat-icon>person_off</mat-icon>
+              </div>
+              <h3>No Users Found</h3>
+              <p>There are no users matching your current filter.</p>
+              <button mat-stroked-button color="primary" (click)="onFilterChange('all')">
+                <mat-icon>refresh</mat-icon>
+                Show All Users
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

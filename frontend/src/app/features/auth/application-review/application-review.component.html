@@ -1,85 +1,170 @@
-<div class="container">
-    <div class="row justify-content-center align-items-center min-vh-100 py-5">
-        <div class="col-12 col-md-10 col-lg-8">
-            <div class="card border-0 shadow-lg">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <h2 class="fw-bold">Review Your Application</h2>
-                        <p class="text-muted">Please review your information before final submission</p>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div class="progress mb-4" style="height: 8px;">
-                        <div class="progress-bar" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <p class="text-center text-muted mb-4">Step 4 of 4</p>
-
-                    <div class="review-sections">
-                        <!-- Personal Information -->
-                        <div class="review-section mb-4">
-                            <h4 class="mb-3">Personal Information</h4>
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-sm-6">
-                                            <p class="mb-1"><strong>Name:</strong></p>
-                                            <p class="text-muted">{{applicationData.personalInfo.name}}</p>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <p class="mb-1"><strong>Email:</strong></p>
-                                            <p class="text-muted">{{applicationData.personalInfo.email}}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Documents -->
-                        <div class="review-section mb-4">
-                            <h4 class="mb-3">Uploaded Documents</h4>
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <ul class="list-unstyled mb-0">
-                                        <li class="mb-2">
-                                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                            Student ID
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                            Proof of Enrollment
-                                        </li>
-                                        <li>
-                                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                            Passport/ID
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Terms and Conditions -->
-                        <div class="review-section mb-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="termsCheck" required>
-                                <label class="form-check-label" for="termsCheck">
-                                    I confirm that all the information provided is accurate and complete
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button
-                                    class="btn btn-primary btn-lg"
-                                    (click)="onSubmit()"
-                                    [disabled]="isSubmitting"
-                            >
-                                <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                {{isSubmitting ? 'Submitting...' : 'Submit Application'}}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="review-container">
+  <mat-card class="review-card">
+    <div class="setup-header">
+      <h1 class="welcome-title">Review Your Application</h1>
+      <p class="welcome-subtitle">Please review your information before final submission</p>
     </div>
+
+    <mat-card-content class="review-content">
+      <!-- Progress Bar -->
+      <div class="progress-section">
+        <mat-progress-bar mode="determinate" value="100"></mat-progress-bar>
+        <p class="progress-text">Step 4 of 4</p>
+      </div>
+
+      <div class="review-sections">
+        <!-- Personal Information -->
+        <div class="review-section">
+          <h3 class="section-title">
+            <mat-icon>person</mat-icon>
+            Personal Information
+          </h3>
+          <mat-card class="info-card">
+            <mat-card-content>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-label">Name:</span>
+                  <span class="info-value">
+                    {{
+                    currentUser?.firstName && currentUser?.lastName
+                    ? (currentUser?.firstName + ' ' + currentUser?.lastName)
+                    : currentUser?.firstName || currentUser?.lastName || 'N/A'
+                    }}
+                  </span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Email:</span>
+                  <span class="info-value">{{ currentUser?.email || 'N/A' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Student Number:</span>
+                  <span class="info-value">{{ studentProfile?.studentNumber || 'N/A' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Phone Number:</span>
+                  <span class="info-value">{{ studentProfile?.phoneNumber || 'N/A' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Date of Birth:</span>
+                  <span class="info-value">
+                    {{ studentProfile?.dateOfBirth ? (studentProfile?.dateOfBirth | date: 'longDate') : 'N/A' }}
+                  </span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Institution:</span>
+                  <span class="info-value">{{ getInstitutionName() }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Year of Study:</span>
+                  <span class="info-value">{{ getYearOfStudyName() }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Gender:</span>
+                  <span class="info-value">{{ studentProfile?.gender || 'N/A' }}</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Application Preferences -->
+        @if (currentApplication) {
+          <div class="review-section">
+            <h3 class="section-title">
+              <mat-icon>home</mat-icon>
+              Accommodation Preferences
+            </h3>
+            <mat-card class="info-card">
+              <mat-card-content>
+                <div class="info-grid">
+                  @if (currentApplication.preferredBuildingName) {
+                    <div class="info-item">
+                      <span class="info-label">Preferred Building:</span>
+                      <span class="info-value">{{ currentApplication.preferredBuildingName }}</span>
+                    </div>
+                  }
+                  @if (currentApplication.requiresAccessibility !== null && currentApplication.requiresAccessibility !== undefined) {
+                    <div class="info-item">
+                      <span class="info-label">Accessibility Required:</span>
+                      <span class="info-value">{{ currentApplication.requiresAccessibility ? 'Yes' : 'No' }}</span>
+                    </div>
+                  }
+                  @if (currentApplication.specialRequirements) {
+                    <div class="info-item full-width">
+                      <span class="info-label">Special Requirements:</span>
+                      <span class="info-value">{{ currentApplication.specialRequirements }}</span>
+                    </div>
+                  }
+                  @if (currentApplication.institutionName) {
+                    <div class="info-item">
+                      <span class="info-label">Institution:</span>
+                      <span class="info-value">{{ currentApplication.institutionName }}</span>
+                    </div>
+                  }
+                  @if (currentApplication.courseName) {
+                    <div class="info-item">
+                      <span class="info-label">Course:</span>
+                      <span class="info-value">{{ currentApplication.courseName }}</span>
+                    </div>
+                  }
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <mat-divider></mat-divider>
+        }
+
+        <!-- Documents -->
+        <div class="review-section">
+          <h3 class="section-title">
+            <mat-icon>description</mat-icon>
+            Uploaded Documents
+          </h3>
+          <mat-card class="info-card">
+            <mat-card-content>
+              <div class="documents-list">
+                @for (doc of documents; track doc) {
+                  <div class="document-item">
+                    <mat-icon class="document-icon success-icon">check_circle</mat-icon>
+                    <span class="document-name">{{ doc.documentTypeName }}</span>
+                  </div>
+                }
+                @if (documents.length === 0) {
+                  <div class="no-documents">
+                    <mat-icon class="warning-icon">warning</mat-icon>
+                    <span>No documents uploaded.</span>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Terms and Conditions -->
+        <div class="review-section terms-section">
+          <mat-checkbox [(ngModel)]="termsAccepted" class="terms-checkbox" required>
+            I confirm that all the information provided is accurate and complete
+          </mat-checkbox>
+        </div>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions class="review-actions">
+      <button mat-raised-button color="primary" class="submit-button" (click)="onSubmit()"
+        [disabled]="isSubmitting || !termsAccepted">
+        @if (isSubmitting) {
+          <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+        }
+        @if (!isSubmitting) {
+          <mat-icon>send</mat-icon>
+        }
+        {{ isSubmitting ? "Submitting..." : "Submit Application" }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
 </div>

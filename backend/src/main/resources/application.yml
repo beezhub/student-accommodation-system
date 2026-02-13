@@ -29,6 +29,34 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
     locations: classpath:db/migration
     out-of-order: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 60000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:noreply@studentaccommodation.local}
+    password: ${MAIL_PASSWORD:test}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+    default-encoding: UTF-8
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE:10MB}
+      max-request-size: ${MAX_REQUEST_SIZE:20MB}
+      file-size-threshold: 2MB
 springdoc:
   api-docs:
     path: /v3/api-docs
@@ -40,8 +68,35 @@ springdoc:
 jwt:
   secret: ${JWT_SECRET:jCiWx+J9UALsCG/0E4elPktfQpDd7EpipyN1AGrCE2HNAjf826VSFMklA76gqBf23ZP8P1kq9DmC95dSolXknQ==}
   expiration-time-ms: ${JWT_EXPIRATION:36000000}
+  admin-expiration-time-ms: ${JWT_ADMIN_EXPIRATION:14400000}
 minio:
   endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
   bucket-name: ${MINIO_BUCKET:student-accommodation-bucket}
+google:
+  maps:
+    api-key: ${GOOGLE_MAPS_API_KEY:}
+    frontend:
+      api-key: ${GOOGLE_MAPS_FRONTEND_API_KEY:}
+    geocoding:
+      enabled: ${GEOCODING_ENABLED:true}
+app:
+  base-url: ${APP_BASE_URL:http://localhost:4200}
+  support-email: ${APP_SUPPORT_EMAIL:accommodation@university.edu}
+  university-name: ${APP_UNIVERSITY_NAME:University}
+  notification:
+    retry-delay-minutes: ${NOTIFICATION_RETRY_DELAY_MINUTES:5}
+    retry-check-interval-ms: ${NOTIFICATION_RETRY_CHECK_INTERVAL_MS:300000}
+  allocation:
+    offer-expiry-days: ${OFFER_EXPIRY_DAYS:7}
+    check-in-expiry-days: ${CHECK_IN_EXPIRY_DAYS:7}
+    expiry-check-interval-ms: ${EXPIRY_CHECK_INTERVAL_MS:3600000}
+    # Batch allocation properties
+    batch-enabled: ${BATCH_ENABLED:true}
+    batch-interval-ms: ${BATCH_INTERVAL_MS:21600000}  # 6 hours
+    batch-size: ${BATCH_SIZE:50}
+    batch-on-expiry: ${BATCH_ON_EXPIRY:true}
+  features:
+    auto-allocation:
+      enabled: ${AUTO_ALLOCATION_ENABLED:true}

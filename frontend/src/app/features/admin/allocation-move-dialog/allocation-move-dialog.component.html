@@ -1,0 +1,136 @@
+<h2 mat-dialog-title>Move Student</h2>
+
+<mat-dialog-content>
+  <div class="dialog-layout">
+    
+    <!-- Current Allocation Info -->
+    <div class="current-info-panel">
+      <h3>Current Allocation</h3>
+      <div class="info-grid">
+        <div class="label">Student:</div>
+        <div class="value">{{data.studentName}}</div>
+        
+        <div class="label">Current Room:</div>
+        <div class="value">
+          <strong>{{data.currentRoom.buildingName}}</strong> - {{data.currentRoom.roomNumber}}
+        </div>
+      </div>
+    </div>
+
+    <mat-divider style="margin: 16px 0;"></mat-divider>
+
+    <!-- Room Search -->
+    <h3>Select New Room</h3>
+    <form [formGroup]="searchForm" (ngSubmit)="searchRooms()" class="search-form">
+      <mat-form-field appearance="outline" class="building-select">
+        <mat-label>Building</mat-label>
+        <mat-select formControlName="buildingId">
+          <mat-option value="">All Buildings</mat-option>
+          <mat-option *ngFor="let b of buildings" [value]="b.id">{{b.name}}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="room-input">
+        <mat-label>Room No.</mat-label>
+        <input matInput formControlName="roomNumber" placeholder="e.g. 101">
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="isLoadingRooms">
+        Search
+      </button>
+    </form>
+
+    <!-- Results Area -->
+    <div class="results-area" *ngIf="rooms.length > 0">
+      
+      <!-- Mobile Results List -->
+      <div class="mobile-results-list">
+        @for (room of rooms; track room.roomId) {
+          <div class="mobile-result-card" 
+               [class.selected]="selectedRoom?.roomId === room.roomId"
+               (click)="selectRoom(room)">
+            <div class="result-header">
+              <span class="room-number">{{room.roomNumber}}</span>
+              <span class="room-capacity">{{room.currentOccupancy}}/{{room.capacity}}</span>
+            </div>
+            <div class="result-building">
+              <mat-icon>apartment</mat-icon>
+              <span>{{room.buildingName}}</span>
+            </div>
+            <button mat-stroked-button color="primary" class="full-width"
+                    style="margin-top: 8px;"
+                    [disabled]="selectedRoom?.roomId === room.roomId">
+              {{selectedRoom?.roomId === room.roomId ? 'Selected' : 'Select Room'}}
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Desktop Results Table -->
+      <div class="desktop-results-table">
+        <table mat-table [dataSource]="rooms">
+          <ng-container matColumnDef="roomNumber">
+            <th mat-header-cell *matHeaderCellDef> Room </th>
+            <td mat-cell *matCellDef="let room"> 
+               <strong>{{room.roomNumber}}</strong> 
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="building">
+            <th mat-header-cell *matHeaderCellDef> Building </th>
+            <td mat-cell *matCellDef="let room"> {{room.buildingName}} </td>
+          </ng-container>
+
+          <ng-container matColumnDef="capacity">
+            <th mat-header-cell *matHeaderCellDef> Occupancy </th>
+            <td mat-cell *matCellDef="let room"> 
+               <span class="room-capacity">{{room.currentOccupancy}}/{{room.capacity}}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef> Action </th>
+            <td mat-cell *matCellDef="let room">
+              <button mat-stroked-button color="primary" 
+                      [disabled]="selectedRoom?.roomId === room.roomId"
+                      (click)="selectRoom(room)">
+                {{selectedRoom?.roomId === room.roomId ? 'Selected' : 'Select'}}
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+              [class.selected-row]="selectedRoom?.roomId === row.roomId"></tr>
+        </table>
+      </div>
+    
+    </div>
+    
+    <div class="no-results" *ngIf="!isLoadingRooms && rooms.length === 0">
+      <p>Search for rooms to see available options.</p>
+    </div>
+
+    <!-- Confirmation Area -->
+    <div class="confirmation-panel" *ngIf="selectedRoom">
+      <mat-card class="selected-room-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>check_circle</mat-icon>
+          <mat-card-title>Target Selection</mat-card-title>
+          <mat-card-subtitle>{{selectedRoom.buildingName}} • Room {{selectedRoom.roomNumber}}</mat-card-subtitle>
+        </mat-card-header>
+      </mat-card>
+    </div>
+
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-raised-button color="warn" 
+          [disabled]="!selectedRoom || isMoving"
+          (click)="confirmMove()">
+    <mat-spinner diameter="20" *ngIf="isMoving" style="display:inline-block; margin-right: 8px"></mat-spinner>
+    Confirm Move
+  </button>
+</mat-dialog-actions>

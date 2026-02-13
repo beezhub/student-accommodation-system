@@ -1,181 +1,304 @@
-<div class="container-fluid">
-    <div class="row">
-        <!-- Navigation Header -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="#">
-                    <h5 class="mb-0">Student Housing</h5>
-                </a>
-
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link active" routerLink="/dashboard">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" routerLink="/applications">Applications</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" routerLink="/documents">Documents</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" routerLink="/profile">Profile</a>
-                        </li>
-                    </ul>
-
-                    <div class="d-flex align-items-center">
-                        <span class="me-3">{{currentUser?.firstName}} {{currentUser?.lastName}}</span>
-                        <button class="btn btn-outline-primary" (click)="logout()">Logout</button>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="container">
-                <div class="row g-4">
-                    <!-- Welcome Card -->
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm welcome-card">
-                            <div class="card-body">
-                                <h2 class="card-title">Welcome, {{currentUser?.firstName}}! 👋</h2>
-                                <p class="text-muted">Manage your accommodation applications and documents here.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Current Application Status -->
-                    <div class="col-12 col-lg-8">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">Current Application</h5>
-                                <div class="current-application mt-4">
-                                    <div class="d-flex justify-content-between align-items-center mb-4">
-                                        <div>
-                      <span class="badge rounded-pill" [ngClass]="getStatusClass(currentApplication.status)">
-                        {{currentApplication.status}}
-                      </span>
-                                            <p class="text-muted mt-2 mb-0">Application Year: {{currentApplication.year}}</p>
-                                        </div>
-                                        <button class="btn btn-primary" *ngIf="currentApplication.status === 'Approved'">
-                                            View Room Details
-                                        </button>
-                                    </div>
-
-                                    <div class="progress" style="height: 8px;">
-                                        <div class="progress-bar" role="progressbar" style="width: 75%"></div>
-                                    </div>
-
-                                    <p class="text-muted small mt-2">Application Progress: 75%</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div class="col-12 col-lg-4">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">Quick Actions</h5>
-                                <div class="d-grid gap-2 mt-4">
-                                    <button class="btn btn-outline-primary" routerLink="/documents">
-                                        <i class="bi bi-upload me-2"></i>Upload Document
-                                    </button>
-                                    <button class="btn btn-outline-primary" routerLink="/profile">
-                                        <i class="bi bi-pencil me-2"></i>Edit Profile
-                                    </button>
-                                    <button class="btn btn-outline-primary" routerLink="/contact-support">
-                                        <i class="bi bi-chat me-2"></i>Contact Support
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Previous Applications -->
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h5 class="card-title mb-0">Previous Applications</h5>
-                                    <button class="btn btn-link" routerLink="/applications">View All</button>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                        <tr>
-                                            <th>Year</th>
-                                            <th>Status</th>
-                                            <th>Room</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <tr *ngFor="let application of previousApplications">
-                                            <td>{{application.year}}</td>
-                                            <td>
-                          <span class="badge rounded-pill" [ngClass]="getStatusClass(application.status)">
-                            {{application.status}}
-                          </span>
-                                            </td>
-                                            <td>{{application.room}}</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary" [routerLink]="['/applications', application.id]">View Details</button>
-                                            </td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Documents -->
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h5 class="card-title mb-0">Uploaded Documents</h5>
-                                    <button class="btn btn-link" routerLink="/documents">View All</button>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
-                                        <tr>
-                                            <th>Document</th>
-                                            <th>Upload Date</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <tr *ngFor="let doc of uploadedDocuments">
-                                            <td>{{doc.name}}</td>
-                                            <td>{{doc.date | date}}</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-link" (click)="viewDocument(doc)">View</button>
-                                                <button class="btn btn-sm btn-link text-danger">Delete</button>
-                                            </td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="dashboard-container">
+  <!-- Welcome Section -->
+  <div class="welcome-section">
+    <mat-card class="welcome-card">
+      <mat-card-content>
+        <div class="welcome-content">
+          <div class="welcome-text">
+            <h1 class="welcome-title">
+              Welcome back,
+            </h1>
+            <div class="welcome-name">{{currentUser?.firstName}}</div>
+            <p class="welcome-subtitle">
+              Manage your student accommodation journey from your personalized dashboard.
+            </p>
+          </div>
+          <div class="welcome-actions">
+            <button mat-raised-button color="primary" routerLink="/applications/new">
+              <mat-icon>add</mat-icon>
+              New Application
+            </button>
+            <button mat-raised-button color="primary" routerLink="/documents" class="upload-documents-btn">
+              <mat-icon>upload_file</mat-icon>
+              Upload Documents
+            </button>
+          </div>
         </div>
-    </div>
-</div>
+      </mat-card-content>
+    </mat-card>
+  </div>
 
-<!-- Document Viewer Modal/Section -->
-<app-document-viewer
-        *ngIf="selectedDocument"
-        [document]="selectedDocument"
-        (close)="closeViewer()">
-</app-document-viewer>
+  <!-- Dashboard Grid -->
+  <div class="dashboard-grid dashboard-grid-custom two-column-layout">
+    <div class="left-column">
+      <!-- Quick Actions -->
+      <mat-card class="actions-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">flash_on</mat-icon>
+            Quick Actions
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="quick-actions">
+            <button mat-raised-button class="action-button profile-action" routerLink="/profile">
+              <mat-icon>person</mat-icon>
+              <span>Edit Profile</span>
+            </button>
+            <button mat-raised-button class="action-button support-action" routerLink="/contact-support">
+              <mat-icon>support_agent</mat-icon>
+              <span>Contact Support</span>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Application Status -->
+      <mat-card class="status-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">assignment</mat-icon>
+            Application Status
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <!-- Loading State -->
+          @if (isLoadingCurrentApplication) {
+            <div class="loading-container">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p>Loading application...</p>
+            </div>
+          }
+
+          <!-- Application Found -->
+          @if (!isLoadingCurrentApplication && currentApplication) {
+            <div class="application-status">
+              <div class="status-header">
+                <div class="status-info">
+                  <span class="application-code">{{currentApplication.applicationCode}}</span>
+                  <app-modern-status-badge [status]="currentApplication.status" size="sm"></app-modern-status-badge>
+                </div>
+              </div>
+              <div class="application-details">
+                <div class="detail-row">
+                  <mat-icon>event</mat-icon>
+                  <span>Submitted: {{currentApplication.applicationDate | date: 'MMM d, y'}}</span>
+                </div>
+                @if (currentApplication.preferredBuildingName) {
+                  <div class="detail-row">
+                    <mat-icon>apartment</mat-icon>
+                    <span>Building: {{currentApplication.preferredBuildingName}}</span>
+                  </div>
+                }
+              </div>
+              <div class="application-actions">
+                <button mat-button color="primary" [routerLink]="['/applications', currentApplication.id]">
+                  <mat-icon>visibility</mat-icon>
+                  View Details
+                </button>
+                @if (currentApplication.status.toUpperCase() === 'PENDING') {
+                  <button mat-button>
+                    <mat-icon>edit</mat-icon>
+                    Edit Application
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- No Application State -->
+          @if (!isLoadingCurrentApplication && !currentApplication) {
+            <div class="no-application">
+              <mat-icon class="no-application-icon">inbox</mat-icon>
+              <p>No application submitted yet</p>
+              <p class="no-application-hint">Submit your first accommodation application to get started.</p>
+              <button mat-raised-button color="primary" routerLink="/applications/new">
+                <mat-icon>add</mat-icon>
+                New Application
+              </button>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Room Allocation -->
+      <mat-card class="room-allocation-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">meeting_room</mat-icon>
+            My Room
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (isLoadingRoom) {
+            <div class="loading-container">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p>Loading room information...</p>
+            </div>
+          }
+
+          @if (!isLoadingRoom && roomAllocation) {
+            <div class="room-details">
+              <div class="room-number">
+                <mat-icon>door_front</mat-icon>
+                <span class="room-label">Room Number:</span>
+                <strong>{{ roomAllocation.roomNumber }}</strong>
+              </div>
+              <div class="building-name">
+                <mat-icon>apartment</mat-icon>
+                <span class="building-label">Building:</span>
+                <strong>{{ roomAllocation.buildingName }}</strong>
+              </div>
+              <div class="allocation-date">
+                <mat-icon>event</mat-icon>
+                <span class="date-label">Allocated:</span>
+                <span>{{ roomAllocation.allocationDate | date: 'MMM d, y' }}</span>
+              </div>
+              <div class="allocation-status">
+                <app-modern-status-badge [status]="roomAllocation.status" size="sm"></app-modern-status-badge>
+              </div>
+
+              @if (roomAllocation.status === AllocationStatus.OFFERED) {
+                @if (roomAllocation.offerExpiryDate) {
+                  <div class="offer-expiry-notice" style="margin-top: 10px; display: flex; align-items: center; gap: 8px; color: #f59e0b;">
+                    <mat-icon>timer</mat-icon>
+                    <span><strong>Offer expires:</strong> {{ roomAllocation.offerExpiryDate | date: 'MMM d, y, h:mm a' }}</span>
+                  </div>
+                }
+                <div class="offer-actions" style="margin-top: 15px; display: flex; gap: 10px;">
+                    <button mat-raised-button color="primary" (click)="acceptOffer()" [disabled]="processing">Accept Offer</button>
+                    <button mat-button color="warn" (click)="declineOffer()" [disabled]="processing">Decline</button>
+                </div>
+              }
+
+              @if (roomAllocation.status === AllocationStatus.ACCEPTED) {
+                @if (roomAllocation.checkInExpiryDate) {
+                  <div class="offer-expiry-notice" style="margin-top: 10px; display: flex; align-items: center; gap: 8px; color: #0369a1;">
+                    <mat-icon>event</mat-icon>
+                    <span><strong>Check-in by:</strong> {{ roomAllocation.checkInExpiryDate | date: 'MMM d, y, h:mm a' }}</span>
+                  </div>
+                }
+              }
+            </div>
+          }
+
+          @if (!isLoadingRoom && !roomAllocation) {
+            <div class="no-room">
+              @if (currentApplication?.status?.toUpperCase() === 'AWAITING_ALLOCATION') {
+                <mat-icon class="no-room-icon">hourglass_empty</mat-icon>
+                <app-modern-status-badge status="AWAITING_ALLOCATION" size="sm"></app-modern-status-badge>
+                <p>You are on the waiting list for room allocation.</p>
+                <p class="no-room-hint">We will notify you as soon as a room becomes available.</p>
+              } @else if (currentApplication?.status?.toUpperCase() === 'CANCELLED') {
+                <mat-icon class="no-room-icon">cancel</mat-icon>
+                <app-modern-status-badge status="CANCELLED" size="sm"></app-modern-status-badge>
+                <p>Your application has been cancelled.</p>
+                <p class="no-room-hint">{{ currentApplication?.remarks || 'Please contact support or submit a new application.' }}</p>
+              } @else {
+                <mat-icon class="no-room-icon">info</mat-icon>
+                <p>No room allocated yet</p>
+                <p class="no-room-hint">Your room will be allocated after your application and documents are approved.</p>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Application History -->
+      <mat-card class="history-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">history</mat-icon>
+            Application History
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <!-- Loading State -->
+          @if (isLoadingApplications) {
+            <div class="loading-container">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p>Loading applications...</p>
+            </div>
+          }
+
+          <!-- Empty State -->
+          @if (!isLoadingApplications && applicationHistory.length === 0) {
+            <div class="no-applications">
+              <mat-icon class="no-applications-icon">inbox</mat-icon>
+              <p>No applications yet</p>
+              <p class="no-applications-hint">Submit your first accommodation application to get started.</p>
+              <button mat-raised-button color="primary" routerLink="/applications/new">
+                <mat-icon>add</mat-icon>
+                New Application
+              </button>
+            </div>
+          }
+
+          <!-- Applications List -->
+          @if (!isLoadingApplications && applicationHistory.length > 0) {
+            <div class="history-list">
+              @for (app of applicationHistory; track app) {
+                <div class="history-item">
+                  <div class="history-info">
+                    <div class="history-code">{{ app.applicationCode }}</div>
+                    <div class="history-details">
+                      <app-modern-status-badge [status]="app.status" size="sm"></app-modern-status-badge>
+                      <span class="history-date">{{ app.applicationDate | date: 'MMM d, y' }}</span>
+                    </div>
+                  </div>
+                  <button mat-icon-button color="primary" [routerLink]="['/applications', app.id]">
+                    <mat-icon>arrow_forward</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Right column: Document Status fills remaining width -->
+    <div class="right-column">
+      <mat-card class="documents-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">folder_open</mat-icon>
+            Document Status
+          </mat-card-title>
+          <mat-card-subtitle>{{uploadedDocuments.length}} documents uploaded</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="documents-list">
+            @for (doc of uploadedDocuments; track doc) {
+              <div class="document-item">
+                <div class="document-info">
+                  <mat-icon class="document-icon">description</mat-icon>
+                  <div class="document-details">
+                    <span class="document-name">{{doc.name}}</span>
+                    <span class="document-date">{{doc.date | date:'shortDate'}}</span>
+                  </div>
+                </div>
+                <app-modern-status-badge [status]="doc.status" size="sm"></app-modern-status-badge>
+              </div>
+            }
+          </div>
+
+          <mat-divider class="documents-divider"></mat-divider>
+
+          <div class="documents-actions">
+            <button mat-button color="primary" routerLink="/documents">
+              <mat-icon>visibility</mat-icon>
+              View All Documents
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Document Viewer Modal -->
+  @if (selectedDocument) {
+    <app-document-viewer [document]="selectedDocument" (close)="closeViewer()">
+    </app-document-viewer>
+  }
+</div>

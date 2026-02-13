@@ -1,0 +1,158 @@
+import { Component, Inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogRef,
+  MatDialogModule,
+} from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatCardModule } from '@angular/material/card';
+import { MatDividerModule } from '@angular/material/divider';
+
+import { RoomService, EligibleRoomResponse } from '../../../core/services/room.service';
+import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
+import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
+
+export interface AllocationMoveDialogData {
+  allocationId: number;
+  studentId: number;
+  studentName: string;
+  currentRoom: {
+    buildingName: string;
+    roomNumber: string;
+  };
+}
+
+@Component({
+  selector: 'app-allocation-move-dialog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatIconModule,
+    MatTableModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatCardModule,
+    MatDividerModule
+  ],
+  templateUrl: './allocation-move-dialog.component.html',
+  styleUrls: ['./allocation-move-dialog.component.scss']
+})
+export class AllocationMoveDialogComponent implements OnInit {
+  searchForm: FormGroup;
+  
+  buildings: BuildingResponse[] = [];
+  rooms: EligibleRoomResponse[] = [];
+  selectedRoom: EligibleRoomResponse | null = null;
+  
+  isLoadingRooms = false;
+  isMoving = false;
+  
+  displayedColumns: string[] = ['roomNumber', 'building', 'capacity', 'actions'];
+
+  constructor(
+    private fb: FormBuilder,
+    private dialogRef: MatDialogRef<AllocationMoveDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: AllocationMoveDialogData,
+    private roomService: RoomService,
+    private buildingService: BuildingService,
+    private stagedAllocationService: StagedAllocationService,
+    private snackBar: MatSnackBar
+  ) {
+    this.searchForm = this.fb.group({
+      buildingId: [''],
+      roomNumber: ['']
+    });
+  }
+
+  ngOnInit(): void {
+    this.loadBuildings();
+  }
+
+  loadBuildings(): void {
+    this.buildingService.getAllBuildingsNoPagination().subscribe({
+      next: (data) => this.buildings = data,
+      error: (err) => console.error('Failed to load buildings', err)
+    });
+  }
+
+  searchRooms(): void {
+    this.isLoadingRooms = true;
+    this.selectedRoom = null; // Reset selection on new search
+    const filters = this.searchForm.value;
+    
+    // Use getEligibleRoomsForStudent to only show rooms that meet student's constraints
+    this.roomService.getEligibleRoomsForStudent(
+      this.data.studentId,
+      filters.buildingId || undefined
+    ).subscribe({
+      next: (eligibleRooms) => {
+        console.log('Eligible rooms received:', eligibleRooms);
+        // Filter by room number if specified
+        this.rooms = filters.roomNumber 
+          ? eligibleRooms.filter(r => r.roomNumber.toLowerCase().includes(filters.roomNumber.toLowerCase()))
+          : eligibleRooms;
+        console.log('Filtered rooms:', this.rooms);
+        this.isLoadingRooms = false;
+      },
+      error: (err) => {
+        console.error('Failed to load eligible rooms', err);
+        this.isLoadingRooms = false;
+        this.snackBar.open('Error loading eligible rooms', 'Close', { duration: 3000 });
+      }
+    });
+  }
+
+  selectRoom(room: EligibleRoomResponse): void {
+    console.log('Selected room object:', room);
+    console.log('Room ID:', room.roomId);
+    this.selectedRoom = room;
+  }
+
+  confirmMove(): void {
+    if (!this.selectedRoom) {
+      console.log('Validation failed:', { 
+        hasSelectedRoom: !!this.selectedRoom
+      });
+      return;
+    }
+    
+    this.isMoving = true;
+    
+    console.log('Moving student:', {
+      allocationId: this.data.allocationId,
+      newRoomId: this.selectedRoom.roomId
+    });
+
+    this.stagedAllocationService.moveStudent(
+      this.data.allocationId,
+      this.selectedRoom.roomId,
+      'Manual Move'
+    ).subscribe({
+      next: (result) => {
+        this.snackBar.open('Student moved successfully', 'Close', { duration: 3000 });
+        this.dialogRef.close(true);
+      },
+      error: (err) => {
+        console.error('Move failed', err);
+        this.isMoving = false;
+        const errorMessage = err.error?.message || err.error?.error || 'Failed to move student. Please try again.';
+        this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
+      }
+    });
+  }
+}

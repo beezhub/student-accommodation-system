@@ -1,0 +1,33 @@
+import { Injectable } from '@angular/core';
+import { CanActivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class StudentGuard implements CanActivate {
+  constructor(private authService: AuthService, private router: Router) {}
+
+  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
+    const currentUser = this.authService.currentUserValue;
+
+    // Check if user is logged in and has STUDENT role
+    if (currentUser && currentUser.userRole === 'STUDENT') {
+      return true;
+    }
+
+    // Not authorized
+    if (currentUser && currentUser.userRole === 'ADMIN') {
+      // Admin trying to access student routes, redirect to admin dashboard
+      this.router.navigate(['/admin']);
+    } else if (currentUser) {
+      // Other roles, redirect to appropriate page
+      this.router.navigate(['/home']);
+    } else {
+      // User not logged in
+      this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+    }
+
+    return false;
+  }
+}

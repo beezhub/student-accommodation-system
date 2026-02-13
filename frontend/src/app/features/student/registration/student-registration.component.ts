@@ -3,12 +3,38 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 
+// Angular Material modules used by the template
+import { MatCardModule } from '@angular/material/card';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
 @Component({
   selector: 'app-student-registration',
   templateUrl: './student-registration.component.html',
   styleUrls: ['./student-registration.component.css'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule]
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterModule,
+    MatCardModule,
+    MatProgressBarModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
 })
 export class StudentRegistrationComponent {
   registrationForm: FormGroup;
@@ -16,10 +42,7 @@ export class StudentRegistrationComponent {
   currentStep = 1;
   totalSteps = 3;
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router
-  ) {
+  constructor(private fb: FormBuilder, private router: Router) {
     this.registrationForm = this.fb.group({
       // Personal Information
       firstName: ['', [Validators.required]],
@@ -29,43 +52,49 @@ export class StudentRegistrationComponent {
       email: ['', [Validators.required, Validators.email]],
       phone: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
       nationality: ['', [Validators.required]],
-      
+
       // Academic Information
       university: ['', [Validators.required]],
       course: ['', [Validators.required]],
       studentId: ['', [Validators.required]],
       yearOfStudy: ['', [Validators.required]],
-      
+
       // Accommodation Preferences
       accommodationType: ['', [Validators.required]],
       moveInDate: ['', [Validators.required]],
       duration: ['', [Validators.required]],
       specialRequirements: [''],
       emergencyContactName: ['', [Validators.required]],
-      emergencyContactPhone: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]]
+      emergencyContactPhone: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
     });
   }
 
   get stepValid(): boolean {
     if (this.currentStep === 1) {
-      return !!this.registrationForm.get('firstName')?.valid && 
-         !!this.registrationForm.get('lastName')?.valid &&
-         !!this.registrationForm.get('gender')?.valid &&
-         !!this.registrationForm.get('dob')?.valid &&
-         !!this.registrationForm.get('email')?.valid &&
-         !!this.registrationForm.get('phone')?.valid &&
-         !!this.registrationForm.get('nationality')?.valid;
+      return (
+        !!this.registrationForm.get('firstName')?.valid &&
+        !!this.registrationForm.get('lastName')?.valid &&
+        !!this.registrationForm.get('gender')?.valid &&
+        !!this.registrationForm.get('dob')?.valid &&
+        !!this.registrationForm.get('email')?.valid &&
+        !!this.registrationForm.get('phone')?.valid &&
+        !!this.registrationForm.get('nationality')?.valid
+      );
     } else if (this.currentStep === 2) {
-      return !!this.registrationForm.get('university')?.valid &&
-             !!this.registrationForm.get('course')?.valid &&
-             !!this.registrationForm.get('studentId')?.valid &&
-             !!this.registrationForm.get('yearOfStudy')?.valid;
+      return (
+        !!this.registrationForm.get('university')?.valid &&
+        !!this.registrationForm.get('course')?.valid &&
+        !!this.registrationForm.get('studentId')?.valid &&
+        !!this.registrationForm.get('yearOfStudy')?.valid
+      );
     } else {
-      return !!this.registrationForm.get('accommodationType')?.valid &&
-             !!this.registrationForm.get('moveInDate')?.valid &&
-             !!this.registrationForm.get('duration')?.valid &&
-             !!this.registrationForm.get('emergencyContactName')?.valid &&
-             !!this.registrationForm.get('emergencyContactPhone')?.valid;
+      return (
+        !!this.registrationForm.get('accommodationType')?.valid &&
+        !!this.registrationForm.get('moveInDate')?.valid &&
+        !!this.registrationForm.get('duration')?.valid &&
+        !!this.registrationForm.get('emergencyContactName')?.valid &&
+        !!this.registrationForm.get('emergencyContactPhone')?.valid
+      );
     }
   }
 

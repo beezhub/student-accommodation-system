@@ -1,113 +1,204 @@
-<div class="container">
-    <div class="row justify-content-center align-items-center min-vh-100 py-5">
-        <div class="col-12 col-md-10 col-lg-8">
-            <div class="card border-0 shadow-lg">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <h2 class="fw-bold">Welcome, {{currentUser?.firstName}}!</h2>
-                        <p class="text-muted">Let's complete your profile</p>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div class="progress mb-4" style="height: 8px;">
-                        <div class="progress-bar" role="progressbar" style="width: 50%;" aria-valuenow="50"
-                            aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <p class="text-center text-muted mb-4">Step 2 of 4</p>
-
-                    <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="fade-in">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="studentNumber" class="form-label">Student Number</label>
-                                <input type="text" class="form-control" id="studentNumber"
-                                    formControlName="studentNumber"
-                                    [ngClass]="{'is-invalid': profileForm.get('studentNumber')?.invalid && profileForm.get('studentNumber')?.touched}">
-                                <div class="invalid-feedback"
-                                    *ngIf="profileForm.get('studentNumber')?.errors?.['required'] && profileForm.get('studentNumber')?.touched">
-                                    Student number is required
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="phoneNumber" class="form-label">Phone Number</label>
-                                <input type="tel" class="form-control" id="phoneNumber" formControlName="phoneNumber"
-                                    [ngClass]="{'is-invalid': profileForm.get('phoneNumber')?.invalid && profileForm.get('phoneNumber')?.touched}">
-                                <div class="invalid-feedback"
-                                    *ngIf="profileForm.get('phoneNumber')?.errors?.['required'] && profileForm.get('phoneNumber')?.touched">
-                                    Phone number is required
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="dateOfBirth" class="form-label">Date of Birth</label>
-                                <input type="date" class="form-control" id="dateOfBirth" formControlName="dateOfBirth"
-                                    [ngClass]="{'is-invalid': profileForm.get('dateOfBirth')?.invalid && profileForm.get('dateOfBirth')?.touched}">
-                                <div class="invalid-feedback"
-                                    *ngIf="profileForm.get('dateOfBirth')?.errors?.['required'] && profileForm.get('dateOfBirth')?.touched">
-                                    Date of birth is required
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="institution" class="form-label">Institution</label>
-                                <select class="form-select" id="institution" formControlName="institution"
-                                    [ngClass]="{'is-invalid': profileForm.get('institution')?.invalid && profileForm.get('institution')?.touched}">
-                                    <option value="">Select institution</option>
-                                    <option *ngFor="let institution of institutions" [value]="institution.id">{{ institution.name }}</option>
-                                </select>
-                                <div class="invalid-feedback"
-                                    *ngIf="profileForm.get('institution')?.errors?.['required'] && profileForm.get('institution')?.touched">
-                                    Institution is required
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="yearOfStudy" class="form-label">Year of Study</label>
-                                <select class="form-select" id="yearOfStudy" formControlName="yearOfStudy"
-                                    [ngClass]="{'is-invalid': profileForm.get('yearOfStudy')?.invalid && profileForm.get('yearOfStudy')?.touched}">
-                                    <option value="">Select year of study</option>
-                                    <option *ngFor="let yearOfStudy of yearsOfStudy" [value]="yearOfStudy.id">{{ yearOfStudy.yearOfStudy }}</option>
-                                </select> 
-                                    <div class="invalid-feedback"
-                                    *ngIf="profileForm.get('yearOfStudy')?.errors?.['required'] && profileForm.get('yearOfStudy')?.touched">
-                                    Year of study is required
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="gender" class="form-label">Gender</label>
-                                <select class="form-select" id="gender" formControlName="gender"
-                                    [ngClass]="{'is-invalid': profileForm.get('gender')?.invalid && profileForm.get('gender')?.touched}">
-                                    <option value="">Select gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                    <option value="prefer-not-to-say">Prefer not to say</option>
-                                </select>
-                                <div class="invalid-feedback"
-                                    *ngIf="profileForm.get('gender')?.errors?.['required'] && profileForm.get('gender')?.touched">
-                                    Gender is required
-                                </div>
-                            </div>
-
-                            <div class="col-12">
-                                <label for="specialRequirements" class="form-label">Special Requirements
-                                    (Optional)</label>
-                                <textarea class="form-control" id="specialRequirements"
-                                    formControlName="specialRequirements" rows="3"></textarea>
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg" [disabled]="isSubmitting">
-                                <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status"
-                                    aria-hidden="true"></span>
-                                {{isSubmitting ? 'Saving...' : 'Continue to Document Upload'}}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+<div class="profile-setup-container">
+  <div class="progress-indicator">
+    <div class="step completed">
+      <div class="step-number">1</div>
+      <div class="step-label">Sign Up</div>
     </div>
+    <div class="step-line"></div>
+    <div class="step active">
+      <div class="step-number">2</div>
+      <div class="step-label">Profile Setup</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-label">Application</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step">
+      <div class="step-number">4</div>
+      <div class="step-label">Documents</div>
+    </div>
+  </div>
+
+  <mat-card class="profile-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>person</mat-icon>
+        Complete Your Profile
+      </mat-card-title>
+      <mat-card-subtitle>
+        Welcome, {{currentUser?.firstName}}! Let's set up your student profile
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-content>
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+
+        <!-- Personal Information Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <mat-icon>badge</mat-icon>
+            Personal Information
+          </h3>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Student Number</mat-label>
+              <input matInput formControlName="studentNumber" placeholder="e.g., STU123456">
+              <mat-icon matPrefix>badge</mat-icon>
+              @if (profileForm.get('studentNumber')?.hasError('required')) {
+                <mat-error>
+                  Student number is required
+                </mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Phone Number</mat-label>
+              <input matInput type="tel" formControlName="phoneNumber" placeholder="e.g., 0123456789">
+              <mat-icon matPrefix>phone</mat-icon>
+              @if (profileForm.get('phoneNumber')?.hasError('required')) {
+                <mat-error>
+                  Phone number is required
+                </mat-error>
+              }
+              @if (profileForm.get('phoneNumber')?.hasError('pattern')) {
+                <mat-error>
+                  Please enter a valid 10-digit phone number
+                </mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Date of Birth</mat-label>
+              <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth" placeholder="Select your date of birth">
+              <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
+              <mat-datepicker #dobPicker></mat-datepicker>
+              <mat-icon matPrefix>cake</mat-icon>
+              @if (profileForm.get('dateOfBirth')?.hasError('required')) {
+                <mat-error>
+                  Date of birth is required
+                </mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Gender</mat-label>
+              <mat-select formControlName="gender">
+                @for (gender of genderOptions; track gender) {
+                  <mat-option [value]="gender.value">
+                    {{gender.viewValue}}
+                  </mat-option>
+                }
+              </mat-select>
+              <mat-icon matPrefix>wc</mat-icon>
+              @if (profileForm.get('gender')?.hasError('required')) {
+                <mat-error>
+                  Gender is required
+                </mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Academic Information Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <mat-icon>school</mat-icon>
+            Academic Information
+          </h3>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Institution</mat-label>
+              <mat-select formControlName="institution">
+                @for (institution of institutions; track institution) {
+                  <mat-option [value]="institution.id">
+                    {{institution.name}}
+                  </mat-option>
+                }
+              </mat-select>
+              <mat-icon matPrefix>location_city</mat-icon>
+              @if (profileForm.get('institution')?.hasError('required')) {
+                <mat-error>
+                  Institution is required
+                </mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Year of Study</mat-label>
+              <mat-select formControlName="yearOfStudy">
+                @for (year of yearsOfStudy; track year) {
+                  <mat-option [value]="year.id">
+                    {{year.yearOfStudy}}
+                  </mat-option>
+                }
+              </mat-select>
+              <mat-icon matPrefix>calendar_today</mat-icon>
+              @if (profileForm.get('yearOfStudy')?.hasError('required')) {
+                <mat-error>
+                  Year of study is required
+                </mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Special Requirements Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <mat-icon>accessible</mat-icon>
+            Special Requirements (Optional)
+          </h3>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Special Requirements or Accessibility Needs</mat-label>
+            <textarea matInput formControlName="specialRequirements"
+              rows="4"
+            placeholder="Please describe any special accommodation requirements"></textarea>
+            <mat-icon matPrefix>notes</mat-icon>
+            <mat-hint>Any additional information we should know</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Action Buttons -->
+        <mat-card-actions class="action-buttons">
+          <div></div>
+
+          <button mat-raised-button color="primary" type="submit" class="submit-button"
+            [disabled]="profileForm.invalid || isSubmitting">
+            @if (isSubmitting) {
+              <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+            }
+            @if (!isSubmitting) {
+              <mat-icon>arrow_forward</mat-icon>
+            }
+            @if (!isSubmitting) {
+              <span>Continue</span>
+            }
+            @if (isSubmitting) {
+              <span>Saving Profile...</span>
+            }
+          </button>
+        </mat-card-actions>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="help-text">
+    <mat-icon>info</mat-icon>
+    <p>Your profile information helps us match you with the most suitable accommodation options.</p>
+  </div>
 </div>

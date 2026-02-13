@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Review Required</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .warning-icon {
+            text-align: center;
+            font-size: 60px;
+            margin: 20px 0;
+        }
+        .message {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .document-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .document-box h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .document-box p {
+            margin: 5px 0;
+        }
+        .feedback-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .feedback-box h3 {
+            margin-top: 0;
+            color: #721c24;
+        }
+        .feedback-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .feedback-box li {
+            margin: 8px 0;
+        }
+        .resubmit-box {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .resubmit-box h3 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+        .resubmit-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .resubmit-box li {
+            margin: 8px 0;
+        }
+        .deadline-box {
+            background-color: #ffe5e5;
+            border: 2px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .deadline-box h3 {
+            margin-top: 0;
+            color: #dc3545;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: #ffffff;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+        .contact-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+        .contact-info h4 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .contact-info p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Action Required</h1>
+        </div>
+
+        <div class="content">
+            <div class="warning-icon">⚠</div>
+
+            <p class="message">Dear <span th:text="${studentName}">Student</span>,</p>
+
+            <p class="message">
+                We have reviewed your submitted document and require you to resubmit
+                it to proceed with your accommodation application.
+            </p>
+
+            <div class="document-box">
+                <h3>Document Details</h3>
+                <p><strong>Document Type:</strong> <span th:text="${documentType}">Identity Document</span></p>
+                <p><strong>Document Reference:</strong> <span th:text="${documentReference}">DOC-2025-001234</span></p>
+                <p><strong>Submission Date:</strong> <span th:text="${submissionDate}">2025-01-15</span></p>
+                <p><strong>Review Date:</strong> <span th:text="${reviewDate}">2025-01-20</span></p>
+            </div>
+
+            <div class="feedback-box">
+                <h3>Reason for Rejection</h3>
+                <p th:text="${rejectionReason}">
+                    The document provided does not meet our verification requirements.
+                </p>
+                <div th:if="${feedbackPoints != null and !feedbackPoints.isEmpty()}">
+                    <h4>Specific Issues:</h4>
+                    <ul>
+                        <li th:each="point : ${feedbackPoints}" th:text="${point}">Issue point</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="deadline-box">
+                <h3>⏰ Resubmission Deadline</h3>
+                <p style="font-size: 18px; font-weight: bold; margin: 10px 0;">
+                    <span th:text="${resubmissionDeadline}">2025-01-27</span>
+                </p>
+                <p>Failure to resubmit by this date may result in your application being cancelled.</p>
+            </div>
+
+            <div class="resubmit-box">
+                <h3>Instructions to Resubmit</h3>
+                <p>Please follow these steps to resubmit your document:</p>
+                <ul>
+                    <li>Log in to your student portal</li>
+                    <li>Navigate to the Documents section</li>
+                    <li>Review the specific feedback provided above</li>
+                    <li>Ensure your new document meets all requirements:
+                        <ul>
+                            <li>Clear and readable (not blurry or pixelated)</li>
+                            <li>Valid and not expired</li>
+                            <li>Complete (all pages included)</li>
+                            <li>Correct format (PDF, JPG, or PNG)</li>
+                            <li>File size under 5MB</li>
+                        </ul>
+                    </li>
+                    <li>Upload the corrected document</li>
+                    <li>Submit for review</li>
+                </ul>
+            </div>
+
+            <center>
+                <a href="#" th:href="${uploadUrl}" class="cta-button">Resubmit Document Now</a>
+            </center>
+
+            <div class="contact-info">
+                <h4>Need Assistance?</h4>
+                <p>If you have questions about the feedback or need help with resubmission:</p>
+                <p><strong>Email:</strong> documentation@university.edu</p>
+                <p><strong>Phone:</strong> +27 (0) 11 234 5678</p>
+                <p><strong>Office Hours:</strong> Monday - Friday, 8:00 AM - 5:00 PM</p>
+            </div>
+
+            <p class="message" style="margin-top: 30px; font-style: italic;">
+                We appreciate your prompt attention to this matter and look forward to receiving your corrected document.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated message from the Student Accommodation System.</p>
+            <p>&copy; 2025 Student Accommodation System. All rights reserved.</p>
+            <p style="margin-top: 10px; font-size: 12px;">
+                <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> |
+                <a href="#" style="color: #667eea; text-decoration: none;">Notification Preferences</a> |
+                <a href="#" style="color: #667eea; text-decoration: none;">Contact Support</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,30 +1,32 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.css'],
-  standalone: true,
-  imports: [CommonModule, RouterModule]
+  styleUrls: ['./home.component.scss'],
+  imports: [RouterModule, MatCardModule, MatButtonModule, MatIconModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {
-  features = [
+  readonly features = [
     {
       title: 'Easy Registration',
       description: 'Simple and quick registration process for students',
-      icon: 'bi-person-plus'
+      icon: 'person_add',
     },
     {
       title: 'Room Selection',
       description: 'Choose from various accommodation options',
-      icon: 'bi-house-door'
+      icon: 'home',
     },
     {
       title: 'Secure Platform',
       description: 'Safe and secure platform for all transactions',
-      icon: 'bi-shield-check'
-    }
-  ];
+      icon: 'security',
+    },
+  ] as const;
 }

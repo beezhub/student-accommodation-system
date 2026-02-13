@@ -1,0 +1,509 @@
+/* ===== Mobile-first base styles (small screens) ===== */
+
+.dialog-container {
+  width: 100%;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 16px 0;
+}
+
+.header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 12px;
+  border: 1px solid #fcd34d;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+
+  mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    color: #f59e0b;
+  }
+}
+
+.header-text {
+  min-width: 0;
+
+  h2 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .subtitle {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+mat-dialog-content {
+  padding: 16px !important;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* Upload Area */
+.upload-area {
+  text-align: center;
+  padding: 16px;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.upload-btn {
+  border-radius: 12px !important;
+  padding: 0 20px !important;
+  height: 44px;
+  font-weight: 700;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  width: 100%;
+  justify-content: center;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.upload-hint {
+  margin: 10px 0 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Loading */
+.loading-container {
+  text-align: center;
+  padding: 32px 16px;
+
+  p {
+    margin-top: 12px;
+    color: #64748b;
+    font-size: 14px;
+  }
+}
+
+/* Image Grid — 2 columns on mobile */
+.images-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+/* Image Card */
+.image-card {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.image-wrapper {
+  position: relative;
+  padding-top: 100%;
+  overflow: hidden;
+  background: #f1f5f9;
+
+  img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+/* Overlay — always visible on mobile (touch devices) */
+.image-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, transparent 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px 6px 6px;
+  opacity: 1;
+}
+
+::ng-deep .image-overlay {
+
+  .primary-btn,
+  .delete-btn {
+    &.mat-mdc-icon-button {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #64748b;
+
+      .mat-mdc-button-touch-target {
+        width: 36px;
+        height: 36px;
+      }
+
+      .mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
+  .primary-btn.is-primary.mat-mdc-icon-button {
+    color: #f59e0b;
+    background: rgba(254, 243, 199, 0.95);
+  }
+
+  .delete-btn.mat-mdc-icon-button {
+    color: #ef4444;
+  }
+}
+
+
+
+/* Image Info */
+.image-info {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.image-name {
+  margin: 0;
+  font-size: 11px;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.primary-badge {
+  background: #fef3c7;
+  color: #f59e0b;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 40px 16px;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #cbd5e1;
+    margin-bottom: 12px;
+  }
+
+  p {
+    margin: 0 0 20px 0;
+    font-size: 14px;
+    color: #64748b;
+  }
+
+  button {
+    border-radius: 12px !important;
+    padding: 0 20px !important;
+    height: 44px;
+    font-weight: 700;
+    width: 100%;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      margin-right: 6px;
+    }
+  }
+}
+
+/* Dialog Actions */
+mat-dialog-actions {
+  padding: 12px 16px 16px !important;
+  gap: 12px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 8px;
+
+  button {
+    border-radius: 12px !important;
+    padding: 0 20px !important;
+    height: 44px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* ===== Tablet breakpoint (480px+) ===== */
+@media (min-width: 480px) {
+  .dialog-header {
+    gap: 14px;
+    padding: 20px 20px 0;
+  }
+
+  .header-icon {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    border-radius: 14px;
+
+    mat-icon {
+      font-size: 26px;
+      width: 26px;
+      height: 26px;
+    }
+  }
+
+  .header-text {
+    h2 {
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+    }
+  }
+
+  mat-dialog-content {
+    padding: 20px !important;
+  }
+
+  .upload-area {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .upload-btn {
+    width: auto;
+    padding: 0 24px !important;
+  }
+
+  .upload-hint {
+    font-size: 13px;
+  }
+
+  .images-grid {
+    gap: 14px;
+  }
+
+  .image-info {
+    padding: 10px 12px;
+  }
+
+  .image-name {
+    font-size: 12px;
+  }
+
+  .empty-state button {
+    width: auto;
+  }
+
+  mat-dialog-actions {
+    padding: 16px 20px 20px !important;
+
+    button {
+      flex: none;
+    }
+  }
+}
+
+/* ===== Desktop breakpoint (600px+) ===== */
+@media (min-width: 600px) {
+  .dialog-header {
+    gap: 18px;
+    padding: 28px 28px 0;
+  }
+
+  .header-icon {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    border-radius: 18px;
+
+    mat-icon {
+      font-size: 30px;
+      width: 30px;
+      height: 30px;
+    }
+  }
+
+  .header-text {
+    h2 {
+      font-size: 24px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+    }
+  }
+
+  mat-dialog-content {
+    padding: 28px !important;
+    max-height: 70vh;
+  }
+
+  .upload-area {
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .upload-btn {
+    padding: 0 28px !important;
+    height: 48px;
+
+    mat-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+  }
+
+  .upload-hint {
+    margin-top: 12px;
+  }
+
+  .images-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+  }
+
+  .image-card {
+    border-radius: 12px;
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+  }
+
+  /* On desktop: hide overlay by default, show on hover */
+  .image-overlay {
+    top: 0;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .image-card:hover .image-overlay {
+    opacity: 1;
+  }
+
+  ::ng-deep .image-overlay {
+
+    .primary-btn,
+    .delete-btn {
+      &.mat-mdc-icon-button {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+
+        .mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+      }
+    }
+  }
+
+  .image-info {
+    padding: 12px;
+  }
+
+  .image-name {
+    font-size: 13px;
+  }
+
+  .primary-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+  }
+
+  .empty-state {
+    padding: 64px 24px;
+
+    mat-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+    }
+
+    p {
+      font-size: 16px;
+      margin-bottom: 24px;
+    }
+
+    button {
+      padding: 0 28px !important;
+      height: 48px;
+
+      mat-icon {
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
+        margin-right: 8px;
+      }
+    }
+  }
+
+  mat-dialog-actions {
+    padding: 20px 28px 28px !important;
+    gap: 16px;
+    margin-top: 12px;
+
+    button {
+      padding: 0 28px !important;
+      height: 48px;
+      gap: 8px;
+    }
+  }
+}

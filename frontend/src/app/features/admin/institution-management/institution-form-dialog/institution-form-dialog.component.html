@@ -1,0 +1,97 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="header-icon">
+      <mat-icon>{{ mode === 'create' ? 'add_business' : 'edit' }}</mat-icon>
+    </div>
+    <h2>{{ getTitle() }}</h2>
+    <p>{{ mode === 'create' ? 'Add a new educational institution' : 'Update institution details' }}</p>
+  </div>
+
+  <mat-dialog-content>
+    <form [formGroup]="institutionForm" class="institution-form">
+      <div class="form-field-wrapper">
+        <label class="field-label">
+          <mat-icon>business</mat-icon>
+          Institution Name
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input matInput formControlName="name" placeholder="e.g., University of Example">
+          @if (institutionForm.get('name')?.hasError('required') && institutionForm.get('name')?.touched) {
+            <mat-error>Institution name is required</mat-error>
+          }
+          @if (institutionForm.get('name')?.hasError('maxlength')) {
+            <mat-error>Name cannot exceed 100 characters</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="form-field-wrapper">
+        <label class="field-label">
+          <mat-icon>location_on</mat-icon>
+          Address
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <textarea matInput formControlName="address" placeholder="e.g., 123 University Ave, City, Country" rows="2"></textarea>
+          @if (institutionForm.get('address')?.hasError('required') && institutionForm.get('address')?.touched) {
+            <mat-error>Address is required</mat-error>
+          }
+          @if (institutionForm.get('address')?.hasError('maxlength')) {
+            <mat-error>Address cannot exceed 255 characters</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field-wrapper">
+          <label class="field-label">
+            <mat-icon>phone</mat-icon>
+            Phone Number
+          </label>
+          <mat-form-field appearance="outline" class="full-width">
+            <input matInput formControlName="phoneNumber" placeholder="e.g., +1 234-567-8900">
+            @if (institutionForm.get('phoneNumber')?.hasError('required') && institutionForm.get('phoneNumber')?.touched) {
+              <mat-error>Phone number is required</mat-error>
+            }
+            @if (institutionForm.get('phoneNumber')?.hasError('maxlength')) {
+              <mat-error>Phone cannot exceed 20 characters</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-field-wrapper">
+          <label class="field-label">
+            <mat-icon>email</mat-icon>
+            Email Address
+          </label>
+          <mat-form-field appearance="outline" class="full-width">
+            <input matInput formControlName="emailAddress" type="email" placeholder="e.g., info@university.edu">
+            @if (institutionForm.get('emailAddress')?.hasError('required') && institutionForm.get('emailAddress')?.touched) {
+              <mat-error>Email is required</mat-error>
+            }
+            @if (institutionForm.get('emailAddress')?.hasError('email')) {
+              <mat-error>Please enter a valid email</mat-error>
+            }
+            @if (institutionForm.get('emailAddress')?.hasError('maxlength')) {
+              <mat-error>Email cannot exceed 100 characters</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button mat-stroked-button (click)="onCancel()" [disabled]="isLoading" class="cancel-btn">
+      Cancel
+    </button>
+    <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isLoading || institutionForm.invalid" class="submit-btn">
+      @if (isLoading) {
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>{{ mode === 'create' ? 'Creating...' : 'Updating...' }}</span>
+      } @else {
+        <mat-icon>{{ mode === 'create' ? 'add' : 'save' }}</mat-icon>
+        <span>{{ getSubmitButtonText() }}</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -1,50 +1,105 @@
 <div class="modal-backdrop" (click)="onClose()"></div>
 <div class="modal-container">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">Document Details</h5>
-            <button type="button" class="btn-close" (click)="onClose()"></button>
-        </div>
-
-        <div class="modal-body">
-            <!-- Document Info -->
-            <div class="document-info mb-4">
-                <div class="row">
-                    <div class="col-sm-6">
-                        <p class="text-muted mb-1">Document Name</p>
-                        <p class="fw-bold">{{document.name}}</p>
-                    </div>
-                    <div class="col-sm-6">
-                        <p class="text-muted mb-1">Status</p>
-                        <span class="badge rounded-pill" [ngClass]="getStatusClass(document.status)">
-              {{document.status}}
-            </span>
-                    </div>
-                    <div class="col-sm-6">
-                        <p class="text-muted mb-1">Upload Date</p>
-                        <p class="fw-bold">{{document.uploadDate | date}}</p>
-                    </div>
-                    <div class="col-sm-6">
-                        <p class="text-muted mb-1">File Size</p>
-                        <p class="fw-bold">{{document.size}}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Document Preview -->
-            <div class="document-preview">
-                <div class="preview-placeholder">
-                    <i class="bi bi-file-earmark-text display-1"></i>
-                    <p class="mt-3">Document Preview</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" (click)="onClose()">Close</button>
-            <button type="button" class="btn btn-primary">
-                <i class="bi bi-download me-2"></i>Download
-            </button>
-        </div>
+  <div class="dialog-content mat-elevation-z4">
+    <div class="dialog-header">
+      <h2 class="dialog-title">Document Details</h2>
+      <button mat-icon-button (click)="onClose()" aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button>
     </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="dialog-body">
+      <!-- Document Info -->
+      <div class="document-info">
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label-row">
+              <mat-icon>description</mat-icon>
+              <span class="info-label">Document Name</span>
+            </div>
+            <p class="info-value">{{document.name}}</p>
+          </div>
+          <div class="info-item">
+            <div class="info-label-row">
+              <mat-icon>flag</mat-icon>
+              <span class="info-label">Status</span>
+            </div>
+            <app-modern-status-badge [status]="document.status" size="sm"></app-modern-status-badge>
+          </div>
+          <div class="info-item">
+            <div class="info-label-row">
+              <mat-icon>calendar_today</mat-icon>
+              <span class="info-label">Upload Date</span>
+            </div>
+            <p class="info-value">{{document.uploadDate | date}}</p>
+          </div>
+          <div class="info-item">
+            <div class="info-label-row">
+              <mat-icon>data_usage</mat-icon>
+              <span class="info-label">File Size</span>
+            </div>
+            <p class="info-value">{{document.size || 'Unknown'}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Document Preview -->
+      <div class="document-preview">
+        <!-- Loading State -->
+        @if (isLoadingPreview) {
+          <div class="preview-loading">
+            <mat-spinner diameter="50"></mat-spinner>
+            <p class="loading-text">Loading document preview...</p>
+          </div>
+        }
+
+        <!-- Error State -->
+        @if (previewError && !isLoadingPreview) {
+          <div class="preview-error">
+            <mat-icon class="error-icon">error_outline</mat-icon>
+            <p class="error-text">Failed to load document preview</p>
+            <button mat-stroked-button color="primary" (click)="loadDocumentPreview()">
+              <mat-icon>refresh</mat-icon>
+              Retry
+            </button>
+          </div>
+        }
+
+        <!-- PDF Preview -->
+        @if (!isLoadingPreview && !previewError && fileType === 'pdf') {
+          <div class="preview-content">
+            <iframe [src]="previewUrl" class="pdf-viewer" frameborder="0"></iframe>
+          </div>
+        }
+
+        <!-- Image Preview -->
+        @if (!isLoadingPreview && !previewError && fileType === 'image') {
+          <div class="preview-content">
+            <img [src]="previewUrl" alt="Document preview" class="image-viewer">
+          </div>
+        }
+
+        <!-- Unknown File Type -->
+        @if (!isLoadingPreview && !previewError && fileType === 'unknown') {
+          <div class="preview-placeholder">
+            <mat-icon class="preview-icon">description</mat-icon>
+            <p class="preview-text">Preview not available for this file type</p>
+            <p class="preview-subtext">Please download to view</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="dialog-footer">
+      <button mat-stroked-button (click)="onClose()">Close</button>
+      <button mat-raised-button color="primary" (click)="downloadDocument()">
+        <mat-icon>download</mat-icon>
+        Download
+      </button>
+    </div>
+  </div>
 </div>

@@ -1,0 +1,450 @@
+@use '../../../../styles/variables' as vars;
+@use '../../../../styles/mixins' as mixins;
+
+.institution-container {
+    padding: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        padding: 2rem;
+    }
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 2rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+}
+
+.header-content {
+    h1 {
+        @include mixins.page-title;
+        margin-bottom: 0.5rem;
+
+        mat-icon {
+            font-size: 2rem;
+            width: 2rem;
+            height: 2rem;
+            color: vars.$accent-purple-dark;
+        }
+    }
+
+    .subtitle {
+        @include mixins.page-subtitle;
+    }
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        margin-top: 0;
+    }
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background: vars.$slate-50;
+    border-radius: vars.$radius-md;
+    border: 1px solid vars.$slate-200;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: vars.$accent-purple-dark;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: vars.$slate-500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.add-btn {
+    height: 3rem;
+    padding: 0 1.5rem !important;
+    font-weight: 600;
+    border-radius: vars.$radius-md !important;
+
+    mat-icon {
+        margin-right: 0.5rem;
+    }
+}
+
+/* Filter Card */
+.filter-card {
+    @include mixins.card-base;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(180deg, white 0%, vars.$slate-50 100%);
+
+    ::ng-deep .mat-mdc-card-content {
+        padding: 1.5rem !important;
+    }
+}
+
+.filter-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: vars.$slate-700;
+
+    mat-icon {
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        color: vars.$slate-500;
+    }
+}
+
+.filter-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    align-items: start;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    mat-form-field {
+        width: 100%;
+    }
+
+    mat-icon[matPrefix] {
+        color: vars.$slate-400;
+        margin-right: 0.5rem;
+    }
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding-top: 0.25rem;
+
+    button {
+        height: 3.5rem;
+        border-radius: vars.$radius-md !important;
+        font-weight: 600;
+
+        mat-icon {
+            margin-right: 0.5rem;
+        }
+    }
+
+    .search-btn {
+        min-width: 100px;
+    }
+
+    .clear-btn {
+        color: vars.$slate-500;
+        border-color: vars.$slate-200;
+    }
+}
+
+/* Table Wrapper & Mobile View */
+.table-card {
+    @include mixins.card-base;
+    overflow: hidden;
+    padding: 0 !important;
+
+    ::ng-deep .mat-mdc-card-content {
+        padding: 0 !important;
+    }
+}
+
+.table-wrapper {
+    display: none;
+    overflow-x: auto;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        display: block;
+    }
+}
+
+.mobile-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        display: none;
+    }
+}
+
+.mobile-card {
+    @include mixins.card-base;
+    padding: 1.25rem !important;
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid vars.$slate-100;
+}
+
+.mobile-type-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    color: vars.$slate-900;
+    font-size: 0.9375rem;
+}
+
+.mobile-card-body {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mobile-data-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.description-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: vars.$slate-500;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.mobile-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    border-top: 1px solid vars.$slate-100;
+    padding-top: 0.75rem;
+
+    button {
+        @include mixins.status-badge(transparent, inherit, transparent);
+        padding: 0 0.75rem !important;
+        height: 32px;
+
+        &[color="primary"] {
+            color: vars.$accent-purple-dark;
+            background: rgba(vars.$accent-purple-light, 0.1);
+        }
+
+        &[color="warn"] {
+            color: vars.$error;
+            background: rgba(vars.$error, 0.1);
+        }
+    }
+}
+
+/* Loading State */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 5rem 1rem;
+    gap: 1rem;
+
+    p {
+        color: vars.$slate-500;
+        font-weight: 500;
+        margin: 0;
+    }
+}
+
+/* Institutions Table */
+.institutions-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+
+    th {
+        font-weight: 600 !important;
+        color: vars.$slate-600 !important;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 1rem 1.5rem !important;
+        background: vars.$slate-50 !important;
+        border-bottom: 1px solid vars.$slate-200 !important;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 1rem 1.5rem !important;
+        font-size: 0.875rem;
+        color: vars.$slate-700;
+        border-bottom: 1px solid vars.$slate-100 !important;
+        vertical-align: middle;
+    }
+
+    tr {
+        transition: background-color 0.2s ease;
+
+        &:hover {
+            background-color: vars.$slate-50 !important;
+        }
+    }
+}
+
+/* Cells */
+.institution-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.institution-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: rgba(vars.$accent-purple-light, 0.1);
+    border-radius: vars.$radius-md;
+    border: 1px solid rgba(vars.$accent-purple-light, 0.2);
+
+    mat-icon {
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        color: vars.$accent-purple-dark;
+    }
+}
+
+.institution-name {
+    font-weight: 600;
+    color: vars.$slate-900;
+}
+
+.address-cell,
+.contact-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: vars.$slate-500;
+    font-size: 0.8125rem;
+
+    mat-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+        color: vars.$slate-400;
+    }
+
+    &.email {
+        color: vars.$accent-purple-dark;
+        cursor: pointer;
+
+        mat-icon {
+            color: vars.$accent-purple-light;
+        }
+    }
+}
+
+/* Actions Cell */
+.actions-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.action-btn {
+    color: vars.$slate-400;
+    transition: all 0.2s ease !important;
+
+    &:hover {
+        background-color: vars.$slate-100;
+        color: vars.$slate-700;
+    }
+
+    &.edit:hover {
+        background-color: rgba(vars.$accent-purple-light, 0.1);
+        color: vars.$accent-purple-dark;
+    }
+
+    &.delete:hover {
+        background-color: rgba(vars.$error, 0.1);
+        color: vars.$error;
+    }
+}
+
+/* No Data State */
+.no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1.5rem;
+    text-align: center;
+
+    .no-data-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 4rem;
+        height: 4rem;
+        background: vars.$slate-100;
+        border-radius: 50%;
+        margin-bottom: 1rem;
+
+        mat-icon {
+            font-size: 2rem;
+            width: 2rem;
+            height: 2rem;
+            color: vars.$slate-400;
+        }
+    }
+
+    h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: vars.$slate-700;
+    }
+
+    p {
+        margin: 0 0 1.5rem 0;
+        font-size: 0.875rem;
+        color: vars.$slate-500;
+    }
+
+    button {
+        border-radius: vars.$radius-md !important;
+
+        mat-icon {
+            margin-right: 0.5rem;
+        }
+    }
+}
+
+/* Paginator */
+mat-paginator {
+    background: transparent !important;
+    border-top: 1px solid vars.$slate-100;
+}

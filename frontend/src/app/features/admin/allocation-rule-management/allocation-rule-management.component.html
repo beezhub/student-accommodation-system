@@ -1,0 +1,228 @@
+<div class="rule-management-container">
+  <div class="page-header">
+    <h1>
+      <mat-icon>tune</mat-icon>
+      Allocation Rules
+    </h1>
+    <p class="subtitle">Configure automated room allocation scoring rules per building</p>
+  </div>
+
+  <!-- Info Card -->
+  <mat-card class="info-card">
+    <mat-card-content>
+      <div class="info-icon">
+        <mat-icon>info</mat-icon>
+      </div>
+      <div class="info-content">
+        <h3>How Allocation Rules Work</h3>
+        <p>
+          Allocation rules define how rooms are scored for each student. The system considers three factors:
+          <strong>Preference Match</strong> (student's building preference),
+          <strong>Desirability</strong> (room/building quality), and
+          <strong>Accessibility</strong> (special needs compliance).
+          Weights must sum to 100%.
+        </p>
+        <p class="info-note">
+          <mat-icon>lightbulb</mat-icon>
+          <span>Select "Global Rules" for default rules that apply to all buildings without specific rules.</span>
+        </p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="filter-card">
+    <mat-card-content>
+      <form [formGroup]="buildingForm">
+        <mat-form-field appearance="outline" class="building-select">
+          <mat-label>Select Building to Configure</mat-label>
+          <mat-select formControlName="buildingId">
+            <mat-option [value]="null">
+              <mat-icon>public</mat-icon>
+              Global Rules (Default for all buildings)
+            </mat-option>
+            <mat-divider></mat-divider>
+            <mat-option *ngFor="let b of buildings" [value]="b.id">
+              <mat-icon>apartment</mat-icon>
+              {{b.name}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </form>
+
+      <button mat-raised-button color="primary"
+              [disabled]="buildingForm.get('buildingId')?.value === ''"
+              (click)="openRuleDialog()">
+        <mat-icon>add</mat-icon>
+        Create New Rule
+      </button>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="data-card"> <!-- Removed mat-card wrapper to control padding manually or via CSS -->
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && !rules.length" class="empty-state">
+        <mat-icon>rule_folder</mat-icon>
+        <h3 *ngIf="buildingForm.get('buildingId')?.value === ''">Select a Building</h3>
+        <p *ngIf="buildingForm.get('buildingId')?.value === ''">Choose a building from the dropdown to view or create allocation rules</p>
+        <h3 *ngIf="buildingForm.get('buildingId')?.value !== ''">No Rules Configured</h3>
+        <p *ngIf="buildingForm.get('buildingId')?.value !== '' && buildingForm.get('buildingId')?.value === null">
+          No global rules configured yet. Global rules apply to buildings without specific rules.
+        </p>
+        <p *ngIf="buildingForm.get('buildingId')?.value !== '' && buildingForm.get('buildingId')?.value !== null">
+          No rules configured for this building. It will use global rules if available.
+        </p>
+        <button mat-stroked-button color="primary" (click)="openRuleDialog()"
+                *ngIf="buildingForm.get('buildingId')?.value !== ''">
+          <mat-icon>add</mat-icon>
+          Create First Rule
+        </button>
+      </div>
+
+      <div *ngIf="!isLoading && rules.length">
+          <!-- Mobile Card View -->
+          <div class="mobile-cards-container">
+            @for (rule of rules; track rule.id) {
+              <div class="mobile-card" [class.inactive]="!rule.active">
+                <div class="mobile-card-header">
+                  <div class="mobile-rule-info">
+                    <div class="priority-badge-sm" [class.high-priority]="rule.priority >= 10">
+                      {{rule.priority}}
+                    </div>
+                    <div class="mobile-name-col">
+                      <span class="mobile-name">{{rule.ruleName}}</span>
+                      <span class="rule-scope" [class.global]="!rule.buildingId">
+                        {{ !rule.buildingId ? 'Global' : 'Building Specific' }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="mobile-actions-top">
+                     <button mat-icon-button class="action-btn edit" (click)="openRuleDialog(rule)">
+                        <mat-icon>edit</mat-icon>
+                     </button>
+                     <button mat-icon-button class="action-btn delete" (click)="deleteRule(rule)">
+                        <mat-icon>delete</mat-icon>
+                     </button>
+                  </div>
+                </div>
+
+                <div class="mobile-details">
+                    <div class="weights-grid">
+                        <div class="weight-mini pref">
+                           <span class="label">Pref</span>
+                           <span class="value">{{rule.preferenceMatchWeight}}%</span>
+                        </div>
+                        <div class="weight-mini desir">
+                            <span class="label">Desir</span>
+                            <span class="value">{{rule.desirabilityWeight}}%</span>
+                         </div>
+                         <div class="weight-mini access">
+                            <span class="label">Access</span>
+                            <span class="value">{{rule.accessibilityWeight}}%</span>
+                         </div>
+                    </div>
+
+                    <div class="mobile-status-row">
+                       <span class="status-label" [class.active]="rule.active">
+                          {{rule.active ? 'Active' : 'Inactive'}}
+                       </span>
+                       <mat-slide-toggle
+                          [checked]="rule.active"
+                          color="primary"
+                          (change)="toggleRuleActive(rule)">
+                       </mat-slide-toggle>
+                    </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Desktop Table View -->
+          <div class="data-card">
+              <table mat-table [dataSource]="rules" class="rules-table">
+
+                <!-- Priority Column -->
+                <ng-container matColumnDef="priority">
+                  <th mat-header-cell *matHeaderCellDef> Priority </th>
+                  <td mat-cell *matCellDef="let rule">
+                    <span class="priority-badge" [class.high-priority]="rule.priority >= 10">
+                      {{rule.priority}}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Name Column -->
+                <ng-container matColumnDef="ruleName">
+                  <th mat-header-cell *matHeaderCellDef> Rule Name </th>
+                  <td mat-cell *matCellDef="let rule">
+                    <div class="rule-name-cell">
+                      <strong>{{rule.ruleName}}</strong>
+                      <span class="rule-scope" *ngIf="!rule.buildingId">Global</span>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- Weights Column -->
+                <ng-container matColumnDef="weights">
+                  <th mat-header-cell *matHeaderCellDef> Scoring Weights </th>
+                  <td mat-cell *matCellDef="let rule">
+                    <div class="weights-display">
+                      <div class="weight-item pref" matTooltip="Preference Match Weight">
+                        <mat-icon>favorite</mat-icon>
+                        <span>{{rule.preferenceMatchWeight}}%</span>
+                      </div>
+                      <div class="weight-item desir" matTooltip="Desirability Weight">
+                        <mat-icon>star</mat-icon>
+                        <span>{{rule.desirabilityWeight}}%</span>
+                      </div>
+                      <div class="weight-item access" matTooltip="Accessibility Weight">
+                        <mat-icon>accessible</mat-icon>
+                        <span>{{rule.accessibilityWeight}}%</span>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- Active Column -->
+                <ng-container matColumnDef="active">
+                  <th mat-header-cell *matHeaderCellDef> Status </th>
+                  <td mat-cell *matCellDef="let rule">
+                    <div class="status-cell">
+                      <mat-slide-toggle
+                        [checked]="rule.active"
+                        color="primary"
+                        (change)="toggleRuleActive(rule)"
+                        matTooltip="Toggle Activation">
+                      </mat-slide-toggle>
+                      <span class="status-label" [class.active]="rule.active">
+                        {{rule.active ? 'Active' : 'Inactive'}}
+                      </span>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- Actions Column -->
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef> Actions </th>
+                  <td mat-cell *matCellDef="let rule">
+                    <button mat-icon-button class="action-btn edit" (click)="openRuleDialog(rule)" matTooltip="Edit Rule">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button class="action-btn delete" (click)="deleteRule(rule)" matTooltip="Delete Rule">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.inactive-row]="!row.active"></tr>
+              </table>
+          </div>
+      </div>
+  </div>
+</div>

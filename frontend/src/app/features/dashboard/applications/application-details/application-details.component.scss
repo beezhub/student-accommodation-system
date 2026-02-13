@@ -1,0 +1,326 @@
+@use '../../../../../styles/variables' as vars;
+@use '../../../../../styles/mixins' as mixins;
+
+/* Modern Application Details Page Design - Mobile First */
+.main-content {
+  margin-top: 64px;
+  padding: 1.5rem 0;
+  background: linear-gradient(135deg, vars.$slate-50 0%, vars.$slate-200 100%);
+  min-height: calc(100vh - 64px);
+}
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Page Header */
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, vars.$slate-900 0%, vars.$accent-cyan-dark 100%);
+  border-radius: vars.$radius-xl;
+  position: relative;
+  overflow: hidden;
+  box-shadow: vars.$shadow-elevated;
+}
+
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  border-radius: 50%;
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.back-button {
+  position: relative;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500;
+  border-radius: 12px !important;
+  padding: 0.5rem 1rem !important;
+  align-self: flex-start;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+  }
+}
+
+.page-header h2 {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+}
+
+.status-chip-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Content Grid */
+.content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Base Card Styles */
+.mat-mdc-card {
+  @include mixins.card-base;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.mat-mdc-card-content {
+  padding: 1.5rem !important;
+}
+
+/* Section Title */
+.section-title {
+  @include mixins.section-title;
+  color: vars.$slate-900;
+  margin: 0 0 1rem 0;
+}
+
+.mat-divider {
+  margin: 0 0 1.25rem 0 !important;
+}
+
+/* Info Grid - Mobile First (Stack by default) */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.info-item {
+  padding: 1rem;
+  background: vars.$slate-50;
+  border-radius: vars.$radius-lg;
+  border: 1px solid vars.$slate-200;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: vars.$slate-100;
+    border-color: vars.$accent-cyan-light;
+  }
+}
+
+.label {
+  color: vars.$slate-500;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.value {
+  color: vars.$slate-900;
+  font-weight: 600;
+  font-size: 1rem;
+  word-break: break-word;
+}
+
+/* Admin Actions Card */
+.admin-actions-card {
+  border-left: 4px solid vars.$accent-cyan-dark !important;
+  background: linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%) !important;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+
+  button {
+    width: 100%;
+    height: 48px;
+    border-radius: vars.$radius-lg !important;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+}
+
+/* Timeline Styles */
+.timeline-mat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.timeline-mat-item {
+  display: flex;
+  flex-direction: column;
+  /* Mobile: stack icon and content */
+  gap: 1rem;
+  padding: 1rem;
+  background: vars.$slate-50;
+  border-radius: vars.$radius-lg;
+  border: 1px solid vars.$slate-200;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: vars.$slate-100;
+    transform: translateY(-2px);
+    box-shadow: vars.$shadow-subtle;
+  }
+}
+
+.timeline-mat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(8, 145, 178, 0.1);
+  color: vars.$accent-cyan-dark;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.timeline-mat-content {
+  flex: 1;
+}
+
+.timeline-mat-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.timeline-mat-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: vars.$slate-900;
+}
+
+.timeline-mat-date {
+  color: vars.$slate-500;
+  font-size: 0.8125rem;
+}
+
+.timeline-mat-description {
+  color: vars.$slate-600;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Dialog Overlay */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.dialog-card {
+  width: 100%;
+  max-width: 500px;
+  border-radius: vars.$radius-xl !important;
+  margin: 0 !important;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive - Tablet+ (768px+) */
+@media (min-width: vars.$breakpoint-tablet) {
+  .page-container {
+    padding: 0 1.5rem;
+  }
+
+  .page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2rem;
+  }
+
+  .back-button {
+    align-self: center;
+  }
+
+  .page-header h2 {
+    font-size: 1.75rem;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .info-item {
+    padding: 1.25rem;
+  }
+
+  .action-buttons {
+    flex-direction: row;
+
+    button {
+      width: auto;
+      padding: 0 1.5rem !important;
+    }
+  }
+
+  .timeline-mat-item {
+    flex-direction: row;
+    /* Tablet: Row layout */
+    align-items: flex-start;
+  }
+
+  .timeline-mat-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .timeline-mat-date {
+    margin-left: auto;
+  }
+}
+
+/* Loading Container */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+}

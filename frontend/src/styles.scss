@@ -1,0 +1,169 @@
+/* Main Entry Point for Application Styles */
+
+// 1. Core Config & Tokens
+@use 'styles/variables' as vars;
+@use 'styles/mixins' as mixins;
+
+// 2. Angular Material Themes
+@use 'custom-theme' as theme;
+
+// 3. Utilities
+@use 'styles/utilities';
+
+// 4. Global Base Styles (Legacy migration)
+// TODO: Refactor global_styles.css contents directly into here or modules
+@import 'global_styles.css';
+
+// 5. Global Overrides (Quick Wins)
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    font-family: vars.$font-sans;
+    background-color: vars.$slate-50;
+    color: vars.$slate-800;
+}
+
+// Global Typography Overrides
+h1,
+.mat-headline-1 {
+    @include mixins.page-title;
+}
+
+h2,
+.mat-headline-2 {
+    font-size: vars.$font-size-h2;
+    font-weight: vars.$font-weight-h2;
+    color: vars.$slate-800;
+}
+
+// Global Button Overrides
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-outlined-button {
+    border-radius: vars.$radius-md !important; // 10px
+    letter-spacing: 0.02em;
+    font-weight: 500;
+}
+
+// Global Status Badges (Backward Compatibility)
+.status-badge {
+    // Styles handled by component, but if used as class:
+    @include mixins.status-badge(vars.$slate-100, vars.$slate-700, vars.$slate-200);
+}
+
+// Global Table Styles
+.table-container {
+    @include mixins.card-base;
+}
+
+th.mat-header-cell {
+    background: vars.$slate-50;
+    color: vars.$slate-600;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 16px;
+    border-bottom: 1px solid vars.$slate-200;
+}
+
+td.mat-cell {
+    color: vars.$slate-700;
+    font-size: 14px;
+    padding: 16px;
+    border-bottom: 1px solid vars.$slate-100;
+}
+
+tr.mat-row:hover {
+    background-color: vars.$slate-50;
+}
+
+// Google Places Autocomplete global styling
+gmp-place-autocomplete {
+    // CSS custom properties that Google Maps components respect
+    --gmpx-color-surface: #ffffff !important;
+    --gmpx-color-on-surface: #{vars.$slate-800} !important;
+    --gmpx-color-on-surface-variant: #{vars.$slate-400} !important;
+    --gmpx-color-primary: #{vars.$accent-orange-dark} !important;
+    --gmpx-font-family-base: #{vars.$font-sans} !important;
+    --gmpx-font-size-base: 14px !important;
+}
+
+// New Google Places API dropdown overlay (shadow DOM)
+gmp-internal-place-autocomplete-overlay,
+gmp-internal-place-autocomplete-overlay * {
+    z-index: 10000 !important;
+    background-color: #ffffff !important;
+    color: #{vars.$slate-800} !important;
+    font-family: #{vars.$font-sans} !important;
+}
+
+// Force white background on the overlay container
+gmp-internal-place-autocomplete-overlay::part(container),
+gmp-internal-place-autocomplete-overlay::part(list),
+gmp-internal-place-autocomplete-overlay::part(item) {
+    background-color: #ffffff !important;
+    color: #{vars.$slate-800} !important;
+}
+
+// Legacy pac-container (fallback for older API)
+.pac-container,
+.pac-container * {
+    z-index: 10000 !important;
+    font-family: #{vars.$font-sans} !important;
+    background-color: #ffffff !important;
+    color: #{vars.$slate-700} !important;
+}
+
+.pac-container {
+    border-radius: vars.$radius-md !important;
+    border: 1px solid vars.$slate-200 !important;
+    box-shadow: vars.$shadow-medium !important;
+    margin-top: 4px !important;
+}
+
+.pac-item {
+    font-family: #{vars.$font-sans} !important;
+    font-size: vars.$font-size-body !important;
+    color: #{vars.$slate-700} !important;
+    padding: 10px 14px !important;
+    border-bottom: 1px solid vars.$slate-100 !important;
+    cursor: pointer !important;
+    background-color: #ffffff !important;
+
+    &:hover {
+        background-color: #{vars.$slate-50} !important;
+    }
+}
+
+.pac-item-query {
+    color: #{vars.$slate-800} !important;
+    font-weight: 500 !important;
+}
+
+.pac-icon {
+    margin-right: 10px !important;
+    filter: none !important;
+}
+
+.pac-matched {
+    color: #{vars.$accent-orange-dark} !important;
+    font-weight: 600 !important;
+}
+
+// Global Dialog Overrides
+.mat-mdc-dialog-container {
+    --mdc-dialog-container-shape: #{vars.$radius-xl} !important;
+}
+
+.mat-mdc-dialog-title {
+    @include mixins.section-title;
+    margin-bottom: 20px;
+
+    &::before {
+        display: none !important; // Remove material design default styling if any
+    }
+}

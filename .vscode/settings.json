@@ -1,0 +1,17 @@
+{
+    "chat.mcp.serverSampling": {
+        "student-accommodation-system/.vscode/mcp.json: atlassian": {
+            "allowedModels": [
+                "copilot/auto"
+            ]
+        }
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": [],
+    "chat.tools.terminal.autoApprove": {
+        "Get-NetTCPConnection": true,
+        "Get-Unique": true,
+        "Get-Process": true
+    },
+    "java.compile.nullAnalysis.mode": "automatic"
+}

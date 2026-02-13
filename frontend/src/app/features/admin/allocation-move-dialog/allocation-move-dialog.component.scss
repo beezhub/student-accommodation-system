@@ -1,0 +1,312 @@
+@use '../../../../styles/variables' as vars;
+@use '../../../../styles/mixins' as mixins;
+
+// Fix for icon alignment
+mat-icon {
+    font-family: 'Material Icons' !important;
+    font-weight: normal;
+    font-style: normal;
+}
+
+:host {
+    display: block;
+}
+
+.dialog-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 1rem;
+
+    // Ensure content scroll on small screens if needed
+    max-height: 70vh;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        min-width: 600px;
+        max-height: 80vh;
+    }
+}
+
+h2[mat-dialog-title] {
+    margin: 0;
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: vars.$slate-900;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    &::before {
+        content: '';
+        display: block;
+        width: 4px;
+        height: 24px;
+        background: vars.$accent-purple-dark;
+        border-radius: 2px;
+    }
+}
+
+mat-dialog-content {
+    margin: 0;
+    padding: 0 1.5rem 1.5rem 1.5rem !important; // Override default padding
+}
+
+/* Current Info Panel */
+.current-info-panel {
+    background: vars.$slate-50;
+    border: 1px solid vars.$slate-200;
+    border-radius: vars.$radius-lg;
+    padding: 1rem;
+}
+
+.current-info-panel h3 {
+    margin: 0 0 1rem 0;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: vars.$slate-500;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        align-items: center;
+        gap: 0.5rem 1.5rem;
+    }
+}
+
+.label {
+    color: vars.$slate-500;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.value {
+    color: vars.$slate-900;
+    font-size: 0.9375rem;
+    font-weight: 500;
+
+    strong {
+        color: vars.$accent-purple-dark;
+    }
+}
+
+/* Section Header */
+.section-header {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: vars.$slate-800;
+}
+
+/* Search Form */
+.search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        flex-direction: row;
+        align-items: flex-start;
+
+        button {
+            height: 52px; // Match standard input height
+            margin-top: 4px;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+    }
+}
+
+.building-select {
+    flex: 2;
+}
+
+.room-input {
+    flex: 1;
+}
+
+/* Mobile Results List */
+.mobile-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px; // Space for scrollbar
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        display: none;
+    }
+}
+
+.mobile-result-card {
+    background: white;
+    border: 1px solid vars.$slate-200;
+    border-radius: vars.$radius-md;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+
+    &.selected {
+        border-color: vars.$accent-purple-dark;
+        background: rgba(vars.$accent-purple-light, 0.05);
+        box-shadow: 0 0 0 2px rgba(vars.$accent-purple-dark, 0.2);
+    }
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.room-number {
+    font-family: monospace;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: vars.$slate-900;
+}
+
+.room-capacity {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: vars.$slate-100;
+    border-radius: vars.$radius-sm;
+    color: vars.$slate-600;
+    font-weight: 600;
+}
+
+.result-building {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: vars.$slate-600;
+    font-size: 0.875rem;
+
+    mat-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+        color: vars.$slate-400;
+    }
+}
+
+/* Desktop Results Table */
+.desktop-results-table {
+    display: none; // Hidden on mobile
+    border: 1px solid vars.$slate-200;
+    border-radius: vars.$radius-lg;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        display: block;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+
+        th {
+            background: vars.$slate-50;
+            color: vars.$slate-600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            border-bottom: 1px solid vars.$slate-200;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            border-bottom: 1px solid vars.$slate-100;
+            color: vars.$slate-700;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: vars.$slate-50;
+        }
+
+        tr.selected-row td {
+            background: rgba(vars.$accent-purple-light, 0.1);
+        }
+    }
+}
+
+.no-results {
+    text-align: center;
+    padding: 2rem;
+    background: vars.$slate-50;
+    border-radius: vars.$radius-lg;
+    border: 1 dashed vars.$slate-300;
+    color: vars.$slate-500;
+    margin-bottom: 1.5rem;
+
+    p {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+}
+
+/* Selected Room Confirmation */
+.confirmation-panel {
+    margin-top: auto; // Push to bottom if space
+}
+
+.selected-room-card {
+    background: linear-gradient(135deg, vars.$accent-purple-dark 0%, vars.$accent-purple-light 100%) !important;
+    border-radius: vars.$radius-lg !important;
+    color: white !important;
+    padding: 1rem;
+
+    mat-card-header {
+        padding: 0;
+    }
+
+    mat-card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: white;
+    }
+
+    mat-card-subtitle {
+        color: rgba(white, 0.9);
+        font-size: 0.875rem;
+    }
+
+    mat-icon {
+        color: rgba(white, 0.8);
+    }
+}
+
+/* Actions */
+mat-dialog-actions {
+    padding: 1rem 1.5rem 1.5rem 1.5rem !important;
+    margin: 0 !important;
+    border-top: 1px solid vars.$slate-100;
+}

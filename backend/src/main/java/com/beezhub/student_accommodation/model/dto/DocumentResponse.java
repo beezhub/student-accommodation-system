@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.core.io.Resource;
 
 import java.time.LocalDate;
 
@@ -19,6 +18,19 @@ public class DocumentResponse {
     private String documentName;
     private String documentTypeName;
     private String fileUrl;
+    private Long fileSize; // File size in bytes
     private String documentStatus;
     private LocalDate uploadDate;
+    // Application context
+    private Long applicationId;
+    private String applicationStatus;
+    // Student context
+    private Long studentId;
+    private String studentFirstName;
+    private String studentLastName;
+    private String studentEmail;
+    // Allocation context
+    private Boolean roomAllocated;
+    private Long roomId;
+    private String roomNumber;
 }

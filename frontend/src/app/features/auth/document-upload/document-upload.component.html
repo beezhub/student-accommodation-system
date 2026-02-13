@@ -1,65 +1,195 @@
-<div class="container">
-    <div class="row justify-content-center align-items-center min-vh-100 py-5">
-        <div class="col-12 col-md-10 col-lg-8">
-            <div class="card border-0 shadow-lg">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <h2 class="fw-bold">Document Upload</h2>
-                        <p class="text-muted">Upload the required documents to complete your application</p>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div class="progress mb-4" style="height: 8px;">
-                        <div class="progress-bar" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <p class="text-center text-muted mb-4">Step 3 of 4</p>
-
-                    <form [formGroup]="uploadForm" (ngSubmit)="onSubmit()" class="fade-in">
-                        <div class="mb-4" *ngFor="let doc of requiredDocuments">
-                            <div class="card border-dashed p-4">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <h5 class="mb-1">{{doc.name}}</h5>
-                                        <p class="text-muted small mb-0">{{doc.description}}</p>
-                                    </div>
-                                    <div class="upload-status" *ngIf="uploadedFiles[doc.id]">
-                                        <i class="bi bi-check-circle-fill text-success"></i>
-                                    </div>
-                                </div>
-
-                                <div class="upload-area">
-                                    <input
-                                            type="file"
-                                            [id]="doc.id"
-                                            class="form-control"
-                                            (change)="onFileSelected($event, doc.id)"
-                                            accept=".pdf,.jpg,.jpeg,.png"
-                                            [class.is-invalid]="uploadForm.get(doc.id)?.invalid && uploadForm.get(doc.id)?.touched"
-                                    >
-                                    <div class="invalid-feedback" *ngIf="uploadForm.get(doc.id)?.errors?.['required'] && uploadForm.get(doc.id)?.touched">
-                                        Please upload {{doc.name}}
-                                    </div>
-                                </div>
-
-                                <p class="text-muted small mt-2 mb-0">
-                                    Accepted formats: PDF, JPG, PNG (Max size: 5MB)
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2 mt-4">
-                            <button
-                                    type="submit"
-                                    class="btn btn-primary btn-lg"
-                                    [disabled]="isSubmitting"
-                            >
-                                <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                {{isSubmitting ? 'Uploading...' : 'Continue to Review'}}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+<div class="upload-container">
+  <div class="progress-indicator">
+    <div class="step completed">
+      <div class="step-number">1</div>
+      <div class="step-label">Sign Up</div>
     </div>
-</div>
+    <div class="step-line"></div>
+    <div class="step completed">
+      <div class="step-number">2</div>
+      <div class="step-label">Profile Setup</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step completed">
+      <div class="step-number">3</div>
+      <div class="step-label">Application</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step active">
+      <div class="step-number">4</div>
+      <div class="step-label">Documents</div>
+    </div>
+  </div>
+
+  <mat-card class="upload-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>upload_file</mat-icon>
+        Upload Required Documents
+      </mat-card-title>
+      <mat-card-subtitle>
+        Please upload all required documents to complete your registration
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-content>
+      <!-- Load Error Display -->
+      @if (loadError) {
+        <app-error-display
+          mode="inline"
+          [type]="loadError.type"
+          [message]="loadError.message"
+          [showRetry]="loadError.canRetry"
+          [isRetrying]="isLoadingTypes"
+          (retry)="retryLoadTypes()">
+        </app-error-display>
+      }
+
+      <!-- Submit Error Display -->
+      @if (submitError) {
+        <app-error-display
+          mode="inline"
+          [type]="submitError.type"
+          [message]="submitError.message"
+          [details]="submitError.details"
+          [showRetry]="submitError.canRetry"
+          [showDismiss]="true"
+          (retry)="retrySubmit()"
+          (dismiss)="dismissError()">
+        </app-error-display>
+      }
+
+      <!-- Upload Progress -->
+      @if (uploadStatus === 'uploading') {
+        <div class="upload-progress-container">
+          <div class="upload-progress-header">
+            <mat-icon class="uploading-icon">cloud_upload</mat-icon>
+            <span>Uploading documents...</span>
+            <span class="progress-percentage">{{ uploadProgress }}%</span>
+          </div>
+          <mat-progress-bar mode="determinate" [value]="uploadProgress" color="primary"></mat-progress-bar>
+        </div>
+      }
+
+      <!-- Upload Complete -->
+      @if (uploadStatus === 'complete') {
+        <div class="upload-complete">
+          <mat-icon class="success-icon">check_circle</mat-icon>
+          <span>All documents uploaded successfully!</span>
+        </div>
+      }
+
+      <form [formGroup]="uploadForm" (ngSubmit)="onSubmit()">
+        <div class="documents-section">
+          @for (doc of requiredDocuments; track doc) {
+            <div class="document-item">
+              <div class="document-header">
+                <div class="document-info">
+                  <h3 class="document-title">
+                    <mat-icon>description</mat-icon>
+                    {{ doc.name }}
+                  </h3>
+                  <p class="document-description">{{ doc.description }}</p>
+                </div>
+                @if (uploadedFiles[doc.id] && !hasFileValidationError(doc.id.toString())) {
+                  <div class="upload-status success">
+                    <mat-icon class="success-icon">check_circle</mat-icon>
+                    <span class="status-text">Ready</span>
+                  </div>
+                }
+                @if (hasFileValidationError(doc.id.toString())) {
+                  <div class="upload-status error">
+                    <mat-icon class="error-icon">error</mat-icon>
+                    <span class="status-text">Invalid</span>
+                  </div>
+                }
+              </div>
+
+              <!-- File Validation Errors -->
+              @if (hasFileValidationError(doc.id.toString())) {
+                <div class="file-validation-errors">
+                  <div class="validation-error-header">
+                    <mat-icon>warning</mat-icon>
+                    <span>File validation failed</span>
+                  </div>
+                  <ul class="validation-error-list">@for (error of getFileValidationErrors(doc.id.toString()); track error) {<li>{{ error }}</li>}</ul>
+                </div>
+              }
+
+              <div class="upload-area">
+                <div class="file-input-container">
+                  <input type="file" [id]="'file-' + doc.id" class="file-input" [title]="'Upload ' + doc.name" [attr.aria-label]="'Upload ' + doc.name"
+                    (change)="onFileSelected($event, doc.id.toString())" accept=".pdf,.jpg,.jpeg,.png"
+                    [class.error]="(uploadForm.get(doc.id.toString())?.invalid && uploadForm.get(doc.id.toString())?.touched) || hasFileValidationError(doc.id.toString())" />
+                    <label [for]="'file-' + doc.id" class="file-input-label"
+                      [class.has-file]="uploadedFiles[doc.id]"
+                      [class.has-error]="hasFileValidationError(doc.id.toString())">
+                      <mat-icon>cloud_upload</mat-icon>
+                      <span class="upload-text">
+                        {{ uploadedFiles[doc.id] ? uploadedFiles[doc.id].name : 'Choose file or drag and drop' }}
+                      </span>
+                      <span class="upload-hint">PDF, JPG, PNG (Max 5MB)</span>
+                    </label>
+                  </div>
+
+                  <!-- File Info -->
+                  @if (uploadedFiles[doc.id] && !hasFileValidationError(doc.id.toString())) {
+                    <div class="file-info">
+                      <mat-icon>check_circle</mat-icon>
+                      <div class="file-details">
+                        <strong>{{ uploadedFiles[doc.id].name }}</strong>
+                        <span class="file-size">{{ formatFileSize(uploadedFiles[doc.id].size) }}</span>
+                      </div>
+                    </div>
+                  }
+
+                  @if (uploadForm.get(doc.id.toString())?.invalid && uploadForm.get(doc.id.toString())?.touched && !hasFileValidationError(doc.id.toString())) {
+                    <div class="error-message">
+                      <mat-icon>error</mat-icon>
+                      <span>Please upload {{ doc.name }}</span>
+                    </div>
+                  }
+                </div>
+                @if (requiredDocuments.indexOf(doc) < requiredDocuments.length - 1) {
+                  <mat-divider></mat-divider>
+                }
+              </div>
+            }
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <!-- Action Buttons -->
+          <mat-card-actions class="action-buttons">
+            <button mat-button type="button" routerLink="/dashboard" class="skip-button">
+              <mat-icon>skip_next</mat-icon>
+              Skip for Now
+            </button>
+
+            <button mat-raised-button color="primary" type="submit" class="submit-button"
+              [disabled]="isSubmitting || uploadForm.invalid">
+              @if (isSubmitting) {
+                <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+              }
+              @if (!isSubmitting) {
+                <mat-icon>check</mat-icon>
+              }
+              @if (!isSubmitting) {
+                <span>Complete Registration</span>
+              }
+              @if (isSubmitting) {
+                <span>Uploading...</span>
+              }
+            </button>
+          </mat-card-actions>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="help-text">
+      <mat-icon>info</mat-icon>
+      <p>Your documents will be reviewed by our team. You can continue to the dashboard while we process them.</p>
+    </div>
+  </div>

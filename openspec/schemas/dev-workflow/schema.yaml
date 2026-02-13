@@ -1,0 +1,19 @@
+name: dev-workflow
+
+artifacts:
+  - id: brd
+    generates: brd.md
+    requires: []
+    description: "Business Requirements Document"
+
+  - id: architecture
+    generates: architecture.md
+    requires: [brd]
+    description: "Technical architecture and design"
+
+  - id: tasks
+    generates: tasks.md
+    requires: [architecture]
+    description: "Detailed implementation tasks"
+
+  # Note: "apply" phase is built-in, requires tasks.md to exist

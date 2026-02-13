@@ -1,77 +1,214 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentViewerComponent } from './document-viewer/document-viewer.component';
-import {UploadDocumentComponent} from "./upload-document/upload-document.component";
+import { DocumentService, isNoActiveApplicationError } from '../../../core/services/document.service';
+import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { DocumentTypeService } from '../../../core/services/document-type.service';
+import { DocumentType } from '../../../core/models/document-type.model';
+import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
+import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import { ApplicationService } from '../../../core/services/application.service';
+
+// Material imports
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatTableModule } from '@angular/material/table';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 @Component({
   selector: 'app-documents',
   templateUrl: './documents.component.html',
-  styleUrls: ['./documents.component.css'],
-  standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, DocumentViewerComponent, UploadDocumentComponent]
+  styleUrls: ['./documents.component.scss'],
+  imports: [
+    CommonModule,
+    RouterModule,
+    ReactiveFormsModule,
+    DocumentViewerComponent,
+    // Material modules
+    MatToolbarModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+    MatTableModule,
+    MatProgressSpinnerModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatInputModule,
+    MatChipsModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatDividerModule,
+    MatProgressBarModule,
+    ModernStatusBadgeComponent,
+    ErrorDisplayComponent,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DocumentsComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly fb = inject(FormBuilder);
+  private readonly documentService = inject(DocumentService);
+  private readonly documentTypeService = inject(DocumentTypeService);
+  private readonly errorService = inject(ErrorHandlingService);
+  private readonly applicationService = inject(ApplicationService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   currentUser: any;
   selectedDocument: any = null;
   isUploading = false;
-  uploadError: string | null = null;
   showUploadModal = false;
   selectedFile: File | null = null;
   uploadForm: FormGroup;
 
-  documents = [
-    {
-      id: '1',
-      name: 'Student ID',
-      type: 'Identity',
-      uploadDate: '2024-01-15',
-      status: 'Verified',
-      size: '1.2 MB'
-    },
-    {
-      id: '2',
-      name: 'Proof of Enrollment',
-      type: 'Academic',
-      uploadDate: '2024-01-15',
-      status: 'Pending',
-      size: '2.1 MB'
-    },
-    {
-      id: '3',
-      name: 'Passport',
-      type: 'Identity',
-      uploadDate: '2024-01-15',
-      status: 'Verified',
-      size: '3.5 MB'
-    }
-  ];
+  // Error state
+  loadError: ParsedError | null = null;
+  uploadError: ParsedError | null = null;
+  fileValidationErrors: string[] = []; // Array for detailed file validation errors
+  isRetrying = false;
 
-  constructor(
-      private authService: AuthService,
-      private fb: FormBuilder
-  ) {
+  // Upload progress
+  uploadProgress = 0;
+  uploadStatus: 'idle' | 'validating' | 'uploading' | 'complete' | 'error' = 'idle';
+
+  documents: any[] = [];
+
+  // Material table configuration
+  readonly displayedColumns: readonly string[] = ['name', 'type', 'uploadDate', 'status', 'size', 'actions'] as const;
+  dataSource = new MatTableDataSource<any>([]);
+
+  // Application check state
+  hasActiveApplication = false;
+  isCheckingApplication = true;
+
+  allDocumentTypes: DocumentType[] = [];
+
+  constructor() {
     this.uploadForm = this.fb.group({
-      documentType: ['', Validators.required]
+      documentType: ['', Validators.required],
     });
   }
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
+    this.checkActiveApplication();
+  }
+
+  /**
+   * Checks if user has an active application before allowing document operations.
+   * Redirects to application creation if no active application exists.
+   */
+  private checkActiveApplication(): void {
+    this.isCheckingApplication = true;
+
+    this.applicationService.hasActiveApplication().subscribe({
+      next: (hasActive) => {
+        this.isCheckingApplication = false;
+        this.hasActiveApplication = hasActive;
+
+        if (!hasActive) {
+          this.errorService.showWarning('Please create an application before uploading documents');
+          this.router.navigate(['/applications/new']);
+        } else {
+          this.loadDocuments();
+          this.loadDocumentTypes();
+        }
+        this.cdr.markForCheck(); // Trigger change detection
+      },
+      error: () => {
+        this.isCheckingApplication = false;
+        this.hasActiveApplication = false;
+        this.errorService.showWarning('Unable to verify application status. Please create an application first.');
+        this.router.navigate(['/applications/new']);
+        this.cdr.markForCheck(); // Trigger change detection
+      },
+    });
+  }
+
+  loadDocuments(): void {
+    this.loadError = null;
+    this.isRetrying = true;
+
+    this.documentService.getUploadedDocuments().subscribe({
+      next: (docs) => {
+        this.isRetrying = false;
+        console.log('Documents received from API:', docs);
+        this.documents = docs.map((doc) => ({
+          id: String(doc.id),
+          name: doc.documentName,
+          type: doc.documentTypeName,
+          uploadDate: doc.uploadDate,
+          status: doc.documentStatus,
+          size: doc.fileSize ? this.formatFileSize(doc.fileSize) : 'Unknown',
+          fileUrl: doc.fileUrl,
+        }));
+        console.log('Mapped documents:', this.documents);
+        this.dataSource.data = this.documents;
+        this.cdr.markForCheck(); // Trigger change detection
+      },
+      error: (err) => {
+        this.isRetrying = false;
+        console.error('Failed to fetch documents:', err);
+        this.loadError = this.errorService.parseError(err);
+        this.cdr.markForCheck(); // Trigger change detection
+        this.loadError = this.errorService.parseError(err);
+      },
+    });
+  }
+
+  loadDocumentTypes(): void {
+    this.documentTypeService.getAllDocumentTypes().subscribe({
+      next: (types: any) => {
+        // Handle both array and paginated response formats
+        if (Array.isArray(types)) {
+          this.allDocumentTypes = types;
+        } else if (types && Array.isArray(types.content)) {
+          this.allDocumentTypes = types.content;
+        } else {
+          this.allDocumentTypes = [];
+        }
+        console.log('Document types loaded:', this.allDocumentTypes);
+        this.cdr.markForCheck(); // Trigger change detection
+      },
+      error: (err) => {
+        console.error('Failed to load document types', err);
+        this.allDocumentTypes = [];
+        // Show a warning but don't block the page
+        this.errorService.showWarning('Failed to load document types. Please try refreshing.');
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  retryLoadDocuments(): void {
+    this.loadDocuments();
+    this.loadDocumentTypes();
   }
 
   getStatusClass(status: string): string {
     switch (status.toLowerCase()) {
       case 'verified':
-        return 'bg-success';
+        return 'status-verified';
       case 'pending':
-        return 'bg-warning';
+        return 'status-pending';
       case 'rejected':
-        return 'bg-danger';
+        return 'status-rejected';
       default:
-        return 'bg-secondary';
+        return 'status-default';
     }
   }
 
@@ -80,6 +217,9 @@ export class DocumentsComponent implements OnInit {
     this.uploadForm.reset();
     this.selectedFile = null;
     this.uploadError = null;
+    this.fileValidationErrors = [];
+    this.uploadProgress = 0;
+    this.uploadStatus = 'idle';
   }
 
   closeUploadModal() {
@@ -87,26 +227,35 @@ export class DocumentsComponent implements OnInit {
     this.uploadForm.reset();
     this.selectedFile = null;
     this.uploadError = null;
+    this.fileValidationErrors = [];
+    this.uploadProgress = 0;
+    this.uploadStatus = 'idle';
+  }
+
+  dismissUploadError(): void {
+    this.uploadError = null;
   }
 
   onFileSelected(event: any) {
     const file = event.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        this.uploadError = 'File size must be less than 5MB';
-        this.selectedFile = null;
-        return;
-      }
-
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-      if (!allowedTypes.includes(file.type)) {
-        this.uploadError = 'Only PDF, JPG, and PNG files are allowed';
-        this.selectedFile = null;
-        return;
-      }
-
+      this.uploadStatus = 'validating';
+      this.fileValidationErrors = [];
       this.uploadError = null;
+
+      // Use document service's validation
+      const validation = this.documentService.validateFile(file);
+
+      if (!validation.valid) {
+        this.fileValidationErrors = validation.errors;
+        this.selectedFile = null;
+        this.uploadStatus = 'error';
+        return;
+      }
+
+      this.fileValidationErrors = [];
       this.selectedFile = file;
+      this.uploadStatus = 'idle';
     }
   }
 
@@ -114,35 +263,85 @@ export class DocumentsComponent implements OnInit {
     if (this.uploadForm.valid && this.selectedFile) {
       this.isUploading = true;
       this.uploadError = null;
+      this.fileValidationErrors = [];
+      this.uploadProgress = 0;
+      this.uploadStatus = 'uploading';
 
-      const formData = new FormData();
-      formData.append('file', this.selectedFile);
-      formData.append('type', this.uploadForm.get('documentType')?.value);
+      const selectedTypeId: number = this.uploadForm.get('documentType')?.value;
+      const fileName = this.selectedFile.name;
+      const fileSize = this.selectedFile.size;
 
-      this.authService.uploadDocuments(formData).subscribe({
-        next: (response) => {
-          this.isUploading = false;
-          // Add the new document to the list
-          this.documents.unshift({
-            id: response.id,
-            name: this.selectedFile!.name,
-            type: this.uploadForm.get('documentType')?.value,
-            uploadDate: new Date().toISOString(),
-            status: 'Pending',
-            size: this.formatFileSize(this.selectedFile!.size)
-          });
-          this.closeUploadModal();
+      this.documentService.uploadSingleDocumentWithProgress(this.selectedFile, selectedTypeId).subscribe({
+        next: (progress) => {
+          this.uploadProgress = progress.progress;
+
+          if (progress.status === 'complete') {
+            this.isUploading = false;
+            this.uploadStatus = 'complete';
+            this.errorService.showSuccess('Document uploaded successfully!');
+
+            // Optimistically add new doc to the list with basic info
+            const typeName =
+              this.allDocumentTypes.find((t) => t.id === selectedTypeId)?.name ||
+              String(selectedTypeId);
+            const newDoc = {
+              id: String(Date.now()),
+              name: fileName,
+              type: typeName,
+              uploadDate: new Date().toISOString(),
+              status: 'Pending',
+              size: this.formatFileSize(fileSize),
+            };
+            this.documents.unshift(newDoc);
+            this.dataSource.data = this.documents;
+
+            // Refresh from server to show accurate data
+            this.documentService.getUploadedDocuments().subscribe({
+              next: (docs) => {
+                this.documents = docs.map((doc) => ({
+                  id: String(doc.id),
+                  name: doc.documentName,
+                  type: doc.documentTypeName,
+                  uploadDate: doc.uploadDate,
+                  status: doc.documentStatus,
+                  size: doc.fileSize ? this.formatFileSize(doc.fileSize) : 'Unknown',
+                  fileUrl: doc.fileUrl,
+                }));
+                this.dataSource.data = this.documents;
+                this.cdr.markForCheck();
+              },
+              error: (err) => console.error('Failed to refresh documents:', err),
+            });
+
+            // Close modal after a brief delay to show completion
+            setTimeout(() => this.closeUploadModal(), 500);
+          }
         },
         error: (error) => {
           this.isUploading = false;
-          this.uploadError = 'Failed to upload document. Please try again.';
+          this.uploadStatus = 'error';
+          this.uploadProgress = 0;
           console.error('Upload error:', error);
-        }
+
+          // Check if error is due to no active application
+          if (isNoActiveApplicationError(error)) {
+            this.closeUploadModal();
+            this.errorService.showWarning('Please create an application before uploading documents');
+            this.router.navigate(['/applications/new']);
+            return;
+          }
+
+          this.uploadError = this.errorService.parseError(error);
+        },
       });
     }
   }
 
-  private formatFileSize(bytes: number): string {
+  retryUpload(): void {
+    this.uploadDocument();
+  }
+
+  formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -151,7 +350,12 @@ export class DocumentsComponent implements OnInit {
   }
 
   viewDocument(document: any) {
-    this.selectedDocument = document;
+    // Convert id back to number for the viewer component
+    this.selectedDocument = {
+      ...document,
+      id: Number(document.id)
+    };
+    console.log('Viewing document:', this.selectedDocument);
   }
 
   closeViewer() {
@@ -161,7 +365,9 @@ export class DocumentsComponent implements OnInit {
   deleteDocument(documentId: string) {
     if (confirm('Are you sure you want to delete this document?')) {
       // Here you would typically call your service to delete the document
-      this.documents = this.documents.filter(doc => doc.id !== documentId);
+      this.documents = this.documents.filter((doc) => doc.id !== documentId);
+      // keep dataSource in sync
+      this.dataSource.data = this.documents;
     }
   }
 }

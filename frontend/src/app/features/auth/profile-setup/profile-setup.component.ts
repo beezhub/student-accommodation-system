@@ -1,37 +1,68 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { InstitutionService } from '../../../core/services/institution.service';
-import { YearOfStudyService} from '../../../core/services/year-of-study.service';
+import { YearOfStudyService } from '../../../core/services/year-of-study.service';
 import { StudentService } from '../../../core/services/student.service';
 import { Institution } from '../../../core/models/institution.model';
 import { YearOfStudy } from '../../../core/models/year-of-study.model';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatStepperModule } from '@angular/material/stepper';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
   selector: 'app-profile-setup',
   templateUrl: './profile-setup.component.html',
   styleUrls: ['./profile-setup.component.css'],
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule]
+  imports: [
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatProgressBarModule,
+    MatProgressSpinnerModule,
+    MatStepperModule,
+    MatIconModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatDividerModule,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileSetupComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly institutionService = inject(InstitutionService);
+  private readonly yearOfStudyService = inject(YearOfStudyService);
+  private readonly studentService = inject(StudentService);
+
   profileForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
   institutions: Institution[] = [];
   yearsOfStudy: YearOfStudy[] = [];
-  
-  
-  constructor(
-      private fb: FormBuilder,
-      private router: Router,
-      private authService: AuthService,
-      private institutionService: InstitutionService,
-      private yearOfStudyService: YearOfStudyService,
-      private studentService: StudentService) {
 
+  readonly genderOptions = [
+    { value: 'male', viewValue: 'Male' },
+    { value: 'female', viewValue: 'Female' },
+    { value: 'other', viewValue: 'Other' },
+    { value: 'prefer-not-to-say', viewValue: 'Prefer not to say' },
+  ] as const;
+
+  constructor() {
     this.profileForm = this.fb.group({
       studentNumber: ['', [Validators.required]],
       phoneNumber: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
@@ -39,7 +70,7 @@ export class ProfileSetupComponent implements OnInit {
       institution: ['', [Validators.required]],
       yearOfStudy: ['', [Validators.required]],
       gender: ['', [Validators.required]],
-      specialRequirements: ['']
+      specialRequirements: [''],
     });
   }
 
@@ -51,49 +82,66 @@ export class ProfileSetupComponent implements OnInit {
 
     this.institutionService.getInstitutions().subscribe({
       next: (institutions) => {
-        this.institutions = institutions;
+        console.log('Institutions API response:', institutions);
+        if (institutions && Array.isArray((institutions as any).content)) {
+          this.institutions = (institutions as any).content;
+        } else if (Array.isArray(institutions)) {
+          this.institutions = institutions;
+        } else {
+          this.institutions = [];
+        }
       },
       error: (error) => {
         console.error('Error fetching institutions:', error);
-      }
+        this.institutions = [];
+      },
     });
 
     this.yearOfStudyService.getYearsOfStudy().subscribe({
       next: (yearOfStudy) => {
-        this.yearsOfStudy = yearOfStudy;
+        console.log('YearsOfStudy API response:', yearOfStudy);
+        if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
+          this.yearsOfStudy = (yearOfStudy as any).content;
+        } else if (Array.isArray(yearOfStudy)) {
+          this.yearsOfStudy = yearOfStudy;
+        } else {
+          this.yearsOfStudy = [];
+        }
       },
       error: (error) => {
         console.error('Error fetching years of study:', error);
-      }
+        this.yearsOfStudy = [];
+      },
     });
   }
 
   onSubmit() {
     if (this.profileForm.valid) {
       this.isSubmitting = true;
-      this.isSubmitting = false;
-      
+
       const studentData = {
-        userId: this.currentUser.id,
+        firstName: this.currentUser.firstName,
+        lastName: this.currentUser.lastName,
+        email: this.currentUser.email,
         studentNumber: this.profileForm.get('studentNumber')?.value,
+        phoneNumber: this.profileForm.get('phoneNumber')?.value,
         dateOfBirth: this.profileForm.get('dateOfBirth')?.value,
         institutionId: this.profileForm.get('institution')?.value,
         yearOfStudyId: this.profileForm.get('yearOfStudy')?.value,
         gender: this.profileForm.get('gender')?.value,
         specialRequirements: this.profileForm.get('specialRequirements')?.value,
-        phoneNumber: this.profileForm.get('phoneNumber')?.value
-      }
-    
+        userId: this.currentUser.id,
+      };
 
       this.studentService.createStudentProfile(studentData).subscribe({
         next: () => {
           this.isSubmitting = false;
-          this.router.navigate(['/document-upload']);
+          this.router.navigate(['/application-submission']);
         },
         error: (error) => {
           this.isSubmitting = false;
           console.error('Error updating profile:', error);
-        }
+        },
       });
     } else {
       this.profileForm.markAllAsTouched();

@@ -1,36 +1,32 @@
-import { Injectable } from "@angular/core";
-import { HttpClient, HttpHeaders } from "@angular/common/http";
-import { BehaviorSubject, Observable } from "rxjs";
-import { environment } from "../../../environments/environment";
-import { User } from "../../model/user.model";
-import { StudentRequest, StudentResponse } from "../models/student.model";
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { StudentRequest, StudentResponse } from '../models/student.model';
+import { AuthService } from './auth.service';
 
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root',
 })
 export class StudentService {
   private apiUrl = `${environment.apiUrl}/student`;
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {
-    const storedUser = localStorage.getItem("currentUser");
-    if (storedUser) {
-      this.currentUserSubject.next(JSON.parse(storedUser));
-    }
-  }
-
-  public get currentUserValue(): User | null {
-    return this.currentUserSubject.value;
-  }
+  constructor(private http: HttpClient, private authService: AuthService) {}
 
   createStudentProfile(studentData: StudentRequest): Observable<StudentResponse> {
-    const token = localStorage.getItem("token");
-    const headers = new HttpHeaders({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    });
-    return this.http
-      .post<StudentResponse>(`${this.apiUrl}`, studentData, { headers });
+    return this.http.post<StudentResponse>(`${this.apiUrl}`, studentData);
+  }
+
+  getStudentProfile(): Observable<StudentResponse> {
+    return this.http.get<StudentResponse>(`${this.apiUrl}/me`);
+  }
+
+  updateStudentProfile(studentData: StudentRequest): Observable<StudentResponse> {
+    const userId = this.authService.currentUserValue?.id;
+    if (!userId) {
+      throw new Error('User does not exist or is not logged in.');
+    }
+
+    return this.http.put<StudentResponse>(`${this.apiUrl}/${userId}`, studentData);
   }
 }

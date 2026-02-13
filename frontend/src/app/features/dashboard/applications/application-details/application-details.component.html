@@ -1,180 +1,190 @@
-<div class="container-fluid">
-    <div class="row">
-        <!-- Navigation Header -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="#">
-                    <h5 class="mb-0">Student Housing</h5>
-                </a>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" routerLink="/dashboard">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" routerLink="/applications">Applications</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" routerLink="/documents">Documents</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" routerLink="/profile">Profile</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="container">
-                <!-- Back Button and Title -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="d-flex align-items-center">
-                        <button class="btn btn-link text-decoration-none p-0 me-3" (click)="goBack()">
-                            <i class="bi bi-arrow-left me-2"></i>Back to Applications
-                        </button>
-                        <h2 class="mb-0">Application Details</h2>
-                    </div>
-                    <span class="badge rounded-pill" [ngClass]="getStatusClass(application.status)">
-            {{application.status}}
-          </span>
-                </div>
-
-                <div class="row g-4">
-                    <!-- Application Overview -->
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
-                                <h5 class="card-title">Application Overview</h5>
-                                <div class="row g-3 mt-2">
-                                    <div class="col-md-3">
-                                        <p class="text-muted mb-1">Application ID</p>
-                                        <p class="fw-bold mb-0">#{{application.id}}</p>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <p class="text-muted mb-1">Submitted Date</p>
-                                        <p class="fw-bold mb-0">{{application.submittedDate | date}}</p>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <p class="text-muted mb-1">Academic Year</p>
-                                        <p class="fw-bold mb-0">{{application.year}}</p>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <p class="text-muted mb-1">Duration</p>
-                                        <p class="fw-bold mb-0">{{application.duration}}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Personal Information -->
-                    <div class="col-md-6">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">Personal Information</h5>
-                                <div class="mt-3">
-                                    <p class="text-muted mb-1">Full Name</p>
-                                    <p class="fw-bold mb-3">{{application.personalInfo.name}}</p>
-
-                                    <p class="text-muted mb-1">Email</p>
-                                    <p class="fw-bold mb-3">{{application.personalInfo.email}}</p>
-
-                                    <p class="text-muted mb-1">Phone Number</p>
-                                    <p class="fw-bold mb-3">{{application.personalInfo.phone}}</p>
-
-                                    <p class="text-muted mb-1">Student ID</p>
-                                    <p class="fw-bold mb-0">{{application.personalInfo.studentId}}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Accommodation Details -->
-                    <div class="col-md-6">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">Accommodation Details</h5>
-                                <div class="mt-3">
-                                    <p class="text-muted mb-1">Room Type</p>
-                                    <p class="fw-bold mb-3">{{application.accommodationDetails.type}}</p>
-
-                                    <p class="text-muted mb-1">Move-in Date</p>
-                                    <p class="fw-bold mb-3">{{application.accommodationDetails.moveInDate | date}}</p>
-
-                                    <p class="text-muted mb-1">Duration of Stay</p>
-                                    <p class="fw-bold mb-3">{{application.accommodationDetails.duration}}</p>
-
-                                    <p class="text-muted mb-1">Special Requirements</p>
-                                    <p class="fw-bold mb-0">{{application.accommodationDetails.specialRequirements || 'None'}}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Documents -->
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
-                                <h5 class="card-title">Submitted Documents</h5>
-                                <div class="table-responsive mt-3">
-                                    <table class="table">
-                                        <thead>
-                                        <tr>
-                                            <th>Document Name</th>
-                                            <th>Status</th>
-                                            <th>Upload Date</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <tr *ngFor="let doc of application.documents">
-                                            <td>{{doc.name}}</td>
-                                            <td>
-                          <span class="badge rounded-pill" [ngClass]="getStatusClass(doc.status)">
-                            {{doc.status}}
-                          </span>
-                                            </td>
-                                            <td>{{doc.date | date}}</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary">View</button>
-                                            </td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Application Timeline -->
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
-                                <h5 class="card-title">Application Timeline</h5>
-                                <div class="timeline mt-4">
-                                    <div class="timeline-item" *ngFor="let event of application.timeline">
-                                        <div class="timeline-marker"></div>
-                                        <div class="timeline-content">
-                                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                                <h6 class="mb-0">{{event.status}}</h6>
-                                                <small class="text-muted">{{event.date | date}}</small>
-                                            </div>
-                                            <p class="text-muted mb-0">{{event.description}}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<main class="main-content">
+  <div class="page-container">
+    <!-- Back Button and Title -->
+    <div class="page-header">
+      <button mat-button (click)="goBack()" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Applications
+      </button>
+      <h2>Application Details</h2>
+      @if (application) {
+        <div class="status-chip-container">
+          <app-modern-status-badge [status]="application.status" size="md"></app-modern-status-badge>
         </div>
+      }
     </div>
-</div>
+
+    <!-- Loading Spinner -->
+    @if (isLoading) {
+      <div class="loading-container">
+        <mat-spinner></mat-spinner>
+      </div>
+    }
+
+    <!-- Content -->
+    @if (!isLoading && application) {
+      <div class="content-grid">
+        <!-- Admin Actions -->
+        @if (canApproveOrReject()) {
+          <mat-card appearance="outlined" class="admin-actions-card">
+            <mat-card-content>
+              <h3 class="section-title">Admin Actions</h3>
+              <mat-divider></mat-divider>
+              <div class="action-buttons">
+                <button mat-raised-button color="primary" (click)="openApproveDialog()">
+                  <mat-icon>check_circle</mat-icon>
+                  Approve Application
+                </button>
+                <button mat-raised-button color="warn" (click)="openRejectDialog()">
+                  <mat-icon>cancel</mat-icon>
+                  Reject Application
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+        <!-- Application Overview -->
+        <mat-card appearance="outlined">
+          <mat-card-content>
+            <h3 class="section-title">Application Overview</h3>
+            <mat-divider></mat-divider>
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="label">Application Code</div>
+                <div class="value">{{ application.applicationCode }}</div>
+              </div>
+              <div class="info-item">
+                <div class="label">Submitted Date</div>
+                <div class="value">{{ application.applicationDate | date: 'medium' }}</div>
+              </div>
+              <div class="info-item">
+                <div class="label">Status</div>
+                <div class="value">
+                  <app-modern-status-badge [status]="application.status" size="sm"></app-modern-status-badge>
+                </div>
+              </div>
+              @if (application.remarks) {
+                <div class="info-item">
+                  <div class="label">Remarks</div>
+                  <div class="value">{{ application.remarks }}</div>
+                </div>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+        <!-- Student Information (for admin view) -->
+        @if (isAdmin && application.studentFirstName) {
+          <mat-card appearance="outlined">
+            <mat-card-content>
+              <h3 class="section-title">Student Information</h3>
+              <mat-divider></mat-divider>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="label">Full Name</div>
+                  <div class="value">{{ application.studentFirstName }} {{ application.studentLastName }}</div>
+                </div>
+                <div class="info-item">
+                  <div class="label">Email</div>
+                  <div class="value">{{ application.studentEmail }}</div>
+                </div>
+                <div class="info-item">
+                  <div class="label">Student ID</div>
+                  <div class="value">#{{ application.studentId }}</div>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+        <!-- Application Timeline -->
+        <mat-card appearance="outlined">
+          <mat-card-content>
+            <h3 class="section-title">Application Timeline</h3>
+            <mat-divider></mat-divider>
+            <div class="timeline-mat-list" role="list">
+              @for (event of timeline; track event; let last = $last) {
+                <div class="timeline-mat-item" role="listitem">
+                  <div class="timeline-mat-icon">
+                    <mat-icon color="primary" aria-hidden="true">{{ event.icon }}</mat-icon>
+                  </div>
+                  <div class="timeline-mat-content">
+                    <div class="timeline-mat-header">
+                      <span class="timeline-mat-title">{{ event.status }}</span>
+                      <app-modern-status-badge [status]="event.status" size="sm" class="timeline-mat-chip"></app-modern-status-badge>
+                      <span class="timeline-mat-date">{{ event.date | date: 'short' }}</span>
+                    </div>
+                    <div class="timeline-mat-description">{{ event.description }}</div>
+                  </div>
+                </div>
+                @if (!last) {
+                  <mat-divider class="timeline-mat-divider"></mat-divider>
+                }
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    }
+
+    <!-- Approve Dialog -->
+    @if (showApproveDialog) {
+      <div class="dialog-overlay" (click)="closeDialogs()">
+        <mat-card class="dialog-card" (click)="$event.stopPropagation()">
+          <mat-card-header>
+            <mat-card-title>Approve Application</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p>Are you sure you want to approve this application?</p>
+            <form [formGroup]="remarksForm">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Remarks (Optional)</mat-label>
+                <textarea matInput formControlName="remarks" rows="3" placeholder="Add any comments or notes"></textarea>
+              </mat-form-field>
+            </form>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-button (click)="closeDialogs()">Cancel</button>
+            <button mat-raised-button color="primary" (click)="approveApplication()">
+              <mat-icon>check_circle</mat-icon>
+              Approve
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    }
+
+    <!-- Reject Dialog -->
+    @if (showRejectDialog) {
+      <div class="dialog-overlay" (click)="closeDialogs()">
+        <mat-card class="dialog-card" (click)="$event.stopPropagation()">
+          <mat-card-header>
+            <mat-card-title>Reject Application</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p>Please provide a reason for rejecting this application.</p>
+            <form [formGroup]="remarksForm">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Reason for Rejection *</mat-label>
+                <textarea matInput formControlName="remarks" rows="4"
+                placeholder="Enter the reason for rejection" required></textarea>
+                @if (remarksForm.get('remarks')?.hasError('required')) {
+                  <mat-error>
+                    Reason is required
+                  </mat-error>
+                }
+              </mat-form-field>
+            </form>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-button (click)="closeDialogs()">Cancel</button>
+            <button mat-raised-button color="warn" (click)="rejectApplication()"
+              [disabled]="!remarksForm.valid">
+              <mat-icon>cancel</mat-icon>
+              Reject
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    }
+  </div>
+</main>

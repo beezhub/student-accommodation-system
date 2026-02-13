@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Allocation Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .success-icon {
+            text-align: center;
+            font-size: 60px;
+            margin: 20px 0;
+        }
+        .message {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .room-details {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .room-details h2 {
+            margin: 0 0 10px 0;
+            font-size: 36px;
+        }
+        .room-details p {
+            margin: 5px 0;
+            font-size: 18px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .info-item {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+        .info-item strong {
+            display: block;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .dates-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .dates-box h3 {
+            margin-top: 0;
+            color: #155724;
+        }
+        .dates-box p {
+            margin: 5px 0;
+        }
+        .move-in-box {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .move-in-box h3 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+        .move-in-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .move-in-box li {
+            margin: 8px 0;
+        }
+        .amenities-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .amenities-box h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .amenity-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .amenity-item {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        .amenity-item::before {
+            content: "✓";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .important-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .important-box h3 {
+            margin-top: 0;
+            color: #721c24;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .map-placeholder {
+            background-color: #e9ecef;
+            padding: 40px;
+            text-align: center;
+            border-radius: 5px;
+            margin: 20px 0;
+            color: #6c757d;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+        .contact-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+        .contact-info h4 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .contact-info p {
+            margin: 5px 0;
+        }
+        @media screen and (max-width: 600px) {
+            .info-grid, .amenity-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Your Room is Ready!</h1>
+        </div>
+
+        <div class="content">
+            <div class="success-icon">🏠</div>
+
+            <p class="message">Dear <span th:text="${studentName}">Student</span>,</p>
+
+            <p class="message">
+                Congratulations! We are pleased to inform you that a room has been successfully
+                allocated to you. Welcome to your new home away from home!
+            </p>
+
+            <div class="room-details">
+                <h2 th:text="${roomNumber}">Room 204</h2>
+                <p th:text="${buildingName}">Building A</p>
+                <p>Floor <span th:text="${floorNumber}">2</span></p>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>Building</strong>
+                    <span th:text="${buildingName}">Building A</span>
+                </div>
+                <div class="info-item">
+                    <strong>Room Number</strong>
+                    <span th:text="${roomNumber}">204</span>
+                </div>
+                <div class="info-item">
+                    <strong>Floor</strong>
+                    <span th:text="${floorNumber}">2</span>
+                </div>
+                <div class="info-item">
+                    <strong>Room Type</strong>
+                    <span th:text="${roomType}">Single</span>
+                </div>
+                <div class="info-item">
+                    <strong>Bed Number</strong>
+                    <span th:text="${bedNumber}">1</span>
+                </div>
+                <div class="info-item">
+                    <strong>Allocation ID</strong>
+                    <span th:text="${allocationId}">ALLOC-2025-001</span>
+                </div>
+            </div>
+
+            <div class="dates-box">
+                <h3>📅 Tenancy Period</h3>
+                <p><strong>Start Date:</strong> <span th:text="${startDate}">2025-02-01</span></p>
+                <p><strong>End Date:</strong> <span th:text="${endDate}">2025-11-30</span></p>
+                <p><strong>Duration:</strong> <span th:text="${duration}">10 months</span></p>
+            </div>
+
+            <div class="move-in-box">
+                <h3>📦 Move-In Instructions</h3>
+                <ul>
+                    <li>Report to the Accommodation Office on your move-in date between 9:00 AM - 4:00 PM</li>
+                    <li>Bring your student ID card and a copy of this allocation email</li>
+                    <li>Collect your room key and access card from the office</li>
+                    <li>Complete the room condition inspection form</li>
+                    <li>Sign the accommodation agreement</li>
+                    <li>Provide emergency contact information</li>
+                    <li>Attend the mandatory orientation session at 2:00 PM</li>
+                </ul>
+                <p><strong>Office Location:</strong> <span th:text="${officeLocation}">Main Administration Building, Ground Floor</span></p>
+            </div>
+
+            <div class="amenities-box">
+                <h3>🏢 Building Amenities</h3>
+                <div class="amenity-grid">
+                    <div class="amenity-item">Wi-Fi Access</div>
+                    <div class="amenity-item">Common Room</div>
+                    <div class="amenity-item">Study Area</div>
+                    <div class="amenity-item">Laundry Facilities</div>
+                    <div class="amenity-item">24/7 Security</div>
+                    <div class="amenity-item">Kitchen Access</div>
+                    <div class="amenity-item">Parking Available</div>
+                    <div class="amenity-item">Gym Access</div>
+                </div>
+            </div>
+
+            <div class="important-box">
+                <h3>⚠️ Important Reminders</h3>
+                <ul>
+                    <li>Payment must be completed before move-in date</li>
+                    <li>Late check-in requires prior notification</li>
+                    <li>Read the accommodation rules and regulations carefully</li>
+                    <li>Ensure all outstanding documents are submitted</li>
+                    <li>Bring necessary bedding and personal items</li>
+                </ul>
+            </div>
+
+            <div class="map-placeholder" th:if="${buildingAddress != null}">
+                <p><strong>Building Address:</strong></p>
+                <p th:text="${buildingAddress}">123 University Street, Campus, City</p>
+                <p style="margin-top: 10px;">🗺️ View map in your student portal</p>
+            </div>
+
+            <center>
+                <a href="#" th:href="${portalUrl}" class="cta-button">View Full Details</a>
+            </center>
+
+            <div class="contact-info">
+                <h4>Questions About Your Allocation?</h4>
+                <p><strong>Email:</strong> accommodation@university.edu</p>
+                <p><strong>Phone:</strong> +27 (0) 11 234 5678</p>
+                <p><strong>Emergency Line:</strong> +27 (0) 11 234 9999</p>
+                <p><strong>Office Hours:</strong> Monday - Friday, 8:00 AM - 5:00 PM</p>
+            </div>
+
+            <p class="message" style="margin-top: 30px; font-style: italic;">
+                We look forward to welcoming you to your new home. Have a wonderful stay with us!
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated message from the Student Accommodation System.</p>
+            <p>&copy; 2025 Student Accommodation System. All rights reserved.</p>
+            <p style="margin-top: 10px; font-size: 12px;">
+                <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> |
+                <a href="#" style="color: #667eea; text-decoration: none;">Notification Preferences</a> |
+                <a href="#" style="color: #667eea; text-decoration: none;">Contact Support</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

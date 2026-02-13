@@ -1,0 +1,402 @@
+.dialog-container {
+  width: 100%;
+}
+
+/* Dialog Header */
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+  position: relative;
+}
+
+.header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-radius: 12px;
+  border: 1px solid #93c5fd;
+}
+
+.header-icon mat-icon {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  color: #2563eb;
+}
+
+.header-content {
+  flex: 1;
+}
+
+.header-content h2 {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  color: #059669;
+  font-weight: 500;
+}
+
+.selection-info mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: #94a3b8;
+}
+
+.close-btn:hover {
+  color: #64748b;
+}
+
+/* Dialog Content */
+mat-dialog-content {
+  padding: 20px 24px !important;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* Selected Rooms Preview */
+.selected-rooms-preview {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.preview-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+
+.room-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.room-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.room-chip mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  color: #94a3b8;
+}
+
+.room-chip.more {
+  background: #f1f5f9;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Info Banner */
+.info-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+  border: 1px solid #a5f3fc;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #0e7490;
+}
+
+.info-banner mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: #0891b2;
+}
+
+/* Form */
+.attributes-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Form Section */
+.form-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.form-section.disabled {
+  opacity: 0.6;
+  background: #f8fafc;
+}
+
+.form-section:not(.disabled) {
+  border-color: #cbd5e1;
+}
+
+.section-header {
+  padding: 14px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.form-section.disabled .section-header {
+  border-bottom: none;
+}
+
+.section-header h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.section-header h3 mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: #64748b;
+}
+
+.section-content {
+  padding: 16px;
+  background: white;
+}
+
+/* Gender Options */
+.gender-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gender-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  min-width: 140px;
+}
+
+.gender-option:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.gender-option.selected {
+  border-color: #2563eb;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.gender-option mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+}
+
+.gender-option.selected mat-icon {
+  color: #2563eb;
+}
+
+.gender-option span {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.gender-option.selected span {
+  color: #1e40af;
+}
+
+/* Accessibility Toggle */
+.accessibility-toggle {
+  padding: 8px 0;
+}
+
+.checkbox-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkbox-label strong {
+  font-size: 14px;
+  color: #334155;
+}
+
+.checkbox-hint {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 400;
+}
+
+/* Year Range */
+.year-range-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.year-field {
+  flex: 1;
+  min-width: 150px;
+}
+
+.year-field ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.range-separator {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+  padding: 0 4px;
+}
+
+.clear-btn {
+  height: 56px;
+}
+
+.clear-btn mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+}
+
+/* Unparseable Years Warning */
+.unparseable-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 8px;
+  border: 1px solid #fcd34d;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.4;
+}
+
+.unparseable-warning mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: #d97706;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.unparseable-warning strong {
+  color: #78350f;
+}
+
+/* Dialog Actions */
+mat-dialog-actions {
+  padding: 16px 24px !important;
+  gap: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+mat-dialog-actions button {
+  border-radius: 10px !important;
+}
+
+mat-dialog-actions button[mat-raised-button] {
+  padding: 0 20px;
+  height: 44px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+mat-dialog-actions button mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+mat-dialog-actions mat-spinner {
+  margin-right: 8px;
+}
+
+/* Responsive */
+@media (max-width: 550px) {
+  .gender-options {
+    flex-direction: column;
+  }
+
+  .gender-option {
+    min-width: unset;
+  }
+
+  .year-range-control {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .year-field {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .range-separator {
+    text-align: center;
+    padding: 4px 0;
+  }
+
+  .clear-btn {
+    width: 100%;
+    height: 44px;
+  }
+}

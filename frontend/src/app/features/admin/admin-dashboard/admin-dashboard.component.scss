@@ -1,0 +1,708 @@
+@use '../../../../styles/variables' as vars;
+@use '../../../../styles/mixins' as mixins;
+
+// Fix for icons rendering as text
+mat-icon {
+    font-family: 'Material Icons' !important;
+    font-weight: normal;
+    font-style: normal;
+}
+
+.admin-dashboard-container {
+    padding: 1rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    min-height: calc(100vh - 64px);
+    margin-top: 64px;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        padding: 1.5rem;
+    }
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        padding: 2rem;
+    }
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+}
+
+.header-content h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: vars.$slate-900;
+
+    mat-icon {
+        font-size: 1.75rem;
+        width: 1.75rem;
+        height: 1.75rem;
+        color: vars.$accent-purple-dark;
+    }
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        font-size: 2rem;
+
+        mat-icon {
+            font-size: 2.25rem;
+            width: 2.25rem;
+            height: 2.25rem;
+        }
+    }
+}
+
+.subtitle {
+    color: vars.$slate-500;
+    font-size: 0.9375rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+.header-actions {
+    .date-display {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        background: white;
+        border-radius: vars.$radius-md;
+        border: 1px solid vars.$slate-200;
+        color: vars.$slate-600;
+        font-weight: 500;
+        font-size: 0.875rem;
+        width: 100%;
+        justify-content: center;
+
+        @media (min-width: vars.$breakpoint-tablet) {
+            width: auto;
+        }
+
+        mat-icon {
+            font-size: 1.125rem;
+            width: 1.125rem;
+            height: 1.125rem;
+            color: vars.$slate-400;
+        }
+    }
+}
+
+/* Summary Cards */
+.summary-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.summary-card {
+    @include mixins.card-base;
+    overflow: hidden;
+    position: relative;
+    padding: 0 !important;
+
+    // Add hover lift effect
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: vars.$shadow-medium;
+    }
+
+    mat-card-content {
+        padding: 1.5rem !important;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        height: 100%;
+    }
+}
+
+.card-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: vars.$radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+
+    mat-icon {
+        font-size: 1.5rem;
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+
+    // Themes based on card type classes added in HTML
+    .applications & {
+        background: linear-gradient(135deg, vars.$accent-blue-light, vars.$accent-blue-dark);
+    }
+
+    .rooms & {
+        background: linear-gradient(135deg, vars.$accent-cyan-light, vars.$accent-cyan-dark);
+    }
+
+    .students & {
+        background: linear-gradient(135deg, vars.$success, darken(vars.$success, 10%));
+    }
+
+    .occupancy & {
+        background: linear-gradient(135deg, vars.$accent-purple-light, vars.$accent-purple-dark);
+
+        &.low-occupancy {
+            background: linear-gradient(135deg, vars.$success, darken(vars.$success, 10%));
+        }
+
+        &.medium-occupancy {
+            background: linear-gradient(135deg, vars.$warning, darken(vars.$warning, 10%));
+        }
+
+        &.high-occupancy {
+            background: linear-gradient(135deg, vars.$error, darken(vars.$error, 10%));
+        }
+    }
+}
+
+.card-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: vars.$slate-900;
+    line-height: 1.1;
+}
+
+.card-label {
+    font-size: 0.875rem;
+    color: vars.$slate-500;
+    font-weight: 500;
+}
+
+.card-trend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: auto;
+
+    mat-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+    }
+}
+
+.pending-count {
+    color: vars.$warning;
+}
+
+.available-count {
+    color: vars.$success;
+}
+
+.occupancy-bar {
+    height: 6px;
+    background: vars.$slate-100;
+    border-radius: vars.$radius-pill;
+    overflow: hidden;
+    margin-top: auto;
+
+    .occupancy-fill {
+        height: 100%;
+        border-radius: vars.$radius-pill;
+
+        &.low-occupancy {
+            background: vars.$success;
+        }
+
+        &.medium-occupancy {
+            background: vars.$warning;
+        }
+
+        &.high-occupancy {
+            background: vars.$error;
+        }
+    }
+}
+
+/* Section Header */
+.section-header {
+    margin: 2rem 0 1rem 0;
+
+    h2 {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: vars.$slate-800;
+        margin: 0;
+
+        mat-icon {
+            color: vars.$slate-400;
+        }
+    }
+}
+
+/* Charts Grid */
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (min-width: vars.$breakpoint-large) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.chart-card {
+    @include mixins.card-base;
+    padding: 1.5rem;
+}
+
+.chart-header {
+    margin-bottom: 1.5rem;
+}
+
+.chart-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: vars.$slate-700;
+
+    mat-icon {
+        &.applications {
+            color: vars.$accent-blue-dark;
+        }
+
+        &.documents {
+            color: vars.$warning;
+        }
+
+        &.rooms {
+            color: vars.$accent-cyan-dark;
+        }
+    }
+}
+
+.chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.donut-chart {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .donut-hole {
+        width: 90px;
+        height: 90px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+
+        .donut-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: vars.$slate-900;
+        }
+
+        .donut-label {
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            color: vars.$slate-500;
+            font-weight: 600;
+        }
+    }
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: vars.$slate-50;
+        padding: 0.25rem 0.5rem;
+        border-radius: vars.$radius-sm;
+        font-size: 0.75rem;
+
+        .legend-color {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+
+        .legend-text {
+            color: vars.$slate-600;
+        }
+
+        .legend-value {
+            font-weight: 600;
+            color: vars.$slate-900;
+        }
+    }
+}
+
+/* Building Occupancy (Standard Table Styles) */
+.table-container {
+    display: none;
+    @include mixins.card-base;
+    overflow: hidden;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        display: block;
+    }
+}
+
+.occupancy-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+
+    th {
+        padding: 1rem 1.25rem;
+        background: vars.$slate-50;
+        color: vars.$slate-600;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        border-bottom: 1px solid vars.$slate-200;
+    }
+
+    td {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid vars.$slate-100;
+        font-size: 0.875rem;
+        color: vars.$slate-700;
+    }
+}
+
+.building-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    color: vars.$slate-900;
+
+    .building-icon {
+        width: 32px;
+        height: 32px;
+        background: rgba(vars.$accent-orange-light, 0.1);
+        border-radius: vars.$radius-sm;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: vars.$accent-orange-dark;
+    }
+}
+
+.room-count-badge {
+    padding: 0.25rem 0.5rem;
+    background: rgba(vars.$accent-cyan-light, 0.1);
+    color: vars.$accent-cyan-dark;
+    border-radius: vars.$radius-sm;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.occupancy-rate-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 150px;
+
+    .rate-bar {
+        flex: 1;
+        height: 6px;
+        background: vars.$slate-100;
+        border-radius: vars.$radius-pill;
+        overflow: hidden;
+
+        .rate-fill {
+            height: 100%;
+            border-radius: vars.$radius-pill;
+
+            &.low-occupancy {
+                background: vars.$success;
+            }
+
+            &.medium-occupancy {
+                background: vars.$warning;
+            }
+
+            &.high-occupancy {
+                background: vars.$error;
+            }
+        }
+    }
+
+    .rate-value {
+        font-weight: 700;
+        font-size: 0.8125rem;
+        min-width: 32px;
+        text-align: right;
+
+        &.low-occupancy {
+            color: vars.$success;
+        }
+
+        &.medium-occupancy {
+            color: vars.$warning;
+        }
+
+        &.high-occupancy {
+            color: vars.$error;
+        }
+    }
+}
+
+/* Mobile Occupancy Cards */
+.mobile-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        display: none;
+    }
+}
+
+.mobile-card {
+    @include mixins.card-base;
+    padding: 1rem;
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid vars.$slate-100;
+}
+
+.mobile-building-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    color: vars.$slate-900;
+    font-size: 0.9375rem;
+
+    mat-icon {
+        color: vars.$accent-orange-dark;
+    }
+}
+
+.mobile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mobile-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .label {
+        font-size: 0.8125rem;
+        color: vars.$slate-500;
+    }
+
+    .value {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: vars.$slate-700;
+    }
+}
+
+/* Quick Links Grid */
+.quick-links-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    @media (min-width: vars.$breakpoint-large) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.quick-link-card {
+    @include mixins.card-base;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: vars.$shadow-medium;
+    }
+
+    mat-card-content {
+        padding: 1.5rem !important;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+}
+
+.quick-link-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: vars.$radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: white;
+
+    // Use specific colors for link types
+    .applications & {
+        background: linear-gradient(135deg, vars.$accent-blue-light, vars.$accent-blue-dark);
+    }
+
+    .documents & {
+        background: linear-gradient(135deg, vars.$warning, darken(vars.$warning, 10%));
+    }
+
+    .allocations & {
+        background: linear-gradient(135deg, vars.$accent-purple-light, vars.$accent-purple-dark);
+    }
+
+    .buildings & {
+        background: linear-gradient(135deg, vars.$accent-orange-light, vars.$accent-orange-dark);
+    }
+
+    .waiting-list & {
+        background: linear-gradient(135deg, vars.$accent-cyan-light, vars.$accent-cyan-dark);
+    }
+
+    .settings & {
+        background: linear-gradient(135deg, vars.$slate-500, vars.$slate-600);
+    }
+}
+
+.quick-link-info {
+    flex: 1;
+    min-width: 0;
+
+    h3 {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: vars.$slate-900;
+    }
+
+    p {
+        margin: 0;
+        font-size: 0.75rem;
+        color: vars.$slate-500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.quick-link-arrow {
+    width: 32px;
+    height: 32px;
+    border-radius: vars.$radius-sm;
+    background: vars.$slate-50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: vars.$slate-400;
+    transition: all 0.2s ease;
+
+    .quick-link-card:hover & {
+        background: vars.$slate-100;
+        color: vars.$slate-700;
+    }
+}
+
+/* Empty && Loading States */
+.no-data,
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+    color: vars.$slate-500;
+
+    &.small {
+        padding: 1.5rem;
+    }
+
+    .no-data-icon {
+        width: 64px;
+        height: 64px;
+        background: vars.$slate-100;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+
+        mat-icon {
+            font-size: 2rem;
+            width: 2rem;
+            height: 2rem;
+            color: vars.$slate-400;
+        }
+    }
+}

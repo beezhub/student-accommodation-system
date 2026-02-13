@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 
-@Entity(name = "document")
+@Entity
+@Table(name = "document")
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,10 +21,14 @@ public class Document {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Version
+    private Long version;
     @Column(name = "document_name", nullable = false)
     private String documentName;
     @Column(name = "document_path", nullable = false)
     private String documentPath;
+    @Column(name = "file_size")
+    private Long fileSize; // File size in bytes
     @Column(name ="document_status", nullable = false)
     @Enumerated(EnumType.STRING)
     private DocumentStatus documentStatus;
@@ -35,6 +40,11 @@ public class Document {
     @ManyToOne
     @JoinColumn(name = "student_id", referencedColumnName = "id", nullable = false)
     private Student student;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "application_id", nullable = false)
+    private Application application;
+
     @OneToOne
     @JoinColumn(name = "document_type_id", referencedColumnName = "id", nullable = false)
     private DocumentType documentType;

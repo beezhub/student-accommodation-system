@@ -1,40 +1,44 @@
-# Stage 1: Build the application
-FROM gradle:jdk21-alpine AS builder
+# Build stage
+FROM gradle:8.11.1-jdk17-alpine AS build
+
 WORKDIR /app
-COPY gradlew .
+
+# Copy Gradle files for dependency caching
+COPY build.gradle settings.gradle gradlew ./
 COPY gradle ./gradle
-COPY build.gradle settings.gradle ./
-COPY src ./src
-RUN chmod +x ./gradlew
-RUN ./gradlew bootJar --no-daemon -x test
-RUN find build/libs/ -type f -name '*.jar' -exec ls -l {} \;
 
-# Stage 2: Runtime
-FROM eclipse-temurin:21-jre-alpine
+# Download dependencies (this layer will be cached if dependencies don't change)
+RUN gradle dependencies --no-daemon || true
+
+# Copy source code
+COPY src ./src
+
+# Build the application (skip tests for faster builds, run tests in CI/CD)
+RUN ./gradlew bootJar --no-daemon -x test
+
+# Runtime stage
+FROM eclipse-temurin:17-jre-alpine
+
 WORKDIR /app
 
-# Create directory and set permissions before switching user
-RUN mkdir -p /app/libs/ && \
-    addgroup -S spring && \
-    adduser -S spring -G spring && \
-    chown -R spring:spring /app
+# Create a non-root user to run the application
+RUN addgroup -S spring && adduser -S spring -G spring
+
+# Copy the built JAR from the build stage
+COPY --from=build /app/build/libs/*.jar app.jar
+
+# Change ownership to the spring user
+RUN chown spring:spring app.jar
 
 # Switch to non-root user
 USER spring:spring
 
-# Copy jar
-COPY --from=builder --chown=spring:spring /app/build/libs/ /app/libs/
-RUN find /app/libs/ -type f -name '*.jar' -exec mv {} /app/app.jar \;
-
+# Expose the application port
 EXPOSE 8080
 
-# Configure health check
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget --quiet --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
 # Run the application
-ENTRYPOINT ["java", \
-    "-XX:+UseContainerSupport", \
-    "-XX:MaxRAMPercentage=75.0", \
-    "-Djava.security.egd=file:/dev/./urandom", \
-    "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -1,110 +1,876 @@
-/* Import Bootstrap */
-@import url('https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css');
-@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css');
+/* Migrate off Bootstrap -> Angular Material. Bootstrap imports removed. */
+/* Import Tabler Icons for iconography (replace Bootstrap Icons) */
+@import url('https://cdn.jsdelivr.net/npm/@tabler/icons@2.15.0/iconfont/tabler-icons.min.css');
 
-/* Custom Color Variables */
+/*
+  Apple-inspired + Material Design tokens
+  - Use system fonts (SF Pro fallbacks) to respect licensing
+  - 8dp grid system via spacing variables
+  - Rounded corners and elevation per Material
+  - Light / Dark support via prefers-color-scheme
+*/
+/* :root variables are now managed in styles/_variables.scss */
+/*
 :root {
-  --primary: #b2b2c1;
-  --primary-dark: #3a56d4;
-  --secondary: #3ffce0;
-  --accent: #f72585;
-  --success: #4cc9f0;
-  --warning: #f9c74f;
-  --error: #ef476f;
-  --neutral-100: #f8f9fa;
-  --neutral-200: #e9ecef;
-  --neutral-300: #dee2e6;
-  --neutral-400: #ced4da;
-  --neutral-500: #adb5bd;
-  --neutral-600: #6c757d;
-  --neutral-700: #495057;
-  --neutral-800: #343a40;
-  --neutral-900: #212529;
-  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --border-radius: 8px;
-  --transition: all 0.3s ease;
+  --font-sans: -apple-system, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --type-base: 16px;
+  --type-scale-ratio: 1.125;
+  --grid-unit: 8px;
+  --space-0: 0px;
+  --space-1: calc(var(--grid-unit) * 1);
+  --space-2: calc(var(--grid-unit) * 2);
+  --space-3: calc(var(--grid-unit) * 3);
+  --space-4: calc(var(--grid-unit) * 4);
+  --space-6: calc(var(--grid-unit) * 6);
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --color-primary: #1E293B;
+  --color-primary-dark: #0F172A;
+  --color-primary-light: #334155;
+  --color-primary-gradient: linear-gradient(135deg, #1E293B 0%, #0EA5E9 100%);
+  --color-on-primary: #ffffff;
+  --color-secondary: #06B6D4;
+  --color-secondary-dark: #0891B2;
+  --color-accent: #F97316;
+  --color-accent-gradient: linear-gradient(135deg, #F97316 0%, #FB923C 100%);
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --neutral-50: #ffffff;
+  --neutral-100: #f2f2f7;
+  --neutral-200: #e6e6ea;
+  --neutral-300: #d1d1d6;
+  --neutral-400: #b8b8bf;
+  --neutral-500: #8e8e93;
+  --neutral-600: #636366;
+  --neutral-700: #3a3a3c;
+  --neutral-800: #1c1c1e;
+  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --elevation-2: 0 2px 6px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --elevation-3: 0 6px 18px rgba(0, 0, 0, 0.12);
+  --elevation-4: 0 12px 36px rgba(0, 0, 0, 0.16);
+  --motion-fast: 150ms;
+  --motion-medium: 250ms;
+  --motion-spring: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --focus-ring-color: rgba(10, 132, 255, 0.35);
+  --focus-ring-width: 3px;
+}
+*/
+
+/* Dark theme overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-on-primary: #000000;
+    --neutral-50: #0b0b0c;
+    --neutral-100: #111113;
+    --neutral-200: #1a1a1c;
+    --neutral-300: #2c2c2e;
+    --neutral-400: #3a3a3c;
+    --neutral-500: #636366;
+    --neutral-600: #8e8e93;
+    --neutral-700: #aeaeb2;
+    --neutral-800: #ffffff;
+
+    /* Softer shadows on dark */
+    --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --elevation-2: 0 2px 6px rgba(0, 0, 0, 0.32);
+    --elevation-3: 0 6px 18px rgba(0, 0, 0, 0.4);
+    --elevation-4: 0 12px 36px rgba(0, 0, 0, 0.5);
+  }
 }
 
 /* Base styles */
+html,
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
-  line-height: 1.5;
-  color: var(--neutral-800);
-  background-color: var(--neutral-100);
+  height: 100%;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  line-height: 1.2;
-  margin-bottom: 1rem;
-  color: var(--neutral-900);
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--type-base);
+  color: var(--neutral-700);
+  background-color: var(--neutral-50);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Button Styles */
+/* Typography scale (simple) */
+h1 {
+  font-size: calc(var(--type-base) * 2.25);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+h2 {
+  font-size: calc(var(--type-base) * 1.75);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+h3 {
+  font-size: calc(var(--type-base) * 1.375);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.h4,
+h4 {
+  font-size: calc(var(--type-base) * 1.125);
+  font-weight: 600;
+}
+
+h5 {
+  font-size: calc(var(--type-base) * 1);
+  font-weight: 600;
+}
+
+h6 {
+  font-size: calc(var(--type-base) * 0.875);
+  font-weight: 600;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Buttons - Apple minimalist + Material affordance */
+.btn {
+  border-radius: var(--radius-md);
+  transition: transform var(--motion-fast) var(--motion-spring), box-shadow var(--motion-fast) ease;
+}
+
 .btn-primary {
-  background-color: var(--primary);
-  border-color: var(--primary);
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  box-shadow: var(--elevation-1);
 }
 
-.btn-primary:hover {
-  background-color: var(--primary-dark);
-  border-color: var(--primary-dark);
+.btn-primary:hover,
+.btn-primary:focus {
+  transform: translateY(-1px);
+  box-shadow: var(--elevation-2);
 }
 
-/* Card styles */
+.btn-ghost {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid transparent;
+}
+
+/* Cards */
 .card {
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  transition: var(--transition);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-1);
+  transition: box-shadow var(--motion-medium) var(--motion-spring),
+    transform var(--motion-medium) var(--motion-spring);
+  background: var(--neutral-50);
 }
 
 .card:hover {
-  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--elevation-2);
+  transform: translateY(-2px);
 }
 
-/* Form styles */
+/* Forms */
 .form-control {
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--neutral-200);
+  padding: calc(var(--space-1) * 0.75) calc(var(--space-2));
+  transition: box-shadow var(--motion-fast) ease, border-color var(--motion-fast) ease;
 }
 
 .form-control:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+  outline: none;
+  border-color: var(--color-primary-700);
+  box-shadow: 0 6px 14px rgba(10, 132, 255, 0.12);
 }
 
-/* Animation classes */
-.fade-in {
-  animation: fadeIn 0.5s ease-in;
+/* Accessible focus indicator using :focus-visible */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+  border-radius: calc(var(--radius-md) + 2px);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+/* Elevation utility classes */
+.elevation-1 {
+  box-shadow: var(--elevation-1);
 }
 
-.slide-up {
-  animation: slideUp 0.5s ease-out;
+.elevation-2 {
+  box-shadow: var(--elevation-2);
 }
 
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+.elevation-3 {
+  box-shadow: var(--elevation-3);
 }
 
-/* Responsive utilities */
+.elevation-4 {
+  box-shadow: var(--elevation-4);
+}
+
+/* Subtle ripple placeholder (Angular Material provides real ripple) */
+.ripple-subtle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.02));
+  mix-blend-mode: overlay;
+  opacity: 0;
+  transition: opacity 220ms var(--motion-spring);
+}
+
+.btn:active .ripple-subtle::after,
+.card:active .ripple-subtle::after {
+  opacity: 1;
+}
+
+/* Layout helpers using 8dp grid */
+.container-8 {
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}
+
+.row-gap-1 {
+  gap: var(--space-1);
+}
+
+.row-gap-2 {
+  gap: var(--space-2);
+}
+
+.padding-1 {
+  padding: var(--space-1);
+}
+
+.padding-2 {
+  padding: var(--space-2);
+}
+
+.margin-1 {
+  margin: var(--space-1);
+}
+
+.margin-2 {
+  margin: var(--space-2);
+}
+
+/* Utility for consistent control heights (Apple friendly) */
+.control-height-sm {
+  height: 36px;
+}
+
+.control-height-md {
+  height: 44px;
+}
+
+.control-height-lg {
+  height: 52px;
+}
+
+/* Small motion helpers (spring-like) */
+.motion-enter {
+  transition: transform var(--motion-medium) var(--motion-spring), opacity var(--motion-medium);
+}
+
+.motion-leave {
+  transition: transform var(--motion-fast) ease, opacity var(--motion-fast);
+}
+
+/* Accessibility helpers */
+.visually-hidden {
+  position: absolute !important;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .mobile-only {
-    display: block;
+  h1 {
+    font-size: calc(var(--type-base) * 1.75);
   }
-  .desktop-only {
-    display: none;
+
+  h2 {
+    font-size: calc(var(--type-base) * 1.375);
   }
 }
 
-@media (min-width: 769px) {
-  .mobile-only {
-    display: none;
+/* Guidance comment for developers:
+   - Install Angular Material and enable BrowserAnimationsModule
+   - Create a custom theme using Angular Material theming (scss) using the tokens above
+   - Use Angular Material ripples for interactive controls and rely on these tokens for colors, spacing, elevation
+*/
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--type-base);
+  color: var(--neutral-700);
+  /* Modern neutral gradient background with cool tones */
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #e0f2fe 50%, #cffafe 75%, #f0fdfa 100%);
+  background-attachment: fixed;
+  background-size: 400% 400%;
+  animation: gradientShift 20s ease infinite;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
   }
-  .desktop-only {
-    display: block;
+
+  50% {
+    background-position: 100% 50%;
   }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Modern Material Button Styles - visible, attractive, and accessible */
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-button {
+  border-radius: var(--radius-lg, 12px) !important;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  box-shadow: 0 2px 8px rgba(80, 80, 180, 0.1), 0 1.5px 4px rgba(0, 0, 0, 0.03);
+  transition: box-shadow 0.18s var(--motion-spring), background 0.18s var(--motion-spring),
+    color 0.18s var(--motion-spring), border-color 0.18s var(--motion-spring);
+}
+
+/* Primary (slate-cyan gradient) button - modern, bold */
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-unelevated-button.mat-primary {
+  background: linear-gradient(135deg, #1E293B 0%, #06B6D4 100%) !important;
+  color: #fff !important;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.mat-mdc-raised-button.mat-primary::before,
+.mat-mdc-unelevated-button.mat-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #0F172A 0%, #0891B2 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mat-mdc-raised-button.mat-primary:hover::before,
+.mat-mdc-unelevated-button.mat-primary:hover::before {
+  opacity: 1;
+}
+
+.mat-mdc-raised-button.mat-primary:hover,
+.mat-mdc-unelevated-button.mat-primary:hover {
+  box-shadow: 0 8px 24px rgba(30, 41, 59, 0.35), 0 4px 12px rgba(6, 182, 212, 0.25);
+  transform: translateY(-2px);
+}
+
+.mat-mdc-raised-button.mat-primary>*,
+.mat-mdc-unelevated-button.mat-primary>* {
+  position: relative;
+  z-index: 1;
+}
+
+/* Tonal/white button - clean, visible, with slate border */
+.mat-mdc-raised-button.mat-basic,
+.mat-mdc-unelevated-button.mat-basic,
+.mat-mdc-button.mat-basic {
+  background: #fff !important;
+  color: #1E293B !important;
+  border: 2px solid #1E293B !important;
+}
+
+.mat-mdc-raised-button.mat-basic:hover,
+.mat-mdc-unelevated-button.mat-basic:hover,
+.mat-mdc-button.mat-basic:hover {
+  background: #f1f5f9 !important;
+  color: #0F172A !important;
+  border: 2px solid #0F172A !important;
+  transform: translateY(-2px);
+}
+
+/* Accent button (vibrant orange) for special actions */
+.mat-mdc-raised-button.mat-accent,
+.mat-mdc-unelevated-button.mat-accent {
+  background: linear-gradient(135deg, #F97316 0%, #FB923C 100%) !important;
+  color: #fff !important;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.mat-mdc-raised-button.mat-accent::before,
+.mat-mdc-unelevated-button.mat-accent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #EA580C 0%, #F97316 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mat-mdc-raised-button.mat-accent:hover::before,
+.mat-mdc-unelevated-button.mat-accent:hover::before {
+  opacity: 1;
+}
+
+.mat-mdc-raised-button.mat-accent:hover,
+.mat-mdc-unelevated-button.mat-accent:hover {
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35), 0 4px 12px rgba(251, 146, 60, 0.25);
+  transform: translateY(-2px);
+}
+
+.mat-mdc-raised-button.mat-accent>*,
+.mat-mdc-unelevated-button.mat-accent>* {
+  position: relative;
+  z-index: 1;
+}
+
+/* Warn button (red) for destructive actions */
+.mat-mdc-raised-button.mat-warn,
+.mat-mdc-unelevated-button.mat-warn {
+  background: linear-gradient(90deg, #f87171 0%, #ef4444 100%) !important;
+  color: #fff !important;
+  border: none;
+}
+
+.mat-mdc-raised-button.mat-warn:hover,
+.mat-mdc-unelevated-button.mat-warn:hover {
+  background: linear-gradient(90deg, #dc2626 0%, #b91c1c 100%) !important;
+}
+
+/* Outlined button - subtle, visible */
+.mat-mdc-outlined-button {
+  background: transparent !important;
+  color: #1E293B !important;
+  border: 2px solid #1E293B !important;
+}
+
+.mat-mdc-outlined-button:hover {
+  background: #f1f5f9 !important;
+  color: #0F172A !important;
+  border: 2px solid #06B6D4 !important;
+  transform: translateY(-2px);
+}
+
+/* Button icon color always matches text */
+.mat-mdc-button .mat-icon,
+.mat-mdc-raised-button .mat-icon,
+.mat-mdc-unelevated-button .mat-icon,
+.mat-mdc-outlined-button .mat-icon {
+  color: inherit !important;
+}
+
+/* Fix for Angular Material Dialog (Upload Popup) scaling/zoom issue */
+.mat-mdc-dialog-container {
+  max-width: 90vw !important;
+  width: auto !important;
+  min-width: 320px;
+  padding: var(--space-3) var(--space-3) var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1);
+  background: #ffffff !important;
+  font-family: var(--font-sans);
+  font-size: var(--type-base);
+  transform: none !important;
+  /* Remove any unwanted scaling */
+  overflow: visible;
+}
+
+@media (max-width: 480px) {
+  .mat-mdc-dialog-container {
+    max-width: 95vw !important;
+    padding: var(--space-2) var(--space-1);
+  }
+}
+
+/* Dialog content should flow naturally */
+.mat-mdc-dialog-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Dialog actions */
+.mat-mdc-dialog-actions {
+  padding: var(--space-2) 0 0 0;
+  gap: var(--space-2);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+}
+
+/* ================================== */
+/* Modern Table Styles - Student Friendly */
+/* ================================== */
+
+/* Global Table Container Enhancement */
+.mat-mdc-table {
+  border-radius: 16px !important;
+  overflow: hidden;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+/* Table Header - Clean and Bold */
+.mat-mdc-header-row {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+}
+
+.mat-mdc-header-cell {
+  font-weight: 700 !important;
+  color: #334155 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  padding: 18px 16px !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+  background: transparent !important;
+}
+
+/* Table Rows - Interactive and Modern */
+.mat-mdc-row {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.mat-mdc-row:hover {
+  background: linear-gradient(90deg,
+      rgba(240, 249, 255, 0.8) 0%,
+      rgba(224, 242, 254, 0.6) 50%,
+      rgba(240, 253, 250, 0.8) 100%) !important;
+  transform: scale(1.002);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.mat-mdc-cell {
+  padding: 16px !important;
+  font-size: 14px !important;
+  color: #475569 !important;
+  transition: color 0.2s ease !important;
+}
+
+.mat-mdc-row:hover .mat-mdc-cell {
+  color: #1e293b !important;
+}
+
+/* Table Cell with Strong Text */
+.mat-mdc-cell strong {
+  font-weight: 700;
+  color: #0f172a;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+/* Modern Paginator */
+.mat-mdc-paginator {
+  background: transparent !important;
+  border-top: 1px solid #f1f5f9 !important;
+  padding: 12px 16px !important;
+  border-radius: 0 0 16px 16px !important;
+}
+
+.mat-mdc-paginator-container {
+  min-height: 52px !important;
+}
+
+.mat-mdc-paginator-range-label {
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+.mat-mdc-paginator-navigation-previous,
+.mat-mdc-paginator-navigation-next,
+.mat-mdc-paginator-navigation-first,
+.mat-mdc-paginator-navigation-last {
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-paginator-navigation-previous:hover,
+.mat-mdc-paginator-navigation-next:hover,
+.mat-mdc-paginator-navigation-first:hover,
+.mat-mdc-paginator-navigation-last:hover {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+}
+
+/* Checkbox Styling */
+.mat-mdc-checkbox .mdc-checkbox {
+  border-radius: 6px !important;
+}
+
+.mat-mdc-checkbox .mdc-checkbox__background {
+  border-radius: 6px !important;
+  border-width: 2px !important;
+}
+
+/* Select/Dropdown in Tables */
+.mat-mdc-select-panel {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.mat-mdc-option {
+  border-radius: 8px !important;
+  margin: 4px 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-option:hover {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+}
+
+.mat-mdc-option.mat-mdc-option-active {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+}
+
+/* Menu Styling */
+.mat-mdc-menu-panel {
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid #e2e8f0 !important;
+  min-width: 180px !important;
+}
+
+.mat-mdc-menu-item {
+  border-radius: 8px !important;
+  margin: 4px 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-menu-item:hover {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+}
+
+.mat-mdc-menu-item .mat-icon {
+  color: #64748b !important;
+  margin-right: 12px !important;
+}
+
+.mat-mdc-menu-item:hover .mat-icon {
+  color: #0891b2 !important;
+}
+
+/* Form Field Enhancements */
+.mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.mat-mdc-text-field-wrapper {
+  border-radius: 0px !important;
+}
+
+.mdc-text-field--outlined .mdc-notched-outline,
+.mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading,
+.mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__notch,
+.mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
+  border-radius: 0px !important;
+}
+
+/* Snackbar Styling */
+.mat-mdc-snack-bar-container {
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+}
+
+.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+}
+
+/* Progress Spinner Enhancement */
+.mat-mdc-progress-spinner circle {
+  stroke: url(#gradient) !important;
+}
+
+/* Tooltip Styling */
+.mat-mdc-tooltip .mdc-tooltip__surface {
+  border-radius: 10px !important;
+  padding: 10px 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Icon Button Enhancement */
+.mat-mdc-icon-button {
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mat-mdc-icon-button:hover {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+  transform: scale(1.05);
+}
+
+/* Empty State Enhancement */
+.no-data,
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.no-data mat-icon,
+.empty-state mat-icon {
+  font-size: 72px;
+  width: 72px;
+  height: 72px;
+  opacity: 0.15;
+  margin-bottom: 16px;
+}
+
+/* Chip/Badge Enhancement for Status */
+.mat-mdc-chip {
+  border-radius: 20px !important;
+  font-weight: 600 !important;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.mat-mdc-chip:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Error Snackbar Styling */
+.error-snackbar {
+  background: #ef4444 !important;
+  color: white !important;
+}
+
+.error-snackbar .mat-mdc-snack-bar-label {
+  color: white !important;
+}
+
+.error-snackbar .mdc-snackbar__surface {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
+}
+
+/* Full Width Dialog Panel */
+.full-width-dialog {
+  max-width: 95vw !important;
+}
+
+.full-width-dialog .mat-mdc-dialog-container {
+  padding: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
+}
+
+.full-width-dialog .mat-mdc-dialog-surface {
+  padding: 0 !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 90vh !important;
+}
+
+.full-width-dialog .mdc-dialog__content {
+  padding: 0 !important;
+  max-height: none !important;
+  width: 100% !important;
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.full-width-dialog .mat-mdc-dialog-content {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  padding: 24px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  max-height: none !important;
+}
+
+.full-width-dialog .mat-mdc-dialog-actions {
+  flex-shrink: 0 !important;
+  padding: 16px 24px !important;
+  border-top: 1px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  margin: 0 !important;
+}
+
+/* Ensure all child elements in full-width dialog stretch */
+.full-width-dialog .dialog-content,
+.full-width-dialog .section-card,
+.full-width-dialog mat-card,
+.full-width-dialog .mat-mdc-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.full-width-dialog mat-card-content,
+.full-width-dialog .mat-mdc-card-content {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Allocation Choice Dialog */
+.allocation-choice-dialog .mat-mdc-dialog-container {
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.allocation-choice-dialog .mat-mdc-dialog-surface {
+  border-radius: 20px !important;
+  padding: 24px;
+  box-shadow: 0 24px 64px rgba(30, 41, 59, 0.2) !important;
+}
+
+.allocation-choice-dialog .mdc-dialog__content,
+.allocation-choice-dialog .mat-mdc-dialog-content {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 16px 0 !important;
+}
+
+.allocation-choice-dialog .allocation-dialog-container {
+  width: 100% !important;
+}
+
+.allocation-choice-dialog form,
+.allocation-choice-dialog .manual-state,
+.allocation-choice-dialog .result-state {
+  width: 100%;
 }

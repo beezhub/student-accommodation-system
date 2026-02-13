@@ -1,0 +1,209 @@
+/* Create User Dialog - Modern Styling */
+.dialog-container {
+  min-width: 500px;
+}
+
+/* Dialog Header */
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 24px 0;
+}
+
+.header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border-radius: 16px;
+  border: 1px solid #ddd6fe;
+}
+
+.header-icon mat-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  color: #7c3aed;
+}
+
+.header-text h2 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.header-text .subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Dialog Content */
+mat-dialog-content {
+  padding: 24px !important;
+  min-width: 400px;
+  max-height: 60vh;
+}
+
+.create-user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-field,
+.full-width {
+  width: 100%;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+mat-icon[matPrefix] {
+  color: #94a3b8;
+  margin-right: 8px;
+}
+
+.toggle-password-btn {
+  color: #64748b;
+}
+
+.toggle-password-btn:hover {
+  color: #475569;
+}
+
+/* Role Option in dropdown */
+.role-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.role-option mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.role-option mat-icon.admin {
+  color: #7c3aed;
+}
+
+.role-option mat-icon.landlord {
+  color: #0891b2;
+}
+
+/* Hint styling */
+mat-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+}
+
+.hint-icon {
+  font-size: 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+  color: #94a3b8;
+}
+
+/* Dialog Actions */
+mat-dialog-actions {
+  padding: 16px 24px 24px !important;
+  gap: 12px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 8px;
+}
+
+.cancel-btn {
+  border-radius: 10px !important;
+  padding: 0 20px !important;
+  height: 44px;
+  color: #64748b;
+  border-color: #e2e8f0 !important;
+}
+
+.cancel-btn:hover {
+  background-color: #f8fafc;
+}
+
+.submit-btn {
+  border-radius: 10px !important;
+  padding: 0 24px !important;
+  height: 44px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.submit-btn mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.button-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .dialog-container {
+    min-width: unset;
+    width: 100%;
+  }
+
+  mat-dialog-content {
+    min-width: unset;
+    padding: 16px !important;
+  }
+
+  .dialog-header {
+    padding: 16px 16px 0;
+  }
+
+  .header-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+
+  .header-icon mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .header-text h2 {
+    font-size: 18px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  mat-dialog-actions {
+    flex-direction: column-reverse;
+    padding: 16px !important;
+  }
+
+  .cancel-btn,
+  .submit-btn {
+    width: 100%;
+  }
+}

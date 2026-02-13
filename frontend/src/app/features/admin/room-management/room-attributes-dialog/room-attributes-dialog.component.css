@@ -1,0 +1,332 @@
+/* Dialog Container */
+.dialog-container {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Dialog Header */
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.header-icon mat-icon {
+  color: white;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+
+.header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-content h2 {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.room-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.room-info mat-icon {
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
+}
+
+.separator {
+  color: #cbd5e1;
+}
+
+.close-btn {
+  margin: -8px -8px 0 0;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.close-btn:hover {
+  color: #64748b;
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: #64748b;
+}
+
+.loading-state p {
+  margin: 16px 0 0 0;
+}
+
+/* Form */
+.attributes-form {
+  padding: 20px 24px;
+}
+
+.form-section {
+  margin-bottom: 24px;
+}
+
+.form-section:last-child {
+  margin-bottom: 0;
+}
+
+.form-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.form-section h3 mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: #3b82f6;
+}
+
+.section-desc {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+/* Gender Options */
+.gender-options {
+  display: flex;
+  gap: 8px;
+}
+
+.gender-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+  min-width: 0;
+}
+
+.gender-option:hover {
+  border-color: #94a3b8;
+  background: white;
+}
+
+.gender-option.selected {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.gender-option mat-icon {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  color: #64748b;
+}
+
+.gender-option.selected mat-icon {
+  color: #2563eb;
+}
+
+.gender-option span {
+  font-size: 10px;
+  font-weight: 500;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.gender-option.selected span {
+  color: #1e40af;
+  font-weight: 600;
+}
+
+/* Accessibility Toggle */
+.accessibility-toggle {
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.checkbox-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkbox-label strong {
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.checkbox-hint {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: normal;
+}
+
+/* Year Range Control */
+.year-range-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.year-field {
+  flex: 1;
+  min-width: 120px;
+}
+
+.range-separator {
+  color: #64748b;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.year-range-control > button {
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.year-range-control > button mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
+/* Year Preview */
+.year-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 8px;
+  border: 1px solid #bbf7d0;
+  font-size: 12px;
+  color: #166534;
+}
+
+.year-preview mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.year-preview strong {
+  color: #15803d;
+}
+
+/* Unparseable Years Warning */
+.unparseable-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 8px;
+  border: 1px solid #fcd34d;
+  font-size: 11px;
+  color: #92400e;
+  line-height: 1.4;
+}
+
+.unparseable-warning mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+.unparseable-warning strong {
+  color: #78350f;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .dialog-header {
+    padding: 16px;
+  }
+
+  .attributes-form {
+    padding: 16px;
+  }
+
+  .gender-options {
+    flex-direction: column;
+  }
+
+  .gender-option {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+
+  .year-range-control {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .year-field {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .range-separator {
+    text-align: center;
+    padding: 4px 0;
+  }
+
+  .year-range-control > button {
+    width: 100%;
+    height: 42px;
+  }
+}

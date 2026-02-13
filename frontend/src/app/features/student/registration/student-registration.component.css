@@ -1,11 +1,16 @@
 .step-indicator {
   text-align: center;
   position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  opacity: 0.6;
 }
 
 .step-indicator.active {
   font-weight: bold;
   color: var(--primary);
+  opacity: 1;
 }
 
 .badge {
@@ -67,3 +72,32 @@
     font-size: 0.8rem;
   }
 }
+
+.registration-card {
+  max-width: 900px;
+  margin: 32px auto;
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-2);
+}
+
+.text-center { text-align: center; }
+
+.steps-row { display: flex; gap: 16px; justify-content: center; margin-top: 8px; }
+
+.step-badge { background: var(--neutral-100); color: var(--neutral-700); padding: 6px 10px; border-radius: 999px; box-shadow: var(--elevation-1); }
+
+.step-label { display: none; }
+
+@media(min-width: 768px) { .step-label { display: inline-block; } }
+
+.grid.two-cols { display: grid; grid-template-columns: 1fr; gap: 16px; }
+
+@media(min-width: 768px) { .grid.two-cols { grid-template-columns: 1fr 1fr; } }
+
+.full-width { width: 100%; }
+
+.actions-row { display: flex; gap: 12px; align-items: center; margin-top: 24px; }
+
+.ms-auto { margin-left: auto; }
+
+.registration-form { display: flex; flex-direction: column; gap: 12px; }
