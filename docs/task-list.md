@@ -10,13 +10,13 @@
 
 | Phase | Total | Done | In Progress | Todo | Blocked | Progress |
 |-------|-------|------|-------------|------|---------|----------|
-| Phase 1: Critical Stabilisation | 10 | 2 | 0 | 8 | 0 | 20% |
+| Phase 1: Critical Stabilisation | 10 | 3 | 0 | 7 | 0 | 30% |
 | Phase 2: Structural Improvement | 13 | 0 | 0 | 13 | 0 | 0% |
 | Phase 3: Enhancement & Optimization | 10 | 0 | 0 | 10 | 0 | 0% |
-| **Total** | **33** | **2** | **0** | **31** | **0** | **6%** |
+| **Total** | **33** | **3** | **0** | **30** | **0** | **9%** |
 
 **Current Blockers:** None
-**Next Recommended Tasks:** TASK-1.03 (Scoring Tests - HIGH), TASK-1.04 (Redis - HIGH, unblocks 2 tasks), TASK-1.07 (EAGER Loading Fix), TASK-1.08 (CorsFilter Cleanup), TASK-1.09 (Database Indexes), TASK-1.10 (Async Queue) — all have no dependencies and can start in parallel
+**Next Recommended Tasks:** TASK-1.05 (JWT Blacklist - CRITICAL), TASK-1.06 (Brute Force Protection - HIGH), TASK-1.07 (EAGER Loading Fix), TASK-1.08 (CorsFilter Cleanup), TASK-1.09 (Database Indexes), TASK-1.10 (Async Queue)
 
 ---
 
@@ -45,7 +45,7 @@ Add `.env` to `.gitignore`. Remove `.env` from git tracking using `git rm --cach
 - `.gitignore` — add `.env` entry
 - `.env` — remove from git tracking (do NOT delete from filesystem)
 - `.env.example` — create with placeholder values for all environment variables referenced in `docker-compose.yml` and `backend/src/main/resources/application.yml`
-- `README.md` — add setup instructions for copying `.env.example` to `.env` and populating credentials
+- `README.md` — add setup instructions for environment setup
 
 **Implementation Notes:**
 - Run `git rm --cached .env` to stop tracking the file without deleting it locally
@@ -170,7 +170,7 @@ Write comprehensive unit tests for `AllocationScoringService` (630 lines) target
 
 ### TASK-1.04: Add Redis to Docker Compose
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -198,12 +198,12 @@ Add a Redis 7.x service to `docker-compose.yml`. Add Spring Data Redis dependenc
 - Add a volume for Redis data persistence: `redis-data:/data`
 
 **Acceptance Criteria:**
-- [ ] `docker-compose up` starts Redis alongside other services
-- [ ] Redis health check passes (container shows healthy)
-- [ ] Backend can connect to Redis on startup (no connection errors in logs)
-- [ ] Spring Data Redis dependency resolves and compiles
-- [ ] `application.yml` has Redis configuration with environment variable overrides
-- [ ] `.env.example` updated with Redis connection placeholders
+- [x] `docker-compose up` starts Redis alongside other services
+- [x] Redis health check passes (container shows healthy)
+- [x] Backend can connect to Redis on startup (no connection errors in logs)
+- [x] Spring Data Redis dependency resolves and compiles
+- [x] `application.yml` has Redis configuration with environment variable overrides
+- [x] `.env.example` updated with Redis connection placeholders
 
 **Tests to Write:**
 - No automated tests — verify via `docker-compose up` and backend startup logs
