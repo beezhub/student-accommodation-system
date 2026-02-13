@@ -47,6 +47,9 @@ class AuthServiceTest {
     @Mock
     private AppUserMapper appUserMapper;
 
+    @Mock
+    private TokenBlacklistService tokenBlacklistService;
+
     @InjectMocks
     private AuthService authService;
 
@@ -76,6 +79,41 @@ class AuthServiceTest {
                 appUser.getUserPassword(),
                 appUser.getUserRole().name()
         );
+    }
+
+    @Test
+    void logout_validToken_blacklisted() {
+        Authentication authentication = mock(Authentication.class);
+        String token = "valid.jwt.token";
+        when(authentication.getCredentials()).thenReturn(token);
+        when(jwtUtil.extractJti(token)).thenReturn("jti-123");
+        when(jwtUtil.extractExpiration(token)).thenReturn(new java.util.Date(System.currentTimeMillis() + 10000));
+        
+        authService.logout(authentication);
+        
+        verify(tokenBlacklistService).blacklistToken(eq("jti-123"), anyLong());
+    }
+
+    @Test
+    void changePassword_existingToken_blacklisted() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("test@example.com");
+        String token = "valid.jwt.token";
+        when(authentication.getCredentials()).thenReturn(token);
+        
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
+        when(passwordEncoder.matches("oldPass", "encodedPassword")).thenReturn(true);
+        when(jwtUtil.extractJti(token)).thenReturn("jti-123");
+        when(jwtUtil.extractExpiration(token)).thenReturn(new java.util.Date(System.currentTimeMillis() + 10000));
+
+        com.beezhub.student_accommodation.model.dto.ChangePasswordRequest req = new com.beezhub.student_accommodation.model.dto.ChangePasswordRequest();
+        req.setCurrentPassword("oldPass");
+        req.setNewPassword("newPass");
+        
+        authService.changePassword(req, authentication);
+        
+        verify(tokenBlacklistService).blacklistToken(eq("jti-123"), anyLong());
+        verify(userRepository).save(appUser);
     }
 
     @Test

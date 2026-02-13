@@ -17,6 +17,7 @@ class JwtAuthenticationFilterTest {
 
     private JwtUtil jwtUtil;
     private JwtAuthenticationFilter filter;
+    private com.beezhub.student_accommodation.service.TokenBlacklistService tokenBlacklistService;
 
     @BeforeEach
     void setUp() {
@@ -27,7 +28,8 @@ class JwtAuthenticationFilterTest {
 
         );
         jwtUtil = new JwtUtil(cfg);
-        filter = new JwtAuthenticationFilter(jwtUtil);
+        tokenBlacklistService = mock(com.beezhub.student_accommodation.service.TokenBlacklistService.class);
+        filter = new JwtAuthenticationFilter(jwtUtil, tokenBlacklistService);
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
@@ -47,7 +49,30 @@ class JwtAuthenticationFilterTest {
         assertNotNull(auth);
         assertEquals("bob@example.com", auth.getPrincipal());
         assertTrue(auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
+        // Verify credentials hold the token
+        assertEquals(token, auth.getCredentials());
 
         verify(chain).doFilter(req, res);
+    }
+
+    @Test
+    void doFilterInternal_blacklistedToken_returns401() throws ServletException, IOException {
+        String token = jwtUtil.generateToken(new org.springframework.security.core.userdetails.User(
+                "bob@example.com", "pw", java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"))
+        ));
+        String jti = jwtUtil.extractJti(token);
+        
+        when(tokenBlacklistService.isBlacklisted(jti)).thenReturn(true);
+
+        MockHttpServletRequest req = new MockHttpServletRequest();
+        req.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse res = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilterInternal(req, res, chain);
+
+        assertEquals(401, res.getStatus());
+        verify(chain, never()).doFilter(req, res);
+        assertNull(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication());
     }
 }

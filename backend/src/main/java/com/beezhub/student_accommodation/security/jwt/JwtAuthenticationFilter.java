@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final com.beezhub.student_accommodation.service.TokenBlacklistService tokenBlacklistService;
 
 
     @Override
@@ -35,7 +36,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
-            username = jwtUtil.extractUsername(jwt);
+            
+            // Check blacklist first
+            try {
+                String jti = jwtUtil.extractJti(jwt);
+                if (jti != null && tokenBlacklistService.isBlacklisted(jti)) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
+                username = jwtUtil.extractUsername(jwt);
+            } catch (Exception e) {
+                // Token parsing failed or expired
+                // Let the chain continue, it will likely fail later or be treated as anonymous
+            }
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -50,7 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         })
                         .collect(Collectors.toList());
                 var authentication = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                        username, null, authorities);
+                        username, jwt, authorities);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
