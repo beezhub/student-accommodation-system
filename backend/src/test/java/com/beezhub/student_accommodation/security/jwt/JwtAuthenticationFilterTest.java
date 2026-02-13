@@ -18,6 +18,7 @@ class JwtAuthenticationFilterTest {
     private JwtUtil jwtUtil;
     private JwtAuthenticationFilter filter;
     private com.beezhub.student_accommodation.service.TokenBlacklistService tokenBlacklistService;
+    private org.springframework.web.servlet.HandlerExceptionResolver handlerExceptionResolver;
 
     @BeforeEach
     void setUp() {
@@ -29,7 +30,8 @@ class JwtAuthenticationFilterTest {
         );
         jwtUtil = new JwtUtil(cfg);
         tokenBlacklistService = mock(com.beezhub.student_accommodation.service.TokenBlacklistService.class);
-        filter = new JwtAuthenticationFilter(jwtUtil, tokenBlacklistService);
+        handlerExceptionResolver = mock(org.springframework.web.servlet.HandlerExceptionResolver.class);
+        filter = new JwtAuthenticationFilter(jwtUtil, tokenBlacklistService, handlerExceptionResolver);
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
@@ -56,7 +58,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void doFilterInternal_blacklistedToken_returns401() throws ServletException, IOException {
+    void doFilterInternal_blacklistedToken_resolvesException() throws ServletException, IOException {
         String token = jwtUtil.generateToken(new org.springframework.security.core.userdetails.User(
                 "bob@example.com", "pw", java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"))
         ));
@@ -71,7 +73,7 @@ class JwtAuthenticationFilterTest {
 
         filter.doFilterInternal(req, res, chain);
 
-        assertEquals(401, res.getStatus());
+        verify(handlerExceptionResolver).resolveException(eq(req), eq(res), eq(null), any(org.springframework.security.authentication.BadCredentialsException.class));
         verify(chain, never()).doFilter(req, res);
         assertNull(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication());
     }

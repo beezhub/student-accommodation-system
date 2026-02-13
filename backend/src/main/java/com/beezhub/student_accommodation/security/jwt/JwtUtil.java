@@ -97,4 +97,10 @@ public class JwtUtil {
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
+    
+    public long getRemainingTtlSeconds(String token) {
+        Date expiration = extractExpiration(token);
+        long remaining = (expiration.getTime() - System.currentTimeMillis()) / 1000;
+        return remaining > 0 ? remaining : 0;
+    }
 }

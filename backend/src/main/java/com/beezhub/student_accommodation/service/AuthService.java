@@ -216,8 +216,7 @@ public class AuthService {
             String token = (String) credentials;
             try {
                 String jti = jwtUtil.extractJti(token);
-                java.util.Date expiration = jwtUtil.extractExpiration(token);
-                long remainingTtl = (expiration.getTime() - System.currentTimeMillis()) / 1000;
+                long remainingTtl = jwtUtil.getRemainingTtlSeconds(token);
                 
                 if (jti != null && remainingTtl > 0) {
                     tokenBlacklistService.blacklistToken(jti, remainingTtl);

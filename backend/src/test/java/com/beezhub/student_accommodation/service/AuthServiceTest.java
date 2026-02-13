@@ -87,7 +87,7 @@ class AuthServiceTest {
         String token = "valid.jwt.token";
         when(authentication.getCredentials()).thenReturn(token);
         when(jwtUtil.extractJti(token)).thenReturn("jti-123");
-        when(jwtUtil.extractExpiration(token)).thenReturn(new java.util.Date(System.currentTimeMillis() + 10000));
+        when(jwtUtil.getRemainingTtlSeconds(token)).thenReturn(10L);
         
         authService.logout(authentication);
         
@@ -104,7 +104,7 @@ class AuthServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
         when(passwordEncoder.matches("oldPass", "encodedPassword")).thenReturn(true);
         when(jwtUtil.extractJti(token)).thenReturn("jti-123");
-        when(jwtUtil.extractExpiration(token)).thenReturn(new java.util.Date(System.currentTimeMillis() + 10000));
+        when(jwtUtil.getRemainingTtlSeconds(token)).thenReturn(10L);
 
         com.beezhub.student_accommodation.model.dto.ChangePasswordRequest req = new com.beezhub.student_accommodation.model.dto.ChangePasswordRequest();
         req.setCurrentPassword("oldPass");
