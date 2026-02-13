@@ -29,6 +29,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -41,6 +42,10 @@ class BuildingServiceTest {
     private InstitutionRepository institutionRepository;
     @Mock
     private BuildingMapper buildingMapper;
+    @Mock
+    private GoogleMapsService googleMapsService;
+    @Mock
+    private BuildingImageService buildingImageService;
 
     @InjectMocks
     private BuildingService buildingService;
@@ -70,6 +75,7 @@ class BuildingServiceTest {
         when(institutionRepository.findAllById(any())).thenReturn(Collections.singletonList(institution));
         when(buildingRepository.save(any(Building.class))).thenReturn(building);
         when(buildingMapper.toResponse(any(Building.class))).thenReturn(new BuildingResponse());
+        when(googleMapsService.geocodeAddress(anyString())).thenReturn(null);
 
         BuildingResponse response = buildingService.createBuilding(buildingRequest);
 
@@ -81,6 +87,7 @@ class BuildingServiceTest {
     void getBuildingById_shouldReturnBuilding() {
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
         when(buildingMapper.toResponse(building)).thenReturn(new BuildingResponse());
+        when(buildingImageService.getImages(1L)).thenReturn(Collections.emptyList());
 
         BuildingResponse response = buildingService.getBuildingById(1L);
 
@@ -101,6 +108,7 @@ class BuildingServiceTest {
         when(institutionRepository.findAllById(any())).thenReturn(Collections.singletonList(institution));
         when(buildingRepository.save(any(Building.class))).thenReturn(building);
         when(buildingMapper.toResponse(any(Building.class))).thenReturn(new BuildingResponse());
+        when(googleMapsService.geocodeAddress(anyString())).thenReturn(null);
 
         BuildingResponse response = buildingService.updateBuilding(1L, buildingRequest);
 

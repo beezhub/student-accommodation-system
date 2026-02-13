@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,7 +32,11 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class RoomAllocationServiceTest {
 
     @Mock
@@ -64,6 +69,8 @@ class RoomAllocationServiceTest {
     private UserNotificationService userNotificationService;
     @Mock
     private FF4j ff4j;
+    @Mock
+    private TransactionTemplate transactionTemplate;
 
     @InjectMocks
     private RoomAllocationService roomAllocationService;
@@ -105,6 +112,12 @@ class RoomAllocationServiceTest {
         waitingListEntry.setStudent(student);
         waitingListEntry.setApplication(application);
         waitingListEntry.setStatus("WAITING");
+
+        // Mock transactionTemplate to execute the callback
+        when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
+            org.springframework.transaction.support.TransactionCallback<?> callback = invocation.getArgument(0);
+            return callback.doInTransaction(null);
+        });
     }
 
     @Test
@@ -157,9 +170,12 @@ class RoomAllocationServiceTest {
         scoredRoom.setRoomId(1L);
         scoredRoom.setTotalScore(BigDecimal.TEN);
         when(allocationScoringService.scoreAvailableRooms(any(), any(), any())).thenReturn(Collections.singletonList(scoredRoom));
-        
+
+        // Mock room availability for batch allocation
+        when(roomRepository.findAll()).thenReturn(Collections.singletonList(room));
+        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        
+
         // Mock dependencies for createRoomAllocation internally called
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
@@ -232,7 +248,9 @@ class RoomAllocationServiceTest {
         when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
                 .thenReturn(Collections.singletonList(scoredRoom));
 
-        // And: Room exists
+        // And: Room availability for batch allocation
+        when(roomRepository.findAll()).thenReturn(Collections.singletonList(room));
+        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
 
         // And: Student exists

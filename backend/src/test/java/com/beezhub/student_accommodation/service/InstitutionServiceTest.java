@@ -63,7 +63,9 @@ class InstitutionServiceTest {
 
         response1 = new InstitutionResponse();
         response1.setId(1L);
-        response1.setName("University A");
+        response1.setName("University of Test");
+        response1.setAddress("123 Test St");
+        response1.setEmailAddress("test@university.com");
         
         InstitutionResponse response2 = new InstitutionResponse();
         response2.setId(2L);
@@ -209,7 +211,7 @@ class InstitutionServiceTest {
 
         // Assert
         assertNotNull(result);
-        assertEquals("1", result.getId());
+        assertEquals(1L, result.getId());
         verify(institutionRepository).findById(1L);
     }
 

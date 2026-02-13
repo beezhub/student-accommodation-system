@@ -84,6 +84,7 @@ class AuthServiceTest {
         when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(signupRequest.getPassword())).thenReturn("encodedPassword");
         when(appUserMapper.toEntity(eq(signupRequest), anyString())).thenReturn(appUser);
+        when(userRepository.save(appUser)).thenReturn(appUser);
         when(jwtUtil.generateToken(any(AppUserDetails.class))).thenReturn("jwt-token");
 
         // Act
@@ -134,7 +135,6 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(userDetails);
-        when(jwtUtil.generateToken(userDetails)).thenReturn("jwt-token");
         when(userRepository.findByEmail(userDetails.getUsername())).thenReturn(Optional.empty());
 
         // Act & Assert

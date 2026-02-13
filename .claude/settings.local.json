@@ -71,7 +71,13 @@
       "mcp__plugin_serena_serena__find_file",
       "mcp__plugin_serena_serena__search_for_pattern",
       "Bash(git checkout:*)",
-      "Bash(git stash pop:*)"
+      "Bash(git stash pop:*)",
+      "Bash(git pull:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose config:*)",
+      "Bash(git stash:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr list:*)"
     ],
     "deny": [],
     "ask": []

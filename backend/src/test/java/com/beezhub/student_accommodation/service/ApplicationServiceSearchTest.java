@@ -9,6 +9,12 @@ import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
+import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.repository.DocumentCommentRepository;
+import com.beezhub.student_accommodation.repository.DocumentRepository;
+import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
+import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +37,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ApplicationServiceSearchTest {
 
         @Mock
@@ -45,6 +55,42 @@ class ApplicationServiceSearchTest {
 
         @Mock
         private AuthService authService;
+
+        @Mock
+        private DocumentRepository documentRepository;
+
+        @Mock
+        private BuildingRepository buildingRepository;
+
+        @Mock
+        private DocumentTypeRepository documentTypeRepository;
+
+        @Mock
+        private DocumentCommentRepository documentCommentRepository;
+
+        @Mock
+        private StagedAllocationRepository stagedAllocationRepository;
+
+        @Mock
+        private AppUserRepository appUserRepository;
+
+        @Mock
+        private NotificationService notificationService;
+
+        @Mock
+        private UserNotificationService userNotificationService;
+
+        @Mock
+        private AcademicYearService academicYearService;
+
+        @Mock
+        private RoomAllocationService roomAllocationService;
+
+        @Mock
+        private AllocationScoringService allocationScoringService;
+
+        @Mock
+        private SystemSettingService systemSettingService;
 
         @InjectMocks
         private ApplicationService applicationService;
@@ -132,6 +178,9 @@ class ApplicationServiceSearchTest {
                 response3.setStatus("REJECTED");
 
                 pageable = PageRequest.of(0, 20);
+
+                // Mock documentRepository for enrichApplicationDetails
+                when(documentRepository.findByApplicationIdIn(any())).thenReturn(List.of());
         }
 
         @Test

@@ -252,6 +252,11 @@ public class RoomAllocationService {
             throw new IllegalArgumentException("Expected check-in date must be within 7 days from now");
         }
 
+        // Can only accept offers in OFFERED status
+        if (allocation.getStatus() != AllocationStatus.OFFERED) {
+            throw new IllegalStateException("Can only accept OFFERED allocations, current status: " + allocation.getStatus());
+        }
+
         // Validate status transition
         validateStatusTransition(allocation, AllocationStatus.ACCEPTED);
         allocation.setStatus(AllocationStatus.ACCEPTED);

@@ -9,9 +9,14 @@ import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.model.entity.Application;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import java.util.List;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -51,6 +56,14 @@ class DocumentServiceTest {
     StudentRepository studentRepository;
     @Mock
     DocumentMapper documentMapper;
+    @Mock
+    ApplicationRepository applicationRepository;
+    @Mock
+    RoomAllocationRepository roomAllocationRepository;
+    @Mock
+    NotificationService notificationService;
+    @Mock
+    UserNotificationService userNotificationService;
 
     @InjectMocks
     DocumentService documentService;
@@ -86,6 +99,17 @@ class DocumentServiceTest {
         document.setDocumentType(docType);
 
         when(minioConfig.getBucketName()).thenReturn("bucket");
+
+        // Mock application repository for document operations
+        Application approvedApp = Application.builder()
+                .id(1L)
+                .student(student)
+                .status(ApplicationStatus.APPROVED)
+                .build();
+        when(applicationRepository.findByStudent_Id(anyLong())).thenReturn(List.of(approvedApp));
+
+        // Mock room allocation repository
+        when(roomAllocationRepository.findActiveAllocationByStudentId(anyLong())).thenReturn(Optional.empty());
     }
 
     @Test

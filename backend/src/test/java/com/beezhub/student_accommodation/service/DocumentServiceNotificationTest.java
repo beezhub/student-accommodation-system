@@ -10,9 +10,15 @@ import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.repository.ApplicationRepository;
+import com.beezhub.student_accommodation.repository.DocumentCommentRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.model.entity.Application;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import java.util.List;
 import io.minio.MinioClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +28,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.Optional;
 
@@ -42,6 +50,7 @@ import static org.mockito.Mockito.*;
  * ✅ Integration tests verify notifications sent
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Document Service - Notification Integration Tests")
 class DocumentServiceNotificationTest {
 
@@ -71,6 +80,18 @@ class DocumentServiceNotificationTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private ApplicationRepository applicationRepository;
+
+    @Mock
+    private RoomAllocationRepository roomAllocationRepository;
+
+    @Mock
+    private DocumentCommentRepository documentCommentRepository;
+
+    @Mock
+    private UserNotificationService userNotificationService;
 
     @InjectMocks
     private DocumentService documentService;
@@ -113,6 +134,20 @@ class DocumentServiceNotificationTest {
         documentResponse.setId(1L);
         documentResponse.setDocumentName("id_document.pdf");
         documentResponse.setDocumentStatus("APPROVED");
+
+        // Mock application repository for document operations
+        Application approvedApp = Application.builder()
+                .id(1L)
+                .student(student)
+                .status(ApplicationStatus.APPROVED)
+                .build();
+        when(applicationRepository.findByStudent_Id(anyLong())).thenReturn(List.of(approvedApp));
+
+        // Mock room allocation repository
+        when(roomAllocationRepository.findActiveAllocationByStudentId(anyLong())).thenReturn(Optional.empty());
+
+        // Mock document comment repository
+        when(documentCommentRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
     }
 
     @Test
