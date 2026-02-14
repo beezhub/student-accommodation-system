@@ -11,9 +11,9 @@
 | Phase | Total | Done | In Progress | Todo | Blocked | Progress |
 |-------|-------|------|-------------|------|---------|----------|
 | Phase 1: Critical Stabilisation | 10 | 10 | 0 | 0 | 0 | 100% ✅ |
-| Phase 2: Structural Improvement | 13 | 1 | 0 | 12 | 0 | 8% |
+| Phase 2: Structural Improvement | 13 | 2 | 0 | 11 | 0 | 15% |
 | Phase 3: Enhancement & Optimization | 10 | 0 | 0 | 10 | 0 | 0% |
-| **Total** | **33** | **11** | **0** | **22** | **0** | **33%** |
+| **Total** | **33** | **12** | **0** | **21** | **0** | **36%** |
 
 **Current Blockers:** None
 **Phase 1 Gate:** ✅ PASSED — Ready for Phase 2
@@ -540,7 +540,7 @@ Extract `AllocationExpiryService` from `RoomAllocationService`. This is the firs
 
 ### TASK-2.02: Decompose RoomAllocationService — Extract AllocationLifecycleService
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** M (2–4 hrs)
@@ -566,11 +566,11 @@ Extract `AllocationLifecycleService` from `RoomAllocationService`. Move offer ac
 - Target: <300 lines
 
 **Acceptance Criteria:**
-- [ ] `AllocationLifecycleService` exists in `service/allocation/` package
-- [ ] Accept/decline/cancel/manual allocate methods extracted
-- [ ] `AllocationLifecycleService` < 300 lines
-- [ ] All existing API endpoints return same responses (backward compatible)
-- [ ] All existing tests pass
+- [x] `AllocationLifecycleService` exists in `service/allocation/` package
+- [x] Accept/decline/cancel/manual allocate methods extracted
+- [x] `AllocationLifecycleService` < 300 lines
+- [x] All existing API endpoints return same responses (backward compatible)
+- [x] All existing tests pass
 
 **Tests to Write:**
 - `AllocationLifecycleServiceTest.acceptOffer_validOffer_statusChangedToAccepted`

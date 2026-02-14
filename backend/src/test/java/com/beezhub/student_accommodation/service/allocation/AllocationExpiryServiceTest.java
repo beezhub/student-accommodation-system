@@ -51,7 +51,7 @@ class AllocationExpiryServiceTest {
     private TransactionTemplate transactionTemplate;
 
     @Mock
-    private RoomRepository roomRepository;
+    private RoomOccupancyManager roomOccupancyManager;
 
     @Mock
     private RoomAllocationService roomAllocationService;
@@ -156,7 +156,16 @@ class AllocationExpiryServiceTest {
                 .thenReturn(List.of(testAllocation));
         when(roomAllocationRepository.findByIdWithDetails(testAllocation.getId()))
                 .thenReturn(Optional.of(testAllocation));
-        when(roomRepository.save(any(Room.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        
+        // Mock occupancy update
+        doAnswer(invocation -> {
+            Room room = invocation.getArgument(0);
+            int change = invocation.getArgument(1);
+            room.setCurrentOccupancy(room.getCurrentOccupancy() + change);
+            if (room.getCurrentOccupancy() == 0) room.setStatus("AVAILABLE");
+            return null;
+        }).when(roomOccupancyManager).updateOccupancy(any(Room.class), anyInt());
+
         lenient().when(waitingListRepository.findByStudent_IdAndStatus(testStudent.getId(), "WAITING"))
                 .thenReturn(Optional.of(testWaitingListEntry));
 
@@ -229,7 +238,9 @@ class AllocationExpiryServiceTest {
                 .thenReturn(Optional.of(allocation1));
         when(roomAllocationRepository.findByIdWithDetails(allocation2.getId()))
                 .thenThrow(new RuntimeException("Database error"));
-        when(roomRepository.save(any(Room.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        
+        // Mock occupancy update for success case
+        doNothing().when(roomOccupancyManager).updateOccupancy(any(Room.class), anyInt());
 
         // When
         allocationExpiryService.expireOffers();
@@ -268,7 +279,16 @@ class AllocationExpiryServiceTest {
                 .thenReturn(List.of(testAllocation));
         when(roomAllocationRepository.findByIdWithDetails(testAllocation.getId()))
                 .thenReturn(Optional.of(testAllocation));
-        when(roomRepository.save(any(Room.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        
+        // Mock occupancy update
+        doAnswer(invocation -> {
+            Room room = invocation.getArgument(0);
+            int change = invocation.getArgument(1);
+            room.setCurrentOccupancy(room.getCurrentOccupancy() + change);
+            if (room.getCurrentOccupancy() == 0) room.setStatus("AVAILABLE");
+            return null;
+        }).when(roomOccupancyManager).updateOccupancy(any(Room.class), anyInt());
+
         lenient().when(waitingListRepository.findByStudent_IdAndStatus(testStudent.getId(), "WAITING"))
                 .thenReturn(Optional.of(testWaitingListEntry));
 
@@ -342,7 +362,9 @@ class AllocationExpiryServiceTest {
                 .thenReturn(Optional.of(allocation1));
         when(roomAllocationRepository.findByIdWithDetails(allocation2.getId()))
                 .thenThrow(new RuntimeException("Database error"));
-        when(roomRepository.save(any(Room.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        
+        // Mock occupancy update for success case
+        doNothing().when(roomOccupancyManager).updateOccupancy(any(Room.class), anyInt());
 
         // When
         allocationExpiryService.expireCheckIns();
