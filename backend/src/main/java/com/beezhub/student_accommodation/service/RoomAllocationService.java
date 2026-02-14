@@ -158,11 +158,11 @@ public class RoomAllocationService {
 
         // Update waiting list entry if student was waiting
         waitingListRepository.findByStudent_IdAndStatus(student.getId(), "WAITING")
-            .ifPresent(entry -> {
-                entry.setStatus("ALLOCATED");
-                waitingListRepository.save(entry);
-                log.info("Updated waiting list entry for student {} to ALLOCATED", student.getId());
-            });
+                .ifPresent(entry -> {
+                    entry.setStatus("ALLOCATED");
+                    waitingListRepository.save(entry);
+                    log.info("Updated waiting list entry for student {} to ALLOCATED", student.getId());
+                });
 
         // Update room occupancy and status
         updateRoomOccupancy(room, 1);
@@ -254,7 +254,8 @@ public class RoomAllocationService {
 
         // Can only accept offers in OFFERED status
         if (allocation.getStatus() != AllocationStatus.OFFERED) {
-            throw new IllegalStateException("Can only accept OFFERED allocations, current status: " + allocation.getStatus());
+            throw new IllegalStateException(
+                    "Can only accept OFFERED allocations, current status: " + allocation.getStatus());
         }
 
         // Validate status transition
@@ -274,11 +275,11 @@ public class RoomAllocationService {
 
         // Update waiting list entry if student was waiting
         waitingListRepository.findByStudent_IdAndStatus(saved.getStudent().getId(), "WAITING")
-            .ifPresent(entry -> {
-                entry.setStatus("ALLOCATED");
-                waitingListRepository.save(entry);
-                log.info("Updated waiting list entry for student {} to ALLOCATED", saved.getStudent().getId());
-            });
+                .ifPresent(entry -> {
+                    entry.setStatus("ALLOCATED");
+                    waitingListRepository.save(entry);
+                    log.info("Updated waiting list entry for student {} to ALLOCATED", saved.getStudent().getId());
+                });
 
         log.info("Successfully accepted room allocation with id: {}", id);
 
@@ -310,7 +311,8 @@ public class RoomAllocationService {
         allocation.setDeclineReasonText(request.getDeclineReasonText());
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
-        log.info("Successfully declined room allocation with id: {}. Previous decline count: {}", id, previousDeclineCount);
+        log.info("Successfully declined room allocation with id: {}. Previous decline count: {}", id,
+                previousDeclineCount);
 
         // Process based on decline count
         if (previousDeclineCount < MAX_DECLINE_COUNT) {
@@ -333,7 +335,8 @@ public class RoomAllocationService {
 
     /**
      * Re-queues a student after declining an offer (if within the decline limit).
-     * Tries to directly allocate another room first; only falls back to the waiting list
+     * Tries to directly allocate another room first; only falls back to the waiting
+     * list
      * if no room is available.
      */
     private void reQueueStudent(RoomAllocation allocation, int totalDeclineCount) {
@@ -345,7 +348,8 @@ public class RoomAllocationService {
             return;
         }
 
-        log.info("Re-queueing student {} after decline {} of {}", student.getId(), totalDeclineCount, MAX_DECLINE_COUNT);
+        log.info("Re-queueing student {} after decline {} of {}", student.getId(), totalDeclineCount,
+                MAX_DECLINE_COUNT);
 
         // Always send to waiting list for fair allocation
         log.info("Adding student {} to waiting list after decline {}", student.getId(), totalDeclineCount);
@@ -367,9 +371,9 @@ public class RoomAllocationService {
         }
     }
 
-
     /**
-     * Cancels the application when the student has reached the maximum decline limit.
+     * Cancels the application when the student has reached the maximum decline
+     * limit.
      * Removes from waiting list and sends final notification.
      */
     private void cancelApplicationAfterMaxDeclines(RoomAllocation allocation) {
@@ -428,21 +432,20 @@ public class RoomAllocationService {
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
         log.info("Successfully checked in allocation with id: {}", id);
-        
+
         // Send check-in confirmation notifications
         try {
             if (allocation.getStudent() != null && allocation.getStudent().getAppUser() != null) {
                 userNotificationService.createCheckInConfirmedNotification(
-                    allocation.getStudent().getAppUser().getId(),
-                    allocation.getRoom().getRoomNumber(),
-                    allocation.getRoom().getBuilding() != null ? 
-                        allocation.getRoom().getBuilding().getName() : "Unknown Building"
-                );
+                        allocation.getStudent().getAppUser().getId(),
+                        allocation.getRoom().getRoomNumber(),
+                        allocation.getRoom().getBuilding() != null ? allocation.getRoom().getBuilding().getName()
+                                : "Unknown Building");
             }
         } catch (Exception e) {
             log.error("Failed to send check-in confirmation notification for allocation {}", id, e);
         }
-        
+
         return roomAllocationMapper.toResponse(saved);
     }
 
@@ -777,7 +780,8 @@ public class RoomAllocationService {
     }
 
     /**
-     * Batch allocates multiple waiting students to available rooms using optimal matching.
+     * Batch allocates multiple waiting students to available rooms using optimal
+     * matching.
      * Processes up to maxAllocations students in FIFO order from waiting list.
      *
      * @param maxAllocations Maximum number of allocations to create
@@ -836,12 +840,14 @@ public class RoomAllocationService {
         int allocatedCount = 0;
 
         for (WaitingListEntry entry : waitingList) {
-            if (allocatedCount >= maxAllocations) break;
+            if (allocatedCount >= maxAllocations)
+                break;
 
             Student student = entry.getStudent();
             List<ScoredRoom> scoredRooms = scoringMatrix.get(student.getId());
 
-            if (scoredRooms == null || scoredRooms.isEmpty()) continue;
+            if (scoredRooms == null || scoredRooms.isEmpty())
+                continue;
 
             // Find first available room (sorted by score DESC)
             for (ScoredRoom scoredRoom : scoredRooms) {
@@ -1724,299 +1730,17 @@ public class RoomAllocationService {
     }
 
     /**
-     * Scheduled job to expire offers that haven't been responded to within the expiry period.
-     * Runs every hour (configurable via app.allocation.expiry-check-interval-ms).
-     */
-    @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
-    public void expireOffers() {
-        log.info("Starting scheduled job to expire unresponsive offers");
-
-        try {
-            List<RoomAllocation> expiredOffers = roomAllocationRepository.findByStatusAndOfferExpiryDateBefore(
-                    AllocationStatus.OFFERED, LocalDateTime.now());
-
-            if (expiredOffers.isEmpty()) {
-                log.info("No expired offers found");
-                return;
-            }
-
-            log.info("Found {} expired offers to process", expiredOffers.size());
-            int successCount = 0;
-            int failureCount = 0;
-
-            for (RoomAllocation allocation : expiredOffers) {
-                try {
-                    expireSingleOffer(allocation);
-                    successCount++;
-                } catch (Exception e) {
-                    failureCount++;
-                    log.error("Failed to expire offer for allocation {}: {}", allocation.getId(), e.getMessage(), e);
-                }
-            }
-
-            log.info("Offer expiry job completed: {} succeeded, {} failed", successCount, failureCount);
-
-            // Trigger waiting list allocation for freed rooms
-            if (successCount > 0) {
-                try {
-                    // Use batch allocation if configured, otherwise fall back to single allocation
-                    boolean useBatchOnExpiry = environment.getProperty("app.allocation.batch-on-expiry", Boolean.class, true);
-                    if (useBatchOnExpiry) {
-                        log.info("Triggering batch allocation after expiring {} offers", successCount);
-                        batchAllocateFromWaitingList(successCount);
-                    } else {
-                        allocateNextFromWaitingList();
-                    }
-                } catch (Exception e) {
-                    log.error("Failed to allocate from waiting list after expiring offers", e);
-                }
-            }
-        } catch (Exception e) {
-            log.error("Unexpected error in expireOffers job", e);
-        }
-    }
-
-    /**
-     * Scheduled job to expire check-ins that haven't been completed within the expiry period.
-     * Runs every hour (configurable via app.allocation.expiry-check-interval-ms).
-     */
-    @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
-    public void expireCheckIns() {
-        log.info("Starting scheduled job to expire overdue check-ins");
-
-        try {
-            List<RoomAllocation> expiredCheckIns = roomAllocationRepository.findByStatusAndCheckInExpiryDateBefore(
-                    AllocationStatus.ACCEPTED, LocalDateTime.now());
-
-            if (expiredCheckIns.isEmpty()) {
-                log.info("No expired check-ins found");
-                return;
-            }
-
-            log.info("Found {} expired check-ins to process", expiredCheckIns.size());
-            int successCount = 0;
-            int failureCount = 0;
-
-            for (RoomAllocation allocation : expiredCheckIns) {
-                try {
-                    expireSingleCheckIn(allocation);
-                    successCount++;
-                } catch (Exception e) {
-                    failureCount++;
-                    log.error("Failed to expire check-in for allocation {}: {}", allocation.getId(), e.getMessage(), e);
-                }
-            }
-
-            log.info("Check-in expiry job completed: {} succeeded, {} failed", successCount, failureCount);
-
-            // Trigger waiting list allocation for freed rooms
-            if (successCount > 0) {
-                try {
-                    // Use batch allocation if configured, otherwise fall back to single allocation
-                    boolean useBatchOnExpiry = environment.getProperty("app.allocation.batch-on-expiry", Boolean.class, true);
-                    if (useBatchOnExpiry) {
-                        log.info("Triggering batch allocation after expiring {} check-ins", successCount);
-                        batchAllocateFromWaitingList(successCount);
-                    } else {
-                        allocateNextFromWaitingList();
-                    }
-                } catch (Exception e) {
-                    log.error("Failed to allocate from waiting list after expiring check-ins", e);
-                }
-            }
-        } catch (Exception e) {
-            log.error("Unexpected error in expireCheckIns job", e);
-        }
-    }
-
-    /**
-     * Expires a single offer allocation.
-     * Uses programmatic transaction management to ensure per-item isolation.
-     */
-    private void expireSingleOffer(RoomAllocation allocation) {
-        transactionTemplate.execute(status -> {
-            try {
-                // Re-fetch to ensure latest state and avoid race conditions
-                RoomAllocation current = roomAllocationRepository.findByIdWithDetails(allocation.getId())
-                        .orElse(null);
-
-                if (current == null) {
-                    log.warn("Allocation {} no longer exists, skipping expiry", allocation.getId());
-                    return null;
-                }
-
-                // Verify transition to EXPIRED is valid (might have been accepted in the meantime)
-                AllocationStatus currentStatus = current.getStatus();
-                if (currentStatus == null || !currentStatus.canTransitionTo(AllocationStatus.EXPIRED)) {
-                    log.info("Allocation {} status {} cannot transition to EXPIRED, skipping expiry",
-                            current.getId(), currentStatus);
-                    return null;
-                }
-
-                log.info("Expiring offer for allocation {}, student {}, room {}",
-                        current.getId(), current.getStudent().getId(), current.getRoom().getRoomNumber());
-
-                // Update allocation status
-                validateStatusTransition(current, AllocationStatus.EXPIRED);
-                current.setStatus(AllocationStatus.EXPIRED);
-                current.setEndDate(LocalDateTime.now());
-                roomAllocationRepository.save(current);
-
-                // Free the room
-                updateRoomOccupancy(current.getRoom(), -1);
-
-                // Cancel application
-                cancelApplicationAfterOfferExpiry(current);
-
-                // Send notifications
-                try {
-                    notificationService.sendOfferExpiredNotification(current);
-                    userNotificationService.createOfferExpiredNotification(
-                            current.getStudent().getAppUser().getId(),
-                            current.getRoom().getRoomNumber(),
-                            current.getRoom().getBuilding() != null ?
-                                    current.getRoom().getBuilding().getName() : "Unknown Building");
-                } catch (Exception e) {
-                    log.error("Failed to send expiry notifications for allocation {}", current.getId(), e);
-                }
-
-                log.info("Successfully expired offer for allocation {}", current.getId());
-                return null;
-            } catch (Exception e) {
-                status.setRollbackOnly();
-                throw new RuntimeException("Failed to expire offer for allocation " + allocation.getId(), e);
-            }
-        });
-    }
-
-    /**
-     * Expires a single check-in allocation.
-     * Uses programmatic transaction management to ensure per-item isolation.
-     */
-    private void expireSingleCheckIn(RoomAllocation allocation) {
-        transactionTemplate.execute(status -> {
-            try {
-                // Re-fetch to ensure latest state and avoid race conditions
-                RoomAllocation current = roomAllocationRepository.findByIdWithDetails(allocation.getId())
-                        .orElse(null);
-
-                if (current == null) {
-                    log.warn("Allocation {} no longer exists, skipping check-in expiry", allocation.getId());
-                    return null;
-                }
-
-                // Verify transition to CHECK_IN_EXPIRED is valid (might have been checked in in the meantime)
-                if (!current.getStatus().canTransitionTo(AllocationStatus.CHECK_IN_EXPIRED)) {
-                    log.info("Allocation {} status {} cannot transition to CHECK_IN_EXPIRED, skipping check-in expiry",
-                            current.getId(), current.getStatus());
-                    return null;
-                }
-
-                log.info("Expiring check-in for allocation {}, student {}, room {}",
-                        current.getId(), current.getStudent().getId(), current.getRoom().getRoomNumber());
-
-                // Update allocation status
-                validateStatusTransition(current, AllocationStatus.CHECK_IN_EXPIRED);
-                current.setStatus(AllocationStatus.CHECK_IN_EXPIRED);
-                current.setEndDate(LocalDateTime.now());
-                roomAllocationRepository.save(current);
-
-                // Free the room
-                updateRoomOccupancy(current.getRoom(), -1);
-
-                // Cancel application
-                cancelApplicationAfterCheckInExpiry(current);
-
-                // Send notifications
-                try {
-                    notificationService.sendCheckInExpiredNotification(current);
-                    userNotificationService.createCheckInExpiredNotification(
-                            current.getStudent().getAppUser().getId(),
-                            current.getRoom().getRoomNumber(),
-                            current.getRoom().getBuilding() != null ?
-                                    current.getRoom().getBuilding().getName() : "Unknown Building");
-                } catch (Exception e) {
-                    log.error("Failed to send check-in expiry notifications for allocation {}", current.getId(), e);
-                }
-
-                log.info("Successfully expired check-in for allocation {}", current.getId());
-                return null;
-            } catch (Exception e) {
-                status.setRollbackOnly();
-                throw new RuntimeException("Failed to expire check-in for allocation " + allocation.getId(), e);
-            }
-        });
-    }
-
-    /**
-     * Cancels application after offer expiry.
-     * Follows the same pattern as cancelApplicationAfterMaxDeclines but with different messaging.
-     */
-    private void cancelApplicationAfterOfferExpiry(RoomAllocation allocation) {
-        Application application = allocation.getApplication();
-        Student student = allocation.getStudent();
-
-        if (application == null) {
-            log.warn("No application linked to allocation {}; cannot cancel", allocation.getId());
-            return;
-        }
-
-        log.info("Cancelling application {} after offer expiry for student {}",
-                application.getId(), student.getId());
-
-        // Update application status to CANCELLED
-        application.setStatus(ApplicationStatus.CANCELLED);
-        String remarks = "Application cancelled: Room offer expired without response within " + offerExpiryDays + " days.";
-        application.setRemarks(remarks);
-        applicationRepository.save(application);
-
-        // Cancel waiting list entry if exists
-        waitingListRepository.findByStudent_IdAndStatus(student.getId(), "WAITING")
-                .ifPresent(entry -> {
-                    entry.setStatus("CANCELLED");
-                    waitingListRepository.save(entry);
-                    log.info("Cancelled waiting list entry for student {}", student.getId());
-                });
-    }
-
-    /**
-     * Cancels application after check-in expiry.
-     */
-    private void cancelApplicationAfterCheckInExpiry(RoomAllocation allocation) {
-        Application application = allocation.getApplication();
-        Student student = allocation.getStudent();
-
-        if (application == null) {
-            log.warn("No application linked to allocation {}; cannot cancel", allocation.getId());
-            return;
-        }
-
-        log.info("Cancelling application {} after check-in expiry for student {}",
-                application.getId(), student.getId());
-
-        // Update application status to CANCELLED
-        application.setStatus(ApplicationStatus.CANCELLED);
-        String remarks = "Application cancelled: Student failed to check in within " + checkInExpiryDays +
-                " days of accepting the offer.";
-        application.setRemarks(remarks);
-        applicationRepository.save(application);
-
-        // Cancel waiting list entry if exists
-        waitingListRepository.findByStudent_IdAndStatus(student.getId(), "WAITING")
-                .ifPresent(entry -> {
-                    entry.setStatus("CANCELLED");
-                    waitingListRepository.save(entry);
-                    log.info("Cancelled waiting list entry for student {}", student.getId());
-                });
-    }
-
-    /**
-     * Validates that a status transition is allowed according to the AllocationStatus state machine.
-     * Throws InvalidAllocationStatusTransitionException if the transition is not valid.
+     * Validates that a status transition is allowed according to the
+     * AllocationStatus state machine.
+     * Throws InvalidAllocationStatusTransitionException if the transition is not
+     * valid.
      *
      * @param allocation the allocation being transitioned
-     * @param newStatus the target status
-     * @throws com.beezhub.student_accommodation.exceptions.InvalidAllocationStatusTransitionException if transition is invalid
+     * @param newStatus  the target status
+     * @throws com.beezhub.student_accommodation.exceptions.InvalidAllocationStatusTransitionException if
+     *                                                                                                 transition
+     *                                                                                                 is
+     *                                                                                                 invalid
      */
     private void validateStatusTransition(RoomAllocation allocation, AllocationStatus newStatus) {
         AllocationStatus currentStatus = allocation.getStatus();

@@ -11,13 +11,13 @@
 | Phase | Total | Done | In Progress | Todo | Blocked | Progress |
 |-------|-------|------|-------------|------|---------|----------|
 | Phase 1: Critical Stabilisation | 10 | 10 | 0 | 0 | 0 | 100% ✅ |
-| Phase 2: Structural Improvement | 13 | 0 | 0 | 13 | 0 | 0% |
+| Phase 2: Structural Improvement | 13 | 1 | 0 | 12 | 0 | 8% |
 | Phase 3: Enhancement & Optimization | 10 | 0 | 0 | 10 | 0 | 0% |
-| **Total** | **33** | **10** | **0** | **23** | **0** | **30%** |
+| **Total** | **33** | **11** | **0** | **22** | **0** | **33%** |
 
 **Current Blockers:** None
 **Phase 1 Gate:** ✅ PASSED — Ready for Phase 2
-**Next Recommended Tasks:** TASK-2.01 (Extract AllocationExpiryService - HIGH), TASK-2.02 (Extract AllocationLifecycleService - HIGH), TASK-2.04 (Decompose ApplicationService - MEDIUM, parallelizable)
+**Next Recommended Tasks:** TASK-2.02 (Extract AllocationLifecycleService - HIGH), TASK-2.03 (Extract AllocationBatchService - HIGH), TASK-2.04 (Decompose ApplicationService - MEDIUM, parallelizable)
 
 ---
 
@@ -495,7 +495,7 @@ Increase the async executor queue capacity from 100 to 500 and max threads from 
 
 ### TASK-2.01: Decompose RoomAllocationService — Extract AllocationExpiryService
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** M (2–4 hrs)
