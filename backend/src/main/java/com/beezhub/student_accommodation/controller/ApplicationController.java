@@ -10,6 +10,7 @@ import com.beezhub.student_accommodation.model.dto.ReviewProgressResponse;
 import org.springframework.security.core.Authentication;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.service.ApplicationService;
+import com.beezhub.student_accommodation.service.application.ApplicationSearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -35,6 +36,7 @@ import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.va
 @RequiredArgsConstructor
 public class ApplicationController {
         private final ApplicationService applicationService;
+        private final ApplicationSearchService applicationSearchService;
 
         @Operation(summary = "Submit a student accommodation application", description = "Submits an application for accommodation. Students can only submit for themselves.")
         @ApiResponses(value = {
@@ -96,7 +98,7 @@ public class ApplicationController {
         @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<?> getAllApplications(
                         @PageableDefault(size = 20, sort = "applicationDate") Pageable pageable) {
-                PageResponse<ApplicationResponse> page = applicationService.getAllApplications(pageable);
+                PageResponse<ApplicationResponse> page = applicationSearchService.getAllApplications(pageable);
                 return ResponseEntity.ok(page);
         }
 
@@ -116,7 +118,7 @@ public class ApplicationController {
                 LocalDate start = startDate != null ? LocalDate.parse(startDate) : null;
                 LocalDate end = endDate != null ? LocalDate.parse(endDate) : null;
                 ApplicationStatus statusEnum = status != null ? valueOf(status) : null;
-                PageResponse<ApplicationResponse> page = applicationService.searchApplications(
+                PageResponse<ApplicationResponse> page = applicationSearchService.searchApplications(
                                 applicationCode, studentName, statusEnum, allocationStatus, preferredBuilding, start,
                                 end, pageable);
                 return ResponseEntity.ok(page);
@@ -131,7 +133,7 @@ public class ApplicationController {
         @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<List<ApplicationResponse>> getApplicationsByStatus(
                         @Parameter(description = "Status of the applications to retrieve (PENDING, APPROVED, REJECTED)", required = true) @PathVariable("status") String status) {
-                return ResponseEntity.ok(applicationService.getApplicationsByStatus(status));
+                return ResponseEntity.ok(applicationSearchService.getApplicationsByStatus(status));
         }
 
         @Operation(summary = "Update application status", description = "Updates the status of an application. Admin only.")

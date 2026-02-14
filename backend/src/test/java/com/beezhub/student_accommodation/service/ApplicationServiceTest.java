@@ -111,8 +111,8 @@ class ApplicationServiceTest {
     @Test
     void submitApplication_shouldCreateApplication() {
         // Arrange
-        com.beezhub.student_accommodation.model.entity.AcademicYear academicYear =
-            com.beezhub.student_accommodation.model.entity.AcademicYear.builder()
+        com.beezhub.student_accommodation.model.entity.AcademicYear academicYear = com.beezhub.student_accommodation.model.entity.AcademicYear
+                .builder()
                 .id(1L)
                 .name("2025/2026")
                 .startDate(LocalDate.now().minusMonths(2))
@@ -182,7 +182,8 @@ class ApplicationServiceTest {
 
         assertThat(response).isNotNull();
         verify(applicationRepository).save(application);
-        verify(notificationService).sendApplicationStatusNotification(any(Application.class), eq(ApplicationStatus.APPROVED));
+        verify(notificationService).sendApplicationStatusNotification(any(Application.class),
+                eq(ApplicationStatus.APPROVED));
     }
 
     @Test
@@ -235,22 +236,6 @@ class ApplicationServiceTest {
 
         assertThat(response.getTotalRequired()).isEqualTo(1);
         assertThat(response.getApproved()).isEqualTo(1);
-    }
-
-    @Test
-    void searchApplications_shouldReturnPaginatedResults() {
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Application> page = new PageImpl<>(Collections.singletonList(application));
-        
-        when(applicationRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(documentRepository.findByApplicationIdIn(anyList())).thenReturn(Collections.emptyList());
-        when(stagedAllocationRepository.findByApplication_IdIn(anyList())).thenReturn(Collections.emptyList());
-        when(applicationMapper.toResponse(any(Application.class))).thenReturn(new ApplicationResponse());
-
-        PageResponse<ApplicationResponse> response = applicationService.searchApplications(
-                null, null, null, null, null, null, null, pageable);
-
-        assertThat(response.getTotalElements()).isEqualTo(1);
     }
 
     // ==================== Auto-Allocation Tests ====================

@@ -212,15 +212,6 @@ public class ApplicationService {
                                 .collect(Collectors.toList());
         }
 
-        public List<ApplicationResponse> getApplicationsByStatus(String status) {
-                log.info("Retrieving applications for status {}", status);
-                ApplicationStatus applicationStatus = ApplicationStatus.valueOf(status.toUpperCase());
-                return applicationRepository.findByStatus(applicationStatus)
-                                .stream()
-                                .map(applicationMapper::toResponse)
-                                .collect(Collectors.toList());
-        }
-
         @Transactional
         @LogActivity(action = "UPDATE", entityType = "APPLICATION", description = "Updated application {0} status to {1}", entityIdParamIndex = 0)
         public ApplicationResponse updateApplicationStatus(Long applicationId,
@@ -369,119 +360,6 @@ public class ApplicationService {
                                 .stream()
                                 .map(applicationMapper::toResponse)
                                 .collect(Collectors.toList());
-        }
-
-        public List<ApplicationResponse> getAllApplications() {
-                log.info("Retrieving all applications");
-                return applicationRepository.findAll()
-                                .stream()
-                                .map(applicationMapper::toResponse)
-                                .collect(Collectors.toList());
-        }
-
-        public PageResponse<ApplicationResponse> getAllApplications(Pageable pageable) {
-                log.info("Retrieving paginated applications");
-                Page<Application> page = applicationRepository.findAll(pageable);
-
-                // Enrich
-                List<ApplicationResponse> responses = enrichApplicationDetails(page.getContent());
-
-                Page<ApplicationResponse> responsePage = new org.springframework.data.domain.PageImpl<>(responses,
-                                pageable,
-                                page.getTotalElements());
-                return PageMapper.toPageResponse(responsePage);
-        }
-
-        public PageResponse<ApplicationResponse> searchApplications(String applicationCode, String studentName,
-                        ApplicationStatus status, String allocationStatus, String preferredBuilding,
-                        LocalDate startDate,
-                        LocalDate endDate,
-                        Pageable pageable) {
-                log.info(
-                                "Searching applications with filters - code: {}, student: {}, status: {}, allocationStatus: {}, building: {}, startDate: {}, endDate: {}",
-                                applicationCode, studentName, status, allocationStatus, preferredBuilding, startDate,
-                                endDate);
-                Specification<Application> spec = ApplicationSpecification.filterBy(applicationCode, studentName,
-                                status,
-                                allocationStatus, preferredBuilding, startDate, endDate);
-                Page<Application> page = applicationRepository.findAll(spec, pageable);
-
-                // Enrich responses with extra data not in Application entity
-                List<ApplicationResponse> responses = enrichApplicationDetails(page.getContent());
-
-                Page<ApplicationResponse> responsePage = new org.springframework.data.domain.PageImpl<>(responses,
-                                pageable,
-                                page.getTotalElements());
-
-                log.info("Found {} applications matching criteria", page.getNumberOfElements());
-                return PageMapper.toPageResponse(responsePage);
-        }
-
-        private List<ApplicationResponse> enrichApplicationDetails(List<Application> applications) {
-                if (applications.isEmpty()) {
-                        return new ArrayList<>();
-                }
-
-                List<Long> appIds = applications.stream().map(Application::getId).collect(Collectors.toList());
-
-                // Fetch documents
-                List<Document> allDocs = documentRepository.findByApplicationIdIn(appIds);
-                Map<Long, List<Document>> docsByApp = allDocs.stream()
-                                .collect(Collectors.groupingBy(d -> d.getApplication().getId()));
-
-                // Fetch staged allocations
-                List<StagedAllocation> allStaged = stagedAllocationRepository.findByApplication_IdIn(appIds);
-                Map<Long, StagedAllocation> stagedByApp = allStaged.stream()
-                                .collect(Collectors.toMap(
-                                                s -> s.getApplication().getId(),
-                                                s -> s,
-                                                (existing, replacement) -> existing // Keep first if multiple (rare)
-                                ));
-
-                return applications.stream().map(app -> {
-                        ApplicationResponse response = applicationMapper.toResponse(app);
-
-                        // Handle Documents
-                        List<Document> docs = docsByApp.getOrDefault(app.getId(), new ArrayList<>());
-                        int totalRequired = 5; // Hardcoded default or fetch from DocumentType count (better to fetch
-                                               // but
-                                               // simplified for now)
-                                               // Actually, let's just count uploaded ones for now or implement better
-                                               // logic
-                                               // later
-
-                        // Better logic: totalRequired should be count of REQUIRED document types
-                        // I'll grab that count once to avoid N+1, but for now lets assume basic logic:
-                        // Count of approved documents vs total uploaded or fixed required number.
-                        // Given the context, let's use documentCompletionPercent logic from
-                        // ReviewProgressResponse?
-
-                        long approvedCount = docs.stream().filter(d -> d.getDocumentStatus() == DocumentStatus.APPROVED)
-                                        .count();
-                        response.setApprovedDocuments((int) approvedCount);
-                        // Assuming 5 required documents for student accommodation
-                        response.setTotalRequiredDocuments(5);
-                        response.setDocumentCompletionPercent(docs.isEmpty() ? 0 : (int) ((approvedCount * 100) / 5));
-
-                        // Handle Allocation
-                        if (app.getStatus() == ApplicationStatus.ALLOCATED) {
-                                response.setAllocationStatus("ALLOCATED");
-                                // If real allocation exists, we'd check RoomAllocation, but StagedAllocation
-                                // might be gone?
-                                // Or we check StagedAllocation for PROPOSED items.
-                        }
-
-                        StagedAllocation staged = stagedByApp.get(app.getId());
-                        if (staged != null) {
-                                response.setAllocationScore(staged.getScore());
-                                // If application is AWAITING_ALLOCATION, staged status is meaningful
-                                response.setAllocationStatus(staged.getStatus().name());
-                        } else {
-                                response.setAllocationStatus(app.getStatus().name()); // Default to app status
-                        }
-
-                        return response;
-                }).collect(Collectors.toList());
         }
 
         // ==================== Required Documents Checklist ====================
@@ -989,9 +867,11 @@ public class ApplicationService {
 
                                 // Send waiting list notification
                                 Long studentUserId = student.getAppUser().getId();
-                                userNotificationService.createWaitingListNotification(studentUserId, application.getId());
+                                userNotificationService.createWaitingListNotification(studentUserId,
+                                                application.getId());
                         } catch (Exception e) {
-                                log.error("Failed to add student {} to waiting list for application {}", student.getId(),
+                                log.error("Failed to add student {} to waiting list for application {}",
+                                                student.getId(),
                                                 application.getId(), e);
                         }
                         return;
@@ -1034,7 +914,8 @@ public class ApplicationService {
                         try {
                                 roomAllocationService.enqueueWaitingList(student.getId(), application.getId());
                                 Long studentUserId = student.getAppUser().getId();
-                                userNotificationService.createWaitingListNotification(studentUserId, application.getId());
+                                userNotificationService.createWaitingListNotification(studentUserId,
+                                                application.getId());
                         } catch (Exception waitingListError) {
                                 log.error("Failed to add student {} to waiting list after allocation failure",
                                                 student.getId(), waitingListError);
