@@ -1,6 +1,5 @@
 package com.beezhub.student_accommodation.service.allocation;
 
-import com.beezhub.student_accommodation.exceptions.InvalidAllocationStatusTransitionException;
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
@@ -9,7 +8,6 @@ import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
-import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.RoomAllocationService;
@@ -36,10 +34,11 @@ public class AllocationExpiryService {
     private final WaitingListRepository waitingListRepository;
     private final NotificationService notificationService;
     private final UserNotificationService userNotificationService;
-    private final RoomRepository roomRepository;
+    private final RoomOccupancyManager roomOccupancyManager;
     private final TransactionTemplate transactionTemplate;
     private final Environment environment;
 
+    // TODO: TASK-2.06 — Replace with domain events (OfferExpiredEvent, CheckInExpiredEvent)
     @Lazy
     private final RoomAllocationService roomAllocationService;
 
@@ -188,13 +187,13 @@ public class AllocationExpiryService {
                         current.getId(), current.getStudent().getId(), current.getRoom().getRoomNumber());
 
                 // Update allocation status
-                validateStatusTransition(current, AllocationStatus.EXPIRED);
+                AllocationStatusValidator.validate(current, AllocationStatus.EXPIRED);
                 current.setStatus(AllocationStatus.EXPIRED);
                 current.setEndDate(LocalDateTime.now());
                 roomAllocationRepository.save(current);
 
                 // Free the room
-                updateRoomOccupancy(current.getRoom(), -1);
+                roomOccupancyManager.updateOccupancy(current.getRoom(), -1);
 
                 // Cancel application
                 cancelApplicationAfterOfferExpiry(current);
@@ -248,13 +247,13 @@ public class AllocationExpiryService {
                         current.getId(), current.getStudent().getId(), current.getRoom().getRoomNumber());
 
                 // Update allocation status
-                validateStatusTransition(current, AllocationStatus.CHECK_IN_EXPIRED);
+                AllocationStatusValidator.validate(current, AllocationStatus.CHECK_IN_EXPIRED);
                 current.setStatus(AllocationStatus.CHECK_IN_EXPIRED);
                 current.setEndDate(LocalDateTime.now());
                 roomAllocationRepository.save(current);
 
                 // Free the room
-                updateRoomOccupancy(current.getRoom(), -1);
+                roomOccupancyManager.updateOccupancy(current.getRoom(), -1);
 
                 // Cancel application
                 cancelApplicationAfterCheckInExpiry(current);
@@ -342,39 +341,5 @@ public class AllocationExpiryService {
                     waitingListRepository.save(entry);
                     log.info("Cancelled waiting list entry for student {}", student.getId());
                 });
-    }
-
-    /**
-     * Updates room occupancy and status.
-     * Duplicated from RoomAllocationService for isolation.
-     */
-    private void updateRoomOccupancy(Room room, int change) {
-        int newOccupancy = (room.getCurrentOccupancy() != null ? room.getCurrentOccupancy() : 0) + change;
-        room.setCurrentOccupancy(newOccupancy);
-
-        if (newOccupancy == 0) {
-            room.setStatus("AVAILABLE");
-        } else if (newOccupancy >= room.getCapacity()) {
-            room.setStatus("FULL");
-        } else {
-            room.setStatus("OCCUPIED");
-        }
-
-        roomRepository.save(room);
-        log.info("Updated room {} occupancy to {} (status: {})",
-                room.getRoomNumber(), newOccupancy, room.getStatus());
-    }
-
-    /**
-     * Validates that a status transition is allowed according to the
-     * AllocationStatus state machine.
-     * Throws InvalidAllocationStatusTransitionException if the transition is not
-     * valid.
-     */
-    private void validateStatusTransition(RoomAllocation allocation, AllocationStatus newStatus) {
-        AllocationStatus currentStatus = allocation.getStatus();
-        if (currentStatus != null && !currentStatus.canTransitionTo(newStatus)) {
-            throw new InvalidAllocationStatusTransitionException(currentStatus, newStatus);
-        }
     }
 }

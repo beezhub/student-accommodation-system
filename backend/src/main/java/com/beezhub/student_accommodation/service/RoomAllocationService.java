@@ -10,6 +10,8 @@ import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.allocation.AllocationStatusValidator;
+import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
 import com.beezhub.student_accommodation.specification.RoomAllocationSpecification;
 import com.beezhub.student_accommodation.util.PageMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -58,6 +60,7 @@ public class RoomAllocationService {
     private final BuildingRepository buildingRepository;
     private final RoomAttributesRepository roomAttributesRepository;
     private final UserNotificationService userNotificationService;
+    private final RoomOccupancyManager roomOccupancyManager;
     private final ObjectMapper objectMapper;
     private final org.ff4j.FF4j ff4j;
     private final TransactionTemplate transactionTemplate;
@@ -149,7 +152,7 @@ public class RoomAllocationService {
                 request.getAllocationDate() != null ? request.getAllocationDate() : LocalDateTime.now());
         allocation.setEndDate(request.getEndDate());
         // Initial status for new allocation
-        validateStatusTransition(allocation, AllocationStatus.OFFERED);
+        AllocationStatusValidator.validate(allocation, AllocationStatus.OFFERED);
         allocation.setStatus(AllocationStatus.OFFERED);
         allocation.setOfferExpiryDate(LocalDateTime.now().plusDays(offerExpiryDays));
 
@@ -165,7 +168,7 @@ public class RoomAllocationService {
                 });
 
         // Update room occupancy and status
-        updateRoomOccupancy(room, 1);
+        roomOccupancyManager.updateOccupancy(room, 1);
 
         log.info("Successfully created room allocation with id: {}", saved.getId());
 
@@ -221,23 +224,6 @@ public class RoomAllocationService {
                 room.getRoomNumber(), activeAllocations, room.getCapacity());
     }
 
-    private void updateRoomOccupancy(Room room, int change) {
-        int newOccupancy = (room.getCurrentOccupancy() != null ? room.getCurrentOccupancy() : 0) + change;
-        room.setCurrentOccupancy(newOccupancy);
-
-        if (newOccupancy == 0) {
-            room.setStatus("AVAILABLE");
-        } else if (newOccupancy >= room.getCapacity()) {
-            room.setStatus("FULL");
-        } else {
-            room.setStatus("OCCUPIED");
-        }
-
-        roomRepository.save(room);
-        log.info("Updated room {} occupancy to {} (status: {})",
-                room.getRoomNumber(), newOccupancy, room.getStatus());
-    }
-
     @Transactional
     public RoomAllocationResponse acceptOffer(Long id, AcceptOfferRequest request) {
         log.info("Accepting room allocation offer with id: {}", id);
@@ -259,7 +245,7 @@ public class RoomAllocationService {
         }
 
         // Validate status transition
-        validateStatusTransition(allocation, AllocationStatus.ACCEPTED);
+        AllocationStatusValidator.validate(allocation, AllocationStatus.ACCEPTED);
         allocation.setStatus(AllocationStatus.ACCEPTED);
         allocation.setExpectedCheckInDate(request.getExpectedCheckInDate());
         allocation.setCheckInExpiryDate(LocalDateTime.now().plusDays(checkInExpiryDays));
@@ -301,10 +287,10 @@ public class RoomAllocationService {
 
         // Release the room
         Room room = allocation.getRoom();
-        updateRoomOccupancy(room, -1);
+        roomOccupancyManager.updateOccupancy(room, -1);
 
         // Validate status transition and update allocation with decline details
-        validateStatusTransition(allocation, AllocationStatus.DECLINED);
+        AllocationStatusValidator.validate(allocation, AllocationStatus.DECLINED);
         allocation.setStatus(AllocationStatus.DECLINED);
         allocation.setEndDate(LocalDateTime.now());
         allocation.setDeclineReason(request.getDeclineReason());
@@ -418,7 +404,7 @@ public class RoomAllocationService {
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
         // Validate status transition
-        validateStatusTransition(allocation, AllocationStatus.ACTIVE);
+        AllocationStatusValidator.validate(allocation, AllocationStatus.ACTIVE);
         allocation.setStatus(AllocationStatus.ACTIVE);
         allocation.setCheckInDate(LocalDateTime.now());
 
@@ -456,13 +442,13 @@ public class RoomAllocationService {
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
         // Validate status transition
-        validateStatusTransition(allocation, AllocationStatus.COMPLETED);
+        AllocationStatusValidator.validate(allocation, AllocationStatus.COMPLETED);
         allocation.setStatus(AllocationStatus.COMPLETED);
         allocation.setCheckOutDate(LocalDateTime.now());
         allocation.setEndDate(LocalDateTime.now());
 
         // Update room occupancy
-        updateRoomOccupancy(allocation.getRoom(), -1);
+        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
         log.info("Successfully checked out allocation with id: {}", id);
@@ -483,12 +469,12 @@ public class RoomAllocationService {
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
         // Use soft delete (CANCELLED) instead of hard delete
-        validateStatusTransition(allocation, AllocationStatus.CANCELLED);
+        AllocationStatusValidator.validate(allocation, AllocationStatus.CANCELLED);
         allocation.setStatus(AllocationStatus.CANCELLED);
         allocation.setEndDate(LocalDateTime.now());
 
         Room room = allocation.getRoom();
-        updateRoomOccupancy(room, -1);
+        roomOccupancyManager.updateOccupancy(room, -1);
 
         roomAllocationRepository.save(allocation);
         log.info("Successfully cancelled room allocation with id: {}", id);
@@ -524,8 +510,8 @@ public class RoomAllocationService {
         boolean roomChanged = false;
         if (!oldRoom.getId().equals(newRoom.getId())) {
             validateRoomCapacity(newRoom);
-            updateRoomOccupancy(oldRoom, -1);
-            updateRoomOccupancy(newRoom, 1);
+            roomOccupancyManager.updateOccupancy(oldRoom, -1);
+            roomOccupancyManager.updateOccupancy(newRoom, 1);
             roomChanged = true;
         }
 
@@ -566,12 +552,12 @@ public class RoomAllocationService {
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
 
         // Validate status transition
-        validateStatusTransition(allocation, AllocationStatus.COMPLETED);
+        AllocationStatusValidator.validate(allocation, AllocationStatus.COMPLETED);
         allocation.setStatus(AllocationStatus.COMPLETED);
         allocation.setEndDate(LocalDateTime.now());
 
         // Update room occupancy
-        updateRoomOccupancy(allocation.getRoom(), -1);
+        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
 
         RoomAllocation updated = roomAllocationRepository.save(allocation);
         log.info("Successfully ended room allocation with id: {}", id);
@@ -1182,14 +1168,14 @@ public class RoomAllocationService {
         allocation.setApplication(staged.getApplication());
         allocation.setAllocationDate(LocalDateTime.now());
         // Initial status for new allocation from staged
-        validateStatusTransition(allocation, AllocationStatus.OFFERED);
+        AllocationStatusValidator.validate(allocation, AllocationStatus.OFFERED);
         allocation.setStatus(AllocationStatus.OFFERED); // Staged allocation creates an OFFER that student must accept
         allocation.setAllocationMethod(AllocationMethod.AUTO);
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         // Update room occupancy
-        updateRoomOccupancy(staged.getRoom(), 1);
+        roomOccupancyManager.updateOccupancy(staged.getRoom(), 1);
 
         // Update staged allocation status
         staged.setStatus(StagedAllocationStatus.CONFIRMED);
@@ -1322,8 +1308,8 @@ public class RoomAllocationService {
         }
 
         // Update room occupancies
-        updateRoomOccupancy(oldRoom, -1);
-        updateRoomOccupancy(newRoom, 1);
+        roomOccupancyManager.updateOccupancy(oldRoom, -1);
+        roomOccupancyManager.updateOccupancy(newRoom, 1);
 
         // Update allocation
         allocation.setRoom(newRoom);
@@ -1726,27 +1712,6 @@ public class RoomAllocationService {
 
         } catch (Exception e) {
             log.error("Scheduled batch allocation failed", e);
-        }
-    }
-
-    /**
-     * Validates that a status transition is allowed according to the
-     * AllocationStatus state machine.
-     * Throws InvalidAllocationStatusTransitionException if the transition is not
-     * valid.
-     *
-     * @param allocation the allocation being transitioned
-     * @param newStatus  the target status
-     * @throws com.beezhub.student_accommodation.exceptions.InvalidAllocationStatusTransitionException if
-     *                                                                                                 transition
-     *                                                                                                 is
-     *                                                                                                 invalid
-     */
-    private void validateStatusTransition(RoomAllocation allocation, AllocationStatus newStatus) {
-        AllocationStatus currentStatus = allocation.getStatus();
-        if (currentStatus != null && !currentStatus.canTransitionTo(newStatus)) {
-            throw new com.beezhub.student_accommodation.exceptions.InvalidAllocationStatusTransitionException(
-                    currentStatus, newStatus);
         }
     }
 }

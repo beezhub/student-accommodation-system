@@ -81,7 +81,9 @@
       "Bash(openspec new:*)",
       "Bash(openspec status:*)",
       "Bash(openspec instructions proposal:*)",
-      "Bash(openspec instructions:*)"
+      "Bash(openspec instructions:*)",
+      "Bash(gradlew.bat test:*)",
+      "Bash(Select-Object -Last 50)"
     ],
     "deny": [],
     "ask": []

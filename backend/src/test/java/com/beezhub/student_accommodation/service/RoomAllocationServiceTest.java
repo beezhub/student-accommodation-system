@@ -68,6 +68,8 @@ class RoomAllocationServiceTest {
     @Mock
     private UserNotificationService userNotificationService;
     @Mock
+    private com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager roomOccupancyManager;
+    @Mock
     private FF4j ff4j;
     @Mock
     private TransactionTemplate transactionTemplate;
