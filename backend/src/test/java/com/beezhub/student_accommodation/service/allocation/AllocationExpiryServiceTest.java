@@ -5,7 +5,6 @@ import com.beezhub.student_accommodation.model.enums.AllocationMethod;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.RoomAllocationService;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,13 +50,13 @@ class AllocationExpiryServiceTest {
     private TransactionTemplate transactionTemplate;
 
     @Mock
-    private RoomOccupancyManager roomOccupancyManager;
-
-    @Mock
-    private RoomAllocationService roomAllocationService;
+    private AllocationBatchService allocationBatchService;
 
     @Mock
     private Environment environment;
+    
+    @Mock
+    private RoomRepository roomRepository;
 
     @InjectMocks
     private AllocationExpiryService allocationExpiryService;
@@ -145,7 +144,7 @@ class AllocationExpiryServiceTest {
         // Then
         verify(roomAllocationRepository).findByStatusAndOfferExpiryDateBefore(
                 eq(AllocationStatus.OFFERED), any(LocalDateTime.class));
-        verify(roomAllocationRepository, never()).save(any());
+        verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
         verify(applicationRepository, never()).save(any());
     }
 
@@ -157,15 +156,6 @@ class AllocationExpiryServiceTest {
         when(roomAllocationRepository.findByIdWithDetails(testAllocation.getId()))
                 .thenReturn(Optional.of(testAllocation));
         
-        // Mock occupancy update
-        doAnswer(invocation -> {
-            Room room = invocation.getArgument(0);
-            int change = invocation.getArgument(1);
-            room.setCurrentOccupancy(room.getCurrentOccupancy() + change);
-            if (room.getCurrentOccupancy() == 0) room.setStatus("AVAILABLE");
-            return null;
-        }).when(roomOccupancyManager).updateOccupancy(any(Room.class), anyInt());
-
         lenient().when(waitingListRepository.findByStudent_IdAndStatus(testStudent.getId(), "WAITING"))
                 .thenReturn(Optional.of(testWaitingListEntry));
 
@@ -183,6 +173,7 @@ class AllocationExpiryServiceTest {
         // Verify room occupancy was decreased
         assertEquals(0, testRoom.getCurrentOccupancy());
         assertEquals("AVAILABLE", testRoom.getStatus());
+        verify(roomRepository).save(testRoom);
 
         // Verify application was cancelled
         ArgumentCaptor<Application> applicationCaptor = ArgumentCaptor.forClass(Application.class);
@@ -200,7 +191,7 @@ class AllocationExpiryServiceTest {
                 eq(testUser.getId()), eq("101"), eq("Test Building"));
 
         // Verify batch allocation triggered
-        verify(roomAllocationService).batchAllocateFromWaitingList(1);
+        verify(allocationBatchService).batchAllocateFromWaitingList(1);
     }
 
     @Test
@@ -217,7 +208,7 @@ class AllocationExpiryServiceTest {
 
         // Then
         // Should skip processing since status changed
-        verify(roomAllocationRepository, never()).save(any());
+        verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
         verify(applicationRepository, never()).save(any());
     }
 
@@ -239,15 +230,12 @@ class AllocationExpiryServiceTest {
         when(roomAllocationRepository.findByIdWithDetails(allocation2.getId()))
                 .thenThrow(new RuntimeException("Database error"));
         
-        // Mock occupancy update for success case
-        doNothing().when(roomOccupancyManager).updateOccupancy(any(Room.class), anyInt());
-
         // When
         allocationExpiryService.expireOffers();
 
         // Then
         // First allocation should be saved (succeeded)
-        verify(roomAllocationRepository, atLeastOnce()).save(any(RoomAllocation.class));
+        verify(roomAllocationRepository, atLeastOnce()).save(eq(allocation1));
         // Application should still be saved for successful expiry
         verify(applicationRepository, atLeastOnce()).save(any(Application.class));
     }
@@ -266,7 +254,7 @@ class AllocationExpiryServiceTest {
         // Then
         verify(roomAllocationRepository).findByStatusAndCheckInExpiryDateBefore(
                 eq(AllocationStatus.ACCEPTED), any(LocalDateTime.class));
-        verify(roomAllocationRepository, never()).save(any());
+        verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
         verify(applicationRepository, never()).save(any());
     }
 
@@ -280,15 +268,6 @@ class AllocationExpiryServiceTest {
         when(roomAllocationRepository.findByIdWithDetails(testAllocation.getId()))
                 .thenReturn(Optional.of(testAllocation));
         
-        // Mock occupancy update
-        doAnswer(invocation -> {
-            Room room = invocation.getArgument(0);
-            int change = invocation.getArgument(1);
-            room.setCurrentOccupancy(room.getCurrentOccupancy() + change);
-            if (room.getCurrentOccupancy() == 0) room.setStatus("AVAILABLE");
-            return null;
-        }).when(roomOccupancyManager).updateOccupancy(any(Room.class), anyInt());
-
         lenient().when(waitingListRepository.findByStudent_IdAndStatus(testStudent.getId(), "WAITING"))
                 .thenReturn(Optional.of(testWaitingListEntry));
 
@@ -306,6 +285,7 @@ class AllocationExpiryServiceTest {
         // Verify room occupancy was decreased
         assertEquals(0, testRoom.getCurrentOccupancy());
         assertEquals("AVAILABLE", testRoom.getStatus());
+        verify(roomRepository).save(testRoom);
 
         // Verify application was cancelled
         ArgumentCaptor<Application> applicationCaptor = ArgumentCaptor.forClass(Application.class);
@@ -323,7 +303,7 @@ class AllocationExpiryServiceTest {
                 eq(testUser.getId()), eq("101"), eq("Test Building"));
 
         // Verify batch allocation triggered
-        verify(roomAllocationService).batchAllocateFromWaitingList(1);
+        verify(allocationBatchService).batchAllocateFromWaitingList(1);
     }
 
     @Test
@@ -340,7 +320,7 @@ class AllocationExpiryServiceTest {
 
         // Then
         // Should skip processing since status changed
-        verify(roomAllocationRepository, never()).save(any());
+        verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
         verify(applicationRepository, never()).save(any());
     }
 
@@ -363,15 +343,12 @@ class AllocationExpiryServiceTest {
         when(roomAllocationRepository.findByIdWithDetails(allocation2.getId()))
                 .thenThrow(new RuntimeException("Database error"));
         
-        // Mock occupancy update for success case
-        doNothing().when(roomOccupancyManager).updateOccupancy(any(Room.class), anyInt());
-
         // When
         allocationExpiryService.expireCheckIns();
 
         // Then
         // First allocation should be saved (succeeded)
-        verify(roomAllocationRepository, atLeastOnce()).save(any(RoomAllocation.class));
+        verify(roomAllocationRepository, atLeastOnce()).save(eq(allocation1));
         // Application should still be saved for successful expiry
         verify(applicationRepository, atLeastOnce()).save(any(Application.class));
     }

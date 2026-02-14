@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.event.AllocationFreedEvent;
 import com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationResponse;
@@ -8,10 +9,11 @@ import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,10 +28,8 @@ public class AllocationCheckInService {
     private final ApplicationRepository applicationRepository;
     private final RoomAllocationMapper roomAllocationMapper;
     private final UserNotificationService userNotificationService;
-    private final RoomOccupancyManager roomOccupancyManager;
-    
-    @Lazy
-    private final AllocationBatchService allocationBatchService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final RoomRepository roomRepository;
 
     @Transactional
     public RoomAllocationResponse confirmCheckIn(Long id) {
@@ -76,12 +76,12 @@ public class AllocationCheckInService {
         allocation.setCheckOutDate(LocalDateTime.now());
         allocation.setEndDate(LocalDateTime.now());
 
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
+        RoomOccupancyManager.updateOccupancy(allocation.getRoom(), -1, roomRepository);
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
         log.info("Successfully checked out allocation with id: {}", id);
 
-        triggerWaitingListAllocation(id);
+        eventPublisher.publishEvent(new AllocationFreedEvent(this, allocation.getRoom().getId()));
 
         return roomAllocationMapper.toResponse(saved);
     }
@@ -95,12 +95,12 @@ public class AllocationCheckInService {
         allocation.setStatus(AllocationStatus.COMPLETED);
         allocation.setEndDate(LocalDateTime.now());
 
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
+        RoomOccupancyManager.updateOccupancy(allocation.getRoom(), -1, roomRepository);
 
         RoomAllocation updated = roomAllocationRepository.save(allocation);
         log.info("Successfully ended room allocation with id: {}", id);
 
-        triggerWaitingListAllocation(id);
+        eventPublisher.publishEvent(new AllocationFreedEvent(this, allocation.getRoom().getId()));
 
         return roomAllocationMapper.toResponse(updated);
     }
@@ -108,13 +108,5 @@ public class AllocationCheckInService {
     private RoomAllocation getAllocation(Long id) {
         return roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
-    }
-
-    private void triggerWaitingListAllocation(Long relatedAllocationId) {
-        try {
-            allocationBatchService.allocateNextFromWaitingList();
-        } catch (Exception e) {
-            log.error("Failed to allocate next from waiting list after allocation {} lifecycle change", relatedAllocationId, e);
-        }
     }
 }

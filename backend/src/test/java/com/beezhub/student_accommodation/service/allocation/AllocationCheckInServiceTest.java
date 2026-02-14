@@ -11,8 +11,10 @@ import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -38,9 +40,11 @@ class AllocationCheckInServiceTest {
     @Mock
     private UserNotificationService userNotificationService;
     @Mock
-    private RoomOccupancyManager roomOccupancyManager;
-    @Mock
     private AllocationBatchService allocationBatchService;
+    @Mock
+    private RoomRepository roomRepository;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private AllocationCheckInService allocationCheckInService;
@@ -74,7 +78,10 @@ class AllocationCheckInServiceTest {
         RoomAllocation allocation = new RoomAllocation();
         allocation.setId(id);
         allocation.setStatus(AllocationStatus.ACTIVE);
-        allocation.setRoom(new Room());
+        Room room = new Room();
+        room.setCapacity(1);
+        room.setCurrentOccupancy(1);
+        allocation.setRoom(room);
         
         when(roomAllocationRepository.findByIdWithDetails(id)).thenReturn(Optional.of(allocation));
         when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(allocation);
@@ -86,8 +93,8 @@ class AllocationCheckInServiceTest {
         // Assert
         assertEquals(AllocationStatus.COMPLETED, allocation.getStatus());
         assertNotNull(allocation.getCheckOutDate());
-        verify(roomOccupancyManager).updateOccupancy(any(Room.class), eq(-1));
-        verify(allocationBatchService).allocateNextFromWaitingList();
+        verify(roomRepository).save(any(Room.class));
+        verify(eventPublisher).publishEvent(any());
     }
 
     @Test
@@ -97,7 +104,10 @@ class AllocationCheckInServiceTest {
         RoomAllocation allocation = new RoomAllocation();
         allocation.setId(id);
         allocation.setStatus(AllocationStatus.ACTIVE);
-        allocation.setRoom(new Room());
+        Room room = new Room();
+        room.setCapacity(1);
+        room.setCurrentOccupancy(1);
+        allocation.setRoom(room);
         
         when(roomAllocationRepository.findByIdWithDetails(id)).thenReturn(Optional.of(allocation));
         when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(allocation);
@@ -109,6 +119,6 @@ class AllocationCheckInServiceTest {
         // Assert
         assertEquals(AllocationStatus.COMPLETED, allocation.getStatus()); // endAllocation sets COMPLETED currently
         assertNotNull(allocation.getEndDate());
-        verify(roomOccupancyManager).updateOccupancy(any(Room.class), eq(-1));
+        verify(roomRepository).save(any(Room.class));
     }
 }

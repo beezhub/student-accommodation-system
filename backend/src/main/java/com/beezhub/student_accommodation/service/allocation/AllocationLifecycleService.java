@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.event.AllocationFreedEvent;
 import com.beezhub.student_accommodation.exceptions.*;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.*;
@@ -10,6 +11,7 @@ import com.beezhub.student_accommodation.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,11 +37,8 @@ public class AllocationLifecycleService {
     private final RoomAllocationMapper roomAllocationMapper;
     private final NotificationService notificationService;
     private final WaitingListService waitingListService;
-    private final RoomOccupancyManager roomOccupancyManager;
     private final AllocationMoveService allocationMoveService;
-    
-    @org.springframework.context.annotation.Lazy
-    private final AllocationBatchService allocationBatchService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Creates a new room allocation with comprehensive business rule validation.
@@ -62,7 +61,7 @@ public class AllocationLifecycleService {
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         waitingListService.updateStatusToAllocated(student.getId());
-        roomOccupancyManager.updateOccupancy(room, 1);
+        RoomOccupancyManager.updateOccupancy(room, 1, roomRepository);
 
         sendAllocationNotification(saved);
 
@@ -97,7 +96,7 @@ public class AllocationLifecycleService {
 
         long previousDeclineCount = getPreviousDeclineCount(allocation);
         
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
+        RoomOccupancyManager.updateOccupancy(allocation.getRoom(), -1, roomRepository);
 
         AllocationStatusValidator.validate(allocation, AllocationStatus.DECLINED);
         allocation.setStatus(AllocationStatus.DECLINED);
@@ -110,11 +109,7 @@ public class AllocationLifecycleService {
 
         handleDeclineConsequences(saved, previousDeclineCount);
 
-        try {
-            allocationBatchService.allocateNextFromWaitingList();
-        } catch (Exception e) {
-            log.error("Failed to allocate next from waiting list after decline {}", id, e);
-        }
+        eventPublisher.publishEvent(new AllocationFreedEvent(this, allocation.getRoom().getId()));
 
         return roomAllocationMapper.toResponse(saved);
     }
@@ -128,15 +123,11 @@ public class AllocationLifecycleService {
         allocation.setStatus(AllocationStatus.CANCELLED);
         allocation.setEndDate(LocalDateTime.now());
 
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
+        RoomOccupancyManager.updateOccupancy(allocation.getRoom(), -1, roomRepository);
         roomAllocationRepository.save(allocation);
         log.info("Successfully cancelled room allocation with id: {}", id);
 
-        try {
-            allocationBatchService.allocateNextFromWaitingList();
-        } catch (Exception e) {
-            log.error("Failed to allocate next from waiting list after deletion {}", id, e);
-        }
+        eventPublisher.publishEvent(new AllocationFreedEvent(this, allocation.getRoom().getId()));
     }
 
     @Transactional
@@ -182,8 +173,8 @@ public class AllocationLifecycleService {
         boolean roomChanged = false;
         if (!oldRoom.getId().equals(newRoom.getId())) {
             validateRoomCapacity(newRoom);
-            roomOccupancyManager.updateOccupancy(oldRoom, -1);
-            roomOccupancyManager.updateOccupancy(newRoom, 1);
+            RoomOccupancyManager.updateOccupancy(oldRoom, -1, roomRepository);
+            RoomOccupancyManager.updateOccupancy(newRoom, 1, roomRepository);
             roomChanged = true;
         }
 

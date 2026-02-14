@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -55,9 +56,9 @@ class AllocationLifecycleServiceTest {
     @Mock
     private AppUserRepository appUserRepository;
     @Mock
-    private RoomOccupancyManager roomOccupancyManager;
-    @Mock
     private UserNotificationService userNotificationService;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private AllocationLifecycleService allocationLifecycleService;
@@ -197,7 +198,7 @@ class AllocationLifecycleServiceTest {
         allocationLifecycleService.declineOffer(1L, request);
 
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.DECLINED);
-        verify(roomOccupancyManager).updateOccupancy(room, -1);
+        verify(roomRepository).save(room);
         verify(roomAllocationRepository).save(allocation);
         verify(waitingListService).reQueueStudent(any(), eq(1), eq(2));
     }
@@ -259,7 +260,7 @@ class AllocationLifecycleServiceTest {
         allocationLifecycleService.deleteRoomAllocation(1L);
 
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.CANCELLED);
-        verify(roomOccupancyManager).updateOccupancy(room, -1);
+        verify(roomRepository).save(room);
         verify(roomAllocationRepository).save(allocation);
     }
     
