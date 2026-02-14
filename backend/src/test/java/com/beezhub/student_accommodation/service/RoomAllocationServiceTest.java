@@ -1,14 +1,15 @@
 package com.beezhub.student_accommodation.service;
 
-import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.*;
-import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.allocation.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
+
+import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -18,24 +19,11 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class RoomAllocationServiceTest {
 
-    @Mock
-    private RoomAllocationRepository roomAllocationRepository;
-    @Mock
-    private StudentRepository studentRepository;
-    @Mock
-    private RoomRepository roomRepository;
-    @Mock
-    private ApplicationRepository applicationRepository;
-    @Mock
-    private RoomAllocationMapper roomAllocationMapper;
-    @Mock
-    private BuildingRepository buildingRepository;
-    @Mock
-    private RoomAttributesRepository roomAttributesRepository;
-    @Mock
-    private AllocationScoringService allocationScoringService;
-    
     // Decomposed Services
+    @Mock
+    private RoomAllocationQueryService roomAllocationQueryService;
+    @Mock
+    private AllocationEligibilityService allocationEligibilityService;
     @Mock
     private AllocationLifecycleService allocationLifecycleService;
     @Mock
@@ -47,6 +35,88 @@ class RoomAllocationServiceTest {
 
     @InjectMocks
     private RoomAllocationService roomAllocationService;
+
+    // ==================== Read Methods Tests ====================
+
+    @Test
+    void getAllRoomAllocations_shouldDelegateToQueryService() {
+        roomAllocationService.getAllRoomAllocations();
+        verify(roomAllocationQueryService).getAllRoomAllocations();
+    }
+
+    @Test
+    void getAllRoomAllocations_paginated_shouldDelegateToQueryService() {
+        Pageable pageable = Pageable.unpaged();
+        roomAllocationService.getAllRoomAllocations(pageable);
+        verify(roomAllocationQueryService).getAllRoomAllocations(pageable);
+    }
+
+    @Test
+    void searchRoomAllocations_shouldDelegateToQueryService() {
+        Pageable pageable = Pageable.unpaged();
+        LocalDateTime now = LocalDateTime.now();
+        roomAllocationService.searchRoomAllocations(1L, 2L, 3L, now, now, pageable);
+        verify(roomAllocationQueryService).searchRoomAllocations(1L, 2L, 3L, now, now, pageable);
+    }
+
+    @Test
+    void getRoomAllocationById_shouldDelegateToQueryService() {
+        roomAllocationService.getRoomAllocationById(1L);
+        verify(roomAllocationQueryService).getRoomAllocationById(1L);
+    }
+
+    @Test
+    void getActiveAllocationByStudentId_shouldDelegateToQueryService() {
+        roomAllocationService.getActiveAllocationByStudentId(1L);
+        verify(roomAllocationQueryService).getActiveAllocationByStudentId(1L);
+    }
+
+    @Test
+    void isRoomAvailable_shouldDelegateToQueryService() {
+        roomAllocationService.isRoomAvailable(1L);
+        verify(roomAllocationQueryService).isRoomAvailable(1L);
+    }
+
+    @Test
+    void getRoomAvailableCapacity_shouldDelegateToQueryService() {
+        roomAllocationService.getRoomAvailableCapacity(1L);
+        verify(roomAllocationQueryService).getRoomAvailableCapacity(1L);
+    }
+
+    @Test
+    void findAvailableRoom_shouldDelegateToQueryService() {
+        roomAllocationService.findAvailableRoom();
+        verify(roomAllocationQueryService).findAvailableRoom();
+    }
+
+    @Test
+    void getAllocationsByStatus_shouldDelegateToQueryService() {
+        Pageable pageable = Pageable.unpaged();
+        roomAllocationService.getAllocationsByStatus("ACTIVE", pageable);
+        verify(roomAllocationQueryService).getAllocationsByStatus("ACTIVE", pageable);
+    }
+
+    @Test
+    void getRoomAvailability_shouldDelegateToQueryService() {
+        roomAllocationService.getRoomAvailability(1L);
+        verify(roomAllocationQueryService).getRoomAvailability(1L);
+    }
+
+    // ==================== Eligibility Methods Tests ====================
+
+    @Test
+    void checkStudentEligibility_shouldDelegateToEligibilityService() {
+        roomAllocationService.checkStudentEligibility(1L);
+        verify(allocationEligibilityService).checkStudentEligibility(1L);
+    }
+
+    @Test
+    void getEligibleRoomsForStudent_shouldDelegateToEligibilityService() {
+        roomAllocationService.getEligibleRoomsForStudent(1L, 2L);
+        verify(allocationEligibilityService).getEligibleRoomsForStudent(1L, 2L);
+    }
+
+    // ==================== Lifecycle Methods Tests ====================
 
     @Test
     void createRoomAllocation_shouldDelegateToLifecycleService() {

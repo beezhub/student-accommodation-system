@@ -1,8 +1,10 @@
 package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.config.FF4jConfig;
+import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationResult;
 import com.beezhub.student_accommodation.model.dto.ScoredRoom;
+import com.beezhub.student_accommodation.model.dto.WaitingListEntryResponse;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.*;
@@ -64,6 +66,10 @@ class AllocationBatchServiceTest {
     @Mock
     private RoomOccupancyManager roomOccupancyManager;
     @Mock
+    private RoomAllocationMapper roomAllocationMapper;
+    @Mock
+    private AllocationScoringOrchestrator allocationScoringOrchestrator;
+    @Mock
     private FF4j ff4j;
     @Mock
     private TransactionTemplate transactionTemplate;
@@ -113,9 +119,9 @@ class AllocationBatchServiceTest {
                 .build();
 
         when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
-        when(roomRepository.findAll()).thenReturn(List.of(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(100L)).thenReturn(0L);
-        when(allocationScoringService.scoreAvailableRooms(any(), any(), any())).thenReturn(List.of(scoredRoom));
+        when(allocationScoringOrchestrator.buildScoringMatrix(any())).thenReturn(java.util.Map.of(1L, List.of(scoredRoom)));
+        when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(room));
+        when(allocationScoringOrchestrator.buildRoomCapacityMap(any())).thenReturn(new java.util.HashMap<>(java.util.Map.of(100L, 1)));
 
         // Act
         BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(10);
@@ -140,8 +146,9 @@ class AllocationBatchServiceTest {
         entry.setApplication(application);
 
         when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
-        when(roomRepository.findAll()).thenReturn(Collections.emptyList()); // No rooms
-        when(allocationScoringService.scoreAvailableRooms(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(allocationScoringOrchestrator.buildScoringMatrix(any())).thenReturn(Collections.emptyMap());
+        // Or rooms empty
+        when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(Collections.emptyList());
 
         // Act
         BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(10);
@@ -178,10 +185,9 @@ class AllocationBatchServiceTest {
                 .build();
 
         when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
-        when(roomRepository.findAll()).thenReturn(List.of(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(100L)).thenReturn(0L);
-        when(allocationScoringService.scoreAvailableRooms(any(), any(), any())).thenReturn(List.of(scoredRoom));
-        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
+        when(allocationScoringOrchestrator.buildScoringMatrix(any())).thenReturn(java.util.Map.of(1L, List.of(scoredRoom)));
+        when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(room));
+        when(allocationScoringOrchestrator.buildRoomCapacityMap(any())).thenReturn(new java.util.HashMap<>(java.util.Map.of(100L, 1)));
 
         // Act
         allocationBatchService.allocateNextFromWaitingList();
@@ -194,32 +200,12 @@ class AllocationBatchServiceTest {
     @Test
     void getWaitingListWithScores_shouldReturnScoredList() {
         // Arrange
-        Student student = new Student();
-        student.setId(1L);
-        AppUser appUser = new AppUser();
-        appUser.setFirstName("John");
-        appUser.setLastName("Doe");
-        appUser.setEmail("john@example.com");
-        student.setAppUser(appUser);
-        
-        Application application = new Application();
-        application.setId(10L);
-        application.setStatus(ApplicationStatus.APPROVED);
-        
-        WaitingListEntry entry = new WaitingListEntry();
-        entry.setId(1L);
-        entry.setStudent(student);
-        entry.setApplication(application);
-        entry.setStatus("WAITING");
-        
-        when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
-        
-        ScoredRoom scoredRoom = ScoredRoom.builder()
-                .roomId(100L)
-                .roomNumber("101")
-                .totalScore(BigDecimal.TEN)
+        WaitingListEntryResponse responseItem = WaitingListEntryResponse.builder()
+                .priorityScore(BigDecimal.TEN)
+                .bestMatchRoomId(100L)
                 .build();
-        when(allocationScoringService.scoreAvailableRooms(any(), any(), any())).thenReturn(List.of(scoredRoom));
+        
+        when(allocationScoringOrchestrator.getWaitingListWithScores(null)).thenReturn(List.of(responseItem));
 
         // Act
         var response = allocationBatchService.getWaitingListWithScores(null);
@@ -260,11 +246,8 @@ class AllocationBatchServiceTest {
         
         when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
 
-        // And: No active allocation for student
-        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
-
         // And: Scoring service returns empty list (declined rooms are filtered out by the service)
-        when(allocationScoringService.scoreAvailableRooms(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(allocationScoringOrchestrator.buildScoringMatrix(any())).thenReturn(Collections.emptyMap());
 
         // Act
         allocationBatchService.allocateNextFromWaitingList();
