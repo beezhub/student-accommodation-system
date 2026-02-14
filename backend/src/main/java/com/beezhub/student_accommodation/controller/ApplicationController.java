@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.service.ApplicationService;
 import com.beezhub.student_accommodation.service.application.ApplicationSearchService;
+import com.beezhub.student_accommodation.service.application.ApplicationAdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,6 +38,7 @@ import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.va
 public class ApplicationController {
         private final ApplicationService applicationService;
         private final ApplicationSearchService applicationSearchService;
+        private final ApplicationAdminService applicationAdminService;
 
         @Operation(summary = "Submit a student accommodation application", description = "Submits an application for accommodation. Students can only submit for themselves.")
         @ApiResponses(value = {
@@ -147,7 +149,7 @@ public class ApplicationController {
         public ResponseEntity<ApplicationResponse> updateApplicationStatus(
                         @Parameter(description = "ID of the application to update", required = true) @PathVariable("applicationId") Long applicationId,
                         @Valid @RequestBody ApplicationStatusUpdateRequest request) {
-                ApplicationResponse response = applicationService.updateApplicationStatus(
+                ApplicationResponse response = applicationAdminService.updateApplicationStatus(
                                 applicationId, request);
                 return ResponseEntity.ok(response);
         }
@@ -157,7 +159,7 @@ public class ApplicationController {
         @Operation(summary = "Mark application as under review", description = "Moves application to UNDER_REVIEW status. Admin only.")
         public ResponseEntity<ApplicationResponse> markUnderReview(
                         @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId) {
-                return ResponseEntity.ok(applicationService.markUnderReview(applicationId));
+                return ResponseEntity.ok(applicationAdminService.markUnderReview(applicationId));
         }
 
         @PostMapping("/{applicationId}/request-changes")
@@ -170,7 +172,7 @@ public class ApplicationController {
                 if (reason == null || reason.trim().isEmpty()) {
                         throw new IllegalArgumentException("Reason is required");
                 }
-                return ResponseEntity.ok(applicationService.requestChanges(applicationId, reason));
+                return ResponseEntity.ok(applicationAdminService.requestChanges(applicationId, reason));
         }
 
         @Operation(summary = "Cancel application", description = "Cancels a pending application. Students can only cancel their own applications.")
@@ -225,7 +227,7 @@ public class ApplicationController {
                         @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId,
                         @Valid @RequestBody ReviewProgressRequest request,
                         Authentication authentication) {
-                ReviewProgressResponse response = applicationService.saveReviewProgress(
+                ReviewProgressResponse response = applicationAdminService.saveReviewProgress(
                                 applicationId, request, authentication.getName());
                 return ResponseEntity.ok(response);
         }
@@ -244,7 +246,7 @@ public class ApplicationController {
         public ResponseEntity<ApplicationResponse> moveToAllocationPhase(
                         @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId,
                         Authentication authentication) {
-                ApplicationResponse response = applicationService.moveToAllocationPhaseByUsername(
+                ApplicationResponse response = applicationAdminService.moveToAllocationPhaseByUsername(
                                 applicationId, authentication.getName());
                 return ResponseEntity.ok(response);
         }
