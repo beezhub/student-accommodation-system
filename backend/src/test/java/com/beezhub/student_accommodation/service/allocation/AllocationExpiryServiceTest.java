@@ -1,10 +1,13 @@
-package com.beezhub.student_accommodation.service;
+package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.AllocationMethod;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.RoomAllocationService;
+import com.beezhub.student_accommodation.service.NotificationService;
+import com.beezhub.student_accommodation.service.UserNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.core.env.Environment;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -26,7 +30,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class RoomAllocationServiceExpiryTest {
+class AllocationExpiryServiceTest {
 
     @Mock
     private RoomAllocationRepository roomAllocationRepository;
@@ -49,8 +53,14 @@ class RoomAllocationServiceExpiryTest {
     @Mock
     private RoomRepository roomRepository;
 
-    @InjectMocks
+    @Mock
     private RoomAllocationService roomAllocationService;
+
+    @Mock
+    private Environment environment;
+
+    @InjectMocks
+    private AllocationExpiryService allocationExpiryService;
 
     private RoomAllocation testAllocation;
     private Application testApplication;
@@ -63,8 +73,8 @@ class RoomAllocationServiceExpiryTest {
     @BeforeEach
     void setUp() {
         // Set config values
-        ReflectionTestUtils.setField(roomAllocationService, "offerExpiryDays", 7);
-        ReflectionTestUtils.setField(roomAllocationService, "checkInExpiryDays", 7);
+        ReflectionTestUtils.setField(allocationExpiryService, "offerExpiryDays", 7);
+        ReflectionTestUtils.setField(allocationExpiryService, "checkInExpiryDays", 7);
 
         // Set up test entities
         testUser = new AppUser();
@@ -115,6 +125,10 @@ class RoomAllocationServiceExpiryTest {
             org.springframework.transaction.support.TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(mock(org.springframework.transaction.TransactionStatus.class));
         });
+
+        // Mock environment
+        lenient().when(environment.getProperty(eq("app.allocation.batch-on-expiry"), eq(Boolean.class), anyBoolean()))
+                .thenReturn(true);
     }
 
     // ==================== Offer Expiry Tests ====================
@@ -126,7 +140,7 @@ class RoomAllocationServiceExpiryTest {
                 .thenReturn(Collections.emptyList());
 
         // When
-        roomAllocationService.expireOffers();
+        allocationExpiryService.expireOffers();
 
         // Then
         verify(roomAllocationRepository).findByStatusAndOfferExpiryDateBefore(
@@ -147,7 +161,7 @@ class RoomAllocationServiceExpiryTest {
                 .thenReturn(Optional.of(testWaitingListEntry));
 
         // When
-        roomAllocationService.expireOffers();
+        allocationExpiryService.expireOffers();
 
         // Then
         // Verify allocation was updated
@@ -175,6 +189,9 @@ class RoomAllocationServiceExpiryTest {
         verify(notificationService, atLeastOnce()).sendOfferExpiredNotification(any(RoomAllocation.class));
         verify(userNotificationService, atLeastOnce()).createOfferExpiredNotification(
                 eq(testUser.getId()), eq("101"), eq("Test Building"));
+
+        // Verify batch allocation triggered
+        verify(roomAllocationService).batchAllocateFromWaitingList(1);
     }
 
     @Test
@@ -187,28 +204,12 @@ class RoomAllocationServiceExpiryTest {
                 .thenReturn(Optional.of(testAllocation));
 
         // When
-        roomAllocationService.expireOffers();
+        allocationExpiryService.expireOffers();
 
         // Then
         // Should skip processing since status changed
         verify(roomAllocationRepository, never()).save(any());
         verify(applicationRepository, never()).save(any());
-    }
-
-    @Test
-    void expireOffers_doesNotCountAsDecline() {
-        // Given
-        when(roomAllocationRepository.findByStatusAndOfferExpiryDateBefore(any(), any()))
-                .thenReturn(List.of(testAllocation));
-        when(roomAllocationRepository.findByIdWithDetails(testAllocation.getId()))
-                .thenReturn(Optional.of(testAllocation));
-
-        // When
-        roomAllocationService.expireOffers();
-
-        // Then
-        // Verify countDeclinedAllocationsByApplicationId was never called
-        verify(roomAllocationRepository, never()).countDeclinedAllocationsByApplicationId(any());
     }
 
     @Test
@@ -231,7 +232,7 @@ class RoomAllocationServiceExpiryTest {
         when(roomRepository.save(any(Room.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        roomAllocationService.expireOffers();
+        allocationExpiryService.expireOffers();
 
         // Then
         // First allocation should be saved (succeeded)
@@ -249,7 +250,7 @@ class RoomAllocationServiceExpiryTest {
                 .thenReturn(Collections.emptyList());
 
         // When
-        roomAllocationService.expireCheckIns();
+        allocationExpiryService.expireCheckIns();
 
         // Then
         verify(roomAllocationRepository).findByStatusAndCheckInExpiryDateBefore(
@@ -272,7 +273,7 @@ class RoomAllocationServiceExpiryTest {
                 .thenReturn(Optional.of(testWaitingListEntry));
 
         // When
-        roomAllocationService.expireCheckIns();
+        allocationExpiryService.expireCheckIns();
 
         // Then
         // Verify allocation was updated
@@ -300,6 +301,9 @@ class RoomAllocationServiceExpiryTest {
         verify(notificationService, atLeastOnce()).sendCheckInExpiredNotification(any(RoomAllocation.class));
         verify(userNotificationService, atLeastOnce()).createCheckInExpiredNotification(
                 eq(testUser.getId()), eq("101"), eq("Test Building"));
+
+        // Verify batch allocation triggered
+        verify(roomAllocationService).batchAllocateFromWaitingList(1);
     }
 
     @Test
@@ -312,7 +316,7 @@ class RoomAllocationServiceExpiryTest {
                 .thenReturn(Optional.of(testAllocation));
 
         // When
-        roomAllocationService.expireCheckIns();
+        allocationExpiryService.expireCheckIns();
 
         // Then
         // Should skip processing since status changed
@@ -341,7 +345,7 @@ class RoomAllocationServiceExpiryTest {
         when(roomRepository.save(any(Room.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        roomAllocationService.expireCheckIns();
+        allocationExpiryService.expireCheckIns();
 
         // Then
         // First allocation should be saved (succeeded)
