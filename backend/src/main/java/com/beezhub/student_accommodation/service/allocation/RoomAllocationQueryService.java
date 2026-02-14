@@ -23,6 +23,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class RoomAllocationQueryService {
 
     private final RoomAllocationRepository roomAllocationRepository;
@@ -160,12 +162,13 @@ public class RoomAllocationQueryService {
     }
 
     public PageResponse<StagedAllocationResponse> getStagedAllocations(String batchId, StagedAllocationStatus status,
-                                                                       Pageable pageable) {
+            Pageable pageable) {
         Page<StagedAllocation> page = findStagedAllocations(batchId, status, pageable);
         return PageMapper.toPageResponse(page.map(stagedAllocationMapper::toResponse));
     }
 
-    private Page<StagedAllocation> findStagedAllocations(String batchId, StagedAllocationStatus status, Pageable pageable) {
+    private Page<StagedAllocation> findStagedAllocations(String batchId, StagedAllocationStatus status,
+            Pageable pageable) {
         if (batchId != null && status != null) {
             return stagedAllocationRepository.findByBatchIdAndStatus(batchId, status, pageable);
         } else if (batchId != null) {

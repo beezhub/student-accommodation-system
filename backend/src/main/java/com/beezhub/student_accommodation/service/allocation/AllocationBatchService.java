@@ -74,7 +74,8 @@ public class AllocationBatchService {
     }
 
     /**
-     * Listens for AllocationFreedEvent (when a room becomes available via decline, cancellation, etc.)
+     * Listens for AllocationFreedEvent (when a room becomes available via decline,
+     * cancellation, etc.)
      * and triggers an allocation attempt.
      */
     @EventListener
@@ -102,7 +103,8 @@ public class AllocationBatchService {
     }
 
     /**
-     * Batch allocates multiple waiting students to available rooms using optimal matching.
+     * Batch allocates multiple waiting students to available rooms using optimal
+     * matching.
      * Processes up to maxAllocations students in FIFO order from waiting list.
      *
      * @param maxAllocations Maximum number of allocations to create
@@ -161,12 +163,14 @@ public class AllocationBatchService {
         int allocatedCount = 0;
 
         for (WaitingListEntry entry : waitingList) {
-            if (allocatedCount >= maxAllocations) break;
+            if (allocatedCount >= maxAllocations)
+                break;
 
             Student student = entry.getStudent();
             List<ScoredRoom> scoredRooms = scoringMatrix.get(student.getId());
 
-            if (scoredRooms == null || scoredRooms.isEmpty()) continue;
+            if (scoredRooms == null || scoredRooms.isEmpty())
+                continue;
 
             // Find first available room (sorted by score DESC)
             for (ScoredRoom scoredRoom : scoredRooms) {
@@ -269,24 +273,26 @@ public class AllocationBatchService {
 
     @Transactional
     public BatchConfirmationResult confirmBatchAllocationsWithResult(String batchId, Long adminId) {
-        // Since StagedAllocationService.confirmBatchAllocations does not return a result,
-        // we implement the logic here to track success/failure, calling single confirmation.
+        // Since StagedAllocationService.confirmBatchAllocations does not return a
+        // result,
+        // we implement the logic here to track success/failure, calling single
+        // confirmation.
         // We need to fetch the proposed allocations first.
-        
+
         // This relies on getStagedAllocations to find the items.
         PageResponse<StagedAllocationResponse> pageResponse = roomAllocationQueryService.getStagedAllocations(
                 batchId, StagedAllocationStatus.PROPOSED, Pageable.unpaged());
-        
+
         List<StagedAllocationResponse> proposals = pageResponse.getContent();
-        
+
         BatchConfirmationResult.BatchConfirmationResultBuilder builder = BatchConfirmationResult.builder();
         builder.totalAttempted(proposals.size());
-        
+
         int successCount = 0;
         int failureCount = 0;
         List<String> errors = new ArrayList<>();
         List<Long> confirmedAllocationIds = new ArrayList<>();
-        
+
         for (StagedAllocationResponse proposal : proposals) {
             try {
                 // Confirm single allocation
@@ -299,7 +305,7 @@ public class AllocationBatchService {
                 log.error("Failed to confirm allocation {}", proposal.getId(), e);
             }
         }
-        
+
         return builder
                 .successCount(successCount)
                 .failureCount(failureCount)
@@ -314,10 +320,12 @@ public class AllocationBatchService {
         return roomAllocationQueryService.getStagedAllocations(batchId, status, pageable);
     }
 
+    @Transactional(readOnly = true)
     public List<WaitingListEntryResponse> getWaitingListWithScores(Long buildingId) {
         return allocationScoringOrchestrator.getWaitingListWithScores(buildingId);
     }
 
+    @Transactional(readOnly = true)
     public RescoreResult rescoreWaitingList() {
         return allocationScoringOrchestrator.rescoreWaitingList();
     }
