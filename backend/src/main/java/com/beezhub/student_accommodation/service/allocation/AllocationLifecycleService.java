@@ -42,6 +42,9 @@ public class AllocationLifecycleService {
     private final AppUserRepository appUserRepository;
     private final RoomOccupancyManager roomOccupancyManager;
     private final UserNotificationService userNotificationService;
+    
+    @org.springframework.context.annotation.Lazy
+    private final AllocationBatchService allocationBatchService;
 
     /**
      * Creates a new room allocation with comprehensive business rule validation.
@@ -112,6 +115,12 @@ public class AllocationLifecycleService {
 
         handleDeclineConsequences(saved, previousDeclineCount);
 
+        try {
+            allocationBatchService.allocateNextFromWaitingList();
+        } catch (Exception e) {
+            log.error("Failed to allocate next from waiting list after decline {}", id, e);
+        }
+
         return roomAllocationMapper.toResponse(saved);
     }
 
@@ -127,6 +136,12 @@ public class AllocationLifecycleService {
         roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
         roomAllocationRepository.save(allocation);
         log.info("Successfully cancelled room allocation with id: {}", id);
+
+        try {
+            allocationBatchService.allocateNextFromWaitingList();
+        } catch (Exception e) {
+            log.error("Failed to allocate next from waiting list after deletion {}", id, e);
+        }
     }
 
     @Transactional
@@ -155,6 +170,49 @@ public class AllocationLifecycleService {
 
         log.info("Moved student {} from room {} to room {}", allocation.getStudent().getId(), oldRoom.getRoomNumber(), newRoom.getRoomNumber());
         return roomAllocationMapper.toResponse(updated);
+    }
+
+    @Transactional
+    public RoomAllocationResponse updateRoomAllocation(Long id, RoomAllocationRequest request) {
+        log.info("Updating room allocation with id: {}", id);
+        RoomAllocation allocation = getAllocation(id);
+
+        Room oldRoom = allocation.getRoom();
+        Student student = getStudent(request.getStudentId());
+        Room newRoom = getRoom(request.getRoomId());
+
+        boolean roomChanged = false;
+        if (!oldRoom.getId().equals(newRoom.getId())) {
+            validateRoomCapacity(newRoom);
+            roomOccupancyManager.updateOccupancy(oldRoom, -1);
+            roomOccupancyManager.updateOccupancy(newRoom, 1);
+            roomChanged = true;
+        }
+
+        allocation.setStudent(student);
+        allocation.setRoom(newRoom);
+
+        if (request.getAllocationDate() != null) {
+            allocation.setAllocationDate(request.getAllocationDate());
+        }
+
+        if (request.getEndDate() != null) {
+            allocation.setEndDate(request.getEndDate());
+        }
+
+        RoomAllocation updated = roomAllocationRepository.save(allocation);
+        log.info("Successfully updated room allocation with id: {}", id);
+
+        if (roomChanged) {
+            sendAllocationNotification(updated);
+        }
+
+        return roomAllocationMapper.toResponse(updated);
+    }
+
+    @Transactional
+    public MessageResponse enqueueWaitingList(Long studentId, Long applicationId) {
+        return waitingListService.enqueueWaitingList(studentId, applicationId);
     }
 
     // ==================== Private Helpers ====================
