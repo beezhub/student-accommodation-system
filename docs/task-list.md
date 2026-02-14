@@ -11,13 +11,13 @@
 | Phase | Total | Done | In Progress | Todo | Blocked | Progress |
 |-------|-------|------|-------------|------|---------|----------|
 | Phase 1: Critical Stabilisation | 10 | 10 | 0 | 0 | 0 | 100% ✅ |
-| Phase 2: Structural Improvement | 13 | 2 | 0 | 11 | 0 | 15% |
+| Phase 2: Structural Improvement | 13 | 3 | 0 | 10 | 0 | 23% |
 | Phase 3: Enhancement & Optimization | 10 | 0 | 0 | 10 | 0 | 0% |
-| **Total** | **33** | **12** | **0** | **21** | **0** | **36%** |
+| **Total** | **33** | **13** | **0** | **20** | **0** | **39%** |
 
 **Current Blockers:** None
 **Phase 1 Gate:** ✅ PASSED — Ready for Phase 2
-**Next Recommended Tasks:** TASK-2.02 (Extract AllocationLifecycleService - HIGH), TASK-2.03 (Extract AllocationBatchService - HIGH), TASK-2.04 (Decompose ApplicationService - MEDIUM, parallelizable)
+**Next Recommended Tasks:** TASK-2.04 (Decompose ApplicationService - MEDIUM, parallelizable), TASK-2.05 (Decompose NotificationService - MEDIUM)
 
 ---
 
@@ -583,7 +583,7 @@ Extract `AllocationLifecycleService` from `RoomAllocationService`. Move offer ac
 
 ### TASK-2.03: Decompose RoomAllocationService — Extract AllocationBatchService and AllocationCheckInService
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** L (4–8 hrs)

@@ -6,9 +6,7 @@ import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
 import com.beezhub.student_accommodation.service.NotificationService;
-import com.beezhub.student_accommodation.service.UserNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,11 +35,11 @@ public class AllocationLifecycleService {
     private final RoomAllocationMapper roomAllocationMapper;
     private final NotificationService notificationService;
     private final WaitingListService waitingListService;
-    private final AllocationAuditService allocationAuditService;
-    private final AllocationScoringService allocationScoringService;
-    private final AppUserRepository appUserRepository;
     private final RoomOccupancyManager roomOccupancyManager;
-    private final UserNotificationService userNotificationService;
+    private final AllocationMoveService allocationMoveService;
+    
+    @org.springframework.context.annotation.Lazy
+    private final AllocationBatchService allocationBatchService;
 
     /**
      * Creates a new room allocation with comprehensive business rule validation.
@@ -112,6 +110,12 @@ public class AllocationLifecycleService {
 
         handleDeclineConsequences(saved, previousDeclineCount);
 
+        try {
+            allocationBatchService.allocateNextFromWaitingList();
+        } catch (Exception e) {
+            log.error("Failed to allocate next from waiting list after decline {}", id, e);
+        }
+
         return roomAllocationMapper.toResponse(saved);
     }
 
@@ -127,34 +131,86 @@ public class AllocationLifecycleService {
         roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
         roomAllocationRepository.save(allocation);
         log.info("Successfully cancelled room allocation with id: {}", id);
+
+        try {
+            allocationBatchService.allocateNextFromWaitingList();
+        } catch (Exception e) {
+            log.error("Failed to allocate next from waiting list after deletion {}", id, e);
+        }
+    }
+
+    @Transactional
+    public RoomAllocationResponse allocateRoomByApplication(Long applicationId, Long roomId) {
+        log.info("Allocating room {} for application: {}", roomId, applicationId);
+
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ApplicationNotFoundException("Application not found with id: " + applicationId));
+
+        if (!"APPROVED".equalsIgnoreCase(String.valueOf(application.getStatus()))) {
+            throw new ApplicationNotApprovedException(
+                    "Application must be APPROVED before allocating a room. Current status: "
+                            + application.getStatus());
+        }
+
+        if (roomAllocationRepository.existsByApplicationId(applicationId)) {
+            throw new ApplicationAlreadyAllocatedException(
+                    "Application with ID " + applicationId + " has already been allocated a room");
+        }
+
+        RoomAllocationRequest request = new RoomAllocationRequest();
+        request.setStudentId(application.getStudent().getId());
+        request.setRoomId(roomId);
+        request.setApplicationId(applicationId);
+
+        return createRoomAllocation(request);
     }
 
     @Transactional
     public RoomAllocationResponse moveStudent(Long allocationId, Long newRoomId, String reason, Long adminId) {
-        log.info("Moving allocation {} to room {} by admin {}: {}", allocationId, newRoomId, adminId, reason);
+        return allocationMoveService.moveStudent(allocationId, newRoomId, reason, adminId);
+    }
 
-        RoomAllocation allocation = getAllocation(allocationId);
-        validateMoveEligibility(allocation);
+    @Transactional
+    public RoomAllocationResponse updateRoomAllocation(Long id, RoomAllocationRequest request) {
+        log.info("Updating room allocation with id: {}", id);
+        RoomAllocation allocation = getAllocation(id);
 
         Room oldRoom = allocation.getRoom();
-        Room newRoom = getRoom(newRoomId);
+        Student student = getStudent(request.getStudentId());
+        Room newRoom = getRoom(request.getRoomId());
 
-        validateRoomCapacity(newRoom);
-        validateHardConstraints(allocation.getStudent(), newRoom);
+        boolean roomChanged = false;
+        if (!oldRoom.getId().equals(newRoom.getId())) {
+            validateRoomCapacity(newRoom);
+            roomOccupancyManager.updateOccupancy(oldRoom, -1);
+            roomOccupancyManager.updateOccupancy(newRoom, 1);
+            roomChanged = true;
+        }
 
-        roomOccupancyManager.updateOccupancy(oldRoom, -1);
-        roomOccupancyManager.updateOccupancy(newRoom, 1);
-
+        allocation.setStudent(student);
         allocation.setRoom(newRoom);
+
+        if (request.getAllocationDate() != null) {
+            allocation.setAllocationDate(request.getAllocationDate());
+        }
+
+        if (request.getEndDate() != null) {
+            allocation.setEndDate(request.getEndDate());
+        }
+
         RoomAllocation updated = roomAllocationRepository.save(allocation);
+        log.info("Successfully updated room allocation with id: {}", id);
 
-        AppUser admin = appUserRepository.findById(adminId).orElse(null);
-        allocationAuditService.logAuditAction(allocation, AllocationAuditActionType.MOVE, admin, reason, oldRoom, newRoom);
+        if (roomChanged) {
+            sendAllocationNotification(updated);
+        }
 
-        sendMoveNotification(allocation.getStudent(), oldRoom, newRoom, reason);
-
-        log.info("Moved student {} from room {} to room {}", allocation.getStudent().getId(), oldRoom.getRoomNumber(), newRoom.getRoomNumber());
         return roomAllocationMapper.toResponse(updated);
+    }
+
+    @Transactional
+    public MessageResponse enqueueWaitingList(Long studentId, Long applicationId) {
+        return waitingListService.enqueueWaitingList(studentId, applicationId);
     }
 
     // ==================== Private Helpers ====================
@@ -267,30 +323,6 @@ public class AllocationLifecycleService {
             waitingListService.reQueueStudent(allocation, (int) previousDeclineCount + 1, MAX_DECLINE_COUNT);
         } else {
             waitingListService.cancelApplicationAfterMaxDeclines(allocation, MAX_DECLINE_COUNT);
-        }
-    }
-
-    private void validateMoveEligibility(RoomAllocation allocation) {
-        if (!"ACTIVE".equals(allocation.getStatus().name())) {
-            throw new RuntimeException("Can only move ACTIVE allocations");
-        }
-    }
-
-    private void validateHardConstraints(Student student, Room room) {
-        if (!allocationScoringService.validateHardConstraints(student, room, false)) {
-            throw new RuntimeException("New room does not meet hard constraints for student");
-        }
-    }
-
-    private void sendMoveNotification(Student student, Room oldRoom, Room newRoom, String reason) {
-        try {
-            userNotificationService.createRoomMoveNotification(
-                    student.getAppUser().getId(),
-                    oldRoom.getRoomNumber(),
-                    newRoom.getRoomNumber(),
-                    reason);
-        } catch (Exception e) {
-            log.error("Failed to send move notification", e);
         }
     }
 }
