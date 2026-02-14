@@ -48,7 +48,6 @@ public class StagedAllocationService {
     private final AllocationAuditService allocationAuditService;
     private final NotificationService notificationService;
     private final UserNotificationService userNotificationService;
-    private final RoomOccupancyManager roomOccupancyManager;
     
     private final StagedAllocationMapper stagedAllocationMapper;
     private final RoomAllocationMapper roomAllocationMapper;
@@ -65,7 +64,7 @@ public class StagedAllocationService {
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         updateStagedStatus(staged, StagedAllocationStatus.CONFIRMED);
-        roomOccupancyManager.updateOccupancy(staged.getRoom(), 1);
+        RoomOccupancyManager.updateOccupancy(staged.getRoom(), 1, roomRepository);
 
         logConfirmationAudit(saved, staged, adminId);
         sendConfirmationNotification(saved);
@@ -105,12 +104,6 @@ public class StagedAllocationService {
 
         log.info("Created override proposal for student {} to room {}", studentId, room.getRoomNumber());
         return stagedAllocationMapper.toResponse(saved);
-    }
-
-    public PageResponse<StagedAllocationResponse> getStagedAllocations(String batchId, StagedAllocationStatus status,
-                                                                       Pageable pageable) {
-        Page<StagedAllocation> page = findStagedAllocations(batchId, status, pageable);
-        return PageMapper.toPageResponse(page.map(stagedAllocationMapper::toResponse));
     }
     
     @Transactional
@@ -259,18 +252,6 @@ public class StagedAllocationService {
                     student.getAppUser().getId(), room.getRoomNumber(), room.getBuilding().getName());
         } catch (Exception e) {
             log.error("Failed to send proposal notification", e);
-        }
-    }
-
-    private Page<StagedAllocation> findStagedAllocations(String batchId, StagedAllocationStatus status, Pageable pageable) {
-        if (batchId != null && status != null) {
-            return stagedAllocationRepository.findByBatchIdAndStatus(batchId, status, pageable);
-        } else if (batchId != null) {
-            return stagedAllocationRepository.findByBatchId(batchId, pageable);
-        } else if (status != null) {
-            return stagedAllocationRepository.findByStatus(status, pageable);
-        } else {
-            return stagedAllocationRepository.findAll(pageable);
         }
     }
 

@@ -7,6 +7,9 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService;
+import com.beezhub.student_accommodation.service.allocation.AllocationMoveService;
+import com.beezhub.student_accommodation.service.allocation.WaitingListService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +18,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -58,9 +63,18 @@ class RoomAllocationServiceNotificationTest {
 
     @Mock
     private WaitingListRepository waitingListRepository;
+    
+    @Mock
+    private WaitingListService waitingListService;
+    
+    @Mock
+    private AllocationMoveService allocationMoveService;
+    
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
-    private RoomAllocationService roomAllocationService;
+    private AllocationLifecycleService allocationLifecycleService;
 
     private Student student;
     private AppUser appUser;
@@ -72,6 +86,10 @@ class RoomAllocationServiceNotificationTest {
 
     @BeforeEach
     void setUp() {
+        // Set @Value fields
+        ReflectionTestUtils.setField(allocationLifecycleService, "offerExpiryDays", 7);
+        ReflectionTestUtils.setField(allocationLifecycleService, "checkInExpiryDays", 7);
+
         appUser = AppUser.builder()
                 .id(1L)
                 .email("student@university.edu")
@@ -127,7 +145,7 @@ class RoomAllocationServiceNotificationTest {
         when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(roomAllocationResponse);
 
         // When
-        RoomAllocationResponse response = roomAllocationService.createRoomAllocation(roomAllocationRequest);
+        RoomAllocationResponse response = allocationLifecycleService.createRoomAllocation(roomAllocationRequest);
 
         // Then
         assertNotNull(response);
@@ -165,7 +183,7 @@ class RoomAllocationServiceNotificationTest {
 
         // When - should not throw exception
         assertDoesNotThrow(() -> {
-            RoomAllocationResponse response = roomAllocationService.createRoomAllocation(roomAllocationRequest);
+            RoomAllocationResponse response = allocationLifecycleService.createRoomAllocation(roomAllocationRequest);
             assertNotNull(response);
         });
 
@@ -188,7 +206,7 @@ class RoomAllocationServiceNotificationTest {
         when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(roomAllocationResponse);
 
         // When
-        roomAllocationService.createRoomAllocation(roomAllocationRequest);
+        allocationLifecycleService.createRoomAllocation(roomAllocationRequest);
 
         // Then - verify notification contains correct allocation details
         ArgumentCaptor<RoomAllocation> allocationCaptor = ArgumentCaptor.forClass(RoomAllocation.class);
@@ -213,7 +231,7 @@ class RoomAllocationServiceNotificationTest {
         when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(roomAllocationResponse);
 
         // When
-        roomAllocationService.createRoomAllocation(roomAllocationRequest);
+        allocationLifecycleService.createRoomAllocation(roomAllocationRequest);
 
         // Then - verify student details are accessible in notification
         ArgumentCaptor<RoomAllocation> allocationCaptor = ArgumentCaptor.forClass(RoomAllocation.class);
@@ -241,7 +259,7 @@ class RoomAllocationServiceNotificationTest {
 
         // When
         long startTime = System.currentTimeMillis();
-        RoomAllocationResponse response = roomAllocationService.createRoomAllocation(roomAllocationRequest);
+        RoomAllocationResponse response = allocationLifecycleService.createRoomAllocation(roomAllocationRequest);
         long endTime = System.currentTimeMillis();
 
         // Then - should complete quickly (async execution doesn't block)
@@ -268,7 +286,7 @@ class RoomAllocationServiceNotificationTest {
         when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(roomAllocationResponse);
 
         // When
-        roomAllocationService.createRoomAllocation(roomAllocationRequest);
+        allocationLifecycleService.createRoomAllocation(roomAllocationRequest);
 
         // Then - verify building details are accessible in notification
         ArgumentCaptor<RoomAllocation> allocationCaptor = ArgumentCaptor.forClass(RoomAllocation.class);
@@ -295,7 +313,7 @@ class RoomAllocationServiceNotificationTest {
         when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(roomAllocationResponse);
 
         // When
-        roomAllocationService.createRoomAllocation(roomAllocationRequest);
+        allocationLifecycleService.createRoomAllocation(roomAllocationRequest);
 
         // Then - verify room capacity details are accessible
         ArgumentCaptor<RoomAllocation> allocationCaptor = ArgumentCaptor.forClass(RoomAllocation.class);
@@ -327,7 +345,7 @@ class RoomAllocationServiceNotificationTest {
         when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(roomAllocationResponse);
 
         // When
-        roomAllocationService.createRoomAllocation(roomAllocationRequest);
+        allocationLifecycleService.createRoomAllocation(roomAllocationRequest);
 
         // Then - verify notification sent with application context
         ArgumentCaptor<RoomAllocation> allocationCaptor = ArgumentCaptor.forClass(RoomAllocation.class);
@@ -350,7 +368,7 @@ class RoomAllocationServiceNotificationTest {
         when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(roomAllocationResponse);
 
         // When
-        roomAllocationService.createRoomAllocation(roomAllocationRequest);
+        allocationLifecycleService.createRoomAllocation(roomAllocationRequest);
 
         // Then - verify both room update and notification occurred
         verify(roomRepository, times(1)).save(room); // Room occupancy updated
@@ -374,7 +392,7 @@ class RoomAllocationServiceNotificationTest {
                 .sendRoomAllocationNotification(any(RoomAllocation.class));
 
         // When
-        RoomAllocationResponse response = roomAllocationService.createRoomAllocation(roomAllocationRequest);
+        RoomAllocationResponse response = allocationLifecycleService.createRoomAllocation(roomAllocationRequest);
 
         // Then - verify all operations completed despite notification failure
         assertNotNull(response);

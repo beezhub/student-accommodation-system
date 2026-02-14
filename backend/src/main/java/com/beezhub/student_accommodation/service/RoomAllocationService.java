@@ -196,7 +196,7 @@ public class RoomAllocationService {
 
     public PageResponse<StagedAllocationResponse> getStagedAllocations(String batchId, StagedAllocationStatus status,
             Pageable pageable) {
-        return allocationBatchService.getStagedAllocations(batchId, status, pageable);
+        return roomAllocationQueryService.getStagedAllocations(batchId, status, pageable);
     }
 
     @Transactional
