@@ -51,6 +51,7 @@ public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpec
      * @return List of students with all associations loaded
      */
     @EntityGraph(attributePaths = {"appUser", "institution", "yearOfStudy"})
+    @Query("SELECT s FROM Student s")
     List<Student> findAllStudentsWithDetails();
 
     // ==================================================
