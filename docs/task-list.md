@@ -10,13 +10,14 @@
 
 | Phase | Total | Done | In Progress | Todo | Blocked | Progress |
 |-------|-------|------|-------------|------|---------|----------|
-| Phase 1: Critical Stabilisation | 10 | 4 | 0 | 6 | 0 | 40% |
+| Phase 1: Critical Stabilisation | 10 | 10 | 0 | 0 | 0 | 100% ✅ |
 | Phase 2: Structural Improvement | 13 | 0 | 0 | 13 | 0 | 0% |
 | Phase 3: Enhancement & Optimization | 10 | 0 | 0 | 10 | 0 | 0% |
-| **Total** | **33** | **4** | **0** | **29** | **0** | **12%** |
+| **Total** | **33** | **10** | **0** | **23** | **0** | **30%** |
 
 **Current Blockers:** None
-**Next Recommended Tasks:** TASK-1.06 (Brute Force Protection - HIGH), TASK-1.07 (EAGER Loading Fix), TASK-1.08 (CorsFilter Cleanup), TASK-1.09 (Database Indexes), TASK-1.10 (Async Queue)
+**Phase 1 Gate:** ✅ PASSED — Ready for Phase 2
+**Next Recommended Tasks:** TASK-2.01 (Extract AllocationExpiryService - HIGH), TASK-2.02 (Extract AllocationLifecycleService - HIGH), TASK-2.04 (Decompose ApplicationService - MEDIUM, parallelizable)
 
 ---
 
@@ -269,7 +270,7 @@ Implement Redis-based JWT token blacklisting. Steps:
 
 ### TASK-1.06: Implement Brute-Force Protection
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 1
 - **Estimated Scope:** L (4–8 hrs)
@@ -300,14 +301,14 @@ Implement account lockout after 5 failed login attempts within 15 minutes. Locko
 - Follow Flyway naming convention: `V{YYYY_MM_DD_HHMM}__add_account_lockout_fields.sql` per [ARCH 5.1.3]
 
 **Acceptance Criteria:**
-- [ ] 6th failed login attempt within 15 minutes returns 429 TOO_MANY_REQUESTS with message "Account temporarily locked"
-- [ ] Successful login resets failed attempt counter
-- [ ] Lockout expires automatically after 15 minutes
-- [ ] Admin can unlock accounts via API
-- [ ] Lockout status visible in admin user management UI
-- [ ] Rate limiting active on `/api/auth/**` (10 req/min/IP)
-- [ ] Flyway migration applies cleanly
-- [ ] All existing authentication tests pass
+- [x] 6th failed login attempt within 15 minutes returns 429 TOO_MANY_REQUESTS with message "Account temporarily locked"
+- [x] Successful login resets failed attempt counter
+- [x] Lockout expires automatically after 15 minutes
+- [x] Admin can unlock accounts via API
+- [x] Lockout status visible in admin user management UI
+- [x] Rate limiting active on `/api/auth/**` (10 req/min/IP)
+- [x] Flyway migration applies cleanly
+- [x] All existing authentication tests pass
 
 **Tests to Write:**
 - `LoginAttemptServiceTest.recordFailedAttempt_incrementsCounter`
@@ -323,7 +324,7 @@ Implement account lockout after 5 failed login attempts within 15 minutes. Locko
 
 ### TASK-1.07: Fix Student Entity EAGER Loading
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 1
 - **Estimated Scope:** M (2–4 hrs)
@@ -350,11 +351,11 @@ Change all 3 EAGER-loaded associations on the Student entity to `FetchType.LAZY`
 - Test with admin user list, allocation list, and application list endpoints
 
 **Acceptance Criteria:**
-- [ ] No `FetchType.EAGER` on any `@ManyToOne` in Student entity
-- [ ] All explicit `fetch = FetchType.LAZY` added
-- [ ] No `LazyInitializationException` in any test or runtime scenario
-- [ ] No N+1 queries detectable in SQL logging during: list students, view application, allocation list
-- [ ] All existing tests pass
+- [x] No `FetchType.EAGER` on any `@ManyToOne` in Student entity
+- [x] All explicit `fetch = FetchType.LAZY` added
+- [x] No `LazyInitializationException` in any test or runtime scenario
+- [x] No N+1 queries detectable in SQL logging during: list students, view application, allocation list
+- [x] All existing tests pass
 
 **Tests to Write:**
 - Run all existing tests — any `LazyInitializationException` failures indicate access points to fix
@@ -365,7 +366,7 @@ Change all 3 EAGER-loaded associations on the Student entity to `FetchType.LAZY`
 
 ### TASK-1.08: Remove Duplicate CorsFilter
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** LOW
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -390,12 +391,12 @@ Remove the standalone `CorsFilter.java` class. Consolidate all CORS configuratio
 - Remove port 3000 from allowed origins unless it's intentionally used
 
 **Acceptance Criteria:**
-- [ ] `CorsFilter.java` deleted
-- [ ] `SecurityConfig.java` has complete CORS configuration
-- [ ] CORS allowed origins configurable via environment variable
-- [ ] Frontend requests succeed from `localhost:4200` (tested manually or via existing integration tests)
-- [ ] No CORS-related errors in browser console during normal operations
-- [ ] All existing tests pass
+- [x] `CorsFilter.java` deleted
+- [x] `SecurityConfig.java` has complete CORS configuration
+- [x] CORS allowed origins configurable via environment variable
+- [x] Frontend requests succeed from `localhost:4200` (tested manually or via existing integration tests)
+- [x] No CORS-related errors in browser console during normal operations
+- [x] All existing tests pass
 
 **Tests to Write:**
 - Test CORS preflight (OPTIONS) request returns correct headers
@@ -406,7 +407,7 @@ Remove the standalone `CorsFilter.java` class. Consolidate all CORS configuratio
 
 ### TASK-1.09: Add Composite Database Indexes
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -433,11 +434,11 @@ Add composite database indexes to improve batch allocation query performance. Th
 - Follow index naming convention: `idx_{table}_{column1}_{column2}` per [ARCH 5.1.3]
 
 **Acceptance Criteria:**
-- [ ] Flyway migration applies cleanly
-- [ ] `idx_application_status_year` index exists on `application(status, academic_year_id)`
-- [ ] Additional indexes created for frequently queried columns
-- [ ] Application startup succeeds with new migration
-- [ ] No existing tests broken
+- [x] Flyway migration applies cleanly
+- [x] `idx_application_status_year` index exists on `application(status, academic_year_id)`
+- [x] Additional indexes created for frequently queried columns
+- [x] Application startup succeeds with new migration
+- [x] No existing tests broken
 
 **Tests to Write:**
 - No automated tests — verify migration applies cleanly via `./gradlew bootRun` or `docker-compose up`
@@ -447,7 +448,7 @@ Add composite database indexes to improve batch allocation query performance. Th
 
 ### TASK-1.10: Increase Async Queue Capacity and Thread Pool
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -473,12 +474,12 @@ Increase the async executor queue capacity from 100 to 500 and max threads from 
 - Log WARN when queue utilization exceeds 80%
 
 **Acceptance Criteria:**
-- [ ] Async executor queue capacity set to 500 (or configurable via property)
-- [ ] Max thread pool set to 20 (or configurable via property)
-- [ ] `CallerRunsPolicy` set as rejection handler
-- [ ] Configuration values externalized to `application.yml`
-- [ ] Batch allocation of 100+ students does not cause task rejection
-- [ ] All existing tests pass
+- [x] Async executor queue capacity set to 500 (or configurable via property)
+- [x] Max thread pool set to 20 (or configurable via property)
+- [x] `CallerRunsPolicy` set as rejection handler
+- [x] Configuration values externalized to `application.yml`
+- [x] Batch allocation of 100+ students does not cause task rejection
+- [x] All existing tests pass
 
 **Tests to Write:**
 - Verify async configuration loads with correct pool sizes
