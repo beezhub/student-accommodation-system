@@ -169,7 +169,7 @@ class AllocationEligibilityServiceTest {
         assertThat(responses.get(0).getRoomId()).isEqualTo(1L);
         assertThat(responses.get(0).getRoomNumber()).isEqualTo("101");
         assertThat(responses.get(0).getAvailableSpots()).isEqualTo(2);
-        assertThat(responses.get(0).getGenderRestriction()).isEqualTo("MIXED");
+        assertThat(responses.get(0).getGenderRestriction()).isEqualTo("ANY");
         assertThat(responses.get(0).getAccessibilityCompliant()).isTrue();
     }
 
