@@ -2,10 +2,7 @@ package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
-import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
-import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
-import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
@@ -17,7 +14,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -67,7 +63,7 @@ public class AllocationExpiryService {
 
             for (RoomAllocation allocation : expiredOffers) {
                 try {
-                    expireSingleOffer(allocation);
+                    offerExpiryService.expireSingleOffer(allocation);
                     successCount++;
                 } catch (Exception e) {
                     failureCount++;
@@ -122,7 +118,7 @@ public class AllocationExpiryService {
 
             for (RoomAllocation allocation : expiredCheckIns) {
                 try {
-                    expireSingleCheckIn(allocation);
+                    checkInExpiryService.expireSingleCheckIn(allocation);
                     successCount++;
                 } catch (Exception e) {
                     failureCount++;
