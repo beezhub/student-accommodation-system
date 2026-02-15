@@ -2,8 +2,14 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
+import com.beezhub.student_accommodation.model.enums.AllocationMethod;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.service.allocation.*;
+import com.beezhub.student_accommodation.service.application.ApplicationDocumentService;
+import com.beezhub.student_accommodation.repository.ApplicationRepository;
+import com.beezhub.student_accommodation.exceptions.RoomCapacityExceededException;
+import com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +41,11 @@ public class RoomAllocationService {
     private final AllocationBatchService allocationBatchService;
     private final AllocationCheckInService allocationCheckInService;
     private final AllocationExpiryService allocationExpiryService;
+    private final ApplicationDocumentService applicationDocumentService;
+    private final ApplicationRepository applicationRepository;
+    private final AllocationScoringService allocationScoringService;
+    private final SystemSettingService systemSettingService;
+    private final UserNotificationService userNotificationService;
 
     // ==================== Read Methods (Delegated) ====================
 
@@ -49,14 +60,16 @@ public class RoomAllocationService {
     public PageResponse<RoomAllocationResponse> searchRoomAllocations(Long studentId, Long roomId, Long buildingId,
             LocalDateTime fromDate, LocalDateTime toDate,
             Pageable pageable) {
-        return roomAllocationQueryService.searchRoomAllocations(studentId, roomId, buildingId, fromDate, toDate, pageable);
+        return roomAllocationQueryService.searchRoomAllocations(studentId, roomId, buildingId, fromDate, toDate,
+                pageable);
     }
 
     public PageResponse<RoomAllocationResponse> searchRoomAllocations(Long studentId, Long roomId, Long buildingId,
             LocalDateTime fromDate, LocalDateTime toDate,
             String studentName, String roomNumber, String status,
             Pageable pageable) {
-        return roomAllocationQueryService.searchRoomAllocations(studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status, pageable);
+        return roomAllocationQueryService.searchRoomAllocations(studentId, roomId, buildingId, fromDate, toDate,
+                studentName, roomNumber, status, pageable);
     }
 
     public RoomAllocationResponse getRoomAllocationById(Long id) {
@@ -151,7 +164,8 @@ public class RoomAllocationService {
         return allocationCheckInService.endAllocation(id);
     }
 
-    // ==================== Batch Allocation Methods (Delegated) ====================
+    // ==================== Batch Allocation Methods (Delegated)
+    // ====================
 
     @Transactional
     public void allocateNextFromWaitingList() {
@@ -220,5 +234,132 @@ public class RoomAllocationService {
 
     public void expireCheckIns() {
         allocationExpiryService.expireCheckIns();
+    }
+
+    // ==================== Auto-Allocation ====================
+
+    /**
+     * Attempts to automatically allocate a room for an approved application.
+     *
+     * This method is triggered when an application status changes to APPROVED
+     * and the auto-allocation feature flag is enabled.
+     *
+     * Flow:
+     * 1. Check if auto-allocation feature is enabled
+     * 2. Validate all required documents are approved
+     * 3. Score available rooms using AllocationScoringService
+     * 4. Create room allocation for the best-matching room
+     * 5. Fall back to AWAITING_ALLOCATION status if no rooms available
+     *
+     * If auto-allocation fails for any reason, the application can be
+     * manually allocated by an admin.
+     *
+     * @param application The approved application to allocate
+     */
+    @Transactional
+    public void attemptAutoAllocation(Application application) {
+        log.info("Attempting auto-allocation for application {}", application.getId());
+
+        // Check if auto-allocation is enabled
+        if (!systemSettingService.isAutoAllocationEnabled()) {
+            log.info("Auto-allocation feature is disabled, skipping auto-allocation for application {}",
+                    application.getId());
+            return;
+        }
+
+        // Check if all required documents are approved
+        if (!applicationDocumentService.areAllRequiredDocumentsApproved(application.getId())) {
+            log.info("Documents not yet approved for application {}, setting status to AWAITING_ALLOCATION",
+                    application.getId());
+            application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
+            applicationRepository.save(application);
+            return;
+        }
+
+        // Get student and preferred building
+        Student student = application.getStudent();
+        Building preferredBuilding = application.getPreferredBuilding();
+
+        // Score available rooms
+        List<ScoredRoom> scoredRooms = allocationScoringService
+                .scoreAvailableRooms(student, application, preferredBuilding);
+
+        // Check if any rooms are available
+        if (scoredRooms.isEmpty()) {
+            log.info("No rooms available for application {}, adding to waiting list", application.getId());
+
+            // Set status to AWAITING_ALLOCATION
+            application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
+            applicationRepository.save(application);
+
+            // Add to waiting list
+            try {
+                allocationLifecycleService.enqueueWaitingList(student.getId(), application.getId());
+                log.info("Added student {} to waiting list for application {}", student.getId(),
+                        application.getId());
+
+                // Send waiting list notification
+                Long studentUserId = student.getAppUser().getId();
+                userNotificationService.createWaitingListNotification(studentUserId,
+                        application.getId());
+            } catch (Exception e) {
+                log.error("Failed to add student {} to waiting list for application {}",
+                        student.getId(),
+                        application.getId(), e);
+            }
+            return;
+        }
+
+        // Get the highest scored room (first in list)
+        ScoredRoom bestRoom = scoredRooms.get(0);
+        log.info("Best match for application {}: Room {} with score {}", application.getId(),
+                bestRoom.getRoomNumber(), bestRoom.getTotalScore());
+
+        // Create room allocation request
+        RoomAllocationRequest allocationRequest = new RoomAllocationRequest();
+        allocationRequest.setStudentId(student.getId());
+        allocationRequest.setRoomId(bestRoom.getRoomId());
+        allocationRequest.setApplicationId(application.getId());
+
+        try {
+            // Create the allocation
+            allocationLifecycleService.createRoomAllocation(allocationRequest);
+
+            // Set allocation method to AUTO
+            application.setAllocationMethod(AllocationMethod.AUTO);
+            applicationRepository.save(application);
+
+            log.info("Successfully auto-allocated room {} to student {} for application {} with score {}",
+                    bestRoom.getRoomNumber(), student.getId(), application.getId(),
+                    bestRoom.getTotalScore());
+
+        } catch (RoomCapacityExceededException | StudentAlreadyAllocatedException e) {
+            // Race condition - room became full or student already has allocation
+            log.warn(
+                    "Auto-allocation failed for application {} due to: {}. Adding to waiting list instead.",
+                    application.getId(), e.getMessage());
+
+            // Move to AWAITING_ALLOCATION and add to waiting list
+            application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
+            applicationRepository.save(application);
+
+            try {
+                allocationLifecycleService.enqueueWaitingList(student.getId(), application.getId());
+                Long studentUserId = student.getAppUser().getId();
+                userNotificationService.createWaitingListNotification(studentUserId,
+                        application.getId());
+            } catch (Exception waitingListError) {
+                log.error("Failed to add student {} to waiting list after allocation failure",
+                        student.getId(), waitingListError);
+            }
+
+        } catch (Exception e) {
+            // Unexpected error - log and set to AWAITING_ALLOCATION for manual handling
+            log.error("Unexpected error during auto-allocation for application {}, will require manual allocation",
+                    application.getId(), e);
+
+            application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
+            applicationRepository.save(application);
+        }
     }
 }

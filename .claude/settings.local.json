@@ -86,7 +86,10 @@
       "Bash(Select-Object -Last 50)",
       "Bash(dir:*)",
       "Bash(bash gradlew test:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(./gradlew jacocoTestReport:*)",
+      "Bash(./gradlew clean test:*)",
+      "Bash(cut:*)"
     ],
     "deny": [],
     "ask": []

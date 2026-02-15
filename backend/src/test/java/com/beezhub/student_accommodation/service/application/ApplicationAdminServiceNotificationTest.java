@@ -1,4 +1,4 @@
-package com.beezhub.student_accommodation.service;
+package com.beezhub.student_accommodation.service.application;
 
 import com.beezhub.student_accommodation.mapper.ApplicationMapper;
 import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
@@ -10,6 +10,10 @@ import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.service.application.ApplicationService;
+import com.beezhub.student_accommodation.service.AuthService;
+import com.beezhub.student_accommodation.service.NotificationService;
+import com.beezhub.student_accommodation.service.UserNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,8 +43,8 @@ import static org.mockito.Mockito.*;
  * ✅ Integration tests verify notifications sent
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Application Service - Notification Integration Tests")
-class ApplicationServiceNotificationTest {
+@DisplayName("Application Admin Service - Notification Integration Tests")
+class ApplicationAdminServiceNotificationTest {
 
     @Mock
     private ApplicationRepository applicationRepository;
@@ -57,8 +61,14 @@ class ApplicationServiceNotificationTest {
     @Mock
     private NotificationService notificationService;
 
-    @InjectMocks
+    @Mock
+    private UserNotificationService userNotificationService;
+
+    @Mock
     private ApplicationService applicationService;
+
+    @InjectMocks
+    private ApplicationAdminService applicationAdminService;
 
     private Application application;
     private ApplicationResponse applicationResponse;
@@ -108,7 +118,7 @@ class ApplicationServiceNotificationTest {
         when(applicationMapper.toResponse(any(Application.class))).thenReturn(applicationResponse);
 
         // When
-        ApplicationResponse response = applicationService.updateApplicationStatus(1L, request);
+        ApplicationResponse response = applicationAdminService.updateApplicationStatus(1L, request);
 
         // Then
         assertNotNull(response);
@@ -120,8 +130,7 @@ class ApplicationServiceNotificationTest {
 
         verify(notificationService, times(1)).sendApplicationStatusNotification(
                 applicationCaptor.capture(),
-                statusCaptor.capture()
-        );
+                statusCaptor.capture());
 
         Application capturedApp = applicationCaptor.getValue();
         ApplicationStatus capturedStatus = statusCaptor.getValue();
@@ -147,7 +156,7 @@ class ApplicationServiceNotificationTest {
         when(applicationMapper.toResponse(any(Application.class))).thenReturn(applicationResponse);
 
         // When
-        ApplicationResponse response = applicationService.updateApplicationStatus(1L, request);
+        ApplicationResponse response = applicationAdminService.updateApplicationStatus(1L, request);
 
         // Then
         assertNotNull(response);
@@ -158,8 +167,7 @@ class ApplicationServiceNotificationTest {
 
         verify(notificationService, times(1)).sendApplicationStatusNotification(
                 applicationCaptor.capture(),
-                statusCaptor.capture()
-        );
+                statusCaptor.capture());
 
         Application capturedApp = applicationCaptor.getValue();
         ApplicationStatus capturedStatus = statusCaptor.getValue();
@@ -182,7 +190,7 @@ class ApplicationServiceNotificationTest {
         when(applicationMapper.toResponse(any(Application.class))).thenReturn(applicationResponse);
 
         // When
-        applicationService.updateApplicationStatus(1L, request);
+        applicationAdminService.updateApplicationStatus(1L, request);
 
         // Then - notification service should NOT be called
         verify(notificationService, never()).sendApplicationStatusNotification(any(), any());
@@ -203,7 +211,7 @@ class ApplicationServiceNotificationTest {
         when(applicationMapper.toResponse(any(Application.class))).thenReturn(applicationResponse);
 
         // When
-        applicationService.updateApplicationStatus(1L, request);
+        applicationAdminService.updateApplicationStatus(1L, request);
 
         // Then - notification service should NOT be called since status didn't change
         verify(notificationService, never()).sendApplicationStatusNotification(any(), any());
@@ -228,7 +236,7 @@ class ApplicationServiceNotificationTest {
 
         // When - should not throw exception
         assertDoesNotThrow(() -> {
-            ApplicationResponse response = applicationService.updateApplicationStatus(1L, request);
+            ApplicationResponse response = applicationAdminService.updateApplicationStatus(1L, request);
             assertNotNull(response);
         });
 
@@ -253,14 +261,13 @@ class ApplicationServiceNotificationTest {
         when(applicationMapper.toResponse(any(Application.class))).thenReturn(applicationResponse);
 
         // When
-        applicationService.updateApplicationStatus(1L, request);
+        applicationAdminService.updateApplicationStatus(1L, request);
 
         // Then - verify notification contains correct application details
         ArgumentCaptor<Application> applicationCaptor = ArgumentCaptor.forClass(Application.class);
         verify(notificationService).sendApplicationStatusNotification(
                 applicationCaptor.capture(),
-                eq(ApplicationStatus.APPROVED)
-        );
+                eq(ApplicationStatus.APPROVED));
 
         Application capturedApp = applicationCaptor.getValue();
         assertEquals("APP-2025-999", capturedApp.getApplicationCode());
@@ -281,14 +288,13 @@ class ApplicationServiceNotificationTest {
         when(applicationMapper.toResponse(any(Application.class))).thenReturn(applicationResponse);
 
         // When
-        applicationService.updateApplicationStatus(1L, request);
+        applicationAdminService.updateApplicationStatus(1L, request);
 
         // Then - verify student details are accessible in notification
         ArgumentCaptor<Application> applicationCaptor = ArgumentCaptor.forClass(Application.class);
         verify(notificationService).sendApplicationStatusNotification(
                 applicationCaptor.capture(),
-                any()
-        );
+                any());
 
         Application capturedApp = applicationCaptor.getValue();
         assertNotNull(capturedApp.getStudent());
@@ -310,7 +316,7 @@ class ApplicationServiceNotificationTest {
         when(applicationMapper.toResponse(any(Application.class))).thenReturn(applicationResponse);
 
         // When - First update
-        applicationService.updateApplicationStatus(1L, approvalRequest);
+        applicationAdminService.updateApplicationStatus(1L, approvalRequest);
 
         // Then - Verify notification sent once
         verify(notificationService, times(1)).sendApplicationStatusNotification(any(), eq(ApplicationStatus.APPROVED));
@@ -325,7 +331,7 @@ class ApplicationServiceNotificationTest {
         when(applicationRepository.save(any(Application.class))).thenReturn(application);
 
         // When - Second update
-        applicationService.updateApplicationStatus(1L, rejectionRequest);
+        applicationAdminService.updateApplicationStatus(1L, rejectionRequest);
 
         // Then - Verify notification sent for rejection
         verify(notificationService, times(1)).sendApplicationStatusNotification(any(), eq(ApplicationStatus.REJECTED));
@@ -344,7 +350,7 @@ class ApplicationServiceNotificationTest {
 
         // When
         long startTime = System.currentTimeMillis();
-        ApplicationResponse response = applicationService.updateApplicationStatus(1L, request);
+        ApplicationResponse response = applicationAdminService.updateApplicationStatus(1L, request);
         long endTime = System.currentTimeMillis();
 
         // Then - should complete quickly (async execution doesn't block)
