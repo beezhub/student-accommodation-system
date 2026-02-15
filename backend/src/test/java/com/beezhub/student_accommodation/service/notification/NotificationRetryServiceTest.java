@@ -14,7 +14,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,7 +29,7 @@ class NotificationRetryServiceTest {
     private NotificationRetryService notificationRetryService;
 
     @Test
-    void retryFailedNotifications_findsFailed_callsRetry() {
+    void retryFailedNotifications_failedNotificationExists_retriesNotification() {
         ReflectionTestUtils.setField(notificationRetryService, "retryDelayMinutes", 5);
 
         Notification failedNotification = new Notification();
@@ -42,16 +44,9 @@ class NotificationRetryServiceTest {
 
         notificationRetryService.retryFailedNotifications();
 
-        // retryNotification calls save twice (markAsRetrying, then save in handleNotificationFailure because implementation is empty/throws or just finishes)
-        // Wait, retryNotification logic:
-        // 1. markAsRetrying(), incrementRetryCount(), save()
-        // 2. sleep()
-        // 3. switch(type) -> log info
-        // So it saves once if successful (or rather, just logs).
-
         verify(notificationRepository, times(1)).save(failedNotification);
-        assert(failedNotification.getRetryCount() == 1);
-        assert(failedNotification.getStatus() == NotificationStatus.RETRYING);
+        assertEquals(1, failedNotification.getRetryCount());
+        assertEquals(NotificationStatus.RETRYING, failedNotification.getStatus());
     }
 
     @Test
@@ -73,7 +68,7 @@ class NotificationRetryServiceTest {
     }
 
     @Test
-    void retryNotification_incrementsRetryCountAndSaves() {
+    void retryNotification_validNotification_incrementsRetryCountAndSaves() {
         Notification notification = new Notification();
         notification.setId(1L);
         notification.setStatus(NotificationStatus.FAILED);
@@ -83,8 +78,8 @@ class NotificationRetryServiceTest {
 
         notificationRetryService.retryNotification(notification);
 
-        assert(notification.getRetryCount() == 2);
-        assert(notification.getStatus() == NotificationStatus.RETRYING);
+        assertEquals(2, notification.getRetryCount());
+        assertEquals(NotificationStatus.RETRYING, notification.getStatus());
         verify(notificationRepository).save(notification);
     }
 }

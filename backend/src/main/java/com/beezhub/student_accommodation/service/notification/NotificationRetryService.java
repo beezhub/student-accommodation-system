@@ -25,7 +25,8 @@ public class NotificationRetryService {
 
     private static final int MAX_RETRIES = 3;
 
-    @Scheduled(fixedDelayString = "${app.notification.retry-check-interval-ms:300000}")
+    // TODO: Phase 3 - Re-enable scheduled retry when full retry logic (with entity hydration) is implemented
+    // @Scheduled(fixedDelayString = "${app.notification.retry-check-interval-ms:300000}")
     @Transactional
     public void retryFailedNotifications() {
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(retryDelayMinutes);
@@ -56,12 +57,12 @@ public class NotificationRetryService {
         notificationRepository.save(notification);
 
         try {
-            Thread.sleep(getExponentialBackoff(notification.getRetryCount()));
-
-            switch (notification.getType()) {
-                case PASSWORD_RESET -> log.warn("Password reset tokens may have expired, skipping retry");
-                default -> log.info("Retry logic for {} not yet implemented", notification.getType());
-            }
+            // Thread.sleep() removed - blocking threads is banned
+            
+            // TODO: Phase 3 - Implement actual retry logic. 
+            // Currently we cannot reconstruct the email context (Entities) from just the Notification object.
+            // We need to either store the template data as JSON or re-fetch entities using referenceId/referenceType.
+            log.warn("Retry logic for {} not yet implemented - skipping actual dispatch", notification.getType());
 
         } catch (Exception e) {
             handleNotificationFailure(notification, e);
