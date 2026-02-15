@@ -14,6 +14,8 @@ import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.beezhub.student_accommodation.model.event.AllocationDeclinedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +27,7 @@ public class WaitingListService {
     private final WaitingListRepository waitingListRepository;
     private final ApplicationRepository applicationRepository;
     private final StudentRepository studentRepository;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public MessageResponse enqueueWaitingList(Long studentId, Long applicationId) {
@@ -95,12 +97,8 @@ public class WaitingListService {
             enqueueWaitingList(student, application);
         }
 
-        // Send re-queue notification
-        try {
-            notificationService.sendOfferDeclinedRequeueNotification(allocation, totalDeclineCount, maxDeclineCount);
-        } catch (Exception e) {
-            log.error("Failed to send re-queue notification for student {}", student.getId(), e);
-        }
+        // Publish re-queue event
+        eventPublisher.publishEvent(new AllocationDeclinedEvent(allocation, totalDeclineCount, maxDeclineCount));
     }
 
     @Transactional
@@ -131,11 +129,8 @@ public class WaitingListService {
                     log.info("Cancelled waiting list entry for student {}", student.getId());
                 });
 
-        // Send max decline reached notification
-        try {
-            notificationService.sendOfferDeclinedMaxReachedNotification(allocation, maxDeclineCount + 1);
-        } catch (Exception e) {
-            log.error("Failed to send max decline notification for student {}", student.getId(), e);
-        }
+        // Publish max decline reached event (using same event, listener handles logic
+        // based on counts)
+        eventPublisher.publishEvent(new AllocationDeclinedEvent(allocation, maxDeclineCount + 1, maxDeclineCount));
     }
 }

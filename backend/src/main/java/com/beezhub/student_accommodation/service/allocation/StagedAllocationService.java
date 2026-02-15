@@ -6,6 +6,7 @@ import com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedExcep
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
+import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationProposalResponse;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationRequest;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationResponse;
@@ -14,6 +15,9 @@ import com.beezhub.student_accommodation.model.dto.ScoredRoom;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
+import com.beezhub.student_accommodation.model.event.StagedAllocationConfirmedEvent;
+import com.beezhub.student_accommodation.model.event.StagedAllocationProposedEvent;
+import com.beezhub.student_accommodation.model.event.StagedAllocationRejectedEvent;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.AllocationScoringService;
@@ -70,6 +74,7 @@ public class StagedAllocationService {
 
         logConfirmationAudit(saved, staged, adminId);
         sendConfirmationNotification(saved);
+        eventPublisher.publishEvent(new StagedAllocationConfirmedEvent(staged, saved));
 
         log.info("Confirmed allocation {} for student {} to room {}",
                 saved.getId(), staged.getStudent().getId(), staged.getRoom().getRoomNumber());
@@ -84,6 +89,7 @@ public class StagedAllocationService {
 
         updateStagedStatus(staged, StagedAllocationStatus.REJECTED);
         sendRejectionNotification(staged, reason);
+        eventPublisher.publishEvent(new StagedAllocationRejectedEvent(staged, reason));
     }
 
     @Transactional
@@ -103,6 +109,7 @@ public class StagedAllocationService {
         allocationAuditService.logAuditActionWithConstraint(null, AllocationAuditActionType.OVERRIDE, admin, reason,
                 null, room, String.join(", ", constraintsBypassed));
         sendProposalNotification(student, room);
+        eventPublisher.publishEvent(new StagedAllocationProposedEvent(saved));
 
         log.info("Created override proposal for student {} to room {}", studentId, room.getRoomNumber());
         return stagedAllocationMapper.toResponse(saved);
@@ -339,6 +346,7 @@ public class StagedAllocationService {
                 .build();
 
         StagedAllocation saved = stagedAllocationRepository.save(staged);
+        eventPublisher.publishEvent(new StagedAllocationProposedEvent(saved));
         return stagedAllocationMapper.toResponse(saved);
     }
 

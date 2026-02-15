@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
+import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
 import lombok.extern.slf4j.Slf4j;
@@ -107,6 +108,7 @@ public class AllocationLifecycleService {
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         waitingListService.updateStatusToAllocated(saved.getStudent().getId());
+        eventPublisher.publishEvent(new AllocationAcceptedEvent(saved));
 
         log.info("Successfully accepted room allocation with id: {}", id);
         return roomAllocationMapper.toResponse(saved);

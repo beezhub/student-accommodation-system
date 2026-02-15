@@ -11,6 +11,8 @@ import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
+import com.beezhub.student_accommodation.service.allocation.AllocationStatusValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

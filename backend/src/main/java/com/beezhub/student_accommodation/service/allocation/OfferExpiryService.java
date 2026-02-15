@@ -8,6 +8,8 @@ import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.event.AllocationExpiredEvent;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
+import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
+import com.beezhub.student_accommodation.service.allocation.AllocationStatusValidator;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;

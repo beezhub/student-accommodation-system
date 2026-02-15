@@ -25,16 +25,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = { NotificationService.class, AsyncConfiguration.class })
+@ContextConfiguration(classes = { NotificationEventListener.class, NotificationService.class,
+        AsyncConfiguration.class })
 @TestPropertySource(properties = {
         "async.core-pool-size=2",
         "async.max-pool-size=4",
         "async.queue-capacity=10"
 })
-class NotificationServiceAsyncIntegrationTest {
+class NotificationEventListenerIntegrationTest {
 
     @Autowired
-    private NotificationService notificationService;
+    private NotificationEventListener notificationEventListener;
 
     @MockBean
     private EmailDispatchService emailDispatchService;
@@ -43,7 +44,7 @@ class NotificationServiceAsyncIntegrationTest {
     private NotificationRepository notificationRepository;
 
     @Test
-    void sendApplicationStatusNotification_runsAsync() throws InterruptedException {
+    void handleApplicationStatusChanged_runsAsync() throws InterruptedException {
         // Setup data
         AppUser user = new AppUser();
         user.setFirstName("Test");
@@ -72,7 +73,7 @@ class NotificationServiceAsyncIntegrationTest {
         }).when(emailDispatchService).sendApplicationApprovedEmail(any(), any(), any());
 
         // Execute
-        notificationService.handleApplicationStatusChanged(
+        notificationEventListener.handleApplicationStatusChanged(
                 new com.beezhub.student_accommodation.model.event.ApplicationStatusChangedEvent(application,
                         ApplicationStatus.PENDING, ApplicationStatus.APPROVED));
 
