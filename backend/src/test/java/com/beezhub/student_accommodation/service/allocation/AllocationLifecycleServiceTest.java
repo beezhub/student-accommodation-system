@@ -1,9 +1,11 @@
 package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.exceptions.*;
+import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
+import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DeclineReason;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -111,7 +114,9 @@ class AllocationLifecycleServiceTest {
 
         assertThat(response).isNotNull();
         verify(roomAllocationRepository).save(any(RoomAllocation.class));
-        verify(notificationService).sendRoomAllocationNotification(any(RoomAllocation.class));
+        verify(roomAllocationRepository).save(any(RoomAllocation.class));
+        verify(eventPublisher).publishEvent(any(AllocationCreatedEvent.class));
+        verify(roomOccupancyManager).updateOccupancy(room, 1);
         verify(roomOccupancyManager).updateOccupancy(room, 1);
     }
 
@@ -164,6 +169,7 @@ class AllocationLifecycleServiceTest {
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.ACCEPTED);
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.ALLOCATED);
         verify(roomAllocationRepository).save(allocation);
+        verify(eventPublisher).publishEvent(any(AllocationAcceptedEvent.class));
     }
 
     @Test
@@ -240,7 +246,8 @@ class AllocationLifecycleServiceTest {
         allocation.setRoom(room);
 
         when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
-        when(roomAllocationRepository.countDeclinedAllocationsByApplicationId(1L)).thenReturn(2L); // 2 previous declines
+        when(roomAllocationRepository.countDeclinedAllocationsByApplicationId(1L)).thenReturn(2L); // 2 previous
+                                                                                                   // declines
         when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
         when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
 
@@ -268,7 +275,7 @@ class AllocationLifecycleServiceTest {
         verify(roomOccupancyManager).updateOccupancy(room, -1);
         verify(roomAllocationRepository).save(allocation);
     }
-    
+
     @Test
     void cancelAllocation_activeAllocation_statusCancelled() {
         // Alias for deleteRoomAllocation

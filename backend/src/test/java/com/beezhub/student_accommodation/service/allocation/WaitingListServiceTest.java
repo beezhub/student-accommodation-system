@@ -13,7 +13,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import com.beezhub.student_accommodation.model.event.AllocationDeclinedEvent;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -39,7 +43,10 @@ class WaitingListServiceTest {
     @Mock
     private StudentRepository studentRepository;
     @Mock
-    private NotificationService notificationService;
+    private ApplicationEventPublisher eventPublisher;
+
+    @Captor
+    private ArgumentCaptor<AllocationDeclinedEvent> eventCaptor;
 
     @InjectMocks
     private WaitingListService waitingListService;
@@ -201,7 +208,11 @@ class WaitingListServiceTest {
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
         assertThat(application.getRemarks()).contains("Declined offer 1 of 2");
         verify(waitingListRepository).save(any(WaitingListEntry.class));
-        verify(notificationService).sendOfferDeclinedRequeueNotification(allocation, 1, 2);
+        verify(waitingListRepository).save(any(WaitingListEntry.class));
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        AllocationDeclinedEvent event = eventCaptor.getValue();
+        assertThat(event.totalDeclineCount()).isEqualTo(1);
+        assertThat(event.maxDeclineCount()).isEqualTo(2);
     }
 
     @Test
@@ -264,7 +275,11 @@ class WaitingListServiceTest {
         // Assert
         assertThat(waitingEntry.getStatus()).isEqualTo("CANCELLED");
         verify(waitingListRepository).save(waitingEntry);
-        verify(notificationService).sendOfferDeclinedMaxReachedNotification(allocation, 3);
+        verify(waitingListRepository).save(waitingEntry);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        AllocationDeclinedEvent event = eventCaptor.getValue();
+        assertThat(event.totalDeclineCount()).isEqualTo(3);
+        assertThat(event.maxDeclineCount()).isEqualTo(2);
     }
 
     @Test

@@ -8,8 +8,9 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.AllocationScoringService;
-import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,380 +38,387 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class StagedAllocationServiceTest {
 
-    @Mock
-    private StagedAllocationRepository stagedAllocationRepository;
-    @Mock
-    private RoomAllocationRepository roomAllocationRepository;
-    @Mock
-    private StudentRepository studentRepository;
-    @Mock
-    private RoomRepository roomRepository;
-    @Mock
-    private ApplicationRepository applicationRepository;
-    @Mock
-    private AppUserRepository appUserRepository;
-    @Mock
-    private BuildingRepository buildingRepository;
-    @Mock
-    private AllocationScoringService allocationScoringService;
-    @Mock
-    private AllocationAuditService allocationAuditService;
-    @Mock
-    private NotificationService notificationService;
-    @Mock
-    private UserNotificationService userNotificationService;
-    @Mock
-    private StagedAllocationMapper stagedAllocationMapper;
-    @Mock
-    private RoomAllocationMapper roomAllocationMapper;
-    @Mock
-    private WaitingListService waitingListService;
-    @Mock
-    private RoomOccupancyManager roomOccupancyManager;
+        @Mock
+        private StagedAllocationRepository stagedAllocationRepository;
+        @Mock
+        private RoomAllocationRepository roomAllocationRepository;
+        @Mock
+        private StudentRepository studentRepository;
+        @Mock
+        private RoomRepository roomRepository;
+        @Mock
+        private ApplicationRepository applicationRepository;
+        @Mock
+        private AppUserRepository appUserRepository;
+        @Mock
+        private BuildingRepository buildingRepository;
+        @Mock
+        private AllocationScoringService allocationScoringService;
+        @Mock
+        private AllocationAuditService allocationAuditService;
 
-    @InjectMocks
-    private StagedAllocationService stagedAllocationService;
+        @Mock
+        private UserNotificationService userNotificationService;
+        @Mock
+        private ApplicationEventPublisher eventPublisher;
+        @Mock
+        private StagedAllocationMapper stagedAllocationMapper;
+        @Mock
+        private RoomAllocationMapper roomAllocationMapper;
+        @Mock
+        private WaitingListService waitingListService;
+        @Mock
+        private RoomOccupancyManager roomOccupancyManager;
 
-    private Student student;
-    private Room room;
-    private Building building;
-    private Application application;
-    private AppUser admin;
-    private StagedAllocation stagedAllocation;
+        @InjectMocks
+        private StagedAllocationService stagedAllocationService;
 
-    @BeforeEach
-    void setUp() {
-        // Setup student
-        student = new Student();
-        student.setId(1L);
-        AppUser studentUser = new AppUser();
-        studentUser.setId(1L);
-        studentUser.setFirstName("John");
-        studentUser.setLastName("Doe");
-        studentUser.setEmail("john.doe@example.com");
-        student.setAppUser(studentUser);
+        private Student student;
+        private Room room;
+        private Building building;
+        private Application application;
+        private AppUser admin;
+        private StagedAllocation stagedAllocation;
 
-        // Setup building
-        building = new Building();
-        building.setId(1L);
-        building.setName("Test Building");
+        @BeforeEach
+        void setUp() {
+                // Setup student
+                student = new Student();
+                student.setId(1L);
+                AppUser studentUser = new AppUser();
+                studentUser.setId(1L);
+                studentUser.setFirstName("John");
+                studentUser.setLastName("Doe");
+                studentUser.setEmail("john.doe@example.com");
+                student.setAppUser(studentUser);
 
-        // Setup room
-        room = new Room();
-        room.setId(1L);
-        room.setRoomNumber("101");
-        room.setCapacity(2);
-        room.setBuilding(building);
+                // Setup building
+                building = new Building();
+                building.setId(1L);
+                building.setName("Test Building");
 
-        // Setup application
-        application = new Application();
-        application.setId(1L);
-        application.setStudent(student);
-        application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
-        application.setPreferredBuilding(building);
+                // Setup room
+                room = new Room();
+                room.setId(1L);
+                room.setRoomNumber("101");
+                room.setCapacity(2);
+                room.setBuilding(building);
 
-        // Setup admin user
-        admin = new AppUser();
-        admin.setId(2L);
-        admin.setFirstName("Admin");
-        admin.setLastName("User");
+                // Setup application
+                application = new Application();
+                application.setId(1L);
+                application.setStudent(student);
+                application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
+                application.setPreferredBuilding(building);
 
-        // Setup staged allocation
-        stagedAllocation = StagedAllocation.builder()
-                .id(1L)
-                .student(student)
-                .room(room)
-                .application(application)
-                .status(StagedAllocationStatus.PROPOSED)
-                .score(BigDecimal.valueOf(85.5))
-                .proposedBy(admin)
-                .batchId("BATCH-001")
-                .build();
-    }
+                // Setup admin user
+                admin = new AppUser();
+                admin.setId(2L);
+                admin.setFirstName("Admin");
+                admin.setLastName("User");
 
-    @Test
-    void confirmAllocation_validProposal_createsAllocation() {
-        // Arrange
-        when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
-        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
-        when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+                // Setup staged allocation
+                stagedAllocation = StagedAllocation.builder()
+                                .id(1L)
+                                .student(student)
+                                .room(room)
+                                .application(application)
+                                .status(StagedAllocationStatus.PROPOSED)
+                                .score(BigDecimal.valueOf(85.5))
+                                .proposedBy(admin)
+                                .batchId("BATCH-001")
+                                .build();
+        }
 
-        // Act
-        RoomAllocationResponse response = stagedAllocationService.confirmAllocation(1L, 2L);
+        @Test
+        void confirmAllocation_validProposal_createsAllocation() {
+                // Arrange
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
+                                .thenReturn(new RoomAllocationResponse());
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
 
-        // Assert
-        assertThat(response).isNotNull();
-        assertThat(stagedAllocation.getStatus()).isEqualTo(StagedAllocationStatus.CONFIRMED);
-        assertThat(stagedAllocation.getConfirmedAt()).isNotNull();
-        verify(roomAllocationRepository).save(any(RoomAllocation.class));
-        verify(stagedAllocationRepository).save(stagedAllocation);
-        verify(roomOccupancyManager).updateOccupancy(room, 1);
-        verify(allocationAuditService).logAuditAction(any(), eq(AllocationAuditActionType.FORCE_ALLOCATE), eq(admin),
-                anyString(), isNull(), eq(room));
-        verify(notificationService).sendRoomAllocationNotification(any(RoomAllocation.class));
-    }
+                // Act
+                RoomAllocationResponse response = stagedAllocationService.confirmAllocation(1L, 2L);
 
-    @Test
-    void confirmAllocation_invalidStatus_throwsException() {
-        // Arrange
-        stagedAllocation.setStatus(StagedAllocationStatus.CONFIRMED);
-        when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                // Assert
+                assertThat(response).isNotNull();
+                assertThat(stagedAllocation.getStatus()).isEqualTo(StagedAllocationStatus.CONFIRMED);
+                assertThat(stagedAllocation.getConfirmedAt()).isNotNull();
+                verify(roomAllocationRepository).save(any(RoomAllocation.class));
+                verify(stagedAllocationRepository).save(stagedAllocation);
+                verify(roomOccupancyManager).updateOccupancy(room, 1);
+                verify(allocationAuditService).logAuditAction(any(), eq(AllocationAuditActionType.FORCE_ALLOCATE),
+                                eq(admin),
+                                anyString(), isNull(), eq(room));
+                verify(eventPublisher).publishEvent(any(AllocationCreatedEvent.class));
+        }
 
-        // Act & Assert
-        assertThatThrownBy(() -> stagedAllocationService.confirmAllocation(1L, 2L))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Invalid status");
-    }
+        @Test
+        void confirmAllocation_invalidStatus_throwsException() {
+                // Arrange
+                stagedAllocation.setStatus(StagedAllocationStatus.CONFIRMED);
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
 
-    @Test
-    void confirmAllocation_roomFull_throwsException() {
-        // Arrange
-        when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // Room at capacity
+                // Act & Assert
+                assertThatThrownBy(() -> stagedAllocationService.confirmAllocation(1L, 2L))
+                                .isInstanceOf(RuntimeException.class)
+                                .hasMessageContaining("Invalid status");
+        }
 
-        // Act & Assert
-        assertThatThrownBy(() -> stagedAllocationService.confirmAllocation(1L, 2L))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("full capacity");
-    }
+        @Test
+        void confirmAllocation_roomFull_throwsException() {
+                // Arrange
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // Room at capacity
 
-    @Test
-    void rejectAllocation_validProposal_updatesStatus() {
-        // Arrange
-        when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                // Act & Assert
+                assertThatThrownBy(() -> stagedAllocationService.confirmAllocation(1L, 2L))
+                                .isInstanceOf(RuntimeException.class)
+                                .hasMessageContaining("full capacity");
+        }
 
-        // Act
-        stagedAllocationService.rejectAllocation(1L, "Not suitable for student", 2L);
+        @Test
+        void rejectAllocation_validProposal_updatesStatus() {
+                // Arrange
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
 
-        // Assert
-        assertThat(stagedAllocation.getStatus()).isEqualTo(StagedAllocationStatus.REJECTED);
-        verify(stagedAllocationRepository).save(stagedAllocation);
-        verify(userNotificationService).createAllocationRejectionNotification(
-                eq(1L), eq("101"), eq("Not suitable for student"));
-    }
+                // Act
+                stagedAllocationService.rejectAllocation(1L, "Not suitable for student", 2L);
 
-    @Test
-    void rejectAllocation_invalidStatus_throwsException() {
-        // Arrange
-        stagedAllocation.setStatus(StagedAllocationStatus.CONFIRMED);
-        when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                // Assert
+                assertThat(stagedAllocation.getStatus()).isEqualTo(StagedAllocationStatus.REJECTED);
+                verify(stagedAllocationRepository).save(stagedAllocation);
+                verify(userNotificationService).createAllocationRejectionNotification(
+                                eq(1L), eq("101"), eq("Not suitable for student"));
+        }
 
-        // Act & Assert
-        assertThatThrownBy(() -> stagedAllocationService.rejectAllocation(1L, "Reason", 2L))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Invalid status");
-    }
+        @Test
+        void rejectAllocation_invalidStatus_throwsException() {
+                // Arrange
+                stagedAllocation.setStatus(StagedAllocationStatus.CONFIRMED);
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
 
-    @Test
-    void overrideConstraints_adminOverride_bypasses() {
-        // Arrange
-        List<String> constraintsBypassed = Arrays.asList("GENDER_RESTRICTION", "YEAR_OF_STUDY");
-        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
-        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
-        when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
-        when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+                // Act & Assert
+                assertThatThrownBy(() -> stagedAllocationService.rejectAllocation(1L, "Reason", 2L))
+                                .isInstanceOf(RuntimeException.class)
+                                .hasMessageContaining("Invalid status");
+        }
 
-        ScoredRoom scoredRoom = ScoredRoom.builder()
-                .roomId(1L)
-                .roomNumber("101")
-                .totalScore(BigDecimal.valueOf(50.0))
-                .warnings(new ArrayList<>())
-                .build();
-        when(allocationScoringService.scoreSingleRoom(student, application, room)).thenReturn(scoredRoom);
-        when(stagedAllocationRepository.save(any(StagedAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(stagedAllocationMapper.toResponse(any(StagedAllocation.class))).thenReturn(new StagedAllocationResponse());
-        when(stagedAllocationMapper.serializeWarnings(anyList())).thenReturn("{\"warnings\":[]}");
+        @Test
+        void overrideConstraints_adminOverride_bypasses() {
+                // Arrange
+                List<String> constraintsBypassed = Arrays.asList("GENDER_RESTRICTION", "YEAR_OF_STUDY");
+                when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+                when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
 
-        // Act
-        StagedAllocationResponse response = stagedAllocationService.overrideConstraints(
-                1L, 1L, "Special accommodation needed", 2L, constraintsBypassed);
+                ScoredRoom scoredRoom = ScoredRoom.builder()
+                                .roomId(1L)
+                                .roomNumber("101")
+                                .totalScore(BigDecimal.valueOf(50.0))
+                                .warnings(new ArrayList<>())
+                                .build();
+                when(allocationScoringService.scoreSingleRoom(student, application, room)).thenReturn(scoredRoom);
+                when(stagedAllocationRepository.save(any(StagedAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(stagedAllocationMapper.toResponse(any(StagedAllocation.class)))
+                                .thenReturn(new StagedAllocationResponse());
+                when(stagedAllocationMapper.serializeWarnings(anyList())).thenReturn("{\"warnings\":[]}");
 
-        // Assert
-        assertThat(response).isNotNull();
-        verify(stagedAllocationRepository).save(any(StagedAllocation.class));
-        verify(allocationAuditService).logAuditActionWithConstraint(
-                isNull(),
-                eq(AllocationAuditActionType.OVERRIDE),
-                eq(admin),
-                eq("Special accommodation needed"),
-                isNull(),
-                eq(room),
-                eq("GENDER_RESTRICTION, YEAR_OF_STUDY"));
-    }
+                // Act
+                StagedAllocationResponse response = stagedAllocationService.overrideConstraints(
+                                1L, 1L, "Special accommodation needed", 2L, constraintsBypassed);
 
-    @Test
-    void overrideConstraints_roomFull_throwsException() {
-        // Arrange
-        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
-        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // Room full
+                // Assert
+                assertThat(response).isNotNull();
+                verify(stagedAllocationRepository).save(any(StagedAllocation.class));
+                verify(allocationAuditService).logAuditActionWithConstraint(
+                                isNull(),
+                                eq(AllocationAuditActionType.OVERRIDE),
+                                eq(admin),
+                                eq("Special accommodation needed"),
+                                isNull(),
+                                eq(room),
+                                eq("GENDER_RESTRICTION, YEAR_OF_STUDY"));
+        }
 
-        // Act & Assert
-        assertThatThrownBy(() -> stagedAllocationService.overrideConstraints(
-                1L, 1L, "Reason", 2L, Arrays.asList("CONSTRAINT")))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("full capacity");
-    }
+        @Test
+        void overrideConstraints_roomFull_throwsException() {
+                // Arrange
+                when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+                when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // Room full
 
-    @Test
-    void proposeAllocation_multipleStudents_createsProposals() {
-        // Arrange
-        BatchAllocationRequest request = new BatchAllocationRequest();
-        request.setBatchId("BATCH-002");
-        request.setStudentIds(Arrays.asList(1L, 2L));
-        request.setPreferredBuildingId(1L);
+                // Act & Assert
+                assertThatThrownBy(() -> stagedAllocationService.overrideConstraints(
+                                1L, 1L, "Reason", 2L, Arrays.asList("CONSTRAINT")))
+                                .isInstanceOf(RuntimeException.class)
+                                .hasMessageContaining("full capacity");
+        }
 
-        Student student2 = new Student();
-        student2.setId(2L);
-        AppUser user2 = new AppUser();
-        user2.setId(3L);
-        user2.setFirstName("Jane");
-        user2.setLastName("Smith");
-        student2.setAppUser(user2);
+        @Test
+        void proposeAllocation_multipleStudents_createsProposals() {
+                // Arrange
+                BatchAllocationRequest request = new BatchAllocationRequest();
+                request.setBatchId("BATCH-002");
+                request.setStudentIds(Arrays.asList(1L, 2L));
+                request.setPreferredBuildingId(1L);
 
-        Application application2 = new Application();
-        application2.setId(2L);
-        application2.setStudent(student2);
-        application2.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
-        application2.setPreferredBuilding(building);
+                Student student2 = new Student();
+                student2.setId(2L);
+                AppUser user2 = new AppUser();
+                user2.setId(3L);
+                user2.setFirstName("Jane");
+                user2.setLastName("Smith");
+                student2.setAppUser(user2);
 
-        ScoredRoom scoredRoom = ScoredRoom.builder()
-                .roomId(1L)
-                .roomNumber("101")
-                .totalScore(BigDecimal.valueOf(85.5))
-                .warnings(new ArrayList<>())
-                .build();
+                Application application2 = new Application();
+                application2.setId(2L);
+                application2.setStudent(student2);
+                application2.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
+                application2.setPreferredBuilding(building);
 
-        when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
-        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
-        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
-        when(studentRepository.findById(2L)).thenReturn(Optional.of(student2));
-        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.existsActiveAllocationByStudentId(anyLong())).thenReturn(false);
-        when(stagedAllocationRepository.findByStudent_IdAndStatus(anyLong(), eq(StagedAllocationStatus.PROPOSED)))
-                .thenReturn(Optional.empty());
-        when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
-        when(applicationRepository.findByStudent_Id(2L)).thenReturn(Arrays.asList(application2));
-        when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
-                .thenReturn(Arrays.asList(scoredRoom));
-        when(stagedAllocationRepository.save(any(StagedAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(stagedAllocationMapper.toResponse(any(StagedAllocation.class)))
-                .thenReturn(StagedAllocationResponse.builder().roomId(1L).build());
-        when(stagedAllocationMapper.serializeWarnings(anyList())).thenReturn("[]");
+                ScoredRoom scoredRoom = ScoredRoom.builder()
+                                .roomId(1L)
+                                .roomNumber("101")
+                                .totalScore(BigDecimal.valueOf(85.5))
+                                .warnings(new ArrayList<>())
+                                .build();
 
-        // Act
-        BatchAllocationProposalResponse response = stagedAllocationService.proposeAllocation(request, 2L);
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+                when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+                when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+                when(studentRepository.findById(2L)).thenReturn(Optional.of(student2));
+                when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+                when(roomAllocationRepository.existsActiveAllocationByStudentId(anyLong())).thenReturn(false);
+                when(stagedAllocationRepository.findByStudent_IdAndStatus(anyLong(),
+                                eq(StagedAllocationStatus.PROPOSED)))
+                                .thenReturn(Optional.empty());
+                when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
+                when(applicationRepository.findByStudent_Id(2L)).thenReturn(Arrays.asList(application2));
+                when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
+                                .thenReturn(Arrays.asList(scoredRoom));
+                when(stagedAllocationRepository.save(any(StagedAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(stagedAllocationMapper.toResponse(any(StagedAllocation.class)))
+                                .thenReturn(StagedAllocationResponse.builder().roomId(1L).build());
+                when(stagedAllocationMapper.serializeWarnings(anyList())).thenReturn("[]");
 
-        // Assert
-        assertThat(response).isNotNull();
-        assertThat(response.getBatchId()).isEqualTo("BATCH-002");
-        assertThat(response.getTotalStudents()).isEqualTo(2);
-        assertThat(response.getSuccessfulProposals()).isEqualTo(2);
-        assertThat(response.getFailedProposals()).isEqualTo(0);
-        verify(stagedAllocationRepository, times(2)).save(any(StagedAllocation.class));
-    }
+                // Act
+                BatchAllocationProposalResponse response = stagedAllocationService.proposeAllocation(request, 2L);
 
-    @Test
-    void proposeAllocation_noAvailableRooms_addsToWaitingList() {
-        // Arrange
-        BatchAllocationRequest request = new BatchAllocationRequest();
-        request.setBatchId("BATCH-003");
-        request.setStudentIds(Arrays.asList(1L));
-        request.setPreferredBuildingId(1L);
+                // Assert
+                assertThat(response).isNotNull();
+                assertThat(response.getBatchId()).isEqualTo("BATCH-002");
+                assertThat(response.getTotalStudents()).isEqualTo(2);
+                assertThat(response.getSuccessfulProposals()).isEqualTo(2);
+                assertThat(response.getFailedProposals()).isEqualTo(0);
+                verify(stagedAllocationRepository, times(2)).save(any(StagedAllocation.class));
+        }
 
-        when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
-        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
-        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
-        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
-        when(stagedAllocationRepository.findByStudent_IdAndStatus(1L, StagedAllocationStatus.PROPOSED))
-                .thenReturn(Optional.empty());
-        when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
-        when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
-                .thenReturn(new ArrayList<>()); // No rooms available
+        @Test
+        void proposeAllocation_noAvailableRooms_addsToWaitingList() {
+                // Arrange
+                BatchAllocationRequest request = new BatchAllocationRequest();
+                request.setBatchId("BATCH-003");
+                request.setStudentIds(Arrays.asList(1L));
+                request.setPreferredBuildingId(1L);
 
-        // Act
-        BatchAllocationProposalResponse response = stagedAllocationService.proposeAllocation(request, 2L);
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+                when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+                when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+                when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
+                when(stagedAllocationRepository.findByStudent_IdAndStatus(1L, StagedAllocationStatus.PROPOSED))
+                                .thenReturn(Optional.empty());
+                when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
+                when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
+                                .thenReturn(new ArrayList<>()); // No rooms available
 
-        // Assert
-        assertThat(response).isNotNull();
-        assertThat(response.getFailedProposals()).isEqualTo(1);
-        verify(waitingListService).enqueueWaitingList(student, application);
-    }
+                // Act
+                BatchAllocationProposalResponse response = stagedAllocationService.proposeAllocation(request, 2L);
 
-    @Test
-    void confirmBatchAllocations_validBatch_confirmsAll() {
-        // Arrange
-        StagedAllocation staged1 = StagedAllocation.builder()
-                .id(1L)
-                .student(student)
-                .room(room)
-                .application(application)
-                .status(StagedAllocationStatus.PROPOSED)
-                .batchId("BATCH-001")
-                .build();
+                // Assert
+                assertThat(response).isNotNull();
+                assertThat(response.getFailedProposals()).isEqualTo(1);
+                verify(waitingListService).enqueueWaitingList(student, application);
+        }
 
-        StagedAllocation staged2 = StagedAllocation.builder()
-                .id(2L)
-                .student(student)
-                .room(room)
-                .application(application)
-                .status(StagedAllocationStatus.PROPOSED)
-                .batchId("BATCH-001")
-                .build();
+        @Test
+        void confirmBatchAllocations_validBatch_confirmsAll() {
+                // Arrange
+                StagedAllocation staged1 = StagedAllocation.builder()
+                                .id(1L)
+                                .student(student)
+                                .room(room)
+                                .application(application)
+                                .status(StagedAllocationStatus.PROPOSED)
+                                .batchId("BATCH-001")
+                                .build();
 
-        when(stagedAllocationRepository.findByBatchIdAndStatus("BATCH-001", StagedAllocationStatus.PROPOSED))
-                .thenReturn(Arrays.asList(staged1, staged2));
-        when(stagedAllocationRepository.findById(anyLong()))
-                .thenReturn(Optional.of(staged1), Optional.of(staged2));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
-        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
-        when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+                StagedAllocation staged2 = StagedAllocation.builder()
+                                .id(2L)
+                                .student(student)
+                                .room(room)
+                                .application(application)
+                                .status(StagedAllocationStatus.PROPOSED)
+                                .batchId("BATCH-001")
+                                .build();
 
-        // Act
-        stagedAllocationService.confirmBatchAllocations("BATCH-001", 2L);
+                when(stagedAllocationRepository.findByBatchIdAndStatus("BATCH-001", StagedAllocationStatus.PROPOSED))
+                                .thenReturn(Arrays.asList(staged1, staged2));
+                when(stagedAllocationRepository.findById(anyLong()))
+                                .thenReturn(Optional.of(staged1), Optional.of(staged2));
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
+                                .thenReturn(new RoomAllocationResponse());
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
 
-        // Assert
-        verify(roomAllocationRepository, times(2)).save(any(RoomAllocation.class));
-    }
+                // Act
+                stagedAllocationService.confirmBatchAllocations("BATCH-001", 2L);
 
-    @Test
-    void confirmBatchAllocations_partialFailure_continuesProcessing() {
-        // Arrange
-        StagedAllocation staged1 = StagedAllocation.builder()
-                .id(1L)
-                .student(student)
-                .room(room)
-                .application(application)
-                .status(StagedAllocationStatus.PROPOSED)
-                .batchId("BATCH-001")
-                .build();
+                // Assert
+                verify(roomAllocationRepository, times(2)).save(any(RoomAllocation.class));
+        }
 
-        StagedAllocation staged2 = StagedAllocation.builder()
-                .id(2L)
-                .student(student)
-                .room(room)
-                .application(application)
-                .status(StagedAllocationStatus.PROPOSED)
-                .batchId("BATCH-001")
-                .build();
+        @Test
+        void confirmBatchAllocations_partialFailure_continuesProcessing() {
+                // Arrange
+                StagedAllocation staged1 = StagedAllocation.builder()
+                                .id(1L)
+                                .student(student)
+                                .room(room)
+                                .application(application)
+                                .status(StagedAllocationStatus.PROPOSED)
+                                .batchId("BATCH-001")
+                                .build();
 
-        when(stagedAllocationRepository.findByBatchIdAndStatus("BATCH-001", StagedAllocationStatus.PROPOSED))
-                .thenReturn(Arrays.asList(staged1, staged2));
-        when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(staged1));
-        when(stagedAllocationRepository.findById(2L)).thenThrow(new RuntimeException("Allocation failed"));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
-        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
-        when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+                StagedAllocation staged2 = StagedAllocation.builder()
+                                .id(2L)
+                                .student(student)
+                                .room(room)
+                                .application(application)
+                                .status(StagedAllocationStatus.PROPOSED)
+                                .batchId("BATCH-001")
+                                .build();
 
-        // Act
-        stagedAllocationService.confirmBatchAllocations("BATCH-001", 2L);
+                when(stagedAllocationRepository.findByBatchIdAndStatus("BATCH-001", StagedAllocationStatus.PROPOSED))
+                                .thenReturn(Arrays.asList(staged1, staged2));
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(staged1));
+                when(stagedAllocationRepository.findById(2L)).thenThrow(new RuntimeException("Allocation failed"));
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
+                                .thenReturn(new RoomAllocationResponse());
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
 
-        // Assert - should process first, fail on second, but continue
-        verify(roomAllocationRepository, times(1)).save(any(RoomAllocation.class));
-    }
+                // Act
+                stagedAllocationService.confirmBatchAllocations("BATCH-001", 2L);
+
+                // Assert - should process first, fail on second, but continue
+                verify(roomAllocationRepository, times(1)).save(any(RoomAllocation.class));
+        }
 }

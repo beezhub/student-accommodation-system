@@ -28,6 +28,9 @@ import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.DocumentCommentRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
+import org.springframework.context.ApplicationEventPublisher;
+import com.beezhub.student_accommodation.model.event.DocumentVerificationEvent;
+import com.beezhub.student_accommodation.model.event.DocumentCommentEvent;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
@@ -67,7 +70,7 @@ public class DocumentService {
     private final StudentRepository studentRepository;
     private final DocumentMapper documentMapper;
     private final AuthService authService;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
     private final ApplicationRepository applicationRepository;
     private final RoomAllocationRepository roomAllocationRepository;
@@ -124,8 +127,7 @@ public class DocumentService {
                             .bucket(bucketName)
                             .object(objectPath)
                             .method(Method.GET)
-                            .build()
-            );
+                            .build());
         } catch (Exception e) {
             throw new RuntimeException("Error generating presigned URL", e);
         }
@@ -137,8 +139,7 @@ public class DocumentService {
                     GetObjectArgs.builder()
                             .bucket(bucketName)
                             .object(objectPath)
-                            .build()
-            );
+                            .build());
         } catch (Exception e) {
             throw new RuntimeException("Error downloading file from Minio: " + objectPath, e);
         }
@@ -159,8 +160,7 @@ public class DocumentService {
                 user.getUserRole().getRole(),
                 user.getId(),
                 docType.getTypeName(),
-                file.getOriginalFilename()
-        );
+                file.getOriginalFilename());
     }
 
     private void uploadFileToMinio(String bucketName, String objectPath, MultipartFile file) {
@@ -171,8 +171,7 @@ public class DocumentService {
                             .object(objectPath)
                             .stream(is, file.getSize(), -1)
                             .contentType(file.getContentType())
-                            .build()
-            );
+                            .build());
         } catch (Exception e) {
             throw new RuntimeException("Error uploading file: " + file.getOriginalFilename(), e);
         }
@@ -198,7 +197,8 @@ public class DocumentService {
 
     /**
      * Gets the active application for a student.
-     * Active application is one with status PENDING, APPROVED, or AWAITING_ALLOCATION.
+     * Active application is one with status PENDING, APPROVED, or
+     * AWAITING_ALLOCATION.
      *
      * @param student The student
      * @return The active application
@@ -211,9 +211,9 @@ public class DocumentService {
                         || app.getStatus() == ApplicationStatus.APPROVED
                         || app.getStatus() == ApplicationStatus.AWAITING_ALLOCATION)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("No active application found for student. Please create an application first."));
+                .orElseThrow(() -> new RuntimeException(
+                        "No active application found for student. Please create an application first."));
     }
-
 
     public DocumentDownloadResponse downloadDocument(Long documentId, String username) {
         var user = getUserByEmail(username);
@@ -276,7 +276,8 @@ public class DocumentService {
                 .stream()
                 .filter(app -> app.getStatus() == ApplicationStatus.APPROVED)
                 .findFirst()
-                .orElseThrow(() -> new ApplicationNotApprovedException("Documents can only be reviewed for approved applications"));
+                .orElseThrow(() -> new ApplicationNotApprovedException(
+                        "Documents can only be reviewed for approved applications"));
 
         document.setDocumentStatus(newStatus);
         Document updatedDocument;
@@ -297,21 +298,22 @@ public class DocumentService {
         if (newStatus != oldStatus && (newStatus == APPROVED || newStatus == REJECTED)) {
             try {
                 log.info("Triggering notification for document {} with status {}", documentId, newStatus);
-                notificationService.sendDocumentVerificationNotification(updatedDocument, newStatus, comment);
+                eventPublisher
+                        .publishEvent(new DocumentVerificationEvent(updatedDocument, oldStatus, newStatus, comment));
                 Long studentUserId = document.getStudent().getAppUser().getId();
                 userNotificationService.createDocumentStatusNotification(
                         studentUserId,
                         document.getDocumentType().getTypeName(),
                         newStatus == APPROVED,
-                        comment
-                );
+                        comment);
             } catch (Exception e) {
                 log.error("Failed to trigger notification for document {} - notification will be retried by scheduler",
                         documentId, e);
             }
         }
 
-        // If approved, check all required docs and allocate room or enqueue waiting list
+        // If approved, check all required docs and allocate room or enqueue waiting
+        // list
         if (newStatus == APPROVED) {
             tryAllocateOrQueue(document.getStudent(), application, updatedDocument);
         }
@@ -352,7 +354,8 @@ public class DocumentService {
                 request.setRoomId(availableRoom.getId());
                 request.setApplicationId(application.getId());
                 roomAllocationService.createRoomAllocation(request);
-                log.info("Allocated room {} to student {} after document approvals", availableRoom.getRoomNumber(), student.getId());
+                log.info("Allocated room {} to student {} after document approvals", availableRoom.getRoomNumber(),
+                        student.getId());
             } else {
                 enqueueWaitingList(student, application);
             }
@@ -384,8 +387,7 @@ public class DocumentService {
                     RemoveObjectArgs.builder()
                             .bucket(bucketName)
                             .object(objectPath)
-                            .build()
-            );
+                            .build());
             documentRepository.delete(document);
         } catch (Exception e) {
             throw new RuntimeException("Error deleting document: " + documentId, e);
@@ -402,12 +404,11 @@ public class DocumentService {
             LocalDateTime createdAfter,
             LocalDateTime createdBefore,
             Pageable pageable,
-            String username
-    ) {
+            String username) {
         var user = getUserByEmail(username);
         Specification<Document> spec = DocumentSpecification.filterBy(
-                documentName, studentId, studentName, documentTypeId, status, applicationStatus, createdAfter, createdBefore
-        );
+                documentName, studentId, studentName, documentTypeId, status, applicationStatus, createdAfter,
+                createdBefore);
 
         // If not admin, restrict to user's own documents
         if (!user.getUserRole().isAdmin()) {
@@ -425,13 +426,12 @@ public class DocumentService {
             String applicationStatus,
             LocalDateTime createdAfter,
             LocalDateTime createdBefore,
-            Pageable pageable
-    ) {
+            Pageable pageable) {
         var currentUser = authService.getCurrentUser();
         Specification<Document> spec = DocumentSpecification.belongsToUser(currentUser.getId())
                 .and(DocumentSpecification.filterBy(
-                        documentName, null, null, documentTypeId, status, applicationStatus, createdAfter, createdBefore
-                ));
+                        documentName, null, null, documentTypeId, status, applicationStatus, createdAfter,
+                        createdBefore));
 
         Page<Document> documentsPage = documentRepository.findAll(spec, pageable);
         return documentsPage.map(documentMapper::toDocumentResponse);
@@ -491,7 +491,8 @@ public class DocumentService {
         try {
             String studentEmail = document.getStudent().getAppUser().getEmail();
             String documentName = document.getDocumentName();
-            notificationService.sendDocumentCommentNotification(document, commentText);
+            String authorName = comment.getAdmin().getFirstName() + " " + comment.getAdmin().getLastName();
+            eventPublisher.publishEvent(new DocumentCommentEvent(document, commentText, authorName));
             log.info("Notification sent to student {} for document comment", studentEmail);
         } catch (Exception e) {
             log.error("Failed to send notification for document comment: {}", e.getMessage());
@@ -556,7 +557,8 @@ public class DocumentService {
 
     /**
      * Deletes a comment from a document.
-     * Only the admin who created the comment can delete it (unless they are a super-admin).
+     * Only the admin who created the comment can delete it (unless they are a
+     * super-admin).
      *
      * @param commentId The comment ID
      * @param username  The user's email/username requesting deletion
@@ -570,7 +572,8 @@ public class DocumentService {
 
     /**
      * Deletes a comment from a document.
-     * Only the admin who created the comment can delete it (unless they are a super-admin).
+     * Only the admin who created the comment can delete it (unless they are a
+     * super-admin).
      *
      * @param commentId The comment ID
      * @param adminId   The admin user ID requesting deletion
@@ -635,4 +638,3 @@ public class DocumentService {
                 .build();
     }
 }
-

@@ -9,10 +9,11 @@ import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.ApplicationService;
 import com.beezhub.student_accommodation.service.AuthService;
-import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Student;
+import com.beezhub.student_accommodation.model.event.ApplicationStatusChangedEvent;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +41,7 @@ class ApplicationAdminServiceTest {
     @Mock
     private ApplicationMapper applicationMapper;
     @Mock
-    private NotificationService notificationService;
+    private ApplicationEventPublisher eventPublisher;
     @Mock
     private UserNotificationService userNotificationService;
     @Mock
@@ -117,7 +118,7 @@ class ApplicationAdminServiceTest {
         assertThat(response).isNotNull();
         assertThat(application.getRemarks()).isEqualTo("Missing details");
         verify(applicationRepository).save(application);
-        verify(notificationService).sendApplicationStatusNotification(application, ApplicationStatus.CHANGES_REQUESTED);
+        verify(eventPublisher).publishEvent(any(ApplicationStatusChangedEvent.class));
     }
 
     @Test
@@ -147,22 +148,24 @@ class ApplicationAdminServiceTest {
         student.getYearOfStudy().setYearOfStudy("1");
 
         // Create expected response
-        com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse expectedResponse = 
-            com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse.builder()
+        com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse expectedResponse = com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse
+                .builder()
                 .id(1L)
                 .applicationCode("APP-2024-001")
                 .status("PENDING")
-                .studentProfile(com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse.StudentProfile.builder()
-                    .id(student.getId())
-                    .build())
+                .studentProfile(
+                        com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse.StudentProfile
+                                .builder()
+                                .id(student.getId())
+                                .build())
                 .requiredDocumentsChecklist(RequiredDocumentsChecklistResponse.builder()
-                    .totalRequired(1)
-                    .build())
+                        .totalRequired(1)
+                        .build())
                 .build();
 
         // Mock delegation to ApplicationQueryService
         when(applicationQueryService.getApplicationFullDetailsEnhanced(1L, "admin"))
-            .thenReturn(expectedResponse);
+                .thenReturn(expectedResponse);
 
         // Execute
         com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse response = applicationAdminService
@@ -170,7 +173,7 @@ class ApplicationAdminServiceTest {
 
         // Verify delegation occurred
         verify(applicationQueryService).getApplicationFullDetailsEnhanced(1L, "admin");
-        
+
         // Verify response
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(1L);

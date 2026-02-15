@@ -13,6 +13,7 @@ import com.beezhub.student_accommodation.model.dto.ReviewProgressRequest;
 import com.beezhub.student_accommodation.model.dto.ReviewProgressResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Application;
+import com.beezhub.student_accommodation.model.event.ApplicationStatusChangedEvent;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
@@ -20,6 +21,7 @@ import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +48,7 @@ public class ApplicationAdminService {
 
     private final AppUserRepository appUserRepository;
     private final ApplicationMapper applicationMapper;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
     private final AuthService authService;
     private final RoomAllocationService roomAllocationService;
@@ -87,8 +89,9 @@ public class ApplicationAdminService {
             try {
                 log.info("Triggering notification for application {} with status {}", applicationId,
                         newStatus);
-                // Send email notification
-                notificationService.sendApplicationStatusNotification(updatedApplication, newStatus);
+                // Send email notification via event
+                eventPublisher
+                        .publishEvent(new ApplicationStatusChangedEvent(updatedApplication, oldStatus, newStatus));
 
                 // Create in-app notification
                 Long studentUserId = application.getStudent().getAppUser().getId();
@@ -161,6 +164,7 @@ public class ApplicationAdminService {
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
 
+        ApplicationStatus oldStatus = application.getStatus();
         validateStatusTransition(application, CHANGES_REQUESTED);
 
         application.setStatus(CHANGES_REQUESTED);
@@ -176,7 +180,7 @@ public class ApplicationAdminService {
                     false,
                     "Changes requested: " + reason);
 
-            notificationService.sendApplicationStatusNotification(saved, CHANGES_REQUESTED);
+            eventPublisher.publishEvent(new ApplicationStatusChangedEvent(saved, oldStatus, CHANGES_REQUESTED));
         } catch (Exception e) {
             log.error("Failed to notify student of changes requested for application {}", applicationId, e);
         }
