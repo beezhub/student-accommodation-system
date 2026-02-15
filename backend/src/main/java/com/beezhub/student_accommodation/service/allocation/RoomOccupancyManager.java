@@ -2,18 +2,23 @@ package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.repository.RoomRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
-@UtilityClass
+@Service
+@RequiredArgsConstructor
 @Slf4j
-class RoomOccupancyManager {
+public class RoomOccupancyManager {
+
+    private final RoomRepository roomRepository;
 
     /**
      * Updates room occupancy and status.
      * Calculated based on current occupancy + change.
      */
-    public static void updateOccupancy(Room room, int change, RoomRepository roomRepository) {
+    public void updateOccupancy(Room room, int change) {
         int newOccupancy = (room.getCurrentOccupancy() != null ? room.getCurrentOccupancy() : 0) + change;
         room.setCurrentOccupancy(newOccupancy);
 

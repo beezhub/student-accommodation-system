@@ -52,6 +52,7 @@ public class StagedAllocationService {
     private final StagedAllocationMapper stagedAllocationMapper;
     private final RoomAllocationMapper roomAllocationMapper;
     private final WaitingListService waitingListService;
+    private final RoomOccupancyManager roomOccupancyManager;
 
     @Transactional
     public RoomAllocationResponse confirmAllocation(Long stagedAllocationId, Long adminId) {
@@ -64,7 +65,7 @@ public class StagedAllocationService {
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         updateStagedStatus(staged, StagedAllocationStatus.CONFIRMED);
-        RoomOccupancyManager.updateOccupancy(staged.getRoom(), 1, roomRepository);
+        roomOccupancyManager.updateOccupancy(staged.getRoom(), 1);
 
         logConfirmationAudit(saved, staged, adminId);
         sendConfirmationNotification(saved);
@@ -340,5 +341,23 @@ public class StagedAllocationService {
         if (stagedAllocationRepository.findByStudent_IdAndStatus(studentId, StagedAllocationStatus.PROPOSED).isPresent()) {
             throw new RuntimeException("Student already has a pending proposal");
         }
+    }
+
+    public PageResponse<StagedAllocationResponse> getStagedAllocations(String batchId, StagedAllocationStatus status,
+            Pageable pageable) {
+        log.info("Retrieving staged allocations for batchId: {}, status: {}", batchId, status);
+        
+        Page<StagedAllocation> page;
+        if (batchId != null && status != null) {
+            page = stagedAllocationRepository.findByBatchIdAndStatus(batchId, status, pageable);
+        } else if (batchId != null) {
+            page = stagedAllocationRepository.findByBatchId(batchId, pageable);
+        } else if (status != null) {
+            page = stagedAllocationRepository.findByStatus(status, pageable);
+        } else {
+            page = stagedAllocationRepository.findAll(pageable);
+        }
+        
+        return PageMapper.toPageResponse(page.map(stagedAllocationMapper::toResponse));
     }
 }

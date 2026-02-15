@@ -45,6 +45,8 @@ class AllocationCheckInServiceTest {
     private RoomRepository roomRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private RoomOccupancyManager roomOccupancyManager;
 
     @InjectMocks
     private AllocationCheckInService allocationCheckInService;
@@ -93,7 +95,7 @@ class AllocationCheckInServiceTest {
         // Assert
         assertEquals(AllocationStatus.COMPLETED, allocation.getStatus());
         assertNotNull(allocation.getCheckOutDate());
-        verify(roomRepository).save(any(Room.class));
+        verify(roomOccupancyManager).updateOccupancy(room, -1);
         verify(eventPublisher).publishEvent(any());
     }
 
@@ -119,6 +121,6 @@ class AllocationCheckInServiceTest {
         // Assert
         assertEquals(AllocationStatus.COMPLETED, allocation.getStatus()); // endAllocation sets COMPLETED currently
         assertNotNull(allocation.getEndDate());
-        verify(roomRepository).save(any(Room.class));
+        verify(roomOccupancyManager).updateOccupancy(room, -1);
     }
 }

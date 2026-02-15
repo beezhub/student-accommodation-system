@@ -1,6 +1,5 @@
 package com.beezhub.student_accommodation.service.allocation;
 
-import com.beezhub.student_accommodation.event.AllocationFreedEvent;
 import com.beezhub.student_accommodation.exceptions.*;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.*;
@@ -8,17 +7,15 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.NotificationService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AllocationLifecycleService {
 
@@ -37,8 +34,32 @@ public class AllocationLifecycleService {
     private final RoomAllocationMapper roomAllocationMapper;
     private final NotificationService notificationService;
     private final WaitingListService waitingListService;
+    private final RoomOccupancyManager roomOccupancyManager;
     private final AllocationMoveService allocationMoveService;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AllocationBatchService allocationBatchService;
+
+    public AllocationLifecycleService(
+            RoomAllocationRepository roomAllocationRepository,
+            StudentRepository studentRepository,
+            RoomRepository roomRepository,
+            ApplicationRepository applicationRepository,
+            RoomAllocationMapper roomAllocationMapper,
+            NotificationService notificationService,
+            WaitingListService waitingListService,
+            RoomOccupancyManager roomOccupancyManager,
+            AllocationMoveService allocationMoveService,
+            @Lazy AllocationBatchService allocationBatchService) {
+        this.roomAllocationRepository = roomAllocationRepository;
+        this.studentRepository = studentRepository;
+        this.roomRepository = roomRepository;
+        this.applicationRepository = applicationRepository;
+        this.roomAllocationMapper = roomAllocationMapper;
+        this.notificationService = notificationService;
+        this.waitingListService = waitingListService;
+        this.roomOccupancyManager = roomOccupancyManager;
+        this.allocationMoveService = allocationMoveService;
+        this.allocationBatchService = allocationBatchService;
+    }
 
     /**
      * Creates a new room allocation with comprehensive business rule validation.
@@ -61,7 +82,7 @@ public class AllocationLifecycleService {
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         waitingListService.updateStatusToAllocated(student.getId());
-        RoomOccupancyManager.updateOccupancy(room, 1, roomRepository);
+        roomOccupancyManager.updateOccupancy(room, 1);
 
         sendAllocationNotification(saved);
 
@@ -96,7 +117,7 @@ public class AllocationLifecycleService {
 
         long previousDeclineCount = getPreviousDeclineCount(allocation);
         
-        RoomOccupancyManager.updateOccupancy(allocation.getRoom(), -1, roomRepository);
+        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
 
         AllocationStatusValidator.validate(allocation, AllocationStatus.DECLINED);
         allocation.setStatus(AllocationStatus.DECLINED);
@@ -109,7 +130,11 @@ public class AllocationLifecycleService {
 
         handleDeclineConsequences(saved, previousDeclineCount);
 
-        eventPublisher.publishEvent(new AllocationFreedEvent(this, allocation.getRoom().getId()));
+        try {
+            allocationBatchService.allocateNextFromWaitingList();
+        } catch (Exception e) {
+            log.error("Failed to allocate next from waiting list after decline {}", id, e);
+        }
 
         return roomAllocationMapper.toResponse(saved);
     }
@@ -123,11 +148,15 @@ public class AllocationLifecycleService {
         allocation.setStatus(AllocationStatus.CANCELLED);
         allocation.setEndDate(LocalDateTime.now());
 
-        RoomOccupancyManager.updateOccupancy(allocation.getRoom(), -1, roomRepository);
+        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
         roomAllocationRepository.save(allocation);
         log.info("Successfully cancelled room allocation with id: {}", id);
 
-        eventPublisher.publishEvent(new AllocationFreedEvent(this, allocation.getRoom().getId()));
+        try {
+            allocationBatchService.allocateNextFromWaitingList();
+        } catch (Exception e) {
+            log.error("Failed to allocate next from waiting list after deletion {}", id, e);
+        }
     }
 
     @Transactional
@@ -173,8 +202,8 @@ public class AllocationLifecycleService {
         boolean roomChanged = false;
         if (!oldRoom.getId().equals(newRoom.getId())) {
             validateRoomCapacity(newRoom);
-            RoomOccupancyManager.updateOccupancy(oldRoom, -1, roomRepository);
-            RoomOccupancyManager.updateOccupancy(newRoom, 1, roomRepository);
+            roomOccupancyManager.updateOccupancy(oldRoom, -1);
+            roomOccupancyManager.updateOccupancy(newRoom, 1);
             roomChanged = true;
         }
 

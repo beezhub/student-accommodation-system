@@ -32,6 +32,7 @@ public class AllocationMoveService {
     private final AppUserRepository appUserRepository;
     private final AllocationAuditService allocationAuditService;
     private final UserNotificationService userNotificationService;
+    private final RoomOccupancyManager roomOccupancyManager;
 
     @Transactional
     public RoomAllocationResponse moveStudent(Long allocationId, Long newRoomId, String reason, Long adminId) {
@@ -49,8 +50,8 @@ public class AllocationMoveService {
         validateRoomCapacity(newRoom);
         validateHardConstraints(allocation.getStudent(), newRoom);
 
-        RoomOccupancyManager.updateOccupancy(oldRoom, -1, roomRepository);
-        RoomOccupancyManager.updateOccupancy(newRoom, 1, roomRepository);
+        roomOccupancyManager.updateOccupancy(oldRoom, -1);
+        roomOccupancyManager.updateOccupancy(newRoom, 1);
 
         allocation.setRoom(newRoom);
         RoomAllocation updated = roomAllocationRepository.save(allocation);

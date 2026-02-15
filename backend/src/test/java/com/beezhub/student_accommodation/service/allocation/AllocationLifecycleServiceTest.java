@@ -59,6 +59,8 @@ class AllocationLifecycleServiceTest {
     private UserNotificationService userNotificationService;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private RoomOccupancyManager roomOccupancyManager;
 
     @InjectMocks
     private AllocationLifecycleService allocationLifecycleService;
@@ -110,6 +112,7 @@ class AllocationLifecycleServiceTest {
         assertThat(response).isNotNull();
         verify(roomAllocationRepository).save(any(RoomAllocation.class));
         verify(notificationService).sendRoomAllocationNotification(any(RoomAllocation.class));
+        verify(roomOccupancyManager).updateOccupancy(room, 1);
     }
 
     @Test
@@ -198,7 +201,7 @@ class AllocationLifecycleServiceTest {
         allocationLifecycleService.declineOffer(1L, request);
 
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.DECLINED);
-        verify(roomRepository).save(room);
+        verify(roomOccupancyManager).updateOccupancy(room, -1);
         verify(roomAllocationRepository).save(allocation);
         verify(waitingListService).reQueueStudent(any(), eq(1), eq(2));
     }
@@ -223,6 +226,7 @@ class AllocationLifecycleServiceTest {
         allocationLifecycleService.declineOffer(1L, request);
 
         // Check delegation
+        verify(roomOccupancyManager).updateOccupancy(room, -1);
         verify(waitingListService).reQueueStudent(any(), eq(2), eq(2));
     }
 
@@ -245,6 +249,7 @@ class AllocationLifecycleServiceTest {
 
         allocationLifecycleService.declineOffer(1L, request);
 
+        verify(roomOccupancyManager).updateOccupancy(room, -1);
         verify(waitingListService).cancelApplicationAfterMaxDeclines(any(), eq(2));
     }
 
@@ -260,7 +265,7 @@ class AllocationLifecycleServiceTest {
         allocationLifecycleService.deleteRoomAllocation(1L);
 
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.CANCELLED);
-        verify(roomRepository).save(room);
+        verify(roomOccupancyManager).updateOccupancy(room, -1);
         verify(roomAllocationRepository).save(allocation);
     }
     

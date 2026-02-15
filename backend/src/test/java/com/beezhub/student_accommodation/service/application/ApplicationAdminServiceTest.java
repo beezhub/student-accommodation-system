@@ -1,21 +1,15 @@
 package com.beezhub.student_accommodation.service.application;
 
-import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.mapper.ApplicationMapper;
 import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
 import com.beezhub.student_accommodation.model.dto.RequiredDocumentsChecklistResponse;
 import com.beezhub.student_accommodation.model.entity.Application;
-import com.beezhub.student_accommodation.model.entity.Document;
-import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
-import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.application.ApplicationService;
-import com.beezhub.student_accommodation.service.application.ApplicationDocumentService;
+import com.beezhub.student_accommodation.service.ApplicationService;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.NotificationService;
-import com.beezhub.student_accommodation.service.SystemSettingService;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.service.UserNotificationService;
@@ -26,7 +20,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;

@@ -65,6 +65,8 @@ class StagedAllocationServiceTest {
     private RoomAllocationMapper roomAllocationMapper;
     @Mock
     private WaitingListService waitingListService;
+    @Mock
+    private RoomOccupancyManager roomOccupancyManager;
 
     @InjectMocks
     private StagedAllocationService stagedAllocationService;
@@ -144,7 +146,7 @@ class StagedAllocationServiceTest {
         assertThat(stagedAllocation.getConfirmedAt()).isNotNull();
         verify(roomAllocationRepository).save(any(RoomAllocation.class));
         verify(stagedAllocationRepository).save(stagedAllocation);
-        verify(roomRepository).save(room);
+        verify(roomOccupancyManager).updateOccupancy(room, 1);
         verify(allocationAuditService).logAuditAction(any(), eq(AllocationAuditActionType.FORCE_ALLOCATE), eq(admin),
                 anyString(), isNull(), eq(room));
         verify(notificationService).sendRoomAllocationNotification(any(RoomAllocation.class));

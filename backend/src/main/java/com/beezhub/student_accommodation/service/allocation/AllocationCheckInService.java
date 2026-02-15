@@ -29,7 +29,7 @@ public class AllocationCheckInService {
     private final RoomAllocationMapper roomAllocationMapper;
     private final UserNotificationService userNotificationService;
     private final ApplicationEventPublisher eventPublisher;
-    private final RoomRepository roomRepository;
+    private final RoomOccupancyManager roomOccupancyManager;
 
     @Transactional
     public RoomAllocationResponse confirmCheckIn(Long id) {
@@ -76,7 +76,7 @@ public class AllocationCheckInService {
         allocation.setCheckOutDate(LocalDateTime.now());
         allocation.setEndDate(LocalDateTime.now());
 
-        RoomOccupancyManager.updateOccupancy(allocation.getRoom(), -1, roomRepository);
+        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
         log.info("Successfully checked out allocation with id: {}", id);
@@ -95,7 +95,7 @@ public class AllocationCheckInService {
         allocation.setStatus(AllocationStatus.COMPLETED);
         allocation.setEndDate(LocalDateTime.now());
 
-        RoomOccupancyManager.updateOccupancy(allocation.getRoom(), -1, roomRepository);
+        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
 
         RoomAllocation updated = roomAllocationRepository.save(allocation);
         log.info("Successfully ended room allocation with id: {}", id);
