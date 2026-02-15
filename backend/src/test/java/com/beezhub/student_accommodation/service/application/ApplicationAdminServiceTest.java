@@ -11,7 +11,8 @@ import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.ApplicationService;
+import com.beezhub.student_accommodation.service.application.ApplicationService;
+import com.beezhub.student_accommodation.service.application.ApplicationDocumentService;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.SystemSettingService;
@@ -57,6 +58,12 @@ class ApplicationAdminServiceTest {
     private ApplicationService applicationService;
     @Mock
     private DocumentCommentRepository documentCommentRepository;
+    @Mock
+    private ApplicationDocumentService applicationDocumentService;
+    @Mock
+    private ApplicationQueryService applicationQueryService;
+    @Mock
+    private com.beezhub.student_accommodation.service.RoomAllocationService roomAllocationService;
 
     @InjectMocks
     private ApplicationAdminService applicationAdminService;
@@ -122,23 +129,59 @@ class ApplicationAdminServiceTest {
 
     @Test
     void getRequiredDocumentsChecklist_shouldReturnChecklist() {
-        DocumentType docType = new DocumentType();
-        docType.setId(1L);
-        docType.setTypeName("ID");
-        docType.setIsRequired(true);
+        RequiredDocumentsChecklistResponse checklistResponse = new RequiredDocumentsChecklistResponse();
+        checklistResponse.setTotalRequired(1);
+        checklistResponse.setApproved(1);
 
-        Document doc = new Document();
-        doc.setDocumentType(docType);
-        doc.setDocumentStatus(DocumentStatus.APPROVED);
-        doc.setApplication(application);
-
-        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
-        when(documentTypeRepository.findByIsRequiredTrue()).thenReturn(Collections.singletonList(docType));
-        when(documentRepository.findByApplicationId(1L)).thenReturn(Collections.singletonList(doc));
+        when(applicationDocumentService.getRequiredDocumentsChecklist(1L)).thenReturn(checklistResponse);
 
         RequiredDocumentsChecklistResponse response = applicationAdminService.getRequiredDocumentsChecklist(1L);
 
         assertThat(response.getTotalRequired()).isEqualTo(1);
         assertThat(response.getApproved()).isEqualTo(1);
+        verify(applicationDocumentService).getRequiredDocumentsChecklist(1L);
+    }
+
+    @Test
+    void getApplicationFullDetailsEnhanced_shouldReturnFullRequirements() {
+        // Setup
+        AppUser adminUser = new AppUser();
+        adminUser.setId(200L);
+        adminUser.setUserRole(com.beezhub.student_accommodation.model.enums.UserRole.ADMIN);
+
+        Student student = application.getStudent();
+        student.setYearOfStudy(new com.beezhub.student_accommodation.model.entity.YearOfStudy());
+        student.getYearOfStudy().setYearOfStudy("1");
+
+        // Create expected response
+        com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse expectedResponse = 
+            com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse.builder()
+                .id(1L)
+                .applicationCode("APP-2024-001")
+                .status("PENDING")
+                .studentProfile(com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse.StudentProfile.builder()
+                    .id(student.getId())
+                    .build())
+                .requiredDocumentsChecklist(RequiredDocumentsChecklistResponse.builder()
+                    .totalRequired(1)
+                    .build())
+                .build();
+
+        // Mock delegation to ApplicationQueryService
+        when(applicationQueryService.getApplicationFullDetailsEnhanced(1L, "admin"))
+            .thenReturn(expectedResponse);
+
+        // Execute
+        com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse response = applicationAdminService
+                .getApplicationFullDetailsEnhanced(1L, "admin");
+
+        // Verify delegation occurred
+        verify(applicationQueryService).getApplicationFullDetailsEnhanced(1L, "admin");
+        
+        // Verify response
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(1L);
+        assertThat(response.getStudentProfile()).isNotNull();
+        assertThat(response.getRequiredDocumentsChecklist()).isNotNull();
     }
 }

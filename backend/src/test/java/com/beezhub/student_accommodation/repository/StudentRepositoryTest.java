@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for StudentRepository EntityGraph methods.
  * Verifies that lazy loading is configured correctly and entity graphs work as expected.
  */
-@DataJpaTest(excludeAutoConfiguration = FlywayAutoConfiguration.class)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class StudentRepositoryTest {
 
     @Autowired

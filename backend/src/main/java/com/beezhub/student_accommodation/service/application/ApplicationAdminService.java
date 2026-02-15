@@ -5,26 +5,18 @@ import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.mapper.ApplicationMapper;
+import com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse;
 import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
 import com.beezhub.student_accommodation.model.dto.ApplicationStatusUpdateRequest;
 import com.beezhub.student_accommodation.model.dto.RequiredDocumentsChecklistResponse;
-import com.beezhub.student_accommodation.model.dto.RequiredDocumentsChecklistResponse.DocumentChecklistItem;
 import com.beezhub.student_accommodation.model.dto.ReviewProgressRequest;
-import com.beezhub.student_accommodation.model.dto.ReviewProgressRequest.DocumentUpdate;
 import com.beezhub.student_accommodation.model.dto.ReviewProgressResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Application;
-import com.beezhub.student_accommodation.model.entity.Document;
-import com.beezhub.student_accommodation.model.entity.DocumentComment;
-import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
-import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
-import com.beezhub.student_accommodation.repository.DocumentCommentRepository;
-import com.beezhub.student_accommodation.repository.DocumentRepository;
-import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.validation.Valid;
-import java.util.List;
 
 import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.*;
 
@@ -52,15 +43,15 @@ import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.*;
 public class ApplicationAdminService {
 
     private final ApplicationRepository applicationRepository;
-    private final DocumentRepository documentRepository;
-    private final DocumentTypeRepository documentTypeRepository;
-    private final DocumentCommentRepository documentCommentRepository;
+
     private final AppUserRepository appUserRepository;
     private final ApplicationMapper applicationMapper;
     private final NotificationService notificationService;
     private final UserNotificationService userNotificationService;
     private final AuthService authService;
-    private final ApplicationService applicationService; // For shared helpers like attemptAutoAllocation
+    private final RoomAllocationService roomAllocationService;
+    private final ApplicationDocumentService applicationDocumentService;
+    private final ApplicationQueryService applicationQueryService;
 
     /**
      * Updates application status with validation and notifications.
@@ -117,7 +108,7 @@ public class ApplicationAdminService {
         // Attempt auto-allocation if approved
         if (newStatus == APPROVED) {
             try {
-                applicationService.attemptAutoAllocation(updatedApplication);
+                roomAllocationService.attemptAutoAllocation(updatedApplication);
                 // Re-fetch to get updated status (might have changed to AWAITING_ALLOCATION)
                 updatedApplication = applicationRepository.findById(applicationId)
                         .orElse(updatedApplication);
@@ -201,76 +192,7 @@ public class ApplicationAdminService {
      * @return RequiredDocumentsChecklistResponse with document status breakdown
      */
     public RequiredDocumentsChecklistResponse getRequiredDocumentsChecklist(Long applicationId) {
-        log.info("Getting required documents checklist for application {}", applicationId);
-
-        Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new ApplicationNotFoundException(
-                        "Application not found with ID: " + applicationId));
-
-        // Get all required document types
-        List<DocumentType> requiredTypes = documentTypeRepository.findByIsRequiredTrue();
-
-        // Get all documents for this application
-        List<Document> applicationDocuments = documentRepository.findByApplicationId(applicationId);
-
-        // Build checklist items
-        List<DocumentChecklistItem> checklistItems = new java.util.ArrayList<>();
-        int approved = 0;
-        int pending = 0;
-        int rejected = 0;
-        int notUploaded = 0;
-
-        for (DocumentType docType : requiredTypes) {
-            // Find the latest document for this type (in case of resubmission)
-            Document matchingDoc = applicationDocuments.stream()
-                    .filter(doc -> doc.getDocumentType().getId().equals(docType.getId()))
-                    .reduce((first, second) -> second) // Get the latest (last) one
-                    .orElse(null);
-
-            DocumentChecklistItem item;
-            if (matchingDoc != null) {
-                String status = matchingDoc.getDocumentStatus().name();
-                item = DocumentChecklistItem.builder()
-                        .documentTypeId(docType.getId())
-                        .type(docType.getTypeName())
-                        .status(status)
-                        .uploadedAt(matchingDoc.getCreatedAt())
-                        .documentId(matchingDoc.getId())
-                        .documentName(matchingDoc.getDocumentName())
-                        .isRequired(true)
-                        .build();
-
-                switch (matchingDoc.getDocumentStatus()) {
-                    case APPROVED -> approved++;
-                    case PENDING -> pending++;
-                    case REJECTED -> rejected++;
-                }
-            } else {
-                item = DocumentChecklistItem.builder()
-                        .documentTypeId(docType.getId())
-                        .type(docType.getTypeName())
-                        .status("NOT_UPLOADED")
-                        .isRequired(true)
-                        .build();
-                notUploaded++;
-            }
-            checklistItems.add(item);
-        }
-
-        RequiredDocumentsChecklistResponse response = RequiredDocumentsChecklistResponse.builder()
-                .applicationId(applicationId)
-                .totalRequired(requiredTypes.size())
-                .approved(approved)
-                .pending(pending)
-                .rejected(rejected)
-                .notUploaded(notUploaded)
-                .documents(checklistItems)
-                .build();
-
-        response.calculateAllApproved();
-        log.info("Checklist for application {}: {}/{} approved", applicationId, approved, requiredTypes.size());
-
-        return response;
+        return applicationDocumentService.getRequiredDocumentsChecklist(applicationId);
     }
 
     /**
@@ -394,74 +316,7 @@ public class ApplicationAdminService {
     @LogActivity(action = "UPDATE", entityType = "APPLICATION", description = "Saved review progress for application {0}", entityIdParamIndex = 0)
     public ReviewProgressResponse saveReviewProgress(Long applicationId, ReviewProgressRequest request,
             String username) {
-        log.info("Saving review progress for application {} by {}", applicationId, username);
-
-        // Verify application exists
-        Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new ApplicationNotFoundException(
-                        "Application not found with ID: " + applicationId));
-
-        // Verify admin access
-        AppUser admin = appUserRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
-
-        if (!admin.getUserRole().equals(UserRole.ADMIN)) {
-            throw new UnauthorizedAccessException("Only admins can save review progress");
-        }
-
-        int documentsUpdated = 0;
-        int commentsAdded = 0;
-
-        for (DocumentUpdate update : request.getDocumentUpdates()) {
-            // Find the document
-            Document document = documentRepository.findById(update.getDocumentId())
-                    .orElseThrow(() -> new RuntimeException(
-                            "Document not found with ID: " + update.getDocumentId()));
-
-            // Verify document belongs to this application
-            if (!document.getApplication().getId().equals(applicationId)) {
-                throw new UnauthorizedAccessException(
-                        "Document " + update.getDocumentId()
-                                + " does not belong to this application");
-            }
-
-            // Update document status if provided
-            if (update.getNewStatus() != null && !update.getNewStatus().trim().isEmpty()) {
-                try {
-                    DocumentStatus newStatus = DocumentStatus
-                            .valueOf(update.getNewStatus().toUpperCase());
-                    document.setDocumentStatus(newStatus);
-                    documentRepository.save(document);
-                    documentsUpdated++;
-                    log.info("Updated document {} status to {}", update.getDocumentId(), newStatus);
-                } catch (IllegalArgumentException e) {
-                    throw new InvalidStatusException(
-                            "Invalid document status: " + update.getNewStatus());
-                }
-            }
-
-            // Add comment if provided
-            if (update.getComment() != null && !update.getComment().trim().isEmpty()) {
-                DocumentComment comment = DocumentComment.builder()
-                        .document(document)
-                        .admin(admin)
-                        .commentText(update.getComment())
-                        .build();
-                documentCommentRepository.save(comment);
-                commentsAdded++;
-                log.info("Added comment to document {}", update.getDocumentId());
-            }
-        }
-
-        log.info("Review progress saved for application {}: {} documents updated, {} comments added",
-                applicationId, documentsUpdated, commentsAdded);
-
-        return ReviewProgressResponse.builder()
-                .success(true)
-                .message("Review progress saved successfully")
-                .documentsUpdated(documentsUpdated)
-                .commentsAdded(commentsAdded)
-                .build();
+        return applicationDocumentService.saveReviewProgress(applicationId, request, username);
     }
 
     /**
@@ -471,8 +326,7 @@ public class ApplicationAdminService {
      * @return true if all required documents are approved
      */
     public boolean areAllRequiredDocumentsApproved(Long applicationId) {
-        RequiredDocumentsChecklistResponse checklist = getRequiredDocumentsChecklist(applicationId);
-        return Boolean.TRUE.equals(checklist.getAllApproved());
+        return applicationDocumentService.areAllRequiredDocumentsApproved(applicationId);
     }
 
     /**
@@ -503,5 +357,21 @@ public class ApplicationAdminService {
                                 + checklist.getTotalRequired());
             }
         }
+    }
+    // ==================== Enhanced Application Full Details ====================
+
+    /**
+     * Gets comprehensive application details including student profile,
+     * documents with nested comments, required documents checklist,
+     * and allocation eligibility status.
+     * 
+     * Delegates to ApplicationQueryService for complex data assembly.
+     *
+     * @param applicationId The application ID
+     * @param username      The username of the requesting user
+     * @return ApplicationFullDetailsResponse with all details
+     */
+    public ApplicationFullDetailsResponse getApplicationFullDetailsEnhanced(Long applicationId, String username) {
+        return applicationQueryService.getApplicationFullDetailsEnhanced(applicationId, username);
     }
 }

@@ -1,0 +1,32 @@
+refactor(application): extract ApplicationQueryService to meet 400-line limit
+
+Address code review feedback for TASK-2.04 by extracting complex query
+operations from ApplicationAdminService into a new ApplicationQueryService.
+
+Changes:
+- Create ApplicationQueryService (183 lines) for complex read-only operations
+- Extract getApplicationFullDetailsEnhanced() method and refactor into focused helpers:
+  * buildStudentProfile()
+  * calculateAllocationEligibility()
+  * buildApplicationFullDetailsResponse()
+- Update ApplicationAdminService to delegate to ApplicationQueryService (483 → 377 lines)
+- Add ApplicationQueryService dependency injection to ApplicationAdminService
+- Create ApplicationQueryServiceTest with 7 comprehensive tests covering:
+  * Authorization scenarios (admin, owner, unauthorized)
+  * Eligibility calculation edge cases
+  * Error handling for non-existent applications
+- Update ApplicationAdminServiceTest to mock and verify delegation pattern
+
+Impact:
+- ApplicationAdminService now complies with 400-line limit (377 lines)
+- Clean unidirectional dependencies (no circular deps)
+- All acceptance criteria met:
+  * ApplicationService: 257 lines ✅
+  * ApplicationAdminService: 377 lines ✅
+  * ApplicationSearchService: 184 lines ✅
+  * ApplicationDocumentService: 268 lines ✅
+  * ApplicationQueryService: 183 lines ✅
+- No breaking changes - ApplicationController unchanged
+- Facade pattern maintained for backward compatibility
+
+Refs: TASK-2.04, ARCH-3.3 (Service Decomposition), ADR-003 (Strangler Pattern)
