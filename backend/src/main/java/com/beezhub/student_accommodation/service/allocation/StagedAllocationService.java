@@ -341,4 +341,22 @@ public class StagedAllocationService {
             throw new RuntimeException("Student already has a pending proposal");
         }
     }
+
+    public PageResponse<StagedAllocationResponse> getStagedAllocations(String batchId, StagedAllocationStatus status,
+            Pageable pageable) {
+        log.info("Retrieving staged allocations for batchId: {}, status: {}", batchId, status);
+        
+        Page<StagedAllocation> page;
+        if (batchId != null && status != null) {
+            page = stagedAllocationRepository.findByBatchIdAndStatus(batchId, status, pageable);
+        } else if (batchId != null) {
+            page = stagedAllocationRepository.findByBatchId(batchId, pageable);
+        } else if (status != null) {
+            page = stagedAllocationRepository.findByStatus(status, pageable);
+        } else {
+            page = stagedAllocationRepository.findAll(pageable);
+        }
+        
+        return PageMapper.toPageResponse(page.map(stagedAllocationMapper::toResponse));
+    }
 }

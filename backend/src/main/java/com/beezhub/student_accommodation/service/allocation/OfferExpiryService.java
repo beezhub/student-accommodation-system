@@ -7,6 +7,7 @@ import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
@@ -29,6 +30,7 @@ public class OfferExpiryService {
     private final NotificationService notificationService;
     private final UserNotificationService userNotificationService;
     private final RoomOccupancyManager roomOccupancyManager;
+    private final RoomRepository roomRepository;
     private final TransactionTemplate transactionTemplate;
 
     @Value("${app.allocation.offer-expiry-days:7}")
@@ -64,7 +66,7 @@ public class OfferExpiryService {
                 roomAllocationRepository.save(current);
 
                 // Free the room
-                roomOccupancyManager.updateOccupancy(current.getRoom(), -1);
+                roomOccupancyManager.updateOccupancy(current.getRoom(), -1, roomRepository);
 
                 // Cancel application
                 cancelApplicationAfterOfferExpiry(current);
