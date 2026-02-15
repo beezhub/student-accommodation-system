@@ -3,13 +3,18 @@ package com.beezhub.student_accommodation.service.allocation;
 import com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
+import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationResponse;
 import com.beezhub.student_accommodation.model.dto.RoomAvailabilityResponse;
+import com.beezhub.student_accommodation.model.dto.StagedAllocationResponse;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
+import com.beezhub.student_accommodation.model.entity.StagedAllocation;
+import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
+import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
 import com.beezhub.student_accommodation.specification.RoomAllocationSpecification;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +23,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,11 +32,14 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class RoomAllocationQueryService {
 
     private final RoomAllocationRepository roomAllocationRepository;
     private final RoomRepository roomRepository;
+    private final StagedAllocationRepository stagedAllocationRepository;
     private final RoomAllocationMapper roomAllocationMapper;
+    private final StagedAllocationMapper stagedAllocationMapper;
 
     public List<RoomAllocationResponse> getAllRoomAllocations() {
         log.info("Fetching all room allocations");
@@ -150,5 +159,24 @@ public class RoomAllocationQueryService {
                 room.getRoomNumber(), response.getAvailableSpots(), room.getCapacity(), activeAllocations);
 
         return response;
+    }
+
+    public PageResponse<StagedAllocationResponse> getStagedAllocations(String batchId, StagedAllocationStatus status,
+            Pageable pageable) {
+        Page<StagedAllocation> page = findStagedAllocations(batchId, status, pageable);
+        return PageMapper.toPageResponse(page.map(stagedAllocationMapper::toResponse));
+    }
+
+    private Page<StagedAllocation> findStagedAllocations(String batchId, StagedAllocationStatus status,
+            Pageable pageable) {
+        if (batchId != null && status != null) {
+            return stagedAllocationRepository.findByBatchIdAndStatus(batchId, status, pageable);
+        } else if (batchId != null) {
+            return stagedAllocationRepository.findByBatchId(batchId, pageable);
+        } else if (status != null) {
+            return stagedAllocationRepository.findByStatus(status, pageable);
+        } else {
+            return stagedAllocationRepository.findAll(pageable);
+        }
     }
 }

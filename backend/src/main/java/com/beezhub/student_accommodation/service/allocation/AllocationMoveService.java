@@ -30,7 +30,6 @@ public class AllocationMoveService {
     private final RoomAllocationMapper roomAllocationMapper;
     private final AllocationScoringService allocationScoringService;
     private final AppUserRepository appUserRepository;
-    private final RoomOccupancyManager roomOccupancyManager;
     private final AllocationAuditService allocationAuditService;
     private final UserNotificationService userNotificationService;
 
@@ -50,8 +49,8 @@ public class AllocationMoveService {
         validateRoomCapacity(newRoom);
         validateHardConstraints(allocation.getStudent(), newRoom);
 
-        roomOccupancyManager.updateOccupancy(oldRoom, -1);
-        roomOccupancyManager.updateOccupancy(newRoom, 1);
+        RoomOccupancyManager.updateOccupancy(oldRoom, -1, roomRepository);
+        RoomOccupancyManager.updateOccupancy(newRoom, 1, roomRepository);
 
         allocation.setRoom(newRoom);
         RoomAllocation updated = roomAllocationRepository.save(allocation);

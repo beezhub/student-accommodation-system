@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -16,6 +19,10 @@ import lombok.NoArgsConstructor;
 public class BatchConfirmationResult {
 
     private Boolean success;
-    private Integer confirmed;
-    private Integer failed;
+    private int totalAttempted;
+    private int successCount;
+    private int failureCount;
+    private List<String> errors;
+    private List<Long> confirmedAllocationIds;
+    private LocalDateTime processedAt;
 }

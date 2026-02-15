@@ -2,10 +2,7 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.model.dto.AcceptOfferRequest;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationResponse;
-import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
-import com.beezhub.student_accommodation.model.entity.Student;
-import com.beezhub.student_accommodation.model.entity.WaitingListEntry;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
@@ -44,7 +41,7 @@ class RoomAllocationServiceAcceptOfferTest {
     @Mock
     private ApplicationDocumentService applicationDocumentService;
     @Mock
-    private ApplicationRepository applicationRepository;
+    private AllocationEligibilityService allocationEligibilityService;
     @Mock
     private AllocationScoringService allocationScoringService;
     @Mock
@@ -55,26 +52,10 @@ class RoomAllocationServiceAcceptOfferTest {
     @InjectMocks
     private RoomAllocationService roomAllocationService;
 
-    private RoomAllocation allocation;
     private AcceptOfferRequest request;
-    private Application application;
-    private Student student;
 
     @BeforeEach
     void setUp() {
-        student = new Student();
-        student.setId(10L);
-
-        application = new Application();
-        application.setId(100L);
-        application.setStatus(ApplicationStatus.APPROVED);
-
-        allocation = new RoomAllocation();
-        allocation.setId(1L);
-        allocation.setStatus(AllocationStatus.OFFERED);
-        allocation.setApplication(application);
-        allocation.setStudent(student);
-
         request = new AcceptOfferRequest();
         request.setExpectedCheckInDate(LocalDateTime.now().plusDays(2));
     }

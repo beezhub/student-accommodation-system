@@ -6,7 +6,7 @@ import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class AllocationStatusValidator {
+class AllocationStatusValidator {
 
     /**
      * Validates that a status transition is allowed according to the
