@@ -11,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -44,8 +43,7 @@ class RoomAllocationServiceBatchTest {
     private ApplicationDocumentService applicationDocumentService;
 
     @Mock
-    private ApplicationRepository applicationRepository;
-
+    private AllocationEligibilityService allocationEligibilityService;
     @Mock
     private AllocationScoringService allocationScoringService;
 

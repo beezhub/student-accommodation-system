@@ -122,7 +122,7 @@ public class StagedAllocationController {
                                 adminId);
 
                 log.info("Batch {} confirmed: {} successful, {} failed",
-                                batchId, result.getConfirmed(), result.getFailed());
+                                batchId, result.getSuccessCount(), result.getFailureCount());
 
                 return ResponseEntity.ok(result);
         }
