@@ -9,7 +9,7 @@ import com.beezhub.student_accommodation.model.dto.ReviewProgressRequest;
 import com.beezhub.student_accommodation.model.dto.ReviewProgressResponse;
 import org.springframework.security.core.Authentication;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
-import com.beezhub.student_accommodation.service.application.ApplicationService;
+import com.beezhub.student_accommodation.service.ApplicationService;
 import com.beezhub.student_accommodation.service.application.ApplicationSearchService;
 import com.beezhub.student_accommodation.service.application.ApplicationAdminService;
 import io.swagger.v3.oas.annotations.Operation;
