@@ -13,14 +13,15 @@ import com.beezhub.student_accommodation.model.dto.StagedAllocationResponse;
 import com.beezhub.student_accommodation.model.dto.ScoredRoom;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.entity.*;
+import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.AllocationScoringService;
-import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -43,12 +44,12 @@ public class StagedAllocationService {
     private final ApplicationRepository applicationRepository;
     private final AppUserRepository appUserRepository;
     private final BuildingRepository buildingRepository;
-    
+
     private final AllocationScoringService allocationScoringService;
     private final AllocationAuditService allocationAuditService;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
-    
+
     private final StagedAllocationMapper stagedAllocationMapper;
     private final RoomAllocationMapper roomAllocationMapper;
     private final WaitingListService waitingListService;
@@ -87,7 +88,7 @@ public class StagedAllocationService {
 
     @Transactional
     public StagedAllocationResponse overrideConstraints(Long studentId, Long roomId, String reason,
-                                                      Long adminId, List<String> constraintsBypassed) {
+            Long adminId, List<String> constraintsBypassed) {
         log.info("Override allocation for student {} to room {} by admin {}: {}", studentId, roomId, adminId, reason);
         Student student = getStudent(studentId);
         Room room = getRoom(roomId);
@@ -106,7 +107,7 @@ public class StagedAllocationService {
         log.info("Created override proposal for student {} to room {}", studentId, room.getRoomNumber());
         return stagedAllocationMapper.toResponse(saved);
     }
-    
+
     @Transactional
     public BatchAllocationProposalResponse proposeAllocation(BatchAllocationRequest request, Long adminId) {
         AppUser admin = getAdmin(adminId);
@@ -115,14 +116,16 @@ public class StagedAllocationService {
         BatchAllocationProposalResponse response = initializeBatchResponse(request, adminId, admin);
         processBatchProposals(request, admin, preferredBuilding, response);
 
-        log.info("Batch proposal completed: {} successful, {} failed", response.getSuccessfulProposals(), response.getFailedProposals());
+        log.info("Batch proposal completed: {} successful, {} failed", response.getSuccessfulProposals(),
+                response.getFailedProposals());
         return response;
     }
 
     @Transactional
     public void confirmBatchAllocations(String batchId, Long adminId) {
         log.info("Confirming batch allocations for batch {} by admin {}", batchId, adminId);
-        List<StagedAllocation> proposals = stagedAllocationRepository.findByBatchIdAndStatus(batchId, StagedAllocationStatus.PROPOSED);
+        List<StagedAllocation> proposals = stagedAllocationRepository.findByBatchIdAndStatus(batchId,
+                StagedAllocationStatus.PROPOSED);
 
         if (proposals.isEmpty()) {
             log.warn("No PROPOSED allocations found for batch {}", batchId);
@@ -174,7 +177,7 @@ public class StagedAllocationService {
     private void validateRoomCapacity(Room room) {
         long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
         if (activeAllocations >= room.getCapacity()) {
-             throw new RuntimeException("Room " + room.getRoomNumber() + " is at full capacity");
+            throw new RuntimeException("Room " + room.getRoomNumber() + " is at full capacity");
         }
     }
 
@@ -206,7 +209,7 @@ public class StagedAllocationService {
 
     private void sendConfirmationNotification(RoomAllocation saved) {
         try {
-            notificationService.sendRoomAllocationNotification(saved);
+            eventPublisher.publishEvent(new AllocationCreatedEvent(saved));
             userNotificationService.createAllocationConfirmationNotification(
                     saved.getStudent().getAppUser().getId(),
                     saved.getRoom().getRoomNumber(),
@@ -231,17 +234,20 @@ public class StagedAllocationService {
         return applicationRepository.findByStudent_Id(studentId).stream()
                 .filter(app -> app.getStatus() == ApplicationStatus.AWAITING_ALLOCATION)
                 .findFirst()
-                .orElseThrow(() -> new ApplicationNotFoundException("No application awaiting allocation found for student ID: " + studentId));
+                .orElseThrow(() -> new ApplicationNotFoundException(
+                        "No application awaiting allocation found for student ID: " + studentId));
     }
 
-    private StagedAllocation createOverrideProposal(Student student, Room room, Application application, AppUser admin, List<String> constraints) {
+    private StagedAllocation createOverrideProposal(Student student, Room room, Application application, AppUser admin,
+            List<String> constraints) {
         return StagedAllocation.builder()
                 .student(student)
                 .room(room)
                 .application(application)
                 .status(StagedAllocationStatus.PROPOSED)
                 .score(allocationScoringService.scoreSingleRoom(student, application, room).getTotalScore())
-                .warnings(stagedAllocationMapper.serializeWarnings(List.of("CONSTRAINT_OVERRIDE: " + String.join(", ", constraints))))
+                .warnings(stagedAllocationMapper
+                        .serializeWarnings(List.of("CONSTRAINT_OVERRIDE: " + String.join(", ", constraints))))
                 .proposedBy(admin)
                 .batchId("OVERRIDE-" + System.currentTimeMillis())
                 .build();
@@ -263,7 +269,8 @@ public class StagedAllocationService {
         return null;
     }
 
-    private BatchAllocationProposalResponse initializeBatchResponse(BatchAllocationRequest request, Long adminId, AppUser admin) {
+    private BatchAllocationProposalResponse initializeBatchResponse(BatchAllocationRequest request, Long adminId,
+            AppUser admin) {
         return BatchAllocationProposalResponse.builder()
                 .batchId(request.getBatchId())
                 .totalStudents(request.getStudentIds().size())
@@ -276,13 +283,15 @@ public class StagedAllocationService {
                 .build();
     }
 
-    private void processBatchProposals(BatchAllocationRequest request, AppUser admin, Building preferredBuilding, BatchAllocationProposalResponse response) {
+    private void processBatchProposals(BatchAllocationRequest request, AppUser admin, Building preferredBuilding,
+            BatchAllocationProposalResponse response) {
         int successCount = 0;
         int failCount = 0;
 
         for (Long studentId : request.getStudentIds()) {
             try {
-                StagedAllocationResponse proposal = createProposalForStudent(studentId, request.getBatchId(), preferredBuilding, admin);
+                StagedAllocationResponse proposal = createProposalForStudent(studentId, request.getBatchId(),
+                        preferredBuilding, admin);
                 response.getProposals().add(proposal);
                 successCount++;
                 sendProposalNotification(getStudent(studentId), getRoom(proposal.getRoomId()));
@@ -299,7 +308,8 @@ public class StagedAllocationService {
         response.setFailedProposals(failCount);
     }
 
-    private StagedAllocationResponse createProposalForStudent(Long studentId, String batchId, Building preferredBuilding, AppUser admin) {
+    private StagedAllocationResponse createProposalForStudent(Long studentId, String batchId,
+            Building preferredBuilding, AppUser admin) {
         Student student = getStudent(studentId);
         validateNoActiveAllocation(student.getId());
         validateNoPendingProposal(student.getId());
@@ -307,7 +317,8 @@ public class StagedAllocationService {
         Application application = getAwaitingApplication(studentId);
         Building effectiveBuilding = preferredBuilding != null ? preferredBuilding : application.getPreferredBuilding();
 
-        List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application, effectiveBuilding);
+        List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application,
+                effectiveBuilding);
         if (scoredRooms.isEmpty()) {
             waitingListService.enqueueWaitingList(student, application);
             throw new RuntimeException("No available rooms for student; added to waiting list");
@@ -338,7 +349,8 @@ public class StagedAllocationService {
     }
 
     private void validateNoPendingProposal(Long studentId) {
-        if (stagedAllocationRepository.findByStudent_IdAndStatus(studentId, StagedAllocationStatus.PROPOSED).isPresent()) {
+        if (stagedAllocationRepository.findByStudent_IdAndStatus(studentId, StagedAllocationStatus.PROPOSED)
+                .isPresent()) {
             throw new RuntimeException("Student already has a pending proposal");
         }
     }
@@ -346,7 +358,7 @@ public class StagedAllocationService {
     public PageResponse<StagedAllocationResponse> getStagedAllocations(String batchId, StagedAllocationStatus status,
             Pageable pageable) {
         log.info("Retrieving staged allocations for batchId: {}, status: {}", batchId, status);
-        
+
         Page<StagedAllocation> page;
         if (batchId != null && status != null) {
             page = stagedAllocationRepository.findByBatchIdAndStatus(batchId, status, pageable);
@@ -357,7 +369,7 @@ public class StagedAllocationService {
         } else {
             page = stagedAllocationRepository.findAll(pageable);
         }
-        
+
         return PageMapper.toPageResponse(page.map(stagedAllocationMapper::toResponse));
     }
 }

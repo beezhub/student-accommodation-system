@@ -14,6 +14,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import com.beezhub.student_accommodation.model.event.ApplicationStatusChangedEvent;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -24,11 +25,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {NotificationService.class, AsyncConfiguration.class})
+@ContextConfiguration(classes = { NotificationService.class, AsyncConfiguration.class })
 @TestPropertySource(properties = {
-    "async.core-pool-size=2",
-    "async.max-pool-size=4",
-    "async.queue-capacity=10"
+        "async.core-pool-size=2",
+        "async.max-pool-size=4",
+        "async.queue-capacity=10"
 })
 class NotificationServiceAsyncIntegrationTest {
 
@@ -71,7 +72,9 @@ class NotificationServiceAsyncIntegrationTest {
         }).when(emailDispatchService).sendApplicationApprovedEmail(any(), any(), any());
 
         // Execute
-        notificationService.sendApplicationStatusNotification(application, ApplicationStatus.APPROVED);
+        notificationService.handleApplicationStatusChanged(
+                new com.beezhub.student_accommodation.model.event.ApplicationStatusChangedEvent(application,
+                        ApplicationStatus.PENDING, ApplicationStatus.APPROVED));
 
         // Wait
         boolean completed = latch.await(5, TimeUnit.SECONDS);
@@ -80,7 +83,7 @@ class NotificationServiceAsyncIntegrationTest {
         // Verify
         String name = threadName.get();
         // The executor prefix is "notification-async-"
-        assertTrue(name.startsWith("notification-async-"), 
-            "Expected thread name to start with 'notification-async-', but was '" + name + "'");
+        assertTrue(name.startsWith("notification-async-"),
+                "Expected thread name to start with 'notification-async-', but was '" + name + "'");
     }
 }

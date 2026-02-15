@@ -5,15 +5,16 @@ import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import com.beezhub.student_accommodation.model.event.AllocationExpiredEvent;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
-import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -27,7 +28,7 @@ public class CheckInExpiryService {
     private final RoomAllocationRepository roomAllocationRepository;
     private final ApplicationRepository applicationRepository;
     private final WaitingListRepository waitingListRepository;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
     private final RoomOccupancyManager roomOccupancyManager;
     private final RoomRepository roomRepository;
@@ -48,7 +49,8 @@ public class CheckInExpiryService {
                     return null;
                 }
 
-                // Verify transition to CHECK_IN_EXPIRED is valid (might have been checked in in the meantime)
+                // Verify transition to CHECK_IN_EXPIRED is valid (might have been checked in in
+                // the meantime)
                 if (!current.getStatus().canTransitionTo(AllocationStatus.CHECK_IN_EXPIRED)) {
                     log.info("Allocation {} status {} cannot transition to CHECK_IN_EXPIRED, skipping check-in expiry",
                             current.getId(), current.getStatus());
@@ -72,14 +74,14 @@ public class CheckInExpiryService {
 
                 // Send notifications
                 try {
-                    notificationService.sendCheckInExpiredNotification(current);
+                    eventPublisher.publishEvent(new AllocationExpiredEvent(current, true));
                     userNotificationService.createCheckInExpiredNotification(
                             current.getStudent().getAppUser().getId(),
                             current.getRoom().getRoomNumber(),
-                            current.getRoom().getBuilding() != null ?
-                                    current.getRoom().getBuilding().getName() : "Unknown Building");
+                            current.getRoom().getBuilding() != null ? current.getRoom().getBuilding().getName()
+                                    : "Unknown Building");
                 } catch (Exception e) {
-                    log.error("Failed to send check-in expiry notifications for allocation {}", current.getId(), e);
+                    log.error("Failed to trigger check-in expiry notifications for allocation {}", current.getId(), e);
                 }
 
                 log.info("Successfully expired check-in for allocation {}", current.getId());

@@ -10,10 +10,11 @@ import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.model.event.ApplicationStatusChangedEvent;
 import com.beezhub.student_accommodation.service.ApplicationService;
 import com.beezhub.student_accommodation.service.AuthService;
-import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,7 +60,7 @@ class ApplicationAdminServiceNotificationTest {
     private AuthService authService;
 
     @Mock
-    private NotificationService notificationService;
+    private ApplicationEventPublisher eventPublisher;
 
     @Mock
     private UserNotificationService userNotificationService;
@@ -124,20 +125,15 @@ class ApplicationAdminServiceNotificationTest {
         assertNotNull(response);
         assertEquals("APPROVED", response.getStatus());
 
-        // Verify notification service was called with correct parameters
-        ArgumentCaptor<Application> applicationCaptor = ArgumentCaptor.forClass(Application.class);
-        ArgumentCaptor<ApplicationStatus> statusCaptor = ArgumentCaptor.forClass(ApplicationStatus.class);
+        // Verify event published
+        ArgumentCaptor<ApplicationStatusChangedEvent> eventCaptor = ArgumentCaptor
+                .forClass(ApplicationStatusChangedEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
 
-        verify(notificationService, times(1)).sendApplicationStatusNotification(
-                applicationCaptor.capture(),
-                statusCaptor.capture());
-
-        Application capturedApp = applicationCaptor.getValue();
-        ApplicationStatus capturedStatus = statusCaptor.getValue();
-
-        assertEquals(1L, capturedApp.getId());
-        assertEquals(ApplicationStatus.APPROVED, capturedStatus);
-        assertEquals("All requirements met", capturedApp.getRemarks());
+        ApplicationStatusChangedEvent event = eventCaptor.getValue();
+        assertEquals(1L, event.application().getId());
+        assertEquals(ApplicationStatus.APPROVED, event.newStatus());
+        assertEquals("All requirements met", event.application().getRemarks());
 
         // Verify repository save was called
         verify(applicationRepository, times(1)).save(any(Application.class));
@@ -161,20 +157,15 @@ class ApplicationAdminServiceNotificationTest {
         // Then
         assertNotNull(response);
 
-        // Verify notification service was called
-        ArgumentCaptor<Application> applicationCaptor = ArgumentCaptor.forClass(Application.class);
-        ArgumentCaptor<ApplicationStatus> statusCaptor = ArgumentCaptor.forClass(ApplicationStatus.class);
+        // Verify event published
+        ArgumentCaptor<ApplicationStatusChangedEvent> eventCaptor = ArgumentCaptor
+                .forClass(ApplicationStatusChangedEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
 
-        verify(notificationService, times(1)).sendApplicationStatusNotification(
-                applicationCaptor.capture(),
-                statusCaptor.capture());
-
-        Application capturedApp = applicationCaptor.getValue();
-        ApplicationStatus capturedStatus = statusCaptor.getValue();
-
-        assertEquals(1L, capturedApp.getId());
-        assertEquals(ApplicationStatus.REJECTED, capturedStatus);
-        assertEquals("Does not meet eligibility criteria", capturedApp.getRemarks());
+        ApplicationStatusChangedEvent event = eventCaptor.getValue();
+        assertEquals(1L, event.application().getId());
+        assertEquals(ApplicationStatus.REJECTED, event.newStatus());
+        assertEquals("Does not meet eligibility criteria", event.application().getRemarks());
     }
 
     @Test
@@ -192,8 +183,8 @@ class ApplicationAdminServiceNotificationTest {
         // When
         applicationAdminService.updateApplicationStatus(1L, request);
 
-        // Then - notification service should NOT be called
-        verify(notificationService, never()).sendApplicationStatusNotification(any(), any());
+        // Then - event should NOT be published
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -213,8 +204,8 @@ class ApplicationAdminServiceNotificationTest {
         // When
         applicationAdminService.updateApplicationStatus(1L, request);
 
-        // Then - notification service should NOT be called since status didn't change
-        verify(notificationService, never()).sendApplicationStatusNotification(any(), any());
+        // Then - event should NOT be published since status didn't change
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -229,10 +220,10 @@ class ApplicationAdminServiceNotificationTest {
         when(applicationRepository.save(any(Application.class))).thenReturn(application);
         when(applicationMapper.toResponse(any(Application.class))).thenReturn(applicationResponse);
 
-        // Simulate notification service throwing exception
-        doThrow(new RuntimeException("Email service unavailable"))
-                .when(notificationService)
-                .sendApplicationStatusNotification(any(), any());
+        // Simulate event publisher throwing exception
+        doThrow(new RuntimeException("Event system unavailable"))
+                .when(eventPublisher)
+                .publishEvent(any());
 
         // When - should not throw exception
         assertDoesNotThrow(() -> {
@@ -242,7 +233,7 @@ class ApplicationAdminServiceNotificationTest {
 
         // Then - application should still be saved despite notification failure
         verify(applicationRepository, times(1)).save(any(Application.class));
-        verify(notificationService, times(1)).sendApplicationStatusNotification(any(), any());
+        verify(eventPublisher, times(1)).publishEvent(any(Object.class));
     }
 
     @Test
@@ -263,13 +254,13 @@ class ApplicationAdminServiceNotificationTest {
         // When
         applicationAdminService.updateApplicationStatus(1L, request);
 
-        // Then - verify notification contains correct application details
-        ArgumentCaptor<Application> applicationCaptor = ArgumentCaptor.forClass(Application.class);
-        verify(notificationService).sendApplicationStatusNotification(
-                applicationCaptor.capture(),
-                eq(ApplicationStatus.APPROVED));
+        // Then - verify event contains correct application details
+        ArgumentCaptor<ApplicationStatusChangedEvent> eventCaptor = ArgumentCaptor
+                .forClass(ApplicationStatusChangedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
 
-        Application capturedApp = applicationCaptor.getValue();
+        ApplicationStatusChangedEvent event = eventCaptor.getValue();
+        Application capturedApp = event.application();
         assertEquals("APP-2025-999", capturedApp.getApplicationCode());
         assertEquals(LocalDate.of(2025, 1, 15), capturedApp.getApplicationDate());
         assertEquals("Excellent application", capturedApp.getRemarks());
@@ -290,13 +281,13 @@ class ApplicationAdminServiceNotificationTest {
         // When
         applicationAdminService.updateApplicationStatus(1L, request);
 
-        // Then - verify student details are accessible in notification
-        ArgumentCaptor<Application> applicationCaptor = ArgumentCaptor.forClass(Application.class);
-        verify(notificationService).sendApplicationStatusNotification(
-                applicationCaptor.capture(),
-                any());
+        // Then - verify student details are accessible in event
+        ArgumentCaptor<ApplicationStatusChangedEvent> eventCaptor = ArgumentCaptor
+                .forClass(ApplicationStatusChangedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
 
-        Application capturedApp = applicationCaptor.getValue();
+        ApplicationStatusChangedEvent event = eventCaptor.getValue();
+        Application capturedApp = event.application();
         assertNotNull(capturedApp.getStudent());
         assertNotNull(capturedApp.getStudent().getAppUser());
         assertEquals("student@university.edu", capturedApp.getStudent().getAppUser().getEmail());
@@ -318,11 +309,13 @@ class ApplicationAdminServiceNotificationTest {
         // When - First update
         applicationAdminService.updateApplicationStatus(1L, approvalRequest);
 
-        // Then - Verify notification sent once
-        verify(notificationService, times(1)).sendApplicationStatusNotification(any(), eq(ApplicationStatus.APPROVED));
+        // Then - Verify event sent once
+        verify(eventPublisher, times(1)).publishEvent(any(ApplicationStatusChangedEvent.class));
+
+        // Clear invocations
+        clearInvocations(eventPublisher);
 
         // Given - Second update to REJECTED (changing from APPROVED)
-        reset(notificationService);
         application.setStatus(ApplicationStatus.APPROVED); // Simulate previous approval
         ApplicationStatusUpdateRequest rejectionRequest = new ApplicationStatusUpdateRequest();
         rejectionRequest.setStatus("REJECTED");
@@ -333,8 +326,11 @@ class ApplicationAdminServiceNotificationTest {
         // When - Second update
         applicationAdminService.updateApplicationStatus(1L, rejectionRequest);
 
-        // Then - Verify notification sent for rejection
-        verify(notificationService, times(1)).sendApplicationStatusNotification(any(), eq(ApplicationStatus.REJECTED));
+        // Then - Verify event sent for rejection
+        ArgumentCaptor<ApplicationStatusChangedEvent> eventCaptor = ArgumentCaptor
+                .forClass(ApplicationStatusChangedEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
+        assertEquals(ApplicationStatus.REJECTED, eventCaptor.getValue().newStatus());
     }
 
     @Test
@@ -358,7 +354,7 @@ class ApplicationAdminServiceNotificationTest {
         long executionTime = endTime - startTime;
         assertTrue(executionTime < 1000, "Method should return quickly without waiting for email");
 
-        // Verify notification was triggered
-        verify(notificationService, times(1)).sendApplicationStatusNotification(any(), any());
+        // Verify event was triggered
+        verify(eventPublisher, times(1)).publishEvent(any(ApplicationStatusChangedEvent.class));
     }
 }

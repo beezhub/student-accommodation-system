@@ -3,17 +3,19 @@ package com.beezhub.student_accommodation.service.allocation;
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
+import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import com.beezhub.student_accommodation.model.event.AllocationExpiredEvent;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
-import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -27,7 +29,7 @@ public class OfferExpiryService {
     private final RoomAllocationRepository roomAllocationRepository;
     private final ApplicationRepository applicationRepository;
     private final WaitingListRepository waitingListRepository;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
     private final RoomOccupancyManager roomOccupancyManager;
     private final RoomRepository roomRepository;
@@ -48,7 +50,8 @@ public class OfferExpiryService {
                     return null;
                 }
 
-                // Verify transition to EXPIRED is valid (might have been accepted in the meantime)
+                // Verify transition to EXPIRED is valid (might have been accepted in the
+                // meantime)
                 AllocationStatus currentStatus = current.getStatus();
                 if (currentStatus == null || !currentStatus.canTransitionTo(AllocationStatus.EXPIRED)) {
                     log.info("Allocation {} status {} cannot transition to EXPIRED, skipping expiry",
@@ -73,14 +76,14 @@ public class OfferExpiryService {
 
                 // Send notifications
                 try {
-                    notificationService.sendOfferExpiredNotification(current);
+                    eventPublisher.publishEvent(new AllocationExpiredEvent(current, false));
                     userNotificationService.createOfferExpiredNotification(
                             current.getStudent().getAppUser().getId(),
                             current.getRoom().getRoomNumber(),
-                            current.getRoom().getBuilding() != null ?
-                                    current.getRoom().getBuilding().getName() : "Unknown Building");
+                            current.getRoom().getBuilding() != null ? current.getRoom().getBuilding().getName()
+                                    : "Unknown Building");
                 } catch (Exception e) {
-                    log.error("Failed to send expiry notifications for allocation {}", current.getId(), e);
+                    log.error("Failed to trigger expiry notifications for allocation {}", current.getId(), e);
                 }
 
                 log.info("Successfully expired offer for allocation {}", current.getId());
@@ -106,7 +109,8 @@ public class OfferExpiryService {
 
         // Update application status to CANCELLED
         application.setStatus(ApplicationStatus.CANCELLED);
-        String remarks = "Application cancelled: Room offer expired without response within " + offerExpiryDays + " days.";
+        String remarks = "Application cancelled: Room offer expired without response within " + offerExpiryDays
+                + " days.";
         application.setRemarks(remarks);
         applicationRepository.save(application);
 

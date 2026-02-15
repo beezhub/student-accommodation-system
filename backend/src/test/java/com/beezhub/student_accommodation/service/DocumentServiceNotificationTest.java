@@ -16,8 +16,10 @@ import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.model.event.DocumentVerificationEvent;
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import org.springframework.context.ApplicationEventPublisher;
 import java.util.List;
 import io.minio.MinioClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -79,7 +81,7 @@ class DocumentServiceNotificationTest {
     private AuthService authService;
 
     @Mock
-    private NotificationService notificationService;
+    private ApplicationEventPublisher eventPublisher;
 
     @Mock
     private ApplicationRepository applicationRepository;
@@ -113,7 +115,8 @@ class DocumentServiceNotificationTest {
                 .build();
 
         student = new Student();
-        student.setId(1L);;
+        student.setId(1L);
+        ;
         student.setStudentNumber("STU-2025-001");
         student.setAppUser(appUser);
 
@@ -170,23 +173,24 @@ class DocumentServiceNotificationTest {
         assertEquals("APPROVED", response.getDocumentStatus());
 
         // Verify notification service was called with correct parameters
-        ArgumentCaptor<Document> documentCaptor = ArgumentCaptor.forClass(Document.class);
-        ArgumentCaptor<DocumentStatus> statusCaptor = ArgumentCaptor.forClass(DocumentStatus.class);
-        ArgumentCaptor<String> commentCaptor = ArgumentCaptor.forClass(String.class);
+        // Verify event published
+        ArgumentCaptor<DocumentVerificationEvent> eventCaptor = ArgumentCaptor
+                .forClass(DocumentVerificationEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
 
-        verify(notificationService, times(1)).sendDocumentVerificationNotification(
-                documentCaptor.capture(),
-                statusCaptor.capture(),
-                commentCaptor.capture()
-        );
-
-        Document capturedDoc = documentCaptor.getValue();
-        DocumentStatus capturedStatus = statusCaptor.getValue();
-        String capturedComment = commentCaptor.getValue();
-
-        assertEquals(1L, capturedDoc.getId());
-        assertEquals(DocumentStatus.APPROVED, capturedStatus);
-        assertNull(capturedComment);
+        DocumentVerificationEvent event = eventCaptor.getValue();
+        assertEquals(1L, event.document().getId());
+        assertEquals(DocumentStatus.APPROVED, event.newStatus());
+        assertNull(event.comment());
+        // Verify old status was passed appropriately (might be varying based on
+        // implementation logic, checking if captured)
+        // Here we can check if it matches what we expect or just ignore it if logic
+        // uses it correctly
+        // Since we didn't set oldStatus in test setup, it might be null/default or we
+        // need to look at DocumentService to see how it gets it.
+        // DocumentService: DocumentStatus oldStatus = document.getDocumentStatus();
+        // In setUp, document status is PENDING.
+        assertEquals(DocumentStatus.PENDING, event.oldStatus());
 
         // Verify repository save was called
         verify(documentRepository, times(1)).save(any(Document.class));
@@ -211,23 +215,16 @@ class DocumentServiceNotificationTest {
         assertNotNull(response);
 
         // Verify notification service was called with feedback comment
-        ArgumentCaptor<Document> documentCaptor = ArgumentCaptor.forClass(Document.class);
-        ArgumentCaptor<DocumentStatus> statusCaptor = ArgumentCaptor.forClass(DocumentStatus.class);
-        ArgumentCaptor<String> commentCaptor = ArgumentCaptor.forClass(String.class);
+        // Verify event published
+        ArgumentCaptor<DocumentVerificationEvent> eventCaptor = ArgumentCaptor
+                .forClass(DocumentVerificationEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
 
-        verify(notificationService, times(1)).sendDocumentVerificationNotification(
-                documentCaptor.capture(),
-                statusCaptor.capture(),
-                commentCaptor.capture()
-        );
-
-        Document capturedDoc = documentCaptor.getValue();
-        DocumentStatus capturedStatus = statusCaptor.getValue();
-        String capturedComment = commentCaptor.getValue();
-
-        assertEquals(1L, capturedDoc.getId());
-        assertEquals(DocumentStatus.REJECTED, capturedStatus);
-        assertEquals("Document is blurry; ID number not visible; Document expired", capturedComment);
+        DocumentVerificationEvent event = eventCaptor.getValue();
+        assertEquals(1L, event.document().getId());
+        assertEquals(DocumentStatus.REJECTED, event.newStatus());
+        assertEquals("Document is blurry; ID number not visible; Document expired", event.comment());
+        assertEquals(DocumentStatus.PENDING, event.oldStatus());
     }
 
     @Test
@@ -245,7 +242,7 @@ class DocumentServiceNotificationTest {
         documentService.updateDocumentStatus(1L, status, "student@university.edu");
 
         // Then - notification service should NOT be called
-        verify(notificationService, never()).sendDocumentVerificationNotification(any(), any(), any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -264,7 +261,7 @@ class DocumentServiceNotificationTest {
         documentService.updateDocumentStatus(1L, status, "student@university.edu");
 
         // Then - notification service should NOT be called since status didn't change
-        verify(notificationService, never()).sendDocumentVerificationNotification(any(), any(), any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -278,10 +275,10 @@ class DocumentServiceNotificationTest {
         when(documentRepository.save(any(Document.class))).thenReturn(document);
         when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(documentResponse);
 
-        // Simulate notification service throwing exception
-        doThrow(new RuntimeException("Email service unavailable"))
-                .when(notificationService)
-                .sendDocumentVerificationNotification(any(), any(), any());
+        // Simulate event publisher throwing exception
+        doThrow(new RuntimeException("Event system unavailable"))
+                .when(eventPublisher)
+                .publishEvent(any());
 
         // When - should not throw exception
         assertDoesNotThrow(() -> {
@@ -291,7 +288,7 @@ class DocumentServiceNotificationTest {
 
         // Then - document should still be saved despite notification failure
         verify(documentRepository, times(1)).save(any(Document.class));
-        verify(notificationService, times(1)).sendDocumentVerificationNotification(any(), any(), any());
+        verify(eventPublisher, times(1)).publishEvent(any(Object.class));
     }
 
     @Test
@@ -311,14 +308,12 @@ class DocumentServiceNotificationTest {
         documentService.updateDocumentStatus(1L, status, "student@university.edu");
 
         // Then - verify notification contains correct document details
-        ArgumentCaptor<Document> documentCaptor = ArgumentCaptor.forClass(Document.class);
-        verify(notificationService).sendDocumentVerificationNotification(
-                documentCaptor.capture(),
-                eq(DocumentStatus.APPROVED),
-                any()
-        );
+        ArgumentCaptor<DocumentVerificationEvent> eventCaptor = ArgumentCaptor
+                .forClass(DocumentVerificationEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
 
-        Document capturedDoc = documentCaptor.getValue();
+        DocumentVerificationEvent event = eventCaptor.getValue();
+        Document capturedDoc = event.document();
         assertEquals("passport.pdf", capturedDoc.getDocumentName());
         assertEquals("/student/1/passport/passport.pdf", capturedDoc.getDocumentPath());
         assertEquals("Identity Document", capturedDoc.getDocumentType().getTypeName());
@@ -340,14 +335,12 @@ class DocumentServiceNotificationTest {
         documentService.updateDocumentStatus(1L, status, "student@university.edu");
 
         // Then - verify student details are accessible in notification
-        ArgumentCaptor<Document> documentCaptor = ArgumentCaptor.forClass(Document.class);
-        verify(notificationService).sendDocumentVerificationNotification(
-                documentCaptor.capture(),
-                any(),
-                any()
-        );
+        ArgumentCaptor<DocumentVerificationEvent> eventCaptor = ArgumentCaptor
+                .forClass(DocumentVerificationEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
 
-        Document capturedDoc = documentCaptor.getValue();
+        DocumentVerificationEvent event = eventCaptor.getValue();
+        Document capturedDoc = event.document();
         assertNotNull(capturedDoc.getStudent());
         assertNotNull(capturedDoc.getStudent().getAppUser());
         assertEquals("student@university.edu", capturedDoc.getStudent().getAppUser().getEmail());
@@ -370,14 +363,13 @@ class DocumentServiceNotificationTest {
         documentService.updateDocumentStatus(1L, approvalStatus, "student@university.edu");
 
         // Then - Verify notification sent once
-        verify(notificationService, times(1)).sendDocumentVerificationNotification(
-                any(),
-                eq(DocumentStatus.APPROVED),
-                any()
-        );
+        // Then - Verify notification sent once
+        verify(eventPublisher, times(1)).publishEvent(any(DocumentVerificationEvent.class));
+
+        // Clear invocations
+        clearInvocations(eventPublisher);
 
         // Given - Second update to REJECTED (changing from APPROVED)
-        reset(notificationService);
         document.setDocumentStatus(DocumentStatus.APPROVED);
         String rejectionStatus = "REJECTED";
         String comment = "Re-review found issues";
@@ -390,11 +382,13 @@ class DocumentServiceNotificationTest {
         documentService.updateDocumentStatus(1L, rejectionStatus, comment, "student@university.edu");
 
         // Then - Verify notification sent for rejection with comment
-        verify(notificationService, times(1)).sendDocumentVerificationNotification(
-                any(),
-                eq(DocumentStatus.REJECTED),
-                eq("Re-review found issues")
-        );
+        ArgumentCaptor<DocumentVerificationEvent> eventCaptor = ArgumentCaptor
+                .forClass(DocumentVerificationEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
+
+        DocumentVerificationEvent event = eventCaptor.getValue();
+        assertEquals(DocumentStatus.REJECTED, event.newStatus());
+        assertEquals("Re-review found issues", event.comment());
     }
 
     @Test
@@ -419,7 +413,7 @@ class DocumentServiceNotificationTest {
         assertTrue(executionTime < 1000, "Method should return quickly without waiting for email");
 
         // Verify notification was triggered
-        verify(notificationService, times(1)).sendDocumentVerificationNotification(any(), any(), any());
+        verify(eventPublisher, times(1)).publishEvent(any(DocumentVerificationEvent.class));
     }
 
     @Test
@@ -440,10 +434,14 @@ class DocumentServiceNotificationTest {
         assertNotNull(response);
 
         // Verify notification was sent with null comment
-        verify(notificationService, times(1)).sendDocumentVerificationNotification(
-                any(Document.class),
-                eq(DocumentStatus.APPROVED),
-                eq(null)
-        );
+        ArgumentCaptor<DocumentVerificationEvent> eventCaptor = ArgumentCaptor
+                .forClass(DocumentVerificationEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(eventCaptor.capture());
+
+        DocumentVerificationEvent event = eventCaptor.getValue();
+        assertEquals(DocumentStatus.APPROVED, event.newStatus());
+        assertNull(event.comment());
+        // oldStatus might be PENDING since we reset document in setUp
+        assertEquals(DocumentStatus.PENDING, event.oldStatus());
     }
 }

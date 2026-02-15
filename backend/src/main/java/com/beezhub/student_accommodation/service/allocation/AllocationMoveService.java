@@ -14,7 +14,10 @@ import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.model.event.AllocationMovedEvent;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import org.springframework.context.ApplicationEventPublisher;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,7 @@ public class AllocationMoveService {
     private final AllocationScoringService allocationScoringService;
     private final AppUserRepository appUserRepository;
     private final AllocationAuditService allocationAuditService;
+    private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
     private final RoomOccupancyManager roomOccupancyManager;
 
@@ -39,8 +43,9 @@ public class AllocationMoveService {
         log.info("Moving allocation {} to room {} by admin {}: {}", allocationId, newRoomId, adminId, reason);
 
         RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(allocationId)
-                .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + allocationId));
-        
+                .orElseThrow(() -> new RoomAllocationNotFoundException(
+                        "Room allocation not found with id: " + allocationId));
+
         validateMoveEligibility(allocation);
 
         Room oldRoom = allocation.getRoom();
@@ -57,11 +62,13 @@ public class AllocationMoveService {
         RoomAllocation updated = roomAllocationRepository.save(allocation);
 
         AppUser admin = appUserRepository.findById(adminId).orElse(null);
-        allocationAuditService.logAuditAction(allocation, AllocationAuditActionType.MOVE, admin, reason, oldRoom, newRoom);
+        allocationAuditService.logAuditAction(allocation, AllocationAuditActionType.MOVE, admin, reason, oldRoom,
+                newRoom);
 
-        sendMoveNotification(allocation.getStudent(), oldRoom, newRoom, reason);
+        sendMoveNotification(allocation, oldRoom, newRoom, reason);
 
-        log.info("Moved student {} from room {} to room {}", allocation.getStudent().getId(), oldRoom.getRoomNumber(), newRoom.getRoomNumber());
+        log.info("Moved student {} from room {} to room {}", allocation.getStudent().getId(), oldRoom.getRoomNumber(),
+                newRoom.getRoomNumber());
         return roomAllocationMapper.toResponse(updated);
     }
 
@@ -74,7 +81,8 @@ public class AllocationMoveService {
     private void validateRoomCapacity(Room room) {
         long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
         if (activeAllocations >= room.getCapacity()) {
-            log.error("Room {} is at full capacity. Current: {}, Max: {}", room.getRoomNumber(), activeAllocations, room.getCapacity());
+            log.error("Room {} is at full capacity. Current: {}, Max: {}", room.getRoomNumber(), activeAllocations,
+                    room.getCapacity());
             throw new RoomCapacityExceededException(
                     "Room " + room.getRoomNumber() + " is at full capacity (" + room.getCapacity() + " occupants)");
         }
@@ -86,10 +94,11 @@ public class AllocationMoveService {
         }
     }
 
-    private void sendMoveNotification(Student student, Room oldRoom, Room newRoom, String reason) {
+    private void sendMoveNotification(RoomAllocation allocation, Room oldRoom, Room newRoom, String reason) {
         try {
+            eventPublisher.publishEvent(new AllocationMovedEvent(allocation, oldRoom, LocalDateTime.now(), reason));
             userNotificationService.createRoomMoveNotification(
-                    student.getAppUser().getId(),
+                    allocation.getStudent().getAppUser().getId(),
                     oldRoom.getRoomNumber(),
                     newRoom.getRoomNumber(),
                     reason);
