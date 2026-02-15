@@ -7,9 +7,9 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.util.PageMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ff4j.FF4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AllocationBatchService {
 
@@ -33,6 +32,25 @@ public class AllocationBatchService {
     private final AllocationScoringOrchestrator allocationScoringOrchestrator;
     private final StagedAllocationService stagedAllocationService;
     private final RoomAllocationMapper roomAllocationMapper;
+
+    public AllocationBatchService(
+            WaitingListRepository waitingListRepository,
+            @Lazy AllocationLifecycleService allocationLifecycleService,
+            FF4j ff4j,
+            TransactionTemplate transactionTemplate,
+            Environment environment,
+            AllocationScoringOrchestrator allocationScoringOrchestrator,
+            StagedAllocationService stagedAllocationService,
+            RoomAllocationMapper roomAllocationMapper) {
+        this.waitingListRepository = waitingListRepository;
+        this.allocationLifecycleService = allocationLifecycleService;
+        this.ff4j = ff4j;
+        this.transactionTemplate = transactionTemplate;
+        this.environment = environment;
+        this.allocationScoringOrchestrator = allocationScoringOrchestrator;
+        this.stagedAllocationService = stagedAllocationService;
+        this.roomAllocationMapper = roomAllocationMapper;
+    }
 
     /**
      * Periodic batch allocation job.

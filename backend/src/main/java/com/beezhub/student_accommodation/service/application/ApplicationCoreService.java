@@ -4,9 +4,7 @@ import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ApplicationWindowClosedException;
 import com.beezhub.student_accommodation.exceptions.DuplicateApplicationException;
-import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
-import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.mapper.ApplicationMapper;
 import com.beezhub.student_accommodation.service.AcademicYearService;
@@ -14,24 +12,13 @@ import com.beezhub.student_accommodation.service.AuthService;
 
 import com.beezhub.student_accommodation.model.dto.ApplicationRequest;
 import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
-import com.beezhub.student_accommodation.model.dto.ApplicationStatusUpdateRequest;
-
-import com.beezhub.student_accommodation.model.dto.RequiredDocumentsChecklistResponse;
-import com.beezhub.student_accommodation.model.dto.RequiredDocumentsChecklistResponse.DocumentChecklistItem;
-import com.beezhub.student_accommodation.model.dto.ReviewProgressRequest;
-
-import com.beezhub.student_accommodation.model.dto.ReviewProgressResponse;
 
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Building;
 
-import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
-import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
-import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
-import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 
@@ -40,37 +27,24 @@ import com.beezhub.student_accommodation.repository.StudentRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.annotation.Lazy;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.ALLOCATED;
-import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.APPROVED;
-import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.AWAITING_ALLOCATION;
-import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.CHANGES_REQUESTED;
 import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.PENDING;
-import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.REJECTED;
-import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.UNDER_REVIEW;
-
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.ArrayList;
 
 @RequiredArgsConstructor
 @Slf4j
 @Service
-public class ApplicationService {
+public class ApplicationCoreService {
 
         private final ApplicationRepository applicationRepository;
         private final StudentRepository studentRepository;
         private final BuildingRepository buildingRepository;
 
-        private final AppUserRepository appUserRepository;
         private final ApplicationMapper applicationMapper;
         private final AuthService authService;
         private final AcademicYearService academicYearService;
@@ -232,26 +206,5 @@ public class ApplicationService {
                                 .map(applicationMapper::toResponse)
                                 .collect(Collectors.toList());
         }
-
-        // ==================== Admin Operations (Delegated) ====================
-
-        // ==================== Allocation Phase Transition ====================
-
-        // ==================== Application Full Details ====================
-
-        // ==================== Validate Document Requirements ====================
-
-        /**
-         * Validates that all required documents are approved before allowing
-         * transition to AWAITING_ALLOCATION status.
-         *
-         * @param applicationId The application ID
-         * @return true if all required documents are approved
-         */
-
-        // ==================== Save Review Progress ====================
-
-        // ==================== Move to Allocation Phase (Username version)
-        // ====================
 
 }

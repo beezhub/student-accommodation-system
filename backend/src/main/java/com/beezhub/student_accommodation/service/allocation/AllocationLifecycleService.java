@@ -7,16 +7,15 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.NotificationService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AllocationLifecycleService {
 
@@ -37,9 +36,30 @@ public class AllocationLifecycleService {
     private final WaitingListService waitingListService;
     private final RoomOccupancyManager roomOccupancyManager;
     private final AllocationMoveService allocationMoveService;
-    
-    @org.springframework.context.annotation.Lazy
     private final AllocationBatchService allocationBatchService;
+
+    public AllocationLifecycleService(
+            RoomAllocationRepository roomAllocationRepository,
+            StudentRepository studentRepository,
+            RoomRepository roomRepository,
+            ApplicationRepository applicationRepository,
+            RoomAllocationMapper roomAllocationMapper,
+            NotificationService notificationService,
+            WaitingListService waitingListService,
+            RoomOccupancyManager roomOccupancyManager,
+            AllocationMoveService allocationMoveService,
+            @Lazy AllocationBatchService allocationBatchService) {
+        this.roomAllocationRepository = roomAllocationRepository;
+        this.studentRepository = studentRepository;
+        this.roomRepository = roomRepository;
+        this.applicationRepository = applicationRepository;
+        this.roomAllocationMapper = roomAllocationMapper;
+        this.notificationService = notificationService;
+        this.waitingListService = waitingListService;
+        this.roomOccupancyManager = roomOccupancyManager;
+        this.allocationMoveService = allocationMoveService;
+        this.allocationBatchService = allocationBatchService;
+    }
 
     /**
      * Creates a new room allocation with comprehensive business rule validation.
