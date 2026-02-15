@@ -41,8 +41,6 @@ class RoomAllocationServiceAcceptOfferTest {
     @Mock
     private ApplicationDocumentService applicationDocumentService;
     @Mock
-    private AllocationEligibilityService allocationEligibilityService;
-    @Mock
     private AllocationScoringService allocationScoringService;
     @Mock
     private SystemSettingService systemSettingService;

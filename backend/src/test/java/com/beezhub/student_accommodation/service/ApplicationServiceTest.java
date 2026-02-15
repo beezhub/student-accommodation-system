@@ -138,7 +138,7 @@ class ApplicationServiceTest {
         @Test
         void updateApplicationStatus_shouldDelegateToAdminService() {
                 ApplicationStatusUpdateRequest request = new ApplicationStatusUpdateRequest();
-                request.setStatus(ApplicationStatus.APPROVED);
+                request.setStatus(ApplicationStatus.APPROVED.name());
                 when(adminService.updateApplicationStatus(1L, request)).thenReturn(applicationResponse);
 
                 ApplicationResponse response = applicationService.updateApplicationStatus(1L, request);

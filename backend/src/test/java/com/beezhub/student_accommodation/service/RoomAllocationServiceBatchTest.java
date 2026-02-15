@@ -43,8 +43,6 @@ class RoomAllocationServiceBatchTest {
     private ApplicationDocumentService applicationDocumentService;
 
     @Mock
-    private AllocationEligibilityService allocationEligibilityService;
-    @Mock
     private AllocationScoringService allocationScoringService;
 
     @Mock

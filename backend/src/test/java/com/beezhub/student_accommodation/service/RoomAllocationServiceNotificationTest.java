@@ -61,7 +61,7 @@ class RoomAllocationServiceNotificationTest {
     private UserNotificationService userNotificationService;
 
     @InjectMocks
-    private AllocationLifecycleService allocationLifecycleService;
+    private RoomAllocationService roomAllocationService;
 
     private RoomAllocationResponse roomAllocationResponse;
     private RoomAllocationRequest roomAllocationRequest;

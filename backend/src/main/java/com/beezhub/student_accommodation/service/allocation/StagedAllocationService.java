@@ -52,6 +52,7 @@ public class StagedAllocationService {
     private final StagedAllocationMapper stagedAllocationMapper;
     private final RoomAllocationMapper roomAllocationMapper;
     private final WaitingListService waitingListService;
+    private final RoomOccupancyManager roomOccupancyManager;
 
     @Transactional
     public RoomAllocationResponse confirmAllocation(Long stagedAllocationId, Long adminId) {
@@ -64,7 +65,7 @@ public class StagedAllocationService {
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         updateStagedStatus(staged, StagedAllocationStatus.CONFIRMED);
-        RoomOccupancyManager.updateOccupancy(staged.getRoom(), 1, roomRepository);
+        roomOccupancyManager.updateOccupancy(staged.getRoom(), 1);
 
         logConfirmationAudit(saved, staged, adminId);
         sendConfirmationNotification(saved);

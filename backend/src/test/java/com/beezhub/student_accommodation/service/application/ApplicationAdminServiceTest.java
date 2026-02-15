@@ -7,6 +7,7 @@ import com.beezhub.student_accommodation.model.dto.RequiredDocumentsChecklistRes
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.ApplicationService;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.model.entity.AppUser;

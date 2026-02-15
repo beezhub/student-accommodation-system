@@ -82,7 +82,7 @@ public class AllocationLifecycleService {
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         waitingListService.updateStatusToAllocated(student.getId());
-        roomOccupancyManager.updateOccupancy(room, 1, roomRepository);
+        roomOccupancyManager.updateOccupancy(room, 1);
 
         sendAllocationNotification(saved);
 
@@ -117,7 +117,7 @@ public class AllocationLifecycleService {
 
         long previousDeclineCount = getPreviousDeclineCount(allocation);
         
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1, roomRepository);
+        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
 
         AllocationStatusValidator.validate(allocation, AllocationStatus.DECLINED);
         allocation.setStatus(AllocationStatus.DECLINED);
@@ -148,7 +148,7 @@ public class AllocationLifecycleService {
         allocation.setStatus(AllocationStatus.CANCELLED);
         allocation.setEndDate(LocalDateTime.now());
 
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1, roomRepository);
+        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
         roomAllocationRepository.save(allocation);
         log.info("Successfully cancelled room allocation with id: {}", id);
 
@@ -202,8 +202,8 @@ public class AllocationLifecycleService {
         boolean roomChanged = false;
         if (!oldRoom.getId().equals(newRoom.getId())) {
             validateRoomCapacity(newRoom);
-            roomOccupancyManager.updateOccupancy(oldRoom, -1, roomRepository);
-            roomOccupancyManager.updateOccupancy(newRoom, 1, roomRepository);
+            roomOccupancyManager.updateOccupancy(oldRoom, -1);
+            roomOccupancyManager.updateOccupancy(newRoom, 1);
             roomChanged = true;
         }
 
