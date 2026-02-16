@@ -342,14 +342,14 @@ graph LR
 - **Current State:** Minimal tenant isolation. `institution` table exists, `building` has a many-to-many with `institution`, but no global tenant filtering. Queries do not filter by tenant.
 - **Target State:** Shared-schema multi-tenancy with `tenant_id` (representing building owner/accommodation provider) as discriminator column on all tenant-scoped tables. Tenant context set from JWT claims. Hibernate filters or Spring AOP automatically apply tenant filtering to all queries. Building owners are the primary tenants; their relationship with institutions is managed outside the system.
 - **Approach:** Incremental across Phase 2.
-  1. Design tenant model: `tenant` table (id, name, config). Add `tenant_id` FK to: building, room, application, room_allocation, document, notification, system_setting.
+  1. **[DONE]** Design tenant model: `tenant` table (id, name, config). Add `tenant_id` FK to 14 tables: app_user, building, room, application, room_allocation, staged_allocations, document, notification, user_notifications, system_settings, allocation_rules, waiting_list_entry, activity_logs, academic_year.
   2. Implement `TenantContext` (ThreadLocal) set by `JwtAuthenticationFilter` from JWT claims.
   3. Implement Hibernate tenant filter (`@FilterDef` + `@Filter`) or Spring Data JPA `Specification` base class that auto-appends tenant predicate.
   4. Update all admin endpoints to enforce tenant scoping.
-  5. Add tenant-aware data migration for existing records.
+  5. **[DONE]** Add tenant-aware data migration for existing records (Backfill Default Tenant).
 - **Risks During Refactoring:** Every query must be verified for tenant filtering — missing a single query leaks data across tenants. Migration of existing data to tenant-scoped records requires careful planning.
 - **Acceptance Criteria:** No cross-tenant data leakage. All list/search endpoints return only tenant-scoped data. Admin users scoped to their tenant. Tenant context automatically applied — developers cannot accidentally bypass it.
-- **Dependencies:** Phase 1 complete (security, stability). Redis infrastructure in place.
+- **Dependencies:** Phase 1 complete (security, stability). Redis infrastructure in place. Database schema changes (Task 2.07) complete.
 
 #### 3.3 Can Remain
 

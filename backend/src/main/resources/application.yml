@@ -29,6 +29,7 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
     locations: classpath:db/migration
     out-of-order: true
+    validate-on-migrate: false
   data:
     redis:
       host: ${REDIS_HOST:localhost}
