@@ -56,6 +56,10 @@ public class AppUser {
     @Column(nullable = false, name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
