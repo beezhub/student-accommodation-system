@@ -43,4 +43,8 @@ public class SystemSetting {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+    @jakarta.persistence.JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
 }

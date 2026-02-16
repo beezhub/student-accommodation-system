@@ -54,6 +54,10 @@ public class ActivityLog {
     @Column(columnDefinition = "TEXT")
     private String metadata;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
+
     @PrePersist
     protected void onCreate() {
         if (timestamp == null) {

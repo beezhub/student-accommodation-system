@@ -57,6 +57,10 @@ public class UserNotification {
     @Column(name = "reference_type", length = 50)
     private String referenceType; // e.g., "APPLICATION", "DOCUMENT", "ROOM_ALLOCATION"
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
