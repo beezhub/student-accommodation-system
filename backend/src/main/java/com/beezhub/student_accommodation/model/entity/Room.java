@@ -48,6 +48,10 @@ public class Room implements TenantAware {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
+    private Tenant tenant;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
