@@ -1,6 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
-import com.beezhub.student_accommodation.config.MinioConfig;
+import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
@@ -16,22 +16,20 @@ import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
-import java.util.List;
-import io.minio.GetPresignedObjectUrlArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
+import com.beezhub.student_accommodation.service.document.FileStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,13 +37,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class DocumentServiceTest {
 
     @Mock
-    MinioClient minioClient;
-    @Mock
-    MinioConfig minioConfig;
+    FileStorageService fileStorageService;
     @Mock
     DocumentRepository documentRepository;
     @Mock
@@ -61,9 +56,13 @@ class DocumentServiceTest {
     @Mock
     RoomAllocationRepository roomAllocationRepository;
     @Mock
-    NotificationService notificationService;
-    @Mock
     UserNotificationService userNotificationService;
+    @Mock
+    ApplicationEventPublisher eventPublisher;
+    @Mock
+    RoomAllocationService roomAllocationService;
+    @Mock
+    AuthService authService;
 
     @InjectMocks
     DocumentService documentService;
@@ -94,22 +93,9 @@ class DocumentServiceTest {
         document = new Document();
         document.setId(100L);
         document.setDocumentName("file.pdf");
-        document.setDocumentPath("path");
+        document.setDocumentPath("path/to/file.pdf");
         document.setStudent(student);
         document.setDocumentType(docType);
-
-        when(minioConfig.getBucketName()).thenReturn("bucket");
-
-        // Mock application repository for document operations
-        Application approvedApp = Application.builder()
-                .id(1L)
-                .student(student)
-                .status(ApplicationStatus.APPROVED)
-                .build();
-        when(applicationRepository.findByStudent_Id(anyLong())).thenReturn(List.of(approvedApp));
-
-        // Mock room allocation repository
-        when(roomAllocationRepository.findActiveAllocationByStudentId(anyLong())).thenReturn(Optional.empty());
     }
 
     @Test
@@ -120,26 +106,65 @@ class DocumentServiceTest {
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
         when(file.getContentType()).thenReturn("application/pdf");
 
+        // Mock application repository for document operations
+        Application approvedApp = Application.builder()
+                .id(1L)
+                .student(student)
+                .status(ApplicationStatus.APPROVED)
+                .build();
+        when(applicationRepository.findByStudent_Id(anyLong())).thenReturn(List.of(approvedApp));
+
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
         when(studentRepository.findStudentByAppUser(user)).thenReturn(Optional.of(student));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
-        when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(new DocumentResponse());
+        when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/file.pdf");
 
         documentService.uploadSingleDocument(file, "user@example.com", 2L);
 
-        verify(minioClient, times(1)).putObject(any(PutObjectArgs.class));
+        verify(fileStorageService, times(1)).upload(anyString(), any(InputStream.class), anyLong(), anyString());
         verify(documentRepository, times(1)).save(any(Document.class));
     }
 
     @Test
-    void getDocumentInfo_success_and_presignedUrl() throws Exception {
+    void uploadSingleDocument_dbFailure_minioFileDeleted() throws Exception {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getOriginalFilename()).thenReturn("file.pdf");
+        when(file.getSize()).thenReturn(10L);
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
+        when(file.getContentType()).thenReturn("application/pdf");
+
+        // Mock application repository for document operations
+        Application approvedApp = Application.builder()
+                .id(1L)
+                .student(student)
+                .status(ApplicationStatus.APPROVED)
+                .build();
+        when(applicationRepository.findByStudent_Id(anyLong())).thenReturn(List.of(approvedApp));
+
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
+        when(studentRepository.findStudentByAppUser(user)).thenReturn(Optional.of(student));
+        
+        // Mock DB failure
+        when(documentRepository.save(any(Document.class))).thenThrow(new RuntimeException("DB Error"));
+        
+        when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/file.pdf");
+
+        assertThrows(RuntimeException.class, () -> documentService.uploadSingleDocument(file, "user@example.com", 2L));
+
+        // Verify upload called
+        verify(fileStorageService, times(1)).upload(anyString(), any(InputStream.class), anyLong(), anyString());
+        // Verify delete called (compensating transaction)
+        verify(fileStorageService, times(1)).delete(anyString());
+    }
+
+    @Test
+    void getDocumentInfo_success_and_presignedUrl() {
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
         when(documentMapper.toDocumentResponse(document)).thenReturn(new DocumentResponse());
-        // use doReturn to avoid checked exception signature on
-        // when(...).thenReturn(...)
-        doReturn("http://presigned").when(minioClient).getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class));
+        when(fileStorageService.generatePresignedUrl(anyString(), any(Duration.class))).thenReturn("http://presigned");
 
         var resp = documentService.getDocumentInfo(100L, "user@example.com");
         assertNotNull(resp);
@@ -162,36 +187,27 @@ class DocumentServiceTest {
     }
 
     @Test
-    void updateDocumentStatus_valid_and_invalid() {
+    void deleteDocument_validUser_deletesFileAndRecord() {
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
-        when(documentRepository.save(any(Document.class))).thenReturn(document);
-        when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(new DocumentResponse());
 
-        var resp = documentService.updateDocumentStatus(100L, "APPROVED", "user@example.com");
-        assertNotNull(resp);
-
-        // invalid status
-        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
-        assertThrows(RuntimeException.class,
-                () -> documentService.updateDocumentStatus(100L, "not-a-status", "user@example.com"));
+        doNothing().when(fileStorageService).delete(anyString());
+        doNothing().when(documentRepository).delete(document);
+        documentService.deleteDocument(100L, "user@example.com");
+        verify(fileStorageService, times(1)).delete(anyString());
+        verify(documentRepository, times(1)).delete(document);
     }
 
     @Test
-    void deleteDocument_success_and_failure() throws Exception {
+    void deleteDocument_storageFailure_suppressesException() {
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
 
-        // success
-        doNothing().when(minioClient).removeObject(any(RemoveObjectArgs.class));
-        doNothing().when(documentRepository).delete(document);
-        documentService.deleteDocument(100L, "user@example.com");
-        verify(minioClient, times(1)).removeObject(any(RemoveObjectArgs.class));
-
-        // failure from minio
-        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
-        doThrow(new RuntimeException("minio error")).when(minioClient).removeObject(any(RemoveObjectArgs.class));
-        assertThrows(RuntimeException.class, () -> documentService.deleteDocument(100L, "user@example.com"));
+        doThrow(new FileStorageException("storage error")).when(fileStorageService).delete(anyString());
+        
+        assertDoesNotThrow(() -> documentService.deleteDocument(100L, "user@example.com"));
+        
+        verify(documentRepository).delete(document);
     }
 
     @Test

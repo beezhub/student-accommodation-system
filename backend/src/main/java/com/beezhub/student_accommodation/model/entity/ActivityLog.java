@@ -60,7 +60,7 @@ public class ActivityLog implements TenantAware {
     private String metadata;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id", nullable = false)
+    @JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)
     private Tenant tenant;
 
     @PrePersist

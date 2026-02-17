@@ -370,6 +370,27 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                 return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
         }
 
+        @ExceptionHandler(DocumentCommentNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleDocumentCommentNotFound(
+                        DocumentCommentNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
+
+        @ExceptionHandler(FileStorageException.class)
+        public ResponseEntity<ErrorResponse> handleFileStorageException(FileStorageException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
         @Override
         protected ResponseEntity<Object> handleMethodArgumentNotValid(
                         MethodArgumentNotValidException ex,

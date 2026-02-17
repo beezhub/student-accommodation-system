@@ -1,13 +1,19 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.ApplicationNotApprovedException;
+import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
+import com.beezhub.student_accommodation.exceptions.DocumentCommentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
+import com.beezhub.student_accommodation.exceptions.DocumentTypeNotFoundException;
+import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
+import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
+import com.beezhub.student_accommodation.service.document.FileStorageService;
 import org.springframework.dao.OptimisticLockingFailureException;
 
 import com.beezhub.student_accommodation.aspect.LogActivity;
-import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentCommentResponse;
 import com.beezhub.student_accommodation.model.dto.DocumentDownloadResponse;
@@ -21,7 +27,6 @@ import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
-import com.beezhub.student_accommodation.model.entity.WaitingListEntry;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
@@ -35,10 +40,7 @@ import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
-import com.beezhub.student_accommodation.service.RoomAllocationService;
 import com.beezhub.student_accommodation.specification.DocumentSpecification;
-import io.minio.*;
-import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
@@ -48,8 +50,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,8 +64,7 @@ import static com.beezhub.student_accommodation.model.enums.DocumentStatus.*;
 @Slf4j
 public class DocumentService {
 
-    private final MinioClient minioClient;
-    private final MinioConfig minioConfig;
+    private final FileStorageService fileStorageService;
     private final DocumentRepository documentRepository;
     private final DocumentTypeRepository documentTypeRepository;
     private final DocumentCommentRepository documentCommentRepository;
@@ -79,7 +81,6 @@ public class DocumentService {
 
     @LogActivity(action = "UPLOAD", entityType = "DOCUMENT", description = "Uploaded {0} documents", entityIdParamIndex = -1)
     public List<DocumentResponse> uploadDocuments(List<MultipartFile> files, String email, List<Long> documentTypeIds) {
-        String bucketName = minioConfig.getBucketName();
         var user = getUserByEmail(email);
         List<DocumentResponse> documentResponses = new ArrayList<>();
 
@@ -88,13 +89,34 @@ public class DocumentService {
             DocumentType docType = getDocumentTypeById(documentTypeIds.get(i));
             String objectPath = buildObjectPath(user, docType, file);
 
-            uploadFileToMinio(bucketName, objectPath, file);
-            var document = saveDocumentRecord(user, docType, objectPath, file);
+            try (InputStream is = file.getInputStream()) {
+                fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
+            } catch (Exception e) {
+                if (e instanceof FileStorageException) {
+                    throw (FileStorageException) e;
+                }
+                throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
+            }
+
+            Document document;
+            try {
+                document = saveDocumentRecord(user, docType, objectPath, file);
+            } catch (Exception e) {
+                // Compensating transaction: delete file if DB save fails
+                try {
+                    fileStorageService.delete(objectPath);
+                    log.info("Deleted orphaned file {} after DB save failure", objectPath);
+                } catch (Exception deleteEx) {
+                    log.error("Failed to delete orphaned file {} after DB save failure", objectPath, deleteEx);
+                }
+                throw e; // Rethrow original exception
+            }
             documentResponses.add(documentMapper.toDocumentResponse(document));
         }
         return documentResponses;
     }
 
+    @Transactional(readOnly = true)
     public DocumentResponse getDocumentInfo(Long documentId, String username) {
         var user = getUserByEmail(username);
         Document document = documentRepository.findById(documentId)
@@ -104,55 +126,49 @@ public class DocumentService {
             throw new UnauthorizedAccessException("Unauthorized access to document");
         }
 
-        String bucketName = minioConfig.getBucketName();
         String objectPath = document.getDocumentPath();
         var documentResponse = documentMapper.toDocumentResponse(document);
-        documentResponse.setFileUrl(getPresignedUrl(bucketName, objectPath));
+        // Generate presigned URL valid for 1 hour
+        documentResponse.setFileUrl(fileStorageService.generatePresignedUrl(objectPath, Duration.ofHours(1)));
         return documentResponse;
     }
 
     public void uploadSingleDocument(MultipartFile file, String username, Long documentTypeId) {
-        String bucketName = minioConfig.getBucketName();
         var user = getUserByEmail(username);
         DocumentType docType = getDocumentTypeById(documentTypeId);
         String objectPath = buildObjectPath(user, docType, file);
-        uploadFileToMinio(bucketName, objectPath, file);
-        saveDocumentRecord(user, docType, objectPath, file);
-    }
-
-    private String getPresignedUrl(String bucketName, String objectPath) {
-        try {
-            return minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .method(Method.GET)
-                            .build());
+        
+        try (InputStream is = file.getInputStream()) {
+             fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
         } catch (Exception e) {
-            throw new RuntimeException("Error generating presigned URL", e);
+            if (e instanceof FileStorageException) {
+                throw (FileStorageException) e;
+            }
+            throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
         }
-    }
-
-    private GetObjectResponse downloadFileFromMinio(String bucketName, String objectPath) {
+        
         try {
-            return minioClient.getObject(
-                    GetObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .build());
+            saveDocumentRecord(user, docType, objectPath, file);
         } catch (Exception e) {
-            throw new RuntimeException("Error downloading file from Minio: " + objectPath, e);
+             // Compensating transaction: delete file if DB save fails
+             try {
+                 fileStorageService.delete(objectPath);
+                 log.info("Deleted orphaned file {} after DB save failure", objectPath);
+             } catch (Exception deleteEx) {
+                 log.error("Failed to delete orphaned file {} after DB save failure", objectPath, deleteEx);
+             }
+             throw e;
         }
     }
 
     private AppUser getUserByEmail(String email) {
         return appUserRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new UserNotFoundException("Student not found"));
     }
 
     private DocumentType getDocumentTypeById(Long docTypeId) {
         return documentTypeRepository.findById(docTypeId)
-                .orElseThrow(() -> new RuntimeException("DocumentType not found"));
+                .orElseThrow(() -> new DocumentTypeNotFoundException("DocumentType not found"));
     }
 
     private String buildObjectPath(AppUser user, DocumentType docType, MultipartFile file) {
@@ -163,23 +179,9 @@ public class DocumentService {
                 file.getOriginalFilename());
     }
 
-    private void uploadFileToMinio(String bucketName, String objectPath, MultipartFile file) {
-        try (InputStream is = file.getInputStream()) {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .stream(is, file.getSize(), -1)
-                            .contentType(file.getContentType())
-                            .build());
-        } catch (Exception e) {
-            throw new RuntimeException("Error uploading file: " + file.getOriginalFilename(), e);
-        }
-    }
-
     private Document saveDocumentRecord(AppUser user, DocumentType docType, String objectPath, MultipartFile file) {
         var student = studentRepository.findStudentByAppUser(user)
-                .orElseThrow(() -> new RuntimeException("Student not found for user ID: " + user.getId()));
+                .orElseThrow(() -> new StudentNotFoundException("Student not found for user ID: " + user.getId()));
 
         Application application = getActiveApplicationForStudent(student);
 
@@ -211,36 +213,37 @@ public class DocumentService {
                         || app.getStatus() == ApplicationStatus.APPROVED
                         || app.getStatus() == ApplicationStatus.AWAITING_ALLOCATION)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new ApplicationNotFoundException(
                         "No active application found for student. Please create an application first."));
     }
 
+    @Transactional(readOnly = true)
     public DocumentDownloadResponse downloadDocument(Long documentId, String username) {
         var user = getUserByEmail(username);
         var document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
         if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new RuntimeException("Unauthorized access to document");
+            throw new UnauthorizedAccessException("Unauthorized access to document");
         }
 
-        String bucketName = minioConfig.getBucketName();
         String objectPath = document.getDocumentPath();
 
-        var response = downloadFileFromMinio(bucketName, objectPath);
+        InputStream response = fileStorageService.download(objectPath);
         var inputStreamResource = new InputStreamResource(response);
         return DocumentDownloadResponse.builder()
                 .filename(document.getDocumentName())
                 .resource(inputStreamResource)
-                .contentType(response.headers().get("Content-Type"))
+                .contentType("application/octet-stream")
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public List<DocumentResponse> getAllDocumentsByUserId(Long userId, String username) {
 
         var user = getUserByEmail(username);
         if (!user.getId().equals(userId) && !user.getUserRole().isAdmin()) {
-            throw new RuntimeException("Unauthorized access to documents for user ID: " + userId);
+            throw new UnauthorizedAccessException("Unauthorized access to documents for user ID: " + userId);
         }
 
         List<Document> documents = documentRepository.findAllByStudent_AppUser_Id(userId);
@@ -373,27 +376,27 @@ public class DocumentService {
     public void deleteDocument(Long documentId, String username) {
         var user = getUserByEmail(username);
         Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
         if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new RuntimeException("Unauthorized access to document");
+            throw new UnauthorizedAccessException("Unauthorized access to document");
         }
 
-        String bucketName = minioConfig.getBucketName();
         String objectPath = document.getDocumentPath();
 
+        // Step 1: Delete DB record (can be rolled back on failure)
+        documentRepository.delete(document);
+
+        // Step 2: Delete file from storage (best-effort; cleanup job handles orphans)
         try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .build());
-            documentRepository.delete(document);
-        } catch (Exception e) {
-            throw new RuntimeException("Error deleting document: " + documentId, e);
+            fileStorageService.delete(objectPath);
+        } catch (FileStorageException e) {
+            log.error("DB record deleted but MinIO file deletion failed for key {}: {}", objectPath, e.getMessage());
+            // Do not rethrow — the DB record is gone; the cleanup job will remove the orphan
         }
     }
 
+    @Transactional(readOnly = true)
     public Page<DocumentResponse> searchDocuments(
             String documentName,
             Long studentId,
@@ -419,6 +422,7 @@ public class DocumentService {
         return documentsPage.map(documentMapper::toDocumentResponse);
     }
 
+    @Transactional(readOnly = true)
     public Page<DocumentResponse> getMyDocuments(
             String documentName,
             Long documentTypeId,
@@ -472,7 +476,7 @@ public class DocumentService {
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
 
         AppUser admin = appUserRepository.findById(adminId)
-                .orElseThrow(() -> new RuntimeException("Admin not found with id: " + adminId));
+                .orElseThrow(() -> new UserNotFoundException("Admin not found with id: " + adminId));
 
         if (!admin.getUserRole().isAdmin()) {
             throw new UnauthorizedAccessException("Only admins can add comments to documents");
@@ -509,6 +513,7 @@ public class DocumentService {
      * @param username   The user's email/username requesting comments
      * @return List of comment responses
      */
+    @Transactional(readOnly = true)
     public List<DocumentCommentResponse> getCommentsByDocument(Long documentId, String username) {
         log.info("Fetching comments for document {} by user {}", documentId, username);
 
@@ -539,6 +544,7 @@ public class DocumentService {
      * @param documentId The document ID
      * @return List of comment responses
      */
+    @Transactional(readOnly = true)
     List<DocumentCommentResponse> getCommentsByDocumentInternal(Long documentId) {
         log.info("Fetching comments for document {}", documentId);
 
@@ -583,10 +589,10 @@ public class DocumentService {
         log.info("Deleting comment {} by admin {}", commentId, adminId);
 
         DocumentComment comment = documentCommentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found with id: " + commentId));
+                .orElseThrow(() -> new DocumentCommentNotFoundException("Comment not found with id: " + commentId));
 
         AppUser requestingAdmin = appUserRepository.findById(adminId)
-                .orElseThrow(() -> new RuntimeException("Admin not found with id: " + adminId));
+                .orElseThrow(() -> new UserNotFoundException("Admin not found with id: " + adminId));
 
         // Check if the admin owns the comment or is authorized to delete
         boolean isOwner = comment.getAdmin().getId().equals(adminId);
