@@ -51,6 +51,6 @@ public class SystemSetting implements TenantAware {
     private LocalDateTime updatedAt;
 
     @jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
-    @jakarta.persistence.JoinColumn(name = "tenant_id", nullable = false)
+    @jakarta.persistence.JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)
     private Tenant tenant;
 }

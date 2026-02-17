@@ -4,10 +4,10 @@ import com.beezhub.student_accommodation.exceptions.ApplicationNotApprovedExcept
 import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
+import com.beezhub.student_accommodation.service.document.FileStorageService;
 import org.springframework.dao.OptimisticLockingFailureException;
 
 import com.beezhub.student_accommodation.aspect.LogActivity;
-import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentCommentResponse;
 import com.beezhub.student_accommodation.model.dto.DocumentDownloadResponse;
@@ -21,7 +21,6 @@ import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
-import com.beezhub.student_accommodation.model.entity.WaitingListEntry;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
@@ -35,10 +34,7 @@ import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
-import com.beezhub.student_accommodation.service.RoomAllocationService;
 import com.beezhub.student_accommodation.specification.DocumentSpecification;
-import io.minio.*;
-import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
@@ -50,6 +46,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.transaction.Transactional;
 import java.io.InputStream;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,8 +58,7 @@ import static com.beezhub.student_accommodation.model.enums.DocumentStatus.*;
 @Slf4j
 public class DocumentService {
 
-    private final MinioClient minioClient;
-    private final MinioConfig minioConfig;
+    private final FileStorageService fileStorageService;
     private final DocumentRepository documentRepository;
     private final DocumentTypeRepository documentTypeRepository;
     private final DocumentCommentRepository documentCommentRepository;
@@ -79,7 +75,6 @@ public class DocumentService {
 
     @LogActivity(action = "UPLOAD", entityType = "DOCUMENT", description = "Uploaded {0} documents", entityIdParamIndex = -1)
     public List<DocumentResponse> uploadDocuments(List<MultipartFile> files, String email, List<Long> documentTypeIds) {
-        String bucketName = minioConfig.getBucketName();
         var user = getUserByEmail(email);
         List<DocumentResponse> documentResponses = new ArrayList<>();
 
@@ -88,8 +83,25 @@ public class DocumentService {
             DocumentType docType = getDocumentTypeById(documentTypeIds.get(i));
             String objectPath = buildObjectPath(user, docType, file);
 
-            uploadFileToMinio(bucketName, objectPath, file);
-            var document = saveDocumentRecord(user, docType, objectPath, file);
+            try (InputStream is = file.getInputStream()) {
+                fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
+            } catch (Exception e) {
+                throw new RuntimeException("Error uploading file: " + file.getOriginalFilename(), e);
+            }
+
+            Document document;
+            try {
+                document = saveDocumentRecord(user, docType, objectPath, file);
+            } catch (Exception e) {
+                // Compensating transaction: delete file if DB save fails
+                try {
+                    fileStorageService.delete(objectPath);
+                    log.info("Deleted orphaned file {} after DB save failure", objectPath);
+                } catch (Exception deleteEx) {
+                    log.error("Failed to delete orphaned file {} after DB save failure", objectPath, deleteEx);
+                }
+                throw e; // Rethrow original exception
+            }
             documentResponses.add(documentMapper.toDocumentResponse(document));
         }
         return documentResponses;
@@ -104,44 +116,35 @@ public class DocumentService {
             throw new UnauthorizedAccessException("Unauthorized access to document");
         }
 
-        String bucketName = minioConfig.getBucketName();
         String objectPath = document.getDocumentPath();
         var documentResponse = documentMapper.toDocumentResponse(document);
-        documentResponse.setFileUrl(getPresignedUrl(bucketName, objectPath));
+        // Generate presigned URL valid for 1 hour
+        documentResponse.setFileUrl(fileStorageService.generatePresignedUrl(objectPath, Duration.ofHours(1)));
         return documentResponse;
     }
 
     public void uploadSingleDocument(MultipartFile file, String username, Long documentTypeId) {
-        String bucketName = minioConfig.getBucketName();
         var user = getUserByEmail(username);
         DocumentType docType = getDocumentTypeById(documentTypeId);
         String objectPath = buildObjectPath(user, docType, file);
-        uploadFileToMinio(bucketName, objectPath, file);
-        saveDocumentRecord(user, docType, objectPath, file);
-    }
-
-    private String getPresignedUrl(String bucketName, String objectPath) {
-        try {
-            return minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .method(Method.GET)
-                            .build());
+        
+        try (InputStream is = file.getInputStream()) {
+             fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
         } catch (Exception e) {
-            throw new RuntimeException("Error generating presigned URL", e);
+            throw new RuntimeException("Error uploading file: " + file.getOriginalFilename(), e);
         }
-    }
-
-    private GetObjectResponse downloadFileFromMinio(String bucketName, String objectPath) {
+        
         try {
-            return minioClient.getObject(
-                    GetObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .build());
+            saveDocumentRecord(user, docType, objectPath, file);
         } catch (Exception e) {
-            throw new RuntimeException("Error downloading file from Minio: " + objectPath, e);
+             // Compensating transaction: delete file if DB save fails
+             try {
+                 fileStorageService.delete(objectPath);
+                 log.info("Deleted orphaned file {} after DB save failure", objectPath);
+             } catch (Exception deleteEx) {
+                 log.error("Failed to delete orphaned file {} after DB save failure", objectPath, deleteEx);
+             }
+             throw e;
         }
     }
 
@@ -161,20 +164,6 @@ public class DocumentService {
                 user.getId(),
                 docType.getTypeName(),
                 file.getOriginalFilename());
-    }
-
-    private void uploadFileToMinio(String bucketName, String objectPath, MultipartFile file) {
-        try (InputStream is = file.getInputStream()) {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .stream(is, file.getSize(), -1)
-                            .contentType(file.getContentType())
-                            .build());
-        } catch (Exception e) {
-            throw new RuntimeException("Error uploading file: " + file.getOriginalFilename(), e);
-        }
     }
 
     private Document saveDocumentRecord(AppUser user, DocumentType docType, String objectPath, MultipartFile file) {
@@ -224,15 +213,14 @@ public class DocumentService {
             throw new RuntimeException("Unauthorized access to document");
         }
 
-        String bucketName = minioConfig.getBucketName();
         String objectPath = document.getDocumentPath();
 
-        var response = downloadFileFromMinio(bucketName, objectPath);
+        InputStream response = fileStorageService.download(objectPath);
         var inputStreamResource = new InputStreamResource(response);
         return DocumentDownloadResponse.builder()
                 .filename(document.getDocumentName())
                 .resource(inputStreamResource)
-                .contentType(response.headers().get("Content-Type"))
+                .contentType("application/octet-stream")
                 .build();
     }
 
@@ -379,15 +367,10 @@ public class DocumentService {
             throw new RuntimeException("Unauthorized access to document");
         }
 
-        String bucketName = minioConfig.getBucketName();
         String objectPath = document.getDocumentPath();
 
         try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .build());
+            fileStorageService.delete(objectPath);
             documentRepository.delete(document);
         } catch (Exception e) {
             throw new RuntimeException("Error deleting document: " + documentId, e);
