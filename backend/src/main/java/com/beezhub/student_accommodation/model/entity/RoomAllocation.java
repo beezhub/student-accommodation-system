@@ -11,11 +11,16 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "room_allocation")
 @Data
-public class RoomAllocation {
+@org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
+@EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
+public class RoomAllocation implements TenantAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "tenant_id")
+    private Long tenantId;
 
     @Column(name = "allocation_date", nullable = false)
     private LocalDateTime allocationDate;

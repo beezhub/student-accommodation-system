@@ -64,6 +64,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             username, jwt, authorities);
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                    Long tenantId = jwtUtil.extractTenantId(jwt);
+                    if (tenantId != null) {
+                        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(tenantId);
+                    }
                 }
             }
             
@@ -72,6 +77,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             // Delegate exception handling to the global exception resolver (RestResponseExceptionHandler)
             handlerExceptionResolver.resolveException(request, response, null, e);
+        } finally {
+            com.beezhub.student_accommodation.service.tenant.TenantContext.clear();
         }
     }
 }

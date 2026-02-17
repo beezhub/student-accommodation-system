@@ -18,6 +18,7 @@ import com.beezhub.student_accommodation.repository.UserNotificationRepository;
 import com.beezhub.student_accommodation.repository.ActivityLogRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
+import com.beezhub.student_accommodation.service.tenant.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,6 +58,7 @@ public class AuthService {
     private final ActivityLogRepository activityLogRepository;
     private final TokenBlacklistService tokenBlacklistService;
     private final LoginAttemptService loginAttemptService;
+    private final TenantService tenantService;
 
     @Value("${app.base-url:http://localhost:3000}")
     private String baseUrl;
@@ -73,6 +75,10 @@ public class AuthService {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
         var user = appUserMapper.toEntity(request, passwordEncoder.encode(request.getPassword()));
+        // Assign the default tenant so the NOT NULL constraint on tenant_id is satisfied.
+        // During public sign-up there is no JWT, so TenantContext is empty and
+        // TenantListener cannot auto-populate the field.
+        user.setTenantId(tenantService.getDefaultTenant().getId());
         var save = userRepository.save(user);
 
         try {
@@ -86,7 +92,8 @@ public class AuthService {
         String token = jwtUtil.generateToken(new AppUserDetails(
                 user.getEmail(),
                 user.getUserPassword(),
-                user.getUserRole().name()
+                user.getUserRole().name(),
+                user.getTenantId()
         ));
         return new LoginResponse(token, userData);
     }
