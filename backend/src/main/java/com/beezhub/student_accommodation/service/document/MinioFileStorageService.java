@@ -1,7 +1,9 @@
 package com.beezhub.student_accommodation.service.document;
 
 import com.beezhub.student_accommodation.config.MinioConfig;
+import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import io.minio.*;
+import io.minio.errors.ErrorResponseException;
 import io.minio.http.Method;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +36,7 @@ public class MinioFileStorageService implements FileStorageService {
                             .build());
             return key;
         } catch (Exception e) {
-            throw new RuntimeException("Error uploading file to MinIO: " + key, e);
+            throw new FileStorageException("Error uploading file to MinIO: " + key, e);
         }
     }
 
@@ -48,7 +50,7 @@ public class MinioFileStorageService implements FileStorageService {
                             .object(key)
                             .build());
         } catch (Exception e) {
-            throw new RuntimeException("Error downloading file from MinIO: " + key, e);
+            throw new FileStorageException("Error downloading file from MinIO: " + key, e);
         }
     }
 
@@ -62,7 +64,7 @@ public class MinioFileStorageService implements FileStorageService {
                             .object(key)
                             .build());
         } catch (Exception e) {
-            throw new RuntimeException("Error deleting file from MinIO: " + key, e);
+            throw new FileStorageException("Error deleting file from MinIO: " + key, e);
         }
     }
 
@@ -76,9 +78,13 @@ public class MinioFileStorageService implements FileStorageService {
                             .object(key)
                             .build());
             return true;
+        } catch (ErrorResponseException e) {
+            if ("NoSuchKey".equals(e.errorResponse().code()) || "NoSuchObject".equals(e.errorResponse().code())) {
+                return false;
+            }
+            throw new FileStorageException("Error checking file existence in MinIO: " + key, e);
         } catch (Exception e) {
-            // MinIO throws exception if object does not exist
-            return false;
+            throw new FileStorageException("Error checking file existence in MinIO: " + key, e);
         }
     }
 
@@ -94,7 +100,7 @@ public class MinioFileStorageService implements FileStorageService {
                             .expiry((int) expiry.toSeconds())
                             .build());
         } catch (Exception e) {
-            throw new RuntimeException("Error generating presigned URL for key: " + key, e);
+            throw new FileStorageException("Error generating presigned URL for key: " + key, e);
         }
     }
 
@@ -112,7 +118,7 @@ public class MinioFileStorageService implements FileStorageService {
                     try {
                         return itemResult.get().objectName();
                     } catch (Exception e) {
-                        throw new RuntimeException("Error listing objects from MinIO", e);
+                        throw new FileStorageException("Error listing objects from MinIO", e);
                     }
                 });
     }

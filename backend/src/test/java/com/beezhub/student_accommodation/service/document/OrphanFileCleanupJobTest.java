@@ -69,4 +69,19 @@ class OrphanFileCleanupJobTest {
         
         verify(documentRepository, never()).existsByDocumentPath(anyString());
     }
+
+    @Test
+    void cleanup_singleFileDeletionFails_jobContinues() {
+        when(fileStorageService.listObjects()).thenReturn(Stream.of("orphan1.pdf", "orphan2.pdf"));
+        when(documentRepository.existsByDocumentPath(anyString())).thenReturn(false);
+        doThrow(new RuntimeException("Delete failed")).when(fileStorageService).delete("orphan1.pdf");
+        doNothing().when(fileStorageService).delete("orphan2.pdf");
+
+        // Should not throw
+        orphanFileCleanupJob.cleanupOrphanedFiles();
+
+        // Job continues and deletes orphan2 despite orphan1 failure
+        verify(fileStorageService).delete("orphan1.pdf");
+        verify(fileStorageService).delete("orphan2.pdf");
+    }
 }

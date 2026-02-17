@@ -1,9 +1,15 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.ApplicationNotApprovedException;
+import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
+import com.beezhub.student_accommodation.exceptions.DocumentCommentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
+import com.beezhub.student_accommodation.exceptions.DocumentTypeNotFoundException;
+import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
+import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.service.document.FileStorageService;
 import org.springframework.dao.OptimisticLockingFailureException;
 
@@ -44,7 +50,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -86,7 +92,10 @@ public class DocumentService {
             try (InputStream is = file.getInputStream()) {
                 fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
             } catch (Exception e) {
-                throw new RuntimeException("Error uploading file: " + file.getOriginalFilename(), e);
+                if (e instanceof FileStorageException) {
+                    throw (FileStorageException) e;
+                }
+                throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
             }
 
             Document document;
@@ -107,6 +116,7 @@ public class DocumentService {
         return documentResponses;
     }
 
+    @Transactional(readOnly = true)
     public DocumentResponse getDocumentInfo(Long documentId, String username) {
         var user = getUserByEmail(username);
         Document document = documentRepository.findById(documentId)
@@ -131,7 +141,10 @@ public class DocumentService {
         try (InputStream is = file.getInputStream()) {
              fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
         } catch (Exception e) {
-            throw new RuntimeException("Error uploading file: " + file.getOriginalFilename(), e);
+            if (e instanceof FileStorageException) {
+                throw (FileStorageException) e;
+            }
+            throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
         }
         
         try {
@@ -150,12 +163,12 @@ public class DocumentService {
 
     private AppUser getUserByEmail(String email) {
         return appUserRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new UserNotFoundException("Student not found"));
     }
 
     private DocumentType getDocumentTypeById(Long docTypeId) {
         return documentTypeRepository.findById(docTypeId)
-                .orElseThrow(() -> new RuntimeException("DocumentType not found"));
+                .orElseThrow(() -> new DocumentTypeNotFoundException("DocumentType not found"));
     }
 
     private String buildObjectPath(AppUser user, DocumentType docType, MultipartFile file) {
@@ -168,7 +181,7 @@ public class DocumentService {
 
     private Document saveDocumentRecord(AppUser user, DocumentType docType, String objectPath, MultipartFile file) {
         var student = studentRepository.findStudentByAppUser(user)
-                .orElseThrow(() -> new RuntimeException("Student not found for user ID: " + user.getId()));
+                .orElseThrow(() -> new StudentNotFoundException("Student not found for user ID: " + user.getId()));
 
         Application application = getActiveApplicationForStudent(student);
 
@@ -200,17 +213,18 @@ public class DocumentService {
                         || app.getStatus() == ApplicationStatus.APPROVED
                         || app.getStatus() == ApplicationStatus.AWAITING_ALLOCATION)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new ApplicationNotFoundException(
                         "No active application found for student. Please create an application first."));
     }
 
+    @Transactional(readOnly = true)
     public DocumentDownloadResponse downloadDocument(Long documentId, String username) {
         var user = getUserByEmail(username);
         var document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
         if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new RuntimeException("Unauthorized access to document");
+            throw new UnauthorizedAccessException("Unauthorized access to document");
         }
 
         String objectPath = document.getDocumentPath();
@@ -224,11 +238,12 @@ public class DocumentService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public List<DocumentResponse> getAllDocumentsByUserId(Long userId, String username) {
 
         var user = getUserByEmail(username);
         if (!user.getId().equals(userId) && !user.getUserRole().isAdmin()) {
-            throw new RuntimeException("Unauthorized access to documents for user ID: " + userId);
+            throw new UnauthorizedAccessException("Unauthorized access to documents for user ID: " + userId);
         }
 
         List<Document> documents = documentRepository.findAllByStudent_AppUser_Id(userId);
@@ -361,22 +376,27 @@ public class DocumentService {
     public void deleteDocument(Long documentId, String username) {
         var user = getUserByEmail(username);
         Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+                .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
         if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new RuntimeException("Unauthorized access to document");
+            throw new UnauthorizedAccessException("Unauthorized access to document");
         }
 
         String objectPath = document.getDocumentPath();
 
+        // Step 1: Delete DB record (can be rolled back on failure)
+        documentRepository.delete(document);
+
+        // Step 2: Delete file from storage (best-effort; cleanup job handles orphans)
         try {
             fileStorageService.delete(objectPath);
-            documentRepository.delete(document);
-        } catch (Exception e) {
-            throw new RuntimeException("Error deleting document: " + documentId, e);
+        } catch (FileStorageException e) {
+            log.error("DB record deleted but MinIO file deletion failed for key {}: {}", objectPath, e.getMessage());
+            // Do not rethrow — the DB record is gone; the cleanup job will remove the orphan
         }
     }
 
+    @Transactional(readOnly = true)
     public Page<DocumentResponse> searchDocuments(
             String documentName,
             Long studentId,
@@ -402,6 +422,7 @@ public class DocumentService {
         return documentsPage.map(documentMapper::toDocumentResponse);
     }
 
+    @Transactional(readOnly = true)
     public Page<DocumentResponse> getMyDocuments(
             String documentName,
             Long documentTypeId,
@@ -455,7 +476,7 @@ public class DocumentService {
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
 
         AppUser admin = appUserRepository.findById(adminId)
-                .orElseThrow(() -> new RuntimeException("Admin not found with id: " + adminId));
+                .orElseThrow(() -> new UserNotFoundException("Admin not found with id: " + adminId));
 
         if (!admin.getUserRole().isAdmin()) {
             throw new UnauthorizedAccessException("Only admins can add comments to documents");
@@ -492,6 +513,7 @@ public class DocumentService {
      * @param username   The user's email/username requesting comments
      * @return List of comment responses
      */
+    @Transactional(readOnly = true)
     public List<DocumentCommentResponse> getCommentsByDocument(Long documentId, String username) {
         log.info("Fetching comments for document {} by user {}", documentId, username);
 
@@ -522,6 +544,7 @@ public class DocumentService {
      * @param documentId The document ID
      * @return List of comment responses
      */
+    @Transactional(readOnly = true)
     List<DocumentCommentResponse> getCommentsByDocumentInternal(Long documentId) {
         log.info("Fetching comments for document {}", documentId);
 
@@ -566,10 +589,10 @@ public class DocumentService {
         log.info("Deleting comment {} by admin {}", commentId, adminId);
 
         DocumentComment comment = documentCommentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found with id: " + commentId));
+                .orElseThrow(() -> new DocumentCommentNotFoundException("Comment not found with id: " + commentId));
 
         AppUser requestingAdmin = appUserRepository.findById(adminId)
-                .orElseThrow(() -> new RuntimeException("Admin not found with id: " + adminId));
+                .orElseThrow(() -> new UserNotFoundException("Admin not found with id: " + adminId));
 
         // Check if the admin owns the comment or is authorized to delete
         boolean isOwner = comment.getAdmin().getId().equals(adminId);

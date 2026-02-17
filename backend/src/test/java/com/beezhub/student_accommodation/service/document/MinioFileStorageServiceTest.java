@@ -1,8 +1,11 @@
 package com.beezhub.student_accommodation.service.document;
 
 import com.beezhub.student_accommodation.config.MinioConfig;
+import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import io.minio.*;
+import io.minio.errors.ErrorResponseException;
 import io.minio.http.Method;
+import io.minio.messages.ErrorResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,8 +75,12 @@ class MinioFileStorageServiceTest {
     void exists_fileDoesNotExist_returnsFalse() throws Exception {
         String key = "test/file.txt";
         
-        // Mock exception on statObject
-        doThrow(new RuntimeException("Not found")).when(minioClient).statObject(any(StatObjectArgs.class));
+        // Mock ErrorResponseException with NoSuchKey code
+        ErrorResponse errorResponse = mock(ErrorResponse.class);
+        when(errorResponse.code()).thenReturn("NoSuchKey");
+        ErrorResponseException exception = new ErrorResponseException(errorResponse, null, null);
+        
+        doThrow(exception).when(minioClient).statObject(any(StatObjectArgs.class));
 
         boolean exists = minioFileStorageService.exists(key);
 
@@ -81,7 +88,7 @@ class MinioFileStorageServiceTest {
     }
 
     @Test
-    void generatePresignedUrl_success() throws Exception {
+    void generatePresignedUrl_validKeyAndExpiry_returnsUrl() throws Exception {
         String key = "test/file.txt";
         String expectedUrl = "http://minio/test-bucket/test/file.txt";
         
@@ -91,5 +98,25 @@ class MinioFileStorageServiceTest {
 
         assertEquals(expectedUrl, url);
         verify(minioClient, times(1)).getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class));
+    }
+
+    @Test
+    void download_existingKey_returnsInputStream() throws Exception {
+        String key = "test/file.txt";
+        GetObjectResponse mockResponse = mock(GetObjectResponse.class);
+        when(minioClient.getObject(any(GetObjectArgs.class))).thenReturn(mockResponse);
+
+        InputStream result = minioFileStorageService.download(key);
+
+        assertNotNull(result);
+        verify(minioClient, times(1)).getObject(any(GetObjectArgs.class));
+    }
+
+    @Test
+    void download_minioError_throwsFileStorageException() throws Exception {
+        String key = "test/file.txt";
+        doThrow(new RuntimeException("MinIO error")).when(minioClient).getObject(any(GetObjectArgs.class));
+
+        assertThrows(FileStorageException.class, () -> minioFileStorageService.download(key));
     }
 }

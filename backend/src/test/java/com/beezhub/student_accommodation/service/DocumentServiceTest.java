@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
@@ -22,8 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,7 +37,6 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class DocumentServiceTest {
 
     @Mock
@@ -63,6 +61,8 @@ class DocumentServiceTest {
     ApplicationEventPublisher eventPublisher;
     @Mock
     RoomAllocationService roomAllocationService;
+    @Mock
+    AuthService authService;
 
     @InjectMocks
     DocumentService documentService;
@@ -96,17 +96,6 @@ class DocumentServiceTest {
         document.setDocumentPath("path/to/file.pdf");
         document.setStudent(student);
         document.setDocumentType(docType);
-
-        // Mock application repository for document operations
-        Application approvedApp = Application.builder()
-                .id(1L)
-                .student(student)
-                .status(ApplicationStatus.APPROVED)
-                .build();
-        when(applicationRepository.findByStudent_Id(anyLong())).thenReturn(List.of(approvedApp));
-
-        // Mock room allocation repository
-        when(roomAllocationRepository.findActiveAllocationByStudentId(anyLong())).thenReturn(Optional.empty());
     }
 
     @Test
@@ -117,11 +106,18 @@ class DocumentServiceTest {
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
         when(file.getContentType()).thenReturn("application/pdf");
 
+        // Mock application repository for document operations
+        Application approvedApp = Application.builder()
+                .id(1L)
+                .student(student)
+                .status(ApplicationStatus.APPROVED)
+                .build();
+        when(applicationRepository.findByStudent_Id(anyLong())).thenReturn(List.of(approvedApp));
+
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
         when(studentRepository.findStudentByAppUser(user)).thenReturn(Optional.of(student));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
-        when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(new DocumentResponse());
         when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/file.pdf");
 
         documentService.uploadSingleDocument(file, "user@example.com", 2L);
@@ -137,6 +133,14 @@ class DocumentServiceTest {
         when(file.getSize()).thenReturn(10L);
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
         when(file.getContentType()).thenReturn("application/pdf");
+
+        // Mock application repository for document operations
+        Application approvedApp = Application.builder()
+                .id(1L)
+                .student(student)
+                .status(ApplicationStatus.APPROVED)
+                .build();
+        when(applicationRepository.findByStudent_Id(anyLong())).thenReturn(List.of(approvedApp));
 
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
@@ -183,20 +187,27 @@ class DocumentServiceTest {
     }
 
     @Test
-    void deleteDocument_success_and_failure() {
+    void deleteDocument_validUser_deletesFileAndRecord() {
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
 
-        // success
         doNothing().when(fileStorageService).delete(anyString());
         doNothing().when(documentRepository).delete(document);
         documentService.deleteDocument(100L, "user@example.com");
         verify(fileStorageService, times(1)).delete(anyString());
+        verify(documentRepository, times(1)).delete(document);
+    }
 
-        // failure from storage service
+    @Test
+    void deleteDocument_storageFailure_suppressesException() {
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
-        doThrow(new RuntimeException("storage error")).when(fileStorageService).delete(anyString());
-        assertThrows(RuntimeException.class, () -> documentService.deleteDocument(100L, "user@example.com"));
+
+        doThrow(new FileStorageException("storage error")).when(fileStorageService).delete(anyString());
+        
+        assertDoesNotThrow(() -> documentService.deleteDocument(100L, "user@example.com"));
+        
+        verify(documentRepository).delete(document);
     }
 
     @Test
