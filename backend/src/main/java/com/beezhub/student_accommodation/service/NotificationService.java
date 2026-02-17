@@ -107,4 +107,48 @@ public class NotificationService {
         log.error("Failed to send notification {} (type: {}) to {}. Error: {}. Will retry if under max attempts.",
                 notification.getId(), notification.getType(), notification.getRecipient(), errorMessage, e);
     }
+
+    @Async("notificationExecutor")
+    public void sendApplicationStatusNotification(Application application, ApplicationStatus status) {
+        if (application.getStudent() == null || application.getStudent().getAppUser() == null) {
+            log.warn("Cannot send application status notification: Student or AppUser is null for application {}", application.getId());
+            return;
+        }
+
+        AppUser user = application.getStudent().getAppUser();
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+
+        if (status == ApplicationStatus.APPROVED) {
+            Notification notification = createNotification(
+                    email,
+                    "Application Approved - Student Accommodation System",
+                    NotificationType.APPLICATION_APPROVED,
+                    user,
+                    application.getId(),
+                    "Application");
+            try {
+                emailDispatchService.sendApplicationApprovedEmail(application, studentName, email);
+                markNotificationAsSent(notification);
+            } catch (Exception e) {
+                handleNotificationFailure(notification, e);
+            }
+        } else if (status == ApplicationStatus.REJECTED) {
+            Notification notification = createNotification(
+                    email,
+                    "Application Rejected - Student Accommodation System",
+                    NotificationType.APPLICATION_REJECTED,
+                    user,
+                    application.getId(),
+                    "Application");
+            try {
+                emailDispatchService.sendApplicationRejectedEmail(application, studentName, email);
+                markNotificationAsSent(notification);
+            } catch (Exception e) {
+                handleNotificationFailure(notification, e);
+            }
+        } else {
+             log.warn("Notification not implemented for application status: {}", status);
+        }
+    }
 }

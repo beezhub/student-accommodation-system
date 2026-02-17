@@ -16,6 +16,8 @@ import java.util.Date;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.beezhub.student_accommodation.security.user.AppUserDetails;
+
 @Component
 public class JwtUtil {
 
@@ -29,6 +31,15 @@ public class JwtUtil {
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+    
+    public Long extractTenantId(String token) {
+        Claims claims = extractAllClaims(token);
+        Object tenantId = claims.get("tenantId");
+        if (tenantId instanceof Number) {
+            return ((Number) tenantId).longValue();
+        }
+        return null;
     }
 
     public String extractJti(String token) {
@@ -60,11 +71,17 @@ public class JwtUtil {
         } else {
             expirationMs = Long.parseLong(jwtConfig.getExpirationTime());
         }
+        
+        Long tenantId = null;
+        if (userDetails instanceof AppUserDetails) {
+            tenantId = ((AppUserDetails) userDetails).getTenantId();
+        }
 
         return Jwts.builder()
             .setId(java.util.UUID.randomUUID().toString())
             .setSubject(userDetails.getUsername())
             .claim("roles", roles)
+            .claim("tenantId", tenantId)
             .setIssuedAt(new Date())
             .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
             .signWith(key)

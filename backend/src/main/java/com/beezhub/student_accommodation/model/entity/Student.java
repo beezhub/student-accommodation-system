@@ -35,11 +35,11 @@ public class Student {
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private AppUser appUser;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "institution_id", referencedColumnName = "id")
     private Institution institution;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "year_of_study_id", referencedColumnName = "id")
     private YearOfStudy yearOfStudy;
 

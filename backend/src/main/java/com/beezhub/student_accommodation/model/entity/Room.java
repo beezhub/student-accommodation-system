@@ -8,11 +8,16 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "room")
 @Data
-public class Room {
+@org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
+@EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
+public class Room implements TenantAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "tenant_id")
+    private Long tenantId;
 
     @Version
     @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")

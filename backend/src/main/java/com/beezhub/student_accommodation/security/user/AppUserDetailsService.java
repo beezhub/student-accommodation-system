@@ -20,6 +20,6 @@ public class AppUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         AppUser user = appUserRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        return new AppUserDetails(user.getEmail(), user.getUserPassword(), user.getUserRole().name());
+        return new AppUserDetails(user.getEmail(), user.getUserPassword(), user.getUserRole().name(), user.getTenantId());
     }
 }

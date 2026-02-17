@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.concurrent.Executor;
@@ -18,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Refs: TASK-1.10, ARCH-2.3.4, ARCH-2.5-PB-003
  */
 @SpringBootTest
+@ActiveProfiles("test")
 @TestPropertySource(properties = {
         "async.core-pool-size=10",
         "async.max-pool-size=20",
