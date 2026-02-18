@@ -21,7 +21,6 @@ import static com.beezhub.student_accommodation.model.enums.DocumentStatus.APPRO
 import com.beezhub.student_accommodation.exceptions.ApplicationNotApprovedException;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
-// ... imports ...
 
 @Service
 @RequiredArgsConstructor

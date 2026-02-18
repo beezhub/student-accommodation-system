@@ -29,7 +29,7 @@ public class DocumentEventService {
                     document.getDocumentType().getTypeName(),
                     newStatus == APPROVED,
                     comment);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Failed to trigger notification for document {} - notification will be retried by scheduler",
                     document.getId(), e);
         }

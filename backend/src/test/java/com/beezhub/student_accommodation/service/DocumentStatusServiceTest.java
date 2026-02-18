@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.ApplicationNotApprovedException;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
@@ -20,8 +21,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 import java.util.Optional;
 
@@ -32,7 +31,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Document Status Service Tests")
 class DocumentStatusServiceTest {
 
@@ -102,18 +100,16 @@ class DocumentStatusServiceTest {
                 .student(student)
                 .status(ApplicationStatus.APPROVED)
                 .build();
-
-        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
-        when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
     }
 
     @Test
-    @DisplayName("Should trigger event when document is verified (APPROVED)")
-    void shouldTriggerEventWhenDocumentVerified() {
+    void updateDocumentStatus_approvedStatus_publishesDocumentStatusEvent() {
         // Given
         String status = "APPROVED";
         String comment = null;
 
+        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
+        when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
         when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(documentResponse);
@@ -137,12 +133,13 @@ class DocumentStatusServiceTest {
     }
 
     @Test
-    @DisplayName("Should trigger event when document is rejected with comment")
-    void shouldTriggerEventWhenDocumentRejected() {
+    void updateDocumentStatus_rejectedStatusWithComment_createsRejectionComment() {
         // Given
         String status = "REJECTED";
         String comment = "Document is blurry";
 
+        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
+        when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
         when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(documentResponse);
@@ -164,11 +161,12 @@ class DocumentStatusServiceTest {
     }
 
     @Test
-    @DisplayName("Should NOT trigger event when status remains PENDING")
-    void shouldNotTriggerEventWhenStatusRemainingPending() {
+    void updateDocumentStatus_pendingStatus_doesNotPublishEvent() {
         // Given
         String status = "PENDING";
 
+        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
+        when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
         when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(documentResponse);
@@ -181,12 +179,13 @@ class DocumentStatusServiceTest {
     }
 
     @Test
-    @DisplayName("Should NOT trigger event when status doesn't change")
-    void shouldNotTriggerEventWhenStatusNotChanged() {
+    void updateDocumentStatus_statusUnchanged_doesNotPublishEvent() {
         // Given - document already approved
         document.setDocumentStatus(DocumentStatus.APPROVED);
         String status = "APPROVED";
 
+        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
+        when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
         when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(documentResponse);
@@ -199,11 +198,12 @@ class DocumentStatusServiceTest {
     }
 
     @Test
-    @DisplayName("Should include document details in event")
-    void shouldIncludeDocumentDetailsInEvent() {
+    void updateDocumentStatus_approvedStatus_passesDocumentToEventPublisher() {
         // Given
         String status = "APPROVED";
 
+        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
+        when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
         when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(documentResponse);
@@ -220,24 +220,15 @@ class DocumentStatusServiceTest {
     }
 
     @Test
-    @DisplayName("Should support overloaded method without comment parameter")
-    void shouldSupportOverloadedMethodWithoutComment() {
-        // Given
-        String status = "APPROVED";
-
+    void updateDocumentStatus_noApprovedApplication_throwsApplicationNotApprovedException() {
+        when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
-        when(documentRepository.save(any(Document.class))).thenReturn(document);
-        when(documentMapper.toDocumentResponse(any(Document.class))).thenReturn(documentResponse);
+        when(applicationDocumentCoordinator.findApprovedApplication(anyLong()))
+            .thenThrow(new ApplicationNotApprovedException("Documents can only be reviewed for approved applications"));
 
-        // When - calling method with null comment (simulating overload)
-        documentStatusService.updateDocumentStatus(1L, status, null, "student@university.edu");
+        assertThrows(ApplicationNotApprovedException.class,
+            () -> documentStatusService.updateDocumentStatus(1L, "APPROVED", null, "student@university.edu"));
 
-        // Then
-        verify(documentEventService).publishDocumentStatusEvent(
-                any(Document.class),
-                eq(DocumentStatus.PENDING),
-                eq(DocumentStatus.APPROVED),
-                eq(null)
-        );
+        verify(documentRepository, never()).save(any());
     }
 }

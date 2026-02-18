@@ -43,9 +43,7 @@ public class DocumentQueryService {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
-        if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new UnauthorizedAccessException("Unauthorized access to document");
-        }
+        assertDocumentAccess(document, user);
 
         String objectPath = document.getDocumentPath();
         var documentResponse = documentMapper.toDocumentResponse(document);
@@ -60,9 +58,7 @@ public class DocumentQueryService {
         var document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
-        if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new UnauthorizedAccessException("Unauthorized access to document");
-        }
+        assertDocumentAccess(document, user);
 
         String objectPath = document.getDocumentPath();
 
@@ -134,5 +130,11 @@ public class DocumentQueryService {
     private AppUser getUserByEmail(String email) {
         return appUserRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("Student not found"));
+    }
+
+    private void assertDocumentAccess(Document document, AppUser user) {
+        if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
+            throw new UnauthorizedAccessException("Unauthorized access to document");
+        }
     }
 }
