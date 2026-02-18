@@ -1,6 +1,8 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.service.ApplicationDocumentCoordinator;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
+import com.beezhub.student_accommodation.exceptions.FileValidationException;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
@@ -50,23 +52,25 @@ class DocumentServiceTest {
     @Mock
     DocumentTypeRepository documentTypeRepository;
     @Mock
+    DocumentCommentService documentCommentService;
+    @Mock
     AppUserRepository appUserRepository;
     @Mock
     StudentRepository studentRepository;
     @Mock
     DocumentMapper documentMapper;
     @Mock
-    ApplicationRepository applicationRepository;
-    @Mock
-    RoomAllocationRepository roomAllocationRepository;
-    @Mock
-    UserNotificationService userNotificationService;
+    AuthService authService;
     @Mock
     ApplicationEventPublisher eventPublisher;
     @Mock
-    RoomAllocationService roomAllocationService;
+    UserNotificationService userNotificationService;
     @Mock
-    AuthService authService;
+    ApplicationRepository applicationRepository;
+    @Mock
+    ApplicationDocumentCoordinator applicationDocumentCoordinator;
+    @Mock
+    RoomAllocationRepository roomAllocationRepository; // Keep this if used in tests, otherwise remove. It was mocked in original.
 
     @InjectMocks
     DocumentService documentService;
@@ -178,9 +182,9 @@ class DocumentServiceTest {
         
         when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.invalid("Malware detected"));
 
-        FileStorageException ex = assertThrows(FileStorageException.class, 
+        FileValidationException ex = assertThrows(FileValidationException.class, 
             () -> documentService.uploadSingleDocument(file, "user@example.com", 2L));
-        assertTrue(ex.getMessage().contains("File validation failed"));
+        assertTrue(ex.getMessage().contains("File rejected"));
 
         // Verify validation called
         verify(fileValidationService, times(1)).scanFile(any(), anyString());

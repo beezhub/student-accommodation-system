@@ -16,7 +16,7 @@ public class OrphanFileCleanupJob {
     private final FileStorageService fileStorageService;
     private final DocumentRepository documentRepository;
 
-    @Scheduled(cron = "0 0 3 * * *") // Daily at 3 AM
+    @Scheduled(cron = "${app.storage.cleanup.cron:0 0 3 * * *}")
     public void cleanupOrphanedFiles() {
         log.info("Starting orphan file cleanup job");
 
@@ -26,11 +26,13 @@ public class OrphanFileCleanupJob {
                     // Check if file exists in DB. This is done one-by-one which is safe but might be slow for large datasets.
                     // Future optimization: Batch check using findByDocumentPathIn or Bloom filter.
                     if (!documentRepository.existsByDocumentPath(key)) {
-                        log.info("Found orphaned file: {}. Deleting...", key);
+                        log.info("Deleting orphaned file: type={}, keyHash={}", 
+                                extractDocType(key), 
+                                Integer.toHexString(key.hashCode()));
                         fileStorageService.delete(key);
                     }
                 } catch (Exception e) {
-                    log.error("Error processing file during cleanup: {}", key, e);
+                    log.error("Error processing file during cleanup: keyHash={}", Integer.toHexString(key.hashCode()), e);
                 }
             });
         } catch (Exception e) {
@@ -38,5 +40,15 @@ public class OrphanFileCleanupJob {
         }
 
         log.info("Orphan file cleanup job completed");
+    }
+
+    private String extractDocType(String key) {
+        if (key == null) return "unknown";
+        String[] parts = key.split("/");
+        // Format: role/userId/docType/filename
+        if (parts.length >= 3) {
+            return parts[2];
+        }
+        return "unknown";
     }
 }

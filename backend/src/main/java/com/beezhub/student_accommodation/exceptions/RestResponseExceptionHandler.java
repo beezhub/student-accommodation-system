@@ -381,6 +381,17 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                 return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
         }
 
+        @ExceptionHandler(FileValidationException.class)
+        public ResponseEntity<ErrorResponse> handleFileValidationException(
+                        FileValidationException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
         @ExceptionHandler(FileStorageException.class)
         public ResponseEntity<ErrorResponse> handleFileStorageException(FileStorageException ex, WebRequest request) {
                 ErrorResponse errorResponse = new ErrorResponse(

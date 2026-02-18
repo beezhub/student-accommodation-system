@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.beezhub.student_accommodation.service.DocumentService;
+import com.beezhub.student_accommodation.service.DocumentCommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
@@ -33,6 +34,7 @@ import java.util.List;
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final DocumentCommentService documentCommentService;
 
     @Operation(summary = "Upload multiple documents", description = "Allows authenticated users to upload multiple documents")
     @ApiResponse(responseCode = "200", description = "Documents uploaded successfully")
@@ -226,7 +228,7 @@ public class DocumentController {
             @Valid @RequestBody DocumentCommentRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(documentService.addComment(documentId, authentication.getName(), request.getCommentText()));
+        return ResponseEntity.ok(documentCommentService.addComment(documentId, authentication.getName(), request.getCommentText()));
     }
 
     @Operation(summary = "Get comments for document", description = "Get all comments for a document. Accessible by admins or the document owner.")
@@ -239,7 +241,7 @@ public class DocumentController {
             @PathVariable Long documentId,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(documentService.getCommentsByDocument(documentId, authentication.getName()));
+        return ResponseEntity.ok(documentCommentService.getCommentsByDocument(documentId, authentication.getName()));
     }
 
     @Operation(summary = "Delete comment (admin or creator)", description = "Delete a document comment. Only the comment creator or an admin can delete.")
@@ -252,7 +254,7 @@ public class DocumentController {
             @PathVariable Long commentId,
             Authentication authentication
     ) {
-        documentService.deleteComment(commentId, authentication.getName());
+        documentCommentService.deleteComment(commentId, authentication.getName());
         return ResponseEntity.noContent().build();
     }
 }

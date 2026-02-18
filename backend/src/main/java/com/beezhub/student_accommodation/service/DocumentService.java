@@ -6,6 +6,7 @@ import com.beezhub.student_accommodation.exceptions.DocumentCommentNotFoundExcep
 import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DocumentTypeNotFoundException;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
+import com.beezhub.student_accommodation.exceptions.FileValidationException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
@@ -20,28 +21,21 @@ import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentCommentResponse;
 import com.beezhub.student_accommodation.model.dto.DocumentDownloadResponse;
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
-import com.beezhub.student_accommodation.model.dto.RoomAllocationRequest;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Document;
-import com.beezhub.student_accommodation.model.entity.DocumentComment;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Application;
-import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
-import com.beezhub.student_accommodation.repository.DocumentCommentRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import com.beezhub.student_accommodation.model.event.DocumentVerificationEvent;
-import com.beezhub.student_accommodation.model.event.DocumentCommentEvent;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
-import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
-import com.beezhub.student_accommodation.repository.WaitingListRepository;
 import com.beezhub.student_accommodation.specification.DocumentSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,11 +47,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.transaction.annotation.Transactional;
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static com.beezhub.student_accommodation.model.enums.DocumentStatus.*;
 
@@ -70,7 +66,7 @@ public class DocumentService {
     private final FileValidationService fileValidationService;
     private final DocumentRepository documentRepository;
     private final DocumentTypeRepository documentTypeRepository;
-    private final DocumentCommentRepository documentCommentRepository;
+    private final DocumentCommentService documentCommentService;
     private final AppUserRepository appUserRepository;
     private final StudentRepository studentRepository;
     private final DocumentMapper documentMapper;
@@ -78,10 +74,9 @@ public class DocumentService {
     private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
     private final ApplicationRepository applicationRepository;
-    private final RoomAllocationRepository roomAllocationRepository;
-    private final RoomAllocationService roomAllocationService;
-    private final WaitingListRepository waitingListRepository;
+    private final ApplicationDocumentCoordinator applicationDocumentCoordinator;
 
+    @Transactional
     @LogActivity(action = "UPLOAD", entityType = "DOCUMENT", description = "Uploaded {0} documents", entityIdParamIndex = -1)
     public List<DocumentResponse> uploadDocuments(List<MultipartFile> files, String email, List<Long> documentTypeIds) {
         var user = getUserByEmail(email);
@@ -95,21 +90,17 @@ public class DocumentService {
             try (InputStream is = file.getInputStream()) {
                 ValidationResult validationResult = fileValidationService.scanFile(is, file.getOriginalFilename());
                 if (!validationResult.clean()) {
-                    throw new FileStorageException("File validation failed: " + validationResult.reason());
+                    throw new FileValidationException("File rejected: " + validationResult.reason());
                 }
-            } catch (Exception e) {
-                if (e instanceof FileStorageException) {
-                    throw (FileStorageException) e;
-                }
-                throw new FileStorageException("Error validating file: " + file.getOriginalFilename(), e);
+            } catch (FileValidationException e) {
+                throw e;
+            } catch (IOException e) {
+                throw new FileStorageException("Cannot read file for validation: " + file.getOriginalFilename(), e);
             }
 
             try (InputStream is = file.getInputStream()) {
                 fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
-            } catch (Exception e) {
-                if (e instanceof FileStorageException) {
-                    throw (FileStorageException) e;
-                }
+            } catch (IOException e) {
                 throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
             }
 
@@ -148,6 +139,7 @@ public class DocumentService {
         return documentResponse;
     }
 
+    @Transactional
     public void uploadSingleDocument(MultipartFile file, String username, Long documentTypeId) {
         var user = getUserByEmail(username);
         DocumentType docType = getDocumentTypeById(documentTypeId);
@@ -156,21 +148,17 @@ public class DocumentService {
         try (InputStream is = file.getInputStream()) {
             ValidationResult validationResult = fileValidationService.scanFile(is, file.getOriginalFilename());
             if (!validationResult.clean()) {
-                throw new FileStorageException("File validation failed: " + validationResult.reason());
+                throw new FileValidationException("File rejected: " + validationResult.reason());
             }
-        } catch (Exception e) {
-            if (e instanceof FileStorageException) {
-                throw (FileStorageException) e;
-            }
-            throw new FileStorageException("Error validating file: " + file.getOriginalFilename(), e);
+        } catch (FileValidationException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new FileStorageException("Cannot read file for validation: " + file.getOriginalFilename(), e);
         }
 
         try (InputStream is = file.getInputStream()) {
              fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
-        } catch (Exception e) {
-            if (e instanceof FileStorageException) {
-                throw (FileStorageException) e;
-            }
+        } catch (IOException e) {
             throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
         }
         
@@ -199,11 +187,19 @@ public class DocumentService {
     }
 
     private String buildObjectPath(AppUser user, DocumentType docType, MultipartFile file) {
+        String safeFilename = UUID.randomUUID() + getExtension(file.getOriginalFilename());
         return String.format("%s/%s/%s/%s",
                 user.getUserRole().getRole(),
                 user.getId(),
                 docType.getTypeName(),
-                file.getOriginalFilename());
+                safeFilename);
+    }
+
+    private String getExtension(String filename) {
+        if (filename == null || !filename.contains(".")) return "";
+        String ext = filename.substring(filename.lastIndexOf('.'));
+        // Allow only known safe extensions
+        return ext.matches("\\.[a-zA-Z0-9]{1,10}") ? ext : "";
     }
 
     private Document saveDocumentRecord(AppUser user, DocumentType docType, String objectPath, MultipartFile file) {
@@ -295,12 +291,7 @@ public class DocumentService {
         }
 
         DocumentStatus oldStatus = document.getDocumentStatus();
-        DocumentStatus newStatus;
-        try {
-            newStatus = DocumentStatus.valueOf(status.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new InvalidStatusException("Invalid document status: " + status);
-        }
+        DocumentStatus newStatus = parseDocumentStatus(status);
 
         Application application = applicationRepository.findByStudent_Id(document.getStudent().getId())
                 .stream()
@@ -321,82 +312,47 @@ public class DocumentService {
 
         // Auto-create rejection comment if status is REJECTED and comment is provided
         if (newStatus == REJECTED && comment != null && !comment.trim().isEmpty()) {
-            createRejectionComment(updatedDocument, user, comment);
-            log.info("Auto-created rejection comment for document {}", documentId);
+            documentCommentService.createRejectionComment(updatedDocument, user, comment);
         }
 
         if (newStatus != oldStatus && (newStatus == APPROVED || newStatus == REJECTED)) {
-            try {
-                log.info("Triggering notification for document {} with status {}", documentId, newStatus);
-                eventPublisher
-                        .publishEvent(new DocumentVerificationEvent(updatedDocument, oldStatus, newStatus, comment));
-                Long studentUserId = document.getStudent().getAppUser().getId();
-                userNotificationService.createDocumentStatusNotification(
-                        studentUserId,
-                        document.getDocumentType().getTypeName(),
-                        newStatus == APPROVED,
-                        comment);
-            } catch (Exception e) {
-                log.error("Failed to trigger notification for document {} - notification will be retried by scheduler",
-                        documentId, e);
-            }
+            publishDocumentStatusEvent(updatedDocument, oldStatus, newStatus, comment);
         }
 
-        // If approved, check all required docs and allocate room or enqueue waiting
-        // list
+        // If approved, check all required docs and allocate room or enqueue waiting list
         if (newStatus == APPROVED) {
-            tryAllocateOrQueue(document.getStudent(), application, updatedDocument);
+            applicationDocumentCoordinator.tryAllocateOrQueue(document.getStudent(), application);
         }
 
         DocumentResponse response = documentMapper.toDocumentResponse(updatedDocument);
         documentMapper.enrichWithApplication(response, application);
-        documentMapper.enrichWithRoom(response, findActiveAllocation(document.getStudent().getId()));
+        documentMapper.enrichWithRoom(response, applicationDocumentCoordinator.findActiveAllocation(document.getStudent().getId()));
         return response;
     }
 
-    private RoomAllocation findActiveAllocation(Long studentId) {
-        return roomAllocationRepository.findActiveAllocationByStudentId(studentId).orElse(null);
-    }
-
-    private void tryAllocateOrQueue(Student student, Application application, Document updatedDocument) {
-        // Check if all required docs are approved for this application
-        List<Document> documents = documentRepository.findByApplicationId(application.getId());
-        long requiredApproved = documents.stream()
-                .filter(doc -> doc.getDocumentStatus() == APPROVED)
-                .map(Document::getDocumentType)
-                .filter(DocumentType::getIsRequired)
-                .count();
-        long requiredTotal = documents.stream()
-                .map(Document::getDocumentType)
-                .filter(DocumentType::getIsRequired)
-                .count();
-
-        if (requiredApproved < requiredTotal) {
-            log.info("Student {} does not have all required documents approved yet", student.getId());
-            return;
-        }
-
+    private DocumentStatus parseDocumentStatus(String status) {
         try {
-            Room availableRoom = roomAllocationService.findAvailableRoom();
-            if (availableRoom != null) {
-                RoomAllocationRequest request = new RoomAllocationRequest();
-                request.setStudentId(student.getId());
-                request.setRoomId(availableRoom.getId());
-                request.setApplicationId(application.getId());
-                roomAllocationService.createRoomAllocation(request);
-                log.info("Allocated room {} to student {} after document approvals", availableRoom.getRoomNumber(),
-                        student.getId());
-            } else {
-                enqueueWaitingList(student, application);
-            }
-        } catch (Exception e) {
-            log.error("Failed to auto-allocate room for student {}: {}", student.getId(), e.getMessage(), e);
+            return DocumentStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidStatusException("Invalid document status: " + status);
         }
     }
 
-    private void enqueueWaitingList(Student student, Application application) {
-        // Delegate to RoomAllocationService for single source of truth
-        roomAllocationService.enqueueWaitingList(student.getId(), application.getId());
+    private void publishDocumentStatusEvent(Document document, DocumentStatus oldStatus, DocumentStatus newStatus, String comment) {
+        try {
+            log.info("Triggering notification for document {} with status {}", document.getId(), newStatus);
+            eventPublisher.publishEvent(new DocumentVerificationEvent(document, oldStatus, newStatus, comment));
+            
+            Long studentUserId = document.getStudent().getAppUser().getId();
+            userNotificationService.createDocumentStatusNotification(
+                    studentUserId,
+                    document.getDocumentType().getTypeName(),
+                    newStatus == APPROVED,
+                    comment);
+        } catch (Exception e) {
+            log.error("Failed to trigger notification for document {} - notification will be retried by scheduler",
+                    document.getId(), e);
+        }
     }
 
     @LogActivity(action = "DELETE", entityType = "DOCUMENT", description = "Deleted document {0}", entityIdParamIndex = 0)
@@ -466,208 +422,5 @@ public class DocumentService {
 
         Page<Document> documentsPage = documentRepository.findAll(spec, pageable);
         return documentsPage.map(documentMapper::toDocumentResponse);
-    }
-
-    // ==================== Document Comment Methods ====================
-
-    /**
-     * Adds a comment to a document.
-     * Only admins can add comments to documents.
-     *
-     * @param documentId  The document ID
-     * @param username    The admin's email/username
-     * @param commentText The comment text
-     * @return The created comment response
-     */
-    @Transactional
-    @LogActivity(action = "CREATE", entityType = "DOCUMENT_COMMENT", description = "Added comment to document {0}", entityIdParamIndex = 0)
-    public DocumentCommentResponse addComment(Long documentId, String username, String commentText) {
-        var admin = getUserByEmail(username);
-        return addCommentByAdminId(documentId, admin.getId(), commentText);
-    }
-
-    /**
-     * Adds a comment to a document.
-     * Only admins can add comments to documents.
-     *
-     * @param documentId  The document ID
-     * @param adminId     The admin user ID
-     * @param commentText The comment text
-     * @return The created comment response
-     */
-    @Transactional
-    public DocumentCommentResponse addCommentByAdminId(Long documentId, Long adminId, String commentText) {
-        log.info("Adding comment to document {} by admin {}", documentId, adminId);
-
-        Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
-
-        AppUser admin = appUserRepository.findById(adminId)
-                .orElseThrow(() -> new UserNotFoundException("Admin not found with id: " + adminId));
-
-        if (!admin.getUserRole().isAdmin()) {
-            throw new UnauthorizedAccessException("Only admins can add comments to documents");
-        }
-
-        DocumentComment comment = DocumentComment.builder()
-                .document(document)
-                .admin(admin)
-                .commentText(commentText)
-                .build();
-
-        DocumentComment savedComment = documentCommentRepository.save(comment);
-        log.info("Comment {} added to document {} by admin {}", savedComment.getId(), documentId, adminId);
-
-        // Trigger notification to student
-        try {
-            String studentEmail = document.getStudent().getAppUser().getEmail();
-            String documentName = document.getDocumentName();
-            String authorName = comment.getAdmin().getFirstName() + " " + comment.getAdmin().getLastName();
-            eventPublisher.publishEvent(new DocumentCommentEvent(document, commentText, authorName));
-            log.info("Notification sent to student {} for document comment", studentEmail);
-        } catch (Exception e) {
-            log.error("Failed to send notification for document comment: {}", e.getMessage());
-        }
-
-        return mapToCommentResponse(savedComment);
-    }
-
-    /**
-     * Gets all comments for a document ordered by creation date descending.
-     * Verifies that the user is either an admin or the document owner.
-     *
-     * @param documentId The document ID
-     * @param username   The user's email/username requesting comments
-     * @return List of comment responses
-     */
-    @Transactional(readOnly = true)
-    public List<DocumentCommentResponse> getCommentsByDocument(Long documentId, String username) {
-        log.info("Fetching comments for document {} by user {}", documentId, username);
-
-        var user = getUserByEmail(username);
-        Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
-
-        // Authorization check: admin or document owner
-        boolean isAdmin = user.getUserRole().isAdmin();
-        boolean isOwner = document.getStudent().getAppUser().getId().equals(user.getId());
-
-        if (!isAdmin && !isOwner) {
-            throw new UnauthorizedAccessException("You are not authorized to view comments for this document");
-        }
-
-        List<DocumentComment> comments = documentCommentRepository.findByDocument_IdOrderByCreatedAtDesc(documentId);
-        log.info("Found {} comments for document {}", comments.size(), documentId);
-
-        return comments.stream()
-                .map(this::mapToCommentResponse)
-                .toList();
-    }
-
-    /**
-     * Gets all comments for a document ordered by creation date descending.
-     * Internal method without authorization check.
-     *
-     * @param documentId The document ID
-     * @return List of comment responses
-     */
-    @Transactional(readOnly = true)
-    List<DocumentCommentResponse> getCommentsByDocumentInternal(Long documentId) {
-        log.info("Fetching comments for document {}", documentId);
-
-        // Verify document exists
-        if (!documentRepository.existsById(documentId)) {
-            throw new DocumentNotFoundException("Document not found with id: " + documentId);
-        }
-
-        List<DocumentComment> comments = documentCommentRepository.findByDocument_IdOrderByCreatedAtDesc(documentId);
-        log.info("Found {} comments for document {}", comments.size(), documentId);
-
-        return comments.stream()
-                .map(this::mapToCommentResponse)
-                .toList();
-    }
-
-    /**
-     * Deletes a comment from a document.
-     * Only the admin who created the comment can delete it (unless they are a
-     * super-admin).
-     *
-     * @param commentId The comment ID
-     * @param username  The user's email/username requesting deletion
-     */
-    @Transactional
-    @LogActivity(action = "DELETE", entityType = "DOCUMENT_COMMENT", description = "Deleted comment {0}", entityIdParamIndex = 0)
-    public void deleteComment(Long commentId, String username) {
-        var user = getUserByEmail(username);
-        deleteCommentByUserId(commentId, user.getId());
-    }
-
-    /**
-     * Deletes a comment from a document.
-     * Only the admin who created the comment can delete it (unless they are a
-     * super-admin).
-     *
-     * @param commentId The comment ID
-     * @param adminId   The admin user ID requesting deletion
-     */
-    @Transactional
-    public void deleteCommentByUserId(Long commentId, Long adminId) {
-        log.info("Deleting comment {} by admin {}", commentId, adminId);
-
-        DocumentComment comment = documentCommentRepository.findById(commentId)
-                .orElseThrow(() -> new DocumentCommentNotFoundException("Comment not found with id: " + commentId));
-
-        AppUser requestingAdmin = appUserRepository.findById(adminId)
-                .orElseThrow(() -> new UserNotFoundException("Admin not found with id: " + adminId));
-
-        // Check if the admin owns the comment or is authorized to delete
-        boolean isOwner = comment.getAdmin().getId().equals(adminId);
-        boolean isAdmin = requestingAdmin.getUserRole().isAdmin();
-
-        if (!isOwner && !isAdmin) {
-            throw new UnauthorizedAccessException("You are not authorized to delete this comment");
-        }
-
-        documentCommentRepository.delete(comment);
-        log.info("Comment {} deleted by admin {}", commentId, adminId);
-    }
-
-    /**
-     * Internal method to create a comment when rejecting a document.
-     * Called from updateDocumentStatus when status changes to REJECTED.
-     *
-     * @param document    The document being rejected
-     * @param admin       The admin rejecting the document
-     * @param commentText The rejection reason/comment
-     */
-    private void createRejectionComment(Document document, AppUser admin, String commentText) {
-        if (commentText == null || commentText.trim().isEmpty()) {
-            return;
-        }
-
-        DocumentComment comment = DocumentComment.builder()
-                .document(document)
-                .admin(admin)
-                .commentText(commentText)
-                .build();
-
-        documentCommentRepository.save(comment);
-        log.info("Rejection comment created for document {} by admin {}", document.getId(), admin.getId());
-    }
-
-    /**
-     * Maps a DocumentComment entity to a DocumentCommentResponse DTO.
-     */
-    private DocumentCommentResponse mapToCommentResponse(DocumentComment comment) {
-        String adminName = comment.getAdmin().getFirstName() + " " + comment.getAdmin().getLastName();
-
-        return DocumentCommentResponse.builder()
-                .id(comment.getId())
-                .documentId(comment.getDocument().getId())
-                .adminName(adminName)
-                .commentText(comment.getCommentText())
-                .createdAt(comment.getCreatedAt())
-                .build();
     }
 }

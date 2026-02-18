@@ -4,4 +4,8 @@ public class DocumentCommentNotFoundException extends RuntimeException {
     public DocumentCommentNotFoundException(String message) {
         super(message);
     }
+
+    public DocumentCommentNotFoundException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
