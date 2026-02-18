@@ -89,7 +89,10 @@
       "Bash(wc:*)",
       "Bash(./gradlew jacocoTestReport:*)",
       "Bash(./gradlew clean test:*)",
-      "Bash(cut:*)"
+      "Bash(cut:*)",
+      "Bash(./gradlew clean compileJava:*)",
+      "Bash(gh pr:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []
