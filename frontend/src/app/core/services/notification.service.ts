@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, interval, Subscription, of } from 'rxjs';
 import { tap, switchMap, startWith, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Notification, NotificationResponse } from '../models/notification.model';
+import { TokenStorageService } from './token-storage.service';
 
 @Injectable({
   providedIn: 'root',
@@ -13,6 +14,7 @@ export class NotificationService {
   private notificationsSubject = new BehaviorSubject<Notification[]>([]);
   private unreadCountSubject = new BehaviorSubject<number>(0);
   private pollingSubscription?: Subscription;
+  private tokenStorage = inject(TokenStorageService);
 
   public notifications$ = this.notificationsSubject.asObservable();
   public unreadCount$ = this.unreadCountSubject.asObservable();
@@ -27,7 +29,7 @@ export class NotificationService {
     this.stopPolling();
 
     // Check if user is authenticated before starting polling
-    const token = localStorage.getItem('token');
+    const token = this.tokenStorage.getToken();
     if (!token) {
       console.warn('Cannot start notification polling: User not authenticated');
       return;
