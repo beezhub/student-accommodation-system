@@ -18,6 +18,11 @@ import java.util.List;
 
 import static com.beezhub.student_accommodation.model.enums.DocumentStatus.APPROVED;
 
+import com.beezhub.student_accommodation.exceptions.ApplicationNotApprovedException;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import com.beezhub.student_accommodation.repository.ApplicationRepository;
+// ... imports ...
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -26,6 +31,16 @@ public class ApplicationDocumentCoordinator {
     private final DocumentRepository documentRepository;
     private final RoomAllocationService roomAllocationService;
     private final RoomAllocationRepository roomAllocationRepository;
+    private final ApplicationRepository applicationRepository;
+
+    public Application findApprovedApplication(Long studentId) {
+        return applicationRepository.findByStudent_Id(studentId)
+                .stream()
+                .filter(app -> app.getStatus() == ApplicationStatus.APPROVED)
+                .findFirst()
+                .orElseThrow(() -> new ApplicationNotApprovedException(
+                        "Documents can only be reviewed for approved applications"));
+    }
 
     @Transactional
     public void tryAllocateOrQueue(Student student, Application application) {
@@ -59,8 +74,10 @@ public class ApplicationDocumentCoordinator {
             } else {
                 roomAllocationService.enqueueWaitingList(student.getId(), application.getId());
             }
-        } catch (Exception e) {
-            log.error("Failed to auto-allocate room for student {}: {}", student.getId(), e.getMessage(), e);
+        } catch (com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException |
+                 com.beezhub.student_accommodation.exceptions.RoomCapacityExceededException |
+                 com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException e) {
+            log.error("Failed to auto-allocate room for student {}", student.getId(), e);
         }
     }
 

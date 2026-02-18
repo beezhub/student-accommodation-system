@@ -101,6 +101,9 @@ app:
   features:
     auto-allocation:
       enabled: ${AUTO_ALLOCATION_ENABLED:true}
+  storage:
+    cleanup:
+      cron: ${STORAGE_CLEANUP_CRON:0 0 3 * * *}
 async:
   core-pool-size: ${ASYNC_CORE_POOL_SIZE:10}
   max-pool-size: ${ASYNC_MAX_POOL_SIZE:20}
