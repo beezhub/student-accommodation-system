@@ -1,5 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.DocumentCommentNotFoundException;
+import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.model.dto.DocumentCommentResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
@@ -14,7 +16,6 @@ import com.beezhub.student_accommodation.repository.DocumentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,60 +32,48 @@ import static org.mockito.Mockito.*;
 class DocumentCommentServiceTest {
 
     @Mock
-    DocumentCommentRepository documentCommentRepository;
+    private DocumentCommentRepository documentCommentRepository;
     @Mock
-    DocumentRepository documentRepository;
+    private DocumentRepository documentRepository;
     @Mock
-    AppUserRepository appUserRepository;
+    private AppUserRepository appUserRepository;
     @Mock
-    ApplicationEventPublisher eventPublisher;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
-    DocumentCommentService documentCommentService;
+    private DocumentCommentService documentCommentService;
 
-    private AppUser admin;
+    private AppUser adminUser;
     private AppUser studentUser;
     private Document document;
 
     @BeforeEach
     void setUp() {
-        admin = AppUser.builder()
-                .id(1L)
-                .email("admin@example.com")
-                .userRole(UserRole.ADMIN)
-                .firstName("Admin")
-                .lastName("User")
-                .build();
-
-        studentUser = AppUser.builder()
-                .id(2L)
-                .email("student@example.com")
-                .userRole(UserRole.STUDENT)
-                .build();
-
+        adminUser = AppUser.builder().id(1L).email("admin@test.com").firstName("Ad").lastName("Min").userRole(UserRole.ADMIN).build();
+        studentUser = AppUser.builder().id(2L).email("student@test.com").userRole(UserRole.STUDENT).build();
+        
         Student student = new Student();
         student.setAppUser(studentUser);
-
-        document = new Document();
-        document.setId(100L);
-        document.setStudent(student);
+        
+        document = Document.builder().id(100L).student(student).build();
     }
 
     @Test
     void addComment_asAdmin_success() {
-        when(appUserRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(admin));
-        when(appUserRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
+        // addComment calls addCommentByAdminId
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(adminUser));
         
         DocumentComment savedComment = DocumentComment.builder()
                 .id(10L)
                 .document(document)
-                .admin(admin)
+                .admin(adminUser)
                 .commentText("Test comment")
                 .build();
         when(documentCommentRepository.save(any(DocumentComment.class))).thenReturn(savedComment);
 
-        DocumentCommentResponse response = documentCommentService.addComment(100L, "admin@example.com", "Test comment");
+        DocumentCommentResponse response = documentCommentService.addComment(100L, "admin@test.com", "Test comment");
 
         assertNotNull(response);
         assertEquals("Test comment", response.getCommentText());
@@ -92,35 +81,67 @@ class DocumentCommentServiceTest {
     }
 
     @Test
-    void addComment_notAdmin_throws() {
-        AppUser regularUser = AppUser.builder().id(3L).userRole(UserRole.STUDENT).email("regular@example.com").build();
-        when(appUserRepository.findByEmail("regular@example.com")).thenReturn(Optional.of(regularUser));
-        when(appUserRepository.findById(3L)).thenReturn(Optional.of(regularUser));
+    void addComment_asNonAdmin_throwsUnauthorized() {
+        when(appUserRepository.findByEmail("student@test.com")).thenReturn(Optional.of(studentUser));
+        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+        when(appUserRepository.findById(2L)).thenReturn(Optional.of(studentUser));
+
+        assertThrows(UnauthorizedAccessException.class, () -> 
+            documentCommentService.addComment(100L, "student@test.com", "comment"));
+    }
+
+    @Test
+    void getCommentsByDocument_adminCanView() {
+        when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
+        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+        when(documentCommentRepository.findByDocument_IdOrderByCreatedAtDesc(100L)).thenReturn(List.of());
+
+        assertDoesNotThrow(() -> documentCommentService.getCommentsByDocument(100L, "admin@test.com"));
+    }
+
+    @Test
+    void getCommentsByDocument_ownerCanView() {
+        when(appUserRepository.findByEmail("student@test.com")).thenReturn(Optional.of(studentUser));
+        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+        when(documentCommentRepository.findByDocument_IdOrderByCreatedAtDesc(100L)).thenReturn(List.of());
+
+        assertDoesNotThrow(() -> documentCommentService.getCommentsByDocument(100L, "student@test.com"));
+    }
+
+    @Test
+    void getCommentsByDocument_unauthorizedUser_throws() {
+        AppUser otherUser = AppUser.builder().id(3L).email("other@test.com").userRole(UserRole.STUDENT).build();
+        when(appUserRepository.findByEmail("other@test.com")).thenReturn(Optional.of(otherUser));
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
 
         assertThrows(UnauthorizedAccessException.class, () -> 
-            documentCommentService.addComment(100L, "regular@example.com", "text"));
+            documentCommentService.getCommentsByDocument(100L, "other@test.com"));
     }
 
     @Test
-    void getComments_asOwner_success() {
-        when(appUserRepository.findByEmail("student@example.com")).thenReturn(Optional.of(studentUser));
-        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+    void deleteComment_ownerAdminCanDelete() {
+        when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
         
-        when(documentCommentRepository.findByDocument_IdOrderByCreatedAtDesc(100L)).thenReturn(List.of());
+        DocumentComment comment = DocumentComment.builder().id(50L).admin(adminUser).build();
+        when(documentCommentRepository.findById(50L)).thenReturn(Optional.of(comment));
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(adminUser));
 
-        List<DocumentCommentResponse> comments = documentCommentService.getCommentsByDocument(100L, "student@example.com");
-        assertNotNull(comments);
+        documentCommentService.deleteComment(50L, "admin@test.com");
+        verify(documentCommentRepository).delete(comment);
+    }
+    
+    @Test
+    void createRejectionComment_validComment_saves() {
+        documentCommentService.createRejectionComment(document, adminUser, "Rejected because...");
+        verify(documentCommentRepository).save(any(DocumentComment.class));
     }
 
     @Test
-    void deleteComment_asAdmin_success() {
-        DocumentComment comment = DocumentComment.builder().id(10L).document(document).admin(admin).build();
-        when(appUserRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(admin));
-        when(appUserRepository.findById(1L)).thenReturn(Optional.of(admin));
-        when(documentCommentRepository.findById(10L)).thenReturn(Optional.of(comment));
-
-        documentCommentService.deleteComment(10L, "admin@example.com");
-        verify(documentCommentRepository).delete(comment);
+    void createRejectionComment_emptyComment_doesNothing() {
+        documentCommentService.createRejectionComment(document, adminUser, "");
+        verify(documentCommentRepository, never()).save(any());
+        
+        documentCommentService.createRejectionComment(document, adminUser, null);
+        verify(documentCommentRepository, never()).save(any());
     }
 }
