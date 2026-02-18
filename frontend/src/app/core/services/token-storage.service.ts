@@ -28,6 +28,7 @@ export class TokenStorageService {
       const expiry = payload.exp;
       return Math.floor(Date.now() / 1000) < expiry;
     } catch (e) {
+      console.warn('[TokenStorageService] Failed to parse token — treating as invalid', e);
       return false;
     }
   }

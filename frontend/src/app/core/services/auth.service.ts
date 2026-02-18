@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, map, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -14,6 +14,8 @@ import { TokenStorageService } from './token-storage.service';
   providedIn: 'root',
 })
 export class AuthService {
+  private tokenStorage = inject(TokenStorageService);
+
   isLoggedIn(): boolean {
     return this.tokenStorage.isTokenValid();
   }
@@ -26,8 +28,7 @@ export class AuthService {
     private institutionService: InstitutionService,
     private yearOfStudyService: YearOfStudyService,
     private router: Router,
-    private notificationService: NotificationService,
-    private tokenStorage: TokenStorageService
+    private notificationService: NotificationService
   ) {
     // Initialize from localStorage on app start
     const storedUser = localStorage.getItem('currentUser');

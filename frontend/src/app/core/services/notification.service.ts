@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, interval, Subscription, of } from 'rxjs';
 import { tap, switchMap, startWith, catchError } from 'rxjs/operators';
@@ -14,14 +14,12 @@ export class NotificationService {
   private notificationsSubject = new BehaviorSubject<Notification[]>([]);
   private unreadCountSubject = new BehaviorSubject<number>(0);
   private pollingSubscription?: Subscription;
+  private tokenStorage = inject(TokenStorageService);
 
   public notifications$ = this.notificationsSubject.asObservable();
   public unreadCount$ = this.unreadCountSubject.asObservable();
 
-  constructor(
-    private http: HttpClient,
-    private tokenStorage: TokenStorageService
-  ) {}
+  constructor(private http: HttpClient) {}
 
   /**
    * Start polling for notifications every 30 seconds
