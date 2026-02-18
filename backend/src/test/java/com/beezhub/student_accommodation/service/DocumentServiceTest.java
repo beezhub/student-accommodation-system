@@ -17,6 +17,8 @@ import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.service.document.FileStorageService;
+import com.beezhub.student_accommodation.service.document.FileValidationService;
+import com.beezhub.student_accommodation.service.document.ValidationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +43,8 @@ class DocumentServiceTest {
 
     @Mock
     FileStorageService fileStorageService;
+    @Mock
+    FileValidationService fileValidationService;
     @Mock
     DocumentRepository documentRepository;
     @Mock
@@ -119,9 +123,11 @@ class DocumentServiceTest {
         when(studentRepository.findStudentByAppUser(user)).thenReturn(Optional.of(student));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
         when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/file.pdf");
+        when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.valid());
 
         documentService.uploadSingleDocument(file, "user@example.com", 2L);
 
+        verify(fileValidationService, times(1)).scanFile(any(), anyString());
         verify(fileStorageService, times(1)).upload(anyString(), any(InputStream.class), anyLong(), anyString());
         verify(documentRepository, times(1)).save(any(Document.class));
     }
@@ -150,13 +156,38 @@ class DocumentServiceTest {
         when(documentRepository.save(any(Document.class))).thenThrow(new RuntimeException("DB Error"));
         
         when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/file.pdf");
+        when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.valid());
 
         assertThrows(RuntimeException.class, () -> documentService.uploadSingleDocument(file, "user@example.com", 2L));
 
         // Verify upload called
+        verify(fileValidationService, times(1)).scanFile(any(), anyString());
         verify(fileStorageService, times(1)).upload(anyString(), any(InputStream.class), anyLong(), anyString());
         // Verify delete called (compensating transaction)
         verify(fileStorageService, times(1)).delete(anyString());
+    }
+
+    @Test
+    void uploadSingleDocument_validationFailure_throwsException() throws Exception {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getOriginalFilename()).thenReturn("malware.exe");
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
+
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
+        
+        when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.invalid("Malware detected"));
+
+        FileStorageException ex = assertThrows(FileStorageException.class, 
+            () -> documentService.uploadSingleDocument(file, "user@example.com", 2L));
+        assertTrue(ex.getMessage().contains("File validation failed"));
+
+        // Verify validation called
+        verify(fileValidationService, times(1)).scanFile(any(), anyString());
+        // Verify upload NOT called
+        verify(fileStorageService, never()).upload(anyString(), any(InputStream.class), anyLong(), anyString());
+        // Verify save NOT called
+        verify(documentRepository, never()).save(any(Document.class));
     }
 
     @Test

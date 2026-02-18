@@ -11,6 +11,8 @@ import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.service.document.FileStorageService;
+import com.beezhub.student_accommodation.service.document.FileValidationService;
+import com.beezhub.student_accommodation.service.document.ValidationResult;
 import org.springframework.dao.OptimisticLockingFailureException;
 
 import com.beezhub.student_accommodation.aspect.LogActivity;
@@ -65,6 +67,7 @@ import static com.beezhub.student_accommodation.model.enums.DocumentStatus.*;
 public class DocumentService {
 
     private final FileStorageService fileStorageService;
+    private final FileValidationService fileValidationService;
     private final DocumentRepository documentRepository;
     private final DocumentTypeRepository documentTypeRepository;
     private final DocumentCommentRepository documentCommentRepository;
@@ -88,6 +91,18 @@ public class DocumentService {
             MultipartFile file = files.get(i);
             DocumentType docType = getDocumentTypeById(documentTypeIds.get(i));
             String objectPath = buildObjectPath(user, docType, file);
+
+            try (InputStream is = file.getInputStream()) {
+                ValidationResult validationResult = fileValidationService.scanFile(is, file.getOriginalFilename());
+                if (!validationResult.clean()) {
+                    throw new FileStorageException("File validation failed: " + validationResult.reason());
+                }
+            } catch (Exception e) {
+                if (e instanceof FileStorageException) {
+                    throw (FileStorageException) e;
+                }
+                throw new FileStorageException("Error validating file: " + file.getOriginalFilename(), e);
+            }
 
             try (InputStream is = file.getInputStream()) {
                 fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
@@ -138,6 +153,18 @@ public class DocumentService {
         DocumentType docType = getDocumentTypeById(documentTypeId);
         String objectPath = buildObjectPath(user, docType, file);
         
+        try (InputStream is = file.getInputStream()) {
+            ValidationResult validationResult = fileValidationService.scanFile(is, file.getOriginalFilename());
+            if (!validationResult.clean()) {
+                throw new FileStorageException("File validation failed: " + validationResult.reason());
+            }
+        } catch (Exception e) {
+            if (e instanceof FileStorageException) {
+                throw (FileStorageException) e;
+            }
+            throw new FileStorageException("Error validating file: " + file.getOriginalFilename(), e);
+        }
+
         try (InputStream is = file.getInputStream()) {
              fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
         } catch (Exception e) {
