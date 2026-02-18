@@ -19,6 +19,7 @@ import com.beezhub.student_accommodation.repository.ActivityLogRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -59,6 +60,7 @@ public class AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final LoginAttemptService loginAttemptService;
     private final TenantService tenantService;
+    private final MeterRegistry meterRegistry;
 
     @Value("${app.base-url:http://localhost:3000}")
     private String baseUrl;
@@ -75,7 +77,8 @@ public class AuthService {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
         var user = appUserMapper.toEntity(request, passwordEncoder.encode(request.getPassword()));
-        // Assign the default tenant so the NOT NULL constraint on tenant_id is satisfied.
+        // Assign the default tenant so the NOT NULL constraint on tenant_id is
+        // satisfied.
         // During public sign-up there is no JWT, so TenantContext is empty and
         // TenantListener cannot auto-populate the field.
         user.setTenantId(tenantService.getDefaultTenant().getId());
@@ -93,8 +96,7 @@ public class AuthService {
                 user.getEmail(),
                 user.getUserPassword(),
                 user.getUserRole().name(),
-                user.getTenantId()
-        ));
+                user.getTenantId()));
         return new LoginResponse(token, userData);
     }
 
@@ -103,20 +105,20 @@ public class AuthService {
         var userOpt = userRepository.findByEmail(username);
         if (userOpt.isPresent()) {
             AppUser user = userOpt.get();
-            
+
             // Check DB lock
             if (user.getAccountLockedUntil() != null && user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
-                 log.warn("Login attempt for locked account: {}", user.getId());
-                 throw new BadCredentialsException("Invalid email or password");
+                log.warn("Login attempt for locked account: {}", user.getId());
+                throw new BadCredentialsException("Invalid email or password");
             }
-            
+
             // Check Redis lock (fast path)
             if (loginAttemptService.isBlocked(user.getId())) {
-                 log.warn("Login attempt for blocked account (Redis): {}", user.getId());
-                 throw new BadCredentialsException("Invalid email or password");
+                log.warn("Login attempt for blocked account (Redis): {}", user.getId());
+                throw new BadCredentialsException("Invalid email or password");
             }
         }
-        
+
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password));
@@ -135,22 +137,30 @@ public class AuthService {
 
             String token = jwtUtil.generateToken(userDetails);
             var userData = appUserMapper.toUserData(user);
+
+            meterRegistry.counter("sas.auth.login.success", "tenant", String.valueOf(user.getTenantId())).increment();
+
             return new LoginResponse(token, userData);
-            
+
         } catch (BadCredentialsException e) {
             // Login failed: increment counters
             if (userOpt.isPresent()) {
                 AppUser user = userOpt.get();
                 loginAttemptService.loginFailed(user.getId());
-                
+
+                meterRegistry.counter("sas.auth.login.failure", "tenant", String.valueOf(user.getTenantId()))
+                        .increment();
+
                 int attempts = user.getFailedLoginAttempts() + 1;
                 user.setFailedLoginAttempts(attempts);
-                
+
                 if (attempts >= 5) { // Max attempts from LoginAttemptService is 5
                     user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(15));
                     log.warn("Account locked due to too many failed attempts: {}", user.getId());
                 }
                 userRepository.save(user);
+            } else {
+                meterRegistry.counter("sas.auth.login.failure", "tenant", "unknown").increment();
             }
             throw e;
         }
@@ -159,7 +169,7 @@ public class AuthService {
     @Transactional
     public void unlockAccount(Long userId) {
         AppUser user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         user.setAccountLockedUntil(null);
         user.setFailedLoginAttempts(0);
@@ -208,7 +218,7 @@ public class AuthService {
         user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setMustChangePassword(false);
         userRepository.save(user);
-        
+
         // Blacklist current token
         blacklistCurrentToken(authentication);
     }
@@ -282,7 +292,7 @@ public class AuthService {
             try {
                 String jti = jwtUtil.extractJti(token);
                 long remainingTtl = jwtUtil.getRemainingTtlSeconds(token);
-                
+
                 if (jti != null && remainingTtl > 0) {
                     tokenBlacklistService.blacklistToken(jti, remainingTtl);
                 }
@@ -334,13 +344,13 @@ public class AuthService {
                     email,
                     "Password Reset Request",
                     "Hello " + user.getFirstName() + ",\n\n" +
-                            "You have requested to reset your password. Please click the link below to reset your password:\n\n" +
+                            "You have requested to reset your password. Please click the link below to reset your password:\n\n"
+                            +
                             resetUrl + "\n\n" +
                             "This link will expire in " + passwordResetExpiryHours + " hours.\n\n" +
                             "If you did not request this, please ignore this email.\n\n" +
                             "Best regards,\n" +
-                            "Student Accommodation Team"
-            );
+                            "Student Accommodation Team");
             log.info("Password reset email sent successfully to: {}", email);
         } catch (Exception e) {
             log.error("Failed to send password reset email to: {}", email, e);
@@ -440,8 +450,7 @@ public class AuthService {
                             "This link will expire in " + emailVerificationExpiryHours + " hours.\n\n" +
                             "If you did not register, please ignore this email.\n\n" +
                             "Best regards,\n" +
-                            "Student Accommodation Team"
-            );
+                            "Student Accommodation Team");
             log.info("Verification email sent successfully to: {}", email);
         } catch (Exception e) {
             log.error("Failed to send verification email to: {}", email, e);

@@ -8,6 +8,7 @@ import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
 import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -39,6 +40,7 @@ public class AllocationLifecycleService {
     private final RoomOccupancyManager roomOccupancyManager;
     private final AllocationMoveService allocationMoveService;
     private final AllocationBatchService allocationBatchService;
+    private final MeterRegistry meterRegistry;
 
     public AllocationLifecycleService(
             RoomAllocationRepository roomAllocationRepository,
@@ -50,7 +52,8 @@ public class AllocationLifecycleService {
             WaitingListService waitingListService,
             RoomOccupancyManager roomOccupancyManager,
             AllocationMoveService allocationMoveService,
-            @Lazy AllocationBatchService allocationBatchService) {
+            @Lazy AllocationBatchService allocationBatchService,
+            MeterRegistry meterRegistry) {
         this.roomAllocationRepository = roomAllocationRepository;
         this.studentRepository = studentRepository;
         this.roomRepository = roomRepository;
@@ -61,6 +64,7 @@ public class AllocationLifecycleService {
         this.roomOccupancyManager = roomOccupancyManager;
         this.allocationMoveService = allocationMoveService;
         this.allocationBatchService = allocationBatchService;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -89,6 +93,8 @@ public class AllocationLifecycleService {
 
         sendAllocationNotification(saved);
 
+        meterRegistry.counter("sas.allocations.created").increment();
+
         log.info("Successfully created room allocation with id: {}", saved.getId());
         return roomAllocationMapper.toResponse(saved);
     }
@@ -109,6 +115,8 @@ public class AllocationLifecycleService {
 
         waitingListService.updateStatusToAllocated(saved.getStudent().getId());
         eventPublisher.publishEvent(new AllocationAcceptedEvent(saved));
+
+        meterRegistry.counter("sas.allocations.accepted").increment();
 
         log.info("Successfully accepted room allocation with id: {}", id);
         return roomAllocationMapper.toResponse(saved);
@@ -140,6 +148,8 @@ public class AllocationLifecycleService {
         } catch (Exception e) {
             log.error("Failed to allocate next from waiting list after decline {}", id, e);
         }
+
+        meterRegistry.counter("sas.allocations.declined").increment();
 
         return roomAllocationMapper.toResponse(saved);
     }

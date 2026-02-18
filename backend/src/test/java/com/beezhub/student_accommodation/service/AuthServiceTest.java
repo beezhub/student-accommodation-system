@@ -13,6 +13,8 @@ import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +63,12 @@ class AuthServiceTest {
     @Mock
     private TenantService tenantService;
 
+    @Mock
+    private MeterRegistry meterRegistry;
+
+    @Mock
+    private Counter counter;
+
     @InjectMocks
     private AuthService authService;
 
@@ -91,15 +99,17 @@ class AuthServiceTest {
                 appUser.getEmail(),
                 appUser.getUserPassword(),
                 appUser.getUserRole().name(),
-                appUser.getTenantId()
-        );
+                appUser.getTenantId());
+
+        lenient().when(meterRegistry.counter(anyString(), any(String[].class))).thenReturn(counter);
+        lenient().when(meterRegistry.counter(anyString())).thenReturn(counter);
     }
 
     @Test
     void validateLogin_AccountLockedInDB_ShouldThrowException() {
         appUser.setAccountLockedUntil(LocalDateTime.now().plusMinutes(10));
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
-        
+
         assertThrows(BadCredentialsException.class, () -> authService.validateLogin("test@example.com", "password"));
     }
 
@@ -107,7 +117,7 @@ class AuthServiceTest {
     void validateLogin_AccountBlockedInRedis_ShouldThrowException() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
         when(loginAttemptService.isBlocked(1L)).thenReturn(true);
-        
+
         assertThrows(BadCredentialsException.class, () -> authService.validateLogin("test@example.com", "password"));
     }
 
@@ -116,23 +126,23 @@ class AuthServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
-        
+
         assertThrows(BadCredentialsException.class, () -> authService.validateLogin("test@example.com", "password"));
-        
+
         verify(loginAttemptService).loginFailed(1L);
         assertEquals(1, appUser.getFailedLoginAttempts());
         verify(userRepository).save(appUser);
     }
-    
+
     @Test
     void validateLogin_4thFailedAttempt_stillAllowed() {
         appUser.setFailedLoginAttempts(3);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
-        
+
         assertThrows(BadCredentialsException.class, () -> authService.validateLogin("test@example.com", "password"));
-        
+
         verify(loginAttemptService).loginFailed(1L);
         assertEquals(4, appUser.getFailedLoginAttempts());
         assertNull(appUser.getAccountLockedUntil());
@@ -145,9 +155,9 @@ class AuthServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
-        
+
         assertThrows(BadCredentialsException.class, () -> authService.validateLogin("test@example.com", "password"));
-        
+
         verify(loginAttemptService).loginFailed(1L);
         assertEquals(5, appUser.getFailedLoginAttempts());
         assertNotNull(appUser.getAccountLockedUntil());
@@ -172,39 +182,38 @@ class AuthServiceTest {
     void validateLogin_lockExpired_allowsLogin() {
         appUser.setAccountLockedUntil(LocalDateTime.now().minusMinutes(1)); // Expired
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
-        
+
         Authentication auth = mock(Authentication.class);
         when(auth.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
         when(jwtUtil.generateToken(userDetails)).thenReturn("token");
         when(appUserMapper.toUserData(appUser)).thenReturn(userData);
-        
+
         authService.validateLogin("test@example.com", "password");
-        
+
         verify(loginAttemptService).loginSucceeded(1L);
         // Should clear the lock
         assertNull(appUser.getAccountLockedUntil());
         verify(userRepository).save(appUser);
     }
-    
+
     @Test
     void validateLogin_SuccessfulLogin_ShouldResetAttempts() {
         appUser.setFailedLoginAttempts(3);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
-        
+
         Authentication auth = mock(Authentication.class);
         when(auth.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
         when(jwtUtil.generateToken(userDetails)).thenReturn("token");
         when(appUserMapper.toUserData(appUser)).thenReturn(userData);
-        
+
         authService.validateLogin("test@example.com", "password");
-        
+
         verify(loginAttemptService).loginSucceeded(1L);
         assertEquals(0, appUser.getFailedLoginAttempts());
         verify(userRepository).save(appUser);
     }
-
 
     @Test
     void logout_validToken_blacklisted() {
@@ -213,9 +222,9 @@ class AuthServiceTest {
         when(authentication.getCredentials()).thenReturn(token);
         when(jwtUtil.extractJti(token)).thenReturn("jti-123");
         when(jwtUtil.getRemainingTtlSeconds(token)).thenReturn(10L);
-        
+
         authService.logout(authentication);
-        
+
         verify(tokenBlacklistService).blacklistToken(eq("jti-123"), anyLong());
     }
 
@@ -225,7 +234,7 @@ class AuthServiceTest {
         when(authentication.getName()).thenReturn("test@example.com");
         String token = "valid.jwt.token";
         when(authentication.getCredentials()).thenReturn(token);
-        
+
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(appUser));
         when(passwordEncoder.matches("oldPass", "encodedPassword")).thenReturn(true);
         when(jwtUtil.extractJti(token)).thenReturn("jti-123");
@@ -234,9 +243,9 @@ class AuthServiceTest {
         com.beezhub.student_accommodation.model.dto.ChangePasswordRequest req = new com.beezhub.student_accommodation.model.dto.ChangePasswordRequest();
         req.setCurrentPassword("oldPass");
         req.setNewPassword("newPass");
-        
+
         authService.changePassword(req, authentication);
-        
+
         verify(tokenBlacklistService).blacklistToken(eq("jti-123"), anyLong());
         verify(userRepository).save(appUser);
     }
@@ -245,7 +254,8 @@ class AuthServiceTest {
     void signup_ShouldCreateUserAndReturnToken() {
         // Arrange
         Tenant defaultTenant = Tenant.builder().name("Default Tenant").build();
-        // Use reflection to set the id since Tenant.builder() won't set the auto-generated id
+        // Use reflection to set the id since Tenant.builder() won't set the
+        // auto-generated id
         defaultTenant.setId(1L);
 
         when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.empty());
@@ -271,8 +281,7 @@ class AuthServiceTest {
 
         EmailAlreadyRegisteredException exception = assertThrows(
                 EmailAlreadyRegisteredException.class,
-                () -> authService.signup(signupRequest)
-        );
+                () -> authService.signup(signupRequest));
         assertEquals("Email already registered", exception.getMessage());
         verify(userRepository, never()).save(any());
     }
@@ -309,8 +318,7 @@ class AuthServiceTest {
         // Act & Assert
         UserNotFoundException exception = assertThrows(
                 UserNotFoundException.class,
-                () -> authService.validateLogin("test@example.com", "password")
-        );
+                () -> authService.validateLogin("test@example.com", "password"));
         assertEquals("User not found", exception.getMessage());
     }
 
@@ -323,7 +331,6 @@ class AuthServiceTest {
         // Act & Assert
         assertThrows(
                 BadCredentialsException.class,
-                () -> authService.validateLogin("test@example.com", "wrongpassword")
-        );
+                () -> authService.validateLogin("test@example.com", "wrongpassword"));
     }
 }
