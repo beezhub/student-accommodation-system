@@ -117,7 +117,7 @@ class DocumentQueryServiceTest {
     }
 
     @Test
-    void getDocumentInfo_success_and_presignedUrl() {
+    void getDocumentInfo_success_returnsPresignedUrl() {
         when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document1));
         when(documentMapper.toDocumentResponse(document1)).thenReturn(response1);
@@ -129,7 +129,7 @@ class DocumentQueryServiceTest {
     }
 
     @Test
-    void getDocumentInfo_unauthorized_throws() {
+    void getDocumentInfo_unauthorized_throwsUnauthorizedAccessException() {
         AppUser other = AppUser.builder()
                 .id(3L)
                 .email("other@example.com")
@@ -144,7 +144,7 @@ class DocumentQueryServiceTest {
     }
 
     @Test
-    void searchDocuments_WithNoFilters_ReturnsAllDocuments() {
+    void searchDocuments_withNoFilters_returnsAllDocuments() {
         when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
         Page<Document> documentsPage = new PageImpl<>(Arrays.asList(document1, document2));
         when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
@@ -163,7 +163,7 @@ class DocumentQueryServiceTest {
     }
 
     @Test
-    void searchDocuments_WithDocumentNameFilter_ReturnsMatchingDocuments() {
+    void searchDocuments_withDocumentNameFilter_returnsMatchingDocuments() {
         when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
         Page<Document> documentsPage = new PageImpl<>(List.of(document1));
         when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
@@ -180,7 +180,7 @@ class DocumentQueryServiceTest {
     }
 
     @Test
-    void searchDocuments_WithStatusFilter_ReturnsMatchingDocuments() {
+    void searchDocuments_withStatusFilter_returnsMatchingDocuments() {
         when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
         Page<Document> documentsPage = new PageImpl<>(List.of(document2));
         when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
@@ -196,7 +196,7 @@ class DocumentQueryServiceTest {
     }
 
     @Test
-    void getMyDocuments_WithNoFilters_ReturnsUserDocuments() {
+    void getMyDocuments_withNoFilters_returnsUserDocuments() {
         when(authService.getCurrentUser()).thenReturn(regularUser);
         Page<Document> documentsPage = new PageImpl<>(Arrays.asList(document1, document2));
         when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
@@ -213,7 +213,7 @@ class DocumentQueryServiceTest {
     }
 
     @Test
-    void getMyDocuments_WithDocumentNameFilter_ReturnsMatchingDocuments() {
+    void getMyDocuments_withDocumentNameFilter_returnsMatchingDocuments() {
         when(authService.getCurrentUser()).thenReturn(regularUser);
         Page<Document> documentsPage = new PageImpl<>(List.of(document1));
         when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
@@ -230,7 +230,7 @@ class DocumentQueryServiceTest {
     }
 
     @Test
-    void searchDocuments_WithInvalidUser_ThrowsException() {
+    void searchDocuments_withInvalidUser_throwsUserNotFoundException() {
         when(appUserRepository.findByEmail("invalid@test.com")).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () ->
@@ -243,7 +243,7 @@ class DocumentQueryServiceTest {
     }
 
     @Test
-    void getAllDocumentsByUserId_authorization() {
+    void getAllDocumentsByUserId_unauthorizedUser_throwsUnauthorizedAccessException() {
         when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
         // userId mismatch and not admin (requesting for user 999)
         RuntimeException ex = assertThrows(RuntimeException.class,

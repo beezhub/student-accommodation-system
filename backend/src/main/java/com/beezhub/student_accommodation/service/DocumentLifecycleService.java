@@ -62,38 +62,7 @@ public class DocumentLifecycleService {
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
             DocumentType docType = getDocumentTypeById(documentTypeIds.get(i));
-            String objectPath = buildObjectPath(user, docType, file);
-
-            try (InputStream is = file.getInputStream()) {
-                ValidationResult validationResult = fileValidationService.scanFile(is, file.getOriginalFilename());
-                if (!validationResult.clean()) {
-                    throw new FileValidationException("File rejected: " + validationResult.reason());
-                }
-            } catch (FileValidationException e) {
-                throw e;
-            } catch (IOException e) {
-                throw new FileStorageException("Cannot read file for validation: " + file.getOriginalFilename(), e);
-            }
-
-            try (InputStream is = file.getInputStream()) {
-                fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
-            } catch (IOException e) {
-                throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
-            }
-
-            Document document;
-            try {
-                document = saveDocumentRecord(user, docType, objectPath, file);
-            } catch (Exception e) {
-                // Compensating transaction: delete file if DB save fails
-                try {
-                    fileStorageService.delete(objectPath);
-                    log.info("Deleted orphaned file {} after DB save failure", objectPath);
-                } catch (Exception deleteEx) {
-                    log.error("Failed to delete orphaned file {} after DB save failure", objectPath, deleteEx);
-                }
-                throw e; // Rethrow original exception
-            }
+            Document document = validateAndUploadFile(file, user, docType);
             documentResponses.add(documentMapper.toDocumentResponse(document));
         }
         return documentResponses;
@@ -103,37 +72,7 @@ public class DocumentLifecycleService {
     public void uploadSingleDocument(MultipartFile file, String username, Long documentTypeId) {
         var user = getUserByEmail(username);
         DocumentType docType = getDocumentTypeById(documentTypeId);
-        String objectPath = buildObjectPath(user, docType, file);
-
-        try (InputStream is = file.getInputStream()) {
-            ValidationResult validationResult = fileValidationService.scanFile(is, file.getOriginalFilename());
-            if (!validationResult.clean()) {
-                throw new FileValidationException("File rejected: " + validationResult.reason());
-            }
-        } catch (FileValidationException e) {
-            throw e;
-        } catch (IOException e) {
-            throw new FileStorageException("Cannot read file for validation: " + file.getOriginalFilename(), e);
-        }
-
-        try (InputStream is = file.getInputStream()) {
-            fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
-        } catch (IOException e) {
-            throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
-        }
-
-        try {
-            saveDocumentRecord(user, docType, objectPath, file);
-        } catch (Exception e) {
-            // Compensating transaction: delete file if DB save fails
-            try {
-                fileStorageService.delete(objectPath);
-                log.info("Deleted orphaned file {} after DB save failure", objectPath);
-            } catch (Exception deleteEx) {
-                log.error("Failed to delete orphaned file {} after DB save failure", objectPath, deleteEx);
-            }
-            throw e;
-        }
+        validateAndUploadFile(file, user, docType);
     }
 
     @Transactional
@@ -155,9 +94,43 @@ public class DocumentLifecycleService {
         // Step 2: Delete file from storage (best-effort; cleanup job handles orphans)
         try {
             fileStorageService.delete(objectPath);
-        } catch (FileStorageException e) {
+        } catch (RuntimeException e) {
             log.error("DB record deleted but MinIO file deletion failed for key {}: {}", objectPath, e.getMessage());
             // Do not rethrow — the DB record is gone; the cleanup job will remove the orphan
+        }
+    }
+
+    private Document validateAndUploadFile(MultipartFile file, AppUser user, DocumentType docType) {
+        String objectPath = buildObjectPath(user, docType, file);
+
+        try (InputStream is = file.getInputStream()) {
+            ValidationResult validationResult = fileValidationService.scanFile(is, file.getOriginalFilename());
+            if (!validationResult.clean()) {
+                throw new FileValidationException("File rejected: " + validationResult.reason());
+            }
+        } catch (FileValidationException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new FileStorageException("Cannot read file for validation: " + file.getOriginalFilename(), e);
+        }
+
+        try (InputStream is = file.getInputStream()) {
+            fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
+        } catch (IOException e) {
+            throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
+        }
+
+        try {
+            return saveDocumentRecord(user, docType, objectPath, file);
+        } catch (RuntimeException e) {
+            // Compensating transaction: delete file if DB save fails
+            try {
+                fileStorageService.delete(objectPath);
+                log.info("Deleted orphaned file {} after DB save failure", objectPath);
+            } catch (RuntimeException deleteEx) {
+                log.error("Failed to delete orphaned file {} after DB save failure", objectPath, deleteEx);
+            }
+            throw e; // Rethrow original exception
         }
     }
 
