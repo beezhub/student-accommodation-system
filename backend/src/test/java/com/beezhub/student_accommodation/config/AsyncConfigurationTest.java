@@ -7,6 +7,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
+import org.springframework.boot.test.mock.mockito.MockBean;
+import com.beezhub.student_accommodation.service.MinioBucketService;
+
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -26,6 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
         "async.queue-capacity=500"
 })
 class AsyncConfigurationTest {
+
+    @MockBean
+    private MinioBucketService minioBucketService;
 
     @Autowired
     private AsyncConfiguration asyncConfiguration;
