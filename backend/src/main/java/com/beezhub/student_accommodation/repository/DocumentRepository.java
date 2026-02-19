@@ -30,4 +30,6 @@ public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSp
 
     // Batch query
     List<Document> findByApplicationIdIn(List<Long> applicationIds);
+
+    boolean existsByDocumentPath(String documentPath);
 }

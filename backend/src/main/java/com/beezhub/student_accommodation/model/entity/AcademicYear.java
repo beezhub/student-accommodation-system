@@ -15,11 +15,16 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AcademicYear {
+@org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
+@EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
+public class AcademicYear implements TenantAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "tenant_id")
+    private Long tenantId;
 
     @Column(nullable = false, unique = true, length = 20)
     private String name;
@@ -45,6 +50,10 @@ public class AcademicYear {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)
+    private Tenant tenant;
 
     @PrePersist
     protected void onCreate() {

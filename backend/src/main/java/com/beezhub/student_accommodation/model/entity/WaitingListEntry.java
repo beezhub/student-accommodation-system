@@ -8,11 +8,16 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "waiting_list_entry")
 @Data
-public class WaitingListEntry {
+@org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
+@EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
+public class WaitingListEntry implements TenantAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "tenant_id")
+    private Long tenantId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
@@ -30,6 +35,10 @@ public class WaitingListEntry {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)
+    private Tenant tenant;
 
     @PrePersist
     protected void onCreate() {

@@ -121,22 +121,16 @@
                 <!-- Actions in header for mobile -->
                  <div class="mobile-actions-top">
                     <!-- Attributes Button -->
-                    <button mat-icon-button class="action-btn attributes" (click)="openAttributesDialog(room)"
-                      matTooltip="Room Attributes"
-                      [attr.aria-label]="'Room attributes for ' + room.roomNumber">
-                      <mat-icon aria-hidden="true">tune</mat-icon>
+                    <button mat-icon-button class="action-btn attributes" (click)="openAttributesDialog(room)">
+                      <mat-icon>tune</mat-icon>
                     </button>
                     <!-- Edit Button -->
-                    <button mat-icon-button class="action-btn edit" (click)="openEditDialog(room)"
-                      matTooltip="Edit Room"
-                      [attr.aria-label]="'Edit room ' + room.roomNumber">
-                      <mat-icon aria-hidden="true">edit</mat-icon>
+                    <button mat-icon-button class="action-btn edit" (click)="openEditDialog(room)">
+                      <mat-icon>edit</mat-icon>
                     </button>
                     <!-- Delete Button -->
-                    <button mat-icon-button class="action-btn delete" (click)="deleteRoom(room)"
-                      matTooltip="Delete Room"
-                      [attr.aria-label]="'Delete room ' + room.roomNumber">
-                      <mat-icon aria-hidden="true">delete</mat-icon>
+                    <button mat-icon-button class="action-btn delete" (click)="deleteRoom(room)">
+                      <mat-icon>delete</mat-icon>
                     </button>
                  </div>
               </div>
@@ -311,17 +305,14 @@
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let room">
                 <div class="actions-cell">
-                  <button mat-icon-button (click)="openAttributesDialog(room)" matTooltip="Room Attributes (Gender, Accessibility)"
-                    [attr.aria-label]="'Room attributes for ' + room.roomNumber" class="action-btn attributes">
-                    <mat-icon aria-hidden="true">tune</mat-icon>
+                  <button mat-icon-button (click)="openAttributesDialog(room)" matTooltip="Room Attributes (Gender, Accessibility)" class="action-btn attributes">
+                    <mat-icon>tune</mat-icon>
                   </button>
-                  <button mat-icon-button (click)="openEditDialog(room)" matTooltip="Edit Room"
-                    [attr.aria-label]="'Edit room ' + room.roomNumber" class="action-btn edit">
-                    <mat-icon aria-hidden="true">edit</mat-icon>
+                  <button mat-icon-button (click)="openEditDialog(room)" matTooltip="Edit Room" class="action-btn edit">
+                    <mat-icon>edit</mat-icon>
                   </button>
-                  <button mat-icon-button (click)="deleteRoom(room)" matTooltip="Delete Room"
-                    [attr.aria-label]="'Delete room ' + room.roomNumber" class="action-btn delete">
-                    <mat-icon aria-hidden="true">delete</mat-icon>
+                  <button mat-icon-button (click)="deleteRoom(room)" matTooltip="Delete Room" class="action-btn delete">
+                    <mat-icon>delete</mat-icon>
                   </button>
                 </div>
               </td>

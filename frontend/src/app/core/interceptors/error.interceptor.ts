@@ -4,10 +4,12 @@ import { throwError } from 'rxjs';
 import { catchError, retry } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TokenStorageService } from '../services/token-storage.service';
 
 export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const router = inject(Router);
   const snackBar = inject(MatSnackBar);
+  const tokenStorage = inject(TokenStorageService);
 
   const getServerErrorMessage = (error: HttpErrorResponse): string => {
     // Try to extract error message from different response formats
@@ -53,7 +55,7 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
       case 401:
         // Unauthorized - redirect to login
         localStorage.removeItem('currentUser');
-        localStorage.removeItem('token');
+        tokenStorage.removeToken();
         router.navigate(['/login'], {
           queryParams: { returnUrl: router.url },
         });

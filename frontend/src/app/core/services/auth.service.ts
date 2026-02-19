@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, map, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -8,14 +8,16 @@ import { InstitutionService } from './institution.service';
 import { YearOfStudyService } from './year-of-study.service';
 import { Router } from '@angular/router';
 import { NotificationService } from './notification.service';
+import { TokenStorageService } from './token-storage.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
+  private tokenStorage = inject(TokenStorageService);
+
   isLoggedIn(): boolean {
-    const token = localStorage.getItem('token');
-    return token !== null && !this.isTokenExpired();
+    return this.tokenStorage.isTokenValid();
   }
   private apiUrl = `${environment.apiUrl}/auth`;
   private currentUserSubject = new BehaviorSubject<User | null>(null);
@@ -53,12 +55,12 @@ export class AuthService {
   signup(data: SignupData): Observable<User> {
     return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/signup`, data).pipe(
       map((response) => {
-        localStorage.setItem('token', response.token);
+        this.tokenStorage.setToken(response.token);
         localStorage.setItem('currentUser', JSON.stringify(response.user));
         this.currentUserSubject.next(response.user);
 
-        // Start notification polling after successful signup
-        this.notificationService.startPolling();
+        // Start notification stream after successful signup
+        this.notificationService.initializeNotifications();
 
         return response.user;
       })
@@ -74,11 +76,11 @@ export class AuthService {
   }
 
   logout(): void {
-    // Stop notification polling before logout
-    this.notificationService.stopPolling();
+    // Stop notifications before logout
+    this.notificationService.stopNotifications();
 
     localStorage.removeItem('currentUser');
-    localStorage.removeItem('token');
+    this.tokenStorage.removeToken();
     this.currentUserSubject.next(null);
     this.institutionService.clearCache();
     this.yearOfStudyService.clearCache();
@@ -88,12 +90,12 @@ export class AuthService {
   login(data: any): Observable<User> {
     return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/login`, data).pipe(
       map((response) => {
-        localStorage.setItem('token', response.token);
+        this.tokenStorage.setToken(response.token);
         localStorage.setItem('currentUser', JSON.stringify(response.user));
         this.currentUserSubject.next(response.user);
 
-        // Start notification polling after successful login
-        this.notificationService.startPolling();
+        // Start notification stream after successful login
+        this.notificationService.initializeNotifications();
 
         return response.user;
       })
@@ -101,15 +103,7 @@ export class AuthService {
   }
 
   isTokenExpired(): boolean {
-    const token = localStorage.getItem('token');
-    if (!token) return true;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const expiry = payload.exp;
-      return Math.floor(Date.now() / 1000) > expiry;
-    } catch (e) {
-      return true;
-    }
+    return !this.tokenStorage.isTokenValid();
   }
 
   changePassword(currentPassword: string, newPassword: string): Observable<any> {

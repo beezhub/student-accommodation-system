@@ -18,11 +18,16 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserNotification {
+@org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
+@EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
+public class UserNotification implements TenantAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "tenant_id")
+    private Long tenantId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -56,6 +61,10 @@ public class UserNotification {
 
     @Column(name = "reference_type", length = 50)
     private String referenceType; // e.g., "APPLICATION", "DOCUMENT", "ROOM_ALLOCATION"
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)
+    private Tenant tenant;
 
     @PrePersist
     protected void onCreate() {

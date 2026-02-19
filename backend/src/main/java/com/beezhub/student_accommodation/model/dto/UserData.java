@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,6 +17,8 @@ public class UserData {
     private String userRole;
     private Boolean mustChangePassword;
     private Boolean emailVerified;
+    private LocalDateTime accountLockedUntil;
+    private Integer failedLoginAttempts;
 
     public Long getId() {
         return id;

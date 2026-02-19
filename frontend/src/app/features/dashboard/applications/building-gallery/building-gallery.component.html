@@ -2,17 +2,12 @@
   <h3 class="gallery-title">Select Your Preferred Building</h3>
   <p class="gallery-subtitle">Choose a building based on your preference or select "No Preference"</p>
 
-  <div class="gallery-grid" role="radiogroup" aria-labelledby="gallery-title">
+  <div class="gallery-grid">
     <!-- No Preference Card -->
     <div
       class="building-card"
       [class.selected]="isSelected(null)"
       (click)="selectBuilding(null)"
-      tabindex="0"
-      role="radio"
-      [attr.aria-checked]="isSelected(null)"
-      (keydown.enter)="selectBuilding(null)"
-      (keydown.space)="selectBuilding(null); $event.preventDefault()"
     >
       <div class="card-image no-preference">
         <mat-icon>clear_all</mat-icon>
@@ -34,12 +29,6 @@
         class="building-card"
         [class.selected]="isSelected(building.id)"
         (click)="selectBuilding(building.id)"
-        tabindex="0"
-        role="radio"
-        [attr.aria-checked]="isSelected(building.id)"
-        [attr.aria-label]="building.name"
-        (keydown.enter)="selectBuilding(building.id)"
-        (keydown.space)="selectBuilding(building.id); $event.preventDefault()"
       >
         <div class="card-image">
           @if (building.primaryImageUrl) {

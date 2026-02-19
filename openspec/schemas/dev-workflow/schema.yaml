@@ -1,19 +1,36 @@
 name: dev-workflow
+version: 1
 
 artifacts:
-  - id: brd
-    generates: brd.md
+  # Agent 1: Senior Business Analyst
+  - id: business-analysis
+    generates: business-analysis.md
     requires: []
-    description: "Business Requirements Document"
+    template: business-analysis.md
+    description: "Senior Business Analyst - Requirements and user stories"
 
-  - id: architecture
-    generates: architecture.md
-    requires: [brd]
-    description: "Technical architecture and design"
+  # Agent 2: Solution Architect
+  - id: solution-design
+    generates: solution-design.md
+    requires: [business-analysis]
+    apply_required: true
+    template: solution-design.md
+    description: "Solution Architect - Technical design and architecture"
 
-  - id: tasks
-    generates: tasks.md
-    requires: [architecture]
-    description: "Detailed implementation tasks"
+  # Agent 3: Senior Full Stack Developer
+  - id: implementation-plan
+    generates: implementation-plan.md
+    requires: [solution-design]
+    apply_required: true
+    template: implementation-plan.md
+    description: "Senior Full Stack Developer - Implementation tasks and code structure"
 
-  # Note: "apply" phase is built-in, requires tasks.md to exist
+  # Agent 4: Tech Lead/Reviewer
+  - id: tech-review
+    generates: tech-review.md
+    requires: [implementation-plan]
+    apply_required: true
+    template: tech-review.md
+    description: "Tech Lead - Review readiness and risk assessment"
+
+  # Note: "apply" phase is built-in, requires all artifacts above to exist

@@ -48,9 +48,7 @@
 
           <!-- Submit Button -->
           <button mat-raised-button color="primary" type="submit" class="login-button"
-            [class.disabled-button]="isSubmitting || loginForm.invalid"
-            [attr.aria-disabled]="(isSubmitting || loginForm.invalid) ? 'true' : 'false'"
-            (click)="onSignInClick($event)">
+            [disabled]="isSubmitting || loginForm.invalid">
             @if (isSubmitting) {
               <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
             }

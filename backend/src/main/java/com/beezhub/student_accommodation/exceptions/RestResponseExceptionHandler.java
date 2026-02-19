@@ -348,6 +348,60 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                 return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
         }
 
+        @ExceptionHandler(AccountLockedException.class)
+        public ResponseEntity<ErrorResponse> handleAccountLocked(
+                        AccountLockedException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.TOO_MANY_REQUESTS.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        @ExceptionHandler(TenantNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleTenantNotFound(
+                        TenantNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
+
+        @ExceptionHandler(DocumentCommentNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleDocumentCommentNotFound(
+                        DocumentCommentNotFoundException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        }
+
+        @ExceptionHandler(FileValidationException.class)
+        public ResponseEntity<ErrorResponse> handleFileValidationException(
+                        FileValidationException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        @ExceptionHandler(FileStorageException.class)
+        public ResponseEntity<ErrorResponse> handleFileStorageException(FileStorageException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
         @Override
         protected ResponseEntity<Object> handleMethodArgumentNotValid(
                         MethodArgumentNotValidException ex,

@@ -1,8 +1,10 @@
 package com.beezhub.student_accommodation.controller;
 
 import com.beezhub.student_accommodation.model.dto.CreateUserRequest;
+import com.beezhub.student_accommodation.model.dto.MessageResponse;
 import com.beezhub.student_accommodation.model.dto.UserData;
 import com.beezhub.student_accommodation.model.enums.UserRole;
+import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.UserManagementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,8 +24,12 @@ import java.util.List;
 public class UserManagementController {
 
     private final UserManagementService userManagementService;
+    private final AuthService authService;
 
-    @Operation(summary = "Create new admin or landlord user", description = "Admin-only endpoint to create ADMIN or LANDLORD users")
+    @Operation(
+        summary = "Create new admin or landlord user",
+        description = "Admin-only endpoint to create ADMIN or LANDLORD users"
+    )
     @ApiResponse(responseCode = "201", description = "User created successfully")
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -58,12 +64,12 @@ public class UserManagementController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Anonymize user")
-    @ApiResponse(responseCode = "204", description = "User anonymized")
-    @PostMapping("/{userId}/anonymize")
+    @Operation(summary = "Unlock user account")
+    @ApiResponse(responseCode = "200", description = "Account unlocked")
+    @PutMapping("/{id}/unlock")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> anonymizeUser(@PathVariable Long userId) {
-        userManagementService.anonymizeUser(userId);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<MessageResponse> unlockAccount(@PathVariable Long id) {
+        authService.unlockAccount(id);
+        return ResponseEntity.ok(new MessageResponse("Account unlocked successfully"));
     }
 }

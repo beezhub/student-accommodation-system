@@ -5,7 +5,7 @@ import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.EmailVerificationToken;
 import com.beezhub.student_accommodation.model.entity.PasswordResetToken;
-
+import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.EmailVerificationTokenRepository;
 import com.beezhub.student_accommodation.repository.PasswordResetTokenRepository;
@@ -18,6 +18,8 @@ import com.beezhub.student_accommodation.repository.UserNotificationRepository;
 import com.beezhub.student_accommodation.repository.ActivityLogRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
+import com.beezhub.student_accommodation.service.tenant.TenantService;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,6 +57,10 @@ public class AuthService {
     private final WaitingListRepository waitingListRepository;
     private final UserNotificationRepository userNotificationRepository;
     private final ActivityLogRepository activityLogRepository;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final LoginAttemptService loginAttemptService;
+    private final TenantService tenantService;
+    private final MeterRegistry meterRegistry;
 
     @Value("${app.base-url:http://localhost:3000}")
     private String baseUrl;
@@ -71,6 +77,11 @@ public class AuthService {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
         var user = appUserMapper.toEntity(request, passwordEncoder.encode(request.getPassword()));
+        // Assign the default tenant so the NOT NULL constraint on tenant_id is
+        // satisfied.
+        // During public sign-up there is no JWT, so TenantContext is empty and
+        // TenantListener cannot auto-populate the field.
+        user.setTenantId(tenantService.getDefaultTenant().getId());
         var save = userRepository.save(user);
 
         try {
@@ -84,26 +95,90 @@ public class AuthService {
         String token = jwtUtil.generateToken(new AppUserDetails(
                 user.getEmail(),
                 user.getUserPassword(),
-                user.getUserRole().name()));
+                user.getUserRole().name(),
+                user.getTenantId()));
         return new LoginResponse(token, userData);
     }
 
     public LoginResponse validateLogin(String username, String password) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password));
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        // 1. Check if user exists first to check lock status
+        var userOpt = userRepository.findByEmail(username);
+        if (userOpt.isPresent()) {
+            AppUser user = userOpt.get();
 
-        var user = userRepository.findByEmail(userDetails.getUsername())
+            // Check DB lock
+            if (user.getAccountLockedUntil() != null && user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
+                log.warn("Login attempt for locked account: {}", user.getId());
+                throw new BadCredentialsException("Invalid email or password");
+            }
+
+            // Check Redis lock (fast path)
+            if (loginAttemptService.isBlocked(user.getId())) {
+                log.warn("Login attempt for blocked account (Redis): {}", user.getId());
+                throw new BadCredentialsException("Invalid email or password");
+            }
+        }
+
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password));
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+            var user = userRepository.findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+            // Login successful: reset counters
+            loginAttemptService.loginSucceeded(user.getId());
+            if (user.getFailedLoginAttempts() > 0 || user.getAccountLockedUntil() != null) {
+                user.setFailedLoginAttempts(0);
+                user.setAccountLockedUntil(null);
+                userRepository.save(user);
+            }
+
+            String token = jwtUtil.generateToken(userDetails);
+            var userData = appUserMapper.toUserData(user);
+
+            meterRegistry.counter("sas.auth.login.success", "tenant", String.valueOf(user.getTenantId())).increment();
+
+            return new LoginResponse(token, userData);
+
+        } catch (BadCredentialsException e) {
+            // Login failed: increment counters
+            if (userOpt.isPresent()) {
+                AppUser user = userOpt.get();
+                loginAttemptService.loginFailed(user.getId());
+
+                meterRegistry.counter("sas.auth.login.failure", "tenant", String.valueOf(user.getTenantId()))
+                        .increment();
+
+                int attempts = user.getFailedLoginAttempts() + 1;
+                user.setFailedLoginAttempts(attempts);
+
+                if (attempts >= 5) { // Max attempts from LoginAttemptService is 5
+                    user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(15));
+                    log.warn("Account locked due to too many failed attempts: {}", user.getId());
+                }
+                userRepository.save(user);
+            } else {
+                meterRegistry.counter("sas.auth.login.failure", "tenant", "unknown").increment();
+            }
+            throw e;
+        }
+    }
+
+    @Transactional
+    public void unlockAccount(Long userId) {
+        AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        if (Boolean.TRUE.equals(user.getIsAnonymized())) {
-            throw new BadCredentialsException("Account has been anonymized and is no longer active");
-        }
-        // The mustChangePassword flag will be included in userData
-        // Frontend should check this and enforce password change if needed
-        String token = jwtUtil.generateToken(userDetails);
-        var userData = appUserMapper.toUserData(user);
-        return new LoginResponse(token, userData);
+        user.setAccountLockedUntil(null);
+        user.setFailedLoginAttempts(0);
+        userRepository.save(user);
+
+        // Clear Redis
+        loginAttemptService.loginSucceeded(userId);
+
+        log.info("Account manually unlocked for user: {}", userId);
     }
 
     public UserData me(Authentication authentication) {
@@ -122,6 +197,13 @@ public class AuthService {
         return new LoginResponse(token, userData);
     }
 
+    public void logout(Authentication authentication) {
+        if (authentication == null) {
+            return;
+        }
+        blacklistCurrentToken(authentication);
+    }
+
     @Transactional
     public void changePassword(ChangePasswordRequest request, Authentication authentication) {
         var user = userRepository.findByEmail(authentication.getName())
@@ -136,6 +218,9 @@ public class AuthService {
         user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setMustChangePassword(false);
         userRepository.save(user);
+
+        // Blacklist current token
+        blacklistCurrentToken(authentication);
     }
 
     @Transactional
@@ -191,10 +276,30 @@ public class AuthService {
         emailVerificationTokenRepository.deleteByUser(user);
         log.info("Deleted tokens");
 
+        // Blacklist current token
+        blacklistCurrentToken(authentication);
+
         // Finally, delete user
         userRepository.delete(user);
 
         log.info("Account deleted successfully for user: {}", authentication.getName());
+    }
+
+    private void blacklistCurrentToken(Authentication authentication) {
+        Object credentials = authentication.getCredentials();
+        if (credentials instanceof String) {
+            String token = (String) credentials;
+            try {
+                String jti = jwtUtil.extractJti(token);
+                long remainingTtl = jwtUtil.getRemainingTtlSeconds(token);
+
+                if (jti != null && remainingTtl > 0) {
+                    tokenBlacklistService.blacklistToken(jti, remainingTtl);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to blacklist token during logout/changePassword", e);
+            }
+        }
     }
 
     public AppUser getCurrentUser() {

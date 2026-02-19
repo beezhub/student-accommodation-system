@@ -17,10 +17,16 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Application {
+@org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
+@EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
+public class Application implements TenantAware {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "tenant_id")
+    private Long tenantId;
+
     @Version
     @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
     @Builder.Default
@@ -67,6 +73,10 @@ public class Application {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private AllocationMethod allocationMethod = AllocationMethod.MANUAL;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)
+    private Tenant tenant;
 
     @PrePersist
     protected void onCreate() {

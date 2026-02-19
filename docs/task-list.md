@@ -11,9 +11,9 @@
 | Phase | Total | Done | In Progress | Todo | Blocked | Progress |
 |-------|-------|------|-------------|------|---------|----------|
 | Phase 1: Critical Stabilisation | 10 | 2 | 0 | 8 | 0 | 20% |
-| Phase 2: Structural Improvement | 13 | 0 | 0 | 13 | 0 | 0% |
+| Phase 2: Structural Improvement | 13 | 4 | 0 | 9 | 0 | 30% |
 | Phase 3: Enhancement & Optimization | 10 | 0 | 0 | 10 | 0 | 0% |
-| **Total** | **33** | **2** | **0** | **31** | **0** | **6%** |
+| **Total** | **33** | **6** | **0** | **27** | **0** | **18%** |
 
 **Current Blockers:** None
 **Next Recommended Tasks:** TASK-1.03 (Scoring Tests - HIGH), TASK-1.04 (Redis - HIGH, unblocks 2 tasks), TASK-1.07 (EAGER Loading Fix), TASK-1.08 (CorsFilter Cleanup), TASK-1.09 (Database Indexes), TASK-1.10 (Async Queue) — all have no dependencies and can start in parallel
@@ -136,9 +136,9 @@ Write comprehensive unit tests for `AllocationScoringService` (630 lines) target
 **Implementation Notes:**
 - Read `AllocationScoringService.java` thoroughly before writing tests — may discover scoring bugs
 - Test each scoring component independently:
-  1. Preference Match Score: room type match (+40), accommodation type match (+30), building attributes match (+20)
-  2. Desirability Score: submission date ordering, year of study priority
-  3. Accessibility Score: special needs (+30), building accessibility match (+20)
+    1. Preference Match Score: room type match (+40), accommodation type match (+30), building attributes match (+20)
+    2. Desirability Score: submission date ordering, year of study priority
+    3. Accessibility Score: special needs (+30), building accessibility match (+20)
 - Use Mockito to mock `AllocationRuleRepository` and `RoomRepository` dependencies
 - Test tie-breaking logic (earlier application submission timestamp wins per [REQ ALLOC-001])
 - Test combined scoring with all components
@@ -425,10 +425,10 @@ Add composite database indexes to improve batch allocation query performance. Th
 **Implementation Notes:**
 - Primary index: `CREATE INDEX IF NOT EXISTS idx_application_status_year ON application(status, academic_year_id);`
 - Consider additional indexes based on common query patterns:
-  - `idx_room_allocation_status ON room_allocation(status)` — for expiry job queries
-  - `idx_room_allocation_student ON room_allocation(student_id)` — for student allocation lookups
-  - `idx_document_application ON document(application_id, status)` — for document approval checks
-  - `idx_notification_user ON notification(user_id, status)` — for notification polling
+    - `idx_room_allocation_status ON room_allocation(status)` — for expiry job queries
+    - `idx_room_allocation_student ON room_allocation(student_id)` — for student allocation lookups
+    - `idx_document_application ON document(application_id, status)` — for document approval checks
+    - `idx_notification_user ON notification(user_id, status)` — for notification polling
 - Use `IF NOT EXISTS` guards for idempotency per [ARCH 5.1.3]
 - Follow index naming convention: `idx_{table}_{column1}_{column2}` per [ARCH 5.1.3]
 
@@ -494,7 +494,7 @@ Increase the async executor queue capacity from 100 to 500 and max threads from 
 
 ### TASK-2.01: Decompose RoomAllocationService — Extract AllocationExpiryService
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** M (2–4 hrs)
@@ -539,7 +539,7 @@ Extract `AllocationExpiryService` from `RoomAllocationService`. This is the firs
 
 ### TASK-2.02: Decompose RoomAllocationService — Extract AllocationLifecycleService
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** M (2–4 hrs)
@@ -582,7 +582,7 @@ Extract `AllocationLifecycleService` from `RoomAllocationService`. Move offer ac
 
 ### TASK-2.03: Decompose RoomAllocationService — Extract AllocationBatchService and AllocationCheckInService
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** L (4–8 hrs)
@@ -685,7 +685,7 @@ Extract `ApplicationSearchService` first (pure query logic, no side effects). Th
 
 ### TASK-2.05: Decompose NotificationService
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 2
 - **Estimated Scope:** L (4–8 hrs)
@@ -1567,4 +1567,3 @@ Before any Phase 3 task can start, **all** of the following must be true:
 - [ ] Test coverage ≥70% on all service classes [TASK-2.12]
 - [ ] Domain events used for notification decoupling [TASK-2.06]
 - [ ] No regression in existing functionality (all existing tests pass)
-

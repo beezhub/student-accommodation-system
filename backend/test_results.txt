@@ -1,0 +1,2071 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :compileJava UP-TO-DATE
+> Task :processResources
+> Task :classes
+> Task :compileTestJava UP-TO-DATE
+> Task :processTestResources
+> Task :testClasses
+
+> Task :test
+
+AsyncConfigurationTest > asyncExecutor_loadsWithCorrectCorePoolSize() FAILED
+    java.lang.IllegalStateException: Failed to load ApplicationContext for [WebMergedContextConfiguration@35038f9d testClass = com.beezhub.student_accommodation.config.AsyncConfigurationTest, locations = [], classes = [com.beezhub.student_accommodation.StudentAccommodationApplication], contextInitializerClasses = [], activeProfiles = [], propertySourceDescriptors = [PropertySourceDescriptor[locations=[], ignoreResourceNotFound=false, name=null, propertySourceFactory=null, encoding=null]], propertySourceProperties = ["async.core-pool-size=10", "async.max-pool-size=20", "async.queue-capacity=500", "org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true"], contextCustomizers = [org.springframework.boot.test.autoconfigure.OnFailureConditionReportContextCustomizerFactory$OnFailureConditionReportContextCustomizer@ebe067d, org.springframework.boot.test.autoconfigure.actuate.observability.ObservabilityContextCustomizerFactory$DisableObservabilityContextCustomizer@1f, org.springframework.boot.test.autoconfigure.properties.PropertyMappingContextCustomizer@0, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverContextCustomizer@75156240, org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@4ecd00b5, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@5cbd94b2, org.springframework.boot.test.mock.mockito.MockitoContextCustomizer@0, org.springframework.boot.test.web.client.TestRestTemplateContextCustomizer@2dbfcf7, org.springframework.boot.test.web.reactor.netty.DisableReactorResourceFactoryGlobalResourcesContextCustomizerFactory$DisableReactorResourceFactoryGlobalResourcesContextCustomizerCustomizer@b3e86d5, org.springframework.test.context.support.DynamicPropertiesContextCustomizer@0, org.springframework.boot.test.context.SpringBootTestAnnotation@92bd22d2], resourceBasePath = "src/main/webapp", contextLoader = org.springframework.boot.test.context.SpringBootContextLoader, parent = null]
+        at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:180)
+        at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:130)
+        at org.springframework.test.context.web.ServletTestExecutionListener.setUpRequestContextIfNecessary(ServletTestExecutionListener.java:200)
+        at org.springframework.test.context.web.ServletTestExecutionListener.prepareTestInstance(ServletTestExecutionListener.java:139)
+        at org.springframework.test.context.TestContextManager.prepareTestInstance(TestContextManager.java:260)
+        at org.springframework.test.context.junit.jupiter.SpringExtension.postProcessTestInstance(SpringExtension.java:159)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1625)
+        at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+        at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+        at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+        at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+        at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+        at java.base/java.util.Optional.orElseGet(Optional.java:364)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+        Caused by:
+        org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/autoconfigure/flyway/FlywayAutoConfiguration$FlywayConfiguration.class]: Unable to obtain connection from database: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+        --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        SQL State  : 08001
+        Error Code : 0
+        Message    : Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+            at app//org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:328)
+            at app//org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207)
+            at app//org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:973)
+            at app//org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:627)
+            at app//org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752)
+            at app//org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439)
+            at app//org.springframework.boot.SpringApplication.run(SpringApplication.java:318)
+            at app//org.springframework.boot.test.context.SpringBootContextLoader.lambda$loadContext$3(SpringBootContextLoader.java:144)
+            at app//org.springframework.util.function.ThrowingSupplier.get(ThrowingSupplier.java:58)
+            at app//org.springframework.util.function.ThrowingSupplier.get(ThrowingSupplier.java:46)
+            at app//org.springframework.boot.SpringApplication.withHook(SpringApplication.java:1461)
+            at app//org.springframework.boot.test.context.SpringBootContextLoader$ContextLoaderHook.run(SpringBootContextLoader.java:563)
+            at app//org.springframework.boot.test.context.SpringBootContextLoader.loadContext(SpringBootContextLoader.java:144)
+            at app//org.springframework.boot.test.context.SpringBootContextLoader.loadContext(SpringBootContextLoader.java:110)
+            at app//org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContextInternal(DefaultCacheAwareContextLoaderDelegate.java:225)
+            at app//org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:152)
+            ... 19 more
+
+            Caused by:
+            org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/autoconfigure/flyway/FlywayAutoConfiguration$FlywayConfiguration.class]: Unable to obtain connection from database: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+            --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+            SQL State  : 08001
+            Error Code : 0
+            Message    : Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+                at app//org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1826)
+                at app//org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:607)
+                at app//org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529)
+                at app//org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339)
+                at app//org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373)
+                at app//org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337)
+                at app//org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202)
+                at app//org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:315)
+                ... 34 more
+
+                Caused by:
+                org.flywaydb.core.internal.exception.FlywaySqlException: Unable to obtain connection from database: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+                --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                SQL State  : 08001
+                Error Code : 0
+                Message    : Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+                    at app//org.flywaydb.core.internal.jdbc.JdbcUtils.openConnection(JdbcUtils.java:71)
+                    at app//org.flywaydb.core.internal.jdbc.JdbcConnectionFactory.<init>(JdbcConnectionFactory.java:76)
+                    at app//org.flywaydb.core.FlywayExecutor.execute(FlywayExecutor.java:136)
+                    at app//org.flywaydb.core.Flyway.migrate(Flyway.java:188)
+                    at app//org.springframework.boot.autoconfigure.flyway.FlywayMigrationInitializer.afterPropertiesSet(FlywayMigrationInitializer.java:66)
+                    at app//org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1873)
+                    at app//org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1822)
+                    ... 41 more
+
+                    Caused by:
+                    org.postgresql.util.PSQLException: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+                        at app//org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:373)
+                        at app//org.postgresql.core.ConnectionFactory.openConnection(ConnectionFactory.java:57)
+                        at app//org.postgresql.jdbc.PgConnection.<init>(PgConnection.java:279)
+                        at app//org.postgresql.Driver.makeConnection(Driver.java:448)
+                        at app//org.postgresql.Driver.connect(Driver.java:298)
+                        at app//org.springframework.jdbc.datasource.SimpleDriverDataSource.getConnectionFromDriver(SimpleDriverDataSource.java:144)
+                        at app//org.springframework.jdbc.datasource.AbstractDriverBasedDataSource.getConnectionFromDriver(AbstractDriverBasedDataSource.java:205)
+                        at app//org.springframework.jdbc.datasource.AbstractDriverBasedDataSource.getConnection(AbstractDriverBasedDataSource.java:169)
+                        at app//org.flywaydb.core.internal.jdbc.JdbcUtils.openConnection(JdbcUtils.java:59)
+                        ... 47 more
+
+                        Caused by:
+                        java.net.ConnectException: Connection refused: no further information
+                            at java.base/sun.nio.ch.Net.pollConnect(Native Method)
+                            at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:672)
+                            at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:547)
+                            at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:602)
+                            at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327)
+                            at java.base/java.net.Socket.connect(Socket.java:633)
+                            at org.postgresql.core.PGStream.createSocket(PGStream.java:261)
+                            at org.postgresql.core.PGStream.<init>(PGStream.java:122)
+                            at org.postgresql.core.v3.ConnectionFactoryImpl.tryConnect(ConnectionFactoryImpl.java:146)
+                            at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:289)
+                            ... 55 more
+
+AsyncConfigurationTest > asyncExecutor_loadsWithCorrectMaxPoolSize() FAILED
+    java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [WebMergedContextConfiguration@35038f9d testClass = com.beezhub.student_accommodation.config.AsyncConfigurationTest, locations = [], classes = [com.beezhub.student_accommodation.StudentAccommodationApplication], contextInitializerClasses = [], activeProfiles = [], propertySourceDescriptors = [PropertySourceDescriptor[locations=[], ignoreResourceNotFound=false, name=null, propertySourceFactory=null, encoding=null]], propertySourceProperties = ["async.core-pool-size=10", "async.max-pool-size=20", "async.queue-capacity=500", "org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true"], contextCustomizers = [org.springframework.boot.test.autoconfigure.OnFailureConditionReportContextCustomizerFactory$OnFailureConditionReportContextCustomizer@ebe067d, org.springframework.boot.test.autoconfigure.actuate.observability.ObservabilityContextCustomizerFactory$DisableObservabilityContextCustomizer@1f, org.springframework.boot.test.autoconfigure.properties.PropertyMappingContextCustomizer@0, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverContextCustomizer@75156240, org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@4ecd00b5, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@5cbd94b2, org.springframework.boot.test.mock.mockito.MockitoContextCustomizer@0, org.springframework.boot.test.web.client.TestRestTemplateContextCustomizer@2dbfcf7, org.springframework.boot.test.web.reactor.netty.DisableReactorResourceFactoryGlobalResourcesContextCustomizerFactory$DisableReactorResourceFactoryGlobalResourcesContextCustomizerCustomizer@b3e86d5, org.springframework.test.context.support.DynamicPropertiesContextCustomizer@0, org.springframework.boot.test.context.SpringBootTestAnnotation@92bd22d2], resourceBasePath = "src/main/webapp", contextLoader = org.springframework.boot.test.context.SpringBootContextLoader, parent = null]
+        at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:145)
+        at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:130)
+        at org.springframework.test.context.web.ServletTestExecutionListener.setUpRequestContextIfNecessary(ServletTestExecutionListener.java:200)
+        at org.springframework.test.context.web.ServletTestExecutionListener.prepareTestInstance(ServletTestExecutionListener.java:139)
+        at org.springframework.test.context.TestContextManager.prepareTestInstance(TestContextManager.java:260)
+        at org.springframework.test.context.junit.jupiter.SpringExtension.postProcessTestInstance(SpringExtension.java:159)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1625)
+        at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+        at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+        at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+        at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+        at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+        at java.base/java.util.Optional.orElseGet(Optional.java:364)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+AsyncConfigurationTest > asyncExecutor_hasCallerRunsPolicyAsRejectionHandler() FAILED
+    java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [WebMergedContextConfiguration@35038f9d testClass = com.beezhub.student_accommodation.config.AsyncConfigurationTest, locations = [], classes = [com.beezhub.student_accommodation.StudentAccommodationApplication], contextInitializerClasses = [], activeProfiles = [], propertySourceDescriptors = [PropertySourceDescriptor[locations=[], ignoreResourceNotFound=false, name=null, propertySourceFactory=null, encoding=null]], propertySourceProperties = ["async.core-pool-size=10", "async.max-pool-size=20", "async.queue-capacity=500", "org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true"], contextCustomizers = [org.springframework.boot.test.autoconfigure.OnFailureConditionReportContextCustomizerFactory$OnFailureConditionReportContextCustomizer@ebe067d, org.springframework.boot.test.autoconfigure.actuate.observability.ObservabilityContextCustomizerFactory$DisableObservabilityContextCustomizer@1f, org.springframework.boot.test.autoconfigure.properties.PropertyMappingContextCustomizer@0, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverContextCustomizer@75156240, org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@4ecd00b5, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@5cbd94b2, org.springframework.boot.test.mock.mockito.MockitoContextCustomizer@0, org.springframework.boot.test.web.client.TestRestTemplateContextCustomizer@2dbfcf7, org.springframework.boot.test.web.reactor.netty.DisableReactorResourceFactoryGlobalResourcesContextCustomizerFactory$DisableReactorResourceFactoryGlobalResourcesContextCustomizerCustomizer@b3e86d5, org.springframework.test.context.support.DynamicPropertiesContextCustomizer@0, org.springframework.boot.test.context.SpringBootTestAnnotation@92bd22d2], resourceBasePath = "src/main/webapp", contextLoader = org.springframework.boot.test.context.SpringBootContextLoader, parent = null]
+        at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:145)
+        at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:130)
+        at org.springframework.test.context.web.ServletTestExecutionListener.setUpRequestContextIfNecessary(ServletTestExecutionListener.java:200)
+        at org.springframework.test.context.web.ServletTestExecutionListener.prepareTestInstance(ServletTestExecutionListener.java:139)
+        at org.springframework.test.context.TestContextManager.prepareTestInstance(TestContextManager.java:260)
+        at org.springframework.test.context.junit.jupiter.SpringExtension.postProcessTestInstance(SpringExtension.java:159)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1625)
+        at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+        at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+        at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+        at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+        at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+        at java.base/java.util.Optional.orElseGet(Optional.java:364)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+AsyncConfigurationTest > asyncExecutor_waitsForTasksToCompleteOnShutdown() FAILED
+    java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [WebMergedContextConfiguration@35038f9d testClass = com.beezhub.student_accommodation.config.AsyncConfigurationTest, locations = [], classes = [com.beezhub.student_accommodation.StudentAccommodationApplication], contextInitializerClasses = [], activeProfiles = [], propertySourceDescriptors = [PropertySourceDescriptor[locations=[], ignoreResourceNotFound=false, name=null, propertySourceFactory=null, encoding=null]], propertySourceProperties = ["async.core-pool-size=10", "async.max-pool-size=20", "async.queue-capacity=500", "org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true"], contextCustomizers = [org.springframework.boot.test.autoconfigure.OnFailureConditionReportContextCustomizerFactory$OnFailureConditionReportContextCustomizer@ebe067d, org.springframework.boot.test.autoconfigure.actuate.observability.ObservabilityContextCustomizerFactory$DisableObservabilityContextCustomizer@1f, org.springframework.boot.test.autoconfigure.properties.PropertyMappingContextCustomizer@0, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverContextCustomizer@75156240, org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@4ecd00b5, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@5cbd94b2, org.springframework.boot.test.mock.mockito.MockitoContextCustomizer@0, org.springframework.boot.test.web.client.TestRestTemplateContextCustomizer@2dbfcf7, org.springframework.boot.test.web.reactor.netty.DisableReactorResourceFactoryGlobalResourcesContextCustomizerFactory$DisableReactorResourceFactoryGlobalResourcesContextCustomizerCustomizer@b3e86d5, org.springframework.test.context.support.DynamicPropertiesContextCustomizer@0, org.springframework.boot.test.context.SpringBootTestAnnotation@92bd22d2], resourceBasePath = "src/main/webapp", contextLoader = org.springframework.boot.test.context.SpringBootContextLoader, parent = null]
+        at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:145)
+        at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:130)
+        at org.springframework.test.context.web.ServletTestExecutionListener.setUpRequestContextIfNecessary(ServletTestExecutionListener.java:200)
+        at org.springframework.test.context.web.ServletTestExecutionListener.prepareTestInstance(ServletTestExecutionListener.java:139)
+        at org.springframework.test.context.TestContextManager.prepareTestInstance(TestContextManager.java:260)
+        at org.springframework.test.context.junit.jupiter.SpringExtension.postProcessTestInstance(SpringExtension.java:159)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1625)
+        at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+        at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+        at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+        at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+        at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+        at java.base/java.util.Optional.orElseGet(Optional.java:364)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+AsyncConfigurationTest > asyncExecutor_hasCorrectThreadNamePrefix() FAILED
+    java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [WebMergedContextConfiguration@35038f9d testClass = com.beezhub.student_accommodation.config.AsyncConfigurationTest, locations = [], classes = [com.beezhub.student_accommodation.StudentAccommodationApplication], contextInitializerClasses = [], activeProfiles = [], propertySourceDescriptors = [PropertySourceDescriptor[locations=[], ignoreResourceNotFound=false, name=null, propertySourceFactory=null, encoding=null]], propertySourceProperties = ["async.core-pool-size=10", "async.max-pool-size=20", "async.queue-capacity=500", "org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true"], contextCustomizers = [org.springframework.boot.test.autoconfigure.OnFailureConditionReportContextCustomizerFactory$OnFailureConditionReportContextCustomizer@ebe067d, org.springframework.boot.test.autoconfigure.actuate.observability.ObservabilityContextCustomizerFactory$DisableObservabilityContextCustomizer@1f, org.springframework.boot.test.autoconfigure.properties.PropertyMappingContextCustomizer@0, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverContextCustomizer@75156240, org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@4ecd00b5, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@5cbd94b2, org.springframework.boot.test.mock.mockito.MockitoContextCustomizer@0, org.springframework.boot.test.web.client.TestRestTemplateContextCustomizer@2dbfcf7, org.springframework.boot.test.web.reactor.netty.DisableReactorResourceFactoryGlobalResourcesContextCustomizerFactory$DisableReactorResourceFactoryGlobalResourcesContextCustomizerCustomizer@b3e86d5, org.springframework.test.context.support.DynamicPropertiesContextCustomizer@0, org.springframework.boot.test.context.SpringBootTestAnnotation@92bd22d2], resourceBasePath = "src/main/webapp", contextLoader = org.springframework.boot.test.context.SpringBootContextLoader, parent = null]
+        at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:145)
+        at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:130)
+        at org.springframework.test.context.web.ServletTestExecutionListener.setUpRequestContextIfNecessary(ServletTestExecutionListener.java:200)
+        at org.springframework.test.context.web.ServletTestExecutionListener.prepareTestInstance(ServletTestExecutionListener.java:139)
+        at org.springframework.test.context.TestContextManager.prepareTestInstance(TestContextManager.java:260)
+        at org.springframework.test.context.junit.jupiter.SpringExtension.postProcessTestInstance(SpringExtension.java:159)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1625)
+        at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+        at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+        at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+        at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+        at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+        at java.base/java.util.Optional.orElseGet(Optional.java:364)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+AsyncConfigurationTest > asyncExecutor_loadsWithCorrectQueueCapacity() FAILED
+    java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [WebMergedContextConfiguration@35038f9d testClass = com.beezhub.student_accommodation.config.AsyncConfigurationTest, locations = [], classes = [com.beezhub.student_accommodation.StudentAccommodationApplication], contextInitializerClasses = [], activeProfiles = [], propertySourceDescriptors = [PropertySourceDescriptor[locations=[], ignoreResourceNotFound=false, name=null, propertySourceFactory=null, encoding=null]], propertySourceProperties = ["async.core-pool-size=10", "async.max-pool-size=20", "async.queue-capacity=500", "org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true"], contextCustomizers = [org.springframework.boot.test.autoconfigure.OnFailureConditionReportContextCustomizerFactory$OnFailureConditionReportContextCustomizer@ebe067d, org.springframework.boot.test.autoconfigure.actuate.observability.ObservabilityContextCustomizerFactory$DisableObservabilityContextCustomizer@1f, org.springframework.boot.test.autoconfigure.properties.PropertyMappingContextCustomizer@0, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverContextCustomizer@75156240, org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@4ecd00b5, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@5cbd94b2, org.springframework.boot.test.mock.mockito.MockitoContextCustomizer@0, org.springframework.boot.test.web.client.TestRestTemplateContextCustomizer@2dbfcf7, org.springframework.boot.test.web.reactor.netty.DisableReactorResourceFactoryGlobalResourcesContextCustomizerFactory$DisableReactorResourceFactoryGlobalResourcesContextCustomizerCustomizer@b3e86d5, org.springframework.test.context.support.DynamicPropertiesContextCustomizer@0, org.springframework.boot.test.context.SpringBootTestAnnotation@92bd22d2], resourceBasePath = "src/main/webapp", contextLoader = org.springframework.boot.test.context.SpringBootContextLoader, parent = null]
+        at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:145)
+        at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:130)
+        at org.springframework.test.context.web.ServletTestExecutionListener.setUpRequestContextIfNecessary(ServletTestExecutionListener.java:200)
+        at org.springframework.test.context.web.ServletTestExecutionListener.prepareTestInstance(ServletTestExecutionListener.java:139)
+        at org.springframework.test.context.TestContextManager.prepareTestInstance(TestContextManager.java:260)
+        at org.springframework.test.context.junit.jupiter.SpringExtension.postProcessTestInstance(SpringExtension.java:159)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+        at java.base/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+        at java.base/java.util.ArrayList$ArrayListSpliterator.forEachRemaining(ArrayList.java:1625)
+        at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:509)
+        at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+        at java.base/java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+        at java.base/java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+        at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+        at java.base/java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:596)
+        at java.base/java.util.Optional.orElseGet(Optional.java:364)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+        at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :test
+
+StudentRepositoryTest > findStudentWithUserById_shouldLoadOnlyAppUser() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findAllStudentsWithDetails_shouldReturnEmptyList_whenNoStudentsExist() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findStudentWithDetailsById_shouldLoadAllAssociations() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findStudentWithDetailsByUserId_shouldLoadAllAssociations() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findStudentWithDetailsById_shouldReturnEmpty_whenStudentNotFound() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findStudentWithDetailsByUserId_shouldReturnEmpty_whenUserHasNoStudent() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findStudentByAppUser_shouldReturnStudent() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findStudentWithAcademicDetailsById_shouldLoadAcademicFieldsOnly() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findByAppUser_Id_shouldReturnStudent() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findAllStudentsWithDetails_shouldLoadAllAssociationsForAllStudents() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findById_shouldNotLoadAssociations_whenUsingDefaultMethod() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+StudentRepositoryTest > findStudentWithUserByAppUser_shouldLoadOnlyAppUser() FAILED
+    org.hibernate.exception.SQLGrammarException: could not prepare statement [Table "YEAR_OF_STUDY" not found; SQL statement:
+    insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]] [insert into year_of_study (created_at,updated_at,year) values (?,?,?)]
+        at app//org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:66)
+        at app//org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+        at app//org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:117)
+        at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl.prepareStatement(MutationStatementPreparerImpl.java:63)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.prepareStatement(GetGeneratedKeysDelegate.java:95)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.delegateStatementPreparation(ModelMutationHelper.java:131)
+        at app//org.hibernate.engine.jdbc.mutation.internal.ModelMutationHelper.lambda$standardPreparation$0(ModelMutationHelper.java:121)
+        at app//org.hibernate.engine.jdbc.mutation.internal.PreparedStatementDetailsStandard.resolveStatement(PreparedStatementDetailsStandard.java:90)
+        at app//org.hibernate.id.insert.GetGeneratedKeysDelegate.performMutation(GetGeneratedKeysDelegate.java:113)
+        at app//org.hibernate.engine.jdbc.mutation.internal.MutationExecutorSingleNonBatched.performNonBatchedOperations(MutationExecutorSingleNonBatched.java:47)
+        at app//org.hibernate.engine.jdbc.mutation.internal.AbstractMutationExecutor.execute(AbstractMutationExecutor.java:55)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.doStaticInserts(InsertCoordinatorStandard.java:194)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.coordinateInsert(InsertCoordinatorStandard.java:132)
+        at app//org.hibernate.persister.entity.mutation.InsertCoordinatorStandard.insert(InsertCoordinatorStandard.java:95)
+        at app//org.hibernate.action.internal.EntityIdentityInsertAction.execute(EntityIdentityInsertAction.java:85)
+        at app//org.hibernate.engine.spi.ActionQueue.execute(ActionQueue.java:682)
+        at app//org.hibernate.engine.spi.ActionQueue.addResolvedEntityInsertAction(ActionQueue.java:293)
+        at app//org.hibernate.engine.spi.ActionQueue.addInsertAction(ActionQueue.java:274)
+        at app//org.hibernate.engine.spi.ActionQueue.addAction(ActionQueue.java:324)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.addInsertAction(AbstractSaveEventListener.java:394)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSaveOrReplicate(AbstractSaveEventListener.java:308)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.performSave(AbstractSaveEventListener.java:224)
+        at app//org.hibernate.event.internal.AbstractSaveEventListener.saveWithGeneratedId(AbstractSaveEventListener.java:136)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.entityIsTransient(DefaultPersistEventListener.java:177)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.persist(DefaultPersistEventListener.java:95)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:79)
+        at app//org.hibernate.event.internal.DefaultPersistEventListener.onPersist(DefaultPersistEventListener.java:55)
+        at app//org.hibernate.event.service.internal.EventListenerGroupImpl.fireEventOnEachListener(EventListenerGroupImpl.java:127)
+        at app//org.hibernate.internal.SessionImpl.firePersist(SessionImpl.java:761)
+        at app//org.hibernate.internal.SessionImpl.persist(SessionImpl.java:745)
+        at app//org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager.persist(TestEntityManager.java:92)
+        at app//com.beezhub.student_accommodation.repository.StudentRepositoryTest.setUp(StudentRepositoryTest.java:62)
+
+        Caused by:
+        org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "YEAR_OF_STUDY" not found; SQL statement:
+        insert into year_of_study (created_at,updated_at,year) values (?,?,?) [42102-232]
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+            at app//org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+            at app//org.h2.message.DbException.get(DbException.java:223)
+            at app//org.h2.message.DbException.get(DbException.java:199)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+            at app//org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7895)
+            at app//org.h2.command.Parser.readTableOrView(Parser.java:7857)
+            at app//org.h2.command.Parser.parseInsert(Parser.java:1521)
+            at app//org.h2.command.Parser.parsePrepared(Parser.java:698)
+            at app//org.h2.command.Parser.parse(Parser.java:581)
+            at app//org.h2.command.Parser.parse(Parser.java:556)
+            at app//org.h2.command.Parser.prepareCommand(Parser.java:484)
+            at app//org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+            at app//org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+            at app//org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+            at app//org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+            at app//org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:1092)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$2.doPrepare(MutationStatementPreparerImpl.java:61)
+            at app//org.hibernate.engine.jdbc.internal.MutationStatementPreparerImpl$StatementPreparationTemplate.prepareStatement(MutationStatementPreparerImpl.java:106)
+            ... 29 more
+
+RoomAllocationServiceAcceptOfferTest > Should accept offer when date is valid FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.acceptOffer(java.lang.Long, com.beezhub.student_accommodation.model.dto.AcceptOfferRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.acceptOffer(RoomAllocationService.java:122)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceAcceptOfferTest.shouldAcceptOfferWhenDateIsValid(RoomAllocationServiceAcceptOfferTest.java:79)
+
+RoomAllocationServiceAcceptOfferTest > Should accept offer without error when no waiting list entry exists FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.acceptOffer(java.lang.Long, com.beezhub.student_accommodation.model.dto.AcceptOfferRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.acceptOffer(RoomAllocationService.java:122)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceAcceptOfferTest.shouldAcceptOfferWithNoWaitingListEntry(RoomAllocationServiceAcceptOfferTest.java:116)
+
+RoomAllocationServiceAcceptOfferTest > Should throw exception when date is more than 7 days in future FAILED
+    java.lang.AssertionError: 
+    Expecting actual throwable to be an instance of:
+      java.lang.IllegalArgumentException
+    but was:
+      java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.acceptOffer(java.lang.Long, com.beezhub.student_accommodation.model.dto.AcceptOfferRequest)" because "this.allocationLifecycleService" is null
+    	at com.beezhub.student_accommodation.service.RoomAllocationService.acceptOffer(RoomAllocationService.java:122)
+    	at com.beezhub.student_accommodation.service.RoomAllocationServiceAcceptOfferTest.lambda$shouldThrowExceptionWhenDateIsTooFarInFuture$4(RoomAllocationServiceAcceptOfferTest.java:141)
+    	at org.assertj.core.api.ThrowableAssert.catchThrowable(ThrowableAssert.java:63)
+    	...(94 remaining lines not displayed - this can be changed with Assertions.setMaxStackTraceElementsDisplayed)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceAcceptOfferTest.shouldThrowExceptionWhenDateIsTooFarInFuture(RoomAllocationServiceAcceptOfferTest.java:142)
+
+RoomAllocationServiceAcceptOfferTest > Should throw exception when date is in the past FAILED
+    java.lang.AssertionError: 
+    Expecting actual throwable to be an instance of:
+      java.lang.IllegalArgumentException
+    but was:
+      java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.acceptOffer(java.lang.Long, com.beezhub.student_accommodation.model.dto.AcceptOfferRequest)" because "this.allocationLifecycleService" is null
+    	at com.beezhub.student_accommodation.service.RoomAllocationService.acceptOffer(RoomAllocationService.java:122)
+    	at com.beezhub.student_accommodation.service.RoomAllocationServiceAcceptOfferTest.lambda$shouldThrowExceptionWhenDateIsInThePast$3(RoomAllocationServiceAcceptOfferTest.java:129)
+    	at org.assertj.core.api.ThrowableAssert.catchThrowable(ThrowableAssert.java:63)
+    	...(94 remaining lines not displayed - this can be changed with Assertions.setMaxStackTraceElementsDisplayed)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceAcceptOfferTest.shouldThrowExceptionWhenDateIsInThePast(RoomAllocationServiceAcceptOfferTest.java:130)
+
+RoomAllocationServiceAcceptOfferTest > Should throw exception if allocation is not OFFERED FAILED
+    java.lang.AssertionError: 
+    Expecting actual throwable to be an instance of:
+      java.lang.IllegalStateException
+    but was:
+      java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.acceptOffer(java.lang.Long, com.beezhub.student_accommodation.model.dto.AcceptOfferRequest)" because "this.allocationLifecycleService" is null
+    	at com.beezhub.student_accommodation.service.RoomAllocationService.acceptOffer(RoomAllocationService.java:122)
+    	at com.beezhub.student_accommodation.service.RoomAllocationServiceAcceptOfferTest.lambda$shouldThrowExceptionIfAllocationIsNotOffered$5(RoomAllocationServiceAcceptOfferTest.java:152)
+    	at org.assertj.core.api.ThrowableAssert.catchThrowable(ThrowableAssert.java:63)
+    	...(94 remaining lines not displayed - this can be changed with Assertions.setMaxStackTraceElementsDisplayed)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceAcceptOfferTest.shouldThrowExceptionIfAllocationIsNotOffered(RoomAllocationServiceAcceptOfferTest.java:153)
+
+RoomAllocationServiceAcceptOfferTest > Should update waiting list entry to ALLOCATED when accepting offer FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.acceptOffer(java.lang.Long, com.beezhub.student_accommodation.model.dto.AcceptOfferRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.acceptOffer(RoomAllocationService.java:122)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceAcceptOfferTest.shouldUpdateWaitingListEntryToAllocatedWhenAcceptingOffer(RoomAllocationServiceAcceptOfferTest.java:102)
+
+RoomAllocationServiceBatchTest > batchAllocate_shouldAllocateMultipleStudents_whenRoomsAvailable() FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationBatchService.batchAllocateFromWaitingList(int)" because "this.allocationBatchService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.batchAllocateFromWaitingList(RoomAllocationService.java:177)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceBatchTest.batchAllocate_shouldAllocateMultipleStudents_whenRoomsAvailable(RoomAllocationServiceBatchTest.java:268)
+
+RoomAllocationServiceBatchTest > batchAllocate_shouldRespectMaxAllocationsLimit() FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationBatchService.batchAllocateFromWaitingList(int)" because "this.allocationBatchService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.batchAllocateFromWaitingList(RoomAllocationService.java:177)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceBatchTest.batchAllocate_shouldRespectMaxAllocationsLimit(RoomAllocationServiceBatchTest.java:327)
+
+RoomAllocationServiceBatchTest > batchAllocate_shouldReturnEmptyResult_whenNoAvailableRooms() FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationBatchService.batchAllocateFromWaitingList(int)" because "this.allocationBatchService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.batchAllocateFromWaitingList(RoomAllocationService.java:177)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceBatchTest.batchAllocate_shouldReturnEmptyResult_whenNoAvailableRooms(RoomAllocationServiceBatchTest.java:456)
+
+RoomAllocationServiceBatchTest > batchAllocate_shouldProcessInFIFOOrder() FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationBatchService.batchAllocateFromWaitingList(int)" because "this.allocationBatchService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.batchAllocateFromWaitingList(RoomAllocationService.java:177)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceBatchTest.batchAllocate_shouldProcessInFIFOOrder(RoomAllocationServiceBatchTest.java:393)
+
+RoomAllocationServiceBatchTest > batchAllocate_shouldReturnEmptyResult_whenFeatureFlagDisabled() FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationBatchService.batchAllocateFromWaitingList(int)" because "this.allocationBatchService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.batchAllocateFromWaitingList(RoomAllocationService.java:177)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceBatchTest.batchAllocate_shouldReturnEmptyResult_whenFeatureFlagDisabled(RoomAllocationServiceBatchTest.java:470)
+
+RoomAllocationServiceBatchTest > batchAllocate_shouldHandlePartialFailures() FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationBatchService.batchAllocateFromWaitingList(int)" because "this.allocationBatchService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.batchAllocateFromWaitingList(RoomAllocationService.java:177)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceBatchTest.batchAllocate_shouldHandlePartialFailures(RoomAllocationServiceBatchTest.java:365)
+
+RoomAllocationServiceBatchTest > batchAllocate_shouldRespectRoomCapacity() FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationBatchService.batchAllocateFromWaitingList(int)" because "this.allocationBatchService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.batchAllocateFromWaitingList(RoomAllocationService.java:177)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceBatchTest.batchAllocate_shouldRespectRoomCapacity(RoomAllocationServiceBatchTest.java:300)
+
+RoomAllocationServiceBatchTest > batchAllocate_shouldSkipStudentsWithActiveAllocations() FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationBatchService.batchAllocateFromWaitingList(int)" because "this.allocationBatchService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.batchAllocateFromWaitingList(RoomAllocationService.java:177)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceBatchTest.batchAllocate_shouldSkipStudentsWithActiveAllocations(RoomAllocationServiceBatchTest.java:420)
+
+RoomAllocationServiceBatchTest > batchAllocate_shouldReturnEmptyResult_whenNoWaitingStudents() FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationBatchService.batchAllocateFromWaitingList(int)" because "this.allocationBatchService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.batchAllocateFromWaitingList(RoomAllocationService.java:177)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceBatchTest.batchAllocate_shouldReturnEmptyResult_whenNoWaitingStudents(RoomAllocationServiceBatchTest.java:433)
+
+Room Allocation Service - Notification Integration Tests > Should include building information in notification FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.createRoomAllocation(RoomAllocationService.java:117)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.shouldIncludeBuildingInformationInNotification(RoomAllocationServiceNotificationTest.java:271)
+
+Room Allocation Service - Notification Integration Tests > Should send notification when room is allocated FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.createRoomAllocation(RoomAllocationService.java:117)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.shouldSendNotificationWhenRoomAllocated(RoomAllocationServiceNotificationTest.java:130)
+
+Room Allocation Service - Notification Integration Tests > Should send notification when allocating by application FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.createRoomAllocation(RoomAllocationService.java:117)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.shouldSendNotificationWhenAllocatingByApplication(RoomAllocationServiceNotificationTest.java:330)
+
+Room Allocation Service - Notification Integration Tests > Should handle room occupancy update along with notification FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.createRoomAllocation(RoomAllocationService.java:117)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.shouldHandleRoomOccupancyUpdateAlongWithNotification(RoomAllocationServiceNotificationTest.java:353)
+
+Room Allocation Service - Notification Integration Tests > Should include room allocation details in notification FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.createRoomAllocation(RoomAllocationService.java:117)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.shouldIncludeRoomAllocationDetailsInNotification(RoomAllocationServiceNotificationTest.java:191)
+
+Room Allocation Service - Notification Integration Tests > Should send notification with room capacity information FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.createRoomAllocation(RoomAllocationService.java:117)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.shouldSendNotificationWithRoomCapacityInformation(RoomAllocationServiceNotificationTest.java:298)
+
+Room Allocation Service - Notification Integration Tests > Should execute notification asynchronously without blocking FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.createRoomAllocation(RoomAllocationService.java:117)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.shouldExecuteNotificationAsynchronouslyWithoutBlocking(RoomAllocationServiceNotificationTest.java:244)
+
+Room Allocation Service - Notification Integration Tests > Should maintain transaction integrity when notification fails FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.createRoomAllocation(RoomAllocationService.java:117)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.shouldMaintainTransactionIntegrityWhenNotificationFails(RoomAllocationServiceNotificationTest.java:377)
+
+Room Allocation Service - Notification Integration Tests > Should not break flow when notification fails FAILED
+    org.opentest4j.AssertionFailedError: Unexpected exception thrown: java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:152)
+        at app//org.junit.jupiter.api.AssertDoesNotThrow.createAssertionFailedError(AssertDoesNotThrow.java:84)
+        at app//org.junit.jupiter.api.AssertDoesNotThrow.assertDoesNotThrow(AssertDoesNotThrow.java:53)
+        at app//org.junit.jupiter.api.AssertDoesNotThrow.assertDoesNotThrow(AssertDoesNotThrow.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertDoesNotThrow(Assertions.java:3199)
+        at app//com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.shouldNotBreakFlowWhenNotificationFails(RoomAllocationServiceNotificationTest.java:167)
+
+        Caused by:
+        java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+            at com.beezhub.student_accommodation.service.RoomAllocationService.createRoomAllocation(RoomAllocationService.java:117)
+            at com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.lambda$shouldNotBreakFlowWhenNotificationFails$0(RoomAllocationServiceNotificationTest.java:168)
+            at org.junit.jupiter.api.AssertDoesNotThrow.assertDoesNotThrow(AssertDoesNotThrow.java:49)
+            ... 3 more
+
+Room Allocation Service - Notification Integration Tests > Should send notification with student information FAILED
+    java.lang.NullPointerException: Cannot invoke "com.beezhub.student_accommodation.service.allocation.AllocationLifecycleService.createRoomAllocation(com.beezhub.student_accommodation.model.dto.RoomAllocationRequest)" because "this.allocationLifecycleService" is null
+        at com.beezhub.student_accommodation.service.RoomAllocationService.createRoomAllocation(RoomAllocationService.java:117)
+        at com.beezhub.student_accommodation.service.RoomAllocationServiceNotificationTest.shouldSendNotificationWithStudentInformation(RoomAllocationServiceNotificationTest.java:216)
+
+AllocationExpiryServiceTest > expireOffers_singleExpiredOffer_expiresAndCancelsApplication() FAILED
+    java.lang.IllegalArgumentException: Could not find field 'offerExpiryDays' of type [null] on target object [com.beezhub.student_accommodation.service.allocation.AllocationExpiryService@17c211ec] or target class [class com.beezhub.student_accommodation.service.allocation.AllocationExpiryService]
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:192)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:108)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:92)
+        at com.beezhub.student_accommodation.service.allocation.AllocationExpiryServiceTest.setUp(AllocationExpiryServiceTest.java:76)
+
+AllocationExpiryServiceTest > expireOffers_multipleAllocations_oneFailsOthersContinue() FAILED
+    java.lang.IllegalArgumentException: Could not find field 'offerExpiryDays' of type [null] on target object [com.beezhub.student_accommodation.service.allocation.AllocationExpiryService@4022f67b] or target class [class com.beezhub.student_accommodation.service.allocation.AllocationExpiryService]
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:192)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:108)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:92)
+        at com.beezhub.student_accommodation.service.allocation.AllocationExpiryServiceTest.setUp(AllocationExpiryServiceTest.java:76)
+
+AllocationExpiryServiceTest > expireCheckIns_noExpiredCheckIns_doesNothing() FAILED
+    java.lang.IllegalArgumentException: Could not find field 'offerExpiryDays' of type [null] on target object [com.beezhub.student_accommodation.service.allocation.AllocationExpiryService@6b6edaa5] or target class [class com.beezhub.student_accommodation.service.allocation.AllocationExpiryService]
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:192)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:108)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:92)
+        at com.beezhub.student_accommodation.service.allocation.AllocationExpiryServiceTest.setUp(AllocationExpiryServiceTest.java:76)
+
+AllocationExpiryServiceTest > expireOffers_alreadyAccepted_skips() FAILED
+    java.lang.IllegalArgumentException: Could not find field 'offerExpiryDays' of type [null] on target object [com.beezhub.student_accommodation.service.allocation.AllocationExpiryService@65965457] or target class [class com.beezhub.student_accommodation.service.allocation.AllocationExpiryService]
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:192)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:108)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:92)
+        at com.beezhub.student_accommodation.service.allocation.AllocationExpiryServiceTest.setUp(AllocationExpiryServiceTest.java:76)
+
+AllocationExpiryServiceTest > expireCheckIns_singleExpiredCheckIn_expiresAndCancelsApplication() FAILED
+    java.lang.IllegalArgumentException: Could not find field 'offerExpiryDays' of type [null] on target object [com.beezhub.student_accommodation.service.allocation.AllocationExpiryService@64aee04c] or target class [class com.beezhub.student_accommodation.service.allocation.AllocationExpiryService]
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:192)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:108)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:92)
+        at com.beezhub.student_accommodation.service.allocation.AllocationExpiryServiceTest.setUp(AllocationExpiryServiceTest.java:76)
+
+AllocationExpiryServiceTest > expireCheckIns_multipleAllocations_oneFailsOthersContinue() FAILED
+    java.lang.IllegalArgumentException: Could not find field 'offerExpiryDays' of type [null] on target object [com.beezhub.student_accommodation.service.allocation.AllocationExpiryService@772e7e4a] or target class [class com.beezhub.student_accommodation.service.allocation.AllocationExpiryService]
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:192)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:108)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:92)
+        at com.beezhub.student_accommodation.service.allocation.AllocationExpiryServiceTest.setUp(AllocationExpiryServiceTest.java:76)
+
+AllocationExpiryServiceTest > expireOffers_noExpiredOffers_doesNothing() FAILED
+    java.lang.IllegalArgumentException: Could not find field 'offerExpiryDays' of type [null] on target object [com.beezhub.student_accommodation.service.allocation.AllocationExpiryService@3a2d2c9f] or target class [class com.beezhub.student_accommodation.service.allocation.AllocationExpiryService]
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:192)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:108)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:92)
+        at com.beezhub.student_accommodation.service.allocation.AllocationExpiryServiceTest.setUp(AllocationExpiryServiceTest.java:76)
+
+AllocationExpiryServiceTest > expireCheckIns_alreadyCheckedIn_skips() FAILED
+    java.lang.IllegalArgumentException: Could not find field 'offerExpiryDays' of type [null] on target object [com.beezhub.student_accommodation.service.allocation.AllocationExpiryService@633c3739] or target class [class com.beezhub.student_accommodation.service.allocation.AllocationExpiryService]
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:192)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:108)
+        at org.springframework.test.util.ReflectionTestUtils.setField(ReflectionTestUtils.java:92)
+        at com.beezhub.student_accommodation.service.allocation.AllocationExpiryServiceTest.setUp(AllocationExpiryServiceTest.java:76)
+
+StudentAccommodationApplicationTests > contextLoads() PASSED
+
+FF4jConfigTest > shouldBeAbleToEnableAutoAllocation() PASSED
+
+FF4jConfigTest > shouldBeAbleToDisableAutoAllocation() PASSED
+
+FF4jConfigTest > shouldVerifyFeatureConstantValue() PASSED
+
+FF4jConfigTest > shouldHaveAutoAllocationFeature() PASSED
+
+FF4jConfigTest > shouldToggleFeatureCorrectly() PASSED
+
+SecurityConfigTest > testStudentCannotAccessLandlordEndpoints() PASSED
+
+SecurityConfigTest > testRoleHierarchyConfiguration() PASSED
+
+SecurityConfigTest > testStudentRoleHierarchy() PASSED
+
+SecurityConfigTest > testAdminCanAccessLandlordEndpoints() PASSED
+
+SecurityConfigTest > testLandlordCanAccessStudentEndpoints() PASSED
+
+SecurityConfigTest > testLandlordRoleHierarchy() PASSED
+
+SecurityConfigTest > testStudentCannotAccessAdminEndpoints() PASSED
+
+SecurityConfigTest > testAdminCanAccessStudentEndpoints() PASSED
+
+AuthControllerTest > POST /api/auth/login - Should authenticate user and return token PASSED
+
+AuthControllerTest > POST /api/auth/refresh-token - Should return 401 for unauthenticated user PASSED
+
+AuthControllerTest > POST /api/auth/refresh-token - Should return new token PASSED
+
+AuthControllerTest > POST /api/auth/verify-reset-token - Should verify reset token PASSED
+
+AuthControllerTest > GET /api/auth/me - Should return current user profile PASSED
+
+AuthControllerTest > POST /api/auth/reset-password - Should reset password successfully PASSED
+
+AuthControllerTest > POST /api/auth/reset-password - Should return 400 for invalid request PASSED
+
+AuthControllerTest > POST /api/auth/signup - Should return 400 for invalid request PASSED
+
+AuthControllerTest > POST /api/auth/forgot-password - Should send password reset email PASSED
+
+AuthControllerTest > POST /api/auth/change-password - Should change password successfully PASSED
+
+AuthControllerTest > POST /api/auth/forgot-password - Should return 400 for invalid email PASSED
+
+AuthControllerTest > POST /api/auth/resend-verification - Should resend verification email PASSED
+
+AuthControllerTest > POST /api/auth/login - Should return 400 for invalid request PASSED
+
+AuthControllerTest > POST /api/auth/logout - Should return 401 for unauthenticated user PASSED
+
+AuthControllerTest > POST /api/auth/verify-email - Should verify email successfully PASSED
+
+AuthControllerTest > POST /api/auth/change-password - Should return 401 for unauthenticated user PASSED
+
+AuthControllerTest > POST /api/auth/logout - Should logout successfully PASSED
+
+AuthControllerTest > POST /api/auth/verify-reset-token - Should return 400 for empty token PASSED
+
+AuthControllerTest > GET /api/auth/me - Should return 401 for unauthenticated user PASSED
+
+AuthControllerTest > POST /api/auth/signup - Should register user and return token PASSED
+
+AuthControllerTest > POST /api/auth/verify-email - Should return 400 for empty token SKIPPED
+
+AuthControllerTest > POST /api/auth/resend-verification - Should return 400 for invalid email PASSED
+
+RestResponseExceptionHandlerTest > handleEmailAlreadyRegistered_ShouldReturnConflict() PASSED
+
+RestResponseExceptionHandlerTest > handleBadCredentials_ShouldReturnUnauthorized() PASSED
+
+RestResponseExceptionHandlerTest > handleUserNotFound_ShouldReturnNotFound() PASSED
+
+AppUserMapperTest > toEntityAndToUserData() PASSED
+
+AllocationStatus State Machine Tests > Self-transitions are allowed for all statuses PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > OFFERED -> ACCEPTED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > OFFERED -> DECLINED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > OFFERED -> EXPIRED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > OFFERED -> CANCELLED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > ACCEPTED -> ACTIVE should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > ACCEPTED -> CHECK_IN_EXPIRED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > ACCEPTED -> CANCELLED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > ACTIVE -> COMPLETED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > ACTIVE -> TERMINATED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > ACTIVE -> CANCELLED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > OFFERED -> OFFERED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > ACTIVE -> ACTIVE should be VALID PASSED
+
+AllocationStatus State Machine Tests > Valid transitions return true > COMPLETED -> COMPLETED should be VALID PASSED
+
+AllocationStatus State Machine Tests > Terminal states cannot transition to any other status PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > OFFERED -> OFFERED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > OFFERED -> ACCEPTED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > OFFERED -> DECLINED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > OFFERED -> EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > OFFERED -> CHECK_IN_EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > OFFERED -> ACTIVE PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > OFFERED -> COMPLETED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > OFFERED -> TERMINATED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > OFFERED -> CANCELLED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACCEPTED -> OFFERED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACCEPTED -> ACCEPTED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACCEPTED -> DECLINED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACCEPTED -> EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACCEPTED -> CHECK_IN_EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACCEPTED -> ACTIVE PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACCEPTED -> COMPLETED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACCEPTED -> TERMINATED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACCEPTED -> CANCELLED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > DECLINED -> OFFERED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > DECLINED -> ACCEPTED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > DECLINED -> DECLINED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > DECLINED -> EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > DECLINED -> CHECK_IN_EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > DECLINED -> ACTIVE PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > DECLINED -> COMPLETED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > DECLINED -> TERMINATED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > DECLINED -> CANCELLED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > EXPIRED -> OFFERED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > EXPIRED -> ACCEPTED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > EXPIRED -> DECLINED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > EXPIRED -> EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > EXPIRED -> CHECK_IN_EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > EXPIRED -> ACTIVE PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > EXPIRED -> COMPLETED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > EXPIRED -> TERMINATED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > EXPIRED -> CANCELLED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CHECK_IN_EXPIRED -> OFFERED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CHECK_IN_EXPIRED -> ACCEPTED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CHECK_IN_EXPIRED -> DECLINED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CHECK_IN_EXPIRED -> EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CHECK_IN_EXPIRED -> CHECK_IN_EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CHECK_IN_EXPIRED -> ACTIVE PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CHECK_IN_EXPIRED -> COMPLETED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CHECK_IN_EXPIRED -> TERMINATED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CHECK_IN_EXPIRED -> CANCELLED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACTIVE -> OFFERED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACTIVE -> ACCEPTED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACTIVE -> DECLINED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACTIVE -> EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACTIVE -> CHECK_IN_EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACTIVE -> ACTIVE PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACTIVE -> COMPLETED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACTIVE -> TERMINATED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > ACTIVE -> CANCELLED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > COMPLETED -> OFFERED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > COMPLETED -> ACCEPTED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > COMPLETED -> DECLINED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > COMPLETED -> EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > COMPLETED -> CHECK_IN_EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > COMPLETED -> ACTIVE PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > COMPLETED -> COMPLETED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > COMPLETED -> TERMINATED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > COMPLETED -> CANCELLED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > TERMINATED -> OFFERED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > TERMINATED -> ACCEPTED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > TERMINATED -> DECLINED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > TERMINATED -> EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > TERMINATED -> CHECK_IN_EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > TERMINATED -> ACTIVE PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > TERMINATED -> COMPLETED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > TERMINATED -> TERMINATED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > TERMINATED -> CANCELLED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CANCELLED -> OFFERED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CANCELLED -> ACCEPTED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CANCELLED -> DECLINED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CANCELLED -> EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CANCELLED -> CHECK_IN_EXPIRED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CANCELLED -> ACTIVE PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CANCELLED -> COMPLETED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CANCELLED -> TERMINATED PASSED
+
+AllocationStatus State Machine Tests > Complete transition matrix validation > CANCELLED -> CANCELLED PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > DECLINED -> OFFERED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > DECLINED -> ACCEPTED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > EXPIRED -> OFFERED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > EXPIRED -> ACCEPTED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > CHECK_IN_EXPIRED -> ACTIVE should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > COMPLETED -> OFFERED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > COMPLETED -> ACTIVE should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > TERMINATED -> ACTIVE should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > CANCELLED -> OFFERED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > CANCELLED -> ACCEPTED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > ACCEPTED -> OFFERED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > ACTIVE -> OFFERED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > ACTIVE -> ACCEPTED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > OFFERED -> ACTIVE should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > OFFERED -> COMPLETED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > OFFERED -> TERMINATED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > OFFERED -> CHECK_IN_EXPIRED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > ACCEPTED -> COMPLETED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > ACCEPTED -> TERMINATED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > ACCEPTED -> OFFERED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > ACCEPTED -> DECLINED should be INVALID PASSED
+
+AllocationStatus State Machine Tests > Invalid transitions return false > ACCEPTED -> EXPIRED should be INVALID PASSED
+
+JwtAuthenticationFilterTest > doFilterInternal_blacklistedToken_resolvesException() PASSED
+
+JwtAuthenticationFilterTest > doFilterInternal_populatesAuthoritiesFromJwt() PASSED
+
+JwtUtilTest > generateAndValidateToken() PASSED
+
+JwtUtilTest > generateToken_containsRolesClaim_and_extractRoles() PASSED
+
+JwtUtilTest > tokenExpires() PASSED
+
+AcademicYearServiceTest > deleteAcademicYear_shouldThrowException_whenApplicationsLinked() PASSED
+
+AcademicYearServiceTest > isApplicationWindowOpen_shouldReturnFalse_whenNullDates() PASSED
+
+AcademicYearServiceTest > setCurrentAcademicYear_shouldSetAsCurrentAndClearOthers() PASSED
+
+AcademicYearServiceTest > getCurrentAcademicYear_shouldThrowException_whenNoCurrent() PASSED
+
+AcademicYearServiceTest > getAcademicYearById_shouldThrowException_whenNotFound() PASSED
+
+AcademicYearServiceTest > getAcademicYearById_shouldReturnAcademicYear() PASSED
+
+AcademicYearServiceTest > deleteAcademicYear_shouldDelete_whenNoApplicationsLinked() PASSED
+
+AcademicYearServiceTest > isApplicationWindowOpen_shouldReturnFalse_whenAfterWindow() PASSED
+
+AcademicYearServiceTest > isApplicationWindowOpen_shouldReturnTrue_whenWithinWindow() PASSED
+
+AcademicYearServiceTest > updateAcademicYear_shouldUpdateSuccessfully() PASSED
+
+AcademicYearServiceTest > createAcademicYear_shouldThrowException_whenNameExists() PASSED
+
+AcademicYearServiceTest > getCurrentAcademicYear_shouldReturnCurrentYear() PASSED
+
+AcademicYearServiceTest > createAcademicYear_shouldCreateSuccessfully() PASSED
+
+AcademicYearServiceTest > getAllAcademicYears_shouldReturnList() PASSED
+
+AcademicYearServiceTest > isApplicationWindowOpen_shouldReturnFalse_whenBeforeWindow() PASSED
+
+AllocationScoringServiceTest > getLatestRuleForBuilding_multipleRules_returnsHighestPriority() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_highDesirability_scores100Points() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_accessibilityRequired_passesWhenRoomAccessible() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_zeroWeights_returnsZero() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_lowDesirability_scores10Points() PASSED
+
+AllocationScoringServiceTest > scoreAvailableRooms_emptyRoomList_returnsEmptyList() PASSED
+
+AllocationScoringServiceTest > getEligibleRoomsForStudentByInstitution_filtersBasedOnInstitution() PASSED
+
+AllocationScoringServiceTest > scoreAvailableRooms_shouldReturnScoredRooms() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_yearOfStudyMismatch_fails() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_shouldPass_whenStudentHasNotDeclinedRoom() PASSED
+
+AllocationScoringServiceTest > getEligibleRoomsForStudent_filtersBasedOnHardConstraints() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_preferredBuildingMatch_scores100Points() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_noAccessibilityRequirementOrCompliance_scores50Points() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_noDesirabilityRating_usesDefault50Points() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_institutionMatch_passes() PASSED
+
+AllocationScoringServiceTest > generateWarnings_suboptimalDesirability_addsSuboptimalWarning() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_noPreferredBuilding_scores50Points() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_accessibilityRequiredAndMatched_scores100Points() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_shouldFail_whenStudentHasDeclinedRoom() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_noMatch_returnsMinimumScore() PASSED
+
+AllocationScoringServiceTest > generateWarnings_accessibilityMismatch_addsAccessibilityWarning() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_customWeightsFromRules_appliedCorrectly() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_institutionMismatch_fails() PASSED
+
+AllocationScoringServiceTest > getLatestRuleForBuilding_buildingSpecificRuleExists_returnsBuildingRule() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_accessibilityNotRequiredButAvailable_scores25Points() PASSED
+
+AllocationScoringServiceTest > getLatestRuleForBuilding_noBuildingRule_returnsGlobalRule() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_allowOverride_alwaysReturnsTrue() PASSED
+
+AllocationScoringServiceTest > getEligibleRoomsForStudent_filtersByBuilding_whenSpecified() PASSED
+
+AllocationScoringServiceTest > scoreAvailableRooms_tiedScores_earlierApplicationWins() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_accessibilityRequired_failsWhenRoomNotAccessible() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_perfectMatch_returnsHighScore() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_shouldFail_whenGenderMismatch() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_accessibilityRequiredButNotMatched_scores0Points() PASSED
+
+AllocationScoringServiceTest > getLatestRuleForBuilding_noRules_returnsDefaultRule() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_nullApplication_handledGracefully() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_shouldPass_whenGenderMatch() PASSED
+
+AllocationScoringServiceTest > scoreAvailableRooms_shouldExcludeDeclinedRooms() PASSED
+
+AllocationScoringServiceTest > scoreAvailableRooms_allRoomsFull_returnsEmptyList() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_nonPreferredBuilding_scores50Points() PASSED
+
+AllocationScoringServiceTest > scoreSingleRoom_nullPreferences_handledGracefully() PASSED
+
+AllocationScoringServiceTest > generateWarnings_buildingMismatch_addsBuildingMismatchWarning() PASSED
+
+AllocationScoringServiceTest > validateHardConstraints_yearOfStudyMatch_passes() PASSED
+
+ApplicationServiceTest > submitApplication_shouldThrowException_whenStudentNotFound() PASSED
+
+ApplicationServiceTest > getApplicationById_shouldReturnApplication() PASSED
+
+ApplicationServiceTest > cancelApplication_shouldDeleteApplication() PASSED
+
+ApplicationServiceTest > submitApplication_shouldCreateApplication() PASSED
+
+ApplicationServiceTest > submitApplication_shouldThrowException_whenDuplicateApplication() PASSED
+
+ApplicationServiceTest > cancelApplication_shouldThrowException_whenNotPending() PASSED
+
+AuthServiceTest > validateLogin_ShouldReturnLoginResponse() PASSED
+
+AuthServiceTest > validateLogin_SuccessfulLogin_ShouldResetAttempts() PASSED
+
+AuthServiceTest > validateLogin_AccountBlockedInRedis_ShouldThrowException() PASSED
+
+AuthServiceTest > changePassword_existingToken_blacklisted() PASSED
+
+AuthServiceTest > validateLogin_5thFailedAttempt_locksAccount() PASSED
+
+AuthServiceTest > validateLogin_InvalidCredentials_ShouldThrowException() PASSED
+
+AuthServiceTest > validateLogin_AccountLockedInDB_ShouldThrowException() PASSED
+
+AuthServiceTest > logout_validToken_blacklisted() PASSED
+
+AuthServiceTest > unlockAccount_lockedUser_unlocked() PASSED
+
+AuthServiceTest > validateLogin_lockExpired_allowsLogin() PASSED
+
+AuthServiceTest > validateLogin_BadCredentials_ShouldIncrementAttempts() PASSED
+
+AuthServiceTest > validateLogin_4thFailedAttempt_stillAllowed() PASSED
+
+AuthServiceTest > validateLogin_UserNotFound_ShouldThrowException() PASSED
+
+AuthServiceTest > signup_ShouldCreateUserAndReturnToken() PASSED
+
+AuthServiceTest > signup_WithExistingEmail_ShouldThrowException() PASSED
+
+BuildingServiceTest > updateBuilding_shouldUpdateBuilding() PASSED
+
+BuildingServiceTest > searchBuildings_shouldReturnPaginatedResults() PASSED
+
+BuildingServiceTest > getBuildingById_shouldReturnBuilding() PASSED
+
+BuildingServiceTest > getBuildingById_shouldThrowException_whenNotFound() PASSED
+
+BuildingServiceTest > createBuilding_shouldCreateBuilding() PASSED
+
+BuildingServiceTest > deleteBuilding_shouldDeleteBuilding() PASSED
+
+Document Service - Notification Integration Tests > Should include document details in notification PASSED
+
+Document Service - Notification Integration Tests > Should send notification when document is rejected with comment PASSED
+
+Document Service - Notification Integration Tests > Should handle multiple status updates correctly PASSED
+
+Document Service - Notification Integration Tests > Should NOT send notification when status doesn't change PASSED
+
+Document Service - Notification Integration Tests > Should execute notification asynchronously without blocking PASSED
+
+Document Service - Notification Integration Tests > Should NOT send notification when status remains PENDING PASSED
+
+Document Service - Notification Integration Tests > Should support overloaded method without comment parameter PASSED
+
+Document Service - Notification Integration Tests > Should not break flow when notification fails PASSED
+
+Document Service - Notification Integration Tests > Should send notification when document is verified (APPROVED) PASSED
+
+Document Service - Notification Integration Tests > Should send notification with student information PASSED
+
+DocumentServiceSearchTest > getMyDocuments_WithNoFilters_ReturnsUserDocuments() PASSED
+
+DocumentServiceSearchTest > getMyDocuments_WithDateRangeFilter_ReturnsMatchingDocuments() PASSED
+
+DocumentServiceSearchTest > searchDocuments_WithDocumentTypeFilter_ReturnsMatchingDocuments() PASSED
+
+DocumentServiceSearchTest > getMyDocuments_WithDocumentNameFilter_ReturnsMatchingDocuments() PASSED
+
+DocumentServiceSearchTest > searchDocuments_WithEmptyResult_ReturnsEmptyPage() PASSED
+
+DocumentServiceSearchTest > getMyDocuments_WithMultipleFilters_ReturnsMatchingDocuments() PASSED
+
+DocumentServiceSearchTest > searchDocuments_AsRegularUser_RestrictsToOwnDocuments() PASSED
+
+DocumentServiceSearchTest > searchDocuments_WithDateRangeFilter_ReturnsMatchingDocuments() PASSED
+
+DocumentServiceSearchTest > searchDocuments_WithStudentIdFilter_ReturnsStudentDocuments() PASSED
+
+DocumentServiceSearchTest > searchDocuments_WithDocumentNameFilter_ReturnsMatchingDocuments() PASSED
+
+DocumentServiceSearchTest > searchDocuments_WithNoFilters_ReturnsAllDocuments() PASSED
+
+DocumentServiceSearchTest > getMyDocuments_WithStatusFilter_ReturnsMatchingDocuments() PASSED
+
+DocumentServiceSearchTest > searchDocuments_WithMultipleFilters_ReturnsMatchingDocuments() PASSED
+
+DocumentServiceSearchTest > getMyDocuments_WithDocumentTypeFilter_ReturnsMatchingDocuments() PASSED
+
+DocumentServiceSearchTest > searchDocuments_WithStatusFilter_ReturnsMatchingDocuments() PASSED
+
+DocumentServiceSearchTest > searchDocuments_WithInvalidUser_ThrowsException() PASSED
+
+DocumentServiceTest > updateDocumentStatus_valid_and_invalid() PASSED
+
+DocumentServiceTest > getDocumentInfo_unauthorized_throws() PASSED
+
+DocumentServiceTest > deleteDocument_success_and_failure() PASSED
+
+DocumentServiceTest > uploadSingleDocument_success() PASSED
+
+DocumentServiceTest > getAllDocumentsByUserId_authorization() PASSED
+
+DocumentServiceTest > getDocumentInfo_success_and_presignedUrl() PASSED
+
+DocumentTypeServiceTest > searchDocumentTypes_WithMultipleFilters_ShouldReturnFilteredResults() PASSED
+
+DocumentTypeServiceTest > searchDocumentTypes_WithIsRequiredFalse_ShouldReturnOptionalDocuments() PASSED
+
+DocumentTypeServiceTest > getAllDocumentTypes_WithPageable_ShouldReturnPageResponse() PASSED
+
+DocumentTypeServiceTest > searchDocumentTypes_WithIsRequiredTrue_ShouldReturnRequiredDocuments() PASSED
+
+DocumentTypeServiceTest > getRequiredDocumentTypes_ShouldReturnOnlyRequired() PASSED
+
+DocumentTypeServiceTest > createDocumentType_ShouldSaveAndReturn() PASSED
+
+DocumentTypeServiceTest > searchDocumentTypes_WithNameFilter_ShouldReturnFilteredResults() PASSED
+
+DocumentTypeServiceTest > deleteDocumentType_ShouldDelete() PASSED
+
+DocumentTypeServiceTest > getDocumentTypeById_NotFound_ShouldThrowException() PASSED
+
+DocumentTypeServiceTest > getAllDocumentTypes_ShouldReturnList() PASSED
+
+DocumentTypeServiceTest > getDocumentTypeById_ShouldReturnDocumentType() PASSED
+
+DocumentTypeServiceTest > updateDocumentType_ShouldUpdateAndReturn() PASSED
+
+EmailServiceTest > sendTemplateEmail_shouldProcessTemplateAndSendEmail() PASSED
+
+EmailServiceTest > sendHtmlEmail_shouldSendEmail() PASSED
+
+EmailServiceTest > sendSimpleEmail_shouldSendEmail() PASSED
+
+EmailServiceTest > sendTemplateEmail_shouldThrowException_whenTemplateError() PASSED
+
+InstitutionServiceTest > updateInstitution_ShouldUpdateAndReturnInstitution() PASSED
+
+InstitutionServiceTest > getInstitutionById_NotFound_ShouldThrowException() PASSED
+
+InstitutionServiceTest > getInstitutionById_ShouldReturnInstitution() PASSED
+
+InstitutionServiceTest > searchInstitutions_WithNameFilter_ShouldReturnFilteredResults() PASSED
+
+InstitutionServiceTest > searchInstitutions_NoFilters_ShouldReturnAllResults() PASSED
+
+InstitutionServiceTest > searchInstitutions_WithMultipleFilters_ShouldReturnFilteredResults() PASSED
+
+InstitutionServiceTest > getAllInstitutions_WithPageable_ShouldReturnPageResponse() PASSED
+
+InstitutionServiceTest > createInstitution_ShouldSaveAndReturnInstitution() PASSED
+
+InstitutionServiceTest > getAllInstitutions_ShouldReturnList() PASSED
+
+InstitutionServiceTest > deleteInstitution_ShouldDeleteInstitution() PASSED
+
+InstitutionServiceTest > searchInstitutions_WithAddressFilter_ShouldReturnFilteredResults() PASSED
+
+InstitutionServiceTest > searchInstitutions_WithContactEmailFilter_ShouldReturnFilteredResults() PASSED
+
+LoginAttemptServiceTest > loginSucceeded_clearsAttempts() PASSED
+
+LoginAttemptServiceTest > loginFailed_incrementsAttempts() PASSED
+
+LoginAttemptServiceTest > isBlocked_attemptsBelowThreshold_returnsFalse() PASSED
+
+LoginAttemptServiceTest > isBlocked_attemptsAtThreshold_returnsTrue() PASSED
+
+LoginAttemptServiceTest > isBlocked_keyExpired_returnsFalse() PASSED
+
+LoginAttemptServiceTest > isBlocked_redisUnavailable_returnsFalse() PASSED
+
+RoomAllocationServiceTest > confirmBatchAllocations_shouldDelegateToBatchService() PASSED
+
+RoomAllocationServiceTest > findAvailableRoom_shouldDelegateToQueryService() PASSED
+
+RoomAllocationServiceTest > deleteRoomAllocation_shouldDelegateToLifecycleService() PASSED
+
+RoomAllocationServiceTest > rejectAllocation_shouldDelegateToBatchService() PASSED
+
+RoomAllocationServiceTest > searchRoomAllocations_shouldDelegateToQueryService() PASSED
+
+RoomAllocationServiceTest > enqueueWaitingList_shouldDelegateToLifecycleService() PASSED
+
+RoomAllocationServiceTest > proposeAllocation_shouldDelegateToBatchService() PASSED
+
+RoomAllocationServiceTest > createRoomAllocation_shouldDelegateToLifecycleService() PASSED
+
+RoomAllocationServiceTest > confirmAllocation_shouldDelegateToBatchService() PASSED
+
+RoomAllocationServiceTest > expireOffers_shouldDelegateToExpiryService() PASSED
+
+RoomAllocationServiceTest > getAllRoomAllocations_paginated_shouldDelegateToQueryService() PASSED
+
+RoomAllocationServiceTest > declineOffer_shouldDelegateToLifecycleService() PASSED
+
+RoomAllocationServiceTest > getAllocationsByStatus_shouldDelegateToQueryService() PASSED
+
+RoomAllocationServiceTest > confirmCheckOut_shouldDelegateToCheckInService() PASSED
+
+RoomAllocationServiceTest > getActiveAllocationByStudentId_shouldDelegateToQueryService() PASSED
+
+RoomAllocationServiceTest > moveStudent_shouldDelegateToLifecycleService() PASSED
+
+RoomAllocationServiceTest > isRoomAvailable_shouldDelegateToQueryService() PASSED
+
+RoomAllocationServiceTest > getEligibleRoomsForStudent_shouldDelegateToEligibilityService() PASSED
+
+RoomAllocationServiceTest > updateRoomAllocation_shouldDelegateToLifecycleService() PASSED
+
+RoomAllocationServiceTest > getAllRoomAllocations_shouldDelegateToQueryService() PASSED
+
+RoomAllocationServiceTest > confirmCheckIn_shouldDelegateToCheckInService() PASSED
+
+RoomAllocationServiceTest > getRoomAvailableCapacity_shouldDelegateToQueryService() PASSED
+
+RoomAllocationServiceTest > expireCheckIns_shouldDelegateToExpiryService() PASSED
+
+RoomAllocationServiceTest > getRoomAvailability_shouldDelegateToQueryService() PASSED
+
+RoomAllocationServiceTest > checkStudentEligibility_shouldDelegateToEligibilityService() PASSED
+
+RoomAllocationServiceTest > acceptOffer_shouldDelegateToLifecycleService() PASSED
+
+RoomAllocationServiceTest > allocateNextFromWaitingList_shouldDelegateToBatchService() PASSED
+
+RoomAllocationServiceTest > getRoomAllocationById_shouldDelegateToQueryService() PASSED
+
+RoomAllocationServiceTest > endAllocation_shouldDelegateToCheckInService() PASSED
+
+RoomAllocationServiceTest > batchAllocateFromWaitingList_shouldDelegateToBatchService() PASSED
+
+RoomServiceTest > createRoom_shouldCreateRoom() PASSED
+
+RoomServiceTest > updateRoom_shouldUpdateRoom() PASSED
+
+RoomServiceTest > searchRooms_onlyAvailable_shouldFilterResults() PASSED
+
+RoomServiceTest > searchRooms_shouldReturnPaginatedResults() PASSED
+
+RoomServiceTest > createRoom_shouldThrowException_whenBuildingNotFound() PASSED
+
+RoomServiceTest > deleteRoom_shouldDeleteRoom() PASSED
+
+StudentServiceTest > searchStudents_WithYearOfStudyFilter_ShouldReturnFilteredResults() PASSED
+
+StudentServiceTest > getStudentByUserId_AsAdmin_ShouldReturnStudent() PASSED
+
+StudentServiceTest > deleteStudentByUserId_ShouldDeleteStudent() PASSED
+
+StudentServiceTest > getAllStudents_ShouldReturnList() PASSED
+
+StudentServiceTest > searchStudents_WithNameFilter_ShouldReturnFilteredResults() PASSED
+
+StudentServiceTest > getStudentByUserId_AsOwner_ShouldReturnStudent() PASSED
+
+StudentServiceTest > updateStudent_AsOwner_ShouldUpdateStudent() PASSED
+
+StudentServiceTest > getStudentByUserId_Unauthorized_ShouldThrowException() PASSED
+
+StudentServiceTest > searchStudents_NoFilters_ShouldReturnAllResults() PASSED
+
+StudentServiceTest > getMyProfile_ShouldReturnStudentProfile() PASSED
+
+StudentServiceTest > searchStudents_WithMultipleFilters_ShouldReturnFilteredResults() PASSED
+
+StudentServiceTest > searchStudents_WithInstitutionFilter_ShouldReturnFilteredResults() PASSED
+
+StudentServiceTest > searchStudents_WithEmailFilter_ShouldReturnFilteredResults() PASSED
+
+StudentServiceTest > getAllStudents_WithPageable_ShouldReturnPageResponse() PASSED
+
+StudentServiceTest > searchStudents_WithStudentNumberFilter_ShouldReturnFilteredResults() PASSED
+
+TokenBlacklistServiceTest > isBlacklisted_blacklistedToken_returnsTrue() PASSED
+
+TokenBlacklistServiceTest > isBlacklisted_nonBlacklistedToken_returnsFalse() PASSED
+
+TokenBlacklistServiceTest > blacklistToken_validJti_storedInRedis() PASSED
+
+TokenBlacklistServiceTest > blacklistToken_ttlExpired_autoRemoved() PASSED
+
+TokenBlacklistServiceTest > isBlacklisted_redisUnavailable_returnsFalse() PASSED
+
+YearOfStudyServiceTest > createYearOfStudy_ShouldSaveAndReturn() PASSED
+
+YearOfStudyServiceTest > getYearOfStudyById_ShouldReturnYearOfStudy() PASSED
+
+YearOfStudyServiceTest > getYearOfStudyById_NotFound_ShouldThrowException() PASSED
+
+YearOfStudyServiceTest > getAllYearsOfStudy_ShouldReturnList() PASSED
+
+YearOfStudyServiceTest > updateYearOfStudy_ShouldUpdateAndReturn() PASSED
+
+YearOfStudyServiceTest > deleteYearOfStudy_ShouldDelete() PASSED
+
+YearOfStudyServiceTest > getAllYearsOfStudy_WithPageable_ShouldReturnPageResponse() PASSED
+
+YearOfStudyServiceTest > searchYearsOfStudy_NoFilter_ShouldReturnAllResults() PASSED
+
+YearOfStudyServiceTest > searchYearsOfStudy_WithYearFilter_ShouldReturnFilteredResults() PASSED
+
+AllocationBatchServiceTest > allocateNextFromWaitingList_shouldSkipDeclinedRooms() PASSED
+
+AllocationBatchServiceTest > allocateNextFromWaitingList_shouldSkipWhenFeatureDisabled() PASSED
+
+AllocationBatchServiceTest > allocateNextFromWaitingList_shouldAllocateBestMatch() PASSED
+
+AllocationBatchServiceTest > executeBatch_noEligible_noAllocations() PASSED
+
+AllocationBatchServiceTest > executeBatch_approvedApplications_stagedAllocationsCreated() PASSED
+
+AllocationBatchServiceTest > getWaitingListWithScores_shouldReturnScoredList() PASSED
+
+AllocationCheckInServiceTest > moveOut_activeAllocation_statusCompleted() PASSED
+
+AllocationCheckInServiceTest > terminate_activeAllocation_statusTerminated() PASSED
+
+AllocationCheckInServiceTest > checkIn_acceptedAllocation_statusActive() PASSED
+
+AllocationLifecycleServiceTest > acceptOffer_expiredOffer_throwsException() PASSED
+
+AllocationLifecycleServiceTest > createRoomAllocation_shouldThrowException_whenRoomFull() PASSED
+
+AllocationLifecycleServiceTest > deleteRoomAllocation_activeAllocation_statusCancelled() PASSED
+
+AllocationLifecycleServiceTest > declineOffer_shouldSetStatusToDeclined() PASSED
+
+AllocationLifecycleServiceTest > declineOffer_thirdDecline_shouldCancel() PASSED
+
+AllocationLifecycleServiceTest > createRoomAllocation_shouldCreateAllocation() PASSED
+
+AllocationLifecycleServiceTest > declineOffer_secondDecline_applicationAutoCancelled() PASSED
+
+AllocationLifecycleServiceTest > cancelAllocation_activeAllocation_statusCancelled() PASSED
+
+AllocationLifecycleServiceTest > createRoomAllocation_shouldThrowException_whenStudentAlreadyAllocated() PASSED
+
+AllocationLifecycleServiceTest > acceptOffer_validOffer_statusChangedToAccepted() PASSED
+
+AllocationLifecycleServiceTest > manualAllocate_validRoom_allocationCreated() PASSED
+
+Application Admin Service - Notification Integration Tests > Should include application details in notification PASSED
+
+Application Admin Service - Notification Integration Tests > Should send notification when application is rejected PASSED
+
+Application Admin Service - Notification Integration Tests > Should handle multiple status updates correctly PASSED
+
+Application Admin Service - Notification Integration Tests > Should NOT send notification when status doesn't change PASSED
+
+Application Admin Service - Notification Integration Tests > Should send notification when application is approved PASSED
+
+Application Admin Service - Notification Integration Tests > Should execute notification asynchronously without blocking PASSED
+
+Application Admin Service - Notification Integration Tests > Should NOT send notification when status remains PENDING PASSED
+
+Application Admin Service - Notification Integration Tests > Should not break flow when notification fails PASSED
+
+Application Admin Service - Notification Integration Tests > Should send notification with student information PASSED
+
+ApplicationAdminServiceTest > getApplicationFullDetailsEnhanced_shouldReturnFullRequirements() PASSED
+
+ApplicationAdminServiceTest > moveToAllocationPhase_shouldThrowException_whenNotApproved() PASSED
+
+ApplicationAdminServiceTest > markUnderReview_shouldUpdateStatus() PASSED
+
+ApplicationAdminServiceTest > requestChanges_shouldUpdateStatusAndReason() PASSED
+
+ApplicationAdminServiceTest > getRequiredDocumentsChecklist_shouldReturnChecklist() PASSED
+
+ApplicationQueryServiceTest > getApplicationFullDetailsEnhanced_asAdmin_shouldReturnFullDetails() PASSED
+
+ApplicationQueryServiceTest > getApplicationFullDetailsEnhanced_asOwner_shouldReturnFullDetails() PASSED
+
+ApplicationQueryServiceTest > getApplicationFullDetailsEnhanced_nonExistentApplication_shouldThrowException() PASSED
+
+ApplicationQueryServiceTest > getApplicationFullDetailsEnhanced_asUnauthorizedUser_shouldThrowException() PASSED
+
+ApplicationQueryServiceTest > getApplicationFullDetailsEnhanced_approvedWithAllDocs_shouldBeEligible() PASSED
+
+ApplicationQueryServiceTest > getApplicationFullDetailsEnhanced_approvedButMissingDocs_shouldNotBeEligible() PASSED
+
+ApplicationSearchServiceTest > searchApplications_WithDateRangeFilter_ShouldReturnFilteredResults() PASSED
+
+ApplicationSearchServiceTest > searchApplications_WithApplicationCodeFilter_ShouldReturnFilteredResults() PASSED
+
+ApplicationSearchServiceTest > getAllApplications_WithPageable_ShouldReturnPageResponse() PASSED
+
+ApplicationSearchServiceTest > searchApplications_WithStartDateOnly_ShouldReturnFilteredResults() PASSED
+
+ApplicationSearchServiceTest > searchApplications_WithStatusFilter_ShouldReturnFilteredResults() PASSED
+
+ApplicationSearchServiceTest > searchApplications_WithApprovedStatus_ShouldReturnOnlyApproved() PASSED
+
+ApplicationSearchServiceTest > searchApplications_WithStudentNameFilter_ShouldReturnFilteredResults() PASSED
+
+ApplicationSearchServiceTest > searchApplications_WithRejectedStatus_ShouldReturnOnlyRejected() PASSED
+
+ApplicationSearchServiceTest > searchApplications_WithEndDateOnly_ShouldReturnFilteredResults() PASSED
+
+ApplicationSearchServiceTest > searchApplications_NoFilters_ShouldReturnAllResults() PASSED
+
+ApplicationSearchServiceTest > getApplicationsByStatus_ShouldReturnListOfApplicationsWithSpecificStatus() PASSED
+
+ApplicationSearchServiceTest > searchApplications_WithMultipleFilters_ShouldReturnFilteredResults() PASSED
+
+ApplicationSearchServiceTest > searchApplications_PartialCodeMatch_ShouldReturnMatchingResults() PASSED
+
+2026-02-15T08:43:11.309+02:00  INFO 28192 --- [student-accommodation] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+
+> Task :test FAILED
+
+482 tests completed, 51 failed, 1 skipped
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///C:/Users/dev_t/Documents/practice/Projects/student-accommodation-system/backend/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+BUILD FAILED in 1m 45s
+5 actionable tasks: 3 executed, 2 up-to-date

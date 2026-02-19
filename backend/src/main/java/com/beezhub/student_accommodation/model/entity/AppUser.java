@@ -15,7 +15,9 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AppUser {
+@org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
+@EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
+public class AppUser implements TenantAware {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -48,11 +50,21 @@ public class AppUser {
     @Builder.Default
     private Boolean isAnonymized = false;
 
+    @Column(name = "account_locked_until")
+    private LocalDateTime accountLockedUntil;
+
+    @Column(name = "failed_login_attempts")
+    @Builder.Default
+    private Integer failedLoginAttempts = 0;
+
     @Column(nullable = false, updatable = false, name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(nullable = false, name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "tenant_id")
+    private Long tenantId;
 
     @PrePersist
     protected void onCreate() {
@@ -64,5 +76,6 @@ public class AppUser {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
 
 }
