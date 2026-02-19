@@ -114,4 +114,18 @@ export class LoginComponent {
   togglePasswordVisibility(): void {
     this.hidePassword = !this.hidePassword;
   }
+
+  onSignInClick(event: Event): void {
+    if (this.isSubmitting || this.loginForm.invalid) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this.loginForm.invalid) {
+        this.loginForm.markAllAsTouched();
+        this.snackBar.open('Please fill in all required fields correctly.', 'Close', {
+          duration: 3000,
+          panelClass: ['warning-snackbar'],
+        });
+      }
+    }
+  }
 }

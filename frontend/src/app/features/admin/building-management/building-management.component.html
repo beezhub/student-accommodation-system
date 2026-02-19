@@ -80,17 +80,25 @@
                 </div>
                 <!-- Actions in header for mobile -->
                  <div class="mobile-actions-top">
-                    <button mat-icon-button class="action-btn images" (click)="openImageDialog(building)" matTooltip="Manage Images">
-                      <mat-icon>photo_library</mat-icon>
+                    <button mat-icon-button class="action-btn images" (click)="openImageDialog(building)"
+                      matTooltip="Manage Images"
+                      [attr.aria-label]="'Manage images for ' + building.name">
+                      <mat-icon aria-hidden="true">photo_library</mat-icon>
                     </button>
-                    <button mat-icon-button class="action-btn edit" (click)="openEditDialog(building)">
-                      <mat-icon>edit</mat-icon>
+                    <button mat-icon-button class="action-btn edit" (click)="openEditDialog(building)"
+                      matTooltip="Edit Building"
+                      [attr.aria-label]="'Edit building ' + building.name">
+                      <mat-icon aria-hidden="true">edit</mat-icon>
                     </button>
-                    <button mat-icon-button class="action-btn delete" (click)="deleteBuilding(building)">
-                      <mat-icon>delete</mat-icon>
+                    <button mat-icon-button class="action-btn delete" (click)="deleteBuilding(building)"
+                      matTooltip="Delete Building"
+                      [attr.aria-label]="'Delete building ' + building.name">
+                      <mat-icon aria-hidden="true">delete</mat-icon>
                     </button>
-                    <button mat-icon-button class="action-btn rules" (click)="navigateToAllocationRules(building.id)">
-                      <mat-icon>rule</mat-icon>
+                    <button mat-icon-button class="action-btn rules" (click)="navigateToAllocationRules(building.id)"
+                      matTooltip="Allocation Rules"
+                      [attr.aria-label]="'Allocation rules for ' + building.name">
+                      <mat-icon aria-hidden="true">rule</mat-icon>
                     </button>
                  </div>
               </div>
@@ -204,14 +212,17 @@
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let building">
                   <div class="actions-cell">
-                  <button mat-icon-button (click)="openImageDialog(building)" matTooltip="Manage Images" class="action-btn images">
-                    <mat-icon>photo_library</mat-icon>
+                  <button mat-icon-button (click)="openImageDialog(building)" matTooltip="Manage Images"
+                    [attr.aria-label]="'Manage images for ' + building.name" class="action-btn images">
+                    <mat-icon aria-hidden="true">photo_library</mat-icon>
                   </button>
-                  <button mat-icon-button (click)="openEditDialog(building)" matTooltip="Edit Building" class="action-btn edit">
-                    <mat-icon>edit</mat-icon>
+                  <button mat-icon-button (click)="openEditDialog(building)" matTooltip="Edit Building"
+                    [attr.aria-label]="'Edit building ' + building.name" class="action-btn edit">
+                    <mat-icon aria-hidden="true">edit</mat-icon>
                   </button>
-                  <button mat-icon-button (click)="deleteBuilding(building)" matTooltip="Delete Building" class="action-btn delete">
-                    <mat-icon>delete</mat-icon>
+                  <button mat-icon-button (click)="deleteBuilding(building)" matTooltip="Delete Building"
+                    [attr.aria-label]="'Delete building ' + building.name" class="action-btn delete">
+                    <mat-icon aria-hidden="true">delete</mat-icon>
                   </button>
                 </div>
               </td>

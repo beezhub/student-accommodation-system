@@ -50,6 +50,18 @@ FROM activity_logs_old;
 SELECT setval('activity_logs_id_seq', COALESCE((SELECT MAX(id) FROM activity_logs_old), 1));
 
 
+-- Drop old indexes from activity_logs_old (renamed from activity_logs).
+-- When ALTER TABLE ... RENAME is used, PostgreSQL keeps the original index names in the
+-- schema namespace — they do NOT follow the table rename. We must drop them before
+-- recreating them on the new partitioned table to avoid "relation already exists" errors.
+DROP INDEX IF EXISTS idx_activity_logs_user_id;
+DROP INDEX IF EXISTS idx_activity_logs_action;
+DROP INDEX IF EXISTS idx_activity_logs_entity_type;
+DROP INDEX IF EXISTS idx_activity_logs_timestamp;
+DROP INDEX IF EXISTS idx_activity_logs_entity;
+DROP INDEX IF EXISTS idx_activity_logs_user_timestamp;
+DROP INDEX IF EXISTS idx_activity_logs_action_entity;
+
 -- Re-create indexes on the partitioned table (PostgreSQL 11+ propagates these to partitions)
 CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
 CREATE INDEX idx_activity_logs_action ON activity_logs(action);

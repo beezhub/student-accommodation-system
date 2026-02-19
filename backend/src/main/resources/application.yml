@@ -29,6 +29,8 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
     locations: classpath:db/migration
     out-of-order: true
+    ignore-missing-migrations: true
+    validate-on-migrate: false
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -97,6 +99,16 @@ app:
     batch-interval-ms: ${BATCH_INTERVAL_MS:21600000}  # 6 hours
     batch-size: ${BATCH_SIZE:50}
     batch-on-expiry: ${BATCH_ON_EXPIRY:true}
-  features:
     auto-allocation:
       enabled: ${AUTO_ALLOCATION_ENABLED:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
