@@ -32,129 +32,143 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock
-    private AppUserRepository userRepository;
+        @Mock
+        private AppUserRepository userRepository;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
+        @Mock
+        private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private JwtUtil jwtUtil;
+        @Mock
+        private JwtUtil jwtUtil;
 
-    @Mock
-    private AuthenticationManager authenticationManager;
+        @Mock
+        private AuthenticationManager authenticationManager;
 
-    @Mock
-    private AppUserMapper appUserMapper;
+        @Mock
+        private AppUserMapper appUserMapper;
 
-    @InjectMocks
-    private AuthService authService;
+        @InjectMocks
+        private AuthService authService;
 
-    private SignupRequest signupRequest;
-    private AppUser appUser;
-    private UserData userData;
-    private AppUserDetails userDetails;
+        private SignupRequest signupRequest;
+        private AppUser appUser;
+        private UserData userData;
+        private AppUserDetails userDetails;
 
-    @BeforeEach
-    void setUp() {
-        signupRequest = new SignupRequest();
-        signupRequest.setEmail("test@example.com");
-        signupRequest.setPassword("password");
+        @BeforeEach
+        void setUp() {
+                signupRequest = new SignupRequest();
+                signupRequest.setEmail("test@example.com");
+                signupRequest.setPassword("password");
 
-        appUser = AppUser.builder()
-                .email("test@example.com")
-                .userPassword("encodedPassword")
-                .userRole(UserRole.STUDENT)
-                .build();
+                appUser = AppUser.builder()
+                                .email("test@example.com")
+                                .userPassword("encodedPassword")
+                                .userRole(UserRole.STUDENT)
+                                .build();
 
-        userData = new UserData();
-        userData.setEmail("test@example.com");
-        userData.setUserRole(UserRole.STUDENT.name());
+                userData = new UserData();
+                userData.setEmail("test@example.com");
+                userData.setUserRole(UserRole.STUDENT.name());
 
-        userDetails = new AppUserDetails(
-                appUser.getEmail(),
-                appUser.getUserPassword(),
-                appUser.getUserRole().name()
-        );
-    }
+                userDetails = new AppUserDetails(
+                                appUser.getEmail(),
+                                appUser.getUserPassword(),
+                                appUser.getUserRole().name());
+        }
 
-    @Test
-    void signup_ShouldCreateUserAndReturnToken() {
-        // Arrange
-        when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(signupRequest.getPassword())).thenReturn("encodedPassword");
-        when(appUserMapper.toEntity(eq(signupRequest), anyString())).thenReturn(appUser);
-        when(userRepository.save(appUser)).thenReturn(appUser);
-        when(jwtUtil.generateToken(any(AppUserDetails.class))).thenReturn("jwt-token");
+        @Test
+        void signup_ShouldCreateUserAndReturnToken() {
+                // Arrange
+                when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.empty());
+                when(passwordEncoder.encode(signupRequest.getPassword())).thenReturn("encodedPassword");
+                when(appUserMapper.toEntity(eq(signupRequest), anyString())).thenReturn(appUser);
+                when(userRepository.save(appUser)).thenReturn(appUser);
+                when(jwtUtil.generateToken(any(AppUserDetails.class))).thenReturn("jwt-token");
 
-        // Act
-        var signup = authService.signup(signupRequest);
+                // Act
+                var signup = authService.signup(signupRequest);
 
-        // Assert
-        assertEquals("jwt-token", signup.getToken());
-        verify(userRepository).save(appUser);
-    }
+                // Assert
+                assertEquals("jwt-token", signup.getToken());
+                verify(userRepository).save(appUser);
+        }
 
-    @Test
-    void signup_WithExistingEmail_ShouldThrowException() {
+        @Test
+        void signup_WithExistingEmail_ShouldThrowException() {
 
-        when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.of(appUser));
+                when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.of(appUser));
 
-        EmailAlreadyRegisteredException exception = assertThrows(
-                EmailAlreadyRegisteredException.class,
-                () -> authService.signup(signupRequest)
-        );
-        assertEquals("Email already registered", exception.getMessage());
-        verify(userRepository, never()).save(any());
-    }
+                EmailAlreadyRegisteredException exception = assertThrows(
+                                EmailAlreadyRegisteredException.class,
+                                () -> authService.signup(signupRequest));
+                assertEquals("Email already registered", exception.getMessage());
+                verify(userRepository, never()).save(any());
+        }
 
-    @Test
-    void validateLogin_ShouldReturnLoginResponse() {
-        // Arrange
-        Authentication authentication = mock(Authentication.class);
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(userDetails);
-        when(jwtUtil.generateToken(userDetails)).thenReturn("jwt-token");
-        when(userRepository.findByEmail(userDetails.getUsername())).thenReturn(Optional.of(appUser));
-        when(appUserMapper.toUserData(appUser)).thenReturn(userData);
+        @Test
+        void validateLogin_ShouldReturnLoginResponse() {
+                // Arrange
+                Authentication authentication = mock(Authentication.class);
+                when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                                .thenReturn(authentication);
+                when(authentication.getPrincipal()).thenReturn(userDetails);
+                when(jwtUtil.generateToken(userDetails)).thenReturn("jwt-token");
+                when(userRepository.findByEmail(userDetails.getUsername())).thenReturn(Optional.of(appUser));
+                when(appUserMapper.toUserData(appUser)).thenReturn(userData);
 
-        // Act
-        LoginResponse response = authService.validateLogin("test@example.com", "password");
+                // Act
+                LoginResponse response = authService.validateLogin("test@example.com", "password");
 
-        // Assert
-        assertNotNull(response);
-        assertEquals("jwt-token", response.getToken());
-        assertEquals(userData, response.getUser());
-    }
+                // Assert
+                assertNotNull(response);
+                assertEquals("jwt-token", response.getToken());
+                assertEquals(userData, response.getUser());
+        }
 
-    @Test
-    void validateLogin_UserNotFound_ShouldThrowException() {
-        // Arrange
-        Authentication authentication = mock(Authentication.class);
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(userDetails);
-        when(userRepository.findByEmail(userDetails.getUsername())).thenReturn(Optional.empty());
+        @Test
+        void validateLogin_UserNotFound_ShouldThrowException() {
+                // Arrange
+                Authentication authentication = mock(Authentication.class);
+                when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                                .thenReturn(authentication);
+                when(authentication.getPrincipal()).thenReturn(userDetails);
+                when(userRepository.findByEmail(userDetails.getUsername())).thenReturn(Optional.empty());
 
-        // Act & Assert
-        UserNotFoundException exception = assertThrows(
-                UserNotFoundException.class,
-                () -> authService.validateLogin("test@example.com", "password")
-        );
-        assertEquals("User not found", exception.getMessage());
-    }
+                // Act & Assert
+                UserNotFoundException exception = assertThrows(
+                                UserNotFoundException.class,
+                                () -> authService.validateLogin("test@example.com", "password"));
+                assertEquals("User not found", exception.getMessage());
+        }
 
-    @Test
-    void validateLogin_InvalidCredentials_ShouldThrowException() {
-        // Arrange
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new BadCredentialsException("Bad credentials"));
+        @Test
+        void validateLogin_AnonymizedUser_ShouldThrowException() {
+                // Arrange
+                Authentication authentication = mock(Authentication.class);
+                when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                                .thenReturn(authentication);
+                when(authentication.getPrincipal()).thenReturn(userDetails);
 
-        // Act & Assert
-        assertThrows(
-                BadCredentialsException.class,
-                () -> authService.validateLogin("test@example.com", "wrongpassword")
-        );
-    }
+                appUser.setIsAnonymized(true);
+                when(userRepository.findByEmail(userDetails.getUsername())).thenReturn(Optional.of(appUser));
+
+                // Act & Assert
+                BadCredentialsException exception = assertThrows(
+                                BadCredentialsException.class,
+                                () -> authService.validateLogin("test@example.com", "password"));
+                assertEquals("Account has been anonymized and is no longer active", exception.getMessage());
+        }
+
+        @Test
+        void validateLogin_InvalidCredentials_ShouldThrowException() {
+                // Arrange
+                when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                                .thenThrow(new BadCredentialsException("Bad credentials"));
+
+                // Act & Assert
+                assertThrows(
+                                BadCredentialsException.class,
+                                () -> authService.validateLogin("test@example.com", "wrongpassword"));
+        }
 }

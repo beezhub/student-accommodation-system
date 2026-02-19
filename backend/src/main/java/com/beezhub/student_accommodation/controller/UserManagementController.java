@@ -23,10 +23,7 @@ public class UserManagementController {
 
     private final UserManagementService userManagementService;
 
-    @Operation(
-        summary = "Create new admin or landlord user",
-        description = "Admin-only endpoint to create ADMIN or LANDLORD users"
-    )
+    @Operation(summary = "Create new admin or landlord user", description = "Admin-only endpoint to create ADMIN or LANDLORD users")
     @ApiResponse(responseCode = "201", description = "User created successfully")
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -58,6 +55,15 @@ public class UserManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         userManagementService.deleteUser(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Anonymize user")
+    @ApiResponse(responseCode = "204", description = "User anonymized")
+    @PostMapping("/{userId}/anonymize")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> anonymizeUser(@PathVariable Long userId) {
+        userManagementService.anonymizeUser(userId);
         return ResponseEntity.noContent().build();
     }
 }

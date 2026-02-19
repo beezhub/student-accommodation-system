@@ -25,6 +25,7 @@ public class UserManagementService {
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AppUserMapper appUserMapper;
+    private final UserAnonymizationService userAnonymizationService;
 
     @Transactional
     public UserData createUser(CreateUserRequest request) {
@@ -43,9 +44,8 @@ public class UserManagementService {
 
         // Create user entity
         AppUser user = appUserMapper.toEntityFromAdminRequest(
-            request,
-            passwordEncoder.encode(request.getPassword())
-        );
+                request,
+                passwordEncoder.encode(request.getPassword()));
 
         // Save and return
         AppUser savedUser = userRepository.save(user);
@@ -57,21 +57,21 @@ public class UserManagementService {
     @Transactional(readOnly = true)
     public List<UserData> getAllUsers() {
         return userRepository.findAll().stream()
-            .map(appUserMapper::toUserData)
-            .collect(Collectors.toList());
+                .map(appUserMapper::toUserData)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<UserData> getUsersByRole(UserRole role) {
         return userRepository.findByUserRole(role).stream()
-            .map(appUserMapper::toUserData)
-            .collect(Collectors.toList());
+                .map(appUserMapper::toUserData)
+                .collect(Collectors.toList());
     }
 
     @Transactional
     public void deleteUser(Long userId) {
         AppUser user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         // Prevent deleting the last admin
         if (user.getUserRole() == UserRole.ADMIN) {
@@ -83,5 +83,28 @@ public class UserManagementService {
 
         userRepository.deleteById(userId);
         log.info("User deleted: {}", userId);
+        userRepository.deleteById(userId);
+        log.info("User deleted: {}", userId);
+    }
+
+    @Transactional
+    public void anonymizeUser(Long userId) {
+        // Validation similar to delete - prevent anonymizing last admin?
+        // For now, let's just delegate, but maybe we should add checks.
+        // Re-using logic: check if user exists first
+        AppUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (user.getUserRole() == UserRole.ADMIN) {
+            long adminCount = userRepository.countByUserRole(UserRole.ADMIN);
+            // If this is the last admin and we anonymize them (effectively disabling
+            // login),
+            // we lock ourselves out.
+            if (adminCount <= 1) {
+                throw new IllegalStateException("Cannot anonymize the last admin user");
+            }
+        }
+
+        userAnonymizationService.anonymizeUser(userId);
     }
 }
