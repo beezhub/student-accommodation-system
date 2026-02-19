@@ -25,7 +25,7 @@ public class AppUser implements TenantAware {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false, name="user_password")
+    @Column(nullable = false, name = "user_password")
     private String userPassword;
 
     @Column(nullable = false, name = "user_role")
@@ -39,11 +39,16 @@ public class AppUser implements TenantAware {
     private String lastName;
 
     @Column(nullable = false, name = "email_verified")
+    @Builder.Default
     private Boolean emailVerified = false;
 
     @Column(nullable = false, name = "must_change_password")
     @Builder.Default
     private Boolean mustChangePassword = false;
+
+    @Column(nullable = false, name = "is_anonymized")
+    @Builder.Default
+    private Boolean isAnonymized = false;
 
     @Column(name = "account_locked_until")
     private LocalDateTime accountLockedUntil;

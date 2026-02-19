@@ -105,7 +105,7 @@
               <span>Application Status</span>
             </div>
           </div>
-          <div class="chart-container">
+          <div class="chart-container" role="img" [attr.aria-label]="'Application Status: ' + stats.totalApplications + ' applications total'">
             <div class="donut-chart" [style.background]="getConicGradient(applicationChartSegments)">
               <div class="donut-hole">
                 <span class="donut-value">{{ stats.totalApplications }}</span>
@@ -134,7 +134,7 @@
               <span>Document Status</span>
             </div>
           </div>
-          <div class="chart-container">
+          <div class="chart-container" role="img" [attr.aria-label]="'Document Status: ' + stats.totalDocuments + ' documents total'">
             <div class="donut-chart" [style.background]="getConicGradient(documentChartSegments)">
               <div class="donut-hole">
                 <span class="donut-value">{{ stats.totalDocuments }}</span>
@@ -163,7 +163,7 @@
               <span>Room Status</span>
             </div>
           </div>
-          <div class="chart-container">
+          <div class="chart-container" role="img" [attr.aria-label]="'Room Status: ' + stats.totalRooms + ' rooms total'">
             <div class="donut-chart" [style.background]="getConicGradient(roomChartSegments)">
               <div class="donut-hole">
                 <span class="donut-value">{{ stats.totalRooms }}</span>
