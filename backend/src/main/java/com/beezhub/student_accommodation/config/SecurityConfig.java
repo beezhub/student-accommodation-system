@@ -2,6 +2,8 @@ package com.beezhub.student_accommodation.config;
 
 import com.beezhub.student_accommodation.security.jwt.JwtAuthenticationFilter;
 import com.beezhub.student_accommodation.security.user.AppUserDetailsService;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
@@ -55,11 +57,6 @@ public class SecurityConfig {
                                 "/api/auth/resend-verification",
                                 "/api/building/maps-config")
                         .permitAll()
-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
-import org.springframework.boot.actuate.health.HealthEndpoint;
-
-// ...
-
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                         .requestMatchers(EndpointRequest.toAnyEndpoint()).hasRole("ADMIN")

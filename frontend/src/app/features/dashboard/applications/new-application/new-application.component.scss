@@ -368,3 +368,21 @@ mat-divider {
     margin: 2rem 0 !important;
     border-top-color: vars.$slate-200 !important;
 }
+
+.submit-button:disabled,
+.disabled-button {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background-color: rgba(0, 0, 0, 0.12) !important;
+    color: rgba(0, 0, 0, 0.38) !important;
+    box-shadow: none !important;
+}
+
+.submit-button:disabled,
+.disabled-button {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background-color: rgba(0, 0, 0, 0.12) !important;
+    color: rgba(0, 0, 0, 0.38) !important;
+    box-shadow: none !important;
+}

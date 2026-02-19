@@ -53,7 +53,7 @@
             <input matInput formControlName="courseName" placeholder="e.g., Computer Science">
             <mat-icon matPrefix>book</mat-icon>
             @if (applicationForm.get('courseName')?.hasError('required')) {
-              <mat-error>
+              <mat-error role="alert">
                 Course name is required
               </mat-error>
             }
@@ -120,7 +120,9 @@
           </button>
 
           <button mat-raised-button color="primary" type="submit"
-            [disabled]="isSubmitting || !applicationForm.valid" class="submit-button">
+            [class.disabled-button]="isSubmitting || !applicationForm.valid"
+            [attr.aria-disabled]="(isSubmitting || !applicationForm.valid) ? 'true' : 'false'"
+            class="submit-button">
             @if (isSubmitting) {
               <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
             }

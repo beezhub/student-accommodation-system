@@ -17,8 +17,8 @@
         *ngIf="applicationDetails"
         [status]="applicationDetails.status">
       </app-modern-status-badge>
-      <button mat-icon-button (click)="closeDialog()">
-        <mat-icon>close</mat-icon>
+      <button mat-icon-button (click)="closeDialog()" aria-label="Close dialog">
+        <mat-icon aria-hidden="true">close</mat-icon>
       </button>
     </div>
   </div>
