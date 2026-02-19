@@ -5,7 +5,7 @@ import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.EmailVerificationToken;
 import com.beezhub.student_accommodation.model.entity.PasswordResetToken;
-import com.beezhub.student_accommodation.repository.*;
+
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.EmailVerificationTokenRepository;
 import com.beezhub.student_accommodation.repository.PasswordResetTokenRepository;
@@ -84,8 +84,7 @@ public class AuthService {
         String token = jwtUtil.generateToken(new AppUserDetails(
                 user.getEmail(),
                 user.getUserPassword(),
-                user.getUserRole().name()
-        ));
+                user.getUserRole().name()));
         return new LoginResponse(token, userData);
     }
 
@@ -97,7 +96,9 @@ public class AuthService {
         var user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        // Generate token and return user data
+        if (Boolean.TRUE.equals(user.getIsAnonymized())) {
+            throw new BadCredentialsException("Account has been anonymized and is no longer active");
+        }
         // The mustChangePassword flag will be included in userData
         // Frontend should check this and enforce password change if needed
         String token = jwtUtil.generateToken(userDetails);
@@ -238,13 +239,13 @@ public class AuthService {
                     email,
                     "Password Reset Request",
                     "Hello " + user.getFirstName() + ",\n\n" +
-                            "You have requested to reset your password. Please click the link below to reset your password:\n\n" +
+                            "You have requested to reset your password. Please click the link below to reset your password:\n\n"
+                            +
                             resetUrl + "\n\n" +
                             "This link will expire in " + passwordResetExpiryHours + " hours.\n\n" +
                             "If you did not request this, please ignore this email.\n\n" +
                             "Best regards,\n" +
-                            "Student Accommodation Team"
-            );
+                            "Student Accommodation Team");
             log.info("Password reset email sent successfully to: {}", email);
         } catch (Exception e) {
             log.error("Failed to send password reset email to: {}", email, e);
@@ -344,8 +345,7 @@ public class AuthService {
                             "This link will expire in " + emailVerificationExpiryHours + " hours.\n\n" +
                             "If you did not register, please ignore this email.\n\n" +
                             "Best regards,\n" +
-                            "Student Accommodation Team"
-            );
+                            "Student Accommodation Team");
             log.info("Verification email sent successfully to: {}", email);
         } catch (Exception e) {
             log.error("Failed to send verification email to: {}", email, e);

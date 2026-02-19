@@ -11,7 +11,9 @@ import java.util.Optional;
 @Repository
 public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpecificationExecutor<Student> {
 
-    Optional<Student>findStudentByAppUser(AppUser User);
+    Optional<Student> findStudentByAppUser(AppUser User);
+
+    Optional<Student> findByAppUser(AppUser appUser);
 
     Optional<Student> findByAppUser_Id(Long userId);
 }
