@@ -55,7 +55,14 @@ public class SecurityConfig {
                                 "/api/auth/resend-verification",
                                 "/api/building/maps-config")
                         .permitAll()
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.boot.actuate.health.HealthEndpoint;
+
+// ...
+
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
+                        .requestMatchers(EndpointRequest.toAnyEndpoint()).hasRole("ADMIN")
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/swagger-ui.html").permitAll()
