@@ -1,0 +1,7 @@
+﻿
+> Task :compileJava
+
+[Incubating] Problems report is available at: file:///C:/Users/dev_t/Documents/practice/Projects/student-accommodation-system/backend/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 30s
+1 actionable task: 1 executed

@@ -15,11 +15,7 @@ import java.util.Optional;
 @Repository
 public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpecificationExecutor<Student> {
 
-    // ==================================================
-    // EXISTING METHODS (no fetch)
-    // ==================================================
-
-    Optional<Student>findStudentByAppUser(AppUser User);
+    Optional<Student> findByAppUser(AppUser appUser);
 
     Optional<Student> findByAppUser_Id(Long userId);
 
@@ -30,27 +26,30 @@ public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpec
 
     /**
      * Finds a student by ID with all associations eagerly loaded.
+     * 
      * @param id Student ID
      * @return Student with appUser, institution, and yearOfStudy loaded
      */
-    @EntityGraph(attributePaths = {"appUser", "institution", "yearOfStudy"})
+    @EntityGraph(attributePaths = { "appUser", "institution", "yearOfStudy" })
     @Query("SELECT s FROM Student s WHERE s.id = :id")
     Optional<Student> findStudentWithDetailsById(@Param("id") Long id);
 
     /**
      * Finds a student by user ID with all associations eagerly loaded.
+     * 
      * @param userId AppUser ID
      * @return Student with all details
      */
-    @EntityGraph(attributePaths = {"appUser", "institution", "yearOfStudy"})
+    @EntityGraph(attributePaths = { "appUser", "institution", "yearOfStudy" })
     @Query("SELECT s FROM Student s WHERE s.appUser.id = :userId")
     Optional<Student> findStudentWithDetailsByUserId(@Param("userId") Long userId);
 
     /**
      * Finds all students with full details.
+     * 
      * @return List of students with all associations loaded
      */
-    @EntityGraph(attributePaths = {"appUser", "institution", "yearOfStudy"})
+    @EntityGraph(attributePaths = { "appUser", "institution", "yearOfStudy" })
     @Query("SELECT s FROM Student s")
     List<Student> findAllStudentsWithDetails();
 
@@ -61,19 +60,21 @@ public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpec
 
     /**
      * Finds a student by ID with appUser association loaded.
+     * 
      * @param id Student ID
      * @return Student with appUser loaded
      */
-    @EntityGraph(attributePaths = {"appUser"})
+    @EntityGraph(attributePaths = { "appUser" })
     @Query("SELECT s FROM Student s WHERE s.id = :id")
     Optional<Student> findStudentWithUserById(@Param("id") Long id);
 
     /**
      * Finds a student by AppUser with appUser association loaded.
+     * 
      * @param user AppUser entity
      * @return Student with appUser loaded
      */
-    @EntityGraph(attributePaths = {"appUser"})
+    @EntityGraph(attributePaths = { "appUser" })
     @Query("SELECT s FROM Student s WHERE s.appUser = :user")
     Optional<Student> findStudentWithUserByAppUser(@Param("user") AppUser user);
 
@@ -84,10 +85,11 @@ public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpec
 
     /**
      * Finds a student by ID with academic details loaded.
+     * 
      * @param id Student ID
      * @return Student with institution and yearOfStudy loaded
      */
-    @EntityGraph(attributePaths = {"institution", "yearOfStudy"})
+    @EntityGraph(attributePaths = { "institution", "yearOfStudy" })
     @Query("SELECT s FROM Student s WHERE s.id = :id")
     Optional<Student> findStudentWithAcademicDetailsById(@Param("id") Long id);
 }

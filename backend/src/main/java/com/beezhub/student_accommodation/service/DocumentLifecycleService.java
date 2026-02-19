@@ -96,7 +96,8 @@ public class DocumentLifecycleService {
             fileStorageService.delete(objectPath);
         } catch (RuntimeException e) {
             log.error("DB record deleted but MinIO file deletion failed for key {}: {}", objectPath, e.getMessage());
-            // Do not rethrow — the DB record is gone; the cleanup job will remove the orphan
+            // Do not rethrow — the DB record is gone; the cleanup job will remove the
+            // orphan
         }
     }
 
@@ -154,14 +155,15 @@ public class DocumentLifecycleService {
     }
 
     private String getExtension(String filename) {
-        if (filename == null || !filename.contains(".")) return "";
+        if (filename == null || !filename.contains("."))
+            return "";
         String ext = filename.substring(filename.lastIndexOf('.'));
         // Allow only known safe extensions
         return ext.matches("\\.[a-zA-Z0-9]{1,10}") ? ext : "";
     }
 
     private Document saveDocumentRecord(AppUser user, DocumentType docType, String objectPath, MultipartFile file) {
-        var student = studentRepository.findStudentByAppUser(user)
+        var student = studentRepository.findByAppUser(user)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found for user ID: " + user.getId()));
 
         Application application = getActiveApplicationForStudent(student);
