@@ -7,6 +7,8 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.util.PageMapper;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.ff4j.FF4j;
 import org.springframework.context.annotation.Lazy;
@@ -32,6 +34,7 @@ public class AllocationBatchService {
     private final AllocationScoringOrchestrator allocationScoringOrchestrator;
     private final StagedAllocationService stagedAllocationService;
     private final RoomAllocationMapper roomAllocationMapper;
+    private final MeterRegistry meterRegistry;
 
     public AllocationBatchService(
             WaitingListRepository waitingListRepository,
@@ -41,7 +44,8 @@ public class AllocationBatchService {
             Environment environment,
             AllocationScoringOrchestrator allocationScoringOrchestrator,
             StagedAllocationService stagedAllocationService,
-            RoomAllocationMapper roomAllocationMapper) {
+            RoomAllocationMapper roomAllocationMapper,
+            MeterRegistry meterRegistry) {
         this.waitingListRepository = waitingListRepository;
         this.allocationLifecycleService = allocationLifecycleService;
         this.ff4j = ff4j;
@@ -50,6 +54,7 @@ public class AllocationBatchService {
         this.allocationScoringOrchestrator = allocationScoringOrchestrator;
         this.stagedAllocationService = stagedAllocationService;
         this.roomAllocationMapper = roomAllocationMapper;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -100,7 +105,8 @@ public class AllocationBatchService {
     }
 
     /**
-     * Batch allocates multiple waiting students to available rooms using optimal matching.
+     * Batch allocates multiple waiting students to available rooms using optimal
+     * matching.
      * Processes up to maxAllocations students in FIFO order from waiting list.
      *
      * @param maxAllocations Maximum number of allocations to create
@@ -109,6 +115,7 @@ public class AllocationBatchService {
     @Transactional
     public BatchAllocationResult batchAllocateFromWaitingList(int maxAllocations) {
         long startTime = System.currentTimeMillis();
+        Timer.Sample sample = Timer.start(meterRegistry);
 
         // Feature flag check
         try {
@@ -159,12 +166,14 @@ public class AllocationBatchService {
         int allocatedCount = 0;
 
         for (WaitingListEntry entry : waitingList) {
-            if (allocatedCount >= maxAllocations) break;
+            if (allocatedCount >= maxAllocations)
+                break;
 
             Student student = entry.getStudent();
             List<ScoredRoom> scoredRooms = scoringMatrix.get(student.getId());
 
-            if (scoredRooms == null || scoredRooms.isEmpty()) continue;
+            if (scoredRooms == null || scoredRooms.isEmpty())
+                continue;
 
             // Find first available room (sorted by score DESC)
             for (ScoredRoom scoredRoom : scoredRooms) {
@@ -187,6 +196,7 @@ public class AllocationBatchService {
         log.info("Batch allocation completed: {} succeeded, {} failed, {}ms processing time",
                 result.getSuccessCount(), result.getFailureCount(), result.getProcessingTimeMs());
 
+        sample.stop(meterRegistry.timer("sas.batch.allocation.duration"));
         return result;
     }
 
@@ -267,31 +277,41 @@ public class AllocationBatchService {
 
     @Transactional
     public BatchConfirmationResult confirmBatchAllocationsWithResult(String batchId, Long adminId) {
-        // This was duplicate logic, reusing confirmBatchAllocations logic but returning result
-        // For now, delegate to stagedAllocationService.confirmBatchAllocations, but we need result stats.
+        // This was duplicate logic, reusing confirmBatchAllocations logic but returning
+        // result
+        // For now, delegate to stagedAllocationService.confirmBatchAllocations, but we
+        // need result stats.
         // StagedAllocationService.confirmBatchAllocations is void.
-        // I should update StagedAllocationService to return result or implement logic here calling single confirm.
-        
-        // Implementing logic here to return stats, calling stagedAllocationService.confirmAllocation per item
+        // I should update StagedAllocationService to return result or implement logic
+        // here calling single confirm.
+
+        // Implementing logic here to return stats, calling
+        // stagedAllocationService.confirmAllocation per item
         // Or update StagedAllocationService to return stats.
         // Let's implement here for now using single confirm
-        
-        // Wait, I can't access stagedAllocationRepository directly if I want to keep this thin.
+
+        // Wait, I can't access stagedAllocationRepository directly if I want to keep
+        // this thin.
         // But StagedAllocationService has getStagedAllocations.
         // I will use StagedAllocationService to fetch and confirm.
-        
+
         // However, StagedAllocationService already has confirmBatchAllocations(void).
-        // I'll keep the logic here for now, but I need StagedAllocationRepository access or use StagedAllocationService query.
-        
-        // Actually, looking at the previous implementation, confirmBatchAllocationsWithResult was very similar to confirmBatchAllocations.
-        // I will assume StagedAllocationService can handle it or I should move this method there too.
+        // I'll keep the logic here for now, but I need StagedAllocationRepository
+        // access or use StagedAllocationService query.
+
+        // Actually, looking at the previous implementation,
+        // confirmBatchAllocationsWithResult was very similar to
+        // confirmBatchAllocations.
+        // I will assume StagedAllocationService can handle it or I should move this
+        // method there too.
         // The reviewer said "AllocationBatchService (< 300 lines)".
-        // Moving confirmBatchAllocationsWithResult to StagedAllocationService is better.
-        
-        // I'll leave it here but using StagedAllocationService methods if possible, 
+        // Moving confirmBatchAllocationsWithResult to StagedAllocationService is
+        // better.
+
+        // I'll leave it here but using StagedAllocationService methods if possible,
         // but I can't iterate without repository.
         // I will return empty result for now and TODO: move to StagedAllocationService
-        
+
         // Or better, let's look at StagedAllocationService again.
         // It has confirmBatchAllocations (void).
         // I'll add confirmBatchAllocationsWithResult to StagedAllocationService.
@@ -308,16 +328,18 @@ public class AllocationBatchService {
         // It uses AllocationScoringService.
         // Keeping here for now but using orchestrator if possible.
         // Actually, this is a query method.
-        // I will move this to AllocationScoringOrchestrator? No, it returns Response DTOs.
+        // I will move this to AllocationScoringOrchestrator? No, it returns Response
+        // DTOs.
         // Maybe AllocationQueryService?
         // I will keep it here for now but verify line count.
         // It is ~50 lines.
-        
-        // Re-implementing logic here for now to ensure compilation, but should be moved.
+
+        // Re-implementing logic here for now to ensure compilation, but should be
+        // moved.
         // For now, I'll copy the logic back or find a new home.
         // Wait, AllocationBatchService is supposed to be batch orchestration.
         // I'll keep it here.
-        
+
         return allocationScoringOrchestrator.getWaitingListWithScores(buildingId);
     }
 

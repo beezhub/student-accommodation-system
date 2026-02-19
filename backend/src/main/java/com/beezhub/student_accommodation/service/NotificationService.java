@@ -111,7 +111,8 @@ public class NotificationService {
     @Async("notificationExecutor")
     public void sendApplicationStatusNotification(Application application, ApplicationStatus status) {
         if (application.getStudent() == null || application.getStudent().getAppUser() == null) {
-            log.warn("Cannot send application status notification: Student or AppUser is null for application {}", application.getId());
+            log.warn("Cannot send application status notification: Student or AppUser is null for application {}",
+                    application.getId());
             return;
         }
 
@@ -148,7 +149,7 @@ public class NotificationService {
                 handleNotificationFailure(notification, e);
             }
         } else {
-             log.warn("Notification not implemented for application status: {}", status);
+            log.warn("Notification not implemented for application status: {}", status);
         }
     }
 }

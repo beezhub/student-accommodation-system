@@ -1,7 +1,11 @@
 package com.beezhub.student_accommodation.config;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +32,9 @@ public class AsyncConfiguration implements AsyncConfigurer {
     @Value("${async.queue-capacity:500}")
     private int queueCapacity;
 
+    @Autowired
+    private MeterRegistry meterRegistry;
+
     @Bean(name = "notificationExecutor")
     public Executor notificationExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -42,6 +49,8 @@ public class AsyncConfiguration implements AsyncConfigurer {
 
         log.info("Async executor initialized - corePoolSize: {}, maxPoolSize: {}, queueCapacity: {}",
                 corePoolSize, maxPoolSize, queueCapacity);
+
+        meterRegistry.gauge("sas.async.queue.size", executor, (e) -> e.getThreadPoolExecutor().getQueue().size());
 
         return executor;
     }

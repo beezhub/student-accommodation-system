@@ -27,6 +27,7 @@ public class UserNotificationService {
     private final UserNotificationRepository userNotificationRepository;
     private final AppUserRepository appUserRepository;
     private final ObjectMapper objectMapper;
+    private final com.beezhub.student_accommodation.service.notification.SseService sseService;
 
     /**
      * Get all notifications for the current user
@@ -107,7 +108,7 @@ public class UserNotificationService {
      */
     @Transactional
     public UserNotification createNotification(Long userId, String type, String title,
-                                              String message, Map<String, Object> data) {
+            String message, Map<String, Object> data) {
         log.debug("Creating notification for user {}: type={}, title={}", userId, type, title);
 
         AppUser user = appUserRepository.findById(userId)
@@ -134,6 +135,12 @@ public class UserNotificationService {
         UserNotification saved = userNotificationRepository.save(notification);
         log.info("Created notification {} for user {}", saved.getId(), userId);
 
+        try {
+            sseService.sendNotification(userId, mapToResponse(saved));
+        } catch (Exception e) {
+            log.error("Failed to send SSE notification", e);
+        }
+
         return saved;
     }
 
@@ -150,21 +157,20 @@ public class UserNotificationService {
                 "ROOM_ALLOCATION",
                 "Room Allocated",
                 String.format("Your room %s in %s has been allocated!", roomNumber, buildingName),
-                data
-        );
+                data);
     }
 
     /**
      * Create a document status notification
      */
     public void createDocumentStatusNotification(Long userId, String documentType,
-                                                 boolean approved, String comment) {
+            boolean approved, String comment) {
         String type = approved ? "DOCUMENT_APPROVED" : "DOCUMENT_REJECTED";
         String title = approved ? "Document Approved" : "Document Rejected";
         String message = approved
                 ? String.format("Your %s has been approved!", documentType)
                 : String.format("Your %s requires attention. %s", documentType,
-                comment != null ? comment : "Please review and resubmit.");
+                        comment != null ? comment : "Please review and resubmit.");
 
         Map<String, Object> data = new HashMap<>();
         data.put("documentType", documentType);
@@ -179,13 +185,13 @@ public class UserNotificationService {
      * Create an application status notification
      */
     public void createApplicationStatusNotification(Long userId, Long applicationId,
-                                                    boolean approved, String reason) {
+            boolean approved, String reason) {
         String type = approved ? "APPLICATION_APPROVED" : "APPLICATION_REJECTED";
         String title = approved ? "Application Approved" : "Application Status Update";
         String message = approved
                 ? "Your accommodation application has been approved! Please upload your documents."
                 : String.format("Your application requires attention. %s",
-                reason != null ? reason : "Please review the requirements.");
+                        reason != null ? reason : "Please review the requirements.");
 
         Map<String, Object> data = new HashMap<>();
         data.put("applicationId", applicationId);
@@ -209,8 +215,7 @@ public class UserNotificationService {
                 "PAYMENT_DUE",
                 "Payment Due",
                 String.format("Payment of R%.2f is due on %s", amount, dueDate),
-                data
-        );
+                data);
     }
 
     /**
@@ -232,10 +237,10 @@ public class UserNotificationService {
                 userId,
                 "ALLOCATION_PROPOSED",
                 "Room Allocation Proposed",
-                String.format("A room allocation has been proposed for you: Room %s in %s. Please review in your portal.",
+                String.format(
+                        "A room allocation has been proposed for you: Room %s in %s. Please review in your portal.",
                         roomNumber, buildingName),
-                data
-        );
+                data);
     }
 
     /**
@@ -252,8 +257,7 @@ public class UserNotificationService {
                 "Room Allocation Confirmed",
                 String.format("Your room allocation has been confirmed! You have been assigned to Room %s in %s.",
                         roomNumber, buildingName),
-                data
-        );
+                data);
     }
 
     /**
@@ -272,8 +276,7 @@ public class UserNotificationService {
                 "Proposed Allocation Not Confirmed",
                 String.format("Your proposed allocation to Room %s was not confirmed. Reason: %s",
                         roomNumber, reason != null ? reason : "Please contact administration for details."),
-                data
-        );
+                data);
     }
 
     /**
@@ -293,14 +296,13 @@ public class UserNotificationService {
                 "Room Assignment Changed",
                 String.format("You have been moved from Room %s to Room %s. Reason: %s",
                         oldRoomNumber, newRoomNumber, reason != null ? reason : "Administrative decision."),
-                data
-        );
+                data);
     }
 
     /**
      * Creates an in-app notification when a student is added to the waiting list.
      *
-     * @param userId The app user ID
+     * @param userId        The app user ID
      * @param applicationId The application ID
      */
     @Transactional
@@ -314,8 +316,7 @@ public class UserNotificationService {
                 "Added to Waiting List",
                 "Your application has been approved! You've been added to the waiting list. " +
                         "We'll notify you as soon as a room becomes available.",
-                data
-        );
+                data);
 
         log.info("Created waiting list notification for user {} and application {}", userId, applicationId);
     }
@@ -323,8 +324,8 @@ public class UserNotificationService {
     /**
      * Creates an in-app notification when a room offer expires without response.
      *
-     * @param userId The app user ID
-     * @param roomNumber The room number
+     * @param userId       The app user ID
+     * @param roomNumber   The room number
      * @param buildingName The building name
      */
     @Transactional
@@ -335,8 +336,7 @@ public class UserNotificationService {
                 "Room Offer Expired",
                 String.format("Your offer for Room %s in %s has expired. Your application has been cancelled. " +
                         "Please submit a new application if you still need accommodation.", roomNumber, buildingName),
-                null
-        );
+                null);
 
         log.info("Created offer expired notification for user {}, room {}", userId, roomNumber);
     }
@@ -344,8 +344,8 @@ public class UserNotificationService {
     /**
      * Creates an in-app notification when check-in deadline is missed.
      *
-     * @param userId The app user ID
-     * @param roomNumber The room number
+     * @param userId       The app user ID
+     * @param roomNumber   The room number
      * @param buildingName The building name
      */
     @Transactional
@@ -357,8 +357,7 @@ public class UserNotificationService {
                 String.format("Your room allocation for Room %s in %s has expired due to failure to check in. " +
                         "Your application has been cancelled. Please submit a new application if you still need accommodation.",
                         roomNumber, buildingName),
-                null
-        );
+                null);
 
         log.info("Created check-in expired notification for user {}, room {}", userId, roomNumber);
     }
@@ -366,8 +365,8 @@ public class UserNotificationService {
     /**
      * Creates an in-app notification when admin confirms student check-in.
      *
-     * @param userId The app user ID
-     * @param roomNumber The room number
+     * @param userId       The app user ID
+     * @param roomNumber   The room number
      * @param buildingName The building name
      */
     @Transactional
@@ -379,8 +378,7 @@ public class UserNotificationService {
                 String.format("Welcome! Your check-in to Room %s in %s has been confirmed. " +
                         "Your accommodation is now active. Enjoy your stay!",
                         roomNumber, buildingName),
-                null
-        );
+                null);
 
         log.info("Created check-in confirmed notification for user {}, room {}", userId, roomNumber);
     }
@@ -394,8 +392,8 @@ public class UserNotificationService {
             try {
                 dataMap = objectMapper.readValue(
                         notification.getData(),
-                        new TypeReference<Map<String, Object>>() {}
-                );
+                        new TypeReference<Map<String, Object>>() {
+                        });
             } catch (JsonProcessingException e) {
                 log.warn("Failed to deserialize notification data", e);
             }

@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, NgZone } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, interval, Subscription, of } from 'rxjs';
 import { tap, switchMap, startWith, catchError } from 'rxjs/operators';
@@ -14,7 +14,11 @@ export class NotificationService {
   private notificationsSubject = new BehaviorSubject<Notification[]>([]);
   private unreadCountSubject = new BehaviorSubject<number>(0);
   private pollingSubscription?: Subscription;
+  private eventSource?: EventSource;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 3;
   private tokenStorage = inject(TokenStorageService);
+  private ngZone = inject(NgZone);
 
   public notifications$ = this.notificationsSubject.asObservable();
   public unreadCount$ = this.unreadCountSubject.asObservable();
@@ -22,19 +26,85 @@ export class NotificationService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Start polling for notifications every 30 seconds
+   * Initialize notifications (try SSE, fallback to polling)
    */
-  startPolling(): void {
-    // Stop any existing polling first
-    this.stopPolling();
+  initializeNotifications(): void {
+    // Stop any existing connection/polling
+    this.stopNotifications();
 
-    // Check if user is authenticated before starting polling
+    // Check if user is authenticated
     const token = this.tokenStorage.getToken();
     if (!token) {
-      console.warn('Cannot start notification polling: User not authenticated');
+      console.warn('Cannot start notifications: User not authenticated');
       return;
     }
 
+    this.connectToSse(token);
+  }
+
+  /**
+   * Connect to Server-Sent Events endpoint
+   */
+  private connectToSse(token: string): void {
+    const url = `${this.apiUrl}/stream?token=${token}`;
+    
+    this.eventSource = new EventSource(url);
+
+    this.eventSource.onopen = () => {
+      console.log('SSE connection opened');
+      this.reconnectAttempts = 0;
+    };
+
+    this.eventSource.addEventListener('notification', (event: MessageEvent) => {
+      this.ngZone.run(() => {
+        try {
+          const notification = JSON.parse(event.data);
+          this.handleNewNotification(notification);
+        } catch (e) {
+          console.error('Error parsing SSE notification', e);
+        }
+      });
+    });
+
+    this.eventSource.addEventListener('connected', () => {
+      console.log('SSE connected confirmed by server');
+    });
+
+    this.eventSource.onerror = (error) => {
+      this.ngZone.run(() => {
+        console.error('SSE error:', error);
+        this.eventSource?.close();
+        
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.reconnectAttempts++;
+          console.log(`Retrying SSE connection in 5s (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+          setTimeout(() => this.connectToSse(token), 5000);
+        } else {
+          console.warn('Max SSE reconnect attempts reached. Falling back to polling.');
+          this.startPolling();
+        }
+      });
+    };
+  }
+
+  /**
+   * Handle incoming notification from SSE
+   */
+  private handleNewNotification(notification: any): void {
+    // Refresh full list to keep sync (simplest approach for now)
+    // Or optimize by appending to list
+    this.fetchNotifications().subscribe();
+  }
+
+  /**
+   * Fallback: Start polling for notifications every 30 seconds
+   */
+  private startPolling(): void {
+    if (this.pollingSubscription) {
+      return;
+    }
+    
+    console.log('Starting notification polling fallback');
     this.pollingSubscription = interval(30000) // Poll every 30 seconds
       .pipe(
         startWith(0), // Start immediately
@@ -56,10 +126,8 @@ export class NotificationService {
         this.unreadCountSubject.next(response.unreadCount);
       }),
       catchError((error) => {
-        // Silently handle errors - just return empty response
-        // This prevents notification errors from breaking the app
         console.warn(
-          'Failed to fetch notifications (backend endpoint may not be ready):',
+          'Failed to fetch notifications:',
           error.message
         );
         return of({ notifications: [], unreadCount: 0, totalCount: 0 });
@@ -155,13 +223,19 @@ export class NotificationService {
   }
 
   /**
-   * Stop polling (call on logout)
+   * Stop notifications (call on logout)
    */
-  stopPolling(): void {
+  stopNotifications(): void {
     // Unsubscribe from polling
     if (this.pollingSubscription) {
       this.pollingSubscription.unsubscribe();
       this.pollingSubscription = undefined;
+    }
+
+    // Close SSE connection
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = undefined;
     }
 
     // Clear notifications

@@ -25,13 +25,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final com.beezhub.student_accommodation.service.TokenBlacklistService tokenBlacklistService;
     private final HandlerExceptionResolver handlerExceptionResolver;
 
-
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain chain
-    ) throws ServletException, IOException {
+            @NonNull FilterChain chain) throws ServletException, IOException {
         final String authorizationHeader = request.getHeader("Authorization");
 
         String username = null;
@@ -40,7 +38,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
                 jwt = authorizationHeader.substring(7);
-                
+            } else if (request.getParameter("token") != null) {
+                // Support token in query param for SSE (EventSource)
+                jwt = request.getParameter("token");
+            }
+
+            if (jwt != null) {
                 // Check blacklist first
                 String jti = jwtUtil.extractJti(jwt);
                 if (jti != null && tokenBlacklistService.isBlacklisted(jti)) {
@@ -71,11 +74,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
             }
-            
+
             chain.doFilter(request, response);
-            
+
         } catch (Exception e) {
-            // Delegate exception handling to the global exception resolver (RestResponseExceptionHandler)
+            // Delegate exception handling to the global exception resolver
+            // (RestResponseExceptionHandler)
             handlerExceptionResolver.resolveException(request, response, null, e);
         } finally {
             com.beezhub.student_accommodation.service.tenant.TenantContext.clear();
