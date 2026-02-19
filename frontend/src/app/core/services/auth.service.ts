@@ -59,8 +59,8 @@ export class AuthService {
         localStorage.setItem('currentUser', JSON.stringify(response.user));
         this.currentUserSubject.next(response.user);
 
-        // Start notification polling after successful signup
-        this.notificationService.startPolling();
+        // Start notification stream after successful signup
+        this.notificationService.initializeNotifications();
 
         return response.user;
       })
@@ -76,8 +76,8 @@ export class AuthService {
   }
 
   logout(): void {
-    // Stop notification polling before logout
-    this.notificationService.stopPolling();
+    // Stop notifications before logout
+    this.notificationService.stopNotifications();
 
     localStorage.removeItem('currentUser');
     this.tokenStorage.removeToken();
@@ -94,8 +94,8 @@ export class AuthService {
         localStorage.setItem('currentUser', JSON.stringify(response.user));
         this.currentUserSubject.next(response.user);
 
-        // Start notification polling after successful login
-        this.notificationService.startPolling();
+        // Start notification stream after successful login
+        this.notificationService.initializeNotifications();
 
         return response.user;
       })
