@@ -60,6 +60,7 @@ public class AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final LoginAttemptService loginAttemptService;
     private final TenantService tenantService;
+    private final UserAnonymizationService userAnonymizationService;
     private final MeterRegistry meterRegistry;
 
     @Value("${app.base-url:http://localhost:3000}")
@@ -283,6 +284,21 @@ public class AuthService {
         userRepository.delete(user);
 
         log.info("Account deleted successfully for user: {}", authentication.getName());
+    }
+
+    /**
+     * Anonymises a user account identified by userId (admin-only operation).
+     * Replaces all PII with placeholder values and invalidates the user's credentials.
+     * The account record is retained for referential integrity; the user cannot log in
+     * after anonymisation.
+     *
+     * @param userId the ID of the user to anonymise
+     */
+    @Transactional
+    public void anonymizeAccount(Long userId) {
+        log.info("Admin-initiated anonymisation for userId: {}", userId);
+        userAnonymizationService.anonymizeUser(userId);
+        log.info("Account anonymised successfully for userId: {}", userId);
     }
 
     private void blacklistCurrentToken(Authentication authentication) {

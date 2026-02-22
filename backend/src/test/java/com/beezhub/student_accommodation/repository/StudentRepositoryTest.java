@@ -283,7 +283,7 @@ class StudentRepositoryTest {
         AppUser user = entityManager.find(AppUser.class, testUser.getId());
 
         // When
-        Optional<Student> result = studentRepository.findStudentByAppUser(user);
+        Optional<Student> result = studentRepository.findByAppUser(user);
 
         // Then
         assertTrue(result.isPresent(), "Student should be found by AppUser");

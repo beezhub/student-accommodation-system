@@ -7,7 +7,8 @@ public enum AllocationAuditActionType {
     MOVE("Move"),
     OVERRIDE("Override"),
     DELETE("Delete"),
-    FORCE_ALLOCATE("Force Allocate");
+    FORCE_ALLOCATE("Force Allocate"),
+    STATUS_CHANGE("Status Change");
 
     private final String displayName;
 

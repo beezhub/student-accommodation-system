@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   db:
     image: postgres:16.2-alpine
@@ -11,46 +9,46 @@ services:
     ports:
       - "5432:5432"
 
-  student-accommodation-back-end:
-    container_name: student-accommodation-back-end
-    image: student-accommodation-back-end:latest
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      no_cache: true
-      args:
-        - BUILDKIT_INLINE_CACHE=0
-    ports:
-      - "8080:8080"
-    depends_on:
-      db:
-        condition: service_started
-      minio:
-        condition: service_started
-      mailhog:
-        condition: service_started
-      redis:
-        condition: service_healthy
-    environment:
-      - POSTGRES_DB=studentaccommodationlocaldb
-      - USER_DB=localadmin
-      - PASSWORD_DB=admin
-      - DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb
-      - JWT_SECRET=jvc+QC/0myyJ9+//Rzo+qYxfMmHDiQdlysvcT9XhUF7/6mvHD9evZBB/ngNAMwTD6sDDQgf4vS0QDZ8JYLoBOA==
-      - JWT_EXPIRATION=360000
-      - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      - MINIO_BUCKET=student-accommodation-bucket
-      - MAIL_HOST=mailhog
-      - MAIL_PORT=1025
-      - MAIL_USERNAME=student@gmail.com
-      - MAIL_PASSWORD=test
-      - APP_BASE_URL=http://localhost:3000
-      - APP_SUPPORT_EMAIL=accommodation@university.edu
-      - APP_UNIVERSITY_NAME=University
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+#  student-accommodation-back-end:
+#    container_name: student-accommodation-back-end
+#    image: student-accommodation-back-end:latest
+#    build:
+#      context: ./backend
+#      dockerfile: Dockerfile
+#      no_cache: true
+#      args:
+#        - BUILDKIT_INLINE_CACHE=0
+#    ports:
+#      - "8080:8080"
+#    depends_on:
+#      db:
+#        condition: service_started
+#      minio:
+#        condition: service_started
+#      mailhog:
+#        condition: service_started
+#      redis:
+#        condition: service_healthy
+#    environment:
+#      - POSTGRES_DB=studentaccommodationlocaldb
+#      - USER_DB=localadmin
+#      - PASSWORD_DB=admin
+#      - DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb
+#      - JWT_SECRET=jvc+QC/0myyJ9+//Rzo+qYxfMmHDiQdlysvcT9XhUF7/6mvHD9evZBB/ngNAMwTD6sDDQgf4vS0QDZ8JYLoBOA==
+#      - JWT_EXPIRATION=360000
+#      - MINIO_ENDPOINT=http://minio:9000
+#      - MINIO_ACCESS_KEY=minioadmin
+#      - MINIO_SECRET_KEY=minioadmin
+#      - MINIO_BUCKET=student-accommodation-bucket
+#      - MAIL_HOST=mailhog
+#      - MAIL_PORT=1025
+#      - MAIL_USERNAME=student@gmail.com
+#      - MAIL_PASSWORD=test
+#      - APP_BASE_URL=http://localhost:3000
+#      - APP_SUPPORT_EMAIL=accommodation@university.edu
+#      - APP_UNIVERSITY_NAME=University
+#      - REDIS_HOST=redis
+#      - REDIS_PORT=6379
 
   minio:
     image: minio/minio
@@ -118,3 +116,4 @@ volumes:
   minio_data:
   postgres_data:
   redis_data:
+  grafana_data:

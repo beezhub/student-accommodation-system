@@ -106,7 +106,7 @@ class DocumentLifecycleServiceTest {
 
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
-        when(studentRepository.findStudentByAppUser(user)).thenReturn(Optional.of(student));
+        when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
         when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/file.pdf");
         when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.valid());
@@ -135,7 +135,7 @@ class DocumentLifecycleServiceTest {
 
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
-        when(studentRepository.findStudentByAppUser(user)).thenReturn(Optional.of(student));
+        when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
         
         when(documentRepository.save(any(Document.class))).thenThrow(new RuntimeException("DB Error"));
         

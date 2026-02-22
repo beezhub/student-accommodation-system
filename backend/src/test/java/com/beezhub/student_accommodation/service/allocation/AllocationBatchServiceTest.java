@@ -12,8 +12,10 @@ import com.beezhub.student_accommodation.service.AllocationScoringService;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.ff4j.FF4j;
 import org.junit.jupiter.api.BeforeEach;
+import org.mockito.Answers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -77,6 +79,8 @@ class AllocationBatchServiceTest {
     private Environment environment;
     @Mock
     private ObjectMapper objectMapper;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private MeterRegistry meterRegistry;
 
     @InjectMocks
     private AllocationBatchService allocationBatchService;

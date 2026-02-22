@@ -401,6 +401,20 @@ public class RoomAllocationController {
                 return ResponseEntity.ok(result);
         }
 
+        // ==================== Audit History ====================
+
+        @GetMapping("/{id}/history")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Get allocation status history",
+                description = "Returns the full audit history for a room allocation, ordered by most recent first")
+        @ApiResponse(responseCode = "200", description = "Audit history retrieved successfully")
+        public ResponseEntity<List<AllocationAuditLogResponse>> getAllocationHistory(
+                        @Parameter(description = "Allocation ID") @PathVariable Long id) {
+                log.info("Fetching audit history for allocation: {}", id);
+                List<AllocationAuditLogResponse> history = roomAllocationService.getAllocationHistory(id);
+                return ResponseEntity.ok(history);
+        }
+
         // ==================== Helper Methods ====================
 
         private Long getAdminId(Authentication authentication) {

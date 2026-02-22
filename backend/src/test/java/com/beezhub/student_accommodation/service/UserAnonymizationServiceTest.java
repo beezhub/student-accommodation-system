@@ -98,4 +98,41 @@ class UserAnonymizationServiceTest {
         verify(appUserRepository, never()).save(any());
         verify(studentRepository, never()).save(any());
     }
+
+    @Test
+    void anonymize_userCannotLogin() {
+        // Arrange — a verified, active user
+        Long userId = 456L;
+        AppUser user = AppUser.builder()
+                .id(userId)
+                .firstName("Alice")
+                .lastName("Smith")
+                .email("alice@example.com")
+                .userRole(UserRole.STUDENT)
+                .isAnonymized(false)
+                .emailVerified(true)
+                .build();
+
+        when(appUserRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(studentRepository.findByAppUser(user)).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("bcrypt-random-hash");
+
+        // Act
+        service.anonymizeUser(userId);
+
+        // Assert — saved user has properties that prevent login
+        ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
+        verify(appUserRepository).save(captor.capture());
+        AppUser saved = captor.getValue();
+
+        // Email is scrambled — login by original email no longer works
+        assertEquals("deleted_456@anonymized.local", saved.getEmail());
+        // Email verification revoked — even if email were known, it cannot log in
+        assertFalse(saved.getEmailVerified());
+        // isAnonymized flag set — application layer can also gate on this
+        assertTrue(saved.getIsAnonymized());
+        // Password replaced with an unguessable random hash
+        verify(passwordEncoder).encode(anyString());
+        assertEquals("bcrypt-random-hash", saved.getUserPassword());
+    }
 }

@@ -29,8 +29,10 @@ public class FF4jConfig {
         JdbcFeatureStore featureStore = new JdbcFeatureStore(dataSource);
         ff4j.setFeatureStore(featureStore);
 
-        // Features are managed by Flyway migrations, not auto-created
-        ff4j.autoCreate(false);
+        // autoCreate(true): if the feature row is missing, FF4J creates it instead of
+        // throwing.
+        // The seed migration already inserts the row, so this is just a safety net.
+        ff4j.autoCreate(true);
 
         // Synchronize feature flag with application property
         try {
