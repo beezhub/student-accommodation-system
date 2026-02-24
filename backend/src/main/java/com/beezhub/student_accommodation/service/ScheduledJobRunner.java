@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  * <ul>
  *   <li>Structured log on start / complete / failure</li>
  *   <li>Prometheus counter {@code sas.jobs.{name}.processed} incremented by records processed</li>
- *   <li>Prometheus counter {@code jobs.{name}.failures} incremented on uncaught exception</li>
+ *   <li>Prometheus counter {@code sas.jobs.{name}.failures} incremented on uncaught exception</li>
  * </ul>
  *
  * One job failure does NOT affect other jobs — each wrapper has its own try/catch boundary.
@@ -41,10 +41,10 @@ public class ScheduledJobRunner {
         try {
             int processed = allocationExpiryService.expireOffers();
             log.info("job={} action=complete processed={}", jobName, processed);
-            meterRegistry.counter("jobs." + jobName + ".processed").increment(processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
         } catch (Exception e) {
             log.error("job={} action=failed", jobName, e);
-            meterRegistry.counter("jobs." + jobName + ".failures").increment();
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
         }
     }
 
@@ -55,10 +55,10 @@ public class ScheduledJobRunner {
         try {
             int processed = allocationExpiryService.expireCheckIns();
             log.info("job={} action=complete processed={}", jobName, processed);
-            meterRegistry.counter("jobs." + jobName + ".processed").increment(processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
         } catch (Exception e) {
             log.error("job={} action=failed", jobName, e);
-            meterRegistry.counter("jobs." + jobName + ".failures").increment();
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
         }
     }
 
@@ -69,10 +69,10 @@ public class ScheduledJobRunner {
         try {
             int processed = allocationBatchService.scheduledBatchAllocation();
             log.info("job={} action=complete processed={}", jobName, processed);
-            meterRegistry.counter("jobs." + jobName + ".processed").increment(processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
         } catch (Exception e) {
             log.error("job={} action=failed", jobName, e);
-            meterRegistry.counter("jobs." + jobName + ".failures").increment();
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
         }
     }
 
@@ -83,10 +83,10 @@ public class ScheduledJobRunner {
         try {
             int processed = orphanFileCleanupJob.cleanupOrphanedFiles();
             log.info("job={} action=complete processed={}", jobName, processed);
-            meterRegistry.counter("jobs." + jobName + ".processed").increment(processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
         } catch (Exception e) {
             log.error("job={} action=failed", jobName, e);
-            meterRegistry.counter("jobs." + jobName + ".failures").increment();
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
         }
     }
 }

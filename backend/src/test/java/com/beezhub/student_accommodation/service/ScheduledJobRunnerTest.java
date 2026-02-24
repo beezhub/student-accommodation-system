@@ -49,7 +49,7 @@ class ScheduledJobRunnerTest {
 
         assertThatCode(() -> scheduledJobRunner.runOfferExpiry()).doesNotThrowAnyException();
 
-        Counter failures = meterRegistry.find("jobs.offerExpiry.failures").counter();
+        Counter failures = meterRegistry.find("sas.jobs.offerExpiry.failures").counter();
         assertThat(failures).isNotNull();
         assertThat(failures.count()).isEqualTo(1.0);
     }
@@ -60,7 +60,7 @@ class ScheduledJobRunnerTest {
 
         scheduledJobRunner.runOfferExpiry();
 
-        Counter processed = meterRegistry.find("jobs.offerExpiry.processed").counter();
+        Counter processed = meterRegistry.find("sas.jobs.offerExpiry.processed").counter();
         assertThat(processed).isNotNull();
         assertThat(processed.count()).isEqualTo(3.0);
     }
@@ -73,7 +73,7 @@ class ScheduledJobRunnerTest {
 
         assertThatCode(() -> scheduledJobRunner.runCheckInExpiry()).doesNotThrowAnyException();
 
-        Counter failures = meterRegistry.find("jobs.checkInExpiry.failures").counter();
+        Counter failures = meterRegistry.find("sas.jobs.checkInExpiry.failures").counter();
         assertThat(failures).isNotNull();
         assertThat(failures.count()).isEqualTo(1.0);
     }
@@ -84,7 +84,7 @@ class ScheduledJobRunnerTest {
 
         scheduledJobRunner.runCheckInExpiry();
 
-        Counter processed = meterRegistry.find("jobs.checkInExpiry.processed").counter();
+        Counter processed = meterRegistry.find("sas.jobs.checkInExpiry.processed").counter();
         assertThat(processed).isNotNull();
         assertThat(processed.count()).isEqualTo(5.0);
     }
@@ -97,7 +97,7 @@ class ScheduledJobRunnerTest {
 
         assertThatCode(() -> scheduledJobRunner.runBatchAllocation()).doesNotThrowAnyException();
 
-        Counter failures = meterRegistry.find("jobs.batchAllocation.failures").counter();
+        Counter failures = meterRegistry.find("sas.jobs.batchAllocation.failures").counter();
         assertThat(failures).isNotNull();
         assertThat(failures.count()).isEqualTo(1.0);
     }
@@ -108,7 +108,7 @@ class ScheduledJobRunnerTest {
 
         scheduledJobRunner.runBatchAllocation();
 
-        Counter processed = meterRegistry.find("jobs.batchAllocation.processed").counter();
+        Counter processed = meterRegistry.find("sas.jobs.batchAllocation.processed").counter();
         assertThat(processed).isNotNull();
         assertThat(processed.count()).isEqualTo(10.0);
     }
@@ -121,7 +121,7 @@ class ScheduledJobRunnerTest {
 
         assertThatCode(() -> scheduledJobRunner.runOrphanFileCleanup()).doesNotThrowAnyException();
 
-        Counter failures = meterRegistry.find("jobs.orphanCleanup.failures").counter();
+        Counter failures = meterRegistry.find("sas.jobs.orphanCleanup.failures").counter();
         assertThat(failures).isNotNull();
         assertThat(failures.count()).isEqualTo(1.0);
     }
@@ -132,7 +132,7 @@ class ScheduledJobRunnerTest {
 
         scheduledJobRunner.runOrphanFileCleanup();
 
-        Counter processed = meterRegistry.find("jobs.orphanCleanup.processed").counter();
+        Counter processed = meterRegistry.find("sas.jobs.orphanCleanup.processed").counter();
         assertThat(processed).isNotNull();
         assertThat(processed.count()).isEqualTo(2.0);
     }
@@ -148,6 +148,6 @@ class ScheduledJobRunnerTest {
         assertThatCode(() -> scheduledJobRunner.runCheckInExpiry()).doesNotThrowAnyException();
 
         assertThat(meterRegistry.find("sas.jobs.offerExpiry.failures").counter().count()).isEqualTo(1.0);
-        assertThat(meterRegistry.find("jobs.checkInExpiry.processed").counter().count()).isEqualTo(2.0);
+        assertThat(meterRegistry.find("sas.jobs.checkInExpiry.processed").counter().count()).isEqualTo(2.0);
     }
 }
