@@ -60,7 +60,7 @@ class ScheduledJobRunnerTest {
 
         scheduledJobRunner.runOfferExpiry();
 
-        Counter processed = meterRegistry.find("jobs.offerExpiry.processed").counter();
+        Counter processed = meterRegistry.find("sas.jobs.offerExpiry.processed").counter();
         assertThat(processed).isNotNull();
         assertThat(processed.count()).isEqualTo(3.0);
     }
