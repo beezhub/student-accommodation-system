@@ -27,10 +27,13 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -148,22 +151,68 @@ class RoomServiceTest {
     }
 
     @Test
-    void updateRoom_shouldThrowException_whenDuplicateRoomNumberInSameBuilding() {
-        RoomRequest updateRequest = new RoomRequest();
-        updateRequest.setRoomNumber("102");
-        updateRequest.setCapacity(2);
-        updateRequest.setBuildingId(1L);
+    void createBulkRooms_shouldCreateRooms_withSingleBatchQuery() {
+        RoomRequest req1 = new RoomRequest();
+        req1.setRoomNumber("201");
+        req1.setCapacity(2);
+        req1.setBuildingId(1L);
 
-        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        RoomRequest req2 = new RoomRequest();
+        req2.setRoomNumber("202");
+        req2.setCapacity(2);
+        req2.setBuildingId(1L);
+
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
-        // Room "102" already exists in building 1 (for a different room id)
-        when(roomRepository.existsByRoomNumberAndBuilding_IdAndIdNot("102", 1L, 1L)).thenReturn(true);
+        when(roomRepository.findRoomNumbersByBuildingIdAndRoomNumberIn(eq(1L), anyCollection()))
+                .thenReturn(Set.of());
+        when(roomRepository.save(any(Room.class))).thenReturn(room);
+        when(roomMapper.toResponse(any(Room.class))).thenReturn(new RoomResponse());
 
-        assertThatThrownBy(() -> roomService.updateRoom(1L, updateRequest))
+        List<RoomResponse> responses = roomService.createBulkRooms(List.of(req1, req2));
+
+        assertThat(responses).hasSize(2);
+        // Only one batch query for the building, not one per room
+        verify(roomRepository, times(1)).findRoomNumbersByBuildingIdAndRoomNumberIn(eq(1L), anyCollection());
+        verify(roomRepository, never()).existsByRoomNumberAndBuilding_Id(any(), any());
+    }
+
+    @Test
+    void createBulkRooms_shouldThrow_whenDuplicateExistsInDb() {
+        RoomRequest req = new RoomRequest();
+        req.setRoomNumber("101");
+        req.setCapacity(2);
+        req.setBuildingId(1L);
+
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(roomRepository.findRoomNumbersByBuildingIdAndRoomNumberIn(eq(1L), anyCollection()))
+                .thenReturn(Set.of("101"));
+
+        assertThatThrownBy(() -> roomService.createBulkRooms(List.of(req)))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("A room with this number already exists in this building");
+    }
 
-        verify(roomRepository, never()).save(any(Room.class));
+    @Test
+    void createBulkRooms_shouldThrow_whenDuplicateWithinBatch() {
+        RoomRequest req1 = new RoomRequest();
+        req1.setRoomNumber("303");
+        req1.setCapacity(2);
+        req1.setBuildingId(1L);
+
+        RoomRequest req2 = new RoomRequest();
+        req2.setRoomNumber("303");
+        req2.setCapacity(3);
+        req2.setBuildingId(1L);
+
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(roomRepository.findRoomNumbersByBuildingIdAndRoomNumberIn(eq(1L), anyCollection()))
+                .thenReturn(Set.of());
+        when(roomRepository.save(any(Room.class))).thenReturn(room);
+        when(roomMapper.toResponse(any(Room.class))).thenReturn(new RoomResponse());
+
+        assertThatThrownBy(() -> roomService.createBulkRooms(List.of(req1, req2)))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("A room with this number already exists in this building");
     }
 
     @Test
