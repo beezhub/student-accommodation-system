@@ -129,8 +129,16 @@ class SystemSettingServiceTest {
     @Test
     @DisplayName("isAutoAllocationEnabled_returnsFalseWhenSettingIsFalse")
     void isAutoAllocationEnabled_returnsFalseWhenSettingIsFalse() {
+        // Use a current-tenant setting whose value is "false" to test boolean parsing
+        SystemSetting tenant1FalseSetting = SystemSetting.builder()
+                .id(4L)
+                .tenantId(TENANT_1_ID)
+                .settingKey(SystemSettingService.AUTO_ALLOCATION_ENABLED)
+                .settingValue("false")
+                .build();
+
         when(systemSettingRepository.findBySettingKey(SystemSettingService.AUTO_ALLOCATION_ENABLED))
-                .thenReturn(Optional.of(tenant2Setting)); // tenant2Setting has value "false"
+                .thenReturn(Optional.of(tenant1FalseSetting));
 
         assertThat(systemSettingService.isAutoAllocationEnabled()).isFalse();
     }
