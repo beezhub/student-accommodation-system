@@ -52,9 +52,9 @@ spring:
     properties:
       mail:
         smtp:
-          auth: false
+          auth: ${MAIL_SMTP_AUTH:false}
           starttls:
-            enable: false
+            enable: ${MAIL_STARTTLS_ENABLE:false}
     default-encoding: UTF-8
   servlet:
     multipart:
