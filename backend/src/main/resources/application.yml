@@ -21,17 +21,18 @@ spring:
       hibernate:
         format_sql: true
         hbm2ddl:
-          auto: update
+          auto: validate
   flyway:
     baseline-on-migrate: true
+    baseline-version: ${FLYWAY_BASELINE_VERSION:2026.02.19.2100}
     enabled: true
     password: ${PASSWORD_DB:admin}
     user: ${USER_DB:localadmin}
     url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
     locations: classpath:db/migration
-    out-of-order: true
-    ignore-missing-migrations: true
-    validate-on-migrate: false
+    out-of-order: false
+    ignore-missing-migrations: false
+    validate-on-migrate: true
   data:
     redis:
       host: ${REDIS_HOST:localhost}
