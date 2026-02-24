@@ -25,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -153,6 +154,107 @@ class RoomServiceTest {
         roomService.deleteRoom(1L);
 
         verify(roomRepository).delete(room);
+    }
+
+    // ---- createBulkRooms tests ----
+
+    @Test
+    void createBulkRooms_shouldCreateAllRooms_whenNoDuplicates() {
+        RoomRequest request1 = new RoomRequest();
+        request1.setRoomNumber("201");
+        request1.setCapacity(2);
+        request1.setBuildingId(1L);
+
+        RoomRequest request2 = new RoomRequest();
+        request2.setRoomNumber("202");
+        request2.setCapacity(2);
+        request2.setBuildingId(1L);
+
+        Room room1 = new Room();
+        room1.setId(2L);
+        room1.setRoomNumber("201");
+        room1.setBuilding(building);
+
+        Room room2 = new Room();
+        room2.setId(3L);
+        room2.setRoomNumber("202");
+        room2.setBuilding(building);
+
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(roomRepository.existsByRoomNumberAndBuilding_Id("201", 1L)).thenReturn(false);
+        when(roomRepository.existsByRoomNumberAndBuilding_Id("202", 1L)).thenReturn(false);
+        when(roomRepository.save(any(Room.class))).thenReturn(room1, room2);
+        when(roomMapper.toResponse(any(Room.class))).thenReturn(new RoomResponse());
+
+        List<RoomResponse> responses = roomService.createBulkRooms(List.of(request1, request2));
+
+        assertThat(responses).hasSize(2);
+        verify(roomRepository, times(2)).save(any(Room.class));
+    }
+
+    @Test
+    void createBulkRooms_shouldThrowException_whenBuildingNotFound() {
+        RoomRequest request = new RoomRequest();
+        request.setRoomNumber("201");
+        request.setCapacity(2);
+        request.setBuildingId(99L);
+
+        when(buildingRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> roomService.createBulkRooms(List.of(request)))
+                .isInstanceOf(BuildingNotFoundException.class);
+
+        verify(roomRepository, never()).save(any(Room.class));
+    }
+
+    @Test
+    void createBulkRooms_shouldThrow409_whenDuplicateExistsInDatabase() {
+        RoomRequest request = new RoomRequest();
+        request.setRoomNumber("101");
+        request.setCapacity(2);
+        request.setBuildingId(1L);
+
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(roomRepository.existsByRoomNumberAndBuilding_Id("101", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> roomService.createBulkRooms(List.of(request)))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("A room with this number already exists in this building");
+
+        verify(roomRepository, never()).save(any(Room.class));
+    }
+
+    @Test
+    void createBulkRooms_shouldThrow409_whenIntraBatchDuplicateForSameBuilding() {
+        RoomRequest request1 = new RoomRequest();
+        request1.setRoomNumber("101");
+        request1.setCapacity(2);
+        request1.setBuildingId(1L);
+
+        RoomRequest request2 = new RoomRequest();
+        request2.setRoomNumber("101"); // same number, same building
+        request2.setCapacity(3);
+        request2.setBuildingId(1L);
+
+        Room savedRoom = new Room();
+        savedRoom.setId(2L);
+        savedRoom.setRoomNumber("101");
+        savedRoom.setBuilding(building);
+
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        // Simulate: first item passes the DB check and is saved; on the second item the DB
+        // now reports the number as taken (as it would after the first save is flushed).
+        when(roomRepository.existsByRoomNumberAndBuilding_Id("101", 1L))
+                .thenReturn(false, true);
+        when(roomRepository.save(any(Room.class))).thenReturn(savedRoom);
+        when(roomMapper.toResponse(any(Room.class))).thenReturn(new RoomResponse());
+
+        assertThatThrownBy(() -> roomService.createBulkRooms(List.of(request1, request2)))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("A room with this number already exists in this building");
+
+        // Only the first room should have been saved before the duplicate was detected
+        verify(roomRepository, times(1)).save(any(Room.class));
     }
 
     @Test
