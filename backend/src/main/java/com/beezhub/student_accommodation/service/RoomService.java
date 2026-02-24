@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 @Transactional
 public class RoomService {
 
+    private static final String DUPLICATE_ROOM_ERROR = "A room with this number already exists in this building";
+
     private final RoomRepository roomRepository;
     private final BuildingRepository buildingRepository;
     private final RoomAllocationRepository roomAllocationRepository;
@@ -100,8 +102,7 @@ public class RoomService {
                     .orElseThrow(() -> new BuildingNotFoundException(
                             "Building not found with id: " + request.getBuildingId()));
             if (roomRepository.existsByRoomNumberAndBuilding_Id(request.getRoomNumber(), request.getBuildingId())) {
-                throw new DuplicateResourceException(
-                        "A room with this number already exists in this building");
+                throw new DuplicateResourceException(DUPLICATE_ROOM_ERROR);
             }
             room.setBuilding(building);
         }
@@ -131,8 +132,7 @@ public class RoomService {
                                 .orElseThrow(() -> new BuildingNotFoundException(
                                         "Building not found with id: " + id)));
                 if (roomRepository.existsByRoomNumberAndBuilding_Id(request.getRoomNumber(), request.getBuildingId())) {
-                    throw new DuplicateResourceException(
-                            "A room with this number already exists in this building");
+                    throw new DuplicateResourceException(DUPLICATE_ROOM_ERROR);
                 }
                 room.setBuilding(building);
             }
@@ -163,8 +163,7 @@ public class RoomService {
                             "Building not found with id: " + request.getBuildingId()));
             if (roomRepository.existsByRoomNumberAndBuilding_IdAndIdNot(
                     request.getRoomNumber(), request.getBuildingId(), id)) {
-                throw new DuplicateResourceException(
-                        "A room with this number already exists in this building");
+                throw new DuplicateResourceException(DUPLICATE_ROOM_ERROR);
             }
             room.setBuilding(building);
             log.info("Building set to: {}", building.getName());
