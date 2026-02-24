@@ -10,11 +10,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 /**
@@ -24,9 +27,22 @@ import static org.mockito.Mockito.*;
  * These tests verify that the service layer faithfully delegates to the repository and does not
  * inadvertently return values belonging to a different tenant.
  *
- * <p>The critical test {@link #getSettingByKey_returnsOnlyCurrentTenantValue()} simulates the
- * filter being active: the repository mock returns only the current-tenant setting (as the real
- * filter would), and the service must return that value — not a value from another tenant's row.
+ * <p>Two scenarios are covered:
+ * <ol>
+ *   <li><strong>Filter active</strong> – {@link #getSettingByKey_returnsOnlyCurrentTenantValue()}
+ *       simulates the normal request path: the repository mock returns only the current-tenant
+ *       setting (as the real Hibernate filter would), and the service returns that value — not a
+ *       value from another tenant's row.</li>
+ *   <li><strong>Filter disabled</strong> –
+ *       {@link #getSetting_whenTenantFilterDisabledAndMultipleRowsExist_throwsIncorrectResultSize()}
+ *       and
+ *       {@link #updateSetting_whenTenantFilterDisabledAndMultipleRowsExist_throwsIncorrectResultSize()}
+ *       cover the failure mode that occurs in contexts without the filter (e.g. scheduled jobs or
+ *       {@code @Async} tasks): when multiple tenants share the same {@code setting_key}, the
+ *       repository throws {@link org.springframework.dao.IncorrectResultSizeDataAccessException}
+ *       rather than silently returning an arbitrary tenant's row. Callers in such contexts must
+ *       explicitly enable the Hibernate filter on the current session before querying.</li>
+ * </ol>
  */
 @ExtendWith(MockitoExtension.class)
 class SystemSettingServiceTest {
@@ -150,5 +166,36 @@ class SystemSettingServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThat(systemSettingService.isAutoAllocationEnabled()).isFalse();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // TASK-1.03: Filter-disabled failure mode (cross-tenant clash)
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("getSetting_whenTenantFilterDisabledAndMultipleRowsExist_throwsIncorrectResultSize")
+    void getSetting_whenTenantFilterDisabledAndMultipleRowsExist_throwsIncorrectResultSize() {
+        // Simulates the failure mode where tenantFilter is NOT active (e.g. a scheduled-job or
+        // @Async context) and two tenant rows share the same setting_key.  The repository throws
+        // IncorrectResultSizeDataAccessException rather than silently returning an arbitrary row.
+        when(systemSettingRepository.findBySettingKey(KEY))
+                .thenThrow(new IncorrectResultSizeDataAccessException(1, 2));
+
+        // Assert: exception propagates — callers in system-level contexts must ensure the filter
+        // is enabled before invoking any key-based lookup.
+        assertThatThrownBy(() -> systemSettingService.getSetting(KEY))
+                .isInstanceOf(IncorrectResultSizeDataAccessException.class);
+    }
+
+    @Test
+    @DisplayName("updateSetting_whenTenantFilterDisabledAndMultipleRowsExist_throwsIncorrectResultSize")
+    void updateSetting_whenTenantFilterDisabledAndMultipleRowsExist_throwsIncorrectResultSize() {
+        // Same failure mode for the write path: updateSetting also calls findBySettingKey and
+        // must not silently overwrite an arbitrary tenant's row when the filter is absent.
+        when(systemSettingRepository.findBySettingKey(KEY))
+                .thenThrow(new IncorrectResultSizeDataAccessException(1, 2));
+
+        assertThatThrownBy(() -> systemSettingService.updateSetting(KEY, "new-value"))
+                .isInstanceOf(IncorrectResultSizeDataAccessException.class);
     }
 }
