@@ -148,6 +148,25 @@ class RoomServiceTest {
     }
 
     @Test
+    void updateRoom_shouldThrowException_whenDuplicateRoomNumberInSameBuilding() {
+        RoomRequest updateRequest = new RoomRequest();
+        updateRequest.setRoomNumber("102");
+        updateRequest.setCapacity(2);
+        updateRequest.setBuildingId(1L);
+
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        // Room "102" already exists in building 1 (for a different room id)
+        when(roomRepository.existsByRoomNumberAndBuilding_IdAndIdNot("102", 1L, 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> roomService.updateRoom(1L, updateRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("A room with this number already exists in this building");
+
+        verify(roomRepository, never()).save(any(Room.class));
+    }
+
+    @Test
     void deleteRoom_shouldDeleteRoom() {
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
 
