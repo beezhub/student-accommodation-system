@@ -147,7 +147,7 @@ class ScheduledJobRunnerTest {
         assertThatCode(() -> scheduledJobRunner.runOfferExpiry()).doesNotThrowAnyException();
         assertThatCode(() -> scheduledJobRunner.runCheckInExpiry()).doesNotThrowAnyException();
 
-        assertThat(meterRegistry.find("jobs.offerExpiry.failures").counter().count()).isEqualTo(1.0);
+        assertThat(meterRegistry.find("sas.jobs.offerExpiry.failures").counter().count()).isEqualTo(1.0);
         assertThat(meterRegistry.find("jobs.checkInExpiry.processed").counter().count()).isEqualTo(2.0);
     }
 }
