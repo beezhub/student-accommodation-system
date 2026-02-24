@@ -7,8 +7,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificationExecutor<Room> {
@@ -46,6 +48,10 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
 
     // Check for duplicate room number within a building (per-building uniqueness)
     boolean existsByRoomNumberAndBuilding_Id(String roomNumber, Long buildingId);
+
+    // Batch check: return the subset of roomNumbers that already exist in a building (for bulk operations)
+    @Query("SELECT r.roomNumber FROM Room r WHERE r.building.id = :buildingId AND r.roomNumber IN :roomNumbers")
+    Set<String> findRoomNumbersByBuildingIdAndRoomNumberIn(@Param("buildingId") Long buildingId, @Param("roomNumbers") Collection<String> roomNumbers);
 
     // Check for duplicate room number within a building, excluding a specific room (for updates)
     boolean existsByRoomNumberAndBuilding_IdAndIdNot(String roomNumber, Long buildingId, Long excludeId);

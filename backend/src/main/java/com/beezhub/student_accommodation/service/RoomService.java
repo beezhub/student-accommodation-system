@@ -23,7 +23,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -115,7 +119,23 @@ public class RoomService {
         log.info("Bulk creating {} rooms", requests.size());
 
         // Cache building lookups to avoid repeated queries
-        java.util.Map<Long, Building> buildingCache = new java.util.HashMap<>();
+        Map<Long, Building> buildingCache = new HashMap<>();
+
+        // Batch duplicate detection: group requested room numbers by buildingId and query in bulk
+        Map<Long, List<String>> roomNumbersByBuilding = requests.stream()
+                .filter(r -> r.getBuildingId() != null)
+                .collect(Collectors.groupingBy(
+                        RoomRequest::getBuildingId,
+                        Collectors.mapping(RoomRequest::getRoomNumber, Collectors.toList())));
+
+        Map<Long, Set<String>> existingByBuilding = new HashMap<>();
+        for (Map.Entry<Long, List<String>> entry : roomNumbersByBuilding.entrySet()) {
+            existingByBuilding.put(entry.getKey(),
+                    roomRepository.findRoomNumbersByBuildingIdAndRoomNumberIn(entry.getKey(), entry.getValue()));
+        }
+
+        // Track room numbers added within this batch to detect intra-batch duplicates
+        Map<Long, Set<String>> addedInBatch = new HashMap<>();
 
         List<RoomResponse> responses = new java.util.ArrayList<>();
         for (RoomRequest request : requests) {
@@ -130,10 +150,13 @@ public class RoomService {
                         id -> buildingRepository.findById(id)
                                 .orElseThrow(() -> new BuildingNotFoundException(
                                         "Building not found with id: " + id)));
-                if (roomRepository.existsByRoomNumberAndBuilding_Id(request.getRoomNumber(), request.getBuildingId())) {
+                Set<String> existing = existingByBuilding.getOrDefault(request.getBuildingId(), Set.of());
+                Set<String> inBatch = addedInBatch.computeIfAbsent(request.getBuildingId(), k -> new HashSet<>());
+                if (existing.contains(request.getRoomNumber()) || inBatch.contains(request.getRoomNumber())) {
                     throw new DuplicateResourceException(
                             "A room with this number already exists in this building");
                 }
+                inBatch.add(request.getRoomNumber());
                 room.setBuilding(building);
             }
 
