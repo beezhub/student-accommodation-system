@@ -44,6 +44,8 @@ services:
 #      - MAIL_PORT=1025
 #      - MAIL_USERNAME=student@gmail.com
 #      - MAIL_PASSWORD=test
+#      - MAIL_SMTP_AUTH=false
+#      - MAIL_STARTTLS_ENABLE=false
 #      - APP_BASE_URL=http://localhost:3000
 #      - APP_SUPPORT_EMAIL=accommodation@university.edu
 #      - APP_UNIVERSITY_NAME=University
