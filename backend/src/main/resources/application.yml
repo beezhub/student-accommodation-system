@@ -24,7 +24,7 @@ spring:
           auto: validate
   flyway:
     baseline-on-migrate: true
-    baseline-version: 2026.02.19.2059
+    baseline-version: ${FLYWAY_BASELINE_VERSION:2026.02.19.2100}
     enabled: true
     password: ${PASSWORD_DB:admin}
     user: ${USER_DB:localadmin}
