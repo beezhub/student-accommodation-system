@@ -14,7 +14,6 @@ import org.ff4j.FF4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -58,37 +57,32 @@ public class AllocationBatchService {
     }
 
     /**
-     * Periodic batch allocation job.
+     * Batch allocation job body — called by ScheduledJobRunner.
      * Processes waiting list students when rooms are available.
-     * Runs every 6 hours (configurable via app.allocation.batch-interval-ms).
      */
-    @Scheduled(fixedDelayString = "${app.allocation.batch-interval-ms:21600000}")
-    public void scheduledBatchAllocation() {
+    public int scheduledBatchAllocation() {
         // Check if batch job is enabled
         boolean batchEnabled = environment.getProperty("app.allocation.batch-enabled", Boolean.class, true);
         if (!batchEnabled) {
-            return;
+            return 0;
         }
 
-        log.info("Starting scheduled batch allocation job");
+        log.info("Starting batch allocation job");
 
-        try {
-            long waitingCount = waitingListRepository.countByStatus("WAITING");
+        long waitingCount = waitingListRepository.countByStatus("WAITING");
 
-            if (waitingCount == 0) {
-                log.info("No students on waiting list, skipping batch allocation");
-                return;
-            }
-
-            int batchSize = environment.getProperty("app.allocation.batch-size", Integer.class, 50);
-            BatchAllocationResult result = batchAllocateFromWaitingList(batchSize);
-
-            log.info("Scheduled batch allocation completed: {} succeeded, {} failed out of {} waiting",
-                    result.getSuccessCount(), result.getFailureCount(), waitingCount);
-
-        } catch (Exception e) {
-            log.error("Scheduled batch allocation failed", e);
+        if (waitingCount == 0) {
+            log.info("No students on waiting list, skipping batch allocation");
+            return 0;
         }
+
+        int batchSize = environment.getProperty("app.allocation.batch-size", Integer.class, 50);
+        BatchAllocationResult result = batchAllocateFromWaitingList(batchSize);
+
+        log.info("Batch allocation completed: {} succeeded, {} failed out of {} waiting",
+                result.getSuccessCount(), result.getFailureCount(), waitingCount);
+
+        return result.getSuccessCount();
     }
 
     /**
