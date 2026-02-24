@@ -47,7 +47,7 @@ spring:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
     username: ${MAIL_USERNAME:noreply@studentaccommodation.local}
-    password: ${MAIL_PASSWORD:test}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -69,7 +69,7 @@ springdoc:
     tags-sorter: alpha
     disable-swagger-default-url: true
 jwt:
-  secret: ${JWT_SECRET:jCiWx+J9UALsCG/0E4elPktfQpDd7EpipyN1AGrCE2HNAjf826VSFMklA76gqBf23ZP8P1kq9DmC95dSolXknQ==}
+  secret: ${JWT_SECRET}
   expiration-time-ms: ${JWT_EXPIRATION:36000000}
   admin-expiration-time-ms: ${JWT_ADMIN_EXPIRATION:14400000}
 minio:
