@@ -1,6 +1,5 @@
 package com.beezhub.student_accommodation.controller;
 
-import com.beezhub.student_accommodation.config.GoogleMapsConfig;
 import com.beezhub.student_accommodation.model.dto.BuildingImageResponse;
 import com.beezhub.student_accommodation.model.dto.BuildingRequest;
 import com.beezhub.student_accommodation.model.dto.BuildingResponse;
@@ -20,9 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/building")
@@ -33,17 +30,6 @@ public class BuildingController {
 
     private final BuildingService buildingService;
     private final BuildingImageService buildingImageService;
-    private final GoogleMapsConfig googleMapsConfig;
-
-    @GetMapping("/maps-config")
-    @Operation(summary = "Get Google Maps configuration", description = "Returns Google Maps API configuration for frontend use")
-    public ResponseEntity<Map<String, Object>> getMapsConfig() {
-        log.info("Fetching Google Maps configuration");
-        Map<String, Object> config = new HashMap<>();
-        config.put("enabled", googleMapsConfig.isGeocodingEnabled());
-        config.put("apiKey", googleMapsConfig.getFrontendApiKey());
-        return ResponseEntity.ok(config);
-    }
 
     @GetMapping
     @Operation(summary = "Get all buildings", description = "Returns a paginated list of all accommodation buildings. Supports pagination with query params: page, size, sort")
@@ -101,7 +87,7 @@ public class BuildingController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update building", description = "Updates an existing building. Admin only.")
     public ResponseEntity<BuildingResponse> updateBuilding(@PathVariable Long id,
-                                                            @Valid @RequestBody BuildingRequest request) {
+            @Valid @RequestBody BuildingRequest request) {
         log.info("Updating building with id: {}", id);
         return ResponseEntity.ok(buildingService.updateBuilding(id, request));
     }

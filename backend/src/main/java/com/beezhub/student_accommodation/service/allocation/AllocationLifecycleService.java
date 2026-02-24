@@ -40,6 +40,7 @@ public class AllocationLifecycleService {
     private final RoomOccupancyManager roomOccupancyManager;
     private final AllocationMoveService allocationMoveService;
     private final AllocationBatchService allocationBatchService;
+    private final AllocationAuditService allocationAuditService;
     private final MeterRegistry meterRegistry;
 
     public AllocationLifecycleService(
@@ -53,6 +54,7 @@ public class AllocationLifecycleService {
             RoomOccupancyManager roomOccupancyManager,
             AllocationMoveService allocationMoveService,
             @Lazy AllocationBatchService allocationBatchService,
+            AllocationAuditService allocationAuditService,
             MeterRegistry meterRegistry) {
         this.roomAllocationRepository = roomAllocationRepository;
         this.studentRepository = studentRepository;
@@ -64,6 +66,7 @@ public class AllocationLifecycleService {
         this.roomOccupancyManager = roomOccupancyManager;
         this.allocationMoveService = allocationMoveService;
         this.allocationBatchService = allocationBatchService;
+        this.allocationAuditService = allocationAuditService;
         this.meterRegistry = meterRegistry;
     }
 
@@ -88,6 +91,8 @@ public class AllocationLifecycleService {
         RoomAllocation allocation = buildNewAllocation(request, student, room, application);
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
+        allocationAuditService.logStatusChange(saved, null, AllocationStatus.OFFERED);
+
         waitingListService.updateStatusToAllocated(student.getId());
         roomOccupancyManager.updateOccupancy(room, 1);
 
@@ -106,12 +111,15 @@ public class AllocationLifecycleService {
 
         validateOfferAcceptance(allocation, request);
 
+        AllocationStatus previousStatus = allocation.getStatus();
         allocation.setStatus(AllocationStatus.ACCEPTED);
         allocation.setExpectedCheckInDate(request.getExpectedCheckInDate());
         allocation.setCheckInExpiryDate(LocalDateTime.now().plusDays(checkInExpiryDays));
 
         updateApplicationStatus(allocation, com.beezhub.student_accommodation.model.enums.ApplicationStatus.ALLOCATED);
         RoomAllocation saved = roomAllocationRepository.save(allocation);
+
+        allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.ACCEPTED);
 
         waitingListService.updateStatusToAllocated(saved.getStudent().getId());
         eventPublisher.publishEvent(new AllocationAcceptedEvent(saved));
@@ -131,6 +139,7 @@ public class AllocationLifecycleService {
 
         roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
 
+        AllocationStatus previousStatus = allocation.getStatus();
         AllocationStatusValidator.validate(allocation, AllocationStatus.DECLINED);
         allocation.setStatus(AllocationStatus.DECLINED);
         allocation.setEndDate(LocalDateTime.now());
@@ -138,6 +147,7 @@ public class AllocationLifecycleService {
         allocation.setDeclineReasonText(request.getDeclineReasonText());
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
+        allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.DECLINED);
         log.info("Successfully declined room allocation with id: {}. Previous decline count: {}", id,
                 previousDeclineCount);
 
@@ -159,12 +169,14 @@ public class AllocationLifecycleService {
         log.info("Cancelling (deleting) room allocation with id: {}", id);
         RoomAllocation allocation = getAllocation(id);
 
+        AllocationStatus previousStatus = allocation.getStatus();
         AllocationStatusValidator.validate(allocation, AllocationStatus.CANCELLED);
         allocation.setStatus(AllocationStatus.CANCELLED);
         allocation.setEndDate(LocalDateTime.now());
 
         roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
-        roomAllocationRepository.save(allocation);
+        RoomAllocation saved = roomAllocationRepository.save(allocation);
+        allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.CANCELLED);
         log.info("Successfully cancelled room allocation with id: {}", id);
 
         try {

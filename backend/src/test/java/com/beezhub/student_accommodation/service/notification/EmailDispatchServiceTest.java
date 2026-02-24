@@ -3,7 +3,9 @@ package com.beezhub.student_accommodation.service.notification;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.service.EmailService;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
+import org.mockito.Answers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,6 +30,8 @@ class EmailDispatchServiceTest {
 
     @Mock
     private EmailContentBuilder contentBuilder;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private MeterRegistry meterRegistry;
 
     @InjectMocks
     private EmailDispatchService emailDispatchService;

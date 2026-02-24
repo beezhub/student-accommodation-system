@@ -205,11 +205,27 @@ export class ApplicationService {
 
   /**
    * Gets documents for a specific application.
+   * Delegates to the full-details endpoint and extracts the documents array,
+   * since no dedicated /documents endpoint exists on the backend.
    * @param applicationId The application ID
    * @returns Observable<ApplicationDocument[]> List of documents
    */
   getApplicationDocuments(applicationId: number): Observable<ApplicationDocument[]> {
-    return this.http.get<ApplicationDocument[]>(`${this.apiUrl}/${applicationId}/documents`);
+    return this.getApplicationFullDetails(applicationId).pipe(
+      map((details) =>
+        details.documents.map((doc) => ({
+          id: doc.id,
+          documentName: doc.fileName,
+          documentPath: '',
+          documentStatus: doc.status,
+          documentTypeId: doc.documentTypeId,
+          documentTypeName: doc.documentTypeName,
+          isRequired: false,
+          createdAt: doc.uploadedAt,
+          updatedAt: doc.uploadedAt,
+        })),
+      ),
+    );
   }
 
 

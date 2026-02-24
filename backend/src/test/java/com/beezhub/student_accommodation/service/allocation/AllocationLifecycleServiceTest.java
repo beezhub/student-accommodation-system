@@ -13,9 +13,11 @@ import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.AllocationScoringService;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
@@ -64,6 +66,8 @@ class AllocationLifecycleServiceTest {
     private ApplicationEventPublisher eventPublisher;
     @Mock
     private RoomOccupancyManager roomOccupancyManager;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private MeterRegistry meterRegistry;
 
     @InjectMocks
     private AllocationLifecycleService allocationLifecycleService;

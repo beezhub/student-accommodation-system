@@ -111,7 +111,11 @@
       "Bash(awk:*)",
       "Bash(node -e \"const {execSync}=require\\(''child_process''\\); const out=execSync\\(''git -C \"\"C:/Users/dev_t/Documents/practice/Projects/student-accommodation-system\"\" show HEAD:backend/src/main/java/com/beezhub/student_accommodation/service/DocumentService.java''\\).toString\\(\\); console.log\\(out.split\\(''\\\\n''\\).length\\);\")",
       "Bash(node -e \"const {execSync}=require\\(''child_process''\\); const files=[''backend/src/main/java/com/beezhub/student_accommodation/service/DocumentService.java'',''backend/src/main/java/com/beezhub/student_accommodation/service/document/MinioFileStorageService.java'',''backend/src/main/java/com/beezhub/student_accommodation/service/document/OrphanFileCleanupJob.java'',''backend/src/main/java/com/beezhub/student_accommodation/exceptions/RestResponseExceptionHandler.java'',''backend/src/main/java/com/beezhub/student_accommodation/exceptions/FileValidationException.java'']; files.forEach\\(f=>{ try{ const out=execSync\\(''git -C \"\"C:/Users/dev_t/Documents/practice/Projects/student-accommodation-system\"\" show HEAD:''+f\\).toString\\(\\); console.log\\(out.split\\(''\\\\n''\\).length+'' ''+f\\); }catch\\(e\\){ console.log\\(''ERROR: ''+f+'' - ''+e.message.split\\(''\\\\n''\\)[0]\\); } }\\);\")",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(./gradlew compileTestJava:*)",
+      "mcp__plugin_serena_serena__get_symbols_overview",
+      "Bash(while read commit msg)",
+      "Bash(do echo \"=== $commit ===\")"
     ],
     "deny": [],
     "ask": []

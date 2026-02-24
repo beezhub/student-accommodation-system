@@ -43,4 +43,8 @@ public class AllocationAuditLogResponse {
     private Long newRoomId;
     private String newRoomNumber;
     private String newBuildingName;
+
+    // Status transition fields (populated for STATUS_CHANGE action type)
+    private String previousStatus;
+    private String newStatus;
 }

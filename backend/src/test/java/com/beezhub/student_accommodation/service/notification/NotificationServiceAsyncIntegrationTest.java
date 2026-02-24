@@ -7,6 +7,7 @@ import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.NotificationRepository;
 import com.beezhub.student_accommodation.service.NotificationService;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,10 @@ class NotificationServiceAsyncIntegrationTest {
 
     @MockBean
     private NotificationRepository notificationRepository;
+
+    // AsyncConfiguration requires MeterRegistry for queue-size gauge (added by Prometheus observability task)
+    @MockBean
+    private MeterRegistry meterRegistry;
 
     @Test
     void sendApplicationStatusNotification_runsAsync() throws InterruptedException {

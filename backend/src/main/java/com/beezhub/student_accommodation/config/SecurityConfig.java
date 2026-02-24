@@ -37,7 +37,7 @@ public class SecurityConfig {
     private final RateLimitingFilter rateLimitingFilter;
 
     public SecurityConfig(
-            AppUserDetailsService userDetailsService, 
+            AppUserDetailsService userDetailsService,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             RateLimitingFilter rateLimitingFilter) {
         this.userDetailsService = userDetailsService;
@@ -52,10 +52,19 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp
-                                .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'")
-                        )
-                )
+                                .policyDirectives(
+                                        "default-src 'self'; " +
+                                                "script-src 'self' 'unsafe-inline'; " +
+                                                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                                                "font-src 'self' https://fonts.gstatic.com; " +
+                                                "img-src 'self' data: blob: https://tile.openstreetmap.org http://localhost:9000; "
+                                                +
+                                                "connect-src 'self' https://nominatim.openstreetmap.org http://localhost:9000; "
+                                                +
+                                                "frame-src 'none'; " +
+                                                "object-src 'none'")))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/signup",
@@ -63,10 +72,11 @@ public class SecurityConfig {
                                 "/api/auth/verify-reset-token",
                                 "/api/auth/reset-password",
                                 "/api/auth/verify-email",
-                                "/api/auth/resend-verification",
-                                "/api/building/maps-config")
+                                "/api/auth/resend-verification")
                         .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/swagger-ui.html").permitAll()

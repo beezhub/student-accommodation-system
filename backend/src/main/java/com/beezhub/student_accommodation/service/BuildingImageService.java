@@ -52,6 +52,7 @@ public class BuildingImageService {
 
             BuildingImage image = new BuildingImage();
             image.setBuilding(building);
+            image.setTenant(building.getTenant());
             image.setFileName(file.getOriginalFilename());
             image.setObjectPath(objectPath);
             image.setContentType(file.getContentType());
