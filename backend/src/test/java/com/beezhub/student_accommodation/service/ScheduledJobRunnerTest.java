@@ -73,7 +73,7 @@ class ScheduledJobRunnerTest {
 
         assertThatCode(() -> scheduledJobRunner.runCheckInExpiry()).doesNotThrowAnyException();
 
-        Counter failures = meterRegistry.find("jobs.checkInExpiry.failures").counter();
+        Counter failures = meterRegistry.find("sas.jobs.checkInExpiry.failures").counter();
         assertThat(failures).isNotNull();
         assertThat(failures.count()).isEqualTo(1.0);
     }
