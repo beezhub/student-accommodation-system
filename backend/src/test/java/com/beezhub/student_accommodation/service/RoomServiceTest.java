@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
+import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomMapper;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
@@ -48,6 +49,7 @@ class RoomServiceTest {
 
     private Room room;
     private Building building;
+    private Building building2;
     private RoomRequest roomRequest;
 
     @BeforeEach
@@ -55,6 +57,10 @@ class RoomServiceTest {
         building = new Building();
         building.setId(1L);
         building.setName("Block A");
+
+        building2 = new Building();
+        building2.setId(2L);
+        building2.setName("Block B");
 
         room = new Room();
         room.setId(1L);
@@ -72,6 +78,7 @@ class RoomServiceTest {
     @Test
     void createRoom_shouldCreateRoom() {
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(roomRepository.existsByRoomNumberAndBuilding_Id("101", 1L)).thenReturn(false);
         when(roomRepository.save(any(Room.class))).thenReturn(room);
         when(roomMapper.toResponse(any(Room.class))).thenReturn(new RoomResponse());
 
@@ -90,9 +97,46 @@ class RoomServiceTest {
     }
 
     @Test
+    void createRoom_withDuplicateNumberInDifferentBuilding_succeeds() {
+        RoomRequest requestForBuilding2 = new RoomRequest();
+        requestForBuilding2.setRoomNumber("101");
+        requestForBuilding2.setCapacity(2);
+        requestForBuilding2.setBuildingId(2L);
+
+        Room roomInBuilding2 = new Room();
+        roomInBuilding2.setId(2L);
+        roomInBuilding2.setRoomNumber("101");
+        roomInBuilding2.setBuilding(building2);
+
+        when(buildingRepository.findById(2L)).thenReturn(Optional.of(building2));
+        // Room "101" does NOT exist in building 2
+        when(roomRepository.existsByRoomNumberAndBuilding_Id("101", 2L)).thenReturn(false);
+        when(roomRepository.save(any(Room.class))).thenReturn(roomInBuilding2);
+        when(roomMapper.toResponse(any(Room.class))).thenReturn(new RoomResponse());
+
+        // Should succeed — different buildings can each have a room "101"
+        RoomResponse response = roomService.createRoom(requestForBuilding2);
+
+        assertThat(response).isNotNull();
+        verify(roomRepository).save(any(Room.class));
+    }
+
+    @Test
+    void createRoom_withDuplicateNumberInSameBuilding_returns409() {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        // Room "101" already exists in building 1
+        when(roomRepository.existsByRoomNumberAndBuilding_Id("101", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> roomService.createRoom(roomRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("A room with this number already exists in this building");
+    }
+
+    @Test
     void updateRoom_shouldUpdateRoom() {
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(roomRepository.existsByRoomNumberAndBuilding_IdAndIdNot("101", 1L, 1L)).thenReturn(false);
         when(roomRepository.save(any(Room.class))).thenReturn(room);
         when(roomMapper.toResponse(any(Room.class))).thenReturn(new RoomResponse());
 
@@ -140,3 +184,4 @@ class RoomServiceTest {
         assertThat(response.getTotalElements()).isEqualTo(1);
     }
 }
+

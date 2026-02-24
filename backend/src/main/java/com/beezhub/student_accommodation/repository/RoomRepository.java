@@ -43,4 +43,10 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
     // Room counts by building
     @Query("SELECT COUNT(r) FROM Room r WHERE r.building.id = :buildingId")
     long countByBuildingId(@Param("buildingId") Long buildingId);
+
+    // Check for duplicate room number within a building (per-building uniqueness)
+    boolean existsByRoomNumberAndBuilding_Id(String roomNumber, Long buildingId);
+
+    // Check for duplicate room number within a building, excluding a specific room (for updates)
+    boolean existsByRoomNumberAndBuilding_IdAndIdNot(String roomNumber, Long buildingId, Long excludeId);
 }

@@ -6,7 +6,9 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "room")
+@Table(name = "room", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_room_number_building", columnNames = {"building_id", "room_number"})
+})
 @Data
 @org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 @EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
@@ -23,7 +25,7 @@ public class Room implements TenantAware {
     @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
     private Long version = 0L;
 
-    @Column(name = "room_number", nullable = false, unique = true, length = 20)
+    @Column(name = "room_number", nullable = false, length = 20)
     private String roomNumber;
 
     @Column(nullable = false)

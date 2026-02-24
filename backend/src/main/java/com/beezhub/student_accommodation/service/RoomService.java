@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
+import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomMapper;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
@@ -98,6 +99,10 @@ public class RoomService {
             Building building = buildingRepository.findById(request.getBuildingId())
                     .orElseThrow(() -> new BuildingNotFoundException(
                             "Building not found with id: " + request.getBuildingId()));
+            if (roomRepository.existsByRoomNumberAndBuilding_Id(request.getRoomNumber(), request.getBuildingId())) {
+                throw new DuplicateResourceException(
+                        "A room with this number already exists in this building");
+            }
             room.setBuilding(building);
         }
 
@@ -125,6 +130,10 @@ public class RoomService {
                         id -> buildingRepository.findById(id)
                                 .orElseThrow(() -> new BuildingNotFoundException(
                                         "Building not found with id: " + id)));
+                if (roomRepository.existsByRoomNumberAndBuilding_Id(request.getRoomNumber(), request.getBuildingId())) {
+                    throw new DuplicateResourceException(
+                            "A room with this number already exists in this building");
+                }
                 room.setBuilding(building);
             }
 
@@ -152,6 +161,11 @@ public class RoomService {
             Building building = buildingRepository.findById(request.getBuildingId())
                     .orElseThrow(() -> new BuildingNotFoundException(
                             "Building not found with id: " + request.getBuildingId()));
+            if (roomRepository.existsByRoomNumberAndBuilding_IdAndIdNot(
+                    request.getRoomNumber(), request.getBuildingId(), id)) {
+                throw new DuplicateResourceException(
+                        "A room with this number already exists in this building");
+            }
             room.setBuilding(building);
             log.info("Building set to: {}", building.getName());
         } else {
