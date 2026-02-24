@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * each job body in the standard observability pattern:
  * <ul>
  *   <li>Structured log on start / complete / failure</li>
- *   <li>Prometheus counter {@code jobs.{name}.processed} incremented by records processed</li>
+ *   <li>Prometheus counter {@code sas.jobs.{name}.processed} incremented by records processed</li>
  *   <li>Prometheus counter {@code jobs.{name}.failures} incremented on uncaught exception</li>
  * </ul>
  *
