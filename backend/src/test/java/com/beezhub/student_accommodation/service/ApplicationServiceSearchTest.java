@@ -90,7 +90,7 @@ class ApplicationServiceSearchTest {
         private RoomAllocationService roomAllocationService;
 
         @Mock
-        private AllocationScoringService allocationScoringService;
+        private LegacyScoringStrategy allocationScoringService;
 
         @Mock
         private SystemSettingService systemSettingService;

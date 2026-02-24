@@ -14,7 +14,7 @@ public class JwtConfig {
     private final String adminExpirationTime;
 
     public JwtConfig(
-        @Value("${jwt.secret:}") String secretKeyString,
+        @Value("${jwt.secret}") String secretKeyString,
         @Value("${jwt.expiration-time-ms}") String expirationTime,
         @Value("${jwt.admin-expiration-time-ms}") String adminExpirationTime
     ) {

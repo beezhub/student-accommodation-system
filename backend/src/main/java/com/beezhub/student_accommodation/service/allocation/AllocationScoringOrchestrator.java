@@ -12,7 +12,7 @@ import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.allocation.ScoringStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class AllocationScoringOrchestrator {
 
-    private final AllocationScoringService allocationScoringService;
+    private final ScoringStrategy allocationScoringService;
     private final RoomAllocationRepository roomAllocationRepository;
     private final RoomRepository roomRepository;
     private final WaitingListRepository waitingListRepository;

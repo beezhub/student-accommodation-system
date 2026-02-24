@@ -20,7 +20,7 @@ import com.beezhub.student_accommodation.model.event.StagedAllocationProposedEve
 import com.beezhub.student_accommodation.model.event.StagedAllocationRejectedEvent;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +49,7 @@ public class StagedAllocationService {
     private final AppUserRepository appUserRepository;
     private final BuildingRepository buildingRepository;
 
-    private final AllocationScoringService allocationScoringService;
+    private final LegacyScoringStrategy allocationScoringService;
     private final AllocationAuditService allocationAuditService;
     private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;

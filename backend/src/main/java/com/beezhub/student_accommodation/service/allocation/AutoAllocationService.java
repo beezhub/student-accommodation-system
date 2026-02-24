@@ -10,7 +10,7 @@ import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.exceptions.RoomCapacityExceededException;
 import com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.allocation.ScoringStrategy;
 import com.beezhub.student_accommodation.service.SystemSettingService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.service.application.ApplicationDocumentService;
@@ -35,7 +35,7 @@ public class AutoAllocationService {
 
     private final SystemSettingService systemSettingService;
     private final ApplicationDocumentService applicationDocumentService;
-    private final AllocationScoringService allocationScoringService;
+    private final ScoringStrategy allocationScoringService;
     private final AllocationLifecycleService allocationLifecycleService;
     private final ApplicationRepository applicationRepository;
     private final UserNotificationService userNotificationService;

@@ -7,7 +7,7 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.GenderRestriction;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,7 +42,7 @@ class AllocationEligibilityServiceTest {
     @Mock
     private RoomAttributesRepository roomAttributesRepository;
     @Mock
-    private AllocationScoringService allocationScoringService;
+    private LegacyScoringStrategy allocationScoringService;
 
     @InjectMocks
     private AllocationEligibilityService allocationEligibilityService;

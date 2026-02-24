@@ -6,7 +6,7 @@ import com.beezhub.student_accommodation.model.dto.WaitingListEntryResponse;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.allocation.ScoringStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 class AllocationScoringOrchestratorTest {
 
         @Mock
-        private AllocationScoringService allocationScoringService;
+        private ScoringStrategy allocationScoringService;
         @Mock
         private RoomAllocationRepository roomAllocationRepository;
         @Mock

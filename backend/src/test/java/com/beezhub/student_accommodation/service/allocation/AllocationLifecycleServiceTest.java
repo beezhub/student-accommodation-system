@@ -10,7 +10,7 @@ import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DeclineReason;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -57,7 +57,7 @@ class AllocationLifecycleServiceTest {
     @Mock
     private AllocationAuditService allocationAuditService;
     @Mock
-    private AllocationScoringService allocationScoringService;
+    private LegacyScoringStrategy allocationScoringService;
     @Mock
     private AppUserRepository appUserRepository;
     @Mock

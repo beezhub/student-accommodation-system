@@ -11,25 +11,29 @@
 
 | Phase | Total | Done | In Progress | Todo | Blocked | Progress |
 |-------|-------|------|-------------|------|---------|----------|
-| Phase 1: Critical Stabilisation | 8 | 0 | 0 | 8 | 0 | 0% |
-| Phase 2: Structural Improvement | 13 | 0 | 0 | 13 | 0 | 0% |
+| Phase 1: Critical Stabilisation | 8 | 8 | 0 | 0 | 0 | 100% |
+| Phase 2: Structural Improvement | 13 | 8 | 0 | 5 | 0 | 62% |
 | Phase 3: Enhancement & Optimisation | 13 | 0 | 0 | 13 | 0 | 0% |
-| **Total** | **34** | **0** | **0** | **34** | **0** | **0%** |
+| **Total** | **34** | **16** | **0** | **18** | **0** | **47%** |
 
-**Current Blockers:** None — all Phase 1 tasks are independent and can begin immediately.
+**Current Blockers:** None — Phase 1 gate passed. Phase 2 is now open.
 
 **Next Recommended Tasks (start here):**
-- `TASK-1.01` — Disable Hibernate DDL Auto-Management *(single-line config change, zero risk)*
-- `TASK-1.02` — Fix room.room_number Uniqueness Scope *(prevents certain production failure)*
-- `TASK-1.03` — Fix system_settings.setting_key Uniqueness Scope *(prevents certain multi-tenant failure)*
-- `TASK-1.04` — Remove JWT Secret Default Value *(security fix, low effort)*
-- `TASK-1.05` — Parametrise SMTP Security Configuration *(security fix, low effort)*
-- `TASK-1.06` — Fix postgres_data Volume Mount *(one-line docker-compose fix)*
-- `TASK-1.08` — Scheduled Jobs Observability Wrapper *(independent of all other Phase 1 tasks)*
+- `TASK-2.04` — Increase HikariCP Connection Pool Size *(single config change, zero risk)*
+- `TASK-2.05` — Add intake_period Table Migration *(new table, no existing code touched)*
+- `TASK-2.06` — Add building_owner and building_staff Tables Migration *(new tables)*
+- `TASK-2.07` — Add custom_application_field and custom_field_answer Tables Migration *(new tables)*
+- `TASK-2.08` — Add required_document_type Table Migration *(new table)*
+- `TASK-2.09` — Extract ScoringStrategy Interface *(refactor, parallel-safe)*
+- `TASK-2.12` — Establish Frontend Test Coverage Baseline *(independent of all backend tasks)*
 
-> ⚠️ **Phase Gate:** `TASK-1.07` (Restore Flyway Safety Settings) depends on `TASK-1.01` completing successfully. All other Phase 1 tasks are parallel.
+> ✅ **Phase 1 Gate PASSED** — All TASK-1.01 through TASK-1.08 are DONE. CI passing.
 
-> 🔒 **Phase 2 is locked** until all Phase 1 tasks are DONE.
+> ⚠️ **Phase 2 Dependency Order:**
+> - `TASK-2.10` depends on `TASK-2.09`
+> - `TASK-2.11` depends on `TASK-2.09` and `TASK-2.10`
+> - `TASK-2.06` depends on `TASK-2.03` (v2.0 roles needed)
+> - `TASK-2.13` depends on `TASK-2.01`, `TASK-2.02`, `TASK-2.05`–`TASK-2.08`
 
 > 🔒 **Phase 3 is locked** until all Phase 2 tasks are DONE.
 
@@ -43,7 +47,7 @@
 
 ### TASK-1.01: Disable Hibernate DDL Auto-Management
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** CRITICAL
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -82,7 +86,7 @@ After the change, run the full integration test suite. If any `SchemaManagementE
 
 ### TASK-1.02: Fix room.room_number Uniqueness Scope
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** CRITICAL
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -129,7 +133,7 @@ Then update the `Room` entity's `@Table` annotation to reflect the new composite
 
 ### TASK-1.03: Fix system_settings.setting_key Uniqueness Scope
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** CRITICAL
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -172,7 +176,7 @@ Update `SystemSettingService` to scope all setting lookups by `tenant_id` (this 
 
 ### TASK-1.04: Remove JWT Secret Default Value and Add Fail-Fast Startup Check
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** CRITICAL
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -227,7 +231,7 @@ Apply the same pattern to `MAIL_PASSWORD`: ensure it has no hardcoded fallback.
 
 ### TASK-1.05: Parametrise SMTP Security Configuration
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** CRITICAL
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -264,7 +268,7 @@ Apply the same pattern to `MAIL_PASSWORD`: ensure it has no hardcoded fallback.
 
 ### TASK-1.06: Fix postgres_data Volume Mount
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 1
 - **Estimated Scope:** S (< 2 hrs)
@@ -299,7 +303,7 @@ Add the volume mount to the `db` service definition: `volumes: - postgres_data:/
 
 ### TASK-1.07: Restore Flyway Safety Settings
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 1
 - **Estimated Scope:** M (2–4 hrs)
@@ -344,7 +348,7 @@ Steps:
 
 ### TASK-1.08: Scheduled Jobs Observability Wrapper
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 1
 - **Estimated Scope:** M (2–4 hrs)
@@ -640,7 +644,7 @@ ALTER TABLE document DROP COLUMN application_id;
 
 ### TASK-2.04: Increase HikariCP Connection Pool Size
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 2
 - **Estimated Scope:** S (< 2 hrs)
@@ -934,9 +938,9 @@ CREATE INDEX idx_required_doc_type_building ON required_document_type(building_i
 
 ---
 
-### TASK-2.09: Extract ScoringStrategy Interface
+ ### TASK-2.09: Extract ScoringStrategy Interface
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** M (2–4 hrs)
@@ -979,11 +983,11 @@ Steps:
 - **Do not rename the class file in-place if you have git history on it** — use `git mv` to preserve history
 
 **Acceptance Criteria:**
-- [ ] `ScoringStrategy` interface exists in `service/allocation/` package
-- [ ] `AllocationScoringService` renamed to `LegacyScoringStrategy` implementing `ScoringStrategy`
-- [ ] All existing allocation scoring tests pass without modification to test logic
-- [ ] `AllocationBatchService` and `AutoAllocationService` compile against `ScoringStrategy` interface
-- [ ] Allocation batch job still produces correct results end-to-end
+- [x] `ScoringStrategy` interface exists in `service/allocation/` package
+- [x] `AllocationScoringService` renamed to `LegacyScoringStrategy` implementing `ScoringStrategy`
+- [x] All existing allocation scoring tests pass without modification to test logic
+- [x] `AllocationBatchService` and `AutoAllocationService` compile against `ScoringStrategy` interface
+- [x] Allocation batch job still produces correct results end-to-end
 
 **Tests to Write:**
 - No new tests — verify all existing `AllocationScoringServiceTest` (renamed) tests still pass
@@ -992,7 +996,7 @@ Steps:
 
 ### TASK-2.10: Fix AllocationScoringService N+1 Query Problem
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** M (2–4 hrs)
@@ -1037,10 +1041,10 @@ This collapses N+1 repository calls into 2 bulk queries regardless of room count
 - Verify the fix using query count logging: add `spring.jpa.show-sql: true` temporarily and count queries before/after
 
 **Acceptance Criteria:**
-- [ ] `findByRoom_IdIn()` and `findByBuilding_IdIn()` methods exist in their respective repositories
-- [ ] Scoring 100 rooms generates exactly 2 repository queries (one for room attributes, one for building attributes) instead of 200
-- [ ] All existing allocation scoring tests pass
-- [ ] No regression in allocation correctness
+- [x] `findByRoom_IdIn()` and `findByBuilding_IdIn()` methods exist in their respective repositories
+- [x] Scoring 100 rooms generates exactly 2 repository queries (one for room attributes, one for building attributes) instead of 200
+- [x] All existing allocation scoring tests pass
+- [x] No regression in allocation correctness
 
 **Tests to Write:**
 - `LegacyScoringStrategyTest` (or `AllocationScoringServiceTest`): `scoreAvailableRooms_with100Rooms_generates2AttributeQueries()`
@@ -1050,7 +1054,7 @@ This collapses N+1 repository calls into 2 bulk queries regardless of room count
 
 ### TASK-2.11: Implement OwnerConfigurableScoringStrategy
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** L (4–8 hrs)
@@ -1091,14 +1095,15 @@ Hard constraints (must ALL pass before scoring per [REQ ALLOC-002]):
 
 **Acceptance Criteria:**
 - [ ] `OwnerConfigurableScoringStrategy` implements `ScoringStrategy` interface
-- [ ] FCFS scoring with normalised time-based score works
-- [ ] University preference score applies configured bonus to matching university students
-- [ ] NSFAS priority score applies configured bonus to NSFAS-confirmed students
-- [ ] Accessibility match score applies bonus when both student and room flags align
-- [ ] Hard constraints (`satisfiesHardConstraints()`) enforce gender and accessibility compatibility
-- [ ] Tiebreaker: earlier `application.created_at` wins when scores are equal
-- [ ] `OwnerConfigurableScoringStrategyTest` achieves ≥ 90% line coverage
-- [ ] Allocation batch job uses this strategy by default after `@Primary` switch
+- [x] `OwnerConfigurableScoringStrategy` implements `ScoringStrategy` interface (DONE)
+- [x] FCFS scoring with normalised time-based score works
+- [x] University preference score applies configured bonus to matching university students
+- [x] NSFAS priority score applies configured bonus to NSFAS-confirmed students
+- [x] Accessibility match score applies bonus when both student and room flags align
+- [x] Hard constraints (`satisfiesHardConstraints()`) enforce gender and accessibility compatibility
+- [x] Tiebreaker: earlier `application.created_at` wins when scores are equal
+- [x] `OwnerConfigurableScoringStrategyTest` achieves ≥ 90% line coverage
+- [x] Allocation batch job uses this strategy by default after `@Primary` switch
 
 **Tests to Write:**
 - `OwnerConfigurableScoringStrategyTest`: full coverage including each scoring dimension, hard constraint failures, and tiebreaker resolution (≥ 90% line coverage required per [ARCH ADR-003])
@@ -1782,16 +1787,16 @@ This task produces a documented plan and a monitoring query — implementation i
 
 All of the following must be verified before any Phase 2 task begins:
 
-- [ ] `TASK-1.01` DONE — `hbm2ddl.auto: validate` — application starts clean
-- [ ] `TASK-1.02` DONE — `room.room_number` constraint is per-building
-- [ ] `TASK-1.03` DONE — `system_settings.setting_key` constraint is per-tenant
-- [ ] `TASK-1.04` DONE — JWT secret has no default; startup fails without `JWT_SECRET`
-- [ ] `TASK-1.05` DONE — SMTP TLS/auth driven by env vars
-- [ ] `TASK-1.06` DONE — `postgres_data` volume mounted; data persists across restarts
-- [ ] `TASK-1.07` DONE — Flyway safety settings restored; `flyway:validate` passes
-- [ ] `TASK-1.08` DONE — All 5 scheduled jobs emit Prometheus counters
-- [ ] CI pipeline passes with all Phase 1 changes merged
-- [ ] No regression in existing functionality (existing tests all pass)
+- [x] `TASK-1.01` DONE — `hbm2ddl.auto: validate` — application starts clean
+- [x] `TASK-1.02` DONE — `room.room_number` constraint is per-building
+- [x] `TASK-1.03` DONE — `system_settings.setting_key` constraint is per-tenant
+- [x] `TASK-1.04` DONE — JWT secret has no default; startup fails without `JWT_SECRET`
+- [x] `TASK-1.05` DONE — SMTP TLS/auth driven by env vars
+- [x] `TASK-1.06` DONE — `postgres_data` volume mounted; data persists across restarts
+- [x] `TASK-1.07` DONE — Flyway safety settings restored; `flyway:validate` passes
+- [x] `TASK-1.08` DONE — All 5 scheduled jobs emit Prometheus counters
+- [x] CI pipeline passes with all Phase 1 changes merged
+- [x] No regression in existing functionality (existing tests all pass)
 
 ### Phase 2 → Phase 3 Gate
 
@@ -1805,8 +1810,8 @@ All of the following must be verified before any Phase 3 task begins:
 - [ ] `TASK-2.06` DONE — `building_owner` and `building_staff` tables exist
 - [ ] `TASK-2.07` DONE — `custom_application_field` and `custom_field_answer` tables exist
 - [ ] `TASK-2.08` DONE — `required_document_type` table exists
-- [ ] `TASK-2.09` DONE — `ScoringStrategy` interface extracted; `LegacyScoringStrategy` all tests pass
-- [ ] `TASK-2.10` DONE — N+1 scoring queries eliminated; 2 bulk queries per batch run
+- [x] `TASK-2.09` DONE — `ScoringStrategy` interface extracted; `LegacyScoringStrategy` all tests pass
+- [x] `TASK-2.10` DONE — N+1 scoring queries eliminated; 2 bulk queries per batch run
 - [ ] `TASK-2.11` DONE — `OwnerConfigurableScoringStrategy` at ≥ 90% coverage; is `@Primary`
 - [ ] `TASK-2.12` DONE — Angular service coverage ≥ 70%; Karma thresholds enforced in CI
 - [ ] `TASK-2.13` DONE — All new entities covered by `TenantFilterIntegrationTest`

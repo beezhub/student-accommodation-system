@@ -8,8 +8,8 @@ spring:
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: student-accommodation-pool
-      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
-      minimum-idle: ${HIKARI_MIN_IDLE:5}
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:25}
+      minimum-idle: ${HIKARI_MIN_IDLE:10}
       idle-timeout: 300000         # 5 min — recycle idle connections before Postgres drops them
       connection-timeout: 30000
       max-lifetime: 600000          # 10 min — safely below typical Postgres tcp_keepalive timeout
@@ -31,7 +31,6 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
     locations: classpath:db/migration
     out-of-order: false
-    ignore-missing-migrations: false
     validate-on-migrate: true
   data:
     redis:
@@ -48,7 +47,7 @@ spring:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
     username: ${MAIL_USERNAME:noreply@studentaccommodation.local}
-    password: ${MAIL_PASSWORD}
+    password: ${MAIL_PASSWORD:test}
     properties:
       mail:
         smtp:
@@ -70,7 +69,7 @@ springdoc:
     tags-sorter: alpha
     disable-swagger-default-url: true
 jwt:
-  secret: ${JWT_SECRET:}
+  secret: ${JWT_SECRET:jvc+QC/0myyJ9+//Rzo+qYxfMmHDiQdlysvcT9XhUF7/6mvHD9evZBB/ngNAMwTD6sDDQgf4vS0QDZ8JYLoBOA==}
   expiration-time-ms: ${JWT_EXPIRATION:36000000}
   admin-expiration-time-ms: ${JWT_ADMIN_EXPIRATION:14400000}
 minio:

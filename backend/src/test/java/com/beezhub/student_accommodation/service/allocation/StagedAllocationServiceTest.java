@@ -7,7 +7,7 @@ import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -53,7 +53,7 @@ class StagedAllocationServiceTest {
         @Mock
         private BuildingRepository buildingRepository;
         @Mock
-        private AllocationScoringService allocationScoringService;
+        private LegacyScoringStrategy allocationScoringService;
         @Mock
         private AllocationAuditService allocationAuditService;
 

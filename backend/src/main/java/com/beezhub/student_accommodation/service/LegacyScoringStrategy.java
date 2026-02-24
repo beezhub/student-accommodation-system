@@ -4,6 +4,7 @@ import com.beezhub.student_accommodation.model.dto.ScoredRoom;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.GenderRestriction;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.allocation.ScoringStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,14 +15,24 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Legacy v1.1 scoring strategy with hardcoded weights.
+ * Retained as a fallback/reference implementation.
+ * {@code OwnerConfigurableScoringStrategy} is now {@code @Primary}.
+ *
+ * <p>No behaviour changes from the original {@code AllocationScoringService} —
+ * all existing tests continue to pass.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 @Transactional(readOnly = true)
-public class AllocationScoringService {
+public class LegacyScoringStrategy implements ScoringStrategy {
 
     private final AllocationRuleRepository allocationRuleRepository;
     private final RoomRepository roomRepository;
@@ -37,16 +48,19 @@ public class AllocationScoringService {
     private static final BigDecimal DESIRABILITY_MULTIPLIER = new BigDecimal("10");
     private static final BigDecimal SUBOPTIMAL_THRESHOLD = new BigDecimal("50");
 
+    // ==================== ScoringStrategy interface ====================
+
     /**
      * Scores all available rooms for a student and application.
      * Returns list sorted by score DESC, then by application createdAt ASC (for tie-breaking).
      *
-     * @param student           The student to score rooms for
-     * @param application       The application containing preferences
-     * @param preferredBuilding Optional preferred building override
+     * @param student     The student to score rooms for
+     * @param application The application containing preferences
+     * @param preferred   Optional preferred building override
      * @return List of scored rooms sorted by score descending
      */
-    public List<ScoredRoom> scoreAvailableRooms(Student student, Application application, Building preferredBuilding) {
+    @Override
+    public List<ScoredRoom> scoreAvailableRooms(Student student, Application application, Building preferred) {
         log.info("Scoring available rooms for student: {}, application: {}",
                 student.getId(), application != null ? application.getId() : "N/A");
 
@@ -54,14 +68,32 @@ public class AllocationScoringService {
         List<Room> availableRooms = getAvailableRooms();
         log.debug("Found {} rooms with available capacity", availableRooms.size());
 
+        // Batch-load all attributes in 2 queries (N+1 fix — TASK-2.10)
+        Set<Long> roomIds = availableRooms.stream().map(Room::getId).collect(Collectors.toSet());
+        Set<Long> buildingIds = availableRooms.stream()
+                .map(Room::getBuilding)
+                .filter(b -> b != null)
+                .map(Building::getId)
+                .collect(Collectors.toSet());
+
+        Map<Long, RoomAttributes> roomAttrMap = roomAttributesRepository
+                .findByRoom_IdIn(roomIds)
+                .stream()
+                .collect(Collectors.toMap(ra -> ra.getRoom().getId(), ra -> ra));
+        Map<Long, BuildingAttributes> buildingAttrMap = buildingAttributesRepository
+                .findByBuilding_IdIn(buildingIds)
+                .stream()
+                .collect(Collectors.toMap(ba -> ba.getBuilding().getId(), ba -> ba));
+
         List<ScoredRoom> scoredRooms = new ArrayList<>();
 
         for (Room room : availableRooms) {
-            // Check hard constraints first
-            boolean meetsConstraints = validateHardConstraints(student, room, false);
+            // Check hard constraints first using pre-loaded maps
+            boolean meetsConstraints = validateHardConstraintsFromMaps(student, room, roomAttrMap, buildingAttrMap);
 
             if (meetsConstraints) {
-                ScoredRoom scoredRoom = scoreSingleRoom(student, application, room, preferredBuilding);
+                ScoredRoom scoredRoom = scoreSingleRoomFromMaps(student, application, room, preferred,
+                        roomAttrMap, buildingAttrMap);
                 scoredRooms.add(scoredRoom);
             } else {
                 log.debug("Room {} failed hard constraints for student {}", room.getRoomNumber(), student.getId());
@@ -79,6 +111,31 @@ public class AllocationScoringService {
     }
 
     /**
+     * Calculates the score for a single student-room pair using the provided rule.
+     *
+     * @param student     The student
+     * @param application The application with preferences
+     * @param room        The room to score
+     * @param rule        The allocation rule containing scoring weights
+     * @return ScoredRoom with calculated score and warnings
+     */
+    @Override
+    public ScoredRoom scoreSingleRoom(Student student, Application application, Room room, AllocationRule rule) {
+        log.debug("Scoring room {} for student {} with explicit rule", room.getRoomNumber(), student.getId());
+        return scoreSingleRoomWithRule(student, application, room, null, rule);
+    }
+
+    /**
+     * Validates hard constraints for a student-room pair (interface contract).
+     */
+    @Override
+    public boolean satisfiesHardConstraints(Student student, Room room) {
+        return validateHardConstraints(student, room, false);
+    }
+
+    // ==================== Public API (backward-compatible) ====================
+
+    /**
      * Calculates the score for a single student-room pair.
      *
      * @param student     The student
@@ -87,7 +144,7 @@ public class AllocationScoringService {
      * @return ScoredRoom with calculated score and warnings
      */
     public ScoredRoom scoreSingleRoom(Student student, Application application, Room room) {
-        return scoreSingleRoom(student, application, room, null);
+        return scoreSingleRoomInternal(student, application, room, null);
     }
 
     /**
@@ -100,69 +157,7 @@ public class AllocationScoringService {
      * @return ScoredRoom with calculated score and warnings
      */
     public ScoredRoom scoreSingleRoom(Student student, Application application, Room room, Building preferredBuilding) {
-        log.debug("Scoring room {} for student {}", room.getRoomNumber(), student.getId());
-
-        // Get the allocation rule for this building
-        AllocationRule rule = getLatestRuleForBuilding(room.getBuilding() != null ? room.getBuilding().getId() : null);
-
-        // Get room and building attributes
-        Optional<RoomAttributes> roomAttrs = roomAttributesRepository.findByRoom_Id(room.getId());
-        Optional<BuildingAttributes> buildingAttrs = room.getBuilding() != null
-                ? buildingAttributesRepository.findByBuilding_Id(room.getBuilding().getId())
-                : Optional.empty();
-
-        // Determine the effective preferred building
-        Building effectivePreferredBuilding = preferredBuilding != null
-                ? preferredBuilding
-                : (application != null ? application.getPreferredBuilding() : null);
-
-        // Calculate individual scores
-        BigDecimal preferenceMatchScore = calculatePreferenceMatchScore(room, effectivePreferredBuilding);
-        BigDecimal desirabilityScore = calculateDesirabilityScore(room, roomAttrs.orElse(null), buildingAttrs.orElse(null));
-        BigDecimal accessibilityScore = calculateAccessibilityScore(student, application, roomAttrs.orElse(null));
-
-        // Apply weights from rule
-        BigDecimal weightedPreference = preferenceMatchScore.multiply(rule.getPreferenceMatchWeight());
-        BigDecimal weightedDesirability = desirabilityScore.multiply(rule.getDesirabilityWeight());
-        BigDecimal weightedAccessibility = accessibilityScore.multiply(rule.getAccessibilityWeight());
-
-        // Calculate total score
-        BigDecimal totalScore = weightedPreference
-                .add(weightedDesirability)
-                .add(weightedAccessibility)
-                .setScale(4, RoundingMode.HALF_UP);
-
-        // Generate warnings
-        List<String> warnings = generateWarnings(student, application, room, rule);
-
-        // Get room availability info
-        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-        int availableSpots = room.getCapacity() - (int) activeAllocations;
-
-        // Build scored room response
-        ScoredRoom scoredRoom = ScoredRoom.builder()
-                .roomId(room.getId())
-                .roomNumber(room.getRoomNumber())
-                .capacity(room.getCapacity())
-                .currentOccupancy((int) activeAllocations)
-                .availableSpots(availableSpots)
-                .buildingId(room.getBuilding() != null ? room.getBuilding().getId() : null)
-                .buildingName(room.getBuilding() != null ? room.getBuilding().getName() : null)
-                .totalScore(totalScore)
-                .preferenceMatchScore(weightedPreference.setScale(4, RoundingMode.HALF_UP))
-                .desirabilityScore(weightedDesirability.setScale(4, RoundingMode.HALF_UP))
-                .accessibilityScore(weightedAccessibility.setScale(4, RoundingMode.HALF_UP))
-                .warnings(warnings)
-                .meetsHardConstraints(validateHardConstraints(student, room, false))
-                .isPreferredBuilding(isPreferredBuilding(room, effectivePreferredBuilding))
-                .isAccessibilityCompliant(roomAttrs.map(RoomAttributes::getAccessibilityCompliant).orElse(false))
-                .applicationCreatedAt(application != null ? application.getCreatedAt() : null)
-                .genderRestriction(getEffectiveGenderRestriction(roomAttrs.orElse(null), buildingAttrs.orElse(null)))
-                .desirabilityRating(getEffectiveDesirability(roomAttrs.orElse(null), buildingAttrs.orElse(null)))
-                .build();
-
-        log.debug("Room {} scored {} for student {}", room.getRoomNumber(), totalScore, student.getId());
-        return scoredRoom;
+        return scoreSingleRoomInternal(student, application, room, preferredBuilding);
     }
 
     /**
@@ -372,7 +367,205 @@ public class AllocationScoringService {
         return warnings;
     }
 
-    // ==================== Private Helper Methods ====================
+    // ==================== Private helpers ====================
+
+    /**
+     * Validates hard constraints using pre-loaded attribute maps (avoids per-room queries).
+     * Used by the batch scoring loop in {@link #scoreAvailableRooms}.
+     */
+    private boolean validateHardConstraintsFromMaps(Student student, Room room,
+                                                    Map<Long, RoomAttributes> roomAttrMap,
+                                                    Map<Long, BuildingAttributes> buildingAttrMap) {
+        RoomAttributes roomAttrs = roomAttrMap.get(room.getId());
+        BuildingAttributes buildingAttrs = room.getBuilding() != null
+                ? buildingAttrMap.get(room.getBuilding().getId())
+                : null;
+
+        if (!isGenderCompatible(student, roomAttrs, buildingAttrs)) {
+            return false;
+        }
+        if (!isAccessibilityCompliant(student, roomAttrs)) {
+            return false;
+        }
+        if (!isYearOfStudyCompatible(student, roomAttrs)) {
+            return false;
+        }
+        if (!isBuildingInstitutionCompatible(student, room.getBuilding())) {
+            return false;
+        }
+        if (roomAllocationRepository.hasStudentDeclinedRoom(student.getId(), room.getId())) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Scores a single room using pre-loaded attribute maps (avoids per-room queries).
+     * Used by the batch scoring loop in {@link #scoreAvailableRooms}.
+     */
+    private ScoredRoom scoreSingleRoomFromMaps(Student student, Application application, Room room,
+                                               Building preferredBuilding,
+                                               Map<Long, RoomAttributes> roomAttrMap,
+                                               Map<Long, BuildingAttributes> buildingAttrMap) {
+        AllocationRule rule = getLatestRuleForBuilding(room.getBuilding() != null ? room.getBuilding().getId() : null);
+
+        RoomAttributes roomAttrs = roomAttrMap.get(room.getId());
+        BuildingAttributes buildingAttrs = room.getBuilding() != null
+                ? buildingAttrMap.get(room.getBuilding().getId())
+                : null;
+
+        Building effectivePreferredBuilding = preferredBuilding != null
+                ? preferredBuilding
+                : (application != null ? application.getPreferredBuilding() : null);
+
+        BigDecimal preferenceMatchScore = calculatePreferenceMatchScore(room, effectivePreferredBuilding);
+        BigDecimal desirabilityScore = calculateDesirabilityScore(room, roomAttrs, buildingAttrs);
+        BigDecimal accessibilityScore = calculateAccessibilityScore(student, application, roomAttrs);
+
+        BigDecimal weightedPreference = preferenceMatchScore.multiply(rule.getPreferenceMatchWeight());
+        BigDecimal weightedDesirability = desirabilityScore.multiply(rule.getDesirabilityWeight());
+        BigDecimal weightedAccessibility = accessibilityScore.multiply(rule.getAccessibilityWeight());
+
+        BigDecimal totalScore = weightedPreference
+                .add(weightedDesirability)
+                .add(weightedAccessibility)
+                .setScale(4, RoundingMode.HALF_UP);
+
+        List<String> warnings = generateWarningsFromMaps(student, application, room, rule, roomAttrs, buildingAttrs);
+
+        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
+        int availableSpots = room.getCapacity() - (int) activeAllocations;
+
+        return ScoredRoom.builder()
+                .roomId(room.getId())
+                .roomNumber(room.getRoomNumber())
+                .capacity(room.getCapacity())
+                .currentOccupancy((int) activeAllocations)
+                .availableSpots(availableSpots)
+                .buildingId(room.getBuilding() != null ? room.getBuilding().getId() : null)
+                .buildingName(room.getBuilding() != null ? room.getBuilding().getName() : null)
+                .totalScore(totalScore)
+                .preferenceMatchScore(weightedPreference.setScale(4, RoundingMode.HALF_UP))
+                .desirabilityScore(weightedDesirability.setScale(4, RoundingMode.HALF_UP))
+                .accessibilityScore(weightedAccessibility.setScale(4, RoundingMode.HALF_UP))
+                .warnings(warnings)
+                .meetsHardConstraints(validateHardConstraintsFromMaps(student, room, roomAttrMap, buildingAttrMap))
+                .isPreferredBuilding(isPreferredBuilding(room, effectivePreferredBuilding))
+                .isAccessibilityCompliant(roomAttrs != null && Boolean.TRUE.equals(roomAttrs.getAccessibilityCompliant()))
+                .applicationCreatedAt(application != null ? application.getCreatedAt() : null)
+                .genderRestriction(getEffectiveGenderRestriction(roomAttrs, buildingAttrs))
+                .desirabilityRating(getEffectiveDesirability(roomAttrs, buildingAttrs))
+                .build();
+    }
+
+    /**
+     * Generates warnings using pre-loaded attribute maps.
+     */
+    private List<String> generateWarningsFromMaps(Student student, Application application, Room room,
+                                                   AllocationRule rule, RoomAttributes roomAttrs,
+                                                   BuildingAttributes buildingAttrs) {
+        List<String> warnings = new ArrayList<>();
+
+        if (application != null && application.getPreferredBuilding() != null) {
+            if (room.getBuilding() == null ||
+                    !room.getBuilding().getId().equals(application.getPreferredBuilding().getId())) {
+                warnings.add("BUILDING_MISMATCH");
+            }
+        }
+
+        // Quick score without warnings to check suboptimal threshold
+        BigDecimal preferredBuilding1 = application != null && application.getPreferredBuilding() != null
+                ? calculatePreferenceMatchScore(room, application.getPreferredBuilding())
+                : calculatePreferenceMatchScore(room, null);
+        BigDecimal desirability = calculateDesirabilityScore(room, roomAttrs, buildingAttrs);
+        BigDecimal accessibility = calculateAccessibilityScore(student, application, roomAttrs);
+        BigDecimal quickScore = preferredBuilding1.multiply(rule.getPreferenceMatchWeight())
+                .add(desirability.multiply(rule.getDesirabilityWeight()))
+                .add(accessibility.multiply(rule.getAccessibilityWeight()))
+                .setScale(4, RoundingMode.HALF_UP);
+        if (quickScore.compareTo(SUBOPTIMAL_THRESHOLD) < 0) {
+            warnings.add("SUBOPTIMAL_DESIRABILITY");
+        }
+
+        if (application != null && Boolean.TRUE.equals(application.getRequiresAccessibility())) {
+            if (roomAttrs == null || !Boolean.TRUE.equals(roomAttrs.getAccessibilityCompliant())) {
+                warnings.add("ACCESSIBILITY_MISMATCH");
+            }
+        }
+
+        return warnings;
+    }
+
+    private ScoredRoom scoreSingleRoomInternal(Student student, Application application, Room room, Building preferredBuilding) {
+        log.debug("Scoring room {} for student {}", room.getRoomNumber(), student.getId());
+
+        // Get the allocation rule for this building
+        AllocationRule rule = getLatestRuleForBuilding(room.getBuilding() != null ? room.getBuilding().getId() : null);
+
+        return scoreSingleRoomWithRule(student, application, room, preferredBuilding, rule);
+    }
+
+    private ScoredRoom scoreSingleRoomWithRule(Student student, Application application, Room room,
+                                               Building preferredBuilding, AllocationRule rule) {
+        // Get room and building attributes
+        Optional<RoomAttributes> roomAttrs = roomAttributesRepository.findByRoom_Id(room.getId());
+        Optional<BuildingAttributes> buildingAttrs = room.getBuilding() != null
+                ? buildingAttributesRepository.findByBuilding_Id(room.getBuilding().getId())
+                : Optional.empty();
+
+        // Determine the effective preferred building
+        Building effectivePreferredBuilding = preferredBuilding != null
+                ? preferredBuilding
+                : (application != null ? application.getPreferredBuilding() : null);
+
+        // Calculate individual scores
+        BigDecimal preferenceMatchScore = calculatePreferenceMatchScore(room, effectivePreferredBuilding);
+        BigDecimal desirabilityScore = calculateDesirabilityScore(room, roomAttrs.orElse(null), buildingAttrs.orElse(null));
+        BigDecimal accessibilityScore = calculateAccessibilityScore(student, application, roomAttrs.orElse(null));
+
+        // Apply weights from rule
+        BigDecimal weightedPreference = preferenceMatchScore.multiply(rule.getPreferenceMatchWeight());
+        BigDecimal weightedDesirability = desirabilityScore.multiply(rule.getDesirabilityWeight());
+        BigDecimal weightedAccessibility = accessibilityScore.multiply(rule.getAccessibilityWeight());
+
+        // Calculate total score
+        BigDecimal totalScore = weightedPreference
+                .add(weightedDesirability)
+                .add(weightedAccessibility)
+                .setScale(4, RoundingMode.HALF_UP);
+
+        // Generate warnings
+        List<String> warnings = generateWarnings(student, application, room, rule);
+
+        // Get room availability info
+        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
+        int availableSpots = room.getCapacity() - (int) activeAllocations;
+
+        // Build scored room response
+        ScoredRoom scoredRoom = ScoredRoom.builder()
+                .roomId(room.getId())
+                .roomNumber(room.getRoomNumber())
+                .capacity(room.getCapacity())
+                .currentOccupancy((int) activeAllocations)
+                .availableSpots(availableSpots)
+                .buildingId(room.getBuilding() != null ? room.getBuilding().getId() : null)
+                .buildingName(room.getBuilding() != null ? room.getBuilding().getName() : null)
+                .totalScore(totalScore)
+                .preferenceMatchScore(weightedPreference.setScale(4, RoundingMode.HALF_UP))
+                .desirabilityScore(weightedDesirability.setScale(4, RoundingMode.HALF_UP))
+                .accessibilityScore(weightedAccessibility.setScale(4, RoundingMode.HALF_UP))
+                .warnings(warnings)
+                .meetsHardConstraints(validateHardConstraints(student, room, false))
+                .isPreferredBuilding(isPreferredBuilding(room, effectivePreferredBuilding))
+                .isAccessibilityCompliant(roomAttrs.map(RoomAttributes::getAccessibilityCompliant).orElse(false))
+                .applicationCreatedAt(application != null ? application.getCreatedAt() : null)
+                .genderRestriction(getEffectiveGenderRestriction(roomAttrs.orElse(null), buildingAttrs.orElse(null)))
+                .desirabilityRating(getEffectiveDesirability(roomAttrs.orElse(null), buildingAttrs.orElse(null)))
+                .build();
+
+        log.debug("Room {} scored {} for student {}", room.getRoomNumber(), totalScore, student.getId());
+        return scoredRoom;
+    }
 
     private List<Room> getAvailableRooms() {
         return roomRepository.findAll().stream()

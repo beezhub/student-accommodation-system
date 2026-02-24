@@ -46,6 +46,28 @@ public class AllocationRule implements TenantAware {
     @Builder.Default
     private BigDecimal accessibilityWeight = BigDecimal.ONE;
 
+    /** Weight applied to the First-Come-First-Served (FCFS) score component. */
+    @Column(name = "fcfs_weight", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal fcfsWeight = BigDecimal.ONE;
+
+    /** Weight applied to the NSFAS funding priority score component. */
+    @Column(name = "nsfas_priority_weight", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal nsfasPriorityWeight = BigDecimal.ONE;
+
+    /** Weight applied to the university/institution preference score component. */
+    @Column(name = "university_pref_weight", precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal universityPrefWeight = BigDecimal.ONE;
+
+    /**
+     * Comma-separated list of institution IDs that qualify for the university preference bonus.
+     * {@code null} means the bonus is never applied (no priority institutions configured).
+     */
+    @Column(name = "priority_institution_ids")
+    private String priorityInstitutionIds;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean active = true;
