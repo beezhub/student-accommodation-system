@@ -1,5 +1,4 @@
-import { Component, Inject, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-
+import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,7 +9,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { CommonModule } from '@angular/common';
+import { Subject, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 import {
   BuildingService,
   BuildingRequest,
@@ -18,9 +20,7 @@ import {
 } from '../../../../core/services/building.service';
 import { InstitutionService } from '../../../../core/services/institution.service';
 import { Institution } from '../../../../core/models/institution.model';
-import { GoogleMapsService } from '../../../../core/services/google-maps.service';
-import { GoogleMapsAlternativeService, AutocompleteHandle } from '../../../../core/services/google-maps-alternative.service';
-import { PlaceDetails } from '../../../../core/models/place-details.model';
+import { NominatimService, AddressSuggestion } from '../../../../core/services/nominatim.service';
 
 @Component({
   selector: 'app-building-form-dialog',
@@ -47,19 +47,54 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
             }
           </mat-form-field>
 
+          <!-- Address with Nominatim autocomplete -->
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Address</mat-label>
             <mat-icon matPrefix>location_on</mat-icon>
             <input
-              #addressInput
               matInput
               formControlName="address"
               placeholder="Start typing to search..."
+              [matAutocomplete]="addressAuto"
+              (input)="onAddressInput($event)"
             />
-            @if (mapsEnabled) {
-              <mat-hint>Google Places autocomplete enabled</mat-hint>
-            }
+            <mat-hint>Powered by OpenStreetMap</mat-hint>
+            <mat-autocomplete
+              #addressAuto="matAutocomplete"
+              [displayWith]="displayAddress"
+              (optionSelected)="onSuggestionSelected($event.option.value)"
+            >
+              @if (isSearching) {
+                <mat-option disabled>
+                  <div class="searching-hint">
+                    <mat-spinner diameter="16"></mat-spinner>
+                    Searching...
+                  </div>
+                </mat-option>
+              }
+              @for (suggestion of addressSuggestions; track suggestion.placeId) {
+                <mat-option [value]="suggestion">
+                  <mat-icon class="suggestion-icon">place</mat-icon>
+                  <span class="suggestion-text">{{ suggestion.displayName }}</span>
+                </mat-option>
+              }
+            </mat-autocomplete>
           </mat-form-field>
+
+          @if (buildingForm.get('latitude')?.value) {
+            <div class="coords-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Latitude</mat-label>
+                <mat-icon matPrefix>my_location</mat-icon>
+                <input matInput formControlName="latitude" readonly />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Longitude</mat-label>
+                <mat-icon matPrefix>my_location</mat-icon>
+                <input matInput formControlName="longitude" readonly />
+              </mat-form-field>
+            </div>
+          }
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Total Floors</mat-label>
@@ -192,12 +227,17 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
         width: 100%;
       }
 
-      mat-form-field {
-        margin-bottom: 4px;
+      .half-width {
+        flex: 1;
       }
 
-      mat-form-field.mat-form-field-outline {
-        border-radius: 12px;
+      .coords-row {
+        display: flex;
+        gap: 12px;
+      }
+
+      mat-form-field {
+        margin-bottom: 4px;
       }
 
       mat-icon[matPrefix] {
@@ -218,6 +258,31 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
         color: #dc2626;
         font-size: 12px;
         font-weight: 500;
+      }
+
+      /* Autocomplete option styling */
+      .suggestion-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: #ea580c;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+
+      .suggestion-text {
+        font-size: 13px;
+        color: #1e293b;
+        white-space: normal;
+        line-height: 1.4;
+      }
+
+      .searching-hint {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #94a3b8;
+        font-size: 13px;
       }
 
       /* Multi-select styling */
@@ -286,54 +351,6 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
         margin-right: 8px;
       }
 
-      /* Google Places Autocomplete Element Styling — mobile-first */
-      ::ng-deep gmp-place-autocomplete {
-        width: 100%;
-        display: block;
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        padding: 10px 12px;
-        background-color: #fff;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        min-height: 44px;
-        box-sizing: border-box;
-      }
-
-      ::ng-deep gmp-place-autocomplete:hover {
-        border-color: #94a3b8;
-      }
-
-      ::ng-deep gmp-place-autocomplete:focus-within {
-        border-color: #ea580c;
-        box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.15);
-      }
-
-      /* Force through shadow DOM for autocomplete input */
-      ::ng-deep gmp-place-autocomplete input,
-      ::ng-deep gmp-place-autocomplete input[type="text"],
-      gmp-place-autocomplete input,
-      gmp-place-autocomplete input[type="text"] {
-        width: 100% !important;
-        border: none !important;
-        outline: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-        font-size: 14px !important;
-        line-height: 1.5 !important;
-        color: #1e293b !important;
-        background-color: transparent !important;
-        box-shadow: none !important;
-        -webkit-text-fill-color: #1e293b !important;
-        -webkit-appearance: none !important;
-      }
-
-      ::ng-deep gmp-place-autocomplete input::placeholder,
-      gmp-place-autocomplete input::placeholder {
-        color: #94a3b8 !important;
-        opacity: 1 !important;
-      }
-
       /* ===== Tablet breakpoint (min-width: 480px) ===== */
       @media (min-width: 480px) {
         .dialog-header {
@@ -384,10 +401,6 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
 
         mat-hint {
           font-size: 12px;
-        }
-
-        ::ng-deep gmp-place-autocomplete {
-          padding: 12px 14px;
         }
       }
 
@@ -478,23 +491,24 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
     MatIconModule,
     MatSelectModule,
     MatChipsModule,
+    MatAutocompleteModule,
   ],
 })
-export class BuildingFormDialogComponent implements OnInit, AfterViewInit {
-  @ViewChild('addressInput') addressInput!: ElementRef<HTMLInputElement>;
-
+export class BuildingFormDialogComponent implements OnInit, OnDestroy {
   buildingForm: FormGroup;
   isSubmitting = false;
   institutions: Institution[] = [];
-  mapsEnabled = false;
-  private autocomplete: AutocompleteHandle | null = null;
+  addressSuggestions: AddressSuggestion[] = [];
+  isSearching = false;
+
+  private destroy$ = new Subject<void>();
+  private searchSubject = new Subject<string>();
 
   constructor(
     private fb: FormBuilder,
     private buildingService: BuildingService,
     private institutionService: InstitutionService,
-    private googleMapsService: GoogleMapsService,
-    private googleMapsAlternativeService: GoogleMapsAlternativeService,
+    private nominatimService: NominatimService,
     private snackBar: MatSnackBar,
     public dialogRef: MatDialogRef<BuildingFormDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { mode: 'create' | 'edit'; building?: BuildingResponse }
@@ -513,7 +527,7 @@ export class BuildingFormDialogComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.loadInstitutions();
-    this.loadMapsConfig();
+    this.setupAddressSearch();
 
     if (this.data.mode === 'edit' && this.data.building) {
       this.buildingForm.patchValue({
@@ -529,62 +543,62 @@ export class BuildingFormDialogComponent implements OnInit, AfterViewInit {
     }
   }
 
-  ngAfterViewInit(): void {
-    // Autocomplete is initialized after Maps API loads (see loadMapsConfig)
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  loadMapsConfig(): void {
-    this.buildingService.getMapsConfig().subscribe({
-      next: (config) => {
-        if (config.enabled && config.apiKey) {
-          this.mapsEnabled = true;
-          // Use ALTERNATIVE service instead
-          this.googleMapsAlternativeService.loadGoogleMapsAPI(config.apiKey)
-            .then(() => {
-              // Initialize autocomplete after Maps API is loaded AND view is initialized
-              setTimeout(() => {
-                if (this.addressInput && this.addressInput.nativeElement) {
-                  this.initializeAutocomplete();
-                }
-              }, 500); // Increased timeout for API initialization
-            })
-            .catch((error) => {
-              console.error('Failed to load Google Maps API:', error);
-              this.mapsEnabled = false;
-            });
-        }
-      },
-      error: (error) => {
-        console.error('Error loading maps config:', error);
-        this.mapsEnabled = false;
-      }
-    });
+  private setupAddressSearch(): void {
+    this.searchSubject
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          if (!query || query.length < 3) {
+            this.addressSuggestions = [];
+            this.isSearching = false;
+            return [];
+          }
+          this.isSearching = true;
+          return this.nominatimService.search(query);
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (suggestions) => {
+          this.addressSuggestions = suggestions;
+          this.isSearching = false;
+        },
+        error: () => {
+          this.addressSuggestions = [];
+          this.isSearching = false;
+        },
+      });
   }
 
-  initializeAutocomplete(): void {
-    if (!this.addressInput || !this.addressInput.nativeElement) {
-      return;
+  onAddressInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    // Clear coordinates when user types a new address
+    if (this.buildingForm.get('latitude')?.value) {
+      this.buildingForm.patchValue({ placeId: '', latitude: null, longitude: null });
     }
+    this.searchSubject.next(value);
+  }
 
-    this.autocomplete = this.googleMapsAlternativeService.initializeAutocomplete(
-      this.addressInput.nativeElement,
-      (placeDetails: PlaceDetails | null) => {
-        if (placeDetails) {
-          // Use setValue on individual controls to ensure Angular picks up the changes
-          this.buildingForm.get('address')?.setValue(placeDetails.formattedAddress);
-          this.buildingForm.get('placeId')?.setValue(placeDetails.placeId);
-          this.buildingForm.get('latitude')?.setValue(placeDetails.latitude);
-          this.buildingForm.get('longitude')?.setValue(placeDetails.longitude);
+  onSuggestionSelected(suggestion: AddressSuggestion): void {
+    this.buildingForm.patchValue({
+      address: suggestion.displayName,
+      placeId: suggestion.placeId,
+      latitude: suggestion.latitude,
+      longitude: suggestion.longitude,
+    });
+    this.addressSuggestions = [];
+  }
 
-          // Mark controls as dirty and touched
-          ['address', 'placeId', 'latitude', 'longitude'].forEach(field => {
-            this.buildingForm.get(field)?.markAsDirty();
-            this.buildingForm.get(field)?.markAsTouched();
-          });
-          this.buildingForm.updateValueAndValidity();
-        }
-      }
-    );
+  displayAddress(suggestion: AddressSuggestion | string | null): string {
+    if (!suggestion) return '';
+    if (typeof suggestion === 'string') return suggestion;
+    return suggestion.displayName;
   }
 
   loadInstitutions(): void {
@@ -594,28 +608,31 @@ export class BuildingFormDialogComponent implements OnInit, AfterViewInit {
       },
       error: (error) => {
         console.error('Error loading institutions:', error);
-      }
+      },
     });
   }
 
-  async onSubmit(): Promise<void> {
+  onSubmit(): void {
     if (!this.buildingForm.valid) {
       return;
     }
 
     this.isSubmitting = true;
 
-    // Always resolve address from autocomplete before submitting
-    // This ensures updated addresses are synced from the autocomplete element
-    if (this.autocomplete) {
-      try {
-        await this.autocomplete.resolveAddress();
-      } catch {
-        // Address resolution failed, continue with available data
-      }
-    }
-
-    const buildingData: BuildingRequest = this.buildingForm.value;
+    // If user typed an address but didn't select from dropdown, treat it as plain text
+    const formValue = this.buildingForm.value;
+    const buildingData: BuildingRequest = {
+      name: formValue.name,
+      address: typeof formValue.address === 'object' && formValue.address
+        ? (formValue.address as AddressSuggestion).displayName
+        : formValue.address,
+      placeId: formValue.placeId,
+      latitude: formValue.latitude,
+      longitude: formValue.longitude,
+      totalFloors: formValue.totalFloors,
+      description: formValue.description,
+      institutionIds: formValue.institutionIds,
+    };
 
     const operation =
       this.data.mode === 'create'
