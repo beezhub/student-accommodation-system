@@ -28,3 +28,11 @@ spring:
       org.hibernate.SQL: WARN
       org.hibernate.type.descriptor.sql.BasicBinder: WARN
       org.flywaydb: DEBUG
+  mail:
+    password: test-mail-password
+
+# Test-only security values — not used in production
+jwt:
+  secret: test-secret-for-unit-tests-only-minimum-32-chars
+  expiration-time-ms: 36000000
+  admin-expiration-time-ms: 14400000
