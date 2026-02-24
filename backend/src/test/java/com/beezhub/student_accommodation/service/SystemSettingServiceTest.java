@@ -2,6 +2,8 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.model.entity.SystemSetting;
 import com.beezhub.student_accommodation.repository.SystemSettingRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,10 +44,13 @@ class SystemSettingServiceTest {
     private static final String KEY = "auto_allocation_enabled";
 
     private SystemSetting tenant1Setting;
+    private SystemSetting tenant1FalseSetting;
     private SystemSetting tenant2Setting;
 
     @BeforeEach
     void setUp() {
+        TenantContext.setTenantId(TENANT_1_ID);
+
         tenant1Setting = SystemSetting.builder()
                 .id(1L)
                 .tenantId(TENANT_1_ID)
@@ -53,12 +58,24 @@ class SystemSettingServiceTest {
                 .settingValue("true")
                 .build();
 
-        tenant2Setting = SystemSetting.builder()
+        tenant1FalseSetting = SystemSetting.builder()
                 .id(2L)
+                .tenantId(TENANT_1_ID)
+                .settingKey(KEY)
+                .settingValue("false")
+                .build();
+
+        tenant2Setting = SystemSetting.builder()
+                .id(3L)
                 .tenantId(TENANT_2_ID)
                 .settingKey(KEY)
                 .settingValue("false")
                 .build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -68,8 +85,8 @@ class SystemSettingServiceTest {
     @Test
     @DisplayName("getSettingByKey_returnsOnlyCurrentTenantValue")
     void getSettingByKey_returnsOnlyCurrentTenantValue() {
-        // Arrange: repository (with tenant filter active for tenant 1) returns only tenant 1's row
-        when(systemSettingRepository.findBySettingKey(KEY))
+        // Arrange: repository scoped to tenant 1 returns only tenant 1's row
+        when(systemSettingRepository.findByTenantIdAndSettingKey(TENANT_1_ID, KEY))
                 .thenReturn(Optional.of(tenant1Setting));
 
         // Act
@@ -77,15 +94,15 @@ class SystemSettingServiceTest {
 
         // Assert: service returns tenant 1's value, not tenant 2's "false"
         assertThat(result).isEqualTo("true");
-        verify(systemSettingRepository).findBySettingKey(KEY);
+        verify(systemSettingRepository).findByTenantIdAndSettingKey(TENANT_1_ID, KEY);
         verifyNoMoreInteractions(systemSettingRepository);
     }
 
     @Test
     @DisplayName("getSetting_whenKeyAbsentForCurrentTenant_returnsNull")
     void getSetting_whenKeyAbsentForCurrentTenant_returnsNull() {
-        // Arrange: repository returns empty (key exists for another tenant, filter excludes it)
-        when(systemSettingRepository.findBySettingKey(KEY))
+        // Arrange: repository returns empty (key exists for another tenant only)
+        when(systemSettingRepository.findByTenantIdAndSettingKey(TENANT_1_ID, KEY))
                 .thenReturn(Optional.empty());
 
         // Act
@@ -120,7 +137,7 @@ class SystemSettingServiceTest {
     @Test
     @DisplayName("isAutoAllocationEnabled_returnsTrueWhenSettingIsTrue")
     void isAutoAllocationEnabled_returnsTrueWhenSettingIsTrue() {
-        when(systemSettingRepository.findBySettingKey(SystemSettingService.AUTO_ALLOCATION_ENABLED))
+        when(systemSettingRepository.findByTenantIdAndSettingKey(TENANT_1_ID, SystemSettingService.AUTO_ALLOCATION_ENABLED))
                 .thenReturn(Optional.of(tenant1Setting)); // tenant1Setting has value "true"
 
         assertThat(systemSettingService.isAutoAllocationEnabled()).isTrue();
@@ -129,8 +146,8 @@ class SystemSettingServiceTest {
     @Test
     @DisplayName("isAutoAllocationEnabled_returnsFalseWhenSettingIsFalse")
     void isAutoAllocationEnabled_returnsFalseWhenSettingIsFalse() {
-        when(systemSettingRepository.findBySettingKey(SystemSettingService.AUTO_ALLOCATION_ENABLED))
-                .thenReturn(Optional.of(tenant2Setting)); // tenant2Setting has value "false"
+        when(systemSettingRepository.findByTenantIdAndSettingKey(TENANT_1_ID, SystemSettingService.AUTO_ALLOCATION_ENABLED))
+                .thenReturn(Optional.of(tenant1FalseSetting)); // tenant1FalseSetting has value "false"
 
         assertThat(systemSettingService.isAutoAllocationEnabled()).isFalse();
     }
@@ -138,7 +155,7 @@ class SystemSettingServiceTest {
     @Test
     @DisplayName("isAutoAllocationEnabled_returnsFalseWhenSettingAbsent")
     void isAutoAllocationEnabled_returnsFalseWhenSettingAbsent() {
-        when(systemSettingRepository.findBySettingKey(SystemSettingService.AUTO_ALLOCATION_ENABLED))
+        when(systemSettingRepository.findByTenantIdAndSettingKey(TENANT_1_ID, SystemSettingService.AUTO_ALLOCATION_ENABLED))
                 .thenReturn(Optional.empty());
 
         assertThat(systemSettingService.isAutoAllocationEnabled()).isFalse();

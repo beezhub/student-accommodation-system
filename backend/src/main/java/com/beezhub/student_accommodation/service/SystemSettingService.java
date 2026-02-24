@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.model.entity.SystemSetting;
 import com.beezhub.student_accommodation.repository.SystemSettingRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,21 +35,22 @@ public class SystemSettingService {
     }
 
     /**
-     * Retrieves a single setting value by key.
+     * Retrieves a single setting value by key, scoped to the current tenant.
      */
     public String getSetting(String key) {
-        return systemSettingRepository.findBySettingKey(key)
+        return systemSettingRepository.findByTenantIdAndSettingKey(TenantContext.getTenantId(), key)
                 .map(SystemSetting::getSettingValue)
                 .orElse(null);
     }
 
     /**
-     * Updates a system setting value.
+     * Updates a system setting value, scoped to the current tenant.
      */
     @Transactional
     public void updateSetting(String key, String value) {
         log.info("Updating system setting: {} = {}", key, value);
-        Optional<SystemSetting> settingOpt = systemSettingRepository.findBySettingKey(key);
+        Optional<SystemSetting> settingOpt =
+                systemSettingRepository.findByTenantIdAndSettingKey(TenantContext.getTenantId(), key);
 
         if (settingOpt.isPresent()) {
             SystemSetting setting = settingOpt.get();
