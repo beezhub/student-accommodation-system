@@ -121,7 +121,7 @@ class ScheduledJobRunnerTest {
 
         assertThatCode(() -> scheduledJobRunner.runOrphanFileCleanup()).doesNotThrowAnyException();
 
-        Counter failures = meterRegistry.find("jobs.orphanCleanup.failures").counter();
+        Counter failures = meterRegistry.find("sas.jobs.orphanCleanup.failures").counter();
         assertThat(failures).isNotNull();
         assertThat(failures.count()).isEqualTo(1.0);
     }
