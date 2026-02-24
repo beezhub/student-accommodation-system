@@ -97,7 +97,7 @@ class ScheduledJobRunnerTest {
 
         assertThatCode(() -> scheduledJobRunner.runBatchAllocation()).doesNotThrowAnyException();
 
-        Counter failures = meterRegistry.find("jobs.batchAllocation.failures").counter();
+        Counter failures = meterRegistry.find("sas.jobs.batchAllocation.failures").counter();
         assertThat(failures).isNotNull();
         assertThat(failures.count()).isEqualTo(1.0);
     }
