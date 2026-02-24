@@ -30,9 +30,8 @@ class JwtConfigTest {
     @Test
     @DisplayName("startup_withoutJwtSecret_throwsIllegalStateException")
     void startup_withoutJwtSecret_throwsIllegalStateException() {
-        // @Value cannot inject null via constructor in tests, but an empty string is the closest
-        // equivalent to a missing/unset environment variable placeholder
-        JwtConfig config = new JwtConfig("", EXPIRATION, ADMIN_EXPIRATION);
+        // Explicitly pass null to simulate an absent/missing JWT_SECRET value
+        JwtConfig config = new JwtConfig(null, EXPIRATION, ADMIN_EXPIRATION);
 
         assertThatThrownBy(config::validateSecurityConfiguration)
                 .isInstanceOf(IllegalStateException.class)
