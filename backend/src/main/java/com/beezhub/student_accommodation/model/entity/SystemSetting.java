@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import lombok.AllArgsConstructor;
@@ -17,7 +18,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "system_settings")
+@Table(
+        name = "system_settings",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_system_settings_tenant_key",
+                columnNames = {"tenant_id", "setting_key"}
+        )
+)
 @Data
 @Builder
 @NoArgsConstructor
@@ -33,7 +40,7 @@ public class SystemSetting implements TenantAware {
     @Column(name = "tenant_id")
     private Long tenantId;
 
-    @Column(name = "setting_key", nullable = false, unique = true)
+    @Column(name = "setting_key", nullable = false)
     private String settingKey;
 
     @Column(name = "setting_value")
