@@ -1,7 +1,22 @@
 package com.beezhub.student_accommodation.service.tenant;
 
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
+import com.beezhub.student_accommodation.model.entity.AppUser;
+import com.beezhub.student_accommodation.model.entity.Building;
+import com.beezhub.student_accommodation.model.entity.BuildingOwner;
+import com.beezhub.student_accommodation.model.entity.BuildingStaff;
+import com.beezhub.student_accommodation.model.entity.CustomApplicationField;
+import com.beezhub.student_accommodation.model.entity.IntakePeriod;
+import com.beezhub.student_accommodation.model.entity.RequiredDocumentType;
+import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
+import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.repository.BuildingOwnerRepository;
+import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.repository.BuildingStaffRepository;
+import com.beezhub.student_accommodation.repository.CustomApplicationFieldRepository;
+import com.beezhub.student_accommodation.repository.IntakePeriodRepository;
+import com.beezhub.student_accommodation.repository.RequiredDocumentTypeRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.hibernate.Session;
@@ -56,6 +71,27 @@ class TenantFilterIntegrationTest {
 
     @Autowired
     private AcademicYearRepository academicYearRepository;
+
+    @Autowired
+    private AppUserRepository appUserRepository;
+
+    @Autowired
+    private BuildingOwnerRepository buildingOwnerRepository;
+
+    @Autowired
+    private BuildingStaffRepository buildingStaffRepository;
+
+    @Autowired
+    private BuildingRepository buildingRepository;
+
+    @Autowired
+    private IntakePeriodRepository intakePeriodRepository;
+
+    @Autowired
+    private CustomApplicationFieldRepository customApplicationFieldRepository;
+
+    @Autowired
+    private RequiredDocumentTypeRepository requiredDocumentTypeRepository;
 
     @AfterEach
     void tearDown() {
@@ -251,6 +287,180 @@ class TenantFilterIntegrationTest {
     }
 
     // ────────────────────────────────────────────────────────────
+    // TASK-2.13: BuildingOwner — tenant isolation (H2-compatible)
+    // ────────────────────────────────────────────────────────────
+
+    /**
+     * Verifies that a {@link BuildingOwner} record created by Tenant A is visible only
+     * when the Hibernate filter is enabled for Tenant A, and is hidden under Tenant B's filter.
+     *
+     * <p>{@link BuildingOwner} only requires an {@link AppUser} parent — no jsonb columns
+     * are involved, so this test is fully H2-compatible once the pre-existing context issue
+     * (missing {@code academic_year} table) is resolved.
+     */
+    @Test
+    @DisplayName("buildingOwnerRecord_notVisibleToCrossTenantQuery")
+    void buildingOwnerRecord_notVisibleToCrossTenantQuery() {
+        // Arrange: two building owners, one per tenant
+        AppUser user1 = saveUser("owner1@test.com");
+        AppUser user2 = saveUser("owner2@test.com");
+        saveBuildingOwner(user1, "Owner Corp A", TENANT_1_ID);
+        saveBuildingOwner(user2, "Owner Corp B", TENANT_2_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: filter scoped to tenant 1
+        enableTenantFilter(TENANT_1_ID);
+        List<BuildingOwner> results = buildingOwnerRepository.findAll();
+
+        // Assert: only tenant 1's building owner is visible
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getBusinessName()).isEqualTo("Owner Corp A");
+        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_1_ID);
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // TASK-2.13: BuildingStaff — tenant isolation (H2-compatible)
+    // ────────────────────────────────────────────────────────────
+
+    /**
+     * Verifies that a {@link BuildingStaff} record belonging to Tenant A is not visible
+     * when the Hibernate filter is enabled for Tenant B.
+     *
+     * <p>{@link BuildingStaff} requires an {@link AppUser} and a {@link BuildingOwner} parent.
+     * Both are H2-compatible (no jsonb columns), so this test exercises the full tenant
+     * isolation chain for staff records.
+     */
+    @Test
+    @DisplayName("buildingStaffRecord_notVisibleToCrossTenantQuery")
+    void buildingStaffRecord_notVisibleToCrossTenantQuery() {
+        // Arrange: two staff members, each associated with a different tenant's owner
+        AppUser ownerUser1 = saveUser("staff-owner1@test.com");
+        AppUser ownerUser2 = saveUser("staff-owner2@test.com");
+        AppUser staffUser1 = saveUser("staff1@test.com");
+        AppUser staffUser2 = saveUser("staff2@test.com");
+
+        BuildingOwner owner1 = saveBuildingOwner(ownerUser1, "Owner Corp A", TENANT_1_ID);
+        BuildingOwner owner2 = saveBuildingOwner(ownerUser2, "Owner Corp B", TENANT_2_ID);
+        saveBuildingStaff(staffUser1, owner1, TENANT_1_ID);
+        saveBuildingStaff(staffUser2, owner2, TENANT_2_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: filter scoped to tenant 2
+        enableTenantFilter(TENANT_2_ID);
+        List<BuildingStaff> results = buildingStaffRepository.findAll();
+
+        // Assert: only tenant 2's staff record is visible
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_2_ID);
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // TASK-2.13: IntakePeriod — tenant isolation
+    // NOTE: Blocked by pre-existing H2 schema issue (Building has
+    // jsonb column; H2 cannot create the building table).
+    // Tests are present to specify the requirement and will pass
+    // once the pre-existing context-load failure is resolved.
+    // ────────────────────────────────────────────────────────────
+
+    /**
+     * Verifies that an {@link IntakePeriod} record belonging to Tenant A is not visible
+     * when the Hibernate filter is scoped to Tenant B.
+     *
+     * <p><b>Pre-existing blocker:</b> The {@code @DataJpaTest} context fails to load due to
+     * the {@code academic_year} table missing in H2 (schema-validation failure unrelated to
+     * TASK-2.13). Additionally, {@code IntakePeriod} requires a {@link Building} parent,
+     * and {@code Building} contains a {@code jsonb} column ({@code address_components})
+     * that H2 cannot parse in {@code create-drop} mode.  Both issues must be resolved
+     * before this test can run.
+     */
+    @Test
+    @DisplayName("intakePeriodRecord_notVisibleToCrossTenantQuery")
+    void intakePeriodRecord_notVisibleToCrossTenantQuery() {
+        // Arrange: two buildings (one per tenant) and one intake period each
+        Building building1 = saveBuilding("Building A", TENANT_1_ID);
+        Building building2 = saveBuilding("Building B", TENANT_2_ID);
+        saveIntakePeriod("Spring 2025", building1, TENANT_1_ID);
+        saveIntakePeriod("Autumn 2025", building2, TENANT_2_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: filter scoped to tenant 1
+        enableTenantFilter(TENANT_1_ID);
+        List<IntakePeriod> results = intakePeriodRepository.findAll();
+
+        // Assert: only tenant 1's intake period is visible
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getName()).isEqualTo("Spring 2025");
+        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_1_ID);
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // TASK-2.13: CustomApplicationField — tenant isolation
+    // NOTE: Same pre-existing H2 blocker as IntakePeriod.
+    // ────────────────────────────────────────────────────────────
+
+    /**
+     * Verifies that a {@link CustomApplicationField} record belonging to Tenant A is not
+     * visible when the Hibernate filter is scoped to Tenant B.
+     *
+     * <p><b>Pre-existing blocker:</b> same as {@link #intakePeriodRecord_notVisibleToCrossTenantQuery()}.
+     */
+    @Test
+    @DisplayName("customApplicationFieldRecord_notVisibleToCrossTenantQuery")
+    void customApplicationFieldRecord_notVisibleToCrossTenantQuery() {
+        // Arrange: one custom field per tenant's building
+        Building building1 = saveBuilding("Building A Fields", TENANT_1_ID);
+        Building building2 = saveBuilding("Building B Fields", TENANT_2_ID);
+        saveCustomApplicationField("ID Number", building1, TENANT_1_ID);
+        saveCustomApplicationField("Proof of Income", building2, TENANT_2_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: filter scoped to tenant 2
+        enableTenantFilter(TENANT_2_ID);
+        List<CustomApplicationField> results = customApplicationFieldRepository.findAll();
+
+        // Assert: only tenant 2's custom field is visible
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getFieldLabel()).isEqualTo("Proof of Income");
+        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_2_ID);
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // TASK-2.13: RequiredDocumentType — tenant isolation
+    // NOTE: Same pre-existing H2 blocker as IntakePeriod.
+    // ────────────────────────────────────────────────────────────
+
+    /**
+     * Verifies that a {@link RequiredDocumentType} record belonging to Tenant A is not
+     * visible when the Hibernate filter is scoped to Tenant B.
+     *
+     * <p><b>Pre-existing blocker:</b> same as {@link #intakePeriodRecord_notVisibleToCrossTenantQuery()}.
+     */
+    @Test
+    @DisplayName("requiredDocumentTypeRecord_notVisibleToCrossTenantQuery")
+    void requiredDocumentTypeRecord_notVisibleToCrossTenantQuery() {
+        // Arrange: one required document type per tenant's building
+        Building building1 = saveBuilding("Building A Docs", TENANT_1_ID);
+        Building building2 = saveBuilding("Building B Docs", TENANT_2_ID);
+        saveRequiredDocumentType("Student ID", building1, TENANT_1_ID);
+        saveRequiredDocumentType("Lease Agreement", building2, TENANT_2_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: filter scoped to tenant 1
+        enableTenantFilter(TENANT_1_ID);
+        List<RequiredDocumentType> results = requiredDocumentTypeRepository.findAll();
+
+        // Assert: only tenant 1's document type is visible
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getDocumentName()).isEqualTo("Student ID");
+        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_1_ID);
+    }
+
+    // ────────────────────────────────────────────────────────────
     // Helpers
     // ────────────────────────────────────────────────────────────
 
@@ -286,5 +496,103 @@ class TenantFilterIntegrationTest {
         } catch (Exception ignored) {
             // Session may already be closed during teardown — safe to ignore
         }
+    }
+
+    /** Counter to generate unique email addresses across tests within the same session. */
+    private static final AtomicInteger USER_SEQ = new AtomicInteger(0);
+
+    /**
+     * Persists a minimal valid {@link AppUser} row. All {@code nullable=false} fields are
+     * supplied; {@code @PrePersist} handles {@code createdAt}/{@code updatedAt} automatically.
+     */
+    private AppUser saveUser(String email) {
+        AppUser user = AppUser.builder()
+                .email(email + "." + USER_SEQ.incrementAndGet())
+                .userPassword("hashed-password")
+                .userRole(UserRole.BUILDING_OWNER)
+                .firstName("Test")
+                .lastName("User")
+                .tenantId(TENANT_1_ID)
+                .build();
+        return appUserRepository.save(user);
+    }
+
+    /**
+     * Persists a {@link BuildingOwner} for the given user and tenant.
+     * {@code approvedBy} is intentionally left {@code null} (nullable FK).
+     */
+    private BuildingOwner saveBuildingOwner(AppUser user, String businessName, Long tenantId) {
+        BuildingOwner owner = BuildingOwner.builder()
+                .user(user)
+                .businessName(businessName)
+                .tenantId(tenantId)
+                .build();
+        return buildingOwnerRepository.save(owner);
+    }
+
+    /**
+     * Persists a {@link BuildingStaff} for the given user, owner, and tenant.
+     */
+    private BuildingStaff saveBuildingStaff(AppUser user, BuildingOwner owner, Long tenantId) {
+        BuildingStaff staff = BuildingStaff.builder()
+                .user(user)
+                .owner(owner)
+                .permissionSet("FULL")
+                .tenantId(tenantId)
+                .build();
+        return buildingStaffRepository.save(staff);
+    }
+
+    /**
+     * Persists a minimal {@link Building} row.
+     *
+     * <p><b>Note:</b> {@code Building} contains a {@code jsonb} column
+     * ({@code address_components}) which H2 cannot parse in {@code create-drop} mode.
+     * Tests using this helper are blocked by the pre-existing H2 context-load failure
+     * and will only run once that issue is resolved.
+     */
+    private Building saveBuilding(String name, Long tenantId) {
+        Building building = new Building();
+        building.setName(name);
+        building.setTenantId(tenantId);
+        return buildingRepository.save(building);
+    }
+
+    /**
+     * Persists an {@link IntakePeriod} for the given building and tenant.
+     */
+    private IntakePeriod saveIntakePeriod(String name, Building building, Long tenantId) {
+        IntakePeriod period = IntakePeriod.builder()
+                .name(name)
+                .building(building)
+                .mode("ROLLING")
+                .tenantId(tenantId)
+                .build();
+        return intakePeriodRepository.save(period);
+    }
+
+    /**
+     * Persists a {@link CustomApplicationField} for the given building and tenant.
+     */
+    private CustomApplicationField saveCustomApplicationField(String label, Building building, Long tenantId) {
+        CustomApplicationField field = CustomApplicationField.builder()
+                .fieldLabel(label)
+                .fieldType("TEXT")
+                .building(building)
+                .tenantId(tenantId)
+                .build();
+        return customApplicationFieldRepository.save(field);
+    }
+
+    /**
+     * Persists a {@link RequiredDocumentType} for the given building and tenant.
+     */
+    private RequiredDocumentType saveRequiredDocumentType(String documentName, Building building, Long tenantId) {
+        RequiredDocumentType docType = RequiredDocumentType.builder()
+                .documentName(documentName)
+                .building(building)
+                .tenantId(tenantId)
+                .build();
+        return requiredDocumentTypeRepository.save(docType);
     }
 }

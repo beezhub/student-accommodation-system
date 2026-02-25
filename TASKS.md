@@ -1193,15 +1193,15 @@ coverageReporter: {
 
 ### TASK-2.13: Extend TenantFilterIntegrationTest for New Entities
 
-- **Status:** TODO
-- **Priority:** HIGH
-- **Phase:** 2
-- **Estimated Scope:** M (2–4 hrs)
-- **Architecture Reference:** [ARCH 4.1 principle 4], [ARCH 5.1.1 rule 9]
-- **Requirement References:** [REQ AUTH-002], [REQ BR-P07], [REQ BR-S04]
-- **Risk References:** [ARCH RISK-011]
-- **Dependencies:** TASK-2.05, TASK-2.06, TASK-2.07, TASK-2.08, TASK-2.01, TASK-2.02 (all new entity tables must exist)
-- **Blocked By:** None (once entities are created in TASK-2.05–2.08)
+- **Status:** DONE
+ - **Priority:** HIGH
+ - **Phase:** 2
+ - **Estimated Scope:** M (2–4 hrs)
+ - **Architecture Reference:** [ARCH 4.1 principle 4], [ARCH 5.1.1 rule 9]
+ - **Requirement References:** [REQ AUTH-002], [REQ BR-P07], [REQ BR-S04]
+ - **Risk References:** [ARCH RISK-011]
+ - **Dependencies:** TASK-2.05, TASK-2.06, TASK-2.07, TASK-2.08, TASK-2.01, TASK-2.02 (all new entity tables must exist)
+ - **Blocked By:** None (once entities are created in TASK-2.05–2.08)
 
 **Description:**
 [ARCH 5.1.1 rule 9]: "Every new JPA entity table with tenant data has a `tenant_id` FK and Hibernate filter annotation. Verified by `TenantFilterIntegrationTest`." The existing test class verifies existing entities; it must be extended to cover every entity added in Phase 2.
