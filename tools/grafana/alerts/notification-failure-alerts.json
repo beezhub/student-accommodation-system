@@ -1,0 +1,114 @@
+{
+  "apiVersion": 1,
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "Notification Failures",
+      "folder": "Student Accommodation Alerts",
+      "interval": "1m",
+      "rules": [
+        {
+          "uid": "notification-permanently-failed-001",
+          "title": "Notification Permanently Failed",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 300,
+                "to": 0
+              },
+              "datasourceUid": "prometheus",
+              "model": {
+                "expr": "increase(notifications_permanently_failed_total[5m])",
+                "instant": false,
+                "intervalMs": 1000,
+                "maxDataPoints": 43200,
+                "refId": "A"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 300,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": ["A"]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "sum"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": "__expr__",
+                "expression": "A",
+                "reducer": "sum",
+                "refId": "B",
+                "type": "reduce"
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 300,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "params": [0],
+                      "type": "gt"
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "query": {
+                      "params": ["B"]
+                    },
+                    "reducer": {
+                      "params": [],
+                      "type": "last"
+                    },
+                    "type": "query"
+                  }
+                ],
+                "datasource": "__expr__",
+                "expression": "B",
+                "refId": "C",
+                "type": "threshold"
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "1m",
+          "annotations": {
+            "description": "One or more email notifications have reached PERMANENTLY_FAILED status and will not be retried. Check the notification table for affected users.",
+            "summary": "Email notification permanently failed — manual intervention required"
+          },
+          "labels": {
+            "severity": "critical",
+            "team": "platform"
+          },
+          "isPaused": false
+        }
+      ]
+    }
+  ]
+}
