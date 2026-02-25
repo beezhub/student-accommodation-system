@@ -66,7 +66,7 @@ public class JwtUtil {
 
         // Determine expiration based on role
         long expirationMs;
-        if (roles.contains("ROLE_ADMIN")) {
+        if (roles.contains("ROLE_PLATFORM_ADMIN")) {
             expirationMs = Long.parseLong(jwtConfig.getAdminExpirationTime());
         } else {
             expirationMs = Long.parseLong(jwtConfig.getExpirationTime());

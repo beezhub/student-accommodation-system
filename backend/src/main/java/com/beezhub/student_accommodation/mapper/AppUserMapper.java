@@ -27,7 +27,7 @@ public interface AppUserMapper {
     @Mapping(target = "failedLoginAttempts", ignore = true)
     AppUser toEntity(SignupRequest signupRequest, String password);
 
-    // Admin-created users - ADMIN/LANDLORD only
+    // Admin-created users - PLATFORM_ADMIN/BUILDING_OWNER/BUILDING_STAFF only
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -50,11 +50,11 @@ public interface AppUserMapper {
         return UserRole.enumRoleOf(role);
     }
 
-    // Validate only ADMIN/LANDLORD roles for admin-created users
+    // Validate only PLATFORM_ADMIN, BUILDING_OWNER, BUILDING_STAFF for admin-created users
     default UserRole mapAdminRole(String role) {
         UserRole userRole = UserRole.enumRoleOf(role);
-        if (userRole != UserRole.ADMIN && userRole != UserRole.LANDLORD) {
-            throw new IllegalArgumentException("Can only create ADMIN or LANDLORD users through this endpoint");
+        if (userRole == UserRole.STUDENT || userRole == UserRole.ADMIN || userRole == UserRole.LANDLORD) {
+            throw new IllegalArgumentException("Can only create PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF users through this endpoint");
         }
         return userRole;
     }

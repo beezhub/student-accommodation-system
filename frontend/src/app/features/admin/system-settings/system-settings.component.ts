@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -23,7 +29,7 @@ import { FormsModule } from '@angular/forms';
     MatButtonModule,
     MatIconModule,
     MatSlideToggleModule,
-    MatSnackBarModule
+    MatSnackBarModule,
   ],
 })
 export class SystemSettingsComponent implements OnInit {
@@ -83,7 +89,7 @@ export class SystemSettingsComponent implements OnInit {
         this.loading = false;
         this.cdr.markForCheck();
         this.snackBar.open('Failed to load system settings', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
@@ -103,7 +109,7 @@ export class SystemSettingsComponent implements OnInit {
         this.autoAllocationEnabled = !this.autoAllocationEnabled;
         this.cdr.markForCheck();
         this.snackBar.open('Failed to update setting', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 }

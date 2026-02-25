@@ -41,10 +41,10 @@ import { AllocationRuleDialogComponent } from './allocation-rule-dialog/allocati
     MatDialogModule,
     MatSlideToggleModule,
     MatChipsModule,
-    MatDividerModule
+    MatDividerModule,
   ],
   templateUrl: './allocation-rule-management.component.html',
-  styleUrls: ['./allocation-rule-management.component.scss']
+  styleUrls: ['./allocation-rule-management.component.scss'],
 })
 export class AllocationRuleManagementComponent implements OnInit {
   buildingForm: FormGroup;
@@ -62,7 +62,7 @@ export class AllocationRuleManagementComponent implements OnInit {
     private route: ActivatedRoute
   ) {
     this.buildingForm = this.fb.group({
-      buildingId: ['']
+      buildingId: [''],
     });
   }
 
@@ -70,7 +70,7 @@ export class AllocationRuleManagementComponent implements OnInit {
     this.loadBuildings();
 
     // Listen for building changes to load rules
-    this.buildingForm.get('buildingId')?.valueChanges.subscribe(buildingId => {
+    this.buildingForm.get('buildingId')?.valueChanges.subscribe((buildingId) => {
       if (buildingId !== '') {
         this.loadRules(buildingId);
       } else {
@@ -79,7 +79,7 @@ export class AllocationRuleManagementComponent implements OnInit {
     });
 
     // Check for buildingId in query params (e.g., from building management page)
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       if (params['buildingId']) {
         const buildingId = parseInt(params['buildingId'], 10);
         if (!isNaN(buildingId)) {
@@ -94,11 +94,11 @@ export class AllocationRuleManagementComponent implements OnInit {
 
   loadBuildings(): void {
     this.buildingService.getAllBuildingsNoPagination().subscribe({
-      next: (data) => this.buildings = data,
+      next: (data) => (this.buildings = data),
       error: (err) => {
         console.error('Failed to load buildings', err);
         this.snackBar.open('Failed to load buildings', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
@@ -113,7 +113,7 @@ export class AllocationRuleManagementComponent implements OnInit {
         console.error('Failed to load rules', err);
         this.isLoading = false;
         this.snackBar.open('Failed to load rules', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
@@ -129,11 +129,11 @@ export class AllocationRuleManagementComponent implements OnInit {
       maxHeight: '90vh',
       data: {
         rule,
-        buildingId: buildingId
-      }
+        buildingId: buildingId,
+      },
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.loadRules(buildingId); // Reload rules
       }
@@ -144,13 +144,15 @@ export class AllocationRuleManagementComponent implements OnInit {
     this.allocationRuleService.activateRule(rule.id).subscribe({
       next: (updated) => {
         rule.active = updated.active;
-        this.snackBar.open(`Rule ${updated.active ? 'activated' : 'deactivated'}`, 'Close', { duration: 2000 });
+        this.snackBar.open(`Rule ${updated.active ? 'activated' : 'deactivated'}`, 'Close', {
+          duration: 2000,
+        });
       },
       error: (err) => {
         console.error('Failed to update rule status', err);
         this.snackBar.open('Failed to update status', 'Close', { duration: 3000 });
         // Revert UI change if needed (but since we didn't optimistic update, it's fine)
-      }
+      },
     });
   }
 
@@ -165,7 +167,7 @@ export class AllocationRuleManagementComponent implements OnInit {
         error: (err) => {
           console.error('Failed to delete rule', err);
           this.snackBar.open('Failed to delete rule', 'Close', { duration: 3000 });
-        }
+        },
       });
     }
   }

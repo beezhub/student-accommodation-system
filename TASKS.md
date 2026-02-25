@@ -12,9 +12,9 @@
 | Phase | Total | Done | In Progress | Todo | Blocked | Progress |
 |-------|-------|------|-------------|------|---------|----------|
 | Phase 1: Critical Stabilisation | 8 | 8 | 0 | 0 | 0 | 100% |
-| Phase 2: Structural Improvement | 13 | 8 | 0 | 5 | 0 | 62% |
+| Phase 2: Structural Improvement | 13 | 12 | 0 | 1 | 0 | 92% |
 | Phase 3: Enhancement & Optimisation | 13 | 0 | 0 | 13 | 0 | 0% |
-| **Total** | **34** | **16** | **0** | **18** | **0** | **47%** |
+| **Total** | **34** | **20** | **0** | **14** | **0** | **59%** |
 
 **Current Blockers:** None — Phase 1 gate passed. Phase 2 is now open.
 
@@ -576,9 +576,9 @@ ALTER TABLE document DROP COLUMN application_id;
 
 ---
 
-### TASK-2.03: Migrate UserRole to v2.0 Role Model
+ ### TASK-2.03: Migrate UserRole to v2.0 Role Model
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** CRITICAL
 - **Phase:** 2
 - **Estimated Scope:** L (4–8 hrs)
@@ -692,7 +692,7 @@ spring:
 
 ### TASK-2.05: Add intake_period Table Migration
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** M (2–4 hrs)
@@ -753,7 +753,7 @@ CREATE INDEX idx_intake_period_tenant ON intake_period(tenant_id);
 
 ### TASK-2.06: Add building_owner and building_staff Tables Migration
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** M (2–4 hrs)
@@ -826,7 +826,7 @@ CREATE INDEX idx_building_staff_tenant ON building_staff(tenant_id);
 
 ### TASK-2.07: Add custom_application_field and custom_field_answer Tables Migration
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** M (2–4 hrs)
@@ -891,7 +891,7 @@ CREATE INDEX idx_custom_answer_application ON custom_field_answer(application_id
 
 ### TASK-2.08: Add required_document_type Table Migration
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** S (< 2 hrs)

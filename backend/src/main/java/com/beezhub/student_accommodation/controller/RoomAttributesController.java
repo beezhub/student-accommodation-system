@@ -22,7 +22,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/room-attributes")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('PLATFORM_ADMIN')")
 public class RoomAttributesController {
 
     private final RoomAttributesService roomAttributesService;

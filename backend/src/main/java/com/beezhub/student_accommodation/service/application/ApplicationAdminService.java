@@ -272,7 +272,7 @@ public class ApplicationAdminService {
         AppUser admin = appUserRepository.findByEmail(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-        if (!admin.getUserRole().equals(UserRole.ADMIN)) {
+        if (!admin.getUserRole().isAdmin()) {
             throw new UnauthorizedAccessException("Only admins can move applications to allocation phase");
         }
 
@@ -293,7 +293,7 @@ public class ApplicationAdminService {
 
         // Verify admin access
         AppUser currentUser = authService.getCurrentUser();
-        if (!currentUser.getUserRole().equals(UserRole.ADMIN)) {
+        if (!currentUser.getUserRole().isAdmin()) {
             throw new UnauthorizedAccessException("Only admins can access full application details");
         }
 

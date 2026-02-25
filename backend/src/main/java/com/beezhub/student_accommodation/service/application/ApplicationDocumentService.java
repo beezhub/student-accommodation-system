@@ -153,7 +153,7 @@ public class ApplicationDocumentService {
                 AppUser admin = appUserRepository.findByEmail(username)
                                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-                if (!admin.getUserRole().equals(UserRole.ADMIN)) {
+                if (!admin.getUserRole().isAdmin()) {
                         throw new UnauthorizedAccessException("Only admins can save review progress");
                 }
 

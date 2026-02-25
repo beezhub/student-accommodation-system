@@ -3,7 +3,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 
-export type ErrorType = 'network' | 'server' | 'validation' | 'notfound' | 'unauthorized' | 'forbidden' | 'conflict' | 'general';
+export type ErrorType =
+  | 'network'
+  | 'server'
+  | 'validation'
+  | 'notfound'
+  | 'unauthorized'
+  | 'forbidden'
+  | 'conflict'
+  | 'general';
 
 export interface ParsedError {
   type: ErrorType;
@@ -30,10 +38,7 @@ export class ErrorHandlingService {
     navigateOnUnauthorized: true,
   };
 
-  constructor(
-    private snackBar: MatSnackBar,
-    private router: Router
-  ) {}
+  constructor(private snackBar: MatSnackBar, private router: Router) {}
 
   /**
    * Parse an HTTP error response into a standardized format
@@ -87,7 +92,8 @@ export class ErrorHandlingService {
           return {
             type: 'validation',
             title: 'Applications Closed',
-            message: 'Sorry, applications are currently closed. Please check back during the application window.',
+            message:
+              'Sorry, applications are currently closed. Please check back during the application window.',
             canRetry: false,
             statusCode,
           };

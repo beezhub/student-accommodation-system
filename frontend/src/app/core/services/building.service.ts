@@ -125,7 +125,7 @@ export class BuildingService {
 
   uploadBuildingImages(buildingId: number, files: File[]): Observable<BuildingImageResponse[]> {
     const formData = new FormData();
-    files.forEach(file => formData.append('files', file));
+    files.forEach((file) => formData.append('files', file));
     return this.http.post<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`, formData);
   }
 
@@ -134,6 +134,9 @@ export class BuildingService {
   }
 
   setPrimaryImage(buildingId: number, imageId: number): Observable<BuildingImageResponse> {
-    return this.http.put<BuildingImageResponse>(`${this.apiUrl}/${buildingId}/images/${imageId}/primary`, {});
+    return this.http.put<BuildingImageResponse>(
+      `${this.apiUrl}/${buildingId}/images/${imageId}/primary`,
+      {}
+    );
   }
 }

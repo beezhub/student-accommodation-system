@@ -21,7 +21,7 @@ export class SystemSettingsService {
 
   isAutoAllocationEnabled(): Observable<boolean> {
     return this.getSettings().pipe(
-      map(settings => settings['auto_allocation_enabled'] === 'true')
+      map((settings) => settings['auto_allocation_enabled'] === 'true')
     );
   }
 }

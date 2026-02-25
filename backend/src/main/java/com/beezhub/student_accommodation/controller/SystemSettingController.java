@@ -16,13 +16,13 @@ public class SystemSettingController {
     private final SystemSettingService systemSettingService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Map<String, String>> getAllSettings() {
         return ResponseEntity.ok(systemSettingService.getAllSettings());
     }
 
     @PutMapping("/{key}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Void> updateSetting(@PathVariable String key, @RequestBody Map<String, String> payload) {
         String value = payload.get("value");
         systemSettingService.updateSetting(key, value);

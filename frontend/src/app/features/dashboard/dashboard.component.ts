@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -27,7 +33,10 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/modern-status-badge.component';
 import { AcceptOfferDialogComponent } from './accept-offer-dialog/accept-offer-dialog.component';
-import { DeclineOfferDialogComponent, DeclineOfferDialogData } from './decline-offer-dialog/decline-offer-dialog.component';
+import {
+  DeclineOfferDialogComponent,
+  DeclineOfferDialogData,
+} from './decline-offer-dialog/decline-offer-dialog.component';
 import { DeclineOfferRequest } from '../../core/services/room-allocation.service';
 
 @Component({
@@ -136,7 +145,6 @@ export class DashboardComponent implements OnInit {
         this.isLoadingRoom = false;
       },
     });
-
   }
 
   acceptOffer(): void {
@@ -144,24 +152,26 @@ export class DashboardComponent implements OnInit {
 
     const dialogRef = this.dialog.open(AcceptOfferDialogComponent, {
       width: '400px',
-      data: { allocation: this.roomAllocation }
+      data: { allocation: this.roomAllocation },
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.processing = true;
-        this.roomAllocationService.acceptOffer(this.roomAllocation!.id, result.toISOString()).subscribe({
-          next: (updatedAlloc) => {
-            this.roomAllocation = updatedAlloc;
-            this.processing = false;
-            this.cdr.markForCheck();
-          },
-          error: (err) => {
-            console.error('Failed to accept offer', err);
-            this.processing = false;
-            this.cdr.markForCheck();
-          }
-        });
+        this.roomAllocationService
+          .acceptOffer(this.roomAllocation!.id, result.toISOString())
+          .subscribe({
+            next: (updatedAlloc) => {
+              this.roomAllocation = updatedAlloc;
+              this.processing = false;
+              this.cdr.markForCheck();
+            },
+            error: (err) => {
+              console.error('Failed to accept offer', err);
+              this.processing = false;
+              this.cdr.markForCheck();
+            },
+          });
       }
     });
   }
@@ -175,13 +185,13 @@ export class DashboardComponent implements OnInit {
         const dialogData: DeclineOfferDialogData = {
           previousDeclineCount: declineCount,
           roomNumber: this.roomAllocation!.roomNumber,
-          buildingName: this.roomAllocation!.buildingName
+          buildingName: this.roomAllocation!.buildingName,
         };
 
         const dialogRef = this.dialog.open(DeclineOfferDialogComponent, {
           width: '500px',
           data: dialogData,
-          disableClose: false
+          disableClose: false,
         });
 
         dialogRef.afterClosed().subscribe((request: DeclineOfferRequest | undefined) => {
@@ -201,14 +211,16 @@ export class DashboardComponent implements OnInit {
 
                 // Handle max decline error (403)
                 if (err.status === 403) {
-                  alert('Your application has been closed due to reaching the maximum number of declines.');
+                  alert(
+                    'Your application has been closed due to reaching the maximum number of declines.'
+                  );
                   this.loadApplicationHistory();
                 } else {
                   alert('Failed to decline offer. Please try again or contact support.');
                 }
 
                 this.cdr.markForCheck();
-              }
+              },
             });
           }
         });
@@ -216,30 +228,32 @@ export class DashboardComponent implements OnInit {
       error: (err: any) => {
         console.error('Failed to get decline count', err);
         alert('Unable to process decline request. Please try again.');
-      }
+      },
     });
   }
 
   private getPreviousDeclineCount(applicationId: number): Observable<number> {
     // Search for all DECLINED allocations for this application
-    return new Observable(observer => {
-      this.roomAllocationService.searchAllocations({
-        status: 'DECLINED',
-        page: 0,
-        size: 100 // Should be enough to capture all declines
-      }).subscribe({
-        next: (response) => {
-          // Filter by application ID and count
-          const declineCount = response.content.filter(
-            alloc => alloc.applicationId === applicationId
-          ).length;
-          observer.next(declineCount);
-          observer.complete();
-        },
-        error: (err) => {
-          observer.error(err);
-        }
-      });
+    return new Observable((observer) => {
+      this.roomAllocationService
+        .searchAllocations({
+          status: 'DECLINED',
+          page: 0,
+          size: 100, // Should be enough to capture all declines
+        })
+        .subscribe({
+          next: (response) => {
+            // Filter by application ID and count
+            const declineCount = response.content.filter(
+              (alloc) => alloc.applicationId === applicationId
+            ).length;
+            observer.next(declineCount);
+            observer.complete();
+          },
+          error: (err) => {
+            observer.error(err);
+          },
+        });
     });
   }
 

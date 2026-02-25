@@ -35,13 +35,13 @@ import { BuildingResponse } from '../../../../core/services/building.service';
             <mat-icon matPrefix>apartment</mat-icon>
             <mat-select formControlName="buildingId" required>
               @for (building of data.buildings; track building.id) {
-                <mat-option [value]="building.id">
-                  {{ building.name }}
-                </mat-option>
+              <mat-option [value]="building.id">
+                {{ building.name }}
+              </mat-option>
               }
             </mat-select>
             @if (bulkForm.get('buildingId')?.hasError('required')) {
-              <mat-error>Building is required</mat-error>
+            <mat-error>Building is required</mat-error>
             }
           </mat-form-field>
 
@@ -58,10 +58,9 @@ import { BuildingResponse } from '../../../../core/services/building.service';
               <mat-icon matPrefix>looks_one</mat-icon>
               <input matInput type="number" formControlName="startNumber" min="1" required />
               @if (bulkForm.get('startNumber')?.hasError('required')) {
-                <mat-error>Required</mat-error>
-              }
-              @if (bulkForm.get('startNumber')?.hasError('min')) {
-                <mat-error>Min 1</mat-error>
+              <mat-error>Required</mat-error>
+              } @if (bulkForm.get('startNumber')?.hasError('min')) {
+              <mat-error>Min 1</mat-error>
               }
             </mat-form-field>
           </div>
@@ -72,13 +71,11 @@ import { BuildingResponse } from '../../../../core/services/building.service';
               <mat-icon matPrefix>layers</mat-icon>
               <input matInput type="number" formControlName="count" min="1" max="100" required />
               @if (bulkForm.get('count')?.hasError('required')) {
-                <mat-error>Required</mat-error>
-              }
-              @if (bulkForm.get('count')?.hasError('min')) {
-                <mat-error>At least 1</mat-error>
-              }
-              @if (bulkForm.get('count')?.hasError('max')) {
-                <mat-error>Max 100</mat-error>
+              <mat-error>Required</mat-error>
+              } @if (bulkForm.get('count')?.hasError('min')) {
+              <mat-error>At least 1</mat-error>
+              } @if (bulkForm.get('count')?.hasError('max')) {
+              <mat-error>Max 100</mat-error>
               }
             </mat-form-field>
 
@@ -87,36 +84,39 @@ import { BuildingResponse } from '../../../../core/services/building.service';
               <mat-icon matPrefix>group</mat-icon>
               <input matInput type="number" formControlName="capacity" min="1" required />
               @if (bulkForm.get('capacity')?.hasError('required')) {
-                <mat-error>Required</mat-error>
-              }
-              @if (bulkForm.get('capacity')?.hasError('min')) {
-                <mat-error>At least 1</mat-error>
+              <mat-error>Required</mat-error>
+              } @if (bulkForm.get('capacity')?.hasError('min')) {
+              <mat-error>At least 1</mat-error>
               }
             </mat-form-field>
           </div>
 
           <!-- Preview -->
           @if (generatedRoomNumbers.length > 0) {
-            <div class="preview-section">
-              <div class="preview-header">
-                <mat-icon>preview</mat-icon>
-                <span>Preview ({{ generatedRoomNumbers.length }} rooms)</span>
-              </div>
-              <div class="preview-chips">
-                @for (roomNum of generatedRoomNumbers.slice(0, 12); track roomNum) {
-                  <span class="room-chip">{{ roomNum }}</span>
-                }
-                @if (generatedRoomNumbers.length > 12) {
-                  <span class="room-chip more">+{{ generatedRoomNumbers.length - 12 }} more</span>
-                }
-              </div>
+          <div class="preview-section">
+            <div class="preview-header">
+              <mat-icon>preview</mat-icon>
+              <span>Preview ({{ generatedRoomNumbers.length }} rooms)</span>
             </div>
+            <div class="preview-chips">
+              @for (roomNum of generatedRoomNumbers.slice(0, 12); track roomNum) {
+              <span class="room-chip">{{ roomNum }}</span>
+              } @if (generatedRoomNumbers.length > 12) {
+              <span class="room-chip more">+{{ generatedRoomNumbers.length - 12 }} more</span>
+              }
+            </div>
+          </div>
           }
         </form>
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+        <button
+          mat-stroked-button
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+          class="cancel-btn"
+        >
           Cancel
         </button>
         <button
@@ -127,13 +127,10 @@ import { BuildingResponse } from '../../../../core/services/building.service';
           class="submit-btn"
         >
           @if (isSubmitting) {
-            <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            Creating...
-          }
-          @if (!isSubmitting) {
-            <mat-icon>add</mat-icon>
-            Create {{ generatedRoomNumbers.length }} Rooms
-          }
+          <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+          Creating... } @if (!isSubmitting) {
+          <mat-icon>add</mat-icon>
+          Create {{ generatedRoomNumbers.length }} Rooms }
         </button>
       </mat-dialog-actions>
     </div>

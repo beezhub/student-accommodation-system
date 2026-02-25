@@ -130,9 +130,11 @@ export class UserManagementComponent implements OnInit {
 
   getRoleColor(role: string): string {
     switch (role) {
-      case 'ADMIN':
+      case 'PLATFORM_ADMIN':
         return 'primary';
-      case 'LANDLORD':
+      case 'BUILDING_OWNER':
+        return 'accent';
+      case 'BUILDING_STAFF':
         return 'accent';
       case 'STUDENT':
         return 'warn';

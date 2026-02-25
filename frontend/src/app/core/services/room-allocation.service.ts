@@ -9,7 +9,7 @@ export enum DeclineReason {
   FOUND_ALTERNATIVE = 'FOUND_ALTERNATIVE',
   ACCESSIBILITY_ISSUES = 'ACCESSIBILITY_ISSUES',
   PERSONAL_REASONS = 'PERSONAL_REASONS',
-  OTHER = 'OTHER'
+  OTHER = 'OTHER',
 }
 
 export interface DeclineOfferRequest {
@@ -185,9 +185,10 @@ export class RoomAllocationService {
     );
   }
 
-
   acceptOffer(id: number, expectedCheckInDate: string): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/accept`, { expectedCheckInDate });
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/accept`, {
+      expectedCheckInDate,
+    });
   }
 
   declineOffer(id: number, request: DeclineOfferRequest): Observable<RoomAllocationResponse> {

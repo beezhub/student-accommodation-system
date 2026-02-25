@@ -32,7 +32,7 @@ public class ActivityLogController {
     )
     @ApiResponse(responseCode = "200", description = "Activity logs retrieved successfully")
     @ApiResponse(responseCode = "403", description = "Access denied - Admin only")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @GetMapping
     public ResponseEntity<ActivityLogPageResponse> getActivityLogs(
             @Parameter(description = "User ID filter")
@@ -78,7 +78,7 @@ public class ActivityLogController {
     )
     @ApiResponse(responseCode = "200", description = "CSV file generated successfully")
     @ApiResponse(responseCode = "403", description = "Access denied - Admin only")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportActivityLogs(
             @Parameter(description = "User ID filter")

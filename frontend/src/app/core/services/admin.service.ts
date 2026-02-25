@@ -8,7 +8,7 @@ export interface CreateUserRequest {
   lastName: string;
   email: string;
   password: string;
-  userRole: string; // 'ADMIN' or 'LANDLORD'
+  userRole: string; // Role must be PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF
 }
 
 export interface AdminUser {
@@ -182,7 +182,8 @@ export class AdminService {
     if (filters.studentName) params = params.set('studentName', filters.studentName);
     if (filters.status) params = params.set('status', filters.status);
     if (filters.allocationStatus) params = params.set('allocationStatus', filters.allocationStatus);
-    if (filters.preferredBuilding) params = params.set('preferredBuilding', filters.preferredBuilding);
+    if (filters.preferredBuilding)
+      params = params.set('preferredBuilding', filters.preferredBuilding);
     if (filters.startDate) params = params.set('startDate', filters.startDate);
     if (filters.endDate) params = params.set('endDate', filters.endDate);
 
@@ -222,7 +223,8 @@ export class AdminService {
       .set('size', (filters.size || 20).toString());
 
     if (filters.studentName) params = params.set('studentName', filters.studentName);
-    if (filters.documentTypeId) params = params.set('documentTypeId', filters.documentTypeId.toString());
+    if (filters.documentTypeId)
+      params = params.set('documentTypeId', filters.documentTypeId.toString());
     if (filters.status) params = params.set('status', filters.status);
 
     return this.http.get<PageResponse<DocumentResponse>>(`${this.documentApiUrl}/search`, {

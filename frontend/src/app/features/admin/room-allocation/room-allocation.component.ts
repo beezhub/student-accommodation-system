@@ -47,7 +47,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatTooltipModule,
     MatMenuModule,
     MatChipsModule,
-    ModernStatusBadgeComponent
+    ModernStatusBadgeComponent,
   ],
 })
 export class RoomAllocationComponent implements OnInit {
@@ -70,7 +70,16 @@ export class RoomAllocationComponent implements OnInit {
 
   filterForm: FormGroup;
 
-  statuses = ['OFFERED', 'ACCEPTED', 'DECLINED', 'EXPIRED', 'CHECK_IN_EXPIRED', 'ACTIVE', 'COMPLETED', 'CANCELLED'];
+  statuses = [
+    'OFFERED',
+    'ACCEPTED',
+    'DECLINED',
+    'EXPIRED',
+    'CHECK_IN_EXPIRED',
+    'ACTIVE',
+    'COMPLETED',
+    'CANCELLED',
+  ];
 
   constructor(
     private allocationService: RoomAllocationService,
@@ -161,14 +170,14 @@ export class RoomAllocationComponent implements OnInit {
     import('../allocation-move-dialog/allocation-move-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.AllocationMoveDialogComponent, {
         width: '600px',
-        data: { 
+        data: {
           allocationId: allocation.id,
           studentId: allocation.studentId,
           studentName: `${allocation.studentFirstName} ${allocation.studentLastName}`,
           currentRoom: {
             buildingName: allocation.buildingName,
-            roomNumber: allocation.roomNumber
-          }
+            roomNumber: allocation.roomNumber,
+          },
         },
       });
 
@@ -215,7 +224,9 @@ export class RoomAllocationComponent implements OnInit {
   }
 
   checkIn(allocation: RoomAllocationResponse): void {
-    if (confirm(`Confirm check-in for ${allocation.studentFirstName} ${allocation.studentLastName}?`)) {
+    if (
+      confirm(`Confirm check-in for ${allocation.studentFirstName} ${allocation.studentLastName}?`)
+    ) {
       this.allocationService.checkIn(allocation.id).subscribe({
         next: () => {
           this.snackBar.open('Check-in confirmed successfully', 'Close', { duration: 3000 });
@@ -230,7 +241,9 @@ export class RoomAllocationComponent implements OnInit {
   }
 
   checkOut(allocation: RoomAllocationResponse): void {
-    if (confirm(`Confirm check-out for ${allocation.studentFirstName} ${allocation.studentLastName}?`)) {
+    if (
+      confirm(`Confirm check-out for ${allocation.studentFirstName} ${allocation.studentLastName}?`)
+    ) {
       this.allocationService.checkOut(allocation.id).subscribe({
         next: () => {
           this.snackBar.open('Check-out confirmed successfully', 'Close', { duration: 3000 });

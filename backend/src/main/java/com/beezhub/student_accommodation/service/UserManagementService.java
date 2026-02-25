@@ -35,11 +35,9 @@ public class UserManagementService {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
 
-        // Validate role is ADMIN or LANDLORD (also validated in mapper)
+        // Validate role is PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF (not STUDENT or deprecated roles)
         UserRole role = UserRole.enumRoleOf(request.getUserRole());
-        if (role != UserRole.ADMIN && role != UserRole.LANDLORD) {
-            throw new IllegalArgumentException("Can only create ADMIN or LANDLORD users");
-        }
+        validateAdminCreatableRole(role);
 
         // Create user entity
         AppUser user = appUserMapper.toEntityFromAdminRequest(
@@ -74,8 +72,8 @@ public class UserManagementService {
             .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         // Prevent deleting the last admin
-        if (user.getUserRole() == UserRole.ADMIN) {
-            long adminCount = userRepository.countByUserRole(UserRole.ADMIN);
+        if (user.getUserRole().isAdmin()) {
+            long adminCount = userRepository.countByUserRole(UserRole.PLATFORM_ADMIN);
             if (adminCount <= 1) {
                 throw new IllegalStateException("Cannot delete the last admin user");
             }
@@ -83,5 +81,19 @@ public class UserManagementService {
 
         userRepository.deleteById(userId);
         log.info("User deleted: {}", userId);
+    }
+
+    /**
+     * Validates that the given role is admin-creatable.
+     * STUDENT and deprecated roles (ADMIN, LANDLORD) are not permitted.
+     *
+     * @param role the role to validate
+     * @throws IllegalArgumentException if the role is not admin-creatable
+     */
+    private void validateAdminCreatableRole(UserRole role) {
+        if (role == UserRole.STUDENT || role == UserRole.ADMIN || role == UserRole.LANDLORD) {
+            throw new IllegalArgumentException(
+                    "Invalid role for admin creation. Allowed: PLATFORM_ADMIN, BUILDING_OWNER, BUILDING_STAFF");
+        }
     }
 }

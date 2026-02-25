@@ -18,7 +18,10 @@ import { YearOfStudy } from '../../../core/models/year-of-study.model';
 import { InstitutionService } from '../../../core/services/institution.service';
 import { YearOfStudyService } from '../../../core/services/year-of-study.service';
 import { Institution } from '../../../core/models/institution.model';
-import { ApplicationService, ApplicationDocument } from '../../../core/services/application.service';
+import {
+  ApplicationService,
+  ApplicationDocument,
+} from '../../../core/services/application.service';
 
 @Component({
   selector: 'app-application-review',
@@ -109,7 +112,7 @@ export class ApplicationReviewComponent implements OnInit {
         if (applications && applications.length > 0) {
           this.currentApplication = applications[0];
           console.log('Application data loaded:', this.currentApplication);
-          
+
           // Load documents for this specific application
           if (this.currentApplication.id) {
             this.applicationService.getApplicationDocuments(this.currentApplication.id).subscribe({

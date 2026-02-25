@@ -21,21 +21,21 @@ public class FeatureController {
     private final FF4j ff4j;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @Operation(summary = "Get all feature flags")
     public ResponseEntity<Map<String, Feature>> getAllFeatures() {
         return ResponseEntity.ok(ff4j.getFeatures());
     }
 
     @GetMapping("/{featureId}/check")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @Operation(summary = "Check if a feature is enabled")
     public ResponseEntity<Boolean> checkFeature(@PathVariable String featureId) {
         return ResponseEntity.ok(ff4j.check(featureId));
     }
 
     @PostMapping("/{featureId}/enable")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @Operation(summary = "Enable a feature")
     public ResponseEntity<Void> enableFeature(@PathVariable String featureId) {
         ff4j.enable(featureId);
@@ -43,7 +43,7 @@ public class FeatureController {
     }
 
     @PostMapping("/{featureId}/disable")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @Operation(summary = "Disable a feature")
     public ResponseEntity<Void> disableFeature(@PathVariable String featureId) {
         ff4j.disable(featureId);
@@ -51,7 +51,7 @@ public class FeatureController {
     }
 
     @GetMapping("/auto-allocation")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @Operation(summary = "Check auto-allocation status specifically")
     public ResponseEntity<Boolean> isAutoAllocationEnabled() {
         return ResponseEntity.ok(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION));

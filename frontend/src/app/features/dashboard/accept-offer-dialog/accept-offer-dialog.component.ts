@@ -24,31 +24,51 @@ export interface AcceptOfferDialogData {
     MatInputModule,
     MatDatepickerModule,
     MatButtonModule,
-    MatNativeDateModule
+    MatNativeDateModule,
   ],
   template: `
     <h2 mat-dialog-title>Accept Room Offer</h2>
     <mat-dialog-content>
-      <p>Please select your expected check-in date. This must be within 7 days from when the room was offered.</p>
+      <p>
+        Please select your expected check-in date. This must be within 7 days from when the room was
+        offered.
+      </p>
       <form [formGroup]="form">
         <mat-form-field appearance="fill" class="full-width">
           <mat-label>Expected Check-in Date</mat-label>
-          <input matInput [matDatepicker]="picker" formControlName="expectedCheckInDate" [min]="minDate" [max]="maxDate">
+          <input
+            matInput
+            [matDatepicker]="picker"
+            formControlName="expectedCheckInDate"
+            [min]="minDate"
+            [max]="maxDate"
+          />
           <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
-          <mat-error *ngIf="form.get('expectedCheckInDate')?.hasError('required')">Date is required</mat-error>
+          <mat-error *ngIf="form.get('expectedCheckInDate')?.hasError('required')"
+            >Date is required</mat-error
+          >
         </mat-form-field>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Cancel</button>
-      <button mat-raised-button color="primary" [disabled]="form.invalid" (click)="submit()">Accept Offer</button>
+      <button mat-raised-button color="primary" [disabled]="form.invalid" (click)="submit()">
+        Accept Offer
+      </button>
     </mat-dialog-actions>
   `,
-  styles: [`
-    .full-width { width: 100%; }
-    mat-dialog-content { padding-top: 10px; min-width: 300px; }
-  `]
+  styles: [
+    `
+      .full-width {
+        width: 100%;
+      }
+      mat-dialog-content {
+        padding-top: 10px;
+        min-width: 300px;
+      }
+    `,
+  ],
 })
 export class AcceptOfferDialogComponent {
   form: FormGroup;
@@ -76,7 +96,7 @@ export class AcceptOfferDialogComponent {
     this.maxDate.setDate(this.maxDate.getDate() + 7);
 
     this.form = this.fb.group({
-      expectedCheckInDate: [null, Validators.required]
+      expectedCheckInDate: [null, Validators.required],
     });
   }
 

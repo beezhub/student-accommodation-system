@@ -25,7 +25,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/allocation-rules")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('PLATFORM_ADMIN')")
 @Deprecated(since = "2.0", forRemoval = true)
 public class AllocationRuleController {
 

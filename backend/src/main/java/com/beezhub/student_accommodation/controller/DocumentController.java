@@ -148,7 +148,7 @@ public class DocumentController {
 
     @Operation(summary = "Update document status (admin)", description = "Admin-only endpoint to update document verification status. Optionally include a rejection comment when setting status to REJECTED.")
     @ApiResponse(responseCode = "200", description = "Status updated")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @PutMapping("/update-status/{documentId}")
     public ResponseEntity<DocumentResponse> updateDocumentStatus(
             @PathVariable Long documentId,
@@ -176,7 +176,7 @@ public class DocumentController {
             description = "Admin endpoint to search all documents with filters: name, studentName, studentId, documentTypeId, status, date range"
     )
     @ApiResponse(responseCode = "200", description = "Search results returned")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @GetMapping("/search")
     public ResponseEntity<PageResponse<DocumentResponse>> searchDocuments(
             @RequestParam(required = false) String documentName,
@@ -221,7 +221,7 @@ public class DocumentController {
     @ApiResponse(responseCode = "200", description = "Comment added successfully")
     @ApiResponse(responseCode = "403", description = "User lacks permission")
     @ApiResponse(responseCode = "404", description = "Document not found")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @PostMapping("/{documentId}/comments")
     public ResponseEntity<DocumentCommentResponse> addComment(
             @PathVariable Long documentId,
@@ -248,7 +248,7 @@ public class DocumentController {
     @ApiResponse(responseCode = "204", description = "Comment deleted successfully")
     @ApiResponse(responseCode = "403", description = "User lacks permission")
     @ApiResponse(responseCode = "404", description = "Comment not found")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @DeleteMapping("/comments/{commentId}")
     public ResponseEntity<Void> deleteComment(
             @PathVariable Long commentId,

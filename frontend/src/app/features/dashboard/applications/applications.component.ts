@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -107,6 +113,8 @@ export class ApplicationsComponent implements OnInit {
   cancelApplication(applicationId: number) {
     // Note: Application cancellation is not currently supported by the backend API
     // This is a placeholder for future implementation
-    alert('Application cancellation is not currently available. Please contact support if you need to cancel your application.');
+    alert(
+      'Application cancellation is not currently available. Please contact support if you need to cancel your application.'
+    );
   }
 }

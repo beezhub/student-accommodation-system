@@ -2,7 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AdminService, DocumentResponse, PageResponse } from '../../../core/services/admin.service';
-import { DocumentTypeService, DocumentTypeResponse } from '../../../core/services/document-type.service';
+import {
+  DocumentTypeService,
+  DocumentTypeResponse,
+} from '../../../core/services/document-type.service';
 import { DocumentViewerComponent } from '../../dashboard/documents/document-viewer/document-viewer.component';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 
@@ -44,13 +47,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 })
 export class DocumentVerificationComponent implements OnInit {
   documents: DocumentResponse[] = [];
-  displayedColumns: string[] = [
-    'documentName',
-    'studentName',
-    'uploadDate',
-    'status',
-    'actions',
-  ];
+  displayedColumns: string[] = ['documentName', 'studentName', 'uploadDate', 'status', 'actions'];
 
   isLoading = false;
   totalElements = 0;
@@ -89,7 +86,7 @@ export class DocumentVerificationComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load document types:', err);
-      }
+      },
     });
   }
 

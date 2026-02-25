@@ -151,14 +151,19 @@ interface StatusConfig {
       /* Status Colors - Mapped to Functional Palette */
 
       /* Success/Approved */
-      .status-approved, .status-verified, .status-allocated, .status-active {
+      .status-approved,
+      .status-verified,
+      .status-allocated,
+      .status-active {
         background: var(--color-success-bg, linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%));
         color: var(--color-success, #047857);
         border: 1px solid var(--color-success-border, #6ee7b7);
       }
 
       /* Warning/Pending/Full */
-      .status-pending, .status-full, .status-awaiting_allocation {
+      .status-pending,
+      .status-full,
+      .status-awaiting_allocation {
         background: var(--color-warning-bg, linear-gradient(135deg, #fef3c7 0%, #fde68a 100%));
         color: var(--color-warning, #b45309);
         border: 1px solid var(--color-warning-border, #fcd34d);
@@ -193,7 +198,9 @@ interface StatusConfig {
       }
 
       /* Neutral/Maintenance/Inactive */
-      .status-maintenance, .status-inactive, .status-occupied {
+      .status-maintenance,
+      .status-inactive,
+      .status-occupied {
         background: var(--color-slate-100, #f1f5f9);
         color: var(--color-slate-600, #475569);
         border: 1px solid var(--color-slate-200, #cbd5e1);

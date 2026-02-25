@@ -35,6 +35,8 @@ export class CreateUserDialogComponent {
   isSubmitting = false;
   hidePassword = true;
 
+  readonly availableRoles: string[] = ['PLATFORM_ADMIN', 'BUILDING_OWNER', 'BUILDING_STAFF'];
+
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<CreateUserDialogComponent>,
@@ -46,7 +48,7 @@ export class CreateUserDialogComponent {
       lastName: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
-      userRole: ['LANDLORD', [Validators.required]],
+      userRole: ['BUILDING_OWNER', [Validators.required]],
     });
   }
 

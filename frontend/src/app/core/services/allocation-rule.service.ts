@@ -22,9 +22,9 @@ export class AllocationRuleService {
 
   getRulesForBuilding(buildingId: number | null): Observable<AllocationRule[]> {
     const params = buildingId !== null ? `?buildingId=${buildingId}&size=100` : '?size=100';
-    return this.http.get<PageResponse<AllocationRule>>(`${this.apiUrl}${params}`).pipe(
-      map(response => response.content)
-    );
+    return this.http
+      .get<PageResponse<AllocationRule>>(`${this.apiUrl}${params}`)
+      .pipe(map((response) => response.content));
   }
 
   getRule(ruleId: number): Observable<AllocationRule> {

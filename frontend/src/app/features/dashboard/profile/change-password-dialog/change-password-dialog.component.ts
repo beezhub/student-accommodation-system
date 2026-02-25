@@ -62,8 +62,9 @@ import { AuthService } from '../../../../core/services/auth.service';
               >
                 <mat-icon>{{ hideCurrentPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
-              @if (passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched) {
-                <mat-error>Current password is required</mat-error>
+              @if (passwordForm.get('currentPassword')?.invalid &&
+              passwordForm.get('currentPassword')?.touched) {
+              <mat-error>Current password is required</mat-error>
               }
             </mat-form-field>
           </div>
@@ -90,11 +91,11 @@ import { AuthService } from '../../../../core/services/auth.service';
               >
                 <mat-icon>{{ hideNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
-              @if (passwordForm.get('newPassword')?.hasError('required') && passwordForm.get('newPassword')?.touched) {
-                <mat-error>New password is required</mat-error>
-              }
-              @if (passwordForm.get('newPassword')?.hasError('minlength')) {
-                <mat-error>Password must be at least 8 characters</mat-error>
+              @if (passwordForm.get('newPassword')?.hasError('required') &&
+              passwordForm.get('newPassword')?.touched) {
+              <mat-error>New password is required</mat-error>
+              } @if (passwordForm.get('newPassword')?.hasError('minlength')) {
+              <mat-error>Password must be at least 8 characters</mat-error>
               }
             </mat-form-field>
             <div class="password-hint">
@@ -125,26 +126,31 @@ import { AuthService } from '../../../../core/services/auth.service';
               >
                 <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
-              @if (passwordForm.get('confirmPassword')?.hasError('required') && passwordForm.get('confirmPassword')?.touched) {
-                <mat-error>Please confirm your password</mat-error>
-              }
-              @if (passwordForm.get('confirmPassword')?.hasError('passwordMismatch')) {
-                <mat-error>Passwords do not match</mat-error>
+              @if (passwordForm.get('confirmPassword')?.hasError('required') &&
+              passwordForm.get('confirmPassword')?.touched) {
+              <mat-error>Please confirm your password</mat-error>
+              } @if (passwordForm.get('confirmPassword')?.hasError('passwordMismatch')) {
+              <mat-error>Passwords do not match</mat-error>
               }
             </mat-form-field>
           </div>
 
           @if (errorMessage) {
-            <div class="error-message">
-              <mat-icon>error_outline</mat-icon>
-              <span>{{ errorMessage }}</span>
-            </div>
+          <div class="error-message">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorMessage }}</span>
+          </div>
           }
         </form>
       </mat-dialog-content>
 
       <mat-dialog-actions>
-        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+        <button
+          mat-stroked-button
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+          class="cancel-btn"
+        >
           Cancel
         </button>
         <button
@@ -155,11 +161,11 @@ import { AuthService } from '../../../../core/services/auth.service';
           class="submit-btn"
         >
           @if (isSubmitting) {
-            <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
-            <span>Updating...</span>
+          <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+          <span>Updating...</span>
           } @else {
-            <mat-icon>vpn_key</mat-icon>
-            <span>Change Password</span>
+          <mat-icon>vpn_key</mat-icon>
+          <span>Change Password</span>
           }
         </button>
       </mat-dialog-actions>

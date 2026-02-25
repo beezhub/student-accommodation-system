@@ -16,11 +16,11 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
-import { 
-  BuildingAttributesService, 
-  BuildingAttributes, 
-  RoomAttributes, 
-  GenderRestriction 
+import {
+  BuildingAttributesService,
+  BuildingAttributes,
+  RoomAttributes,
+  GenderRestriction,
 } from '../../../core/services/building-attributes.service';
 
 @Component({
@@ -41,24 +41,31 @@ import {
     MatTabsModule,
     MatProgressSpinnerModule,
     MatDividerModule,
-    MatTooltipModule
+    MatTooltipModule,
   ],
   templateUrl: './building-attributes-management.component.html',
-  styleUrls: ['./building-attributes-management.component.css']
+  styleUrls: ['./building-attributes-management.component.css'],
 })
 export class BuildingAttributesManagementComponent implements OnInit {
   buildingForm: FormGroup;
   attributesForm: FormGroup;
-  
+
   buildings: BuildingResponse[] = [];
   roomAttributes: RoomAttributes[] = [];
-  
+
   isLoading = false;
   isSaving = false;
   selectedBuildingId: number | null = null;
-  
+
   genderOptions = Object.values(GenderRestriction);
-  displayedColumns: string[] = ['roomNumber', 'capacity', 'genderRestriction', 'accessible', 'desirability', 'actions'];
+  displayedColumns: string[] = [
+    'roomNumber',
+    'capacity',
+    'genderRestriction',
+    'accessible',
+    'desirability',
+    'actions',
+  ];
 
   constructor(
     private fb: FormBuilder,
@@ -67,7 +74,7 @@ export class BuildingAttributesManagementComponent implements OnInit {
     private snackBar: MatSnackBar
   ) {
     this.buildingForm = this.fb.group({
-      buildingId: ['']
+      buildingId: [''],
     });
 
     this.attributesForm = this.fb.group({
@@ -82,8 +89,8 @@ export class BuildingAttributesManagementComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadBuildings();
-    
-    this.buildingForm.get('buildingId')?.valueChanges.subscribe(id => {
+
+    this.buildingForm.get('buildingId')?.valueChanges.subscribe((id) => {
       if (id) {
         this.selectedBuildingId = id;
         this.loadAttributes(id);
@@ -93,14 +100,14 @@ export class BuildingAttributesManagementComponent implements OnInit {
 
   loadBuildings(): void {
     this.buildingService.getAllBuildingsNoPagination().subscribe({
-      next: (data) => this.buildings = data,
-      error: (err) => console.error('Failed to load buildings', err)
+      next: (data) => (this.buildings = data),
+      error: (err) => console.error('Failed to load buildings', err),
     });
   }
 
   loadAttributes(buildingId: number): void {
     this.isLoading = true;
-    
+
     // Load general building attributes
     this.attributesService.getBuildingAttributes(buildingId).subscribe({
       next: (attrs) => {
@@ -110,19 +117,19 @@ export class BuildingAttributesManagementComponent implements OnInit {
           wheelchairAccessible: attrs.wheelchairAccessible,
           desirabilityScore: attrs.desirabilityScore,
           accessType: attrs.accessType,
-          amenities: attrs.amenities ? attrs.amenities.join(', ') : ''
+          amenities: attrs.amenities ? attrs.amenities.join(', ') : '',
         });
       },
       error: (err) => {
-        // If 404, specific handling or create new default? 
+        // If 404, specific handling or create new default?
         // For now, assuming backend returns default if not found or empty
         console.warn('Could not load attributes, might be new configuration', err);
         // Reset to defaults
         this.attributesForm.reset({
           genderRestriction: GenderRestriction.NONE,
-          desirabilityScore: 50
+          desirabilityScore: 50,
         });
-      }
+      },
     });
 
     // Load room attributes
@@ -134,7 +141,7 @@ export class BuildingAttributesManagementComponent implements OnInit {
       error: (err) => {
         console.error('Failed to load room attributes', err);
         this.isLoading = false;
-      }
+      },
     });
   }
 
@@ -143,13 +150,16 @@ export class BuildingAttributesManagementComponent implements OnInit {
 
     this.isSaving = true;
     const formValue = this.attributesForm.value;
-    
+
     // Convert amenities string to array
-    const amenitiesArray = formValue.amenities.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+    const amenitiesArray = formValue.amenities
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0);
 
     const payload: Partial<BuildingAttributes> = {
       ...formValue,
-      amenities: amenitiesArray
+      amenities: amenitiesArray,
     };
 
     this.attributesService.saveBuildingAttributes(this.selectedBuildingId, payload).subscribe({
@@ -161,13 +171,13 @@ export class BuildingAttributesManagementComponent implements OnInit {
         console.error('Save failed', err);
         this.snackBar.open('Failed to save attributes', 'Close', { duration: 3000 });
         this.isSaving = false;
-      }
+      },
     });
   }
 
   updateRoomAttribute(room: RoomAttributes, field: string, value: any): void {
     if (!room.id) return;
-    
+
     const update: Partial<RoomAttributes> = {};
     // @ts-ignore
     update[field] = value;
@@ -182,7 +192,7 @@ export class BuildingAttributesManagementComponent implements OnInit {
         console.error('Room update failed', err);
         this.snackBar.open('Failed to update room', 'Close', { duration: 3000 });
         // Revert local change if possible (complex with table input, skipped for MVP)
-      }
+      },
     });
   }
 }

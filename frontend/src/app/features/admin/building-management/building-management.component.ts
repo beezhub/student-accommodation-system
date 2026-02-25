@@ -48,7 +48,14 @@ import { MatMenuModule } from '@angular/material/menu';
 })
 export class BuildingManagementComponent implements OnInit {
   buildings: BuildingResponse[] = [];
-  displayedColumns: string[] = ['name', 'address', 'institutions', 'totalFloors', 'createdAt', 'actions'];
+  displayedColumns: string[] = [
+    'name',
+    'address',
+    'institutions',
+    'totalFloors',
+    'createdAt',
+    'actions',
+  ];
 
   isLoading = false;
   totalElements = 0;
@@ -169,7 +176,7 @@ export class BuildingManagementComponent implements OnInit {
   navigateToAllocationRules(buildingId: number): void {
     // Navigate to allocation rules page with the building pre-selected
     this.router.navigate(['/admin/allocation-rules'], {
-      queryParams: { buildingId: buildingId }
+      queryParams: { buildingId: buildingId },
     });
   }
 

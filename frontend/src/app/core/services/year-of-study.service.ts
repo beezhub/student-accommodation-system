@@ -39,16 +39,12 @@ export class YearOfStudyService {
     }
 
     // Fetch all years with a large page size to get all records
-    const params = new HttpParams()
-      .set('page', '0')
-      .set('size', '100');
+    const params = new HttpParams().set('page', '0').set('size', '100');
 
-    return this.http
-      .get<PageResponse<YearOfStudy>>(this.yearsOfStudyUrl, { params })
-      .pipe(
-        map((response) => response.content),
-        tap((data) => (this.yearsCache = data))
-      );
+    return this.http.get<PageResponse<YearOfStudy>>(this.yearsOfStudyUrl, { params }).pipe(
+      map((response) => response.content),
+      tap((data) => (this.yearsCache = data))
+    );
   }
 
   getAllYearsOfStudyPaginated(filters: any): Observable<PageResponse<YearOfStudyResponse>> {

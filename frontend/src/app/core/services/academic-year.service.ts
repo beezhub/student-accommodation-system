@@ -34,18 +34,16 @@ export class AcademicYearService {
     if (this.currentYearCache) {
       return of(this.currentYearCache);
     }
-    return this.http.get<AcademicYear>(`${this.apiUrl}/current`).pipe(
-      tap((year) => (this.currentYearCache = year))
-    );
+    return this.http
+      .get<AcademicYear>(`${this.apiUrl}/current`)
+      .pipe(tap((year) => (this.currentYearCache = year)));
   }
 
   /**
    * Create a new academic year (admin only)
    */
   createAcademicYear(request: AcademicYearRequest): Observable<AcademicYear> {
-    return this.http
-      .post<AcademicYear>(this.apiUrl, request)
-      .pipe(tap(() => this.clearCache()));
+    return this.http.post<AcademicYear>(this.apiUrl, request).pipe(tap(() => this.clearCache()));
   }
 
   /**

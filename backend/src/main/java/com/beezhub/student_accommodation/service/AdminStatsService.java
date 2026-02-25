@@ -51,7 +51,7 @@ public class AdminStatsService {
                 .rejectedDocuments(documentRepository.countByDocumentStatus(DocumentStatus.REJECTED))
                 // User stats
                 .totalStudents(studentRepository.count())
-                .totalAdmins(appUserRepository.countByUserRole(UserRole.ADMIN))
+                .totalAdmins(appUserRepository.countByUserRole(UserRole.PLATFORM_ADMIN))
                 // Room stats
                 .totalRooms(totalRooms)
                 .availableRooms(availableRooms)

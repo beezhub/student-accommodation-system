@@ -74,9 +74,9 @@ public class SecurityConfig {
                                 "/api/auth/verify-email",
                                 "/api/auth/resend-verification")
                         .permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+                        .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/swagger-ui.html").permitAll()
@@ -90,13 +90,16 @@ public class SecurityConfig {
 
     /**
      * Configure role hierarchy for the application.
-     * ADMIN has all privileges of LANDLORD and STUDENT
-     * LANDLORD has all privileges of STUDENT
+     * Management chain: PLATFORM_ADMIN has all privileges of BUILDING_OWNER and BUILDING_STAFF.
+     * BUILDING_OWNER has all privileges of BUILDING_STAFF.
+     * STUDENT is an independent role and is NOT part of the management hierarchy.
+     * Endpoints accessible to both students and platform admins must use hasAnyRole('STUDENT', 'PLATFORM_ADMIN').
      */
     @Bean
     public RoleHierarchy roleHierarchy() {
-        // Use the static factory method instead of deprecated constructor
-        return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_LANDLORD \n ROLE_LANDLORD > ROLE_STUDENT");
+        return RoleHierarchyImpl.fromHierarchy(
+                "ROLE_PLATFORM_ADMIN > ROLE_BUILDING_OWNER \n" +
+                "ROLE_BUILDING_OWNER > ROLE_BUILDING_STAFF");
     }
 
     /**

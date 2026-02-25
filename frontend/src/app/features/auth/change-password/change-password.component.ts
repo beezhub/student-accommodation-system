@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { RoleService } from '../../../core/services/role.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -43,6 +44,7 @@ export class ChangePasswordComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
+    private roleService: RoleService,
     private snackBar: MatSnackBar
   ) {
     this.changePasswordForm = this.fb.group(
@@ -92,8 +94,7 @@ export class ChangePasswordComponent implements OnInit {
           });
 
           // Navigate based on user role after successful password change
-          const currentUser = this.authService.currentUserValue;
-          if (currentUser?.userRole === 'ADMIN') {
+          if (this.roleService.isPlatformAdmin()) {
             this.router.navigate(['/admin']);
           } else {
             this.router.navigate(['/dashboard']);
@@ -134,8 +135,7 @@ export class ChangePasswordComponent implements OnInit {
 
   onCancel(): void {
     if (!this.isForced) {
-      const currentUser = this.authService.currentUserValue;
-      if (currentUser?.userRole === 'ADMIN') {
+      if (this.roleService.isPlatformAdmin()) {
         this.router.navigate(['/admin']);
       } else {
         this.router.navigate(['/dashboard']);

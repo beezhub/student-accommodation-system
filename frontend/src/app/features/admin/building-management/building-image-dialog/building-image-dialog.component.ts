@@ -73,11 +73,9 @@ export class BuildingImageDialogComponent implements OnInit {
     this.isUploading = true;
     this.buildingService.uploadBuildingImages(this.data.building.id, this.selectedFiles).subscribe({
       next: (newImages) => {
-        this.snackBar.open(
-          `${newImages.length} image(s) uploaded successfully`,
-          'Close',
-          { duration: 3000 }
-        );
+        this.snackBar.open(`${newImages.length} image(s) uploaded successfully`, 'Close', {
+          duration: 3000,
+        });
         this.selectedFiles = [];
         this.loadImages();
         this.isUploading = false;

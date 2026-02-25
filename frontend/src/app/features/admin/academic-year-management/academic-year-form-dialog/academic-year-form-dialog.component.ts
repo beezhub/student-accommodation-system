@@ -1,11 +1,7 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  MAT_DIALOG_DATA,
-  MatDialogModule,
-  MatDialogRef,
-} from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -73,7 +69,9 @@ export class AcademicYearFormDialogComponent implements OnInit {
         startDate: year.startDate ? new Date(year.startDate) : null,
         endDate: year.endDate ? new Date(year.endDate) : null,
         applicationOpenDate: year.applicationOpenDate ? new Date(year.applicationOpenDate) : null,
-        applicationCloseDate: year.applicationCloseDate ? new Date(year.applicationCloseDate) : null,
+        applicationCloseDate: year.applicationCloseDate
+          ? new Date(year.applicationCloseDate)
+          : null,
         isCurrent: year.isCurrent,
       });
     }
@@ -87,7 +85,7 @@ export class AcademicYearFormDialogComponent implements OnInit {
 
     this.isSubmitting = true;
     const formValue = this.form.value;
-    
+
     const request: AcademicYearRequest = {
       name: formValue.name,
       startDate: this.formatDateForApi(formValue.startDate),

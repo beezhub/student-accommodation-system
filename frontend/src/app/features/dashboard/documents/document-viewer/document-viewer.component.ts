@@ -1,4 +1,12 @@
-import { Component, Input, EventEmitter, Output, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  Input,
+  EventEmitter,
+  Output,
+  OnInit,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -55,13 +63,13 @@ export class DocumentViewerComponent implements OnInit {
     this.documentService.downloadDocument(this.document.id).subscribe({
       next: (blob: Blob) => {
         console.log('Document blob received:', blob.type, blob.size);
-        
+
         // Create object URL for the blob
         const objectUrl = URL.createObjectURL(blob);
-        
+
         // Determine file type from blob type or filename
         const fileName = this.document.name?.toLowerCase() || '';
-        
+
         if (blob.type.includes('pdf') || fileName.endsWith('.pdf')) {
           this.fileType = 'pdf';
           this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl);
@@ -82,7 +90,7 @@ export class DocumentViewerComponent implements OnInit {
         console.error('Error details:', {
           status: error.status,
           message: error.message,
-          error: error.error
+          error: error.error,
         });
         this.isLoadingPreview = false;
         this.previewError = true;

@@ -179,15 +179,17 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
     // Update the checklist based on current status changes
     if (!this.applicationDetails?.requiredDocumentsChecklist?.documents) return;
 
-    this.documentChecklist = this.applicationDetails.requiredDocumentsChecklist.documents.map((item) => {
-      if (item.documentId) {
-        const change = this.documentStatusChanges.get(item.documentId);
-        if (change) {
-          return { ...item, status: change.newStatus as any };
+    this.documentChecklist = this.applicationDetails.requiredDocumentsChecklist.documents.map(
+      (item) => {
+        if (item.documentId) {
+          const change = this.documentStatusChanges.get(item.documentId);
+          if (change) {
+            return { ...item, status: change.newStatus as any };
+          }
         }
+        return item;
       }
-      return item;
-    });
+    );
   }
 
   hasUnsavedChanges(): boolean {
@@ -204,9 +206,7 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   }
 
   get allRequiredApproved(): boolean {
-    return (
-      this.requiredTotalCount > 0 && this.requiredApprovedCount === this.requiredTotalCount
-    );
+    return this.requiredTotalCount > 0 && this.requiredApprovedCount === this.requiredTotalCount;
   }
 
   get checklistProgress(): number {
@@ -275,7 +275,7 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
 
     const request = {
       applicationId: this.data.applicationId,
-      documentUpdates: documentUpdates
+      documentUpdates: documentUpdates,
     };
 
     this.applicationService.saveReviewProgress(request).subscribe({
@@ -298,13 +298,11 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Failed to save progress:', error);
-        this.snackBar.open(
-          error.error?.message || 'Failed to save progress',
-          'Close',
-          { duration: 5000 }
-        );
+        this.snackBar.open(error.error?.message || 'Failed to save progress', 'Close', {
+          duration: 5000,
+        });
         this.isSaving = false;
-      }
+      },
     });
   }
   moveToAllocation(): void {
@@ -336,11 +334,9 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Failed to move to allocation:', error);
-        this.snackBar.open(
-          error.error?.message || 'Failed to move to allocation phase',
-          'Close',
-          { duration: 5000 }
-        );
+        this.snackBar.open(error.error?.message || 'Failed to move to allocation phase', 'Close', {
+          duration: 5000,
+        });
         this.isMovingToAllocation = false;
       },
     });
@@ -363,14 +359,16 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
     }
 
     this.isApproving = true;
-    
+
     // First approve the application, then move to allocation
     this.adminService.updateApplicationStatus(this.data.applicationId, 'APPROVED').subscribe({
       next: () => {
         // Now move to allocation phase
         this.applicationService.moveToAllocationPhase(this.data.applicationId).subscribe({
           next: () => {
-            this.snackBar.open('Application approved and moved to allocation', 'Close', { duration: 3000 });
+            this.snackBar.open('Application approved and moved to allocation', 'Close', {
+              duration: 3000,
+            });
             this.isApproving = false;
             this.dialogRef.close({
               action: 'allocated',
@@ -380,11 +378,9 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             console.error('Failed to move to allocation:', error);
-            this.snackBar.open(
-              'Application approved, but failed to move to allocation',
-              'Close',
-              { duration: 5000 }
-            );
+            this.snackBar.open('Application approved, but failed to move to allocation', 'Close', {
+              duration: 5000,
+            });
             this.isApproving = false;
             // Still close with approved status
             this.dialogRef.close({
@@ -392,16 +388,14 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
               applicationId: this.data.applicationId,
               newStatus: 'APPROVED',
             } as ApplicationDetailDialogResult);
-          }
+          },
         });
       },
       error: (error) => {
         console.error('Failed to approve application:', error);
-        this.snackBar.open(
-          error.error?.message || 'Failed to approve application',
-          'Close',
-          { duration: 5000 }
-        );
+        this.snackBar.open(error.error?.message || 'Failed to approve application', 'Close', {
+          duration: 5000,
+        });
         this.isApproving = false;
       },
     });
@@ -437,11 +431,9 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Failed to reject application:', error);
-          this.snackBar.open(
-            error.error?.message || 'Failed to reject application',
-            'Close',
-            { duration: 5000 }
-          );
+          this.snackBar.open(error.error?.message || 'Failed to reject application', 'Close', {
+            duration: 5000,
+          });
           this.isRejecting = false;
         },
       });
@@ -450,9 +442,7 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   // Close dialog
   closeDialog(): void {
     if (this.hasUnsavedChanges()) {
-      const confirmClose = confirm(
-        'You have unsaved changes. Are you sure you want to close?'
-      );
+      const confirmClose = confirm('You have unsaved changes. Are you sure you want to close?');
       if (!confirmClose) {
         return;
       }
@@ -522,7 +512,7 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
         console.error('Failed to load document preview:', error);
         this.documentLoadingStates.set(doc.id, false);
         this.documentPreviewErrors.set(doc.id, true);
-      }
+      },
     });
   }
 

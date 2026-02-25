@@ -57,7 +57,7 @@ export class AdminDashboardComponent implements OnInit {
     totalOccupancy: 0,
     overallOccupancyRate: 0,
   };
-  
+
   occupancyStats: OccupancyStats | null = null;
   isLoading = false;
   isLoadingOccupancy = false;
@@ -154,44 +154,106 @@ export class AdminDashboardComponent implements OnInit {
     // Application chart data
     const appTotal = this.stats.totalApplications || 1;
     this.applicationChartSegments = [
-      { label: 'Pending', value: this.stats.pendingApplications, color: '#FFA726', percent: (this.stats.pendingApplications / appTotal) * 100 },
-      { label: 'Approved', value: this.stats.approvedApplications, color: '#66BB6A', percent: (this.stats.approvedApplications / appTotal) * 100 },
-      { label: 'Awaiting', value: this.stats.inReviewApplications, color: '#42A5F5', percent: (this.stats.inReviewApplications / appTotal) * 100 },
-      { label: 'Allocated', value: this.stats.allocatedApplications, color: '#26A69A', percent: (this.stats.allocatedApplications / appTotal) * 100 },
-      { label: 'Rejected', value: this.stats.rejectedApplications, color: '#EF5350', percent: (this.stats.rejectedApplications / appTotal) * 100 },
-    ].filter(s => s.value > 0);
+      {
+        label: 'Pending',
+        value: this.stats.pendingApplications,
+        color: '#FFA726',
+        percent: (this.stats.pendingApplications / appTotal) * 100,
+      },
+      {
+        label: 'Approved',
+        value: this.stats.approvedApplications,
+        color: '#66BB6A',
+        percent: (this.stats.approvedApplications / appTotal) * 100,
+      },
+      {
+        label: 'Awaiting',
+        value: this.stats.inReviewApplications,
+        color: '#42A5F5',
+        percent: (this.stats.inReviewApplications / appTotal) * 100,
+      },
+      {
+        label: 'Allocated',
+        value: this.stats.allocatedApplications,
+        color: '#26A69A',
+        percent: (this.stats.allocatedApplications / appTotal) * 100,
+      },
+      {
+        label: 'Rejected',
+        value: this.stats.rejectedApplications,
+        color: '#EF5350',
+        percent: (this.stats.rejectedApplications / appTotal) * 100,
+      },
+    ].filter((s) => s.value > 0);
 
     // Document chart data
     const docTotal = this.stats.totalDocuments || 1;
     this.documentChartSegments = [
-      { label: 'Pending', value: this.stats.pendingDocuments, color: '#FFA726', percent: (this.stats.pendingDocuments / docTotal) * 100 },
-      { label: 'Approved', value: this.stats.approvedDocuments, color: '#66BB6A', percent: (this.stats.approvedDocuments / docTotal) * 100 },
-      { label: 'Rejected', value: this.stats.rejectedDocuments, color: '#EF5350', percent: (this.stats.rejectedDocuments / docTotal) * 100 },
-    ].filter(s => s.value > 0);
+      {
+        label: 'Pending',
+        value: this.stats.pendingDocuments,
+        color: '#FFA726',
+        percent: (this.stats.pendingDocuments / docTotal) * 100,
+      },
+      {
+        label: 'Approved',
+        value: this.stats.approvedDocuments,
+        color: '#66BB6A',
+        percent: (this.stats.approvedDocuments / docTotal) * 100,
+      },
+      {
+        label: 'Rejected',
+        value: this.stats.rejectedDocuments,
+        color: '#EF5350',
+        percent: (this.stats.rejectedDocuments / docTotal) * 100,
+      },
+    ].filter((s) => s.value > 0);
 
     // Room chart data
     const roomTotal = this.stats.totalRooms || 1;
     this.roomChartSegments = [
-      { label: 'Available', value: this.stats.availableRooms, color: '#66BB6A', percent: (this.stats.availableRooms / roomTotal) * 100 },
-      { label: 'Occupied', value: this.stats.occupiedRooms, color: '#42A5F5', percent: (this.stats.occupiedRooms / roomTotal) * 100 },
-      { label: 'Full', value: this.stats.fullRooms, color: '#EF5350', percent: (this.stats.fullRooms / roomTotal) * 100 },
-      { label: 'Maintenance', value: this.stats.maintenanceRooms, color: '#78909C', percent: (this.stats.maintenanceRooms / roomTotal) * 100 },
-    ].filter(s => s.value > 0);
+      {
+        label: 'Available',
+        value: this.stats.availableRooms,
+        color: '#66BB6A',
+        percent: (this.stats.availableRooms / roomTotal) * 100,
+      },
+      {
+        label: 'Occupied',
+        value: this.stats.occupiedRooms,
+        color: '#42A5F5',
+        percent: (this.stats.occupiedRooms / roomTotal) * 100,
+      },
+      {
+        label: 'Full',
+        value: this.stats.fullRooms,
+        color: '#EF5350',
+        percent: (this.stats.fullRooms / roomTotal) * 100,
+      },
+      {
+        label: 'Maintenance',
+        value: this.stats.maintenanceRooms,
+        color: '#78909C',
+        percent: (this.stats.maintenanceRooms / roomTotal) * 100,
+      },
+    ].filter((s) => s.value > 0);
   }
 
-  getConicGradient(segments: { label: string; value: number; color: string; percent: number }[]): string {
+  getConicGradient(
+    segments: { label: string; value: number; color: string; percent: number }[]
+  ): string {
     if (segments.length === 0) return 'conic-gradient(#e0e0e0 0deg 360deg)';
-    
+
     let gradient = 'conic-gradient(';
     let currentAngle = 0;
-    
+
     segments.forEach((segment, index) => {
       const angle = (segment.percent / 100) * 360;
       gradient += `${segment.color} ${currentAngle}deg ${currentAngle + angle}deg`;
       if (index < segments.length - 1) gradient += ', ';
       currentAngle += angle;
     });
-    
+
     gradient += ')';
     return gradient;
   }

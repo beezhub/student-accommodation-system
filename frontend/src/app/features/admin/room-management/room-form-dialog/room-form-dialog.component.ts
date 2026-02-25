@@ -22,7 +22,11 @@ import { BuildingResponse } from '../../../../core/services/building.service';
         </div>
         <div class="header-text">
           <h2 mat-dialog-title>{{ data.mode === 'create' ? 'Add New Room' : 'Edit Room' }}</h2>
-          <p class="subtitle">{{ data.mode === 'create' ? 'Create a new room in a building' : 'Update room information' }}</p>
+          <p class="subtitle">
+            {{
+              data.mode === 'create' ? 'Create a new room in a building' : 'Update room information'
+            }}
+          </p>
         </div>
       </div>
 
@@ -32,9 +36,14 @@ import { BuildingResponse } from '../../../../core/services/building.service';
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Room Number</mat-label>
               <mat-icon matPrefix>meeting_room</mat-icon>
-              <input matInput formControlName="roomNumber" placeholder="e.g., 101, A-201" required />
+              <input
+                matInput
+                formControlName="roomNumber"
+                placeholder="e.g., 101, A-201"
+                required
+              />
               @if (roomForm.get('roomNumber')?.hasError('required')) {
-                <mat-error>Room number is required</mat-error>
+              <mat-error>Room number is required</mat-error>
               }
             </mat-form-field>
 
@@ -43,13 +52,13 @@ import { BuildingResponse } from '../../../../core/services/building.service';
               <mat-icon matPrefix>apartment</mat-icon>
               <mat-select formControlName="buildingId" required>
                 @for (building of data.buildings; track building.id) {
-                  <mat-option [value]="building.id">
-                    {{ building.name }}
-                  </mat-option>
+                <mat-option [value]="building.id">
+                  {{ building.name }}
+                </mat-option>
                 }
               </mat-select>
               @if (roomForm.get('buildingId')?.hasError('required')) {
-                <mat-error>Building is required</mat-error>
+              <mat-error>Building is required</mat-error>
               }
             </mat-form-field>
           </div>
@@ -67,10 +76,9 @@ import { BuildingResponse } from '../../../../core/services/building.service';
                 required
               />
               @if (roomForm.get('capacity')?.hasError('required')) {
-                <mat-error>Capacity is required</mat-error>
-              }
-              @if (roomForm.get('capacity')?.hasError('min')) {
-                <mat-error>Capacity must be at least 1</mat-error>
+              <mat-error>Capacity is required</mat-error>
+              } @if (roomForm.get('capacity')?.hasError('min')) {
+              <mat-error>Capacity must be at least 1</mat-error>
               }
             </mat-form-field>
 
@@ -118,14 +126,19 @@ import { BuildingResponse } from '../../../../core/services/building.service';
               </mat-option>
             </mat-select>
             @if (roomForm.get('status')?.hasError('required')) {
-              <mat-error>Status is required</mat-error>
+            <mat-error>Status is required</mat-error>
             }
           </mat-form-field>
         </form>
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+        <button
+          mat-stroked-button
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+          class="cancel-btn"
+        >
           Cancel
         </button>
         <button
@@ -136,12 +149,11 @@ import { BuildingResponse } from '../../../../core/services/building.service';
           class="submit-btn"
         >
           @if (isSubmitting) {
-            <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            {{ data.mode === 'create' ? 'Creating...' : 'Updating...' }}
-          }
-          @if (!isSubmitting) {
-            <mat-icon>{{ data.mode === 'create' ? 'add' : 'check' }}</mat-icon>
-            {{ data.mode === 'create' ? 'Create Room' : 'Update Room' }}
+          <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+          {{ data.mode === 'create' ? 'Creating...' : 'Updating...' }}
+          } @if (!isSubmitting) {
+          <mat-icon>{{ data.mode === 'create' ? 'add' : 'check' }}</mat-icon>
+          {{ data.mode === 'create' ? 'Create Room' : 'Update Room' }}
           }
         </button>
       </mat-dialog-actions>

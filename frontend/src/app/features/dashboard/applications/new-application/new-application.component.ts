@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -6,7 +12,10 @@ import { ApplicationService } from '../../../../core/services/application.servic
 import { StudentService } from '../../../../core/services/student.service';
 import { InstitutionService } from '../../../../core/services/institution.service';
 import { BuildingService, BuildingResponse } from '../../../../core/services/building.service';
-import { ErrorHandlingService, ParsedError } from '../../../../core/services/error-handling.service';
+import {
+  ErrorHandlingService,
+  ParsedError,
+} from '../../../../core/services/error-handling.service';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -185,7 +194,9 @@ export class NewApplicationComponent implements OnInit {
     this.submitError = null;
 
     if (!this.studentId) {
-      this.errorService.showWarning('Student profile not found. Please complete your profile first.');
+      this.errorService.showWarning(
+        'Student profile not found. Please complete your profile first.'
+      );
       this.router.navigate(['/profile']);
       return;
     }

@@ -51,25 +51,27 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
               (blur)="checkEligibility()"
             />
             @if (allocateForm.get('studentId')?.hasError('required')) {
-              <mat-error>Student ID is required</mat-error>
-            }
-            @if (allocateForm.get('studentId')?.hasError('min')) {
-              <mat-error>Invalid student ID</mat-error>
+            <mat-error>Student ID is required</mat-error>
+            } @if (allocateForm.get('studentId')?.hasError('min')) {
+            <mat-error>Invalid student ID</mat-error>
             }
           </mat-form-field>
 
           <!-- Eligibility Status -->
           @if (eligibilityChecked) {
-            <div class="status-message" [class.success]="eligibility?.isEligible" [class.error]="!eligibility?.isEligible">
-              @if (eligibility?.isEligible) {
-                <mat-icon>check_circle</mat-icon>
-                <span>Student is eligible for room allocation</span>
-              }
-              @if (!eligibility?.isEligible) {
-                <mat-icon>error</mat-icon>
-                <span>{{ eligibility?.reason || 'Student is not eligible' }}</span>
-              }
-            </div>
+          <div
+            class="status-message"
+            [class.success]="eligibility?.isEligible"
+            [class.error]="!eligibility?.isEligible"
+          >
+            @if (eligibility?.isEligible) {
+            <mat-icon>check_circle</mat-icon>
+            <span>Student is eligible for room allocation</span>
+            } @if (!eligibility?.isEligible) {
+            <mat-icon>error</mat-icon>
+            <span>{{ eligibility?.reason || 'Student is not eligible' }}</span>
+            }
+          </div>
           }
 
           <!-- Room Selection -->
@@ -78,31 +80,36 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
             <mat-icon matPrefix>meeting_room</mat-icon>
             <mat-select formControlName="roomId" required (selectionChange)="checkAvailability()">
               @for (room of availableRooms; track room.id) {
-                <mat-option [value]="room.id">
-                  <div class="room-option">
-                    <span class="room-name">{{ room.roomNumber }} - {{ room.buildingName }}</span>
-                    <span class="room-capacity">({{ room.currentOccupancy }}/{{ room.capacity }})</span>
-                  </div>
-                </mat-option>
+              <mat-option [value]="room.id">
+                <div class="room-option">
+                  <span class="room-name">{{ room.roomNumber }} - {{ room.buildingName }}</span>
+                  <span class="room-capacity"
+                    >({{ room.currentOccupancy }}/{{ room.capacity }})</span
+                  >
+                </div>
+              </mat-option>
               }
             </mat-select>
             @if (allocateForm.get('roomId')?.hasError('required')) {
-              <mat-error>Room is required</mat-error>
+            <mat-error>Room is required</mat-error>
             }
           </mat-form-field>
 
           <!-- Room Availability Status -->
           @if (availabilityChecked) {
-            <div class="status-message" [class.success]="availability?.isAvailable" [class.error]="!availability?.isAvailable">
-              @if (availability?.isAvailable) {
-                <mat-icon>check_circle</mat-icon>
-                <span>Room is available ({{ availability?.availableSpots }} spots remaining)</span>
-              }
-              @if (!availability?.isAvailable) {
-                <mat-icon>error</mat-icon>
-                <span>Room is not available ({{ availability?.status }})</span>
-              }
-            </div>
+          <div
+            class="status-message"
+            [class.success]="availability?.isAvailable"
+            [class.error]="!availability?.isAvailable"
+          >
+            @if (availability?.isAvailable) {
+            <mat-icon>check_circle</mat-icon>
+            <span>Room is available ({{ availability?.availableSpots }} spots remaining)</span>
+            } @if (!availability?.isAvailable) {
+            <mat-icon>error</mat-icon>
+            <span>Room is not available ({{ availability?.status }})</span>
+            }
+          </div>
           }
 
           <!-- Application Selection (Optional) -->
@@ -112,12 +119,14 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
             <mat-select formControlName="applicationId" (selectionChange)="onApplicationSelected()">
               <mat-option value="">No Application</mat-option>
               @for (app of studentApplications; track app.id) {
-                <mat-option [value]="app.id">
-                  <div class="app-option">
-                    <span class="app-code">{{ app.applicationCode }}</span>
-                    <span class="app-status" [class]="app.status.toLowerCase()">{{ app.status }}</span>
-                  </div>
-                </mat-option>
+              <mat-option [value]="app.id">
+                <div class="app-option">
+                  <span class="app-code">{{ app.applicationCode }}</span>
+                  <span class="app-status" [class]="app.status.toLowerCase()">{{
+                    app.status
+                  }}</span>
+                </div>
+              </mat-option>
               }
             </mat-select>
             <mat-hint>
@@ -134,32 +143,37 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
             <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
             <mat-datepicker #picker></mat-datepicker>
             @if (allocateForm.get('allocationDate')?.hasError('required')) {
-              <mat-error>Allocation date is required</mat-error>
+            <mat-error>Allocation date is required</mat-error>
             }
           </mat-form-field>
 
           <!-- Information Panel -->
           @if (allocateForm.get('studentId')?.value) {
-            <div class="info-panel">
-              <mat-icon>lightbulb</mat-icon>
-              <div class="info-content">
-                <strong>Allocation Process</strong>
-                <ul>
-                  <li>Student eligibility will be verified</li>
-                  <li>Room availability will be checked</li>
-                  <li>Allocation will be created with ACTIVE status</li>
-                  @if (allocateForm.get('applicationId')?.value) {
-                    <li>Application status will be updated</li>
-                  }
-                </ul>
-              </div>
+          <div class="info-panel">
+            <mat-icon>lightbulb</mat-icon>
+            <div class="info-content">
+              <strong>Allocation Process</strong>
+              <ul>
+                <li>Student eligibility will be verified</li>
+                <li>Room availability will be checked</li>
+                <li>Allocation will be created with ACTIVE status</li>
+                @if (allocateForm.get('applicationId')?.value) {
+                <li>Application status will be updated</li>
+                }
+              </ul>
             </div>
+          </div>
           }
         </form>
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+        <button
+          mat-stroked-button
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+          class="cancel-btn"
+        >
           Cancel
         </button>
         <button
@@ -170,13 +184,10 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
           class="submit-btn"
         >
           @if (isSubmitting) {
-            <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            Allocating...
-          }
-          @if (!isSubmitting) {
-            <mat-icon>assignment_turned_in</mat-icon>
-            Allocate Room
-          }
+          <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+          Allocating... } @if (!isSubmitting) {
+          <mat-icon>assignment_turned_in</mat-icon>
+          Allocate Room }
         </button>
       </mat-dialog-actions>
     </div>

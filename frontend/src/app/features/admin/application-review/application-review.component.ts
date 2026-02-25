@@ -106,20 +106,20 @@ export class ApplicationReviewComponent implements OnInit {
   currentPage = 0;
 
   filterForm: FormGroup;
-  
+
   // Dropdown options
   statuses = [
     { value: 'PENDING', label: 'Pending' },
     { value: 'APPROVED', label: 'Approved' },
     { value: 'REJECTED', label: 'Rejected' },
     { value: 'AWAITING_ALLOCATION', label: 'Awaiting Allocation' },
-    { value: 'ALLOCATED', label: 'Allocated' }
+    { value: 'ALLOCATED', label: 'Allocated' },
   ];
-  
+
   allocationStatuses = [
     { value: 'PENDING', label: 'Pending' },
     { value: 'ALLOCATED', label: 'Allocated' },
-    { value: 'REJECTED', label: 'Rejected' }
+    { value: 'REJECTED', label: 'Rejected' },
   ];
 
   // Buildings for autocomplete
@@ -165,7 +165,7 @@ export class ApplicationReviewComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load buildings:', error);
-      }
+      },
     });
   }
 
@@ -174,15 +174,13 @@ export class ApplicationReviewComponent implements OnInit {
       startWith(''),
       debounceTime(200),
       distinctUntilChanged(),
-      map(value => this.filterBuildings(value || ''))
+      map((value) => this.filterBuildings(value || ''))
     );
   }
 
   filterBuildings(value: string): BuildingResponse[] {
     const filterValue = value.toLowerCase();
-    return this.buildings.filter(building => 
-      building.name.toLowerCase().includes(filterValue)
-    );
+    return this.buildings.filter((building) => building.name.toLowerCase().includes(filterValue));
   }
 
   displayBuilding(building: BuildingResponse | string): string {
@@ -208,9 +206,10 @@ export class ApplicationReviewComponent implements OnInit {
       studentName: formValue.studentName,
       status: formValue.status,
       allocationStatus: formValue.allocationStatus || undefined,
-      preferredBuilding: formValue.preferredBuilding && typeof formValue.preferredBuilding === 'object' 
-        ? formValue.preferredBuilding.name 
-        : formValue.preferredBuilding || undefined,
+      preferredBuilding:
+        formValue.preferredBuilding && typeof formValue.preferredBuilding === 'object'
+          ? formValue.preferredBuilding.name
+          : formValue.preferredBuilding || undefined,
       startDate: formValue.startDate ? this.formatDate(formValue.startDate) : undefined,
       endDate: formValue.endDate ? this.formatDate(formValue.endDate) : undefined,
       page: this.currentPage,
@@ -309,7 +308,10 @@ export class ApplicationReviewComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe((result: ApplicationDetailDialogResult | undefined) => {
-      if (result && (result.action === 'allocated' || result.action === 'rejected' || result.action === 'saved')) {
+      if (
+        result &&
+        (result.action === 'allocated' || result.action === 'rejected' || result.action === 'saved')
+      ) {
         this.loadApplications();
       }
     });
@@ -322,7 +324,7 @@ export class ApplicationReviewComponent implements OnInit {
       panelClass: 'allocation-choice-dialog',
       data: {
         applicationId: application.id,
-        studentId: application.studentId
+        studentId: application.studentId,
       } as AllocationChoiceDialogData,
     });
 
@@ -349,7 +351,9 @@ export class ApplicationReviewComponent implements OnInit {
 
   runAutoAllocation(application: ApplicationResponse): void {
     if (application.status !== 'AWAITING_ALLOCATION') {
-      this.errorService.showWarning('Application must be in "Awaiting Allocation" status for auto-allocation.');
+      this.errorService.showWarning(
+        'Application must be in "Awaiting Allocation" status for auto-allocation.'
+      );
       return;
     }
 
@@ -370,7 +374,7 @@ export class ApplicationReviewComponent implements OnInit {
             error: (error) => {
               console.error('Failed to confirm allocation:', error);
               this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-            }
+            },
           });
         } else {
           this.enqueueWaitingListForAutoAllocation(application);
@@ -388,23 +392,25 @@ export class ApplicationReviewComponent implements OnInit {
         } else {
           this.errorService.showErrorSnackbar(parsedError);
         }
-      }
+      },
     });
   }
 
   private enqueueWaitingListForAutoAllocation(application: ApplicationResponse): void {
-    this.stagedAllocationService.enqueueWaitingList(application.studentId, application.id).subscribe({
-      next: (res) => {
-        this.errorService.showWarning(
-          res.message || 'No suitable room found. Student added to waiting list.'
-        );
-        this.loadApplications();
-      },
+    this.stagedAllocationService
+      .enqueueWaitingList(application.studentId, application.id)
+      .subscribe({
+        next: (res) => {
+          this.errorService.showWarning(
+            res.message || 'No suitable room found. Student added to waiting list.'
+          );
+          this.loadApplications();
+        },
 
-      error: () => {
-        this.errorService.showWarning('No suitable room found for auto-allocation.');
-      }
-    });
+        error: () => {
+          this.errorService.showWarning('No suitable room found for auto-allocation.');
+        },
+      });
   }
 
   markUnderReview(application: ApplicationResponse): void {
@@ -416,7 +422,7 @@ export class ApplicationReviewComponent implements OnInit {
       error: (error) => {
         console.error('Failed to mark under review:', error);
         this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-      }
+      },
     });
   }
 
@@ -432,9 +438,7 @@ export class ApplicationReviewComponent implements OnInit {
       error: (error) => {
         console.error('Failed to request changes:', error);
         this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-      }
+      },
     });
   }
-
-
 }

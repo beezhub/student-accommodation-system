@@ -7,7 +7,7 @@ export enum GenderRestriction {
   NONE = 'NONE',
   MALE_ONLY = 'MALE_ONLY',
   FEMALE_ONLY = 'FEMALE_ONLY',
-  MIXED = 'MIXED'
+  MIXED = 'MIXED',
 }
 
 export interface BuildingAttributes {
@@ -37,7 +37,7 @@ export interface RoomAttributes {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class BuildingAttributesService {
   private apiUrl = `${environment.apiUrl}/admin`;
@@ -48,15 +48,26 @@ export class BuildingAttributesService {
     return this.http.get<BuildingAttributes>(`${this.apiUrl}/buildings/${buildingId}/attributes`);
   }
 
-  saveBuildingAttributes(buildingId: number, attributes: Partial<BuildingAttributes>): Observable<BuildingAttributes> {
-    return this.http.put<BuildingAttributes>(`${this.apiUrl}/buildings/${buildingId}/attributes`, attributes);
+  saveBuildingAttributes(
+    buildingId: number,
+    attributes: Partial<BuildingAttributes>
+  ): Observable<BuildingAttributes> {
+    return this.http.put<BuildingAttributes>(
+      `${this.apiUrl}/buildings/${buildingId}/attributes`,
+      attributes
+    );
   }
 
   getRoomAttributes(buildingId: number): Observable<RoomAttributes[]> {
-    return this.http.get<RoomAttributes[]>(`${this.apiUrl}/buildings/${buildingId}/rooms/attributes`);
+    return this.http.get<RoomAttributes[]>(
+      `${this.apiUrl}/buildings/${buildingId}/rooms/attributes`
+    );
   }
 
-  saveRoomAttributes(roomId: number, attributes: Partial<RoomAttributes>): Observable<RoomAttributes> {
+  saveRoomAttributes(
+    roomId: number,
+    attributes: Partial<RoomAttributes>
+  ): Observable<RoomAttributes> {
     return this.http.put<RoomAttributes>(`${this.apiUrl}/rooms/${roomId}/attributes`, attributes);
   }
 }

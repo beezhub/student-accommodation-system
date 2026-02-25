@@ -270,9 +270,9 @@ export const routes: Routes = [
       {
         path: 'waiting-list',
         loadComponent: () =>
-          import(
-            './features/admin/waiting-list-dashboard/waiting-list-dashboard.component'
-          ).then((m) => m.WaitingListDashboardComponent),
+          import('./features/admin/waiting-list-dashboard/waiting-list-dashboard.component').then(
+            (m) => m.WaitingListDashboardComponent
+          ),
       },
     ],
   },

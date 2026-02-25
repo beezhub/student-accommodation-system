@@ -5,7 +5,7 @@
     </div>
     <div class="header-text">
       <h2 mat-dialog-title>Create New User</h2>
-      <p class="subtitle">Add a new admin or landlord to the system</p>
+      <p class="subtitle">Add a new admin or building staff to the system</p>
     </div>
   </div>
 
@@ -81,18 +81,9 @@
         <mat-label>User Role</mat-label>
         <mat-icon matPrefix>badge</mat-icon>
         <mat-select formControlName="userRole" required>
-          <mat-option value="ADMIN">
-            <div class="role-option">
-              <mat-icon class="admin">admin_panel_settings</mat-icon>
-              Admin
-            </div>
-          </mat-option>
-          <mat-option value="LANDLORD">
-            <div class="role-option">
-              <mat-icon class="landlord">apartment</mat-icon>
-              Landlord
-            </div>
-          </mat-option>
+          @for (role of availableRoles; track role) {
+            <mat-option [value]="role">{{ role }}</mat-option>
+          }
         </mat-select>
         @if (createUserForm.get('userRole')?.hasError('required')) {
           <mat-error>Role is required</mat-error>

@@ -44,14 +44,10 @@ export class EmailVerificationRequiredComponent {
     this.authService.resendVerificationEmail(this.currentUser.email).subscribe({
       next: () => {
         this.isResending = false;
-        this.snackBar.open(
-          'Verification email sent! Please check your inbox.',
-          'Close',
-          {
-            duration: 5000,
-            panelClass: ['success-snackbar'],
-          }
-        );
+        this.snackBar.open('Verification email sent! Please check your inbox.', 'Close', {
+          duration: 5000,
+          panelClass: ['success-snackbar'],
+        });
       },
       error: (error: { error?: { message?: string } }) => {
         this.isResending = false;

@@ -32,10 +32,10 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatChipsModule,
-    ModernStatusBadgeComponent
+    ModernStatusBadgeComponent,
   ],
   templateUrl: './staged-allocation.component.html',
-  styleUrls: ['./staged-allocation.component.css']
+  styleUrls: ['./staged-allocation.component.css'],
 })
 export class StagedAllocationComponent implements OnInit {
   @ViewChild('stepper') stepper!: MatStepper;
@@ -44,7 +44,13 @@ export class StagedAllocationComponent implements OnInit {
   selectionForm: FormGroup;
   availableApplications: ApplicationResponse[] = [];
   selection = new SelectionModel<ApplicationResponse>(true, []);
-  displayedColumnsSelection: string[] = ['select', 'studentName', 'applicationCode', 'preferredBuilding', 'status'];
+  displayedColumnsSelection: string[] = [
+    'select',
+    'studentName',
+    'applicationCode',
+    'preferredBuilding',
+    'status',
+  ];
   isLoadingApplications = false;
 
   // Step 2: Proposal
@@ -54,9 +60,16 @@ export class StagedAllocationComponent implements OnInit {
 
   // Step 3: Review
   proposals: StagedAllocation[] = [];
-  displayedColumnsReview: string[] = ['studentName', 'room', 'score', 'warnings', 'status', 'actions'];
+  displayedColumnsReview: string[] = [
+    'studentName',
+    'room',
+    'score',
+    'warnings',
+    'status',
+    'actions',
+  ];
   confirmedCount = 0;
-  
+
   constructor(
     private fb: FormBuilder,
     private adminService: AdminService,
@@ -64,7 +77,7 @@ export class StagedAllocationComponent implements OnInit {
     private snackBar: MatSnackBar
   ) {
     this.selectionForm = this.fb.group({
-      selectedCount: [0, [Validators.required, Validators.min(1), Validators.max(50)]]
+      selectedCount: [0, [Validators.required, Validators.min(1), Validators.max(50)]],
     });
   }
 
@@ -85,7 +98,7 @@ export class StagedAllocationComponent implements OnInit {
         console.error('Failed to load applications', err);
         this.isLoadingApplications = false;
         this.snackBar.open('Error loading applications', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
@@ -126,18 +139,21 @@ export class StagedAllocationComponent implements OnInit {
   generateBatchId(): void {
     // Format: BATCH-YYYYMMDD-HHMMSS
     const now = new Date();
-    const timestamp = now.toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+    const timestamp = now
+      .toISOString()
+      .replace(/[-:T.]/g, '')
+      .slice(0, 14);
     this.batchId = `BATCH-${timestamp}`;
   }
 
   proposeBatch(): void {
     if (this.selection.selected.length === 0) return;
-    
+
     this.isProposing = true;
     this.proposalError = null;
     this.generateBatchId();
 
-    const studentIds = this.selection.selected.map(app => app.studentId);
+    const studentIds = this.selection.selected.map((app) => app.studentId);
 
     // Call service
     this.stagedAllocationService.proposeAllocation(studentIds, this.batchId!).subscribe({
@@ -151,7 +167,7 @@ export class StagedAllocationComponent implements OnInit {
         this.isProposing = false;
         this.proposalError = 'Failed to generate proposals. Please try again.';
         this.snackBar.open('Proposal generation failed', 'Close', { duration: 5000 });
-      }
+      },
     });
   }
 
@@ -170,44 +186,46 @@ export class StagedAllocationComponent implements OnInit {
       error: (err) => {
         console.error('Confirm failed', err);
         this.snackBar.open('Failed to confirm allocation', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
   rejectAllocation(proposal: StagedAllocation): void {
-     if (proposal.status !== 'PROPOSED') return;
-     
-     // Simple rejection for now, maybe add reason later
-     this.stagedAllocationService.rejectAllocation(proposal.id, 'Admin skipped in batch review').subscribe({
-       next: () => {
-         proposal.status = 'REJECTED';
-         this.snackBar.open('Allocation skipped', 'Close', { duration: 2000 });
-       },
-       error: (err) => {
-         console.error('Reject failed', err);
-         this.snackBar.open('Failed to reject allocation', 'Close', { duration: 3000 });
-       }
-     });
+    if (proposal.status !== 'PROPOSED') return;
+
+    // Simple rejection for now, maybe add reason later
+    this.stagedAllocationService
+      .rejectAllocation(proposal.id, 'Admin skipped in batch review')
+      .subscribe({
+        next: () => {
+          proposal.status = 'REJECTED';
+          this.snackBar.open('Allocation skipped', 'Close', { duration: 2000 });
+        },
+        error: (err) => {
+          console.error('Reject failed', err);
+          this.snackBar.open('Failed to reject allocation', 'Close', { duration: 3000 });
+        },
+      });
   }
 
   confirmAllRemaining(): void {
     // Filter proposed only
-    const pending = this.proposals.filter(p => p.status === 'PROPOSED');
+    const pending = this.proposals.filter((p) => p.status === 'PROPOSED');
     if (pending.length === 0) return;
 
     if (this.batchId) {
-        this.stagedAllocationService.confirmBatch(this.batchId).subscribe({
-            next: (res) => {
-                this.snackBar.open(`Confirmed ${res.confirmed} allocations`, 'Close', { duration: 3000 });
-                // Refresh or mark all as confirmed locally
-                this.proposals.forEach(p => {
-                    if (p.status === 'PROPOSED') p.status = 'CONFIRMED';
-                });
-            },
-            error: (err) => {
-                this.snackBar.open('Batch confirm failed', 'Close', { duration: 3000 });
-            }
-        });
+      this.stagedAllocationService.confirmBatch(this.batchId).subscribe({
+        next: (res) => {
+          this.snackBar.open(`Confirmed ${res.confirmed} allocations`, 'Close', { duration: 3000 });
+          // Refresh or mark all as confirmed locally
+          this.proposals.forEach((p) => {
+            if (p.status === 'PROPOSED') p.status = 'CONFIRMED';
+          });
+        },
+        error: (err) => {
+          this.snackBar.open('Batch confirm failed', 'Close', { duration: 3000 });
+        },
+      });
     }
   }
 }

@@ -173,7 +173,9 @@ export class ApplicationSubmissionComponent implements OnInit {
     this.submitError = null;
 
     if (!this.studentId) {
-      this.errorService.showWarning('Student profile not found. Please complete your profile first.');
+      this.errorService.showWarning(
+        'Student profile not found. Please complete your profile first.'
+      );
       this.router.navigate(['/profile-setup']);
       return;
     }
@@ -232,6 +234,8 @@ export class ApplicationSubmissionComponent implements OnInit {
    * This method shows a warning to the user.
    */
   skipApplication() {
-    this.errorService.showWarning('An application is required before you can upload documents. Please complete your application.');
+    this.errorService.showWarning(
+      'An application is required before you can upload documents. Please complete your application.'
+    );
   }
 }

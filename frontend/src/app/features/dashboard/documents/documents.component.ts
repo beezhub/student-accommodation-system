@@ -1,11 +1,20 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentViewerComponent } from './document-viewer/document-viewer.component';
-import { DocumentService, isNoActiveApplicationError } from '../../../core/services/document.service';
+import {
+  DocumentService,
+  isNoActiveApplicationError,
+} from '../../../core/services/document.service';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { DocumentType } from '../../../core/models/document-type.model';
@@ -88,7 +97,14 @@ export class DocumentsComponent implements OnInit {
   documents: any[] = [];
 
   // Material table configuration
-  readonly displayedColumns: readonly string[] = ['name', 'type', 'uploadDate', 'status', 'size', 'actions'] as const;
+  readonly displayedColumns: readonly string[] = [
+    'name',
+    'type',
+    'uploadDate',
+    'status',
+    'size',
+    'actions',
+  ] as const;
   dataSource = new MatTableDataSource<any>([]);
 
   // Application check state
@@ -132,7 +148,9 @@ export class DocumentsComponent implements OnInit {
       error: () => {
         this.isCheckingApplication = false;
         this.hasActiveApplication = false;
-        this.errorService.showWarning('Unable to verify application status. Please create an application first.');
+        this.errorService.showWarning(
+          'Unable to verify application status. Please create an application first.'
+        );
         this.router.navigate(['/applications/new']);
         this.cdr.markForCheck(); // Trigger change detection
       },
@@ -271,69 +289,73 @@ export class DocumentsComponent implements OnInit {
       const fileName = this.selectedFile.name;
       const fileSize = this.selectedFile.size;
 
-      this.documentService.uploadSingleDocumentWithProgress(this.selectedFile, selectedTypeId).subscribe({
-        next: (progress) => {
-          this.uploadProgress = progress.progress;
+      this.documentService
+        .uploadSingleDocumentWithProgress(this.selectedFile, selectedTypeId)
+        .subscribe({
+          next: (progress) => {
+            this.uploadProgress = progress.progress;
 
-          if (progress.status === 'complete') {
+            if (progress.status === 'complete') {
+              this.isUploading = false;
+              this.uploadStatus = 'complete';
+              this.errorService.showSuccess('Document uploaded successfully!');
+
+              // Optimistically add new doc to the list with basic info
+              const typeName =
+                this.allDocumentTypes.find((t) => t.id === selectedTypeId)?.name ||
+                String(selectedTypeId);
+              const newDoc = {
+                id: String(Date.now()),
+                name: fileName,
+                type: typeName,
+                uploadDate: new Date().toISOString(),
+                status: 'Pending',
+                size: this.formatFileSize(fileSize),
+              };
+              this.documents.unshift(newDoc);
+              this.dataSource.data = this.documents;
+
+              // Refresh from server to show accurate data
+              this.documentService.getUploadedDocuments().subscribe({
+                next: (docs) => {
+                  this.documents = docs.map((doc) => ({
+                    id: String(doc.id),
+                    name: doc.documentName,
+                    type: doc.documentTypeName,
+                    uploadDate: doc.uploadDate,
+                    status: doc.documentStatus,
+                    size: doc.fileSize ? this.formatFileSize(doc.fileSize) : 'Unknown',
+                    fileUrl: doc.fileUrl,
+                  }));
+                  this.dataSource.data = this.documents;
+                  this.cdr.markForCheck();
+                },
+                error: (err) => console.error('Failed to refresh documents:', err),
+              });
+
+              // Close modal after a brief delay to show completion
+              setTimeout(() => this.closeUploadModal(), 500);
+            }
+          },
+          error: (error) => {
             this.isUploading = false;
-            this.uploadStatus = 'complete';
-            this.errorService.showSuccess('Document uploaded successfully!');
+            this.uploadStatus = 'error';
+            this.uploadProgress = 0;
+            console.error('Upload error:', error);
 
-            // Optimistically add new doc to the list with basic info
-            const typeName =
-              this.allDocumentTypes.find((t) => t.id === selectedTypeId)?.name ||
-              String(selectedTypeId);
-            const newDoc = {
-              id: String(Date.now()),
-              name: fileName,
-              type: typeName,
-              uploadDate: new Date().toISOString(),
-              status: 'Pending',
-              size: this.formatFileSize(fileSize),
-            };
-            this.documents.unshift(newDoc);
-            this.dataSource.data = this.documents;
+            // Check if error is due to no active application
+            if (isNoActiveApplicationError(error)) {
+              this.closeUploadModal();
+              this.errorService.showWarning(
+                'Please create an application before uploading documents'
+              );
+              this.router.navigate(['/applications/new']);
+              return;
+            }
 
-            // Refresh from server to show accurate data
-            this.documentService.getUploadedDocuments().subscribe({
-              next: (docs) => {
-                this.documents = docs.map((doc) => ({
-                  id: String(doc.id),
-                  name: doc.documentName,
-                  type: doc.documentTypeName,
-                  uploadDate: doc.uploadDate,
-                  status: doc.documentStatus,
-                  size: doc.fileSize ? this.formatFileSize(doc.fileSize) : 'Unknown',
-                  fileUrl: doc.fileUrl,
-                }));
-                this.dataSource.data = this.documents;
-                this.cdr.markForCheck();
-              },
-              error: (err) => console.error('Failed to refresh documents:', err),
-            });
-
-            // Close modal after a brief delay to show completion
-            setTimeout(() => this.closeUploadModal(), 500);
-          }
-        },
-        error: (error) => {
-          this.isUploading = false;
-          this.uploadStatus = 'error';
-          this.uploadProgress = 0;
-          console.error('Upload error:', error);
-
-          // Check if error is due to no active application
-          if (isNoActiveApplicationError(error)) {
-            this.closeUploadModal();
-            this.errorService.showWarning('Please create an application before uploading documents');
-            this.router.navigate(['/applications/new']);
-            return;
-          }
-
-          this.uploadError = this.errorService.parseError(error);
-        },
-      });
+            this.uploadError = this.errorService.parseError(error);
+          },
+        });
     }
   }
 
@@ -353,7 +375,7 @@ export class DocumentsComponent implements OnInit {
     // Convert id back to number for the viewer component
     this.selectedDocument = {
       ...document,
-      id: Number(document.id)
+      id: Number(document.id),
     };
     console.log('Viewing document:', this.selectedDocument);
   }

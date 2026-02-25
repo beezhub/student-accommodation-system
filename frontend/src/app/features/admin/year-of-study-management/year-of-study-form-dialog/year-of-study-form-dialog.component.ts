@@ -1,6 +1,13 @@
 import { Component, Inject, OnInit } from '@angular/core';
 
-import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import {
   YearOfStudyService,
@@ -31,16 +38,36 @@ function numericYearValidator(control: AbstractControl): ValidationErrors | null
 
   // Word to number mapping
   const validPatterns = [
-    'first', 'one', '1st',
-    'second', 'two', '2nd',
-    'third', 'three', '3rd',
-    'fourth', 'four', '4th',
-    'fifth', 'five', '5th',
-    'sixth', 'six', '6th',
-    'seventh', 'seven', '7th',
-    'eighth', 'eight', '8th',
-    'ninth', 'nine', '9th',
-    'tenth', 'ten', '10th'
+    'first',
+    'one',
+    '1st',
+    'second',
+    'two',
+    '2nd',
+    'third',
+    'three',
+    '3rd',
+    'fourth',
+    'four',
+    '4th',
+    'fifth',
+    'five',
+    '5th',
+    'sixth',
+    'six',
+    '6th',
+    'seventh',
+    'seven',
+    '7th',
+    'eighth',
+    'eight',
+    '8th',
+    'ninth',
+    'nine',
+    '9th',
+    'tenth',
+    'ten',
+    '10th',
   ];
 
   // Check if value contains any valid pattern

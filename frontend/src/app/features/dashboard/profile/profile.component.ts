@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -204,7 +210,9 @@ export class ProfileComponent implements OnInit {
     this.isEditing = !this.isEditing;
     if (!this.isEditing && this.studentProfile) {
       // Reset form to original values
-      const dateOfBirth = this.studentProfile.dateOfBirth ? new Date(this.studentProfile.dateOfBirth) : null;
+      const dateOfBirth = this.studentProfile.dateOfBirth
+        ? new Date(this.studentProfile.dateOfBirth)
+        : null;
       this.profileForm.patchValue({
         firstName: this.studentProfile.firstName,
         lastName: this.studentProfile.lastName,
@@ -229,9 +237,10 @@ export class ProfileComponent implements OnInit {
 
       const formValue = this.profileForm.value;
       // Format date as YYYY-MM-DD for the API
-      const dateOfBirth = formValue.dateOfBirth instanceof Date
-        ? formValue.dateOfBirth.toISOString().split('T')[0]
-        : formValue.dateOfBirth;
+      const dateOfBirth =
+        formValue.dateOfBirth instanceof Date
+          ? formValue.dateOfBirth.toISOString().split('T')[0]
+          : formValue.dateOfBirth;
       const updateRequest: StudentRequest = {
         firstName: formValue.firstName,
         lastName: formValue.lastName,

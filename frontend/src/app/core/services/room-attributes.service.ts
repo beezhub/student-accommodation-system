@@ -28,7 +28,7 @@ export interface RoomAttributesRequest {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class RoomAttributesService {
   private apiUrl = `${environment.apiUrl}/admin/room-attributes`;

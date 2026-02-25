@@ -3,6 +3,7 @@ import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { RoleService } from '../../../core/services/role.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -39,6 +40,7 @@ export class LoginComponent {
     private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
+    private roleService: RoleService,
     private snackBar: MatSnackBar
   ) {
     this.loginForm = this.fb.group({
@@ -85,7 +87,7 @@ export class LoginComponent {
               panelClass: ['success-snackbar'],
             });
             // Redirect based on user role
-            if (user.userRole === 'ADMIN') {
+            if (this.roleService.isPlatformAdmin()) {
               this.router.navigate(['/admin']);
             } else {
               this.router.navigate(['/dashboard']);

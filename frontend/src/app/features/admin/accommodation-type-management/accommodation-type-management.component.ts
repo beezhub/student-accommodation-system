@@ -107,33 +107,37 @@ export class AccommodationTypeManagementComponent implements OnInit {
   }
 
   openCreateDialog(): void {
-    import('./accommodation-type-form-dialog/accommodation-type-form-dialog.component').then((m) => {
-      const dialogRef = this.dialog.open(m.AccommodationTypeFormDialogComponent, {
-        width: '500px',
-        data: { mode: 'create' },
-      });
+    import('./accommodation-type-form-dialog/accommodation-type-form-dialog.component').then(
+      (m) => {
+        const dialogRef = this.dialog.open(m.AccommodationTypeFormDialogComponent, {
+          width: '500px',
+          data: { mode: 'create' },
+        });
 
-      dialogRef.afterClosed().subscribe((result) => {
-        if (result) {
-          this.loadAccommodationTypes();
-        }
-      });
-    });
+        dialogRef.afterClosed().subscribe((result) => {
+          if (result) {
+            this.loadAccommodationTypes();
+          }
+        });
+      }
+    );
   }
 
   openEditDialog(accommodationType: AccommodationType): void {
-    import('./accommodation-type-form-dialog/accommodation-type-form-dialog.component').then((m) => {
-      const dialogRef = this.dialog.open(m.AccommodationTypeFormDialogComponent, {
-        width: '500px',
-        data: { mode: 'edit', accommodationType },
-      });
+    import('./accommodation-type-form-dialog/accommodation-type-form-dialog.component').then(
+      (m) => {
+        const dialogRef = this.dialog.open(m.AccommodationTypeFormDialogComponent, {
+          width: '500px',
+          data: { mode: 'edit', accommodationType },
+        });
 
-      dialogRef.afterClosed().subscribe((result) => {
-        if (result) {
-          this.loadAccommodationTypes();
-        }
-      });
-    });
+        dialogRef.afterClosed().subscribe((result) => {
+          if (result) {
+            this.loadAccommodationTypes();
+          }
+        });
+      }
+    );
   }
 
   deleteAccommodationType(accommodationType: AccommodationType): void {
@@ -144,7 +148,9 @@ export class AccommodationTypeManagementComponent implements OnInit {
     ) {
       this.accommodationTypeService.delete(accommodationType.id).subscribe({
         next: () => {
-          this.snackBar.open('Accommodation type deleted successfully', 'Close', { duration: 3000 });
+          this.snackBar.open('Accommodation type deleted successfully', 'Close', {
+            duration: 3000,
+          });
           this.loadAccommodationTypes();
         },
         error: (error) => {

@@ -11,7 +11,11 @@ import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { DocumentType } from '../../../core/models/document-type.model';
-import { DocumentService, FileValidationResult, isNoActiveApplicationError } from '../../../core/services/document.service';
+import {
+  DocumentService,
+  FileValidationResult,
+  isNoActiveApplicationError,
+} from '../../../core/services/document.service';
 import { ApplicationService } from '../../../core/services/application.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
@@ -99,7 +103,9 @@ export class DocumentUploadComponent implements OnInit {
       error: () => {
         this.isCheckingApplication = false;
         this.hasActiveApplication = false;
-        this.errorService.showWarning('Unable to verify application status. Please create an application first.');
+        this.errorService.showWarning(
+          'Unable to verify application status. Please create an application first.'
+        );
         this.router.navigate(['/application-submission']);
       },
     });
@@ -211,7 +217,9 @@ export class DocumentUploadComponent implements OnInit {
 
           // Check if error is due to no active application
           if (isNoActiveApplicationError(err)) {
-            this.errorService.showWarning('Please create an application before uploading documents');
+            this.errorService.showWarning(
+              'Please create an application before uploading documents'
+            );
             this.router.navigate(['/application-submission']);
             return;
           }

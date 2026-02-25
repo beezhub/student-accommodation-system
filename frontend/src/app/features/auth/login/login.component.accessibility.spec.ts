@@ -27,12 +27,7 @@ describe('LoginComponent – Accessibility Audit (axe-core)', () => {
     const authServiceSpy = jasmine.createSpyObj('AuthService', ['login']);
 
     await TestBed.configureTestingModule({
-      imports: [
-        LoginComponent,
-        NoopAnimationsModule,
-        ReactiveFormsModule,
-        RouterTestingModule,
-      ],
+      imports: [LoginComponent, NoopAnimationsModule, ReactiveFormsModule, RouterTestingModule],
       providers: [{ provide: AuthService, useValue: authServiceSpy }],
     }).compileComponents();
 
@@ -54,8 +49,6 @@ describe('LoginComponent – Accessibility Audit (axe-core)', () => {
       )
       .join('\n');
 
-    expect(violations.length)
-      .withContext(`axe violations found:\n${violationMessages}`)
-      .toBe(0);
+    expect(violations.length).withContext(`axe violations found:\n${violationMessages}`).toBe(0);
   });
 });

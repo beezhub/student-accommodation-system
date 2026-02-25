@@ -131,7 +131,7 @@ export class AcademicYearManagementComponent implements OnInit {
     if (academicYear.isCurrent) {
       return;
     }
-    
+
     this.academicYearService.setCurrentAcademicYear(academicYear.id).subscribe({
       next: () => {
         this.snackBar.open(`${academicYear.name} is now the current academic year`, 'Close', {

@@ -154,7 +154,7 @@ export class ApplicationService {
           ApplicationStatus.AWAITING_ALLOCATION,
           ApplicationStatus.UNDER_REVIEW,
           ApplicationStatus.CHANGES_REQUESTED,
-          ApplicationStatus.ALLOCATED
+          ApplicationStatus.ALLOCATED,
         ];
         return applications.some((app) => activeStatuses.includes(app.status as ApplicationStatus));
       }),
@@ -191,7 +191,10 @@ export class ApplicationService {
    * @returns Observable<{ success: boolean }>
    */
   saveReviewProgress(request: ReviewProgressRequest): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/${request.applicationId}/save-review-progress`, request);
+    return this.http.post<{ success: boolean }>(
+      `${this.apiUrl}/${request.applicationId}/save-review-progress`,
+      request
+    );
   }
 
   /**
@@ -223,11 +226,10 @@ export class ApplicationService {
           isRequired: false,
           createdAt: doc.uploadedAt,
           updatedAt: doc.uploadedAt,
-        })),
-      ),
+        }))
+      )
     );
   }
-
 
   /**
    * Marks an application as under review.
@@ -243,6 +245,8 @@ export class ApplicationService {
    * @param reason The reason for requesting changes
    */
   requestChanges(applicationId: number, reason: string): Observable<Application> {
-    return this.http.post<Application>(`${this.apiUrl}/${applicationId}/request-changes`, { reason });
+    return this.http.post<Application>(`${this.apiUrl}/${applicationId}/request-changes`, {
+      reason,
+    });
   }
 }

@@ -31,8 +31,16 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
           <mat-icon>{{ data.mode === 'create' ? 'add_business' : 'edit' }}</mat-icon>
         </div>
         <div class="header-text">
-          <h2 mat-dialog-title>{{ data.mode === 'create' ? 'Add New Building' : 'Edit Building' }}</h2>
-          <p class="subtitle">{{ data.mode === 'create' ? 'Create a new accommodation building' : 'Update building information' }}</p>
+          <h2 mat-dialog-title>
+            {{ data.mode === 'create' ? 'Add New Building' : 'Edit Building' }}
+          </h2>
+          <p class="subtitle">
+            {{
+              data.mode === 'create'
+                ? 'Create a new accommodation building'
+                : 'Update building information'
+            }}
+          </p>
         </div>
       </div>
 
@@ -43,7 +51,7 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
             <mat-icon matPrefix>apartment</mat-icon>
             <input matInput formControlName="name" placeholder="e.g., North Hall" required />
             @if (buildingForm.get('name')?.hasError('required')) {
-              <mat-error>Building name is required</mat-error>
+            <mat-error>Building name is required</mat-error>
             }
           </mat-form-field>
 
@@ -65,35 +73,34 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
               (optionSelected)="onSuggestionSelected($event.option.value)"
             >
               @if (isSearching) {
-                <mat-option disabled>
-                  <div class="searching-hint">
-                    <mat-spinner diameter="16"></mat-spinner>
-                    Searching...
-                  </div>
-                </mat-option>
-              }
-              @for (suggestion of addressSuggestions; track suggestion.placeId) {
-                <mat-option [value]="suggestion">
-                  <mat-icon class="suggestion-icon">place</mat-icon>
-                  <span class="suggestion-text">{{ suggestion.displayName }}</span>
-                </mat-option>
+              <mat-option disabled>
+                <div class="searching-hint">
+                  <mat-spinner diameter="16"></mat-spinner>
+                  Searching...
+                </div>
+              </mat-option>
+              } @for (suggestion of addressSuggestions; track suggestion.placeId) {
+              <mat-option [value]="suggestion">
+                <mat-icon class="suggestion-icon">place</mat-icon>
+                <span class="suggestion-text">{{ suggestion.displayName }}</span>
+              </mat-option>
               }
             </mat-autocomplete>
           </mat-form-field>
 
           @if (buildingForm.get('latitude')?.value) {
-            <div class="coords-row">
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Latitude</mat-label>
-                <mat-icon matPrefix>my_location</mat-icon>
-                <input matInput formControlName="latitude" readonly />
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Longitude</mat-label>
-                <mat-icon matPrefix>my_location</mat-icon>
-                <input matInput formControlName="longitude" readonly />
-              </mat-form-field>
-            </div>
+          <div class="coords-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Latitude</mat-label>
+              <mat-icon matPrefix>my_location</mat-icon>
+              <input matInput formControlName="latitude" readonly />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Longitude</mat-label>
+              <mat-icon matPrefix>my_location</mat-icon>
+              <input matInput formControlName="longitude" readonly />
+            </mat-form-field>
+          </div>
           }
 
           <mat-form-field appearance="outline" class="full-width">
@@ -114,10 +121,12 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
             <mat-icon matPrefix>school</mat-icon>
             <mat-select formControlName="institutionIds" multiple>
               @for (institution of institutions; track institution.id) {
-                <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
+              <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
               }
             </mat-select>
-            <mat-hint>Select which institutions this building serves (leave empty for all)</mat-hint>
+            <mat-hint
+              >Select which institutions this building serves (leave empty for all)</mat-hint
+            >
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
@@ -134,7 +143,12 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+        <button
+          mat-stroked-button
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+          class="cancel-btn"
+        >
           Cancel
         </button>
         <button
@@ -145,13 +159,13 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
           class="submit-btn"
         >
           @if (isSubmitting) {
-            <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            {{ data.mode === 'create' ? 'Creating...' : 'Updating...' }}
+          <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+          {{ data.mode === 'create' ? 'Creating...' : 'Updating...' }}
           } @else {
-            <ng-container>
-              <mat-icon>{{ data.mode === 'create' ? 'add' : 'check' }}</mat-icon>
-              {{ data.mode === 'create' ? 'Create Building' : 'Update Building' }}
-            </ng-container>
+          <ng-container>
+            <mat-icon>{{ data.mode === 'create' ? 'add' : 'check' }}</mat-icon>
+            {{ data.mode === 'create' ? 'Create Building' : 'Update Building' }}
+          </ng-container>
           }
         </button>
       </mat-dialog-actions>
@@ -538,7 +552,7 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
         longitude: this.data.building.longitude,
         totalFloors: this.data.building.totalFloors,
         description: this.data.building.description,
-        institutionIds: this.data.building.institutions?.map(i => i.id) || [],
+        institutionIds: this.data.building.institutions?.map((i) => i.id) || [],
       });
     }
   }
@@ -623,9 +637,10 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
     const formValue = this.buildingForm.value;
     const buildingData: BuildingRequest = {
       name: formValue.name,
-      address: typeof formValue.address === 'object' && formValue.address
-        ? (formValue.address as AddressSuggestion).displayName
-        : formValue.address,
+      address:
+        typeof formValue.address === 'object' && formValue.address
+          ? (formValue.address as AddressSuggestion).displayName
+          : formValue.address,
       placeId: formValue.placeId,
       latitude: formValue.latitude,
       longitude: formValue.longitude,

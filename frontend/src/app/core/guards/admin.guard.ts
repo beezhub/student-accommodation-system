@@ -1,18 +1,23 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { RoleService } from '../services/role.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AdminGuard implements CanActivate {
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private roleService: RoleService,
+    private router: Router
+  ) {}
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
     const currentUser = this.authService.currentUserValue;
 
-    // Check if user is logged in and has ADMIN role
-    if (currentUser && currentUser.userRole === 'ADMIN') {
+    // Check if user is logged in and has PLATFORM_ADMIN role
+    if (currentUser && this.roleService.isPlatformAdmin()) {
       return true;
     }
 

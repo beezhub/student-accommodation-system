@@ -158,10 +158,16 @@ export class AuthService {
   }
 
   verifyResetToken(token: string): Observable<{ valid: boolean; message: string }> {
-    return this.http.post<{ valid: boolean; message: string }>(`${this.apiUrl}/verify-reset-token`, { token });
+    return this.http.post<{ valid: boolean; message: string }>(
+      `${this.apiUrl}/verify-reset-token`,
+      { token }
+    );
   }
 
   resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/reset-password`, { token, newPassword });
+    return this.http.post<{ message: string }>(`${this.apiUrl}/reset-password`, {
+      token,
+      newPassword,
+    });
   }
 }

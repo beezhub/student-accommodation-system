@@ -55,14 +55,21 @@ export class ForgotPasswordComponent {
         next: (response) => {
           this.isSubmitting = false;
           this.emailSent = true;
-          this.snackBar.open(response.message || 'Password reset link sent to your email!', 'Close', {
-            duration: 5000,
-            panelClass: ['success-snackbar'],
-          });
+          this.snackBar.open(
+            response.message || 'Password reset link sent to your email!',
+            'Close',
+            {
+              duration: 5000,
+              panelClass: ['success-snackbar'],
+            }
+          );
         },
         error: (error: any) => {
           this.isSubmitting = false;
-          const errorMessage = error?.error?.message || error?.message || 'Failed to send reset link. Please try again.';
+          const errorMessage =
+            error?.error?.message ||
+            error?.message ||
+            'Failed to send reset link. Please try again.';
           this.snackBar.open(errorMessage, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar'],

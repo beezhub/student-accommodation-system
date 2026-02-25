@@ -224,8 +224,8 @@ export class RoomManagementComponent implements OnInit {
         data: {
           roomId: room.id,
           roomNumber: room.roomNumber,
-          buildingName: room.buildingName
-        }
+          buildingName: room.buildingName,
+        },
       });
 
       dialogRef.afterClosed().subscribe((result) => {
@@ -236,8 +236,6 @@ export class RoomManagementComponent implements OnInit {
       });
     });
   }
-
-
 
   getOccupancyText(room: RoomResponse): string {
     if (!room || room.currentOccupancy === undefined || room.capacity === undefined) {
@@ -264,7 +262,7 @@ export class RoomManagementComponent implements OnInit {
   getYearRestrictionTooltip(room: RoomResponse): string {
     const min = room.minYearOfStudy;
     const max = room.maxYearOfStudy;
-    
+
     if (min && max) {
       return `Year ${min} - ${max} students only`;
     } else if (min) {
@@ -290,7 +288,7 @@ export class RoomManagementComponent implements OnInit {
     if (this.isAllSelected()) {
       this.selection.clear();
     } else {
-      this.rooms.forEach(row => this.selection.select(row));
+      this.rooms.forEach((row) => this.selection.select(row));
     }
   }
 
@@ -309,12 +307,12 @@ export class RoomManagementComponent implements OnInit {
         width: '95vw',
         maxWidth: '600px',
         data: {
-          rooms: this.selection.selected.map(room => ({
+          rooms: this.selection.selected.map((room) => ({
             id: room.id,
             roomNumber: room.roomNumber,
-            buildingName: room.buildingName
-          }))
-        }
+            buildingName: room.buildingName,
+          })),
+        },
       });
 
       dialogRef.afterClosed().subscribe((result) => {

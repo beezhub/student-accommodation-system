@@ -32,7 +32,7 @@ public class UserManagementController {
     )
     @ApiResponse(responseCode = "201", description = "User created successfully")
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<UserData> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserData user = userManagementService.createUser(request);
         return ResponseEntity.status(201).body(user);
@@ -41,7 +41,7 @@ public class UserManagementController {
     @Operation(summary = "Get all users")
     @ApiResponse(responseCode = "200", description = "Users retrieved")
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<List<UserData>> getAllUsers() {
         return ResponseEntity.ok(userManagementService.getAllUsers());
     }
@@ -49,7 +49,7 @@ public class UserManagementController {
     @Operation(summary = "Get users by role")
     @ApiResponse(responseCode = "200", description = "Users retrieved")
     @GetMapping("/role/{role}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<List<UserData>> getUsersByRole(@PathVariable String role) {
         UserRole userRole = UserRole.enumRoleOf(role);
         return ResponseEntity.ok(userManagementService.getUsersByRole(userRole));
@@ -58,7 +58,7 @@ public class UserManagementController {
     @Operation(summary = "Delete user")
     @ApiResponse(responseCode = "204", description = "User deleted")
     @DeleteMapping("/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         userManagementService.deleteUser(userId);
         return ResponseEntity.noContent().build();
@@ -67,7 +67,7 @@ public class UserManagementController {
     @Operation(summary = "Unlock user account")
     @ApiResponse(responseCode = "200", description = "Account unlocked")
     @PutMapping("/{id}/unlock")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<MessageResponse> unlockAccount(@PathVariable Long id) {
         authService.unlockAccount(id);
         return ResponseEntity.ok(new MessageResponse("Account unlocked successfully"));

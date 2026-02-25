@@ -64,7 +64,7 @@ public class ApplicationCoreService {
                 AppUser currentUser = authService.getCurrentUser();
 
                 if (!student.getAppUser().getId().equals(currentUser.getId()) &&
-                                !currentUser.getUserRole().equals(UserRole.ADMIN)) {
+                                !currentUser.getUserRole().isAdmin()) {
                         throw new UnauthorizedAccessException("You can only submit applications for yourself");
                 }
 
@@ -139,7 +139,7 @@ public class ApplicationCoreService {
                 AppUser currentUser = authService.getCurrentUser();
 
                 if (!application.getStudent().getAppUser().getId().equals(currentUser.getId()) &&
-                                !currentUser.getUserRole().equals(UserRole.ADMIN)) {
+                                !currentUser.getUserRole().isAdmin()) {
                         throw new UnauthorizedAccessException("You are not authorized to view this application");
                 }
 
@@ -158,7 +158,7 @@ public class ApplicationCoreService {
                 AppUser currentUser = authService.getCurrentUser();
 
                 if (!student.getAppUser().getId().equals(currentUser.getId()) &&
-                                !currentUser.getUserRole().equals(UserRole.ADMIN)) {
+                                !currentUser.getUserRole().isAdmin()) {
                         throw new UnauthorizedAccessException("You are not authorized to view these applications");
                 }
 

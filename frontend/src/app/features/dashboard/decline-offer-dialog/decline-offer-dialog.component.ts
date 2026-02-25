@@ -24,7 +24,7 @@ export interface DeclineOfferDialogData {
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatSelectModule
+    MatSelectModule,
   ],
   template: `
     <h2 mat-dialog-title>Decline Room Offer</h2>
@@ -33,13 +33,21 @@ export interface DeclineOfferDialogData {
 
       <div class="warning-banner" [class.final-warning]="declinesRemaining === 0">
         <p><strong>⚠️ Decline Status:</strong></p>
-        <p>You have declined <strong>{{ data.previousDeclineCount }} of 2</strong> offers.</p>
-        <p><strong>{{ declinesRemaining }} decline(s) remaining.</strong></p>
+        <p>
+          You have declined <strong>{{ data.previousDeclineCount }} of 2</strong> offers.
+        </p>
+        <p>
+          <strong>{{ declinesRemaining }} decline(s) remaining.</strong>
+        </p>
         <p *ngIf="declinesRemaining > 0" class="info-text">
           You will be re-queued and notified when another room becomes available.
         </p>
         <p *ngIf="declinesRemaining === 0" class="final-warning-text">
-          ⛔ <strong>This is your last decline. Your application will be closed and you will be removed from the waiting list.</strong>
+          ⛔
+          <strong
+            >This is your last decline. Your application will be closed and you will be removed from
+            the waiting list.</strong
+          >
         </p>
       </div>
 
@@ -63,61 +71,62 @@ export interface DeclineOfferDialogData {
             formControlName="declineReasonText"
             rows="3"
             maxlength="500"
-            placeholder="Please provide any additional information...">
+            placeholder="Please provide any additional information..."
+          >
           </textarea>
-          <mat-hint align="end">{{ form.get('declineReasonText')?.value?.length || 0 }}/500</mat-hint>
+          <mat-hint align="end"
+            >{{ form.get('declineReasonText')?.value?.length || 0 }}/500</mat-hint
+          >
         </mat-form-field>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Cancel</button>
-      <button
-        mat-raised-button
-        color="warn"
-        [disabled]="form.invalid"
-        (click)="submit()">
+      <button mat-raised-button color="warn" [disabled]="form.invalid" (click)="submit()">
         {{ declinesRemaining === 0 ? 'Decline (Final)' : 'Decline Offer' }}
       </button>
     </mat-dialog-actions>
   `,
-  styles: [`
-    .full-width {
-      width: 100%;
-      margin-bottom: 16px;
-    }
-    mat-dialog-content {
-      padding-top: 10px;
-      min-width: 400px;
-      max-width: 500px;
-    }
-    .warning-banner {
-      background: #fff3cd;
-      border-left: 4px solid #ffc107;
-      padding: 12px;
-      margin: 16px 0;
-      border-radius: 4px;
-    }
-    .warning-banner.final-warning {
-      background: #f8d7da;
-      border-left: 4px solid #dc3545;
-    }
-    .warning-banner p {
-      margin: 4px 0;
-    }
-    .info-text {
-      color: #856404;
-      font-size: 0.9em;
-      margin-top: 8px;
-    }
-    .final-warning-text {
-      color: #721c24;
-      font-weight: 500;
-      margin-top: 8px;
-    }
-    textarea {
-      resize: vertical;
-    }
-  `]
+  styles: [
+    `
+      .full-width {
+        width: 100%;
+        margin-bottom: 16px;
+      }
+      mat-dialog-content {
+        padding-top: 10px;
+        min-width: 400px;
+        max-width: 500px;
+      }
+      .warning-banner {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 12px;
+        margin: 16px 0;
+        border-radius: 4px;
+      }
+      .warning-banner.final-warning {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+      }
+      .warning-banner p {
+        margin: 4px 0;
+      }
+      .info-text {
+        color: #856404;
+        font-size: 0.9em;
+        margin-top: 8px;
+      }
+      .final-warning-text {
+        color: #721c24;
+        font-weight: 500;
+        margin-top: 8px;
+      }
+      textarea {
+        resize: vertical;
+      }
+    `,
+  ],
 })
 export class DeclineOfferDialogComponent implements OnInit {
   form: FormGroup;
@@ -129,7 +138,7 @@ export class DeclineOfferDialogComponent implements OnInit {
     { value: DeclineReason.FOUND_ALTERNATIVE, label: 'Found Alternative Accommodation' },
     { value: DeclineReason.ACCESSIBILITY_ISSUES, label: 'Accessibility Issues' },
     { value: DeclineReason.PERSONAL_REASONS, label: 'Personal Reasons' },
-    { value: DeclineReason.OTHER, label: 'Other' }
+    { value: DeclineReason.OTHER, label: 'Other' },
   ];
 
   constructor(
@@ -140,7 +149,7 @@ export class DeclineOfferDialogComponent implements OnInit {
     this.declinesRemaining = 2 - this.data.previousDeclineCount;
     this.form = this.fb.group({
       declineReason: [null, Validators.required],
-      declineReasonText: ['', Validators.maxLength(500)]
+      declineReasonText: ['', Validators.maxLength(500)],
     });
   }
 
@@ -158,7 +167,7 @@ export class DeclineOfferDialogComponent implements OnInit {
     if (this.form.valid) {
       const request: DeclineOfferRequest = {
         declineReason: this.form.value.declineReason,
-        declineReasonText: this.form.value.declineReasonText || undefined
+        declineReasonText: this.form.value.declineReasonText || undefined,
       };
       this.dialogRef.close(request);
     }

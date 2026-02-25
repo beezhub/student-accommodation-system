@@ -47,7 +47,7 @@ export class NotificationService {
    */
   private connectToSse(token: string): void {
     const url = `${this.apiUrl}/stream?token=${token}`;
-    
+
     this.eventSource = new EventSource(url);
 
     this.eventSource.onopen = () => {
@@ -74,10 +74,12 @@ export class NotificationService {
       this.ngZone.run(() => {
         console.error('SSE error:', error);
         this.eventSource?.close();
-        
+
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++;
-          console.log(`Retrying SSE connection in 5s (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+          console.log(
+            `Retrying SSE connection in 5s (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
+          );
           setTimeout(() => this.connectToSse(token), 5000);
         } else {
           console.warn('Max SSE reconnect attempts reached. Falling back to polling.');
@@ -103,7 +105,7 @@ export class NotificationService {
     if (this.pollingSubscription) {
       return;
     }
-    
+
     console.log('Starting notification polling fallback');
     this.pollingSubscription = interval(30000) // Poll every 30 seconds
       .pipe(
@@ -126,10 +128,7 @@ export class NotificationService {
         this.unreadCountSubject.next(response.unreadCount);
       }),
       catchError((error) => {
-        console.warn(
-          'Failed to fetch notifications:',
-          error.message
-        );
+        console.warn('Failed to fetch notifications:', error.message);
         return of({ notifications: [], unreadCount: 0, totalCount: 0 });
       })
     );

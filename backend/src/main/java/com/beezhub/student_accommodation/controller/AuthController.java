@@ -152,7 +152,7 @@ public class AuthController {
         )
         @ApiResponse(responseCode = "204", description = "Account anonymised successfully")
         @PostMapping("/admin/anonymize/{userId}")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
         public ResponseEntity<Void> anonymizeAccount(@PathVariable Long userId) {
                 authService.anonymizeAccount(userId);
                 return ResponseEntity.noContent().build();

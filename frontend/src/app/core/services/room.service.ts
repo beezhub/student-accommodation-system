@@ -117,8 +117,11 @@ export class RoomService {
    * @param studentId The student ID to check eligibility for
    * @param buildingId Optional building ID to filter by
    */
-  getEligibleRoomsForStudent(studentId: number, buildingId?: number): Observable<EligibleRoomResponse[]> {
-    let url = `${environment.apiUrl}/room-allocation/admin/student/${studentId}/eligible-rooms`;
+  getEligibleRoomsForStudent(
+    studentId: number,
+    buildingId?: number
+  ): Observable<EligibleRoomResponse[]> {
+    const url = `${environment.apiUrl}/room-allocation/admin/student/${studentId}/eligible-rooms`;
     let params = new HttpParams();
     if (buildingId) {
       params = params.set('buildingId', buildingId.toString());

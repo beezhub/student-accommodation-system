@@ -86,7 +86,7 @@ export class ActivityLogsComponent implements OnInit {
     'SYSTEM',
   ];
 
-  userRoles: string[] = ['ADMIN', 'STUDENT', 'LANDLORD'];
+  userRoles: string[] = ['PLATFORM_ADMIN', 'BUILDING_OWNER', 'BUILDING_STAFF', 'STUDENT'];
 
   constructor(
     private activityLogService: ActivityLogService,

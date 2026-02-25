@@ -2,7 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { StagedAllocation, BatchAllocationProposal, WaitingListEntry } from '../models/allocation.models';
+import {
+  StagedAllocation,
+  BatchAllocationProposal,
+  WaitingListEntry,
+} from '../models/allocation.models';
 import { RoomAllocationResponse } from './room-allocation.service';
 
 export interface PageResponse<T> {
@@ -51,7 +55,9 @@ export class StagedAllocationService {
   }
 
   rejectAllocation(stagedId: number, reason: string): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/staged/${stagedId}/reject`, { reason });
+    return this.http.post<{ success: boolean }>(`${this.apiUrl}/staged/${stagedId}/reject`, {
+      reason,
+    });
   }
 
   confirmBatch(

@@ -10,6 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DocumentCommentService } from '../../../../core/services/document-comment.service';
 import { DocumentComment } from '../../../../core/models/allocation.models';
 import { AuthService } from '../../../../core/services/auth.service';
+import { RoleService } from '../../../../core/services/role.service';
 import { TimeagoPipe } from '../../../../shared/pipes/timeago.pipe';
 
 @Component({
@@ -38,10 +39,7 @@ export class DocumentCommentSectionComponent implements OnInit, OnChanges {
   isSubmitting = false;
   isAdmin = false;
 
-  commentControl = new FormControl('', [
-    Validators.minLength(10),
-    Validators.maxLength(500),
-  ]);
+  commentControl = new FormControl('', [Validators.minLength(10), Validators.maxLength(500)]);
 
   private readonly DEFAULT_REJECTION_MESSAGE =
     'Your document has been rejected. Please review the requirements and submit a new document that meets the specified criteria.';
@@ -49,6 +47,7 @@ export class DocumentCommentSectionComponent implements OnInit, OnChanges {
   constructor(
     private documentCommentService: DocumentCommentService,
     private authService: AuthService,
+    private roleService: RoleService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -69,8 +68,7 @@ export class DocumentCommentSectionComponent implements OnInit, OnChanges {
   }
 
   private checkAdminStatus(): void {
-    const currentUser = this.authService.currentUserValue;
-    this.isAdmin = currentUser?.userRole === 'ADMIN';
+    this.isAdmin = this.roleService.isPlatformAdmin();
   }
 
   loadComments(): void {

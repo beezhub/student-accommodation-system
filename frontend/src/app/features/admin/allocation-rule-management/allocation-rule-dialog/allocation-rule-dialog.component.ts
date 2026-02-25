@@ -1,11 +1,14 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import {
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-  MatDialogModule,
-} from '@angular/material/dialog';
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+  AbstractControl,
+  ValidationErrors,
+} from '@angular/forms';
+import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -36,7 +39,7 @@ export interface AllocationRuleDialogData {
     MatCheckboxModule,
     MatSliderModule,
     MatIconModule,
-    MatProgressBarModule
+    MatProgressBarModule,
   ],
   templateUrl: './allocation-rule-dialog.component.html',
   styleUrls: ['./allocation-rule-dialog.component.css'],
@@ -56,21 +59,35 @@ export class AllocationRuleDialogComponent implements OnInit {
   ) {
     this.isEditMode = !!data.rule;
 
-    this.ruleForm = this.fb.group({
-      ruleName: [data.rule?.ruleName || '', [Validators.required, Validators.maxLength(100)]],
-      priority: [data.rule?.priority || 1, [Validators.required, Validators.min(1)]],
-      preferenceMatchWeight: [data.rule?.preferenceMatchWeight || 50, [Validators.required, Validators.min(0), Validators.max(100)]],
-      desirabilityWeight: [data.rule?.desirabilityWeight || 30, [Validators.required, Validators.min(0), Validators.max(100)]],
-      accessibilityWeight: [data.rule?.accessibilityWeight || 20, [Validators.required, Validators.min(0), Validators.max(100)]],
-      active: [data.rule?.active ?? true]
-    }, { validators: this.weightsSumValidator });
+    this.ruleForm = this.fb.group(
+      {
+        ruleName: [data.rule?.ruleName || '', [Validators.required, Validators.maxLength(100)]],
+        priority: [data.rule?.priority || 1, [Validators.required, Validators.min(1)]],
+        preferenceMatchWeight: [
+          data.rule?.preferenceMatchWeight || 50,
+          [Validators.required, Validators.min(0), Validators.max(100)],
+        ],
+        desirabilityWeight: [
+          data.rule?.desirabilityWeight || 30,
+          [Validators.required, Validators.min(0), Validators.max(100)],
+        ],
+        accessibilityWeight: [
+          data.rule?.accessibilityWeight || 20,
+          [Validators.required, Validators.min(0), Validators.max(100)],
+        ],
+        active: [data.rule?.active ?? true],
+      },
+      { validators: this.weightsSumValidator }
+    );
 
     this.updateWeightsSum();
   }
 
   ngOnInit(): void {
     // Subscribe to weight changes to update sum display
-    this.ruleForm.get('preferenceMatchWeight')?.valueChanges.subscribe(() => this.updateWeightsSum());
+    this.ruleForm
+      .get('preferenceMatchWeight')
+      ?.valueChanges.subscribe(() => this.updateWeightsSum());
     this.ruleForm.get('desirabilityWeight')?.valueChanges.subscribe(() => this.updateWeightsSum());
     this.ruleForm.get('accessibilityWeight')?.valueChanges.subscribe(() => this.updateWeightsSum());
   }
@@ -105,11 +122,11 @@ export class AllocationRuleDialogComponent implements OnInit {
 
     this.isSaving = true;
     const formValue = this.ruleForm.value;
-    
+
     // Construct the rule object
     const ruleData: Partial<AllocationRule> = {
       ...formValue,
-      buildingId: this.data.buildingId
+      buildingId: this.data.buildingId,
     };
 
     if (this.isEditMode && this.data.rule) {
@@ -123,7 +140,7 @@ export class AllocationRuleDialogComponent implements OnInit {
           console.error('Failed to update rule', err);
           this.snackBar.open('Failed to update rule', 'Close', { duration: 3000 });
           this.isSaving = false;
-        }
+        },
       });
     } else {
       this.allocationRuleService.createRule(ruleData).subscribe({
@@ -136,7 +153,7 @@ export class AllocationRuleDialogComponent implements OnInit {
           console.error('Failed to create rule', err);
           this.snackBar.open('Failed to create rule', 'Close', { duration: 3000 });
           this.isSaving = false;
-        }
+        },
       });
     }
   }

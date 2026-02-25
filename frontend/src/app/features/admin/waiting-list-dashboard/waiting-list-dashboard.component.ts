@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -37,18 +37,25 @@ import { Router } from '@angular/router';
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
   ],
   templateUrl: './waiting-list-dashboard.component.html',
-  styleUrls: ['./waiting-list-dashboard.component.scss']
+  styleUrls: ['./waiting-list-dashboard.component.scss'],
 })
-export class WaitingListDashboardComponent implements OnInit {
+export class WaitingListDashboardComponent implements OnInit, AfterViewInit {
   filterForm: FormGroup;
   buildings: BuildingResponse[] = [];
-  
-  displayedColumns: string[] = ['position', 'studentName', 'priorityScore', 'preferredBuilding', 'applicationDate', 'actions'];
+
+  displayedColumns: string[] = [
+    'position',
+    'studentName',
+    'priorityScore',
+    'preferredBuilding',
+    'applicationDate',
+    'actions',
+  ];
   dataSource: MatTableDataSource<WaitingListEntry>;
-  
+
   isLoading = false;
   isRescoring = false;
 
@@ -64,9 +71,9 @@ export class WaitingListDashboardComponent implements OnInit {
     private router: Router
   ) {
     this.dataSource = new MatTableDataSource<WaitingListEntry>([]);
-    
+
     this.filterForm = this.fb.group({
-      buildingId: ['']
+      buildingId: [''],
     });
   }
 
@@ -86,8 +93,8 @@ export class WaitingListDashboardComponent implements OnInit {
 
   loadBuildings(): void {
     this.buildingService.getAllBuildingsNoPagination().subscribe({
-      next: (data) => this.buildings = data,
-      error: (err) => console.error('Failed to load buildings', err)
+      next: (data) => (this.buildings = data),
+      error: (err) => console.error('Failed to load buildings', err),
     });
   }
 
@@ -98,7 +105,7 @@ export class WaitingListDashboardComponent implements OnInit {
     this.stagedAllocationService.getWaitingList(buildingId || undefined).subscribe({
       next: (entries) => {
         // Assign position based on score (assuming backend returns sorted, but we re-sort to be safe or rely on MatSort)
-        // Backend usually returns sorted by Score DESC. 
+        // Backend usually returns sorted by Score DESC.
         // We can add a temporary index property if needed for display.
         this.dataSource.data = entries;
         this.isLoading = false;
@@ -107,7 +114,7 @@ export class WaitingListDashboardComponent implements OnInit {
         console.error('Failed to load waiting list', err);
         this.isLoading = false;
         this.snackBar.open('Error loading waiting list', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
@@ -123,17 +130,19 @@ export class WaitingListDashboardComponent implements OnInit {
         console.error('Rescore failed', err);
         this.isRescoring = false;
         this.snackBar.open('Failed to rescore waiting list', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
   // Helper for "Allocate Now"
   openAllocation(entry: WaitingListEntry): void {
-     // Navigate to a detail view or open dialog?
-     // For now, let's just show a not implemented or navigate to application review
-     // Ideally, we would open the AllocationChoiceDialog here directly if we had the full ApplicationResponse.
-     // But WaitingListEntry is a summary.
-     // So let's navigate to application review with a filter.
-     this.router.navigate(['/admin/applications'], { queryParams: { applicationCode: entry.applicationCode } });
+    // Navigate to a detail view or open dialog?
+    // For now, let's just show a not implemented or navigate to application review
+    // Ideally, we would open the AllocationChoiceDialog here directly if we had the full ApplicationResponse.
+    // But WaitingListEntry is a summary.
+    // So let's navigate to application review with a filter.
+    this.router.navigate(['/admin/applications'], {
+      queryParams: { applicationCode: entry.applicationCode },
+    });
   }
 }
