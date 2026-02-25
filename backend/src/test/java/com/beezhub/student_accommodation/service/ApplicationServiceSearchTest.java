@@ -182,8 +182,8 @@ class ApplicationServiceSearchTest {
 
                 pageable = PageRequest.of(0, 20);
 
-                // Mock documentRepository for enrichApplicationDetails
-                when(documentRepository.findByApplicationIdIn(any())).thenReturn(List.of());
+                // Mock stagedAllocationRepository for enrichApplicationDetails
+                when(stagedAllocationRepository.findByApplication_IdIn(any())).thenReturn(List.of());
         }
 
         @Test

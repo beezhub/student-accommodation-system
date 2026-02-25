@@ -3,6 +3,7 @@ package com.beezhub.student_accommodation.service;
 import com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationRequest;
 import com.beezhub.student_accommodation.model.entity.Application;
+import com.beezhub.student_accommodation.model.entity.ApplicationDocument;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Room;
@@ -10,8 +11,8 @@ import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
+import com.beezhub.student_accommodation.repository.ApplicationDocumentRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
-import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ import static org.mockito.Mockito.*;
 class ApplicationDocumentCoordinatorTest {
 
     @Mock
-    private DocumentRepository documentRepository;
+    private ApplicationDocumentRepository applicationDocumentRepository;
     @Mock
     private RoomAllocationService roomAllocationService;
     @Mock
@@ -66,10 +67,17 @@ class ApplicationDocumentCoordinatorTest {
         optionalDocType.setId(2L);
     }
 
+    private ApplicationDocument junctionEntry(Document doc) {
+        return ApplicationDocument.builder()
+                .application(application)
+                .document(doc)
+                .build();
+    }
+
     @Test
     void tryAllocateOrQueue_notAllRequiredApproved_doesNothing() {
         Document doc1 = Document.builder().documentType(requiredDocType).documentStatus(DocumentStatus.PENDING).build();
-        when(documentRepository.findByApplicationId(100L)).thenReturn(List.of(doc1));
+        when(applicationDocumentRepository.findByApplication_Id(100L)).thenReturn(List.of(junctionEntry(doc1)));
 
         coordinator.tryAllocateOrQueue(student, application);
 
@@ -81,7 +89,7 @@ class ApplicationDocumentCoordinatorTest {
     @Test
     void tryAllocateOrQueue_allRequiredApproved_roomAvailable_allocates() {
         Document doc1 = Document.builder().documentType(requiredDocType).documentStatus(DocumentStatus.APPROVED).build();
-        when(documentRepository.findByApplicationId(100L)).thenReturn(List.of(doc1));
+        when(applicationDocumentRepository.findByApplication_Id(100L)).thenReturn(List.of(junctionEntry(doc1)));
 
         Room room = new Room();
         room.setId(5L);
@@ -96,7 +104,7 @@ class ApplicationDocumentCoordinatorTest {
     @Test
     void tryAllocateOrQueue_allRequiredApproved_noRoom_queues() {
         Document doc1 = Document.builder().documentType(requiredDocType).documentStatus(DocumentStatus.APPROVED).build();
-        when(documentRepository.findByApplicationId(100L)).thenReturn(List.of(doc1));
+        when(applicationDocumentRepository.findByApplication_Id(100L)).thenReturn(List.of(junctionEntry(doc1)));
 
         when(roomAllocationService.findAvailableRoom()).thenReturn(null);
 
@@ -108,29 +116,29 @@ class ApplicationDocumentCoordinatorTest {
     @Test
     void tryAllocateOrQueue_allocationThrows_logsError() {
         Document doc1 = Document.builder().documentType(requiredDocType).documentStatus(DocumentStatus.APPROVED).build();
-        when(documentRepository.findByApplicationId(100L)).thenReturn(List.of(doc1));
+        when(applicationDocumentRepository.findByApplication_Id(100L)).thenReturn(List.of(junctionEntry(doc1)));
 
         Room room = new Room();
         room.setId(5L);
         when(roomAllocationService.findAvailableRoom()).thenReturn(room);
-        
+
         doThrow(new RoomAllocationNotFoundException("Fail")).when(roomAllocationService).createRoomAllocation(any());
 
         assertDoesNotThrow(() -> coordinator.tryAllocateOrQueue(student, application));
     }
-    
+
     @Test
     void findActiveAllocation_delegatesToRepository() {
         coordinator.findActiveAllocation(10L);
         verify(roomAllocationRepository).findActiveAllocationByStudentId(10L);
     }
-    
+
     @Test
     void findApprovedApplication_success() {
         Application approvedApp = new Application();
         approvedApp.setStatus(ApplicationStatus.APPROVED);
         when(applicationRepository.findByStudent_Id(10L)).thenReturn(List.of(approvedApp));
-        
+
         Application result = coordinator.findApprovedApplication(10L);
         assertNotNull(result);
         assertEquals(ApplicationStatus.APPROVED, result.getStatus());
