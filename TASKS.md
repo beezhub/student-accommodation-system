@@ -1115,7 +1115,7 @@ Hard constraints (must ALL pass before scoring per [REQ ALLOC-002]):
 
 ### TASK-2.12: Establish Frontend Test Coverage Baseline
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 2
 - **Estimated Scope:** L (4–8 hrs)
@@ -1813,7 +1813,7 @@ All of the following must be verified before any Phase 3 task begins:
 - [x] `TASK-2.09` DONE — `ScoringStrategy` interface extracted; `LegacyScoringStrategy` all tests pass
 - [x] `TASK-2.10` DONE — N+1 scoring queries eliminated; 2 bulk queries per batch run
 - [ ] `TASK-2.11` DONE — `OwnerConfigurableScoringStrategy` at ≥ 90% coverage; is `@Primary`
-- [ ] `TASK-2.12` DONE — Angular service coverage ≥ 70%; Karma thresholds enforced in CI
+- [x] `TASK-2.12` DONE — Angular service coverage ≥ 70%; Karma thresholds enforced in CI
 - [ ] `TASK-2.13` DONE — All new entities covered by `TenantFilterIntegrationTest`
 - [ ] A second building owner tenant can onboard without any constraint violations
 - [ ] A student can apply to buildings from two different building owner tenants
