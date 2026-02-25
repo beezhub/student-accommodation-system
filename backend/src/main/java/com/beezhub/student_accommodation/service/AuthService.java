@@ -18,6 +18,7 @@ import com.beezhub.student_accommodation.repository.UserNotificationRepository;
 import com.beezhub.student_accommodation.repository.ActivityLogRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -78,11 +79,12 @@ public class AuthService {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
         var user = appUserMapper.toEntity(request, passwordEncoder.encode(request.getPassword()));
-        // Assign the default tenant so the NOT NULL constraint on tenant_id is
-        // satisfied.
-        // During public sign-up there is no JWT, so TenantContext is empty and
-        // TenantListener cannot auto-populate the field.
-        user.setTenantId(tenantService.getDefaultTenant().getId());
+        // Public signup always creates STUDENT accounts (see AppUserMapper.toEntity).
+        // Students are platform-level entities (ADR-001) and must not be scoped to any
+        // building-owner tenant.  Assign the PLATFORM sentinel (id=0) so the Hibernate
+        // tenant filter is bypassed for this user — student data access is enforced by
+        // student_id / user_id ownership instead.
+        user.setTenantId(TenantContext.PLATFORM_TENANT_ID);
         var save = userRepository.save(user);
 
         try {
