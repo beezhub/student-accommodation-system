@@ -1372,7 +1372,7 @@ Key API changes in `0.12.x`:
 
 ### TASK-3.04: Add RedisHealthIndicator
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** S (< 2 hrs)
