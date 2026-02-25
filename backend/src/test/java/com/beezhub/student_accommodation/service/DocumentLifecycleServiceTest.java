@@ -9,12 +9,9 @@ import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
-import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
-import com.beezhub.student_accommodation.model.entity.Application;
-import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.service.document.FileStorageService;
 import com.beezhub.student_accommodation.service.document.FileValidationService;
 import com.beezhub.student_accommodation.service.document.ValidationResult;
@@ -28,7 +25,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -50,8 +46,6 @@ class DocumentLifecycleServiceTest {
     AppUserRepository appUserRepository;
     @Mock
     StudentRepository studentRepository;
-    @Mock
-    ApplicationRepository applicationRepository;
     @Mock
     DocumentMapper documentMapper;
 
@@ -97,13 +91,6 @@ class DocumentLifecycleServiceTest {
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
         when(file.getContentType()).thenReturn("application/pdf");
 
-        Application approvedApp = Application.builder()
-                .id(1L)
-                .student(student)
-                .status(ApplicationStatus.APPROVED)
-                .build();
-        when(applicationRepository.findByStudent_Id(anyLong())).thenReturn(List.of(approvedApp));
-
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
         when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
@@ -118,6 +105,32 @@ class DocumentLifecycleServiceTest {
         verify(documentRepository, times(1)).save(any(Document.class));
     }
 
+    /**
+     * Verifies that upload succeeds without requiring an active application.
+     * Documents are now decoupled from applications (TASK-2.01).
+     */
+    @Test
+    void uploadDocument_withoutApplicationId_succeeds() throws Exception {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getOriginalFilename()).thenReturn("id.pdf");
+        when(file.getSize()).thenReturn(20L);
+        when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 4, 5, 6 }));
+        when(file.getContentType()).thenReturn("application/pdf");
+
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
+        when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
+        when(documentRepository.save(any(Document.class))).thenReturn(document);
+        when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/id.pdf");
+        when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.valid());
+
+        // Should succeed — no application needed
+        assertDoesNotThrow(() ->
+                documentLifecycleService.uploadSingleDocument(file, "user@example.com", 2L));
+
+        verify(documentRepository, times(1)).save(argThat(doc -> doc.getStudent() != null));
+    }
+
     @Test
     void uploadSingleDocument_dbFailure_minioFileDeleted() throws Exception {
         MultipartFile file = mock(MultipartFile.class);
@@ -126,19 +139,12 @@ class DocumentLifecycleServiceTest {
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
         when(file.getContentType()).thenReturn("application/pdf");
 
-        Application approvedApp = Application.builder()
-                .id(1L)
-                .student(student)
-                .status(ApplicationStatus.APPROVED)
-                .build();
-        when(applicationRepository.findByStudent_Id(anyLong())).thenReturn(List.of(approvedApp));
-
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
         when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
-        
+
         when(documentRepository.save(any(Document.class))).thenThrow(new RuntimeException("DB Error"));
-        
+
         when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/file.pdf");
         when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.valid());
 
@@ -157,10 +163,10 @@ class DocumentLifecycleServiceTest {
 
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
-        
+
         when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.invalid("Malware detected"));
 
-        FileValidationException ex = assertThrows(FileValidationException.class, 
+        FileValidationException ex = assertThrows(FileValidationException.class,
             () -> documentLifecycleService.uploadSingleDocument(file, "user@example.com", 2L));
         assertTrue(ex.getMessage().contains("File rejected"));
 
@@ -187,9 +193,9 @@ class DocumentLifecycleServiceTest {
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
 
         doThrow(new FileStorageException("storage error")).when(fileStorageService).delete(anyString());
-        
+
         assertDoesNotThrow(() -> documentLifecycleService.deleteDocument(100L, "user@example.com"));
-        
+
         verify(documentRepository).delete(document);
     }
 }

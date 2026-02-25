@@ -7,7 +7,7 @@ import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
-import com.beezhub.student_accommodation.repository.DocumentRepository;
+import com.beezhub.student_accommodation.repository.ApplicationDocumentRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ import com.beezhub.student_accommodation.repository.ApplicationRepository;
 @Slf4j
 public class ApplicationDocumentCoordinator {
 
-    private final DocumentRepository documentRepository;
+    private final ApplicationDocumentRepository applicationDocumentRepository;
     private final RoomAllocationService roomAllocationService;
     private final RoomAllocationRepository roomAllocationRepository;
     private final ApplicationRepository applicationRepository;
@@ -43,8 +43,11 @@ public class ApplicationDocumentCoordinator {
 
     @Transactional
     public void tryAllocateOrQueue(Student student, Application application) {
-        // Check if all required docs are approved for this application
-        List<Document> documents = documentRepository.findByApplicationId(application.getId());
+        // Fetch documents for this application via junction table
+        List<Document> documents = applicationDocumentRepository.findByApplication_Id(application.getId())
+                .stream()
+                .map(ad -> ad.getDocument())
+                .toList();
         long requiredApproved = documents.stream()
                 .filter(doc -> doc.getDocumentStatus() == APPROVED)
                 .map(Document::getDocumentType)

@@ -1,7 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.aspect.LogActivity;
-import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DocumentTypeNotFoundException;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
@@ -12,13 +11,10 @@ import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
-import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
-import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
-import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
@@ -49,7 +45,6 @@ public class DocumentLifecycleService {
     private final DocumentRepository documentRepository;
     private final DocumentTypeRepository documentTypeRepository;
     private final StudentRepository studentRepository;
-    private final ApplicationRepository applicationRepository;
     private final AppUserRepository appUserRepository;
     private final DocumentMapper documentMapper;
 
@@ -166,28 +161,14 @@ public class DocumentLifecycleService {
         var student = studentRepository.findByAppUser(user)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found for user ID: " + user.getId()));
 
-        Application application = getActiveApplicationForStudent(student);
-
         var document = Document.builder()
                 .documentName(file.getOriginalFilename())
                 .documentType(docType)
                 .documentPath(objectPath)
                 .fileSize(file.getSize())
                 .student(student)
-                .application(application)
                 .documentStatus(PENDING)
                 .build();
         return documentRepository.save(document);
-    }
-
-    private Application getActiveApplicationForStudent(Student student) {
-        return applicationRepository.findByStudent_Id(student.getId())
-                .stream()
-                .filter(app -> app.getStatus() == ApplicationStatus.PENDING
-                        || app.getStatus() == ApplicationStatus.APPROVED
-                        || app.getStatus() == ApplicationStatus.AWAITING_ALLOCATION)
-                .findFirst()
-                .orElseThrow(() -> new ApplicationNotFoundException(
-                        "No active application found for student. Please create an application first."));
     }
 }

@@ -4,7 +4,6 @@ import {
   HttpParams,
   HttpEvent,
   HttpEventType,
-  HttpErrorResponse,
 } from '@angular/common/http';
 import { Observable, map, filter } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -18,25 +17,6 @@ export type UploadProgress =
 export interface FileValidationResult {
   valid: boolean;
   errors: string[];
-}
-
-/**
- * Error message constant for no active application scenario.
- * Used to detect when document upload fails because user has no active application.
- */
-export const NO_ACTIVE_APPLICATION_ERROR = 'No active application found';
-
-/**
- * Checks if an HTTP error is a "no active application" error.
- * @param error The HTTP error response
- * @returns true if the error is due to no active application
- */
-export function isNoActiveApplicationError(error: HttpErrorResponse | any): boolean {
-  if (!error) return false;
-
-  // Check error message from backend
-  const errorMessage = error?.error?.message || error?.message || '';
-  return errorMessage.toLowerCase().includes('no active application');
 }
 
 @Injectable({

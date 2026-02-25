@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
+
 
 @Repository
 public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSpecificationExecutor<Document> {
@@ -19,17 +19,6 @@ public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSp
     long countByDocumentStatus(DocumentStatus status);
 
     void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
-
-    // Queries by application
-    List<Document> findByApplicationId(Long applicationId);
-
-    List<Document> findByApplicationIdAndDocumentType_Id(Long applicationId, Long documentTypeId);
-
-    Optional<Document> findTopByApplicationIdAndDocumentType_IdOrderByCreatedAtDesc(Long applicationId,
-            Long documentTypeId);
-
-    // Batch query
-    List<Document> findByApplicationIdIn(List<Long> applicationIds);
 
     boolean existsByDocumentPath(String documentPath);
 }

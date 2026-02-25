@@ -428,7 +428,7 @@ If the `@Scheduled` annotation is defined on the service class itself (not a sep
 
 ### TASK-2.01: Decouple Documents from Applications
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** CRITICAL
 - **Phase:** 2
 - **Estimated Scope:** L (4–8 hrs)
@@ -1802,7 +1802,7 @@ All of the following must be verified before any Phase 2 task begins:
 
 All of the following must be verified before any Phase 3 task begins:
 
-- [ ] `TASK-2.01` DONE — Documents are student-owned; `application_document` junction table active
+- [x] `TASK-2.01` DONE — Documents are student-owned; `application_document` junction table active
 - [ ] `TASK-2.02` DONE — Student records use `tenant_id = 0`; cross-tenant building access works
 - [ ] `TASK-2.03` DONE — v2.0 roles active; all `@PreAuthorize` annotations updated
 - [ ] `TASK-2.04` DONE — HikariCP `maximum-pool-size: 25`

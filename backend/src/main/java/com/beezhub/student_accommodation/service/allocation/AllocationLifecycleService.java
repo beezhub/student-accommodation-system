@@ -304,10 +304,11 @@ public class AllocationLifecycleService {
             throw new IllegalArgumentException("Application does not belong to the specified student");
         }
 
-        if (!"APPROVED".equalsIgnoreCase(String.valueOf(application.getStatus()))) {
+        ApplicationStatus appStatus = application.getStatus();
+        if (appStatus != ApplicationStatus.APPROVED && appStatus != ApplicationStatus.AWAITING_ALLOCATION) {
             throw new ApplicationNotApprovedException(
-                    "Application must be APPROVED before allocating a room. Current status: "
-                            + application.getStatus());
+                    "Application must be APPROVED or AWAITING_ALLOCATION before allocating a room. Current status: "
+                            + appStatus);
         }
 
         if (roomAllocationRepository.existsByApplicationId(applicationId)) {

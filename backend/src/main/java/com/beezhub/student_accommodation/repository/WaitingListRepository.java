@@ -2,6 +2,8 @@ package com.beezhub.student_accommodation.repository;
 
 import com.beezhub.student_accommodation.model.entity.WaitingListEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,7 +15,14 @@ public interface WaitingListRepository extends JpaRepository<WaitingListEntry, L
     boolean existsByStudent_IdAndStatus(Long studentId, String status);
     void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 
-    List<WaitingListEntry> findByStatusOrderByCreatedAtAsc(String status);
+    @Query("SELECT w FROM WaitingListEntry w " +
+           "LEFT JOIN FETCH w.student s " +
+           "LEFT JOIN FETCH s.appUser " +
+           "LEFT JOIN FETCH w.application a " +
+           "LEFT JOIN FETCH a.preferredBuilding " +
+           "WHERE w.status = :status " +
+           "ORDER BY w.createdAt ASC")
+    List<WaitingListEntry> findByStatusOrderByCreatedAtAsc(@Param("status") String status);
 
     List<WaitingListEntry> findAllByOrderByCreatedAtAsc();
 

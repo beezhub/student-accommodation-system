@@ -17,6 +17,7 @@ import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.repository.ApplicationDocumentRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.DocumentCommentRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
@@ -43,6 +44,7 @@ public class ApplicationDocumentService {
 
         private final ApplicationRepository applicationRepository;
         private final DocumentRepository documentRepository;
+        private final ApplicationDocumentRepository applicationDocumentRepository;
         private final DocumentTypeRepository documentTypeRepository;
         private final DocumentCommentRepository documentCommentRepository;
         private final AppUserRepository appUserRepository;
@@ -65,8 +67,12 @@ public class ApplicationDocumentService {
                 // Get all required document types
                 List<DocumentType> requiredTypes = documentTypeRepository.findByIsRequiredTrue();
 
-                // Get all documents for this application
-                List<Document> applicationDocuments = documentRepository.findByApplicationId(applicationId);
+                // Get all documents for this application via junction table
+                List<Document> applicationDocuments = applicationDocumentRepository
+                                .findByApplication_Id(applicationId)
+                                .stream()
+                                .map(ad -> ad.getDocument())
+                                .collect(Collectors.toList());
 
                 // Build checklist items
                 List<DocumentChecklistItem> checklistItems = new java.util.ArrayList<>();
@@ -166,8 +172,9 @@ public class ApplicationDocumentService {
                                         .orElseThrow(() -> new RuntimeException(
                                                         "Document not found with ID: " + update.getDocumentId()));
 
-                        // Verify document belongs to this application
-                        if (!document.getApplication().getId().equals(applicationId)) {
+                        // Verify document belongs to this application via junction table
+                        if (!applicationDocumentRepository.existsByApplication_IdAndDocument_Id(
+                                        applicationId, update.getDocumentId())) {
                                 throw new UnauthorizedAccessException(
                                                 "Document " + update.getDocumentId()
                                                                 + " does not belong to this application");
@@ -230,7 +237,11 @@ public class ApplicationDocumentService {
          * @return List of DocumentWithCommentsResponse
          */
         public List<DocumentWithCommentsResponse> getDocumentsWithComments(Long applicationId) {
-                List<Document> applicationDocuments = documentRepository.findByApplicationId(applicationId);
+                List<Document> applicationDocuments = applicationDocumentRepository
+                                .findByApplication_Id(applicationId)
+                                .stream()
+                                .map(ad -> ad.getDocument())
+                                .collect(Collectors.toList());
                 return applicationDocuments.stream()
                                 .map(this::mapDocumentWithComments)
                                 .collect(Collectors.toList());
