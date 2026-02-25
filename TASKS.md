@@ -1255,7 +1255,7 @@ For each new entity, the test must assert:
 
 ### TASK-3.01: Configure MinIO SDK Timeout
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 3
 - **Estimated Scope:** S (< 2 hrs)
