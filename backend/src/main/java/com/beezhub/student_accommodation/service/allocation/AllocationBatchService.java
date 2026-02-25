@@ -6,11 +6,11 @@ import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.FeatureFlagService;
 import com.beezhub.student_accommodation.util.PageMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
-import org.ff4j.FF4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Pageable;
@@ -27,7 +27,7 @@ public class AllocationBatchService {
 
     private final WaitingListRepository waitingListRepository;
     private final AllocationLifecycleService allocationLifecycleService;
-    private final FF4j ff4j;
+    private final FeatureFlagService featureFlagService;
     private final TransactionTemplate transactionTemplate;
     private final Environment environment;
     private final AllocationScoringOrchestrator allocationScoringOrchestrator;
@@ -38,7 +38,7 @@ public class AllocationBatchService {
     public AllocationBatchService(
             WaitingListRepository waitingListRepository,
             @Lazy AllocationLifecycleService allocationLifecycleService,
-            FF4j ff4j,
+            FeatureFlagService featureFlagService,
             TransactionTemplate transactionTemplate,
             Environment environment,
             AllocationScoringOrchestrator allocationScoringOrchestrator,
@@ -47,7 +47,7 @@ public class AllocationBatchService {
             MeterRegistry meterRegistry) {
         this.waitingListRepository = waitingListRepository;
         this.allocationLifecycleService = allocationLifecycleService;
-        this.ff4j = ff4j;
+        this.featureFlagService = featureFlagService;
         this.transactionTemplate = transactionTemplate;
         this.environment = environment;
         this.allocationScoringOrchestrator = allocationScoringOrchestrator;
@@ -113,7 +113,7 @@ public class AllocationBatchService {
 
         // Feature flag check
         try {
-            if (!ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)) {
+            if (!featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)) {
                 log.info("Auto-allocation is disabled via Feature Toggle. Skipping batch allocation.");
                 return BatchAllocationResult.builder()
                         .processedAt(LocalDateTime.now())
