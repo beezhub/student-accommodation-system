@@ -509,15 +509,15 @@ ALTER TABLE document DROP COLUMN application_id;
 
 ### TASK-2.02: Student Platform-Level Identity (Sentinel Tenant)
 
-- **Status:** TODO
-- **Priority:** CRITICAL
-- **Phase:** 2
-- **Estimated Scope:** L (4–8 hrs)
-- **Architecture Reference:** [ARCH 3.2.9], [ARCH ADR-001]
-- **Requirement References:** [REQ AUTH-002], [REQ BR-P05], [REQ BR-P07]
-- **Risk References:** [ARCH RISK-003], [ARCH RISK-011]
-- **Dependencies:** TASK-1.01, TASK-1.07
-- **Blocked By:** None (can run in parallel with TASK-2.03)
+ - **Status:** DONE
+ - **Priority:** CRITICAL
+ - **Phase:** 2
+ - **Estimated Scope:** L (4–8 hrs)
+ - **Architecture Reference:** [ARCH 3.2.9], [ARCH ADR-001]
+ - **Requirement References:** [REQ AUTH-002], [REQ BR-P05], [REQ BR-P07]
+ - **Risk References:** [ARCH RISK-003], [ARCH RISK-011]
+ - **Dependencies:** TASK-1.01, TASK-1.07
+ - **Blocked By:** None (can run in parallel with TASK-2.03)
 
 **Description:**
 `app_user.tenant_id NOT NULL` for students makes it architecturally impossible for a student to apply to buildings owned by different tenants — their Hibernate filter scopes all data access to one tenant. In v2.0, students are platform-level entities who can apply to any building.

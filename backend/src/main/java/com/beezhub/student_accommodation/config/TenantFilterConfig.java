@@ -47,20 +47,29 @@ public class TenantFilterConfig implements WebMvcConfigurer, HandlerInterceptor 
 
     /**
      * Enables the Hibernate {@code tenantFilter} before the request handler is invoked.
-     * If {@link TenantContext#getTenantId()} returns {@code null} (e.g. public endpoints,
-     * scheduled jobs) the filter is not enabled and all tenant data is visible — which is
-     * the correct behaviour for unauthenticated or system-level operations.
+     *
+     * <p>The filter is intentionally <em>skipped</em> in two cases:
+     * <ol>
+     *   <li>{@link TenantContext#getTenantId()} returns {@code null} — public endpoints and
+     *       scheduled jobs that need a system-level (all-tenant) view.</li>
+     *   <li>The tenant ID equals {@link TenantContext#PLATFORM_TENANT_ID} ({@code 0}) —
+     *       student accounts.  Students are platform-level entities; their data access is
+     *       scoped by {@code student_id} / {@code user_id} ownership rather than by the
+     *       Hibernate tenant filter.</li>
+     * </ol>
      */
     @Override
     public boolean preHandle(@NonNull HttpServletRequest request,
                              @NonNull HttpServletResponse response,
                              @NonNull Object handler) {
         Long tenantId = TenantContext.getTenantId();
-        if (tenantId != null) {
+        if (tenantId != null && !TenantContext.PLATFORM_TENANT_ID.equals(tenantId)) {
             Session session = entityManager.unwrap(Session.class);
             session.enableFilter(TENANT_FILTER_NAME)
                     .setParameter(TENANT_ID_PARAM, tenantId);
             log.debug("Tenant filter enabled: tenantId={}, path={}", tenantId, request.getRequestURI());
+        } else if (TenantContext.PLATFORM_TENANT_ID.equals(tenantId)) {
+            log.debug("Tenant filter skipped for PLATFORM sentinel: path={}", request.getRequestURI());
         }
         return true;
     }

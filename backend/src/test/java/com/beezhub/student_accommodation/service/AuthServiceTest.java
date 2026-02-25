@@ -7,11 +7,11 @@ import com.beezhub.student_accommodation.model.dto.LoginResponse;
 import com.beezhub.student_accommodation.model.dto.SignupRequest;
 import com.beezhub.student_accommodation.model.dto.UserData;
 import com.beezhub.student_accommodation.model.entity.AppUser;
-import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -253,24 +253,19 @@ class AuthServiceTest {
     @Test
     void signup_ShouldCreateUserAndReturnToken() {
         // Arrange
-        Tenant defaultTenant = Tenant.builder().name("Default Tenant").build();
-        // Use reflection to set the id since Tenant.builder() won't set the
-        // auto-generated id
-        defaultTenant.setId(1L);
-
         when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(signupRequest.getPassword())).thenReturn("encodedPassword");
         when(appUserMapper.toEntity(eq(signupRequest), anyString())).thenReturn(appUser);
-        when(tenantService.getDefaultTenant()).thenReturn(defaultTenant);
         when(userRepository.save(appUser)).thenReturn(appUser);
         when(jwtUtil.generateToken(any(AppUserDetails.class))).thenReturn("jwt-token");
 
         // Act
         var signup = authService.signup(signupRequest);
 
-        // Assert
+        // Assert: student signup assigns the PLATFORM sentinel (tenant_id=0) — not the default tenant
         assertEquals("jwt-token", signup.getToken());
-        verify(tenantService).getDefaultTenant();
+        assertEquals(TenantContext.PLATFORM_TENANT_ID, appUser.getTenantId());
+        verifyNoInteractions(tenantService);
         verify(userRepository).save(appUser);
     }
 
