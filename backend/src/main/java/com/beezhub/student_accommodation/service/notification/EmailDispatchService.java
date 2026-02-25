@@ -133,9 +133,7 @@ public class EmailDispatchService {
 
         public void sendDocumentCommentEmailWithTemplate(Document document, String commentText, String reviewerName,
                         String studentName, String email, String documentName, String documentType) {
-                String applicationId = document.getApplication() != null
-                                ? "APP-" + document.getApplication().getId()
-                                : "N/A";
+                String applicationId = "N/A";
                 String uploadDate = contentBuilder.formatDate(document.getCreatedAt());
                 String documentStatus = document.getDocumentStatus() != null ? document.getDocumentStatus().name()
                                 : "PENDING_REVIEW";

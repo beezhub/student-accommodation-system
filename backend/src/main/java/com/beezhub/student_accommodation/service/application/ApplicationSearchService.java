@@ -4,13 +4,14 @@ import com.beezhub.student_accommodation.mapper.ApplicationMapper;
 import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.entity.Application;
-import com.beezhub.student_accommodation.model.entity.Document;
+import com.beezhub.student_accommodation.model.entity.ApplicationDocument;
 import com.beezhub.student_accommodation.model.entity.StagedAllocation;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
+import com.beezhub.student_accommodation.model.entity.ApplicationDocument;
+import com.beezhub.student_accommodation.repository.ApplicationDocumentRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
-import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.specification.ApplicationSpecification;
@@ -42,7 +43,7 @@ public class ApplicationSearchService {
     private final ApplicationRepository applicationRepository;
     private final StudentRepository studentRepository;
     private final BuildingRepository buildingRepository;
-    private final DocumentRepository documentRepository;
+    private final ApplicationDocumentRepository applicationDocumentRepository;
     private final StagedAllocationRepository stagedAllocationRepository;
     private final ApplicationMapper applicationMapper;
 
@@ -138,10 +139,10 @@ public class ApplicationSearchService {
 
         List<Long> appIds = applications.stream().map(Application::getId).collect(Collectors.toList());
 
-        // Fetch documents in batch
-        List<Document> allDocs = documentRepository.findByApplicationIdIn(appIds);
-        Map<Long, List<Document>> docsByApp = allDocs.stream()
-                .collect(Collectors.groupingBy(d -> d.getApplication().getId()));
+        // Fetch junction entries in batch; group documents by application ID
+        List<ApplicationDocument> allJunctionEntries = applicationDocumentRepository.findByApplication_IdIn(appIds);
+        Map<Long, List<ApplicationDocument>> entriesByApp = allJunctionEntries.stream()
+                .collect(Collectors.groupingBy(e -> e.getApplication().getId()));
 
         // Fetch staged allocations in batch
         List<StagedAllocation> allStaged = stagedAllocationRepository.findByApplication_IdIn(appIds);
@@ -155,14 +156,15 @@ public class ApplicationSearchService {
         return applications.stream().map(app -> {
             ApplicationResponse response = applicationMapper.toResponse(app);
 
-            // Handle Documents
-            List<Document> docs = docsByApp.getOrDefault(app.getId(), new ArrayList<>());
-            long approvedCount = docs.stream().filter(d -> d.getDocumentStatus() == DocumentStatus.APPROVED)
+            // Handle Documents via junction table
+            List<ApplicationDocument> entries = entriesByApp.getOrDefault(app.getId(), new ArrayList<>());
+            long approvedCount = entries.stream()
+                    .filter(e -> e.getDocument().getDocumentStatus() == DocumentStatus.APPROVED)
                     .count();
             response.setApprovedDocuments((int) approvedCount);
             // Assuming 5 required documents for student accommodation
             response.setTotalRequiredDocuments(5);
-            response.setDocumentCompletionPercent(docs.isEmpty() ? 0 : (int) ((approvedCount * 100) / 5));
+            response.setDocumentCompletionPercent(entries.isEmpty() ? 0 : (int) ((approvedCount * 100) / 5));
 
             // Handle Allocation
             if (app.getStatus() == ApplicationStatus.ALLOCATED) {
