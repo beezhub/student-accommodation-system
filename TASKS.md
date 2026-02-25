@@ -1407,7 +1407,7 @@ Create a `RedisHealthIndicator` that pings Redis and reports `UP` or `DOWN`.
 
 ### TASK-3.05: Add Grafana Alerting Rules
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs)

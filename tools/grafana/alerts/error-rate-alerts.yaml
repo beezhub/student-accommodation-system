@@ -1,0 +1,93 @@
+# Grafana Alerting Rule: High HTTP 5xx Error Rate
+# Triggers when 5xx responses exceed 1% of total HTTP requests over a 5-minute window.
+# Uses Micrometer's http_server_requests_seconds_count metric published via Prometheus.
+# Refs: TASK-3.05, ARCH 6.4, ARCH RISK-008
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: error-rate
+    folder: SAS Alerts
+    interval: 1m
+    rules:
+      - uid: sas-high-error-rate-alert
+        title: High HTTP 5xx Error Rate (>1%)
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: >
+                sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+                /
+                sum(rate(http_server_requests_seconds_count[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: []
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0.01
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: HTTP 5xx error rate has exceeded 1% over the last 5 minutes.
+          description: >
+            More than 1% of HTTP requests are returning 5xx responses.
+            Investigate application logs, database connectivity, and upstream service health.
+        labels:
+          severity: critical
+          team: platform
