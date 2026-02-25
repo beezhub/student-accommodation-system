@@ -21,6 +21,7 @@ import com.beezhub.student_accommodation.security.user.AppUserDetails;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -74,6 +75,7 @@ public class AuthService {
     private int emailVerificationExpiryHours;
 
     @Transactional
+    @Timed(value = "service.auth.signup", percentiles = {0.5, 0.95, 0.99})
     public LoginResponse signup(SignupRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new EmailAlreadyRegisteredException("Email already registered");
@@ -103,6 +105,7 @@ public class AuthService {
         return new LoginResponse(token, userData);
     }
 
+    @Timed(value = "service.auth.login", percentiles = {0.5, 0.95, 0.99})
     public LoginResponse validateLogin(String username, String password) {
         // 1. Check if user exists first to check lock status
         var userOpt = userRepository.findByEmail(username);

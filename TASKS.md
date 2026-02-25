@@ -1483,7 +1483,7 @@ Export each dashboard from Grafana UI (Dashboard → Share → Export JSON) and 
 
 ### TASK-3.07: Add @Timed to Critical Service Methods
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs)
@@ -1516,7 +1516,7 @@ No P95 API response time baseline exists. The NFR requires P95 < 500ms. Add `@Ti
 - The metric name convention: `service.{domain}.{method}` (e.g., `service.allocation.acceptOffer`)
 
 **Acceptance Criteria:**
-- [ ] `@Timed` annotations added to all 9 listed methods
+- [x] `@Timed` annotations added to all 9 listed methods
 - [ ] Prometheus scrape shows `service.application.submit_seconds_max` (and equivalent for others)
 - [ ] Grafana P95 SLA panel shows latency data after load
 
