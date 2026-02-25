@@ -363,6 +363,27 @@ public class UserNotificationService {
     }
 
     /**
+     * Creates an in-app notification reminding the student that their room offer
+     * expires within 24 hours.
+     *
+     * @param userId       The app user ID
+     * @param roomNumber   The room number
+     * @param buildingName The building name
+     */
+    @Transactional
+    public void createOfferExpiryReminderNotification(Long userId, String roomNumber, String buildingName) {
+        createNotification(
+                userId,
+                "OFFER_EXPIRY_REMINDER",
+                "Room Offer Expiring Soon",
+                String.format("Your offer for Room %s in %s expires in less than 24 hours. " +
+                        "Please log in and respond before the deadline to keep your room.", roomNumber, buildingName),
+                null);
+
+        log.info("Created offer expiry reminder notification for user {}, room {}", userId, roomNumber);
+    }
+
+    /**
      * Creates an in-app notification when admin confirms student check-in.
      *
      * @param userId       The app user ID

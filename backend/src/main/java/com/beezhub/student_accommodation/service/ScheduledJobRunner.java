@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.service.allocation.AllocationBatchService;
 import com.beezhub.student_accommodation.service.allocation.AllocationExpiryService;
+import com.beezhub.student_accommodation.service.allocation.OfferReminderService;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class ScheduledJobRunner {
     private final AllocationExpiryService allocationExpiryService;
     private final AllocationBatchService allocationBatchService;
     private final OrphanFileCleanupJob orphanFileCleanupJob;
+    private final OfferReminderService offerReminderService;
     private final MeterRegistry meterRegistry;
 
     @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
@@ -82,6 +84,20 @@ public class ScheduledJobRunner {
         log.info("job={} action=start", jobName);
         try {
             int processed = orphanFileCleanupJob.cleanupOrphanedFiles();
+            log.info("job={} action=complete processed={}", jobName, processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
+        } catch (Exception e) {
+            log.error("job={} action=failed", jobName, e);
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
+        }
+    }
+
+    @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
+    public void runOfferReminder() {
+        String jobName = "offerReminder";
+        log.info("job={} action=start", jobName);
+        try {
+            int processed = offerReminderService.sendOfferExpiryReminders();
             log.info("job={} action=complete processed={}", jobName, processed);
             meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
         } catch (Exception e) {

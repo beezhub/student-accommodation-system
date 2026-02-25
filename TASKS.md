@@ -1629,7 +1629,7 @@ No Lighthouse baseline exists for the Angular frontend. The NFR requires initial
 
 ### TASK-3.10: Offer Expiry Reminder Notifications (24h Before Deadline)
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs)

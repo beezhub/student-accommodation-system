@@ -105,7 +105,7 @@ public class EmailContentBuilder {
     }
 
     public String buildCheckInExpiredEmailContent(String studentName, String applicationCode,
-                                                    String roomNumber, String buildingName, String portalUrl) {
+                                                     String roomNumber, String buildingName, String portalUrl) {
         Context context = new Context();
         context.setVariables(Map.of(
             "studentName", studentName,
@@ -117,6 +117,22 @@ public class EmailContentBuilder {
             "universityName", universityName
         ));
         return templateEngine.process("email/check-in-expired", context);
+    }
+
+    public String buildOfferExpiryReminderEmailContent(String studentName, String roomNumber,
+                                                         String buildingName, String expiryDate,
+                                                         String portalUrl) {
+        Context context = new Context();
+        context.setVariables(Map.of(
+            "studentName", studentName,
+            "roomNumber", roomNumber,
+            "buildingName", buildingName,
+            "expiryDate", expiryDate,
+            "portalUrl", portalUrl,
+            "supportEmail", supportEmail,
+            "universityName", universityName
+        ));
+        return templateEngine.process("email/offer-expiry-reminder", context);
     }
 
     public String formatDate(LocalDateTime dateTime) {
