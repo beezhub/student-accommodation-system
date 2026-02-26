@@ -6,3 +6,18 @@ datasources:
     access: proxy
     url: http://prometheus:9090
     isDefault: true
+
+  - name: PostgreSQL
+    uid: PostgreSQL
+    type: postgres
+    access: proxy
+    url: db:5432
+    database: student_accommodation
+    user: ${GRAFANA_DB_USER:-postgres}
+    secureJsonData:
+      password: ${GRAFANA_DB_PASSWORD:-postgres}
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+
