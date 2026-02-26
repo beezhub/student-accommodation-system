@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.service.allocation.AllocationBatchService;
 import com.beezhub.student_accommodation.service.allocation.AllocationExpiryService;
+import com.beezhub.student_accommodation.service.allocation.OfferReminderService;
 import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
 import io.micrometer.core.instrument.Counter;
@@ -30,6 +31,7 @@ class ScheduledJobRunnerTest {
     private OrphanFileCleanupJob orphanFileCleanupJob;
 
     @Mock
+    private OfferReminderService offerReminderService;
     private CheckInReminderService checkInReminderService;
 
     private MeterRegistry meterRegistry;
@@ -42,6 +44,7 @@ class ScheduledJobRunnerTest {
                 allocationExpiryService,
                 allocationBatchService,
                 orphanFileCleanupJob,
+                offerReminderService,
                 checkInReminderService,
                 meterRegistry);
     }
@@ -140,6 +143,30 @@ class ScheduledJobRunnerTest {
         Counter processed = meterRegistry.find("sas.jobs.orphanCleanup.processed").counter();
         assertThat(processed).isNotNull();
         assertThat(processed.count()).isEqualTo(2.0);
+    }
+
+    // --- offerReminder ---
+
+    @Test
+    void runOfferReminder_whenServiceThrows_failureCounterIncremented_noExceptionPropagated() {
+        when(offerReminderService.sendOfferExpiryReminders()).thenThrow(new RuntimeException("SMTP down"));
+
+        assertThatCode(() -> scheduledJobRunner.runOfferReminder()).doesNotThrowAnyException();
+
+        Counter failures = meterRegistry.find("sas.jobs.offerReminder.failures").counter();
+        assertThat(failures).isNotNull();
+        assertThat(failures.count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void runOfferReminder_whenServiceSucceeds_processedCounterIncremented() {
+        when(offerReminderService.sendOfferExpiryReminders()).thenReturn(4);
+
+        scheduledJobRunner.runOfferReminder();
+
+        Counter processed = meterRegistry.find("sas.jobs.offerReminder.processed").counter();
+        assertThat(processed).isNotNull();
+        assertThat(processed.count()).isEqualTo(4.0);
     }
 
     // --- isolation: one job failure does not affect others ---

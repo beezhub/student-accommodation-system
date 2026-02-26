@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.service.allocation.AllocationBatchService;
 import com.beezhub.student_accommodation.service.allocation.AllocationExpiryService;
+import com.beezhub.student_accommodation.service.allocation.OfferReminderService;
 import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -33,6 +34,7 @@ public class ScheduledJobRunner {
     private final AllocationExpiryService allocationExpiryService;
     private final AllocationBatchService allocationBatchService;
     private final OrphanFileCleanupJob orphanFileCleanupJob;
+    private final OfferReminderService offerReminderService;
     private final CheckInReminderService checkInReminderService;
     private final MeterRegistry meterRegistry;
 
@@ -93,6 +95,11 @@ public class ScheduledJobRunner {
     }
 
     @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
+    public void runOfferReminder() {
+        String jobName = "offerReminder";
+        log.info("job={} action=start", jobName);
+        try {
+            int processed = offerReminderService.sendOfferExpiryReminders();
     public void runCheckInReminder() {
         String jobName = "checkInReminder";
         log.info("job={} action=start", jobName);

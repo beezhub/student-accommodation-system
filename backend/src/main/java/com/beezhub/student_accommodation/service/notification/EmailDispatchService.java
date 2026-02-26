@@ -405,6 +405,24 @@ public class EmailDispatchService {
                 log.info("Check-in expired email sent to {}", email);
         }
 
+        public void sendOfferExpiryReminderEmail(RoomAllocation allocation, Room room,
+                        String studentName, String email, String subject) {
+                String roomNumber = room.getRoomNumber();
+                String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
+                String expiryDate = allocation.getOfferExpiryDate() != null
+                                ? contentBuilder.formatDate(allocation.getOfferExpiryDate())
+                                : "soon";
+                String portalUrl = baseUrl + "/portal/allocations/" + allocation.getId();
+
+                String htmlContent = contentBuilder.buildOfferExpiryReminderEmailContent(
+                                studentName,
+                                roomNumber,
+                                buildingName,
+                                expiryDate,
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendHtmlEmail(email, subject, htmlContent));
+                log.info("Offer expiry reminder email sent to {}", email);
         public void sendCheckInReminderEmail(RoomAllocation allocation, Room room,
                         String studentName, String email, String subject) {
                 String roomNumber = room.getRoomNumber();
