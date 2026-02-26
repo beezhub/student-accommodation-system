@@ -114,6 +114,7 @@ services:
       - ./tools/grafana/provisioning:/etc/grafana/provisioning
       - ./tools/grafana/dashboards:/var/lib/grafana/dashboards
       - ./tools/grafana/alerts:/etc/grafana/provisioning/alerting/rules
+      - ./tools/grafana/alerts:/etc/grafana/provisioning/alerting
     depends_on:
       - prometheus
 
