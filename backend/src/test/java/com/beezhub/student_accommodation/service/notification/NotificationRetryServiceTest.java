@@ -4,6 +4,8 @@ import com.beezhub.student_accommodation.model.entity.Notification;
 import com.beezhub.student_accommodation.model.enums.NotificationStatus;
 import com.beezhub.student_accommodation.model.enums.NotificationType;
 import com.beezhub.student_accommodation.repository.NotificationRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,6 +18,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -24,6 +27,12 @@ class NotificationRetryServiceTest {
 
     @Mock
     private NotificationRepository notificationRepository;
+
+    @Mock
+    private MeterRegistry meterRegistry;
+
+    @Mock
+    private Counter counter;
 
     @InjectMocks
     private NotificationRetryService notificationRetryService;
@@ -50,7 +59,7 @@ class NotificationRetryServiceTest {
     }
 
     @Test
-    void retryFailedNotifications_maxRetriesExceeded_logsWarning() {
+    void retryFailedNotifications_maxRetriesExceeded_marksPermanentlyFailed() {
         ReflectionTestUtils.setField(notificationRetryService, "retryDelayMinutes", 5);
 
         Notification maxedNotification = new Notification();
@@ -58,13 +67,17 @@ class NotificationRetryServiceTest {
         maxedNotification.setStatus(NotificationStatus.FAILED);
         maxedNotification.setRetryCount(3);
         maxedNotification.setMaxRetries(3);
+        maxedNotification.setType(NotificationType.APPLICATION_APPROVED);
 
         when(notificationRepository.findFailedNotificationsForRetry(eq(NotificationStatus.FAILED), any(LocalDateTime.class)))
                 .thenReturn(List.of(maxedNotification));
+        when(meterRegistry.counter(anyString(), any(String[].class))).thenReturn(counter);
 
         notificationRetryService.retryFailedNotifications();
 
-        verify(notificationRepository, never()).save(maxedNotification);
+        assertEquals(NotificationStatus.PERMANENTLY_FAILED, maxedNotification.getStatus());
+        verify(notificationRepository).save(maxedNotification);
+        verify(counter).increment();
     }
 
     @Test
