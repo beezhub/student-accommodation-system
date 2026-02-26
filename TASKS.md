@@ -1535,7 +1535,7 @@ No P95 API response time baseline exists. The NFR requires P95 < 500ms. Add `@Ti
 
 ### TASK-3.08: k6 Load Test — 500 VU Soak Test
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** L (4–8 hrs)
