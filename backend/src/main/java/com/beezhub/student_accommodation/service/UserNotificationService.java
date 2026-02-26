@@ -381,6 +381,9 @@ public class UserNotificationService {
                 null);
 
         log.info("Created offer expiry reminder notification for user {}, room {}", userId, roomNumber);
+    }
+
+    @Transactional
     public void createCheckInReminderNotification(Long userId, String roomNumber, String buildingName) {
         createNotification(
                 userId,

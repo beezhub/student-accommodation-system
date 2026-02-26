@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.model.event.*;
 import com.beezhub.student_accommodation.repository.NotificationRepository;
 import com.beezhub.student_accommodation.service.NotificationService;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -26,45 +27,50 @@ public class NotificationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleApplicationStatusChanged(ApplicationStatusChangedEvent event) {
         Application application = event.application();
-        ApplicationStatus newStatus = event.newStatus();
-
-        Student student = application.getStudent();
-        AppUser user = student.getAppUser();
-        String studentName = user.getFirstName() + " " + user.getLastName();
-        String email = user.getEmail();
-
-        log.info("Sending application status notification to {} for application {}, status: {}",
-                email, application.getId(), newStatus);
-
-        NotificationType notificationType = newStatus == ApplicationStatus.APPROVED
-                ? NotificationType.APPLICATION_APPROVED
-                : NotificationType.APPLICATION_REJECTED;
-
-        String subject = newStatus == ApplicationStatus.APPROVED
-                ? "Application Approved - Student Accommodation"
-                : "Application Status Update - Student Accommodation";
-
-        Notification notification = notificationService.createNotification(
-                email, subject, notificationType, user,
-                application.getId(), "Application");
-
+        TenantContext.setTenantId(application.getTenantId());
         try {
-            switch (newStatus) {
-                case APPROVED -> emailDispatchService.sendApplicationApprovedEmail(application, studentName, email);
-                case REJECTED -> emailDispatchService.sendApplicationRejectedEmail(application, studentName, email);
-                case CHANGES_REQUESTED -> log.debug("Notification for status {} not implemented yet", newStatus);
-                case PENDING -> {
-                    log.debug("No notification sent for PENDING status");
-                    return;
+            ApplicationStatus newStatus = event.newStatus();
+
+            Student student = application.getStudent();
+            AppUser user = student.getAppUser();
+            String studentName = user.getFirstName() + " " + user.getLastName();
+            String email = user.getEmail();
+
+            log.info("Sending application status notification to {} for application {}, status: {}",
+                    email, application.getId(), newStatus);
+
+            NotificationType notificationType = newStatus == ApplicationStatus.APPROVED
+                    ? NotificationType.APPLICATION_APPROVED
+                    : NotificationType.APPLICATION_REJECTED;
+
+            String subject = newStatus == ApplicationStatus.APPROVED
+                    ? "Application Approved - Student Accommodation"
+                    : "Application Status Update - Student Accommodation";
+
+            Notification notification = notificationService.createNotification(
+                    email, subject, notificationType, user,
+                    application.getId(), "Application");
+
+            try {
+                switch (newStatus) {
+                    case APPROVED -> emailDispatchService.sendApplicationApprovedEmail(application, studentName, email);
+                    case REJECTED -> emailDispatchService.sendApplicationRejectedEmail(application, studentName, email);
+                    case CHANGES_REQUESTED -> log.debug("Notification for status {} not implemented yet", newStatus);
+                    case PENDING -> {
+                        log.debug("No notification sent for PENDING status");
+                        return;
+                    }
+                    default -> {
+                        log.warn("Unknown application status: {}", newStatus);
+                        return;
+                    }
                 }
-                default -> {
-                    log.warn("Unknown application status: {}", newStatus);
-                    return;
-                }
+                notificationService.markNotificationAsSent(notification);
+            } catch (Exception e) {
+                notificationService.handleNotificationFailure(notification, e);
             }
-            notificationService.markNotificationAsSent(notification);
-        } catch (Exception e) {
-            notificationService.handleNotificationFailure(notification, e);
+        } finally {
+            TenantContext.clear();
         }
     }
 
@@ -72,48 +78,53 @@ public class NotificationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleDocumentVerification(DocumentVerificationEvent event) {
         Document document = event.document();
-        DocumentStatus newStatus = event.newStatus();
-        String comment = event.comment();
-
-        Student student = document.getStudent();
-        AppUser user = student.getAppUser();
-        String studentName = user.getFirstName() + " " + user.getLastName();
-        String email = user.getEmail();
-        String documentType = document.getDocumentType().getTypeName();
-
-        log.info("Sending document verification notification to {} for document {}, status: {}",
-                email, document.getId(), newStatus);
-
-        NotificationType notificationType = newStatus == DocumentStatus.APPROVED
-                ? NotificationType.DOCUMENT_VERIFIED
-                : NotificationType.DOCUMENT_REJECTED;
-
-        String subject = newStatus == DocumentStatus.APPROVED
-                ? "Document Verified - Student Accommodation"
-                : "Document Review Required - Student Accommodation";
-
-        Notification notification = notificationService.createNotification(
-                email, subject, notificationType, user,
-                document.getId(), "Document");
-
+        TenantContext.setTenantId(document.getTenantId());
         try {
-            switch (newStatus) {
-                case APPROVED ->
-                    emailDispatchService.sendDocumentVerifiedEmail(document, studentName, email, documentType);
-                case REJECTED ->
-                    emailDispatchService.sendDocumentRejectedEmail(document, studentName, email, documentType, comment);
-                case PENDING -> {
-                    log.debug("No notification sent for PENDING document status");
-                    return;
+            DocumentStatus newStatus = event.newStatus();
+            String comment = event.comment();
+
+            Student student = document.getStudent();
+            AppUser user = student.getAppUser();
+            String studentName = user.getFirstName() + " " + user.getLastName();
+            String email = user.getEmail();
+            String documentType = document.getDocumentType().getTypeName();
+
+            log.info("Sending document verification notification to {} for document {}, status: {}",
+                    email, document.getId(), newStatus);
+
+            NotificationType notificationType = newStatus == DocumentStatus.APPROVED
+                    ? NotificationType.DOCUMENT_VERIFIED
+                    : NotificationType.DOCUMENT_REJECTED;
+
+            String subject = newStatus == DocumentStatus.APPROVED
+                    ? "Document Verified - Student Accommodation"
+                    : "Document Review Required - Student Accommodation";
+
+            Notification notification = notificationService.createNotification(
+                    email, subject, notificationType, user,
+                    document.getId(), "Document");
+
+            try {
+                switch (newStatus) {
+                    case APPROVED ->
+                        emailDispatchService.sendDocumentVerifiedEmail(document, studentName, email, documentType);
+                    case REJECTED ->
+                        emailDispatchService.sendDocumentRejectedEmail(document, studentName, email, documentType, comment);
+                    case PENDING -> {
+                        log.debug("No notification sent for PENDING document status");
+                        return;
+                    }
+                    default -> {
+                        log.warn("Unknown document status: {}", newStatus);
+                        return;
+                    }
                 }
-                default -> {
-                    log.warn("Unknown document status: {}", newStatus);
-                    return;
-                }
+                notificationService.markNotificationAsSent(notification);
+            } catch (Exception e) {
+                notificationService.handleNotificationFailure(notification, e);
             }
-            notificationService.markNotificationAsSent(notification);
-        } catch (Exception e) {
-            notificationService.handleNotificationFailure(notification, e);
+        } finally {
+            TenantContext.clear();
         }
     }
 
@@ -121,33 +132,38 @@ public class NotificationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleDocumentComment(DocumentCommentEvent event) {
         Document document = event.document();
-        String commentText = event.comment();
-
-        Student student = document.getStudent();
-        AppUser user = student.getAppUser();
-        String studentName = user.getFirstName() + " " + user.getLastName();
-        String email = user.getEmail();
-        String documentName = document.getDocumentName();
-        String documentType = document.getDocumentType().getTypeName();
-
-        log.info("Sending document comment notification to {} for document {}", email, document.getId());
-
-        Notification notification = notificationService.createNotification(
-                email,
-                "Document Requires Attention - Student Accommodation",
-                NotificationType.DOCUMENT_REJECTED,
-                user,
-                document.getId(),
-                "Document");
-
+        TenantContext.setTenantId(document.getTenantId());
         try {
-            emailDispatchService.sendDocumentCommentEmail(
-                    document, commentText, studentName, email,
-                    documentName, documentType, notification.getSubject());
+            String commentText = event.comment();
 
-            notificationService.markNotificationAsSent(notification);
-        } catch (Exception e) {
-            notificationService.handleNotificationFailure(notification, e);
+            Student student = document.getStudent();
+            AppUser user = student.getAppUser();
+            String studentName = user.getFirstName() + " " + user.getLastName();
+            String email = user.getEmail();
+            String documentName = document.getDocumentName();
+            String documentType = document.getDocumentType().getTypeName();
+
+            log.info("Sending document comment notification to {} for document {}", email, document.getId());
+
+            Notification notification = notificationService.createNotification(
+                    email,
+                    "Document Requires Attention - Student Accommodation",
+                    NotificationType.DOCUMENT_REJECTED,
+                    user,
+                    document.getId(),
+                    "Document");
+
+            try {
+                emailDispatchService.sendDocumentCommentEmail(
+                        document, commentText, studentName, email,
+                        documentName, documentType, notification.getSubject());
+
+                notificationService.markNotificationAsSent(notification);
+            } catch (Exception e) {
+                notificationService.handleNotificationFailure(notification, e);
+            }
+        } finally {
+            TenantContext.clear();
         }
     }
 
@@ -155,30 +171,34 @@ public class NotificationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAllocationCreated(AllocationCreatedEvent event) {
         RoomAllocation allocation = event.allocation();
-
-        Student student = allocation.getStudent();
-        AppUser user = student.getAppUser();
-        Room room = allocation.getRoom();
-        Building building = room.getBuilding();
-
-        String studentName = user.getFirstName() + " " + user.getLastName();
-        String email = user.getEmail();
-
-        log.info("Sending room allocation notification to {} for allocation {}", email, allocation.getId());
-
-        Notification notification = notificationService.createNotification(
-                email,
-                "Room Allocation Confirmation - Student Accommodation",
-                NotificationType.ROOM_ALLOCATED,
-                user,
-                allocation.getId(),
-                "RoomAllocation");
-
+        TenantContext.setTenantId(allocation.getTenantId());
         try {
-            emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, studentName, email);
-            notificationService.markNotificationAsSent(notification);
-        } catch (Exception e) {
-            notificationService.handleNotificationFailure(notification, e);
+            Student student = allocation.getStudent();
+            AppUser user = student.getAppUser();
+            Room room = allocation.getRoom();
+            Building building = room.getBuilding();
+
+            String studentName = user.getFirstName() + " " + user.getLastName();
+            String email = user.getEmail();
+
+            log.info("Sending room allocation notification to {} for allocation {}", email, allocation.getId());
+
+            Notification notification = notificationService.createNotification(
+                    email,
+                    "Room Allocation Confirmation - Student Accommodation",
+                    NotificationType.ROOM_ALLOCATED,
+                    user,
+                    allocation.getId(),
+                    "RoomAllocation");
+
+            try {
+                emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, studentName, email);
+                notificationService.markNotificationAsSent(notification);
+            } catch (Exception e) {
+                notificationService.handleNotificationFailure(notification, e);
+            }
+        } finally {
+            TenantContext.clear();
         }
     }
 
@@ -186,35 +206,40 @@ public class NotificationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAllocationMoved(AllocationMovedEvent event) {
         RoomAllocation newAllocation = event.newAllocation();
-        Room oldRoom = event.oldRoom();
-        Room newRoom = newAllocation.getRoom();
-        String reason = event.reason();
-        LocalDateTime effectiveDate = event.effectiveDate();
-
-        Student student = newAllocation.getStudent();
-        AppUser user = student.getAppUser();
-        Building newBuilding = newRoom.getBuilding();
-        Building oldBuilding = oldRoom.getBuilding();
-
-        String studentName = user.getFirstName() + " " + user.getLastName();
-        String email = user.getEmail();
-
-        log.info("Sending allocation moved notification to {} for allocation {}", email, newAllocation.getId());
-
-        Notification notification = notificationService.createNotification(
-                email,
-                "Room Change Notification - Student Accommodation",
-                NotificationType.ROOM_ALLOCATED,
-                user,
-                newAllocation.getId(),
-                "RoomAllocation");
-
+        TenantContext.setTenantId(newAllocation.getTenantId());
         try {
-            emailDispatchService.sendAllocationMovedEmail(newAllocation, oldRoom, newBuilding, oldBuilding, studentName,
-                    email, effectiveDate, reason);
-            notificationService.markNotificationAsSent(notification);
-        } catch (Exception e) {
-            notificationService.handleNotificationFailure(notification, e);
+            Room oldRoom = event.oldRoom();
+            Room newRoom = newAllocation.getRoom();
+            String reason = event.reason();
+            LocalDateTime effectiveDate = event.effectiveDate();
+
+            Student student = newAllocation.getStudent();
+            AppUser user = student.getAppUser();
+            Building newBuilding = newRoom.getBuilding();
+            Building oldBuilding = oldRoom.getBuilding();
+
+            String studentName = user.getFirstName() + " " + user.getLastName();
+            String email = user.getEmail();
+
+            log.info("Sending allocation moved notification to {} for allocation {}", email, newAllocation.getId());
+
+            Notification notification = notificationService.createNotification(
+                    email,
+                    "Room Change Notification - Student Accommodation",
+                    NotificationType.ROOM_ALLOCATED,
+                    user,
+                    newAllocation.getId(),
+                    "RoomAllocation");
+
+            try {
+                emailDispatchService.sendAllocationMovedEmail(newAllocation, oldRoom, newBuilding, oldBuilding, studentName,
+                        email, effectiveDate, reason);
+                notificationService.markNotificationAsSent(notification);
+            } catch (Exception e) {
+                notificationService.handleNotificationFailure(notification, e);
+            }
+        } finally {
+            TenantContext.clear();
         }
     }
 
@@ -222,12 +247,17 @@ public class NotificationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAllocationExpired(AllocationExpiredEvent event) {
         RoomAllocation allocation = event.allocation();
-        boolean isCheckIn = event.isCheckInExpiry();
+        TenantContext.setTenantId(allocation.getTenantId());
+        try {
+            boolean isCheckIn = event.isCheckInExpiry();
 
-        if (isCheckIn) {
-            sendCheckInExpiredNotificationInternal(allocation);
-        } else {
-            sendOfferExpiredNotificationInternal(allocation);
+            if (isCheckIn) {
+                sendCheckInExpiredNotificationInternal(allocation);
+            } else {
+                sendOfferExpiredNotificationInternal(allocation);
+            }
+        } finally {
+            TenantContext.clear();
         }
     }
 
@@ -290,23 +320,34 @@ public class NotificationEventListener {
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAllocationAccepted(AllocationAcceptedEvent event) {
-        log.info("Allocation accepted event received for allocation {}", event.allocation().getId());
-        sendAllocationConfirmedNotification(event.allocation());
+        RoomAllocation allocation = event.allocation();
+        TenantContext.setTenantId(allocation.getTenantId());
+        try {
+            log.info("Allocation accepted event received for allocation {}", allocation.getId());
+            sendAllocationConfirmedNotification(allocation);
+        } finally {
+            TenantContext.clear();
+        }
     }
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAllocationDeclined(AllocationDeclinedEvent event) {
         RoomAllocation allocation = event.allocation();
-        int totalDeclineCount = event.totalDeclineCount();
-        int maxDeclineCount = event.maxDeclineCount();
+        TenantContext.setTenantId(allocation.getTenantId());
+        try {
+            int totalDeclineCount = event.totalDeclineCount();
+            int maxDeclineCount = event.maxDeclineCount();
 
-        if (totalDeclineCount <= maxDeclineCount) {
-            if (totalDeclineCount < maxDeclineCount) {
-                sendOfferDeclinedRequeueNotification(allocation, totalDeclineCount, maxDeclineCount);
-            } else {
-                sendOfferDeclinedMaxReachedNotification(allocation, totalDeclineCount);
+            if (totalDeclineCount <= maxDeclineCount) {
+                if (totalDeclineCount < maxDeclineCount) {
+                    sendOfferDeclinedRequeueNotification(allocation, totalDeclineCount, maxDeclineCount);
+                } else {
+                    sendOfferDeclinedMaxReachedNotification(allocation, totalDeclineCount);
+                }
             }
+        } finally {
+            TenantContext.clear();
         }
     }
 
@@ -368,7 +409,13 @@ public class NotificationEventListener {
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleStagedAllocationProposed(StagedAllocationProposedEvent event) {
-        sendAllocationProposalNotification(event.stagedAllocation());
+        StagedAllocation stagedAllocation = event.stagedAllocation();
+        TenantContext.setTenantId(stagedAllocation.getTenantId());
+        try {
+            sendAllocationProposalNotification(stagedAllocation);
+        } finally {
+            TenantContext.clear();
+        }
     }
 
     private void sendAllocationProposalNotification(StagedAllocation stagedAllocation) {
@@ -402,8 +449,14 @@ public class NotificationEventListener {
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleStagedAllocationConfirmed(StagedAllocationConfirmedEvent event) {
-        if (event.roomAllocation() != null) {
-            sendAllocationConfirmedNotification(event.roomAllocation());
+        RoomAllocation roomAllocation = event.roomAllocation();
+        if (roomAllocation != null) {
+            TenantContext.setTenantId(roomAllocation.getTenantId());
+            try {
+                sendAllocationConfirmedNotification(roomAllocation);
+            } finally {
+                TenantContext.clear();
+            }
         }
     }
 
@@ -437,7 +490,13 @@ public class NotificationEventListener {
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleStagedAllocationRejected(StagedAllocationRejectedEvent event) {
-        sendAllocationRejectedNotification(event.stagedAllocation(), event.reason(), 0);
+        StagedAllocation stagedAllocation = event.stagedAllocation();
+        TenantContext.setTenantId(stagedAllocation.getTenantId());
+        try {
+            sendAllocationRejectedNotification(stagedAllocation, event.reason(), 0);
+        } finally {
+            TenantContext.clear();
+        }
     }
 
     private void sendAllocationRejectedNotification(StagedAllocation stagedAllocation, String reason,

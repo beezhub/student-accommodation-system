@@ -100,6 +100,15 @@ public class ScheduledJobRunner {
         log.info("job={} action=start", jobName);
         try {
             int processed = offerReminderService.sendOfferExpiryReminders();
+            log.info("job={} action=complete processed={}", jobName, processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
+        } catch (Exception e) {
+            log.error("job={} action=failed", jobName, e);
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
+        }
+    }
+
+    @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
     public void runCheckInReminder() {
         String jobName = "checkInReminder";
         log.info("job={} action=start", jobName);

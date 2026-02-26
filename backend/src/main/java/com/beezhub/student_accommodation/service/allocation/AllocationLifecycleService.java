@@ -324,6 +324,7 @@ public class AllocationLifecycleService {
         allocation.setStudent(student);
         allocation.setRoom(room);
         allocation.setApplication(application);
+        allocation.setTenantId(room.getTenantId());
         allocation.setAllocationDate(
                 request.getAllocationDate() != null ? request.getAllocationDate() : LocalDateTime.now());
         allocation.setEndDate(request.getEndDate());
