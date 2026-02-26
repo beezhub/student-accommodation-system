@@ -77,6 +77,9 @@ minio:
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
   bucket-name: ${MINIO_BUCKET:student-accommodation-bucket}
+  connect-timeout-s: ${MINIO_CONNECT_TIMEOUT_S:30}
+  read-timeout-s: ${MINIO_READ_TIMEOUT_S:30}
+  write-timeout-s: ${MINIO_WRITE_TIMEOUT_S:30}
 app:
   base-url: ${APP_BASE_URL:http://localhost:4200}
   support-email: ${APP_SUPPORT_EMAIL:accommodation@university.edu}
