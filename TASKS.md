@@ -1458,7 +1458,7 @@ Grafana alert rules should be stored as JSON provisioning files in `tools/grafan
 
 ### TASK-3.06: Commit Grafana Dashboard JSON to Repository
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** LOW
 - **Phase:** 3
 - **Estimated Scope:** S (< 2 hrs)
