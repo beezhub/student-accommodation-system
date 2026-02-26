@@ -1298,7 +1298,7 @@ In `MinioConfig.java`, configure the `MinioClient` builder with connection and r
 
 ### TASK-3.02: Wrap FF4J Behind FeatureFlagService Interface
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs)

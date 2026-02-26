@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.config.FF4jConfig;
+import com.beezhub.student_accommodation.service.FeatureFlagService;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationResult;
 import com.beezhub.student_accommodation.model.dto.ScoredRoom;
@@ -13,7 +14,6 @@ import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.ff4j.FF4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Answers;
 import org.junit.jupiter.api.Test;
@@ -72,7 +72,7 @@ class AllocationBatchServiceTest {
     @Mock
     private AllocationScoringOrchestrator allocationScoringOrchestrator;
     @Mock
-    private FF4j ff4j;
+    private FeatureFlagService featureFlagService;
     @Mock
     private TransactionTemplate transactionTemplate;
     @Mock
@@ -93,7 +93,7 @@ class AllocationBatchServiceTest {
             return callback.doInTransaction(mock(TransactionStatus.class));
         });
         
-        lenient().when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
+        lenient().when(featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
         lenient().when(allocationLifecycleService.createRoomAllocation(any())).thenReturn(new com.beezhub.student_accommodation.model.dto.RoomAllocationResponse());
     }
 
@@ -223,7 +223,7 @@ class AllocationBatchServiceTest {
     @Test
     void allocateNextFromWaitingList_shouldSkipWhenFeatureDisabled() {
         // Given
-        when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(false);
+        when(featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(false);
 
         // Act
         allocationBatchService.allocateNextFromWaitingList();
@@ -235,8 +235,8 @@ class AllocationBatchServiceTest {
 
     @Test
     void allocateNextFromWaitingList_shouldSkipDeclinedRooms() {
-        // Given: FF4j auto-allocation is enabled
-        when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
+        // Given: auto-allocation is enabled
+        when(featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
 
         // And: Student on waiting list
         Student student = new Student();
