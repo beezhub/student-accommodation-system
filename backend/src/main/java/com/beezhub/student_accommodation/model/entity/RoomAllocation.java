@@ -77,6 +77,9 @@ public class RoomAllocation implements TenantAware {
     @Column(name = "check_in_expiry_date")
     private LocalDateTime checkInExpiryDate;
 
+    @Column(name = "checkin_reminder_24h_sent", nullable = false)
+    private boolean checkInReminder24hSent = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

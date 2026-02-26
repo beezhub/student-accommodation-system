@@ -381,6 +381,16 @@ public class UserNotificationService {
                 null);
 
         log.info("Created offer expiry reminder notification for user {}, room {}", userId, roomNumber);
+    public void createCheckInReminderNotification(Long userId, String roomNumber, String buildingName) {
+        createNotification(
+                userId,
+                "CHECK_IN_REMINDER",
+                "Check-In Deadline in 24 Hours",
+                String.format("Reminder: Your check-in deadline for Room %s in %s is within 24 hours. " +
+                        "Please check in before the deadline to keep your room allocation.", roomNumber, buildingName),
+                null);
+
+        log.info("Created check-in reminder notification for user {}, room {}", userId, roomNumber);
     }
 
     /**
