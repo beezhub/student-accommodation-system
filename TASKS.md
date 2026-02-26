@@ -1340,7 +1340,7 @@ Create `FF4JFeatureFlagService implements FeatureFlagService` delegating to the 
 
 ### TASK-3.03: Upgrade JJWT from 0.11.5 to 0.12.x
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs)
