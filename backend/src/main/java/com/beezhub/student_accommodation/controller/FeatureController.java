@@ -5,8 +5,6 @@ import com.beezhub.student_accommodation.service.FeatureFlagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.ff4j.FF4j;
-import org.ff4j.core.Feature;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,14 +17,13 @@ import java.util.Map;
 @Tag(name = "Feature Flags", description = "Manage system feature toggles via FF4J")
 public class FeatureController {
 
-    private final FF4j ff4j;
     private final FeatureFlagService featureFlagService;
 
     @GetMapping
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @Operation(summary = "Get all feature flags")
-    public ResponseEntity<Map<String, Feature>> getAllFeatures() {
-        return ResponseEntity.ok(ff4j.getFeatures());
+    public ResponseEntity<Map<String, Object>> getAllFeatures() {
+        return ResponseEntity.ok(featureFlagService.getFeatures());
     }
 
     @GetMapping("/{featureId}/check")

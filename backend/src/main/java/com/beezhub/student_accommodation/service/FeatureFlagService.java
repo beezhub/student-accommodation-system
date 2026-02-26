@@ -1,5 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
+import java.util.Map;
+
 /**
  * Abstraction layer over the underlying feature flag implementation (FF4J).
  * All service code must use this interface — not the FF4j bean directly.
@@ -31,4 +33,11 @@ public interface FeatureFlagService {
      * @param featureName the feature flag identifier
      */
     void disable(String featureName);
+
+    /**
+     * Returns all registered feature flags keyed by their feature ID.
+     *
+     * @return map of feature ID to feature descriptor
+     */
+    Map<String, Object> getFeatures();
 }
