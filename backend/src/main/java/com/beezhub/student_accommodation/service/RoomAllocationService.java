@@ -4,6 +4,7 @@ import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.service.allocation.*;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -109,11 +110,13 @@ public class RoomAllocationService {
     }
 
     @Transactional
+    @Timed(value = "service.allocation.acceptOffer", percentiles = {0.5, 0.95, 0.99})
     public RoomAllocationResponse acceptOffer(Long id, AcceptOfferRequest request) {
         return allocationLifecycleService.acceptOffer(id, request);
     }
 
     @Transactional
+    @Timed(value = "service.allocation.declineOffer", percentiles = {0.5, 0.95, 0.99})
     public RoomAllocationResponse declineOffer(Long id, DeclineOfferRequest request) {
         return allocationLifecycleService.declineOffer(id, request);
     }
@@ -164,6 +167,7 @@ public class RoomAllocationService {
     }
 
     @Transactional
+    @Timed(value = "service.allocation.batchAllocate", percentiles = {0.5, 0.95, 0.99})
     public BatchAllocationResult batchAllocateFromWaitingList(int maxAllocations) {
         return allocationBatchService.batchAllocateFromWaitingList(maxAllocations);
     }

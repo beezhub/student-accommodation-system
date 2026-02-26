@@ -10,6 +10,7 @@ import com.beezhub.student_accommodation.service.FeatureFlagService;
 import com.beezhub.student_accommodation.util.PageMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.env.Environment;
@@ -107,6 +108,7 @@ public class AllocationBatchService {
      * @return BatchAllocationResult with success/failure statistics
      */
     @Transactional
+    @Timed(value = "service.allocation.batchRun", percentiles = {0.5, 0.95, 0.99})
     public BatchAllocationResult batchAllocateFromWaitingList(int maxAllocations) {
         long startTime = System.currentTimeMillis();
         Timer.Sample sample = Timer.start(meterRegistry);

@@ -14,6 +14,7 @@ import com.beezhub.student_accommodation.service.application.ApplicationCoreServ
 import com.beezhub.student_accommodation.service.application.ApplicationDocumentService;
 import com.beezhub.student_accommodation.service.application.ApplicationQueryService;
 import com.beezhub.student_accommodation.service.application.ApplicationSearchService;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -47,10 +48,12 @@ public class ApplicationService {
 
     // ==================== Core Operations (Student-facing) ====================
 
+    @Timed(value = "service.application.submit", percentiles = {0.5, 0.95, 0.99})
     public ApplicationResponse submitApplication(ApplicationRequest request) {
         return coreService.submitApplication(request);
     }
 
+    @Timed(value = "service.application.getById", percentiles = {0.5, 0.95, 0.99})
     public ApplicationResponse getApplicationById(Long applicationId) {
         return coreService.getApplicationById(applicationId);
     }
@@ -86,6 +89,7 @@ public class ApplicationService {
 
     // ==================== Admin Operations ====================
 
+    @Timed(value = "service.application.updateStatus", percentiles = {0.5, 0.95, 0.99})
     public ApplicationResponse updateApplicationStatus(Long applicationId,
             ApplicationStatusUpdateRequest request) {
         return adminService.updateApplicationStatus(applicationId, request);

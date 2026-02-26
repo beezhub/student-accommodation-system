@@ -21,6 +21,7 @@ import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.service.document.FileStorageService;
 import com.beezhub.student_accommodation.service.document.FileValidationService;
 import com.beezhub.student_accommodation.service.document.ValidationResult;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,7 @@ public class DocumentLifecycleService {
     private final DocumentMapper documentMapper;
 
     @Transactional
+    @Timed(value = "service.document.upload", percentiles = {0.5, 0.95, 0.99})
     @LogActivity(action = "UPLOAD", entityType = "DOCUMENT", description = "Uploaded {0} documents", entityIdParamIndex = -1)
     public List<DocumentResponse> uploadDocuments(List<MultipartFile> files, String email, List<Long> documentTypeIds) {
         var user = getUserByEmail(email);
