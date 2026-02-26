@@ -509,7 +509,15 @@ ALTER TABLE document DROP COLUMN application_id;
 
 ### TASK-2.02: Student Platform-Level Identity (Sentinel Tenant)
 
- - **Status:** DONE
+- **Status:** DONE
+- **Priority:** MEDIUM
+- **Phase:** 3
+- **Estimated Scope:** M (2–4 hrs)
+- **Architecture Reference:** [ARCH 9 Phase 3 item 11]
+- **Requirement References:** [REQ NOTIF-001 item 13]
+- **Risk References:** None
+- **Dependencies:** TASK-3.10 (same pattern — implement offer reminder first to establish pattern), Phase 2 complete
+- **Blocked By:** None
  - **Priority:** CRITICAL
  - **Phase:** 2
  - **Estimated Scope:** L (4–8 hrs)
@@ -1255,7 +1263,7 @@ For each new entity, the test must assert:
 
 ### TASK-3.01: Configure MinIO SDK Timeout
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** HIGH
 - **Phase:** 3
 - **Estimated Scope:** S (< 2 hrs)
@@ -1290,7 +1298,7 @@ In `MinioConfig.java`, configure the `MinioClient` builder with connection and r
 
 ### TASK-3.02: Wrap FF4J Behind FeatureFlagService Interface
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs)
@@ -1332,7 +1340,7 @@ Create `FF4JFeatureFlagService implements FeatureFlagService` delegating to the 
 
 ### TASK-3.03: Upgrade JJWT from 0.11.5 to 0.12.x
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs)
@@ -1629,7 +1637,7 @@ No Lighthouse baseline exists for the Angular frontend. The NFR requires initial
 
 ### TASK-3.10: Offer Expiry Reminder Notifications (24h Before Deadline)
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs)
@@ -1675,15 +1683,7 @@ Add a new scheduled job (following the TASK-1.08 observability pattern) that:
 
 ### TASK-3.11: Check-in Deadline Reminder Notifications (24h Before Deadline)
 
-- **Status:** TODO
-- **Priority:** MEDIUM
-- **Phase:** 3
-- **Estimated Scope:** M (2–4 hrs)
-- **Architecture Reference:** [ARCH 9 Phase 3 item 11]
-- **Requirement References:** [REQ NOTIF-001 item 13]
-- **Risk References:** None
-- **Dependencies:** TASK-3.10 (same pattern — implement offer reminder first to establish pattern), Phase 2 complete
-- **Blocked By:** None
+- **Status:** DONE
 
 **Description:**
 Students who have accepted a room offer receive no reminder that their check-in deadline is approaching. [REQ NOTIF-001 item 13] requires a reminder 24 hours before the check-in deadline.
@@ -1712,7 +1712,7 @@ Follow the identical pattern established in TASK-3.10:
 
 ### TASK-3.12: Evaluate HttpOnly Cookie JWT Storage
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** LOW
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs) for evaluation; XL (8+ hrs) for implementation if approved
@@ -1747,7 +1747,7 @@ This task is an **evaluation and decision task**, not necessarily a full impleme
 
 ### TASK-3.13: Plan application Table Partitioning
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** LOW
 - **Phase:** 3
 - **Estimated Scope:** S (< 2 hrs) for planning; M (2–4 hrs) for implementation
