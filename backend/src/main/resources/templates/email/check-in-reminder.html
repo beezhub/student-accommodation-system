@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 20px auto; background: #fff;
+                    border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                 color: #fff; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 30px; }
+        .warning-box { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+        .info-box { background: #f8f9fa; border-left: 4px solid #6c757d; padding: 15px; margin: 20px 0; }
+        .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                 color: #fff; padding: 12px 30px; text-decoration: none;
+                 border-radius: 5px; margin: 20px 0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center;
+                 font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>&#9201; Check-In Deadline in 24 Hours</h1>
+        </div>
+        <div class="content">
+            <p>Dear <span th:text="${studentName}">Student</span>,</p>
+            <div class="warning-box">
+                <strong>Your check-in deadline is within 24 hours</strong>
+                <p>You must check in to <strong>Room <span th:text="${roomNumber}">101</span></strong>
+                   in <strong th:text="${buildingName}">Building A</strong> by
+                   <strong th:text="${deadlineDate}">01 January 2026</strong>.</p>
+                <p>Please proceed to your assigned room and complete the check-in process before the deadline
+                   to keep your room allocation active.</p>
+            </div>
+            <div class="info-box">
+                <strong>What happens if you do not check in?</strong>
+                <ul>
+                    <li>Your room allocation will automatically expire</li>
+                    <li>The room will be released to other students</li>
+                    <li>Your application will be cancelled</li>
+                </ul>
+            </div>
+            <p>If you have already checked in, please disregard this reminder.</p>
+            <center>
+                <a th:href="${portalUrl}" class="button">View My Allocation</a>
+            </center>
+        </div>
+        <div class="footer">
+            <p>This is an automated message from the Student Accommodation System.</p>
+            <p>For assistance, please contact our support team at <span th:text="${supportEmail}">support@university.edu</span></p>
+            <p>&copy; 2025 <span th:text="${universityName}">University</span> Student Accommodation System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -13,6 +13,7 @@
     ]
   },
   "description": "Allocation pipeline metrics — runs, offers issued/accepted/declined/expired. Refs: TASK-3.06.",
+  "annotations": { "list": [] },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -41,18 +42,53 @@
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "expr": "rate(sas_allocations_created_total[5m])",
           "legendFormat": "offers issued",
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "rate(allocation_batch_runs_total[5m])",
+          "legendFormat": "Batch Runs",
+          "refId": "A"
+        }
+      ],
+      "title": "Allocation Batch Run Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "rate(allocation_offers_issued_total[5m])",
+          "legendFormat": "Offers Issued",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "expr": "rate(sas_allocations_accepted_total[5m])",
           "legendFormat": "offers accepted",
+          "expr": "rate(allocation_offers_accepted_total[5m])",
+          "legendFormat": "Offers Accepted",
           "refId": "B"
         },
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "expr": "rate(sas_allocations_declined_total[5m])",
           "legendFormat": "offers declined",
+          "expr": "rate(allocation_offers_expired_total[5m])",
+          "legendFormat": "Offers Expired",
           "refId": "C"
         },
         {
@@ -63,6 +99,12 @@
         }
       ],
       "title": "Allocation Offer Rate (per 5m)",
+          "expr": "rate(allocation_offers_declined_total[5m])",
+          "legendFormat": "Offers Declined",
+          "refId": "D"
+        }
+      ],
+      "title": "Offer Lifecycle Rate",
       "type": "timeseries"
     },
     {
@@ -99,6 +141,22 @@
       ],
       "title": "Offers Issued (24h)",
       "type": "stat"
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "allocation_waiting_list_size",
+          "legendFormat": "Waiting List Size",
+          "refId": "A"
+        }
+      ],
+      "title": "Waiting List Size",
+      "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
@@ -131,6 +189,47 @@
         }
       ],
       "title": "Offers Accepted (24h)",
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "ms" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "histogram_quantile(0.95, rate(allocation_batch_duration_seconds_bucket[5m])) * 1000",
+          "legendFormat": "p95 Duration",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "histogram_quantile(0.50, rate(allocation_batch_duration_seconds_bucket[5m])) * 1000",
+          "legendFormat": "p50 Duration",
+          "refId": "B"
+        }
+      ],
+      "title": "Allocation Batch Duration (ms)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "increase(allocation_offers_issued_total[24h])",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Offers Issued (24h)",
       "type": "stat"
     },
     {
@@ -165,6 +264,21 @@
         }
       ],
       "title": "Offers Declined (24h)",
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 16 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "increase(allocation_offers_accepted_total[24h])",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Offers Accepted (24h)",
       "type": "stat"
     },
     {
@@ -195,6 +309,17 @@
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "expr": "increase(sas_allocations_expired_total[24h])",
           "legendFormat": "expired",
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 },
+      "id": 7,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "increase(allocation_offers_expired_total[24h])",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
@@ -237,5 +362,32 @@
   "timezone": "browser",
   "title": "SAS — Allocation Metrics",
   "uid": "sas-allocation-metrics",
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "red" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 },
+      "id": 8,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "increase(allocation_offers_declined_total[24h])",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Offers Declined (24h)",
+      "type": "stat"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["allocation", "rooms", "offers"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Allocation Metrics",
+  "uid": "allocation-metrics-001",
   "version": 1
 }

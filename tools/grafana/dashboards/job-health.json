@@ -13,6 +13,7 @@
     ]
   },
   "description": "Scheduled job health — processed records and failure counts per job. Refs: TASK-3.06, TASK-1.08.",
+  "annotations": { "list": [] },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -31,6 +32,7 @@
             "spanNulls": false
           }
         },
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
@@ -57,6 +59,16 @@
         }
       ],
       "title": "Job Processed Rate (per 5m)",
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "rate(jobs_processed_total[5m])",
+          "legendFormat": "Processed - {{job_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Scheduled Jobs - Processed Rate",
       "type": "timeseries"
     },
     {
@@ -70,6 +82,7 @@
             "fillOpacity": 80
           }
         },
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "red" }, "unit": "short" },
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
@@ -96,6 +109,16 @@
         }
       ],
       "title": "Job Failures (per 5m)",
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "rate(jobs_failures_total[5m])",
+          "legendFormat": "Failures - {{job_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Scheduled Jobs - Failure Rate",
       "type": "timeseries"
     },
     {
@@ -127,6 +150,22 @@
       ],
       "title": "Allocation Batch Failures (1h)",
       "type": "stat"
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "ms" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "id": 3,
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "rate(jobs_duration_seconds_sum[5m]) / rate(jobs_duration_seconds_count[5m]) * 1000",
+          "legendFormat": "Avg Duration - {{job_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Scheduled Jobs - Average Duration (ms)",
+      "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
@@ -155,6 +194,21 @@
         }
       ],
       "title": "Offer Reminder Failures (1h)",
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 16 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "increase(jobs_processed_total[1h])",
+          "legendFormat": "{{job_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Jobs Processed (last 1h)",
       "type": "stat"
     },
     {
@@ -184,6 +238,21 @@
         }
       ],
       "title": "Notification Retry Failures (1h)",
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "red" }, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 16 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "increase(jobs_failures_total[1h])",
+          "legendFormat": "{{job_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Jobs Failed (last 1h)",
       "type": "stat"
     }
   ],
@@ -195,5 +264,12 @@
   "timezone": "browser",
   "title": "SAS — Job Health",
   "uid": "sas-job-health",
+  "tags": ["jobs", "scheduled", "health"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Scheduled Job Health",
+  "uid": "job-health-001",
   "version": 1
 }

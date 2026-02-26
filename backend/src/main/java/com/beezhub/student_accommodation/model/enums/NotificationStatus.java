@@ -7,7 +7,8 @@ public enum NotificationStatus {
     PENDING("Pending"),
     SENT("Sent"),
     FAILED("Failed"),
-    RETRYING("Retrying");
+    RETRYING("Retrying"),
+    PERMANENTLY_FAILED("Permanently Failed");
 
     private final String displayName;
 
