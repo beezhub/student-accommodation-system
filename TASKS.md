@@ -1581,7 +1581,7 @@ thresholds: {
 
 ### TASK-3.09: Lighthouse CI Audit — Frontend Load Performance
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** MEDIUM
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs)
