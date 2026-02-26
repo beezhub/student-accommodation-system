@@ -102,7 +102,22 @@ public interface RoomAllocationRepository
               "LEFT JOIN FETCH r.building " +
               "LEFT JOIN FETCH ra.application a " +
               "WHERE ra.status = :status AND ra.checkInExpiryDate < :cutoffDate")
-       List<RoomAllocation> findByStatusAndCheckInExpiryDateBefore(
-           @Param("status") AllocationStatus status,
-           @Param("cutoffDate") LocalDateTime cutoffDate);
+        List<RoomAllocation> findByStatusAndCheckInExpiryDateBefore(
+            @Param("status") AllocationStatus status,
+            @Param("cutoffDate") LocalDateTime cutoffDate);
+
+        // Find ACCEPTED allocations whose check-in deadline falls within a window and have not yet had a reminder sent
+        @Query("SELECT ra FROM RoomAllocation ra " +
+               "LEFT JOIN FETCH ra.student s " +
+               "LEFT JOIN FETCH s.appUser " +
+               "LEFT JOIN FETCH ra.room r " +
+               "LEFT JOIN FETCH r.building " +
+               "LEFT JOIN FETCH ra.application a " +
+               "WHERE ra.status = com.beezhub.student_accommodation.model.enums.AllocationStatus.ACCEPTED " +
+               "AND ra.checkInExpiryDate >= :windowStart " +
+               "AND ra.checkInExpiryDate < :windowEnd " +
+               "AND ra.checkInReminder24hSent = false")
+        List<RoomAllocation> findCheckInsExpiringSoonWithoutReminder(
+            @Param("windowStart") LocalDateTime windowStart,
+            @Param("windowEnd") LocalDateTime windowEnd);
 }

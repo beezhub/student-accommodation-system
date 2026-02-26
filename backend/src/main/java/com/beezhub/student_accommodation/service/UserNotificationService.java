@@ -363,6 +363,26 @@ public class UserNotificationService {
     }
 
     /**
+     * Creates an in-app notification 24 hours before the check-in deadline.
+     *
+     * @param userId       The app user ID
+     * @param roomNumber   The room number
+     * @param buildingName The building name
+     */
+    @Transactional
+    public void createCheckInReminderNotification(Long userId, String roomNumber, String buildingName) {
+        createNotification(
+                userId,
+                "CHECK_IN_REMINDER",
+                "Check-In Deadline in 24 Hours",
+                String.format("Reminder: Your check-in deadline for Room %s in %s is within 24 hours. " +
+                        "Please check in before the deadline to keep your room allocation.", roomNumber, buildingName),
+                null);
+
+        log.info("Created check-in reminder notification for user {}, room {}", userId, roomNumber);
+    }
+
+    /**
      * Creates an in-app notification when admin confirms student check-in.
      *
      * @param userId       The app user ID

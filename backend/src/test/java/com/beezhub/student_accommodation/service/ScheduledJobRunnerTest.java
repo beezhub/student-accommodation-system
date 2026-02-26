@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.service.allocation.AllocationBatchService;
 import com.beezhub.student_accommodation.service.allocation.AllocationExpiryService;
+import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -28,6 +29,9 @@ class ScheduledJobRunnerTest {
     @Mock
     private OrphanFileCleanupJob orphanFileCleanupJob;
 
+    @Mock
+    private CheckInReminderService checkInReminderService;
+
     private MeterRegistry meterRegistry;
     private ScheduledJobRunner scheduledJobRunner;
 
@@ -38,6 +42,7 @@ class ScheduledJobRunnerTest {
                 allocationExpiryService,
                 allocationBatchService,
                 orphanFileCleanupJob,
+                checkInReminderService,
                 meterRegistry);
     }
 
@@ -149,5 +154,29 @@ class ScheduledJobRunnerTest {
 
         assertThat(meterRegistry.find("sas.jobs.offerExpiry.failures").counter().count()).isEqualTo(1.0);
         assertThat(meterRegistry.find("sas.jobs.checkInExpiry.processed").counter().count()).isEqualTo(2.0);
+    }
+
+    // --- checkInReminder ---
+
+    @Test
+    void runCheckInReminder_whenServiceThrows_failureCounterIncremented_noExceptionPropagated() {
+        when(checkInReminderService.sendCheckInReminders()).thenThrow(new RuntimeException("SMTP down"));
+
+        assertThatCode(() -> scheduledJobRunner.runCheckInReminder()).doesNotThrowAnyException();
+
+        Counter failures = meterRegistry.find("sas.jobs.checkInReminder.failures").counter();
+        assertThat(failures).isNotNull();
+        assertThat(failures.count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void runCheckInReminder_whenServiceSucceeds_processedCounterIncremented() {
+        when(checkInReminderService.sendCheckInReminders()).thenReturn(3);
+
+        scheduledJobRunner.runCheckInReminder();
+
+        Counter processed = meterRegistry.find("sas.jobs.checkInReminder.processed").counter();
+        assertThat(processed).isNotNull();
+        assertThat(processed.count()).isEqualTo(3.0);
     }
 }
