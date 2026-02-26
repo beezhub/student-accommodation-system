@@ -1712,7 +1712,7 @@ Follow the identical pattern established in TASK-3.10:
 
 ### TASK-3.12: Evaluate HttpOnly Cookie JWT Storage
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** LOW
 - **Phase:** 3
 - **Estimated Scope:** M (2–4 hrs) for evaluation; XL (8+ hrs) for implementation if approved
