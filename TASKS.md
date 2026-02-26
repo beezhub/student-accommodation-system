@@ -1747,7 +1747,7 @@ This task is an **evaluation and decision task**, not necessarily a full impleme
 
 ### TASK-3.13: Plan application Table Partitioning
 
-- **Status:** TODO
+- **Status:** DONE
 - **Priority:** LOW
 - **Phase:** 3
 - **Estimated Scope:** S (< 2 hrs) for planning; M (2–4 hrs) for implementation
