@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.ff4j.FF4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 /**
  * FF4J-backed implementation of {@link FeatureFlagService}.
  * This is the only class in the codebase that is permitted to reference the
@@ -38,5 +40,10 @@ public class FF4JFeatureFlagService implements FeatureFlagService {
     @Override
     public void disable(String featureName) {
         ff4j.disable(featureName);
+    }
+
+    @Override
+    public Map<String, Object> getFeatures() {
+        return Map.copyOf(ff4j.getFeatures());
     }
 }

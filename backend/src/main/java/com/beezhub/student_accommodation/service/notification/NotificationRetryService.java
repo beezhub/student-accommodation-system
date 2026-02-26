@@ -3,6 +3,7 @@ package com.beezhub.student_accommodation.service.notification;
 import com.beezhub.student_accommodation.model.entity.Notification;
 import com.beezhub.student_accommodation.model.enums.NotificationStatus;
 import com.beezhub.student_accommodation.repository.NotificationRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import java.util.List;
 public class NotificationRetryService {
 
     private final NotificationRepository notificationRepository;
+    private final MeterRegistry meterRegistry;
 
     @Value("${app.notification.retry-delay-minutes:5}")
     private int retryDelayMinutes;
@@ -40,8 +42,7 @@ public class NotificationRetryService {
                 if (notification.canRetry()) {
                     retryNotification(notification);
                 } else {
-                    log.warn("Notification {} exceeded max retries ({}), marking as permanently failed",
-                            notification.getId(), MAX_RETRIES);
+                    markAsPermanentlyFailed(notification);
                 }
             }
         }
@@ -58,8 +59,8 @@ public class NotificationRetryService {
 
         try {
             // Thread.sleep() removed - blocking threads is banned
-            
-            // TODO: Phase 3 - Implement actual retry logic. 
+
+            // TODO: Phase 3 - Implement actual retry logic.
             // Currently we cannot reconstruct the email context (Entities) from just the Notification object.
             // We need to either store the template data as JSON or re-fetch entities using referenceId/referenceType.
             log.warn("Retry logic for {} not yet implemented - skipping actual dispatch", notification.getType());
@@ -67,6 +68,16 @@ public class NotificationRetryService {
         } catch (Exception e) {
             handleNotificationFailure(notification, e);
         }
+    }
+
+    private void markAsPermanentlyFailed(Notification notification) {
+        log.warn("Notification {} exceeded max retries ({}), marking as permanently failed",
+                notification.getId(), MAX_RETRIES);
+        notification.setStatus(NotificationStatus.PERMANENTLY_FAILED);
+        notificationRepository.save(notification);
+        meterRegistry.counter("sas.notifications.permanently_failed",
+                "type", notification.getType() != null ? notification.getType().name() : "UNKNOWN")
+                .increment();
     }
 
     private long getExponentialBackoff(int retryCount) {
@@ -82,3 +93,4 @@ public class NotificationRetryService {
                 notification.getId(), notification.getType(), notification.getRecipient(), errorMessage, e);
     }
 }
+
