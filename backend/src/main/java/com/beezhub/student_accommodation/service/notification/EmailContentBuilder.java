@@ -209,6 +209,22 @@ public class EmailContentBuilder {
                remainingMonths + " month" + (remainingMonths > 1 ? "s" : "");
     }
 
+    public String buildCheckInReminderEmailContent(String studentName, String roomNumber,
+                                                    String buildingName, String deadlineDate,
+                                                    String portalUrl) {
+        Context context = new Context();
+        context.setVariables(Map.of(
+            "studentName", studentName,
+            "roomNumber", roomNumber,
+            "buildingName", buildingName,
+            "deadlineDate", deadlineDate,
+            "portalUrl", portalUrl,
+            "supportEmail", supportEmail,
+            "universityName", universityName
+        ));
+        return templateEngine.process("email/check-in-reminder", context);
+    }
+
     public List<String> parseWarnings(String warningsJson) {
         if (warningsJson == null || warningsJson.isEmpty()) {
             return new ArrayList<>();
