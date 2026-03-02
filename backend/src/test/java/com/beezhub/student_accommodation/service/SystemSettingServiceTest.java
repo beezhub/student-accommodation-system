@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 /**
@@ -197,5 +198,29 @@ class SystemSettingServiceTest {
 
         assertThatThrownBy(() -> systemSettingService.updateSetting(KEY, "new-value"))
                 .isInstanceOf(IncorrectResultSizeDataAccessException.class);
+    }
+
+    @Test
+    @DisplayName("updateSetting_whenKeyExists_updatesExistingSettingValue")
+    void updateSetting_whenKeyExists_updatesExistingSettingValue() {
+        when(systemSettingRepository.findBySettingKey(KEY))
+                .thenReturn(Optional.of(tenant1Setting));
+
+        systemSettingService.updateSetting(KEY, "updated-value");
+
+        assertThat(tenant1Setting.getSettingValue()).isEqualTo("updated-value");
+        verify(systemSettingRepository).save(tenant1Setting);
+    }
+
+    @Test
+    @DisplayName("updateSetting_whenKeyNotExists_createsNewSetting")
+    void updateSetting_whenKeyNotExists_createsNewSetting() {
+        when(systemSettingRepository.findBySettingKey("new_key"))
+                .thenReturn(Optional.empty());
+
+        systemSettingService.updateSetting("new_key", "new_value");
+
+        verify(systemSettingRepository).save(argThat(s ->
+                "new_key".equals(s.getSettingKey()) && "new_value".equals(s.getSettingValue())));
     }
 }

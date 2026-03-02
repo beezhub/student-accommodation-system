@@ -115,7 +115,8 @@
       "Bash(./gradlew compileTestJava:*)",
       "mcp__plugin_serena_serena__get_symbols_overview",
       "Bash(while read commit msg)",
-      "Bash(do echo \"=== $commit ===\")"
+      "Bash(do echo \"=== $commit ===\")",
+      "Bash(./gradlew jacocoTestCoverageVerification:*)"
     ],
     "deny": [],
     "ask": []

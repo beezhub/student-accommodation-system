@@ -33,7 +33,7 @@ public class Application implements TenantAware {
     private Long version = 0L;
     @Column(unique = true, nullable = false, name = "application_code")
     private String applicationCode;
-    @Column(name = "applicant_date")
+    @Column(name = "application_date")
     private LocalDate applicationDate;
     @Column(name = "status")
     @Enumerated(EnumType.STRING)

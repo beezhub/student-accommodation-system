@@ -32,6 +32,7 @@ class ScheduledJobRunnerTest {
 
     @Mock
     private OfferReminderService offerReminderService;
+    @Mock
     private CheckInReminderService checkInReminderService;
 
     private MeterRegistry meterRegistry;

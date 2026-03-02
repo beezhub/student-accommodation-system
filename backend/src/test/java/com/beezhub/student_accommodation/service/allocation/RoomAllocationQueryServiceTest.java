@@ -1,0 +1,281 @@
+package com.beezhub.student_accommodation.service.allocation;
+
+import com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException;
+import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
+import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
+import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
+import com.beezhub.student_accommodation.model.dto.PageResponse;
+import com.beezhub.student_accommodation.model.dto.RoomAllocationResponse;
+import com.beezhub.student_accommodation.model.dto.RoomAvailabilityResponse;
+import com.beezhub.student_accommodation.model.dto.StagedAllocationResponse;
+import com.beezhub.student_accommodation.model.entity.Building;
+import com.beezhub.student_accommodation.model.entity.Room;
+import com.beezhub.student_accommodation.model.entity.RoomAllocation;
+import com.beezhub.student_accommodation.model.entity.StagedAllocation;
+import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.repository.RoomRepository;
+import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class RoomAllocationQueryServiceTest {
+
+    @Mock
+    private RoomAllocationRepository roomAllocationRepository;
+    @Mock
+    private RoomRepository roomRepository;
+    @Mock
+    private StagedAllocationRepository stagedAllocationRepository;
+    @Mock
+    private RoomAllocationMapper roomAllocationMapper;
+    @Mock
+    private StagedAllocationMapper stagedAllocationMapper;
+
+    @InjectMocks
+    private RoomAllocationQueryService queryService;
+
+    private RoomAllocation allocation;
+    private RoomAllocationResponse allocationResponse;
+    private Room room;
+    private StagedAllocation stagedAllocation;
+    private StagedAllocationResponse stagedAllocationResponse;
+
+    @BeforeEach
+    void setUp() {
+        Building building = new Building();
+        building.setId(1L);
+        building.setName("Building A");
+
+        room = new Room();
+        room.setId(1L);
+        room.setRoomNumber("101");
+        room.setCapacity(2);
+        room.setBuilding(building);
+        room.setStatus("AVAILABLE");
+
+        allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setRoom(room);
+
+        allocationResponse = new RoomAllocationResponse();
+        allocationResponse.setId(1L);
+
+        stagedAllocation = new StagedAllocation();
+        stagedAllocation.setId(1L);
+        stagedAllocation.setBatchId("BATCH1");
+        stagedAllocation.setStatus(StagedAllocationStatus.PROPOSED);
+
+        stagedAllocationResponse = new StagedAllocationResponse();
+        stagedAllocationResponse.setId(1L);
+    }
+
+    @Test
+    void getAllRoomAllocations_ReturnsList() {
+        when(roomAllocationRepository.findAllWithDetails()).thenReturn(List.of(allocation));
+        when(roomAllocationMapper.toResponseList(any())).thenReturn(List.of(allocationResponse));
+
+        List<RoomAllocationResponse> result = queryService.getAllRoomAllocations();
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getAllRoomAllocations_Paginated_ReturnsPage() {
+        Page<RoomAllocation> page = new PageImpl<>(List.of(allocation));
+        when(roomAllocationRepository.findAll(any(Pageable.class))).thenReturn(page);
+        when(roomAllocationMapper.toResponse(any())).thenReturn(allocationResponse);
+
+        PageResponse<RoomAllocationResponse> result = queryService.getAllRoomAllocations(PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void searchRoomAllocations_ReturnsPage() {
+        Page<RoomAllocation> page = new PageImpl<>(List.of(allocation));
+        when(roomAllocationRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+        when(roomAllocationMapper.toResponse(any())).thenReturn(allocationResponse);
+
+        PageResponse<RoomAllocationResponse> result = queryService.searchRoomAllocations(1L, 1L, 1L, LocalDateTime.now(), LocalDateTime.now(), PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void getRoomAllocationById_Existing_ReturnsResponse() {
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationMapper.toResponse(any())).thenReturn(allocationResponse);
+
+        RoomAllocationResponse result = queryService.getRoomAllocationById(1L);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    void getRoomAllocationById_NotFound_ThrowsException() {
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.empty());
+
+        assertThrows(RoomAllocationNotFoundException.class, () -> queryService.getRoomAllocationById(1L));
+    }
+
+    @Test
+    void getActiveAllocationByStudentId_Existing_ReturnsResponse() {
+        when(roomAllocationRepository.findActiveAllocationByStudentId(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationMapper.toResponse(any())).thenReturn(allocationResponse);
+
+        RoomAllocationResponse result = queryService.getActiveAllocationByStudentId(1L);
+
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    void getActiveAllocationByStudentId_NotFound_ThrowsException() {
+        when(roomAllocationRepository.findActiveAllocationByStudentId(1L)).thenReturn(Optional.empty());
+
+        assertThrows(RoomAllocationNotFoundException.class, () -> queryService.getActiveAllocationByStudentId(1L));
+    }
+
+    @Test
+    void isRoomAvailable_RoomExistsAndAvailable_ReturnsTrue() {
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L); // capacity is 2
+
+        boolean result = queryService.isRoomAvailable(1L);
+
+        assertThat(result).isTrue();
+    }
+    
+    @Test
+    void isRoomAvailable_RoomExistsAndFull_ReturnsFalse() {
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // capacity is 2
+
+        boolean result = queryService.isRoomAvailable(1L);
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void isRoomAvailable_NotFound_ThrowsException() {
+        when(roomRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(RoomNotFoundException.class, () -> queryService.isRoomAvailable(1L));
+    }
+
+    @Test
+    void getRoomAvailableCapacity_ReturnsCorrectValue() {
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L);
+
+        int result = queryService.getRoomAvailableCapacity(1L);
+
+        assertThat(result).isEqualTo(1);
+    }
+
+    @Test
+    void findAvailableRoom_ReturnsRoom() {
+        when(roomRepository.findFirstByStatusOrderByBuilding_IdAscRoomNumberAsc("AVAILABLE")).thenReturn(Optional.of(room));
+
+        Room result = queryService.findAvailableRoom();
+
+        assertThat(result).isEqualTo(room);
+    }
+    
+    @Test
+    void findAvailableRoom_ReturnsNullIfNotFound() {
+        when(roomRepository.findFirstByStatusOrderByBuilding_IdAscRoomNumberAsc("AVAILABLE")).thenReturn(Optional.empty());
+
+        Room result = queryService.findAvailableRoom();
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void getAllocationsByStatus_ReturnsPage() {
+        Page<RoomAllocation> page = new PageImpl<>(List.of(allocation));
+        when(roomAllocationRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+        when(roomAllocationMapper.toResponse(any())).thenReturn(allocationResponse);
+
+        PageResponse<RoomAllocationResponse> result = queryService.getAllocationsByStatus("ACTIVE", PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void getRoomAvailability_ReturnsAvailabilityResponse() {
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L);
+
+        RoomAvailabilityResponse result = queryService.getRoomAvailability(1L);
+
+        assertThat(result.getRoomId()).isEqualTo(1L);
+        assertThat(result.getAvailableSpots()).isEqualTo(1);
+        assertThat(result.isAvailable()).isTrue();
+    }
+
+    @Test
+    void getStagedAllocations_WithBatchIdAndStatus() {
+        Page<StagedAllocation> page = new PageImpl<>(List.of(stagedAllocation));
+        when(stagedAllocationRepository.findByBatchIdAndStatus(eq("BATCH1"), eq(StagedAllocationStatus.PROPOSED), any(Pageable.class))).thenReturn(page);
+        when(stagedAllocationMapper.toResponse(any())).thenReturn(stagedAllocationResponse);
+
+        PageResponse<StagedAllocationResponse> result = queryService.getStagedAllocations("BATCH1", StagedAllocationStatus.PROPOSED, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void getStagedAllocations_WithBatchIdOnly() {
+        Page<StagedAllocation> page = new PageImpl<>(List.of(stagedAllocation));
+        when(stagedAllocationRepository.findByBatchId(eq("BATCH1"), any(Pageable.class))).thenReturn(page);
+        when(stagedAllocationMapper.toResponse(any())).thenReturn(stagedAllocationResponse);
+
+        PageResponse<StagedAllocationResponse> result = queryService.getStagedAllocations("BATCH1", null, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void getStagedAllocations_WithStatusOnly() {
+        Page<StagedAllocation> page = new PageImpl<>(List.of(stagedAllocation));
+        when(stagedAllocationRepository.findByStatus(eq(StagedAllocationStatus.PROPOSED), any(Pageable.class))).thenReturn(page);
+        when(stagedAllocationMapper.toResponse(any())).thenReturn(stagedAllocationResponse);
+
+        PageResponse<StagedAllocationResponse> result = queryService.getStagedAllocations(null, StagedAllocationStatus.PROPOSED, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void getStagedAllocations_NoFilters() {
+        Page<StagedAllocation> page = new PageImpl<>(List.of(stagedAllocation));
+        when(stagedAllocationRepository.findAll(any(Pageable.class))).thenReturn(page);
+        when(stagedAllocationMapper.toResponse(any())).thenReturn(stagedAllocationResponse);
+
+        PageResponse<StagedAllocationResponse> result = queryService.getStagedAllocations(null, null, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+}

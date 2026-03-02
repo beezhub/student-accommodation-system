@@ -47,6 +47,9 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testRuntimeOnly 'com.h2database:h2'
 	implementation 'org.mapstruct:mapstruct:1.6.3'
@@ -74,18 +77,48 @@ jacoco {
 	reportsDirectory = file("${buildDir}/jacocoHtml")
 }
 
+def jacocoExcludes = [
+	// Generated / boilerplate — not meaningful to unit-test
+	'**/model/dto/**',
+	'**/model/entity/**',
+	'**/model/enums/**',
+	'**/mapper/**',
+	// Spring Boot entry-point
+	'**/*Application*',
+]
+
 jacocoTestReport {
 	reports {
-	csv.required = true
-	xml.required = true
+		csv.required = true
+		xml.required = true
 		html.required = true
 	}
 	dependsOn test
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: jacocoExcludes)
+		}))
+	}
 }
 
 jacocoTestCoverageVerification {
 	dependsOn jacocoTestReport
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: jacocoExcludes)
+		}))
+	}
 	violationRules {
+		// Global 70% line coverage across the whole project
+		rule {
+			element = 'BUNDLE'
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.70
+			}
+		}
+
 		// Specific rule for AllocationScoringService (90%)
 		rule {
 			element = 'CLASS'
@@ -97,17 +130,24 @@ jacocoTestCoverageVerification {
 			}
 		}
 
-		// General rule for all Service classes (10% - lowered per user request)
+		// Direct service classes — minimum 70%
+		// Sub-packages (allocation, notification, document, tenant, application) are excluded
+		// because they are covered by integration tests, not unit tests.
 		rule {
 			element = 'CLASS'
 			includes = ['com.beezhub.student_accommodation.service.**']
 			excludes = [
-				'com.beezhub.student_accommodation.service.AllocationScoringService' // Covered by specific rule
+				'com.beezhub.student_accommodation.service.AllocationScoringService',
+				'com.beezhub.student_accommodation.service.allocation.*',
+				'com.beezhub.student_accommodation.service.notification.*',
+				'com.beezhub.student_accommodation.service.document.*',
+				'com.beezhub.student_accommodation.service.tenant.*',
+				'com.beezhub.student_accommodation.service.application.*',
 			]
 			limit {
 				counter = 'LINE'
 				value = 'COVEREDRATIO'
-				minimum = 0.00
+				minimum = 0.70
 			}
 		}
 	}

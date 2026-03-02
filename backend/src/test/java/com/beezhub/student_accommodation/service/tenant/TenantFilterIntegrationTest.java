@@ -17,6 +17,7 @@ import com.beezhub.student_accommodation.repository.BuildingStaffRepository;
 import com.beezhub.student_accommodation.repository.CustomApplicationFieldRepository;
 import com.beezhub.student_accommodation.repository.IntakePeriodRepository;
 import com.beezhub.student_accommodation.repository.RequiredDocumentTypeRepository;
+import com.beezhub.student_accommodation.AbstractJpaTest;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.hibernate.Session;
@@ -24,8 +25,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -41,20 +40,18 @@ import static org.assertj.core.api.Assertions.assertThat;
  * (a Spring MVC HandlerInterceptor). These tests activate the filter directly via the
  * {@link Session} API to replicate that behaviour without the full Spring MVC stack.
  *
- * <p>Uses {@link DataJpaTest} with an H2 in-memory database (Flyway disabled, schema from JPA
- * {@code create-drop}). {@link AcademicYear} is chosen as the test entity because it has no
- * {@code jsonb} columns — which H2 cannot reliably create — while still implementing
- * {@link TenantAware} and carrying the {@code @Filter} annotation.
+ * <p>Extends {@link AbstractJpaTest} which starts a real PostgreSQL Testcontainer — resolving
+ * the previous H2 incompatibility with {@code jsonb} columns. {@link AcademicYear} remains
+ * the primary test entity because it implements {@link TenantAware} and carries the
+ * {@code @Filter} annotation without complex FK dependencies.
  *
  * <p>Because the {@code tenant_id} column on tenant-scoped entities is mapped as a plain
- * {@code @Column} (no JPA {@code @ManyToOne}), there is no foreign-key constraint in the H2
- * schema and raw {@code Long} values are used as tenant IDs.
+ * {@code @Column} (no JPA {@code @ManyToOne}), raw {@code Long} values are used as tenant IDs.
  *
- * <p>Each test runs in a transaction that is rolled back after the method returns.
+ * <p>Each test runs in a transaction that is rolled back after the method returns
+ * (inherited from {@code @DataJpaTest} via {@link AbstractJpaTest}).
  */
-@DataJpaTest
-@ActiveProfiles("test")
-class TenantFilterIntegrationTest {
+class TenantFilterIntegrationTest extends AbstractJpaTest {
 
     private static final String TENANT_FILTER_NAME = "tenantFilter";
     private static final String TENANT_ID_PARAM = "tenantId";
@@ -92,6 +89,25 @@ class TenantFilterIntegrationTest {
 
     @Autowired
     private RequiredDocumentTypeRepository requiredDocumentTypeRepository;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUpTenants() {
+        // Seed Tenant rows for all tenant IDs used in these tests.
+        // AcademicYear, BuildingOwner and BuildingStaff each carry
+        // @ManyToOne @JoinColumn(name = "tenant_id") which Hibernate's
+        // create-drop DDL turns into a real FK constraint in PostgreSQL.
+        // Native SQL lets us supply explicit IDs (including the PLATFORM
+        // sentinel 0) that are impossible to generate via JPA sequences.
+        // The enclosing @Transactional (from @DataJpaTest) rolls these rows
+        // back after each test, so sequences are never affected.
+        entityManager.createNativeQuery(
+                "INSERT INTO tenant (id, name, config, is_active, created_at, updated_at) VALUES " +
+                "(0,   'Platform', '{}', true, current_timestamp, current_timestamp), " +
+                "(101, 'Tenant A', '{}', true, current_timestamp, current_timestamp), " +
+                "(202, 'Tenant B', '{}', true, current_timestamp, current_timestamp)"
+        ).executeUpdate();
+        entityManager.flush();
+    }
 
     @AfterEach
     void tearDown() {
@@ -269,10 +285,11 @@ class TenantFilterIntegrationTest {
     @DisplayName("buildingOwner_cannotSee_anotherOwnersBuildings")
     void buildingOwner_cannotSee_anotherOwnersBuildings() {
         // Arrange: two records for tenant 1, two records for tenant 2
-        saveYearForTenant("2025 Owner-A Building 1", TENANT_1_ID);
-        saveYearForTenant("2025 Owner-A Building 2", TENANT_1_ID);
-        saveYearForTenant("2025 Owner-B Building 1", TENANT_2_ID);
-        saveYearForTenant("2025 Owner-B Building 2", TENANT_2_ID);
+        // Names capped at 20 chars (VARCHAR(20) constraint on academic_year.name)
+        saveYearForTenant("2025 OA Bldg 1", TENANT_1_ID);
+        saveYearForTenant("2025 OA Bldg 2", TENANT_1_ID);
+        saveYearForTenant("2025 OB Bldg 1", TENANT_2_ID);
+        saveYearForTenant("2025 OB Bldg 2", TENANT_2_ID);
         entityManager.flush();
         entityManager.clear();
 

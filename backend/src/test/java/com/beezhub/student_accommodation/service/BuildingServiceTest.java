@@ -21,6 +21,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -124,7 +127,7 @@ class BuildingServiceTest {
     void searchBuildings_shouldReturnPaginatedResults() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Building> page = new PageImpl<>(Collections.singletonList(building));
-        
+
         when(buildingRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
         when(buildingMapper.toResponse(any(Building.class))).thenReturn(new BuildingResponse());
 
@@ -132,5 +135,93 @@ class BuildingServiceTest {
                 null, null, pageable);
 
         assertThat(response.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void getAllBuildings_listVersion_returnsAllWithPrimaryImage() {
+        BuildingResponse resp = new BuildingResponse();
+        resp.setId(1L);
+        when(buildingRepository.findAll()).thenReturn(List.of(building));
+        when(buildingMapper.toResponseList(any())).thenReturn(List.of(resp));
+        when(buildingImageService.getPrimaryImageUrl(1L)).thenReturn("http://img.url");
+
+        List<BuildingResponse> result = buildingService.getAllBuildings();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getPrimaryImageUrl()).isEqualTo("http://img.url");
+    }
+
+    @Test
+    void getAllBuildings_paginatedVersion_returnsPageResponse() {
+        Pageable pageable = PageRequest.of(0, 10);
+        BuildingResponse resp = new BuildingResponse();
+        resp.setId(1L);
+        Page<Building> page = new PageImpl<>(List.of(building));
+        when(buildingRepository.findAll(pageable)).thenReturn(page);
+        when(buildingMapper.toResponse(building)).thenReturn(resp);
+        when(buildingImageService.getPrimaryImageUrl(1L)).thenReturn(null);
+
+        PageResponse<BuildingResponse> result = buildingService.getAllBuildings(pageable);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void getBuildingsByInstitution_institutionExists_returnsBuildings() {
+        BuildingResponse resp = new BuildingResponse();
+        resp.setId(1L);
+        when(institutionRepository.existsById(1L)).thenReturn(true);
+        when(buildingRepository.findByInstitutionId(1L)).thenReturn(List.of(building));
+        when(buildingMapper.toResponseList(any())).thenReturn(List.of(resp));
+        when(buildingImageService.getPrimaryImageUrl(1L)).thenReturn(null);
+
+        List<BuildingResponse> result = buildingService.getBuildingsByInstitution(1L);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getBuildingsByInstitution_institutionNotFound_throwsException() {
+        when(institutionRepository.existsById(99L)).thenReturn(false);
+
+        assertThatThrownBy(() -> buildingService.getBuildingsByInstitution(99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("99");
+    }
+
+    @Test
+    void createBuilding_withCoordinates_setsLatitudeLongitude() {
+        buildingRequest.setLatitude(51.5);
+        buildingRequest.setLongitude(-0.1);
+        buildingRequest.setPlaceId("ChIJdd4hrwug2EcRmSrV3Vo6llI");
+
+        when(institutionRepository.findAllById(any())).thenReturn(Collections.singletonList(institution));
+        when(buildingRepository.save(any(Building.class))).thenAnswer(inv -> {
+            Building b = inv.getArgument(0);
+            assertThat(b.getLatitude()).isNotNull();
+            assertThat(b.getLongitude()).isNotNull();
+            return building;
+        });
+        when(buildingMapper.toResponse(any(Building.class))).thenReturn(new BuildingResponse());
+
+        BuildingResponse response = buildingService.createBuilding(buildingRequest);
+
+        assertThat(response).isNotNull();
+    }
+
+    @Test
+    void updateBuilding_nullInstitutionIds_clearsInstitutions() {
+        building.setInstitutions(new HashSet<>(Collections.singletonList(institution)));
+        buildingRequest.setInstitutionIds(null);
+
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(buildingRepository.save(any(Building.class))).thenReturn(building);
+        when(buildingMapper.toResponse(any(Building.class))).thenReturn(new BuildingResponse());
+
+        buildingService.updateBuilding(1L, buildingRequest);
+
+        assertThat(building.getInstitutions()).isEmpty();
+        verify(buildingRepository).save(building);
     }
 }

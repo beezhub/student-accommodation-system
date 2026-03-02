@@ -249,8 +249,7 @@ class RoomServiceTest {
         room2.setBuilding(building);
 
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
-        when(roomRepository.existsByRoomNumberAndBuilding_Id("201", 1L)).thenReturn(false);
-        when(roomRepository.existsByRoomNumberAndBuilding_Id("202", 1L)).thenReturn(false);
+        when(roomRepository.findRoomNumbersByBuildingIdAndRoomNumberIn(eq(1L), anyCollection())).thenReturn(Set.of());
         when(roomRepository.save(any(Room.class))).thenReturn(room1, room2);
         when(roomMapper.toResponse(any(Room.class))).thenReturn(new RoomResponse());
 
@@ -283,7 +282,7 @@ class RoomServiceTest {
         request.setBuildingId(1L);
 
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
-        when(roomRepository.existsByRoomNumberAndBuilding_Id("101", 1L)).thenReturn(true);
+        when(roomRepository.findRoomNumbersByBuildingIdAndRoomNumberIn(eq(1L), anyCollection())).thenReturn(Set.of("101"));
 
         assertThatThrownBy(() -> roomService.createBulkRooms(List.of(request)))
                 .isInstanceOf(DuplicateResourceException.class)
@@ -310,10 +309,7 @@ class RoomServiceTest {
         savedRoom.setBuilding(building);
 
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
-        // Simulate: first item passes the DB check and is saved; on the second item the DB
-        // now reports the number as taken (as it would after the first save is flushed).
-        when(roomRepository.existsByRoomNumberAndBuilding_Id("101", 1L))
-                .thenReturn(false, true);
+        when(roomRepository.findRoomNumbersByBuildingIdAndRoomNumberIn(eq(1L), anyCollection())).thenReturn(Set.of());
         when(roomRepository.save(any(Room.class))).thenReturn(savedRoom);
         when(roomMapper.toResponse(any(Room.class))).thenReturn(new RoomResponse());
 
