@@ -229,6 +229,6 @@
 
   <!-- Document Viewer Modal -->
   @if (selectedDocument) {
-    <app-document-viewer [document]="selectedDocument" (close)="closeViewer()"></app-document-viewer>
+    <app-document-viewer [document]="selectedDocument" (viewerClosed)="closeViewer()"></app-document-viewer>
   }
 </div>

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -42,7 +42,9 @@ export interface RoomAttributes {
 export class BuildingAttributesService {
   private apiUrl = `${environment.apiUrl}/admin`;
 
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
+
+  constructor() {}
 
   getBuildingAttributes(buildingId: number): Observable<BuildingAttributes> {
     return this.http.get<BuildingAttributes>(`${this.apiUrl}/buildings/${buildingId}/attributes`);

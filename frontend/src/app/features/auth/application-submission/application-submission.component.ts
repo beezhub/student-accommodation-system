@@ -56,6 +56,7 @@ export class ApplicationSubmissionComponent implements OnInit {
   applicationForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   studentId: number | null = null;
   studentInstitutionId: number | null = null;
   institutionName = '';
@@ -129,14 +130,19 @@ export class ApplicationSubmissionComponent implements OnInit {
               const institutions = Array.isArray((response as any).content)
                 ? (response as any).content
                 : Array.isArray(response)
-                ? response
-                : [];
+                ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  response
+                : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  [];
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
               const institution = institutions.find(
                 (inst: any) => String(inst.id) === String(profile.institutionId)
               );
 
               if (institution) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 this.institutionName = institution.name;
               }
               // Load buildings after we know the institution

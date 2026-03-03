@@ -19,25 +19,26 @@ interface NavItem {
   selector: 'app-admin-sidebar',
   standalone: true,
   imports: [
-    CommonModule, 
-    RouterModule, 
-    MatSidenavModule, 
-    MatListModule, 
+    CommonModule,
+    RouterModule,
+    MatSidenavModule,
+    MatListModule,
     MatIconModule,
-    MatButtonModule
+    MatButtonModule,
   ],
   templateUrl: './admin-sidebar.component.html',
   styleUrls: ['./admin-sidebar.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminSidebarComponent {
   private breakpointObserver = inject(BreakpointObserver);
 
-  isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset)
-    .pipe(
-      map((result: any) => result.matches),
-      shareReplay()
-    );
+  isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset).pipe(
+    map((result: any) => result.matches),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    shareReplay()
+  );
 
   navItems: NavItem[] = [
     { path: '/admin', icon: 'dashboard', label: 'Dashboard' },
@@ -56,6 +57,6 @@ export class AdminSidebarComponent {
     { path: '/admin/document-types', icon: 'folder', label: 'Doc Types' },
     { path: '/admin/allocation-rules', icon: 'rule', label: 'Alloc. Rules' },
     { path: '/admin/activity-logs', icon: 'history', label: 'Activity Logs' },
-    { path: '/admin/settings', icon: 'settings', label: 'Settings' }
+    { path: '/admin/settings', icon: 'settings', label: 'Settings' },
   ];
 }

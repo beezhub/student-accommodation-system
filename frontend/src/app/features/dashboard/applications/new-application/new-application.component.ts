@@ -73,6 +73,7 @@ export class NewApplicationComponent implements OnInit {
   currentUser: any;
   studentId: number | null = null;
   studentInstitutionId: number | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   institutionName = '';
   buildings: BuildingResponse[] = [];
   submitError: ParsedError | null = null;
@@ -149,13 +150,18 @@ export class NewApplicationComponent implements OnInit {
                 ? response
                 : [];
 
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const institution = institutions.find(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (inst: any) => String(inst.id) === String(profile.institutionId)
               );
 
               if (institution) {
                 this.institutionName = institution.name;
               }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               // Load buildings after we know the institution
               this.loadBuildings();
               this.cdr.markForCheck();

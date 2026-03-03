@@ -13,7 +13,6 @@ import { DocumentTypeService } from '../../../core/services/document-type.servic
 import { DocumentType } from '../../../core/models/document-type.model';
 import {
   DocumentService,
-  FileValidationResult,
   isNoActiveApplicationError,
 } from '../../../core/services/document.service';
 import { ApplicationService } from '../../../core/services/application.service';

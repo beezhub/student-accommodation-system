@@ -107,6 +107,8 @@ describe('AuthService', () => {
     it('signup_validData_storesTokenAndUser', () => {
       const signupData: any = {
         firstName: 'John',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         lastName: 'Doe',
         email: 'john@example.com',
         password: 'Password1!',
@@ -127,7 +129,9 @@ describe('AuthService', () => {
     it('signup_success_initializesNotifications', () => {
       service.signup({} as any).subscribe();
       const req = httpMock.expectOne(`${apiUrl}/signup`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       req.flush({ token: 'test-token', user: mockUser });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(notificationServiceSpy.initializeNotifications).toHaveBeenCalled();
     });
   });
@@ -188,8 +192,10 @@ describe('AuthService', () => {
   describe('forgotPassword', () => {
     it('forgotPassword_sendsEmailToBackend', () => {
       let result: any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       service.forgotPassword('john@example.com').subscribe((r) => (result = r));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const req = httpMock.expectOne(`${apiUrl}/forgot-password`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({ email: 'john@example.com' });
@@ -201,9 +207,11 @@ describe('AuthService', () => {
 
   describe('verifyEmail', () => {
     it('verifyEmail_validToken_returnsSuccessMessage', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let result: any;
       service.verifyEmail('abc123').subscribe((r) => (result = r));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const req = httpMock.expectOne(`${apiUrl}/verify-email`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({ token: 'abc123' });

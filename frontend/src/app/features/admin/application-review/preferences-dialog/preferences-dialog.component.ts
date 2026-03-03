@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -358,10 +358,8 @@ export interface PreferencesDialogData {
   ],
 })
 export class PreferencesDialogComponent {
-  constructor(
-    public dialogRef: MatDialogRef<PreferencesDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: PreferencesDialogData
-  ) {}
+  dialogRef = inject<MatDialogRef<PreferencesDialogComponent>>(MatDialogRef);
+  data = inject<PreferencesDialogData>(MAT_DIALOG_DATA);
 
   formatDate(date: string | undefined): string {
     if (!date) return 'Not specified';

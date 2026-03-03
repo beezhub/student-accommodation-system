@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -55,6 +55,12 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
   ],
 })
 export class RoomManagementComponent implements OnInit {
+  private roomService = inject(RoomService);
+  private buildingService = inject(BuildingService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   rooms: RoomResponse[] = [];
   buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
@@ -80,13 +86,7 @@ export class RoomManagementComponent implements OnInit {
   // Selection model for bulk operations
   selection = new SelectionModel<RoomResponse>(true, []);
 
-  constructor(
-    private roomService: RoomService,
-    private buildingService: BuildingService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       roomNumber: [''],
       buildingId: [''],

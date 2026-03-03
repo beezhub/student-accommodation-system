@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -16,9 +16,9 @@ interface PageResponse<T> {
   providedIn: 'root',
 })
 export class AllocationRuleService {
-  private apiUrl = `${environment.apiUrl}/admin/allocation-rules`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/admin/allocation-rules`;
 
   getRulesForBuilding(buildingId: number | null): Observable<AllocationRule[]> {
     const params = buildingId !== null ? `?buildingId=${buildingId}&size=100` : '?size=100';

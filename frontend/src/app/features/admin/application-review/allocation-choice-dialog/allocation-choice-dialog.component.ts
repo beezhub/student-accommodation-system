@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -45,6 +45,15 @@ export interface AllocationChoiceDialogData {
   styleUrls: ['./allocation-choice-dialog.component.css'],
 })
 export class AllocationChoiceDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<AllocationChoiceDialogComponent>>(MatDialogRef);
+  data = inject<AllocationChoiceDialogData>(MAT_DIALOG_DATA);
+  private snackBar = inject(MatSnackBar);
+  private roomService = inject(RoomService);
+  private buildingService = inject(BuildingService);
+  private applicationService = inject(ApplicationService);
+  private stagedAllocationService = inject(StagedAllocationService);
+
   isLoading = false;
 
   // Room Selection State
@@ -59,16 +68,9 @@ export class AllocationChoiceDialogComponent implements OnInit {
   error: string | null = null;
   showEligibleOnly = true;
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<AllocationChoiceDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: AllocationChoiceDialogData,
-    private snackBar: MatSnackBar,
-    private roomService: RoomService,
-    private buildingService: BuildingService,
-    private applicationService: ApplicationService,
-    private stagedAllocationService: StagedAllocationService
-  ) {
+  constructor() {
+    const data = this.data;
+
     this.searchForm = this.fb.group({
       buildingId: [''],
       roomNumber: [''],

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -23,14 +23,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
   ],
 })
 export class EmailVerificationRequiredComponent {
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private snackBar = inject(MatSnackBar);
+
   isResending = false;
   currentUser = this.authService.currentUserValue;
 
-  constructor(
-    private router: Router,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     // If user is already verified, redirect to dashboard
     if (this.currentUser?.emailVerified === true) {
       this.router.navigate(['/dashboard']);

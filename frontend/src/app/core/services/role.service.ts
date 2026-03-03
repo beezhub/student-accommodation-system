@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 import { ROLE } from '../models/role.model';
 
@@ -10,7 +10,7 @@ import { ROLE } from '../models/role.model';
   providedIn: 'root',
 })
 export class RoleService {
-  constructor(private authService: AuthService) {}
+  private authService = inject(AuthService);
 
   /** Returns the current user's role string, or null if not logged in. */
   get currentRole(): string | null {
@@ -19,12 +19,18 @@ export class RoleService {
 
   /** True if the current user is a PLATFORM_ADMIN. */
   isPlatformAdmin(): boolean {
-    return this.currentRole?.toUpperCase() === ROLE.PLATFORM_ADMIN.toUpperCase() || this.currentRole?.toUpperCase() === ROLE.ADMIN.toUpperCase();
+    return (
+      this.currentRole?.toUpperCase() === ROLE.PLATFORM_ADMIN.toUpperCase() ||
+      this.currentRole?.toUpperCase() === ROLE.ADMIN.toUpperCase()
+    );
   }
 
   /** True if the current user is a BUILDING_OWNER. */
   isBuildingOwner(): boolean {
-    return this.currentRole?.toUpperCase() === ROLE.BUILDING_OWNER.toUpperCase() || this.currentRole?.toUpperCase() === ROLE.LANDLORD.toUpperCase();
+    return (
+      this.currentRole?.toUpperCase() === ROLE.BUILDING_OWNER.toUpperCase() ||
+      this.currentRole?.toUpperCase() === ROLE.LANDLORD.toUpperCase()
+    );
   }
 
   /** True if the current user is a BUILDING_STAFF. */
@@ -42,8 +48,6 @@ export class RoleService {
    * (PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF).
    */
   isAdmin(): boolean {
-    return (
-      this.isPlatformAdmin() || this.isBuildingOwner() || this.isBuildingStaff()
-    );
+    return this.isPlatformAdmin() || this.isBuildingOwner() || this.isBuildingStaff();
   }
 }

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -45,18 +45,20 @@ export interface AllocationRuleDialogData {
   styleUrls: ['./allocation-rule-dialog.component.css'],
 })
 export class AllocationRuleDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<AllocationRuleDialogComponent>>(MatDialogRef);
+  data = inject<AllocationRuleDialogData>(MAT_DIALOG_DATA);
+  private allocationRuleService = inject(AllocationRuleService);
+  private snackBar = inject(MatSnackBar);
+
   ruleForm: FormGroup;
   isEditMode = false;
   isSaving = false;
   weightsSum = 100;
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<AllocationRuleDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: AllocationRuleDialogData,
-    private allocationRuleService: AllocationRuleService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
+    const data = this.data;
+
     this.isEditMode = !!data.rule;
 
     this.ruleForm = this.fb.group(

@@ -1,7 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { debounceTime, switchMap, catchError, map } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 
 export interface NominatimResult {
   place_id: number;
@@ -30,9 +30,9 @@ export interface AddressSuggestion {
   providedIn: 'root',
 })
 export class NominatimService {
-  private readonly BASE_URL = 'https://nominatim.openstreetmap.org/search';
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private readonly BASE_URL = 'https://nominatim.openstreetmap.org/search';
 
   search(query: string): Observable<AddressSuggestion[]> {
     if (!query || query.trim().length < 3) {

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { CommonModule } from '@angular/common';
-import { Subject, of } from 'rxjs';
+import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 import {
   BuildingService,
@@ -509,6 +509,17 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
   ],
 })
 export class BuildingFormDialogComponent implements OnInit, OnDestroy {
+  private fb = inject(FormBuilder);
+  private buildingService = inject(BuildingService);
+  private institutionService = inject(InstitutionService);
+  private nominatimService = inject(NominatimService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<BuildingFormDialogComponent>>(MatDialogRef);
+  data = inject<{
+    mode: 'create' | 'edit';
+    building?: BuildingResponse;
+  }>(MAT_DIALOG_DATA);
+
   buildingForm: FormGroup;
   isSubmitting = false;
   institutions: Institution[] = [];
@@ -518,15 +529,7 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
 
-  constructor(
-    private fb: FormBuilder,
-    private buildingService: BuildingService,
-    private institutionService: InstitutionService,
-    private nominatimService: NominatimService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<BuildingFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { mode: 'create' | 'edit'; building?: BuildingResponse }
-  ) {
+  constructor() {
     this.buildingForm = this.fb.group({
       name: ['', Validators.required],
       address: [''],

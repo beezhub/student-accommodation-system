@@ -1,11 +1,11 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
 })
 export class EmailVerifiedGuard {
-  constructor(private router: Router) {}
+  private router = inject(Router);
 
   canActivate(): boolean {
     const currentUser = localStorage.getItem('currentUser');

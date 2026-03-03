@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -71,15 +71,17 @@ export interface AcceptOfferDialogData {
   ],
 })
 export class AcceptOfferDialogComponent {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<AcceptOfferDialogComponent>>(MatDialogRef);
+  data = inject<AcceptOfferDialogData>(MAT_DIALOG_DATA);
+
   form: FormGroup;
   minDate: Date;
   maxDate: Date;
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<AcceptOfferDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: AcceptOfferDialogData
-  ) {
+  constructor() {
+    const data = this.data;
+
     // Calculate dates based on when the room was offered (createdAt)
     const offerDate = new Date(data.allocation.createdAt);
     const today = new Date();

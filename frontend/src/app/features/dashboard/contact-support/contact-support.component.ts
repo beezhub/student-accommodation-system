@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -24,12 +24,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
   styleUrls: ['./contact-support.component.css'],
 })
 export class ContactSupportComponent {
+  private snackBar = inject(MatSnackBar);
+
   name = '';
   email = '';
   message = '';
   submitted = false;
-
-  constructor(private snackBar: MatSnackBar) {}
 
   submitForm() {
     this.submitted = true;

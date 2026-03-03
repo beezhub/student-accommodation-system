@@ -39,6 +39,7 @@ describe('NotificationService', () => {
     // Stub EventSource so SSE connection attempts don't fail in jsdom
     (window as any).EventSource = jasmine.createSpy('EventSource').and.returnValue({
       addEventListener: jasmine.createSpy(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       close: jasmine.createSpy(),
       onopen: null,
       onerror: null,
@@ -46,10 +47,7 @@ describe('NotificationService', () => {
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [
-        NotificationService,
-        { provide: TokenStorageService, useValue: tokenStorageSpy },
-      ],
+      providers: [NotificationService, { provide: TokenStorageService, useValue: tokenStorageSpy }],
     });
 
     service = TestBed.inject(NotificationService);
@@ -216,9 +214,13 @@ describe('NotificationService', () => {
       };
       service['eventSource'] = mockEventSource as any;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       service.stopNotifications();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect(mockEventSource.close).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(service['eventSource']).toBeUndefined();
     });
   });
@@ -232,12 +234,14 @@ describe('NotificationService', () => {
 
     it('initializeNotifications_withToken_connectsToSse', () => {
       tokenStorageSpy.getToken.and.returnValue('my-token');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       service.initializeNotifications();
       expect((window as any).EventSource).toHaveBeenCalled();
     });
   });
 
   describe('deleteNotification', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     it('deleteNotification_validId_deletesToNotificationEndpoint', () => {
       service.deleteNotification(1).subscribe();
 
@@ -247,7 +251,10 @@ describe('NotificationService', () => {
     });
 
     it('deleteNotification_success_removesNotificationFromSubject', () => {
-      service['notificationsSubject'].next([mockNotification, { ...mockNotification, id: 2, isRead: true }]);
+      service['notificationsSubject'].next([
+        mockNotification,
+        { ...mockNotification, id: 2, isRead: true },
+      ]);
       let notifs: Notification[] | undefined;
       service.notifications$.subscribe((n) => (notifs = n));
 

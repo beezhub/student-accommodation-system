@@ -8,10 +8,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
-import {
-  ApplicationService,
-  ApplicationFullDetails,
-} from '../../../../core/services/application.service';
+import { ApplicationService } from '../../../../core/services/application.service';
 import { AdminService, ApplicationResponse } from '../../../../core/services/admin.service';
 import { RoleService } from '../../../../core/services/role.service';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';

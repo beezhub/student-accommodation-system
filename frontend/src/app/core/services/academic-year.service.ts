@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -8,10 +8,10 @@ import { AcademicYear, AcademicYearRequest } from '../models/academic-year.model
   providedIn: 'root',
 })
 export class AcademicYearService {
+  private http = inject(HttpClient);
+
   private apiUrl = `${environment.apiUrl}/academic-years`;
   private currentYearCache: AcademicYear | null = null;
-
-  constructor(private http: HttpClient) {}
 
   /**
    * Get all academic years

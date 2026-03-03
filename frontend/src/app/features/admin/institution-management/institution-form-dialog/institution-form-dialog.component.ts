@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -33,18 +33,20 @@ import { MatIconModule } from '@angular/material/icon';
   ],
 })
 export class InstitutionFormDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private institutionService = inject(InstitutionService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<InstitutionFormDialogComponent>>(MatDialogRef);
+  data = inject(MAT_DIALOG_DATA);
+
   institutionForm: FormGroup;
   isLoading = false;
   mode: 'create' | 'edit';
   institution?: InstitutionResponse;
 
-  constructor(
-    private fb: FormBuilder,
-    private institutionService: InstitutionService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<InstitutionFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {
+  constructor() {
+    const data = this.data;
+
     this.mode = data.mode;
     this.institution = data.institution;
 

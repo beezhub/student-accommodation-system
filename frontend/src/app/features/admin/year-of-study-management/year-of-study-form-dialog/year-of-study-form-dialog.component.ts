@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import {
   AbstractControl,
@@ -98,18 +98,20 @@ function numericYearValidator(control: AbstractControl): ValidationErrors | null
   ],
 })
 export class YearOfStudyFormDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private yearOfStudyService = inject(YearOfStudyService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<YearOfStudyFormDialogComponent>>(MatDialogRef);
+  data = inject(MAT_DIALOG_DATA);
+
   yearOfStudyForm: FormGroup;
   isLoading = false;
   mode: 'create' | 'edit';
   yearOfStudy?: YearOfStudyResponse;
 
-  constructor(
-    private fb: FormBuilder,
-    private yearOfStudyService: YearOfStudyService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<YearOfStudyFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {
+  constructor() {
+    const data = this.data;
+
     this.mode = data.mode;
     this.yearOfStudy = data.yearOfStudy;
 

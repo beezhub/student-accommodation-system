@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -7,9 +7,9 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root',
 })
 export class SystemSettingsService {
-  private apiUrl = `${environment.apiUrl}/admin/system-settings`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/admin/system-settings`;
 
   getSettings(): Observable<Record<string, string>> {
     return this.http.get<Record<string, string>>(this.apiUrl);

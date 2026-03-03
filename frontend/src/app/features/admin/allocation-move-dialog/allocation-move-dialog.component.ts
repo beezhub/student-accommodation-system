@@ -1,6 +1,6 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -49,6 +49,14 @@ export interface AllocationMoveDialogData {
   styleUrls: ['./allocation-move-dialog.component.scss'],
 })
 export class AllocationMoveDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<AllocationMoveDialogComponent>>(MatDialogRef);
+  data = inject<AllocationMoveDialogData>(MAT_DIALOG_DATA);
+  private roomService = inject(RoomService);
+  private buildingService = inject(BuildingService);
+  private stagedAllocationService = inject(StagedAllocationService);
+  private snackBar = inject(MatSnackBar);
+
   searchForm: FormGroup;
 
   buildings: BuildingResponse[] = [];
@@ -60,15 +68,7 @@ export class AllocationMoveDialogComponent implements OnInit {
 
   displayedColumns: string[] = ['roomNumber', 'building', 'capacity', 'actions'];
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<AllocationMoveDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: AllocationMoveDialogData,
-    private roomService: RoomService,
-    private buildingService: BuildingService,
-    private stagedAllocationService: StagedAllocationService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.searchForm = this.fb.group({
       buildingId: [''],
       roomNumber: [''],
@@ -138,7 +138,7 @@ export class AllocationMoveDialogComponent implements OnInit {
     this.stagedAllocationService
       .moveStudent(this.data.allocationId, this.selectedRoom.roomId, 'Manual Move')
       .subscribe({
-        next: (result) => {
+        next: () => {
           this.snackBar.open('Student moved successfully', 'Close', { duration: 3000 });
           this.dialogRef.close(true);
         },

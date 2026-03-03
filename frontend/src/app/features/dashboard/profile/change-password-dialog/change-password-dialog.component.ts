@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
 import {
   FormBuilder,
@@ -353,6 +353,10 @@ import { AuthService } from '../../../../core/services/auth.service';
   ],
 })
 export class ChangePasswordDialogComponent {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<ChangePasswordDialogComponent>>(MatDialogRef);
+  private authService = inject(AuthService);
+
   passwordForm: FormGroup;
   hideCurrentPassword = true;
   hideNewPassword = true;
@@ -360,11 +364,7 @@ export class ChangePasswordDialogComponent {
   isSubmitting = false;
   errorMessage = '';
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<ChangePasswordDialogComponent>,
-    private authService: AuthService
-  ) {
+  constructor() {
     this.passwordForm = this.fb.group(
       {
         currentPassword: ['', Validators.required],

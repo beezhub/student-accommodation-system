@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -28,17 +28,16 @@ import { MatDividerModule } from '@angular/material/divider';
   ],
 })
 export class ApplicationConfirmationComponent implements OnInit {
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
+  private applicationService = inject(ApplicationService);
+
   currentUser: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   currentDate: Date = new Date();
   application: Application | null = null;
   applicationId: number | null = null;
-
-  constructor(
-    private router: Router,
-    private route: ActivatedRoute,
-    private authService: AuthService,
-    private applicationService: ApplicationService
-  ) {}
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;

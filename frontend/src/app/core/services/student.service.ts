@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -9,9 +9,10 @@ import { AuthService } from './auth.service';
   providedIn: 'root',
 })
 export class StudentService {
-  private apiUrl = `${environment.apiUrl}/student`;
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
 
-  constructor(private http: HttpClient, private authService: AuthService) {}
+  private apiUrl = `${environment.apiUrl}/student`;
 
   createStudentProfile(studentData: StudentRequest): Observable<StudentResponse> {
     return this.http.post<StudentResponse>(`${this.apiUrl}`, studentData);

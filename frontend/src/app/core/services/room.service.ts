@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -55,9 +55,9 @@ export interface PageResponse<T> {
   providedIn: 'root',
 })
 export class RoomService {
-  private apiUrl = `${environment.apiUrl}/room`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/room`;
 
   getAllRooms(page: number = 0, size: number = 20): Observable<PageResponse<RoomResponse>> {
     const params = new HttpParams().set('page', page.toString()).set('size', size.toString());

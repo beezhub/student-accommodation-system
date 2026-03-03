@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivityLogService } from '../../../core/services/activity-log.service';
@@ -45,6 +45,10 @@ import { MatChipsModule } from '@angular/material/chips';
   ],
 })
 export class ActivityLogsComponent implements OnInit {
+  private activityLogService = inject(ActivityLogService);
+  private fb = inject(FormBuilder);
+  private snackBar = inject(MatSnackBar);
+
   displayedColumns: string[] = [
     'timestamp',
     'user',
@@ -88,11 +92,7 @@ export class ActivityLogsComponent implements OnInit {
 
   userRoles: string[] = ['PLATFORM_ADMIN', 'BUILDING_OWNER', 'BUILDING_STAFF', 'STUDENT'];
 
-  constructor(
-    private activityLogService: ActivityLogService,
-    private fb: FormBuilder,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       userRole: [''],
       action: [''],

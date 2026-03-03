@@ -75,7 +75,9 @@ export class DashboardComponent implements OnInit {
   selectedDocument: any = null;
   currentApplication: Application | null = null;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isLoadingCurrentApplication = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   processing = false;
   readonly AllocationStatus = AllocationStatus;
 
@@ -86,6 +88,7 @@ export class DashboardComponent implements OnInit {
     { name: 'Student ID', date: '2024-01-15', status: 'Rejected' },
     { name: 'Proof of Enrollment', date: '2024-01-15', status: 'Pending' },
     { name: 'Passport', date: '2024-01-15', status: 'Verified' },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ];
 
   roomAllocation: RoomAllocationResponse | null = null;
@@ -239,6 +242,7 @@ export class DashboardComponent implements OnInit {
         .searchAllocations({
           status: 'DECLINED',
           page: 0,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           size: 100, // Should be enough to capture all declines
         })
         .subscribe({
@@ -346,6 +350,7 @@ export class DashboardComponent implements OnInit {
         return 'status-pending';
       case 'rejected':
         return 'status-rejected';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       case 'verified':
         return 'status-verified';
       default:

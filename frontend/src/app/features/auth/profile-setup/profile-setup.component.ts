@@ -52,6 +52,7 @@ export class ProfileSetupComponent implements OnInit {
   profileForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   institutions: Institution[] = [];
   yearsOfStudy: YearOfStudy[] = [];
 
@@ -85,7 +86,9 @@ export class ProfileSetupComponent implements OnInit {
         console.log('Institutions API response:', institutions);
         if (institutions && Array.isArray((institutions as any).content)) {
           this.institutions = (institutions as any).content;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } else if (Array.isArray(institutions)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.institutions = institutions;
         } else {
           this.institutions = [];
@@ -103,7 +106,9 @@ export class ProfileSetupComponent implements OnInit {
         if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
           this.yearsOfStudy = (yearOfStudy as any).content;
         } else if (Array.isArray(yearOfStudy)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.yearsOfStudy = yearOfStudy;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } else {
           this.yearsOfStudy = [];
         }

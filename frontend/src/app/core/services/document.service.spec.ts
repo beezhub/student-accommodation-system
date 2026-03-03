@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  HttpClientTestingModule,
-  HttpTestingController,
-} from '@angular/common/http/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { HttpEventType } from '@angular/common/http';
-import { DocumentService, FileValidationResult, isNoActiveApplicationError, UploadProgress } from './document.service';
+import {
+  DocumentService,
+  FileValidationResult,
+  isNoActiveApplicationError,
+  UploadProgress,
+} from './document.service';
 import { AuthService } from './auth.service';
 import { environment } from '../../../environments/environment';
 import { DocumentData } from '../models/document.model';
@@ -26,15 +28,19 @@ describe('DocumentService', () => {
 
   beforeEach(() => {
     authServiceSpy = jasmine.createSpyObj<AuthService>('AuthService', [], {
-      currentUserValue: { id: '42', firstName: 'J', lastName: 'D', email: 'j@d.com', profileCompleted: true, userRole: 'Student' },
+      currentUserValue: {
+        id: '42',
+        firstName: 'J',
+        lastName: 'D',
+        email: 'j@d.com',
+        profileCompleted: true,
+        userRole: 'Student',
+      },
     });
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [
-        DocumentService,
-        { provide: AuthService, useValue: authServiceSpy },
-      ],
+      providers: [DocumentService, { provide: AuthService, useValue: authServiceSpy }],
     });
 
     service = TestBed.inject(DocumentService);
@@ -207,12 +213,21 @@ describe('DocumentService', () => {
 
       // Simulate upload progress then response
       req.event({ type: HttpEventType.UploadProgress, loaded: 50, total: 100 });
-      req.event({ type: HttpEventType.Response, status: 200, statusText: 'OK', headers: req.request.headers, url: req.request.url, body: 'done' } as any);
+      req.event({
+        type: HttpEventType.Response,
+        status: 200,
+        statusText: 'OK',
+        headers: req.request.headers,
+        url: req.request.url,
+        body: 'done',
+      } as any);
 
       expect(results.length).toBeGreaterThan(0);
       expect(results.some((r) => r.status === 'progress')).toBeTrue();
     });
   });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
   describe('uploadMultipleDocumentsWithProgress', () => {
     it('uploadMultipleDocumentsWithProgress_postsToUploadMultipleEndpoint', () => {
@@ -227,7 +242,14 @@ describe('DocumentService', () => {
       expect(req.request.method).toBe('POST');
       expect(req.request.params.getAll('documentTypes')).toEqual(['1', '2']);
 
-      req.event({ type: HttpEventType.Response, status: 200, statusText: 'OK', headers: req.request.headers, url: req.request.url, body: {} } as any);
+      req.event({
+        type: HttpEventType.Response,
+        status: 200,
+        statusText: 'OK',
+        headers: req.request.headers,
+        url: req.request.url,
+        body: {},
+      } as any);
     });
   });
 });

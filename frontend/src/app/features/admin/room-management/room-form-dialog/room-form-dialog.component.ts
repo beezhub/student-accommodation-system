@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -365,21 +365,20 @@ import { BuildingResponse } from '../../../../core/services/building.service';
   ],
 })
 export class RoomFormDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private roomService = inject(RoomService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<RoomFormDialogComponent>>(MatDialogRef);
+  data = inject<{
+    mode: 'create' | 'edit';
+    room?: RoomResponse;
+    buildings: BuildingResponse[];
+  }>(MAT_DIALOG_DATA);
+
   roomForm: FormGroup;
   isSubmitting = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private roomService: RoomService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<RoomFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA)
-    public data: {
-      mode: 'create' | 'edit';
-      room?: RoomResponse;
-      buildings: BuildingResponse[];
-    }
-  ) {
+  constructor() {
     this.roomForm = this.fb.group({
       roomNumber: ['', Validators.required],
       buildingId: ['', Validators.required],

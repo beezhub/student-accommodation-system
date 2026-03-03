@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -51,6 +51,12 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
   ],
 })
 export class RoomAllocationComponent implements OnInit {
+  private allocationService = inject(RoomAllocationService);
+  private buildingService = inject(BuildingService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   allocations: RoomAllocationResponse[] = [];
   buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
@@ -81,13 +87,7 @@ export class RoomAllocationComponent implements OnInit {
     'CANCELLED',
   ];
 
-  constructor(
-    private allocationService: RoomAllocationService,
-    private buildingService: BuildingService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       studentName: [''],
       roomNumber: [''],

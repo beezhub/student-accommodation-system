@@ -33,8 +33,13 @@ import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-bad
   ],
 })
 export class DocumentViewerComponent implements OnInit {
+  private documentService = inject(DocumentService);
+  private sanitizer = inject(DomSanitizer);
+
   @Input() document: any;
-  @Output() close = new EventEmitter<void>();
+  @Output() viewerClosed = new EventEmitter<void>();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
   previewUrl: SafeResourceUrl | null = null;
   isLoadingPreview = false;
@@ -42,8 +47,6 @@ export class DocumentViewerComponent implements OnInit {
   fileType: 'pdf' | 'image' | 'unknown' = 'unknown';
 
   private readonly cdr = inject(ChangeDetectorRef);
-
-  constructor(private documentService: DocumentService, private sanitizer: DomSanitizer) {}
 
   ngOnInit() {
     this.loadDocumentPreview();
@@ -126,6 +129,7 @@ export class DocumentViewerComponent implements OnInit {
         URL.revokeObjectURL(url);
       }
     }
-    this.close.emit();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.viewerClosed.emit();
   }
 }

@@ -67,7 +67,16 @@ describe('YearOfStudyService', () => {
       expect(req.request.method).toBe('GET');
       expect(req.request.params.get('page')).toBe('0');
       expect(req.request.params.get('size')).toBe('100');
-      req.flush({ content: [mockYearOfStudy], pageNumber: 0, pageSize: 100, totalElements: 1, totalPages: 1, first: true, last: true, empty: false });
+      req.flush({
+        content: [mockYearOfStudy],
+        pageNumber: 0,
+        pageSize: 100,
+        totalElements: 1,
+        totalPages: 1,
+        first: true,
+        last: true,
+        empty: false,
+      });
 
       expect(result).toEqual([mockYearOfStudy]);
     });
@@ -75,7 +84,18 @@ describe('YearOfStudyService', () => {
     it('getYearsOfStudy_secondCall_returnsCachedResult', () => {
       // First call populates cache
       service.getYearsOfStudy().subscribe();
-      httpMock.expectOne((r) => r.url === apiUrl).flush({ content: [mockYearOfStudy], pageNumber: 0, pageSize: 100, totalElements: 1, totalPages: 1, first: true, last: true, empty: false });
+      httpMock
+        .expectOne((r) => r.url === apiUrl)
+        .flush({
+          content: [mockYearOfStudy],
+          pageNumber: 0,
+          pageSize: 100,
+          totalElements: 1,
+          totalPages: 1,
+          first: true,
+          last: true,
+          empty: false,
+        });
 
       // Second call should return cache — no HTTP request
       let result: YearOfStudy[] | undefined;
@@ -88,7 +108,18 @@ describe('YearOfStudyService', () => {
     it('getYearsOfStudy_afterClearCache_refetchesFromApi', () => {
       // Populate cache
       service.getYearsOfStudy().subscribe();
-      httpMock.expectOne((r) => r.url === apiUrl).flush({ content: [mockYearOfStudy], pageNumber: 0, pageSize: 100, totalElements: 1, totalPages: 1, first: true, last: true, empty: false });
+      httpMock
+        .expectOne((r) => r.url === apiUrl)
+        .flush({
+          content: [mockYearOfStudy],
+          pageNumber: 0,
+          pageSize: 100,
+          totalElements: 1,
+          totalPages: 1,
+          first: true,
+          last: true,
+          empty: false,
+        });
 
       // Clear cache
       service.clearCache();
@@ -96,7 +127,16 @@ describe('YearOfStudyService', () => {
       // Next call should hit the API
       service.getYearsOfStudy().subscribe();
       const req = httpMock.expectOne((r) => r.url === apiUrl);
-      req.flush({ content: [mockYearOfStudy], pageNumber: 0, pageSize: 100, totalElements: 1, totalPages: 1, first: true, last: true, empty: false });
+      req.flush({
+        content: [mockYearOfStudy],
+        pageNumber: 0,
+        pageSize: 100,
+        totalElements: 1,
+        totalPages: 1,
+        first: true,
+        last: true,
+        empty: false,
+      });
     });
   });
 
@@ -223,14 +263,34 @@ describe('YearOfStudyService', () => {
     it('clearCache_setsYearsCacheToNull', () => {
       // Populate cache
       service.getYearsOfStudy().subscribe();
-      httpMock.expectOne((r) => r.url === apiUrl).flush({ content: [mockYearOfStudy], pageNumber: 0, pageSize: 100, totalElements: 1, totalPages: 1, first: true, last: true, empty: false });
+      httpMock
+        .expectOne((r) => r.url === apiUrl)
+        .flush({
+          content: [mockYearOfStudy],
+          pageNumber: 0,
+          pageSize: 100,
+          totalElements: 1,
+          totalPages: 1,
+          first: true,
+          last: true,
+          empty: false,
+        });
 
       service.clearCache();
 
       // Next call should hit API
       service.getYearsOfStudy().subscribe();
       const req = httpMock.expectOne((r) => r.url === apiUrl);
-      req.flush({ content: [mockYearOfStudy], pageNumber: 0, pageSize: 100, totalElements: 1, totalPages: 1, first: true, last: true, empty: false });
+      req.flush({
+        content: [mockYearOfStudy],
+        pageNumber: 0,
+        pageSize: 100,
+        totalElements: 1,
+        totalPages: 1,
+        first: true,
+        last: true,
+        empty: false,
+      });
     });
   });
 });

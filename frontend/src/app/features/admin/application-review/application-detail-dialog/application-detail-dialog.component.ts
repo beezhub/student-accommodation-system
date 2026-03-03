@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -32,7 +32,7 @@ import {
   StudentProfile,
 } from '../../../../core/services/application.service';
 import { AdminService } from '../../../../core/services/admin.service';
-import { Application } from '../../../../core/models/application.model';
+
 import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-badge/modern-status-badge.component';
 import { DocumentCommentSectionComponent } from '../../../shared/components/document-comment-section/document-comment-section.component';
 import { TimeagoPipe } from '../../../../shared/pipes/timeago.pipe';
@@ -85,6 +85,15 @@ interface DocumentStatusChange {
   styleUrls: ['./application-detail-dialog.component.scss'],
 })
 export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
+  private fb = inject(FormBuilder);
+  private applicationService = inject(ApplicationService);
+  private adminService = inject(AdminService);
+  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+  dialogRef = inject<MatDialogRef<ApplicationDetailDialogComponent>>(MatDialogRef);
+  data = inject<ApplicationDetailDialogData>(MAT_DIALOG_DATA);
+  private sanitizer = inject(DomSanitizer);
+
   isLoading = true;
   isSaving = false;
   isRejecting = false;
@@ -116,16 +125,7 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   // Expanded comments section
   expandedCommentsId: number | null = null;
 
-  constructor(
-    private fb: FormBuilder,
-    private applicationService: ApplicationService,
-    private adminService: AdminService,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog,
-    public dialogRef: MatDialogRef<ApplicationDetailDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: ApplicationDetailDialogData,
-    private sanitizer: DomSanitizer
-  ) {
+  constructor() {
     this.rejectionForm = this.fb.group({
       reason: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500)]],
     });
@@ -190,6 +190,7 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
         return item;
       }
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }
 
   hasUnsavedChanges(): boolean {
@@ -323,7 +324,7 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
 
     this.isMovingToAllocation = true;
     this.applicationService.moveToAllocationPhase(this.data.applicationId).subscribe({
-      next: (updatedApp) => {
+      next: () => {
         this.snackBar.open('Application moved to allocation phase', 'Close', { duration: 3000 });
         this.isMovingToAllocation = false;
         this.dialogRef.close({

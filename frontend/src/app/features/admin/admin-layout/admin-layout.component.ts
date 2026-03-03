@@ -11,12 +11,14 @@ import { AdminSidebarComponent } from '../../../core/layout/admin-sidebar/admin-
       <router-outlet></router-outlet>
     </app-admin-sidebar>
   `,
-  styles: [`
-    :host {
-      display: block;
-      height: 100%;
-      width: 100%;
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+    `,
+  ],
 })
 export class AdminLayoutComponent {}

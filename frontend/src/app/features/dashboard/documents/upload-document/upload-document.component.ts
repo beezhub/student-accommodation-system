@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,12 +28,13 @@ import { AuthService } from '../../../../core/services/auth.service';
   styleUrls: ['./upload-document.component.css'],
 })
 export class UploadDocumentComponent {
-  @Output() close = new EventEmitter<void>();
+  @Output() modalClosed = new EventEmitter<void>();
   uploadForm: FormGroup;
   selectedFile: File | null = null;
   uploadError: string | null = null;
   isUploading = false;
   documents: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   documentTypes = [
     { value: 'student-id', viewValue: 'Student ID' },
     { value: 'passport', viewValue: 'Passport' },
@@ -45,7 +46,10 @@ export class UploadDocumentComponent {
     { value: 'other', viewValue: 'Other' },
   ];
 
-  constructor(private fb: FormBuilder, private authService: AuthService) {
+  private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
+
+  constructor() {
     this.uploadForm = this.fb.group({
       documentType: ['', Validators.required],
     });
@@ -55,7 +59,7 @@ export class UploadDocumentComponent {
     this.uploadForm.reset();
     this.selectedFile = null;
     this.uploadError = null;
-    this.close.emit();
+    this.modalClosed.emit();
   }
 
   onFileSelected(event: Event) {

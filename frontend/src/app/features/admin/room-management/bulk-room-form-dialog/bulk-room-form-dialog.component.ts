@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -366,20 +366,19 @@ import { BuildingResponse } from '../../../../core/services/building.service';
   ],
 })
 export class BulkRoomFormDialogComponent {
+  private fb = inject(FormBuilder);
+  private roomService = inject(RoomService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<BulkRoomFormDialogComponent>>(MatDialogRef);
+  data = inject<{
+    buildings: BuildingResponse[];
+  }>(MAT_DIALOG_DATA);
+
   bulkForm: FormGroup;
   isSubmitting = false;
   generatedRoomNumbers: string[] = [];
 
-  constructor(
-    private fb: FormBuilder,
-    private roomService: RoomService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<BulkRoomFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA)
-    public data: {
-      buildings: BuildingResponse[];
-    }
-  ) {
+  constructor() {
     this.bulkForm = this.fb.group({
       buildingId: ['', Validators.required],
       prefix: [''],

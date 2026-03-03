@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -127,11 +127,11 @@ export interface BulkStatusUpdateRequest {
   providedIn: 'root',
 })
 export class AdminService {
+  private http = inject(HttpClient);
+
   private userApiUrl = `${environment.apiUrl}/admin/users`;
   private applicationApiUrl = `${environment.apiUrl}/applications`;
   private documentApiUrl = `${environment.apiUrl}/documents`;
-
-  constructor(private http: HttpClient) {}
 
   // User Management
   createUser(userData: CreateUserRequest): Observable<AdminUser> {

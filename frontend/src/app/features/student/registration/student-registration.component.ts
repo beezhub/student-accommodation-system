@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -42,7 +42,10 @@ export class StudentRegistrationComponent {
   currentStep = 1;
   totalSteps = 3;
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+
+  constructor() {
     this.registrationForm = this.fb.group({
       // Personal Information
       firstName: ['', [Validators.required]],

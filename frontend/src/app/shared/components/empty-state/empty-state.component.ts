@@ -10,7 +10,7 @@ import { RouterModule } from '@angular/router';
   imports: [CommonModule, MatIconModule, MatButtonModule, RouterModule],
   templateUrl: './empty-state.component.html',
   styleUrls: ['./empty-state.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmptyStateComponent {
   @Input({ required: true }) icon!: string;

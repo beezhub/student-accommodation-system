@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,6 +31,11 @@ import { TimeagoPipe } from '../../../../shared/pipes/timeago.pipe';
   styleUrls: ['./document-comment-section.component.css'],
 })
 export class DocumentCommentSectionComponent implements OnInit, OnChanges {
+  private documentCommentService = inject(DocumentCommentService);
+  private authService = inject(AuthService);
+  private roleService = inject(RoleService);
+  private snackBar = inject(MatSnackBar);
+
   @Input() documentId!: number;
   @Input() prefillRejectionMessage = false;
 
@@ -43,13 +48,6 @@ export class DocumentCommentSectionComponent implements OnInit, OnChanges {
 
   private readonly DEFAULT_REJECTION_MESSAGE =
     'Your document has been rejected. Please review the requirements and submit a new document that meets the specified criteria.';
-
-  constructor(
-    private documentCommentService: DocumentCommentService,
-    private authService: AuthService,
-    private roleService: RoleService,
-    private snackBar: MatSnackBar
-  ) {}
 
   ngOnInit(): void {
     this.checkAdminStatus();

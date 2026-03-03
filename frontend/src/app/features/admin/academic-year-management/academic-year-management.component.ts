@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AcademicYearService } from '../../../core/services/academic-year.service';
@@ -39,17 +39,17 @@ import { MatChipsModule } from '@angular/material/chips';
   ],
 })
 export class AcademicYearManagementComponent implements OnInit {
+  private academicYearService = inject(AcademicYearService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   academicYears: AcademicYear[] = [];
   displayedColumns: string[] = ['name', 'dates', 'applicationWindow', 'status', 'actions'];
   isLoading = false;
   filterForm: FormGroup;
 
-  constructor(
-    private academicYearService: AcademicYearService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       name: [''],
     });

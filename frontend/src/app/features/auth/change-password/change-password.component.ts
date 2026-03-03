@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
@@ -32,6 +32,13 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class ChangePasswordComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
+  private roleService = inject(RoleService);
+  private snackBar = inject(MatSnackBar);
+
   changePasswordForm: FormGroup;
   isSubmitting = false;
   isForced = false;
@@ -39,14 +46,7 @@ export class ChangePasswordComponent implements OnInit {
   hideNewPassword = true;
   hideConfirmPassword = true;
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private route: ActivatedRoute,
-    private authService: AuthService,
-    private roleService: RoleService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.changePasswordForm = this.fb.group(
       {
         currentPassword: ['', [Validators.required]],
