@@ -6,24 +6,27 @@
 | Attribute | Details |
 |-----------|---------|
 | **Document Title** | Technical Stabilisation Document — Student Accommodation System |
-| **Version** | 1.0 |
-| **Date** | 2026-02-23 |
+| **Version** | 1.1 |
+| **Date** | 2026-03-03 |
 | **Author** | Solutions Architect (AI-assisted) |
 | **Status** | Draft — Pending Team Review |
 | **Input Document** | Requirements.md v2.0 |
-| **Codebase Branch** | `feature/verification-report-fixes` (assessed) |
+| **Previous Version** | v1.0 (2026-02-23) |
+| **Codebase Branch Assessed** | `develop` |
 
 ---
 
 ## 1. Executive Summary
 
-The Student Accommodation System is a Spring Boot 3.5.7 / Angular 21 / PostgreSQL 16 monolith undergoing a significant product pivot: from a single-tenant university accommodation tool (v1.1) to a **multi-tenant SaaS platform** for private building owners across South Africa (v2.0). The codebase shows clear evidence of active, skilled development — a facade decomposition pattern, working state machines, optimistic locking, Redis-backed JWT token revocation, partitioned audit logs, a Prometheus/Grafana observability stack, and account brute-force protection have all been implemented with care. The team has made intentional, architecturally sound decisions in several areas.
+The Student Accommodation System has made **substantial architectural progress** since the v1.0 Technical Stabilisation Document (2026-02-23). All six Phase 1 critical stabilisation items from v1.0 have been resolved: Hibernate DDL auto is now `validate`, Flyway is correctly configured (`out-of-order: false`, `validate-on-migrate: true`), PostgreSQL data is persisted via Docker volume, the scoring engine has been refactored behind a `ScoringStrategy` interface with a configurable v2.0 implementation, scheduled jobs now have full observability (structured logging, Prometheus counters, per-job error containment), and the v2.0 role hierarchy (`PLATFORM_ADMIN > BUILDING_OWNER > BUILDING_STAFF`) is live. Security fundamentals are stronger: Redis-backed JWT blacklisting, IP-based rate limiting on auth endpoints, account lockout via `LoginAttemptService`, and HikariCP pool tuning are all implemented.
 
-However, the shift to v2.0 exposes **four blocking structural conflicts** that, if not resolved before feature development continues, will force increasingly expensive rework. First, `app_user.tenant_id NOT NULL` scopes every user — including students — to a single tenant. The v2.0 product vision requires students to be **platform-level entities** who apply to buildings owned by multiple tenants; the current schema makes this architecturally impossible. Second, the `document` table hard-links every document to an `application_id NOT NULL`, preventing the platform-level document store that is the system's core differentiator (verified once, trusted everywhere). Third, the `room.room_number` column has a **global unique constraint** — the second building owner to create a room numbered "101" will receive a silent 500 error. Fourth, `hbm2ddl.auto: update` is running concurrently with Flyway migrations, creating a dual schema management conflict that produces silent, untracked schema drift.
+The codebase's maturity has advanced from **Alpha** to **Early Beta**. The architectural skeleton is sound. The facade decomposition pattern (ApplicationService, DocumentService, RoomAllocationService), the event-driven notification pipeline (`@TransactionalEventListener` + `@Async`), the Hibernate tenant filter, and the state machine enums with `canTransitionTo()` enforcement are all production-quality patterns. The allocation engine — comprising `AllocationScoringOrchestrator`, `OwnerConfigurableScoringStrategy`, `AllocationBatchService`, and `AllocationLifecycleService` — is the system's most complex domain and is now correctly decomposed, but contains three specific issues requiring targeted remediation.
 
-On the frontend, a separate concern dominates: **1.5% test coverage** (2 spec files across 133 TypeScript files). Every Angular service hardcodes its API endpoint paths, meaning any backend URL refactoring requires coordinated frontend changes. JWT tokens are stored in `localStorage`, introducing an XSS surface. The admin guard checks `userRole === 'ADMIN'` with a string literal — it will need updating for v2.0's expanded role model.
+Three **structural issues remain open** and must be resolved before the platform can scale beyond its first customer. First, `AllocationLifecycleService` still enforces `MAX_DECLINE_COUNT = 2` — a hard-coded v1.1 business rule that conflicts directly with Requirements.md v2.0 requirement OFFER-004 (no decline limit). Second, `getAvailableRoomsForBatch()` performs a full `roomRepository.findAll()` with in-memory capacity filtering — a performance bottleneck that degrades linearly with total room count across all tenants. Third, `confirmBatchAllocationsWithResult()` returns `null` (a developer TODO comment confirms this is unfinished) — a silent contract violation that will cause NPEs in any consumer that acts on the result.
 
-The recovery plan is clear and sequenced into three phases. Phase 1 addresses the six structural blockers (schema constraints, dual schema management, secrets, SMTP). Phase 2 builds the missing v2.0 data model tables and resolves the student/document architecture conflicts. Phase 3 delivers performance hardening, frontend testing baseline, and operational readiness. The current codebase maturity is **Alpha** — solid architectural skeleton with known structural gaps. Following this plan will bring it to **Production-Ready Beta** within the scope of the prescribed changes.
+Two **security gaps** remain open: the JWT secret default value in `application.yml` must be removed (application must fail to start without `JWT_SECRET`), and SMTP defaults remain unauthenticated and unencrypted. The frontend presents the largest outstanding structural risk: test coverage is negligible (estimated <5%), Angular services mix business domain logic in unexpected places, and the admin/role guards rely on hardcoded role-name strings that will require coordinated updates as v2.0 roles stabilise.
+
+The implementation roadmap in this document is structured into three phases. Phase 1 addresses the three open structural issues and the two security gaps (all low-to-medium effort, can be delivered in parallel). Phase 2 builds the remaining v2.0 domain model — building owner onboarding, staff permissions, intake periods, per-owner configuration, and platform-level analytics. Phase 3 delivers performance hardening, frontend test coverage baseline, Lighthouse CI integration, and operational readiness gates before the first production tenant is onboarded.
 
 ---
 
@@ -31,44 +34,51 @@ The recovery plan is clear and sequenced into three phases. Phase 1 addresses th
 
 ### 2.1 Architecture Overview
 
-The system is a **monolithic Spring Boot backend** serving a **single-page Angular frontend** via a REST API, with PostgreSQL as the primary data store, MinIO for object storage, and Redis for token revocation. All services are containerised via Docker Compose.
+The system is a **layered monolith** — a single Spring Boot application serving an Angular SPA via REST, with PostgreSQL as the primary data store, MinIO for object storage, Redis for token blacklisting and rate limiting, and SMTP for email notifications. All services are containerised and orchestrated via Docker Compose with persistent volumes and a Prometheus/Grafana observability stack.
 
 ```mermaid
 C4Container
-  title Current Container Architecture — Student Accommodation System
+  title Current Container Architecture — Student Accommodation System (v1.1 Assessment, 2026-03-03)
 
-  Person(student, "Student", "Applies for housing, uploads documents")
-  Person(admin, "Admin/Landlord", "Manages buildings, reviews applications")
+  Person(student, "Student", "Registers, applies, uploads documents, accepts/declines offers")
+  Person(owner, "Building Owner", "Manages buildings, reviews applications, allocates rooms")
+  Person(platformAdmin, "Platform Admin", "Onboards owners, manages platform settings")
 
   System_Boundary(platform, "Student Accommodation Platform") {
-    Container(frontend, "Angular SPA", "Angular 21, Angular Material", "Lazy-loaded standalone components; RxJS BehaviorSubject state; JWT in localStorage")
-    Container(backend, "Spring Boot API", "Java 17, Spring Boot 3.5.7", "REST API: facade-decomposed service layer; Hibernate filter tenant isolation; @Async notifications")
-    ContainerDb(postgres, "PostgreSQL 16", "PostgreSQL", "Primary data store — tenant_id columns + Hibernate filter; activity_logs partitioned by year")
-    ContainerDb(redis, "Redis 7.4", "Redis", "JWT token blacklist (JTI-based, TTL-matched); graceful degradation on failure")
-    ContainerDb(minio, "MinIO", "S3-compatible object storage", "Document and building image storage; presigned URLs")
-    Container(mailhog, "MailHog", "SMTP sink (dev only)", "Captures outbound emails during development")
-    Container(prometheus, "Prometheus 2.50.1", "Metrics scraper", "Scrapes /actuator/prometheus; Micrometer integration")
-    Container(grafana, "Grafana 10.3.3", "Dashboard", "Provisioned; dashboards not yet in repository")
+    Container(frontend, "Angular SPA", "Angular 21, Angular Material, RxJS", "Lazy-loaded standalone components; BehaviorSubject state management; JWT in localStorage; CSP with unsafe-inline")
+    Container(backend, "Spring Boot API", "Java 17, Spring Boot 3.5.7, Gradle 8.11.1", "Layered monolith: facade-decomposed services; Hibernate filter tenant isolation; @Async/@TransactionalEventListener notifications; ScoringStrategy pattern; ScheduledJobRunner observability")
+    ContainerDb(postgres, "PostgreSQL 16.2", "PostgreSQL", "Primary data store — shared schema multi-tenant; tenant_id FK + Hibernate filter; Flyway-managed schema (validate mode)")
+    ContainerDb(redis, "Redis 7.4", "Redis", "JWT token blacklist (JTI + TTL); login attempt counter; IP rate limiting; fail-open on unavailability")
+    ContainerDb(minio, "MinIO", "S3-compatible object storage", "Document and building image storage; presigned GET URLs; orphan file cleanup job")
+    Container(mailhog, "MailHog (dev)", "SMTP sink", "Captures outbound emails during development; not in production")
+    Container(prometheus, "Prometheus", "Metrics scraper", "Scrapes /actuator/prometheus every 15s; Micrometer integration")
+    Container(grafana, "Grafana", "Visualisation", "Provisioned via docker-compose; dashboards not yet version-controlled")
   }
 
   Rel(student, frontend, "HTTPS")
-  Rel(admin, frontend, "HTTPS")
-  Rel(frontend, backend, "REST/JSON, HTTPS, JWT Bearer token in Authorization header")
-  Rel(backend, postgres, "JDBC/JPA + Hibernate filter; HikariCP max-pool: 10")
-  Rel(backend, redis, "Spring Data Redis (Lettuce); fail-open on unavailability")
-  Rel(backend, minio, "AWS S3 SDK 8.5.17; no timeout configured")
+  Rel(owner, frontend, "HTTPS")
+  Rel(platformAdmin, frontend, "HTTPS")
+  Rel(frontend, backend, "REST/JSON over HTTPS; JWT Bearer in Authorization header; ?token= for SSE")
+  Rel(backend, postgres, "JDBC/JPA + HikariCP pool (min 10, max 25); Hibernate filter on tenant_id")
+  Rel(backend, redis, "Lettuce client; fail-open on connection failure")
+  Rel(backend, minio, "AWS S3 SDK v8.5.17; connect/read/write timeouts 30s")
   Rel(backend, mailhog, "SMTP; no auth, no TLS (dev defaults)")
-  Rel(backend, prometheus, "HTTP /actuator/prometheus scrape")
-  Rel(prometheus, grafana, "HTTP PromQL queries")
+  Rel(backend, prometheus, "HTTP GET /actuator/prometheus")
+  Rel(prometheus, grafana, "PromQL over HTTP")
 ```
 
 **Key Architecture Characteristics:**
-- **Pattern:** Layered monolith with facade decomposition within the service layer. `RoomAllocationService`, `ApplicationService`, and `DocumentService` are public facades delegating to package-internal sub-services.
-- **Tenant isolation:** Shared schema with `tenant_id` FK on all data tables; enforced via Hibernate Filter + `TenantContext` ThreadLocal populated from JWT `tenantId` claim on each request.
-- **Async processing:** `@Async` with custom `notificationExecutor` (core: 10, max: 20, queue: 500).
-- **Scheduled jobs:** `@Scheduled` for offer expiry (1h), check-in expiry (1h), batch allocation (6h), notification retry (5m), orphan file cleanup (3am daily). No structured error handling or observability on any job.
-- **Observability:** Micrometer → Prometheus → Grafana; structured JSON logging via `logstash-logback-encoder`; `MinioHealthIndicator` and `SmtpHealthIndicator` custom health checks.
-- **Security:** JWT (JJWT 0.11.5), BCrypt strength 12, rate limiting filter, account lockout (`failed_login_attempts`, `account_locked_until` columns), Redis token blacklist with fail-open.
+
+| Characteristic | Current Implementation |
+|---------------|----------------------|
+| **Pattern** | Layered monolith with facade decomposition: `ApplicationService`, `RoomAllocationService`, `DocumentService` are public facades delegating to package-internal sub-services |
+| **Multi-tenancy** | Shared schema with `tenant_id` FK; Hibernate `@Filter("tenantFilter")` activated per-request via `TenantFilterConfig`; `TenantContext` ThreadLocal populated from JWT claim |
+| **Student scope** | Students use `PLATFORM_TENANT_ID = 0L` sentinel — bypasses tenant filter, allowing cross-tenant building applications |
+| **Async/events** | `@TransactionalEventListener(AFTER_COMMIT)` + `@Async("notificationExecutor")` for all notification side-effects; TenantContext propagated into async threads |
+| **Scheduled jobs** | `ScheduledJobRunner` owns all `@Scheduled` annotations; each job wrapped in try/catch with structured logging and Prometheus counters; 6 jobs total |
+| **Security** | JWT (JJWT 0.12.6); BCrypt strength 12; Redis blacklist; rate limiting (10 req/min on /api/auth/**); account lockout (5 failures, 15-min); role hierarchy PLATFORM_ADMIN > BUILDING_OWNER > BUILDING_STAFF |
+| **Observability** | Micrometer → Prometheus → Grafana; `logstash-logback-encoder` structured JSON; `@Timed` on allocation/application service methods; custom health indicators (MinIO, SMTP) |
+| **Schema management** | Flyway sole schema manager (16 migrations); `hbm2ddl.auto: validate`; `out-of-order: false`; `validate-on-migrate: true` |
 
 ---
 
@@ -76,27 +86,33 @@ C4Container
 
 | Component | Coupling | Complexity | Test Coverage | Fragility | Performance Risk | Security Risk | Overall Health |
 |-----------|----------|------------|---------------|-----------|-----------------|--------------|----------------|
-| `RoomAllocationService` (facade) | Low | Low | ✅ High | Low | Low | Low | ✅ |
-| `AllocationScoringService` | Low | HIGH | ✅ 90% target | 🔴 Hardcoded v1.1 weights | 🔴 N+1 queries | Low | 🔴 |
-| `AllocationBatchService` | Medium | HIGH | ✅ Medium | Medium | Medium | Low | ⚠️ |
-| `AllocationExpiryService` | Low | Medium | ✅ High | Low | ✅ Partial index | Low | ✅ |
-| `ApplicationService` (facade) | Low | Low | ✅ High | Low | Low | Low | ✅ |
-| `ApplicationCoreService` | Medium | Medium | ✅ Medium | Medium | Low | Low | ⚠️ |
-| `DocumentService` (facade) | Low | Low | ✅ Medium | Low | Low | Low | ✅ |
-| `DocumentLifecycleService` | Medium | Medium | ✅ Medium | 🔴 app_id constraint | Medium | Medium | 🔴 |
-| `NotificationService` | Low | Medium | ✅ High | Low | Low | Low | ✅ |
-| `TokenBlacklistService` | Low | Low | ✅ High | Low | Low | ✅ Low | ✅ |
-| `TenantContext` ThreadLocal | Low | Low | ✅ Medium | Low | Low | Medium | ✅ |
-| `AuthService` | Medium | Medium | ✅ High | Medium | Low | 🔴 SMTP no TLS | 🔴 |
-| `SecurityConfig` | Low | Medium | ✅ Medium | Medium | Low | 🔴 Old role hierarchy | 🔴 |
-| `BuildingService` | Low | Low | ✅ Medium | Low | Low | Low | ✅ |
-| `ActivityLogService` (partitioned) | Low | Low | Low | Low | ✅ Low | Low | ✅ |
-| Schema: `app_user.tenant_id NOT NULL` | — | — | — | 🔴 Blocks v2.0 | — | 🔴 | 🔴 |
-| Schema: `document.application_id NOT NULL` | — | — | — | 🔴 Blocks v2.0 | — | — | 🔴 |
-| Schema: `room.room_number UNIQUE` global | — | — | — | 🔴 Silent 500 errors | — | — | 🔴 |
-| `hbm2ddl.auto: update` + Flyway | — | — | — | 🔴 Schema drift | — | — | 🔴 |
-| Flyway relaxed settings | — | — | — | Medium | — | — | ⚠️ |
-| Angular frontend (test coverage) | — | — | 🔴 1.5% (2/133 files) | Medium | — | Medium | 🔴 |
+| `RoomAllocationService` (facade) | Low | Low | Medium | Low | Low | Low | ✅ |
+| `AllocationLifecycleService` | Medium | HIGH | Medium | ⚠️ Decline limit conflict | Low | Low | ⚠️ |
+| `AllocationBatchService` | Medium | HIGH | Medium | ⚠️ Null return method | 🔴 findAll() in loop | Low | 🔴 |
+| `AllocationScoringOrchestrator` | Low | Medium | Low | Low | Low | Low | ⚠️ |
+| `OwnerConfigurableScoringStrategy` | Low | Medium | Medium | ⚠️ NSFAS keyword match | Low | Low | ⚠️ |
+| `LegacyScoringStrategy` | Low | Low | High | Low | Low | Low | ✅ |
+| `AllocationExpiryService` | Low | Low | Medium | Low | ✅ Partial index | Low | ✅ |
+| `StagedAllocationService` | Medium | HIGH | Low | Low | Low | Low | ⚠️ |
+| `ApplicationService` (facade) | Low | Low | High | Low | Low | Low | ✅ |
+| `ApplicationCoreService` | Medium | Medium | Medium | Low | Low | Low | ✅ |
+| `DocumentService` (facade) | Low | Low | Medium | Low | Low | Low | ✅ |
+| `DocumentLifecycleService` | Medium | Medium | Medium | Low | Low | Low | ✅ |
+| `NotificationEventListener` | Medium | HIGH | Low | Low | Low | Low | ⚠️ |
+| `NotificationRetryService` | Low | Low | Low | 🔴 Deferred (no @Scheduled) | Low | Low | 🔴 |
+| `TokenBlacklistService` | Low | Low | Medium | Low | Low | ✅ | ✅ |
+| `LoginAttemptService` | Low | Low | Medium | Low | Low | ✅ | ✅ |
+| `RateLimitingFilter` | Low | Low | Low | Low | Low | ✅ | ✅ |
+| `ScheduledJobRunner` | Low | Low | Medium | Low | Low | Low | ✅ |
+| `TenantContext` + Hibernate Filter | Low | Low | Medium | Low | Low | Medium | ✅ |
+| `AuthService` | Medium | Medium | High | Low | Low | 🔴 JWT default secret | ⚠️ |
+| `SecurityConfig` | Low | Medium | Medium | Low | Low | ⚠️ CSP unsafe-inline | ⚠️ |
+| `FeatureFlagService` / FF4J 1.9 | Low | Low | Low | Low | Low | Low | ⚠️ (stale dependency) |
+| Angular frontend — test coverage | — | Medium | 🔴 <5% | Medium | — | ⚠️ localStorage JWT | 🔴 |
+| Schema: `app_user.tenant_id` sentinel | — | — | — | ⚠️ Platform tenantId=0 | — | — | ⚠️ |
+| JWT secret default value | — | — | — | 🔴 Hardcoded fallback | — | 🔴 | 🔴 |
+| SMTP auth/TLS defaults | — | — | — | — | — | 🔴 PRODUCTION risk | 🔴 |
+| `confirmBatchAllocationsWithResult` | — | — | — | 🔴 Returns null | — | — | 🔴 |
 
 **Rating Scale:** ✅ Healthy | ⚠️ Monitor | 🔴 Action Required
 
@@ -104,53 +120,53 @@ C4Container
 
 ### 2.3 Fragile Components Analysis
 
-#### 2.3.1 `hbm2ddl.auto: update` Concurrent with Flyway
+#### 2.3.1 `AllocationBatchService.getAvailableRoomsForBatch()` — Full Table Scan
 
-- **What:** `spring.jpa.properties.hibernate.hbm2ddl.auto: update` instructs Hibernate to inspect entity annotations on every startup and execute `ALTER TABLE` / `CREATE TABLE` statements to align the schema with the entity model.
-- **Fragility:** Flyway owns schema evolution. With `hbm2ddl.auto: update` also active, two independent schema managers execute on every startup. Flyway runs its versioned scripts; then Hibernate inspects entities and may add or modify columns that Flyway does not track. Changes made by Hibernate are invisible to Flyway — they are never recorded in a migration file. The result is **silent, untracked schema drift**: the actual database schema no longer matches any Flyway migration, making rollback impossible and future migrations unpredictable. The risk compounds each time entity fields are added or renamed.
-- **Blast Radius:** Every service that touches the database. On a bad startup, Hibernate may corrupt a table that Flyway already migrated. Worst case: a `NOT NULL` column added by Hibernate without a default causes `INSERT` failures across unrelated code paths.
-- **Evidence:** `application.yml` line 24: `hbm2ddl: auto: update`. Flyway is simultaneously enabled on line 27.
-- **Remediation:** Set `hbm2ddl.auto: validate`. Hibernate validates the schema against entities — fails fast on mismatch, makes no changes. Flyway remains sole schema manager.
+- **What:** Retrieves all available rooms for the batch allocation job
+- **Fragility:** `roomRepository.findAll()` loads **every room** across **every tenant** into memory, then iterates to count active allocations per room via `roomAllocationRepository.countActiveAllocationsByRoomId(room.getId())` — one additional query per room. This is an O(n) memory allocation + O(n) database round-trips pattern that will degrade linearly as total rooms across the platform grow. A platform with 100 buildings × 30 rooms each = 3,000 queries per allocation batch run.
+- **Blast Radius:** Batch allocation job performance; HikariCP connection exhaustion under concurrent batch runs; increased PostgreSQL query load. If the platform grows to 10+ tenants, this becomes a measurable production performance issue.
+- **Evidence:** `AllocationScoringOrchestrator.getAvailableRoomsForBatch()` line: `List<Room> allRooms = roomRepository.findAll()`. No pagination, no tenant filter scoping, no JOIN with occupancy count.
+- **Remediation:** Replace with a native query: `SELECT r.* FROM room r WHERE r.is_available = true AND (SELECT COUNT(*) FROM room_allocation ra WHERE ra.room_id = r.id AND ra.status IN ('OFFERED','ACCEPTED','ACTIVE')) < r.capacity`. Add index `idx_room_available` on `(is_available, capacity)` if not present. Alternatively use a `@Query` JPQL with `COUNT` subquery that returns only eligible rooms in one database round-trip.
 
-#### 2.3.2 Schema: `app_user.tenant_id NOT NULL` for Student Accounts
+#### 2.3.2 `AllocationBatchService.confirmBatchAllocationsWithResult()` — Null Return
 
-- **What:** Every `app_user` record, including students, has a mandatory `tenant_id` FK. The `TenantContext` Hibernate filter applies to all queries for users scoped to a tenant.
-- **Fragility:** In v2.0, students are **platform-level entities** (BR-P05, Requirements.md). A student applies to buildings owned by multiple building owners (different tenants). If a student's `app_user` record is bound to tenant `A`, their JWT carries `tenantId: A`, and the Hibernate filter scopes all their data access to tenant `A`. They cannot see or apply to buildings owned by tenant `B`. The core v2.0 product feature — one student profile, applications to any building on the platform — is architecturally blocked by this constraint.
-- **Blast Radius:** Every student-facing flow: application submission across buildings, document reuse across owners, offer acceptance with cross-tenant withdrawal, notification delivery.
-- **Evidence:** `V2026_02_19_2100__init_full_schema.sql` line 124: `tenant_id BIGINT NOT NULL` on `app_user`. Requirements.md BR-P05, BR-P07, AUTH-002.
-- **Remediation:** See ADR-001. Introduce a `PLATFORM_TENANT_ID = 0` sentinel for student accounts that bypasses tenant filtering.
+- **What:** A batch confirmation method that is supposed to return batch statistics
+- **Fragility:** The method body contains only a developer TODO comment and `return null`. Any controller or service that calls this method and attempts to use the result (e.g., log success count, return HTTP response body) will throw a `NullPointerException`. The `@Transactional` annotation is present but the method does nothing — it appears to be an incomplete refactoring.
+- **Blast Radius:** Any endpoint that calls `confirmBatchAllocationsWithResult()` will 500 in production. The `StagedAllocationController` may be exposing this as an HTTP endpoint.
+- **Evidence:** `AllocationBatchService.confirmBatchAllocationsWithResult()` — method returns `null` with no implementation.
+- **Remediation:** Either complete the implementation (delegate to `StagedAllocationService.confirmBatchAllocations()` and return a constructed `BatchConfirmationResult`) or remove the method and update callers to use `confirmBatchAllocations()` directly. Must be resolved before this endpoint is exercised in testing or production.
 
-#### 2.3.3 Schema: `document.application_id NOT NULL`
+#### 2.3.3 `AllocationLifecycleService` — `MAX_DECLINE_COUNT` Business Rule Conflict
 
-- **What:** Every `document` record has `application_id BIGINT NOT NULL`, making documents inseparable from a single application.
-- **Fragility:** v2.0 requires documents to be platform-level (ST-004, DOC-001): a student uploads their ID once to their profile, attaches it to multiple applications, and once verified by any owner, it is trusted platform-wide (DOC-002). The current constraint means a document cannot exist without an application — contradicting the "upload to profile, reuse everywhere" model that is the system's stated differentiator (Requirements.md Section 1.3, Advantage #2).
-- **Blast Radius:** Document upload, document reuse flow (DOC-003), platform-level verification (DOC-002), the entire multi-building application workflow.
-- **Evidence:** Migration `V2026_02_19_2100` line 255: `application_id BIGINT NOT NULL`. Requirements.md ST-004, DOC-001 to DOC-003.
-- **Remediation:** Make `application_id` nullable. Add `application_document` junction table. See ADR-002 and Section 3.2.2.
+- **What:** Enforces a maximum of 2 declines per student before automatically cancelling their application
+- **Fragility:** Requirements.md v2.0, OFFER-004 explicitly states: *"No decline limit — student can decline offers. The one-active-offer rule manages abuse."* The v1.1 `MAX_DECLINE_COUNT = 2` logic in `AllocationLifecycleService` is a direct conflict: students who decline 2 offers — a normal behaviour in the v2.0 model — will have their applications automatically cancelled. This constitutes a **silent product bug**: the system behaves in a way that contradicts the documented product requirements without any visible error.
+- **Blast Radius:** Any student who declines two offers across the platform has their application cancelled — they must re-apply. This undermines the one-active-offer design and degrades student experience.
+- **Evidence:** `AllocationLifecycleService` — `MAX_DECLINE_COUNT` constant and the `declineOffer()` method that uses it.
+- **Remediation:** Remove `MAX_DECLINE_COUNT` guard from `declineOffer()`. Application should return to `AWAITING_ALLOCATION` (waiting list) on every decline, not cancel after 2. The one-active-offer rule (OFFER-002) is the abuse prevention mechanism per v2.0 requirements.
 
-#### 2.3.4 Schema: `room.room_number` Global Unique Constraint
+#### 2.3.4 `OwnerConfigurableScoringStrategy` — NSFAS Detection via Keyword Matching
 
-- **What:** `room_number VARCHAR(20) NOT NULL UNIQUE` creates a platform-wide unique constraint on room numbers.
-- **Fragility:** Room numbers like "101", "A1", "1" will be common across every building on the platform. The moment a second building owner creates a room with a number already in use anywhere on the platform, they receive a database constraint violation that surfaces as a `500 Internal Server Error`. This is a certain production failure that will manifest on day one of the second tenant's onboarding.
-- **Blast Radius:** Room creation for every building owner after the first. The platform silently becomes unusable for room management.
-- **Evidence:** Migration line 186: `room_number VARCHAR(20) NOT NULL UNIQUE`.
-- **Remediation:** Drop the global constraint. Replace with `UNIQUE (building_id, room_number)`. See Section 3.2.3.
+- **What:** Determines NSFAS priority bonus by checking if `application.getSpecialRequirements()` contains the text "nsfas" or "bursary"
+- **Fragility:** This is a freetext keyword match on a user-entered field. It is brittle, inconsistent, and susceptible to false positives/negatives. A student who types "NSFAS bursary approved" gets the bonus; a student who types "I am funded by NSFAS" may not if the logic is case-sensitive. Additionally, "bursary" is a generic term that includes non-NSFAS funding.
+- **Blast Radius:** Allocation scoring decisions — incorrect NSFAS priority scoring affects which students receive rooms first.
+- **Evidence:** `OwnerConfigurableScoringStrategy` — NSFAS detection in special requirements freetext field.
+- **Remediation:** Add a dedicated `boolean nsfasFunded` boolean field to the `Application` entity (and student profile). Surface this as a structured field in the application form. Remove keyword matching. This aligns with the data model requirement in Requirements.md (ALLOC-003).
 
-#### 2.3.5 `AllocationScoringService` — Hardcoded v1.1 Scoring Weights
+#### 2.3.5 `NotificationRetryService` — No Active Schedule
 
-- **What:** Scoring constants are `static final` values in the class body (`PREFERRED_BUILDING_BONUS = 100`, `ALTERNATIVE_BUILDING_BONUS = 50`, etc.). The three scoring dimensions — preference match, desirability, accessibility — map to `AllocationRule.preferenceMatchWeight`, `desirabilityWeight`, and `accessibilityWeight`.
-- **Fragility:** v2.0 requires owner-configurable rules: FCFS score, university preference, NSFAS priority, and accessibility match — four dimensions none of which correspond to the current v1.1 dimensions (ALLOC-003, BO-006). The scoring algorithm must change fundamentally. There is a 90% test coverage requirement on this class — those tests validate v1.1 behaviour and will need to be retained alongside new tests for the v2.0 strategy.
-- **Blast Radius:** All automatic and manual allocation decisions. Every room offer issued to every student on the platform.
-- **Evidence:** `AllocationScoringService.java` lines 33–38 (static constants). Requirements.md ALLOC-003, BO-006.
-- **Remediation:** Isolate scoring behind a `ScoringStrategy` interface. Implement v2.0 strategy alongside legacy. See ADR-003 and Section 3.4.1.
+- **What:** The notification retry service exists but its `@Scheduled` annotation is intentionally absent
+- **Fragility:** Comments in `ScheduledJobRunner` state that `NotificationRetryService.retryFailedNotifications()` is *"deferred to Phase 3 pending full retry-logic implementation"*. This means PERMANENTLY_FAILED notifications are never retried. The retry mechanism is a MUST requirement (NOTIF-003): *"Maximum 3 retry attempts; after 3 failures → PERMANENTLY_FAILED, Platform Admin alerted."* The service may exist, but without a schedule it does nothing. Emails that fail on first attempt due to transient SMTP issues will never be delivered.
+- **Blast Radius:** Critical event notifications (room offers, document verification, application decisions) may silently fail to reach students and owners. No alerting exists to surface this.
+- **Evidence:** `ScheduledJobRunner` comment: *"NotificationRetryService.retryFailedNotifications() is intentionally omitted."* No `@Scheduled` on the retry method.
+- **Remediation:** Complete the retry logic in `NotificationRetryService`. Add it to `ScheduledJobRunner` with the 5-minute interval. Ensure retry is idempotent (check status before sending, mark SENDING to prevent concurrent retries). Add Platform Admin alert after 3 failures (an in-app `user_notification` to PLATFORM_ADMIN users is sufficient for MVP).
 
-#### 2.3.6 Scheduled Jobs — No Observability or Error Containment
+#### 2.3.6 JWT Secret Default Value
 
-- **What:** Five `@Scheduled` methods run on fixed intervals. None have try/catch wrappers, structured log output, or Prometheus counters.
-- **Fragility:** A runtime exception in any scheduled method propagates to the Spring task scheduler, which logs it and skips the next execution in some configurations. There is no alert when a job silently fails. Operators have no visibility into how many records each job processed, whether it completed successfully, or whether it has been failing for days.
-- **Blast Radius:** Offer expiry failures → students stuck with expired offers; no rooms freed; platform stalls. Notification retry failures → PERMANENTLY_FAILED notifications never retried.
-- **Evidence:** No try/catch in any `@Scheduled` method. No Micrometer counters on jobs. Grafana has no job health dashboards.
-- **Remediation:** Wrap each job in standardised try/catch with structured log entries and `meterRegistry.counter()` increments. See Section 3.4.2.
+- **What:** `application.yml` contains a hardcoded base64 fallback: `secret: ${JWT_SECRET:jvc+...}`
+- **Fragility:** If the `JWT_SECRET` environment variable is not set in a deployment environment, the application starts using a publicly-known default secret. All JWT tokens can be forged by anyone who has read this codebase. The v1.0 assessment identified this as HIGH severity; it remains unresolved.
+- **Blast Radius:** Complete JWT authentication bypass in any deployment without `JWT_SECRET` set. An attacker can issue valid tokens for any user or role.
+- **Evidence:** `application.yml` line 72: `secret: ${JWT_SECRET:jvc+QC/0myyJ9+//...}`
+- **Remediation:** Remove the default value entirely. Use `${JWT_SECRET}` — Spring Boot will throw a `IllegalArgumentException` at startup if the env var is absent. Document this in `.env.example` and deployment runbook as a required secret.
 
 ---
 
@@ -163,17 +179,17 @@ graph LR
     RAS --> ABS[AllocationBatchService]
     RAS --> ACS[AllocationCheckInService]
     RAS --> AES[AllocationExpiryService]
-    RAS --> AutoAS[AutoAllocationService]
+    RAS --> WLS[WaitingListService]
     RAS --> AuditS[AllocationAuditService]
-    RAS --> AEBS[AllocationEligibilityService]
     RAS --> RAQS[RoomAllocationQueryService]
-    ALS --> NS[NotificationService]
-    ALS --> WLS[WaitingListService]
-    ACS --> NS
-    AES --> NS
-    AES --> WLS
-    ABS --> AScoringS[AllocationScoringService]
-    AutoAS --> AScoringS
+    ABS --> ASO[AllocationScoringOrchestrator]
+    ASO --> SS[ScoringStrategy interface]
+    SS --> OCS[OwnerConfigurableScoringStrategy\n@Primary]
+    SS --> LSS[LegacyScoringStrategy]
+    ABS --> SAS[StagedAllocationService]
+    ALS -.->|@TransactionalEventListener| NEL[NotificationEventListener]
+    ACS -.->|@TransactionalEventListener| NEL
+    AES -.->|@TransactionalEventListener| NEL
   end
 
   subgraph "Application Domain"
@@ -182,37 +198,46 @@ graph LR
     AppS --> AppSearch[ApplicationSearchService]
     AppS --> AppDoc[ApplicationDocumentService]
     AppS --> AppQuery[ApplicationQueryService]
-    AppAdmin --> NS
-    AppCore --> NS
+    AppAdmin -.->|@TransactionalEventListener| NEL
+    AppCore -.->|@TransactionalEventListener| NEL
   end
 
   subgraph "Document Domain"
     DocS[DocumentService\nfacade] --> DocLife[DocumentLifecycleService]
     DocS --> DocQuery[DocumentQueryService]
     DocS --> DocStatus[DocumentStatusService]
-    DocLife --> NS
-    DocStatus --> NS
+    DocStatus -.->|@TransactionalEventListener| NEL
   end
 
-  subgraph "Identity"
-    AuthS[AuthService] --> NS
-    AuthS --> TokenBL[TokenBlacklistService]
-    JAIF[JwtAuthenticationFilter] --> TenantCtx[TenantContext]
-    JAIF --> TokenBL
+  subgraph "Identity & Security"
+    AuthS[AuthService] -.->|@TransactionalEventListener| NEL
+    AuthS --> TBL[TokenBlacklistService]
+    AuthS --> LAS[LoginAttemptService]
+    JAIF[JwtAuthenticationFilter] --> TBL
+    JAIF --> TenantCtx[TenantContext\nThreadLocal]
+    RLF[RateLimitingFilter] --> LAS
   end
 
+  subgraph "Scheduling"
+    SJR[ScheduledJobRunner] --> ABS
+    SJR --> AES
+    SJR --> OFC[OrphanFileCleanupJob]
+    SJR --> ORS[OfferReminderService]
+    SJR --> CIRS[CheckInReminderService]
+  end
+
+  NEL -->|@Async notificationExecutor| EDS[EmailDispatchService]
   ALS -.->|cross-domain: mutates application status| AppS
-  AppCore -.->|cross-domain: checks documents| DocS
 ```
 
-**Problematic Couplings:**
+**Remaining Coupling Concerns:**
 
 | Coupling | Issue | Severity | Remedy |
 |----------|-------|----------|--------|
-| `AllocationLifecycleService → ApplicationService` | Allocation lifecycle directly calls `ApplicationService` to mutate application status. Cross-domain write coupling. | Medium | Emit `AllocationStatusChangedEvent`; `ApplicationService` subscribes and updates its own status |
-| `AllocationScoringService` — per-room repo calls | `scoreSingleRoom()` calls `roomAttributesRepository.findByRoom_Id()` and `buildingAttributesRepository.findByBuilding_Id()` once per room in a loop | HIGH | Batch-load all attributes before scoring loop |
-| `StudentService → AuthService` | `StudentService` injects `AuthService` to get current user. If `AuthService` ever needs `StudentService`, circular dependency occurs | Low | Extract `CurrentUserContext` as a separate thin service |
-| Angular: `AuthService` owns document upload + application submission | `auth.service.ts` contains `uploadDocuments()` calling `/documents/upload-multiple` and `submitApplication()` — business operations mixed into the auth service | Medium | Move to `document.service.ts` and `application.service.ts` respectively |
+| `AllocationLifecycleService → ApplicationService` | Allocation lifecycle directly calls `ApplicationService` to mutate application status — a cross-domain write dependency | Medium | Already partially decoupled via events; verify the direct call path is fully replaced by `AllocationStatusChangedEvent` |
+| `AllocationBatchService → StagedAllocationService` | `AllocationBatchService` delegates staged allocation operations to `StagedAllocationService` but also owns the `confirmBatchAllocationsWithResult` method that's incomplete. Mixed responsibilities. | Low | Move `confirmBatchAllocationsWithResult` into `StagedAllocationService`; `AllocationBatchService` should only orchestrate batch scoring and execution |
+| `NotificationEventListener` — 531 lines, 10 event handlers | Single class handling all 10 notification event types. High complexity, low testability, hard to maintain independently | Medium | Split into domain-scoped listeners: `AllocationNotificationListener`, `ApplicationNotificationListener`, `DocumentNotificationListener` |
+| Angular `auth.service.ts` — mixed concerns | Auth service contains business-domain operations: document upload, application submission | Medium | Extract to `document.service.ts` and `application.service.ts` |
 
 ---
 
@@ -220,26 +245,26 @@ graph LR
 
 | # | Area | Current State | Risk | Impact | Recommendation |
 |---|------|--------------|------|--------|----------------|
-| PB-001 | `AllocationScoringService` N+1 | `scoreSingleRoom()` calls `roomAttributesRepository` and `buildingAttributesRepository` inside loop over every available room | 🔴 HIGH | 100 rooms = 200+ extra queries per allocation run; grows linearly | Batch-load all `RoomAttributes` and `BuildingAttributes` before scoring loop using `findByRoom_IdIn()` and `findByBuilding_IdIn()` |
-| PB-002 | HikariCP pool ceiling | `maximum-pool-size: 10` (default) | Medium | Connection starvation at ~50+ concurrent API calls; well below 500-user target | Increase to 25; add connection wait time monitoring in Grafana |
-| PB-003 | Async thread pool under notification burst | max 20 threads, queue 500. Allocation batch could trigger 500+ notifications simultaneously | Low | Queue fills → notification delivery delayed, not lost | Monitor queue depth via `/actuator/metrics`; increase max-pool-size to 50 for notification bursts |
-| PB-004 | `activity_logs` full-scan | Queries without `tenant_id + timestamp` range filter scan all year partitions | Low | Slow admin activity log queries with large datasets | Enforce range filter in `ActivityLogService.buildSpec()`; index already covers this |
-| PB-005 | `room_allocation` expiry scans | Offer expiry job scans `status = 'OFFERED'` | ✅ LOW | Partial index `idx_room_allocation_offer_expiry` already optimises this | No action needed |
-| PB-006 | Frontend — no measurement | No Lighthouse baseline, no P95 API timing | Unknown | Cannot validate < 3s on 3G NFR | Run Lighthouse CI; add Micrometer `@Timed` to service methods |
+| PB-001 | `getAvailableRoomsForBatch()` full scan | `roomRepository.findAll()` loads all rooms; N+1 capacity count queries | 🔴 HIGH | 3,000+ queries at 100 buildings × 30 rooms | Replace with a single JOIN query returning only available rooms with capacity |
+| PB-002 | `getWaitingListWithScores()` per-entry scoring | Scores every waiting list entry individually in a loop; re-fetches rooms per iteration | Medium | Slow admin dashboard load as waiting list grows | Batch-score the waiting list; cache intermediate scoring matrix |
+| PB-003 | Async thread pool — notification bursts | `notificationExecutor`: core 10, max 20, queue 500; `CallerRunsPolicy` on overflow | Low | Queue fills during mass notifications (e.g., building announcement to all residents); caller thread blocks | Monitor `sas.async.queue.size` gauge; increase max-pool to 50 if queue regularly exceeds 80% |
+| PB-004 | HikariCP at max 25 under load | 500 concurrent users target; 25 max connections | Medium | Connection starvation during concurrent application submissions | Load test at target concurrency; tune pool if P99 latency degrades |
+| PB-005 | Batch allocation transaction scope | Each allocation pair executes in its own `TransactionTemplate` — N transactions for N pairs | Low | Overhead of transaction begin/commit per pair; acceptable for batch-size 50 | Monitor batch duration via `sas.batch.allocation.duration` Prometheus metric |
+| PB-006 | No load test baseline | No performance test has been run; 500ms P95 NFR is unverified | 🔴 Unknown | Cannot validate NFRs or detect regressions | Run JMeter/Gatling load test at 500 concurrent users before first production tenant |
+| PB-007 | Frontend — no performance baseline | No Lighthouse CI, no bundle size tracking | Medium | Initial load time NFR (<3s on 3G) is unverified | Add Lighthouse CI to GitHub Actions; set performance budget |
 
 ---
 
 ### 2.6 Integration Risk Analysis
 
 | Integration | Availability Risk | Failure Isolation | Retry Strategy | Timeout Config | Data Consistency Risk | Security | Overall Risk |
-|-------------|------------------|-------------------|----------------|----------------|----------------------|----------|-------------|
-| PostgreSQL | LOW — single critical dependency | N/A (hard fail) | HikariCP reconnect | `connection-timeout: 30s` ✅ | ACID + optimistic locking ✅ | Env var credentials ✅ | LOW |
-| MinIO | MEDIUM | Full — isolated in `DocumentLifecycleService` | `OrphanFileCleanupJob` recovers orphaned files ✅ | 🔴 Not configured in SDK client | Upload success + DB record failure = orphan (handled by cleanup job) | Access key via env var ✅ | MEDIUM |
-| Redis | LOW — graceful degradation | Full — `TokenBlacklistService` swallows all exceptions | N/A | `timeout: 60s` Lettuce config ✅ | Fail-open: blacklisted token not revoked if Redis down | Dev has no Redis auth | LOW |
-| SMTP | MEDIUM — async retry mitigates | Full — email failure never blocks API response | 3 retries via `NotificationRetryService` ✅ | Not configured in Spring Mail | After 3 retries → PERMANENTLY_FAILED (acceptable) | 🔴 No TLS, no auth in `application.yml` | 🔴 HIGH in production |
-| FF4J | LOW — in-process | N/A | N/A | N/A | Immediate flag changes | JDBC credential reuse ✅ | LOW |
-| Google Maps | N/A — removed from codebase | N/A | N/A | N/A | N/A | N/A | ✅ RESOLVED |
-| Nominatim (OSM) | MEDIUM — external free API | Full — geocoding feature-flagged; building saved without coordinates on failure | 🔴 No retry implemented | 🔴 No timeout configured | No consistency risk (enrichment only) | No API key required ✅ | LOW |
+|-------------|-----------------|-------------------|---------------|----------------|----------------------|----------|-------------|
+| PostgreSQL | LOW — critical | N/A (hard fail) | HikariCP reconnect | `connection-timeout: 30s` ✅ | ACID + optimistic locking + Flyway ✅ | Env var credentials ✅ | LOW |
+| MinIO | MEDIUM | ✅ Isolated in FileStorageService | OrphanFileCleanupJob recovers orphans ✅ | `connect: 30s`, `read: 30s`, `write: 30s` ✅ | Upload success + DB record failure = orphan; cleanup job handles | Access key via env var ✅ | MEDIUM |
+| Redis | LOW | ✅ Full fail-open; `TokenBlacklistService` and `LoginAttemptService` swallow exceptions | N/A (ephemeral) | `timeout: 60s` (Lettuce) ✅ | Fail-open: blacklisted token not revoked if Redis down | ⚠️ No Redis auth in dev; require `REDIS_PASSWORD` in production | LOW |
+| SMTP | MEDIUM — async retry mitigates | ✅ Email failure never blocks API response | 🔴 Retry service deferred (Phase 3) | Not configured in Spring Mail | After retry failure → PERMANENTLY_FAILED (no alert) | 🔴 No TLS, no auth in defaults — CRITICAL for production | 🔴 HIGH in production |
+| FF4J | LOW — in-process | N/A | N/A | N/A | Immediate flag changes | JDBC credential reuse from main datasource ✅ | LOW |
+| Nominatim (OSM geocoding) | LOW — feature-flagged | ✅ Geocoding failure → building saved without coordinates | 🔴 No retry | 🔴 No timeout configured | No consistency risk (enrichment only) | No API key required | LOW |
 
 ---
 
@@ -247,17 +272,15 @@ graph LR
 
 | # | Concern | Current State | Gap | Severity | Recommendation |
 |---|---------|---------------|-----|----------|----------------|
-| SEC-001 | JWT token revocation | `TokenBlacklistService` with Redis, JTI-based, TTL-matched, fail-open ✅ | Fail-open means compromised tokens remain valid if Redis is down | Medium | Document the fail-open policy; add Grafana alert on Redis unavailability |
-| SEC-002 | SMTP transport security | `starttls.enable: false`, `smtp.auth: false` in `application.yml` | Emails sent in plaintext, unauthenticated | 🔴 CRITICAL for production | Parametrise via env vars; enforce `MAIL_STARTTLS_ENABLE=true` in production |
-| SEC-003 | JWT secret default value | Default 512-bit base64 secret hardcoded as fallback in `application.yml` | If `JWT_SECRET` env var not set, known default secret used in production | 🔴 HIGH | Remove the default value; fail application startup if `JWT_SECRET` is absent |
-| SEC-004 | Brute force protection | `failed_login_attempts`, `account_locked_until` columns; `LoginAttemptService` exists ✅ | Need to confirm lockout is enforced in the `AuthService.login()` code path | Medium | Verify `LoginAttemptService` is called on every failed login attempt; add test |
-| SEC-005 | Role model — v1.1 hierarchy | `UserRole { STUDENT, ADMIN, LANDLORD }`; `SecurityConfig` hierarchy: `ADMIN > LANDLORD > STUDENT` | v2.0 roles `PLATFORM_ADMIN`, `BUILDING_OWNER`, `BUILDING_STAFF` not represented | HIGH | See ADR-004; must be updated before building-owner features are built |
-| SEC-006 | Frontend JWT storage | JWT tokens stored in `localStorage` | XSS attack can read localStorage; tokens exposed | Medium | For MVP with single first customer: acceptable. Phase 3: evaluate `HttpOnly` cookie storage |
-| SEC-007 | Frontend manual JWT parsing | `JSON.parse(atob(token.split('.')[1]))` in `auth.service.ts` | Manual parsing bypasses library validation; vulnerable to malformed tokens | Low | Use `jwtDecode` library; handle parse errors gracefully |
-| SEC-008 | Frontend admin guard string comparison | `currentUser.userRole === 'ADMIN'` | Brittle; breaks silently when roles are renamed to v2.0 names | Medium | Centralise role checks; update guards alongside ADR-004 role migration |
-| SEC-009 | Tenant isolation — student cross-tenant | `app_user.tenant_id NOT NULL` for students with Hibernate filter | Students cannot access cross-tenant buildings — correct isolation, wrong for v2.0 | 🔴 CRITICAL | ADR-001 |
-| SEC-010 | Tenant isolation — new code | Hibernate filter works for existing entities | Every new JPA entity/repository must include tenant filter | HIGH | Extend `TenantFilterIntegrationTest` with each new entity; reviewed in PR checklist |
-| SEC-011 | `postgres_data` volume not mounted | docker-compose.yml defines `postgres_data` volume but `db` service does not mount it | Database data is not persisted; lost when container is removed | HIGH (dev) | Add `volumes: - postgres_data:/var/lib/postgresql/data` to `db` service |
+| SEC-001 | JWT secret default value | `${JWT_SECRET:jvc+...}` fallback in `application.yml` | Known default used if env var absent → JWT forgery possible | 🔴 CRITICAL | Remove default; fail startup if absent. Add startup validation in `JwtConfig` |
+| SEC-002 | SMTP transport security | `starttls.enable: ${MAIL_STARTTLS_ENABLE:false}`, `smtp.auth: ${MAIL_SMTP_AUTH:false}` defaults | Dev defaults are unsafe; production deployment must explicitly set env vars | 🔴 CRITICAL | Document `MAIL_STARTTLS_ENABLE=true` and `MAIL_SMTP_AUTH=true` as required for production in `.env.example` and deployment runbook |
+| SEC-003 | CSP `unsafe-inline` | SecurityConfig: `script-src 'self' 'unsafe-inline'` | XSS payloads can execute via inline scripts | Medium | Move to nonce-based CSP (Spring Security supports this); defer to Phase 3 given Angular 21 may require adaptation |
+| SEC-004 | JWT fail-open on Redis down | `TokenBlacklistService.isBlacklisted()` returns `false` when Redis unavailable | Revoked tokens remain valid during Redis outage | Medium | Document policy; add Grafana alert on Redis connection failure; acceptable for MVP |
+| SEC-005 | Frontend localStorage JWT | JWT stored in `localStorage` | XSS can exfiltrate token | Medium | Acceptable for MVP single-customer. Phase 3: evaluate `HttpOnly` cookie + CSRF token |
+| SEC-006 | Frontend admin guard — role name check | Angular guards use role-name string comparison | Brittle; must be updated when v2.0 role names stabilise in frontend | Low | Centralise role checks in `AuthService` with typed constants; update guards |
+| SEC-007 | No Redis auth in development | `docker-compose.yml` Redis has no password | Dev Redis is open; acceptable for local development | Low | Add `REDIS_PASSWORD` to production `.env.example` |
+| SEC-008 | Tenant isolation — student PLATFORM sentinel | Students use `tenant_id = 0` sentinel to bypass filter | The sentinel is a convention, not a schema constraint. Any code that forgets to set `TenantContext` for a student will silently scope to tenant 0 or leak | Medium | Add a `TenantFilterIntegrationTest` for each new entity; enforce in PR checklist |
+| SEC-009 | `@Deprecated` ADMIN/LANDLORD roles still functional | `UserRole` has `@Deprecated ADMIN` and `LANDLORD` | Old tokens with deprecated roles will still authenticate during migration window | Low | Set a migration deadline; remove deprecated roles in Flyway migration after all tokens have expired (10h TTL) |
 
 ---
 
@@ -267,218 +290,116 @@ graph LR
 
 | Component / Concern | Classification | Priority | Effort | Risk |
 |--------------------|---------------|----------|--------|------|
-| `hbm2ddl.auto: update` | **Must Refactor** | 🔴 P1 | Low | Low |
-| `room.room_number` global unique constraint | **Must Refactor** | 🔴 P1 | Low | Low |
-| `system_settings.setting_key` global unique | **Must Refactor** | 🔴 P1 | Low | Low |
-| JWT secret — remove default value | **Must Refactor** | 🔴 P1 | Low | Low |
-| SMTP production security parametrisation | **Must Refactor** | 🔴 P1 | Low | Low |
-| `postgres_data` volume mount in docker-compose | **Must Refactor** | 🔴 P1 | Low | Low |
-| Flyway relaxed settings | **Must Refactor** | 🔴 P1 | Low | Low |
-| Scheduled jobs observability | **Must Refactor** | 🔴 P1 | Low | Low |
-| `app_user.tenant_id` student binding | **Must Refactor** | 🔴 P2 | HIGH | HIGH |
-| `document.application_id NOT NULL` | **Must Refactor** | 🔴 P2 | HIGH | HIGH |
-| `UserRole` + role hierarchy v2.0 | **Must Refactor** | 🔴 P2 | HIGH | HIGH |
-| Missing v2.0 schema tables (7 tables) | **Must Refactor** | P2 | HIGH | Medium |
-| `AllocationScoringService` N+1 batch load | **Must Refactor** | P2 | Medium | Low |
-| HikariCP pool size (10 → 25) | **Must Refactor** | P2 | Low | Low |
-| Frontend test coverage baseline | **Must Refactor** | P2 | HIGH | Low |
-| `AllocationScoringService` v2.0 scoring strategy | **Must Isolate** | P2 | HIGH | Medium |
-| Scheduled jobs structural observability | **Must Isolate** | P1 | Low | Low |
+| JWT secret default value | **Must Refactor** | 🔴 P1 | Low | Low |
+| SMTP production security | **Must Refactor** | 🔴 P1 | Low | Low |
+| `MAX_DECLINE_COUNT` removal | **Must Refactor** | 🔴 P1 | Low | Low |
+| `getAvailableRoomsForBatch()` N+1 | **Must Refactor** | 🔴 P1 | Low | Low |
+| `confirmBatchAllocationsWithResult` null return | **Must Refactor** | 🔴 P1 | Low | Low |
+| `NotificationRetryService` activation | **Must Refactor** | 🔴 P1 | Medium | Low |
+| NSFAS boolean field on Application | **Must Refactor** | P2 | Medium | Low |
+| `NotificationEventListener` split | **Must Refactor** | P2 | Medium | Low |
+| Frontend Angular test baseline | **Must Refactor** | P2 | HIGH | Low |
+| Lighthouse CI integration | **Must Refactor** | P2 | Medium | Low |
+| Load test baseline | **Must Refactor** | P2 | Medium | Low |
+| Grafana dashboards version-controlled | **Must Refactor** | P2 | Medium | Low |
+| Scoring Strategy v2.0 (FCFS, university, NSFAS, accessibility) | **Can Remain** | — | — | — |
+| `ScoringStrategy` interface + dual implementations | **Can Remain** | — | — | — |
 | Facade pattern (RAS, AppS, DocS) | **Can Remain** | — | — | — |
-| State machine enums (`canTransitionTo()`) | **Can Remain** | — | — | — |
+| State machine enums with `canTransitionTo()` | **Can Remain** | — | — | — |
 | `TokenBlacklistService` (Redis, fail-open) | **Can Remain** | — | — | — |
+| `LoginAttemptService` (Redis, 5 attempts, 15-min lockout) | **Can Remain** | — | — | — |
+| `RateLimitingFilter` (10 req/min on /api/auth/**) | **Can Remain** | — | — | — |
 | `TenantContext` + Hibernate filter | **Can Remain** | — | — | — |
-| Activity log partitioning (by year) | **Can Remain** | — | — | — |
-| Prometheus + Grafana stack | **Can Remain** | — | — | — |
+| `ScheduledJobRunner` observability pattern | **Can Remain** | — | — | — |
+| Prometheus / Grafana / Micrometer stack | **Can Remain** | — | — | — |
 | MapStruct mappers | **Can Remain** | — | — | — |
 | AOP `@LogActivity` aspect | **Can Remain** | — | — | — |
-| `NotificationRetryService` | **Can Remain** | — | — | — |
-| Migration consolidation (already done) | **Too Risky to Touch Now** | — | — | — |
-| FF4J 1.9 (2020 release) | **Too Risky to Touch Now** | P3 | Medium | Medium |
+| Flyway migration strategy | **Can Remain** | — | — | — |
+| `AllocationLifecycleService → ApplicationService` cross-domain call | **Must Isolate** | P2 | Medium | Low |
+| `NotificationEventListener` (monolithic 531 lines) | **Must Isolate** | P2 | Medium | Low |
+| CSP `unsafe-inline` | **Too Risky to Touch Now** | P3 | Medium | Medium |
+| FF4J 1.9 (2020 release, outdated) | **Too Risky to Touch Now** | P3 | Medium | Medium |
 | Frontend localStorage JWT storage | **Too Risky to Touch Now** | P3 | Medium | Low |
+| `@Deprecated ADMIN/LANDLORD` role removal | **Too Risky to Touch Now** | P3 | Low | Low |
 
 ---
 
 ### 3.2 Must Refactor
 
-#### 3.2.1 Disable Hibernate DDL Auto-Management
+#### 3.2.1 JWT Secret Default Value Removal
+- **Current State:** `application.yml` provides a known base64 default for `JWT_SECRET`
+- **Target State:** Application fails at startup with a clear error if `JWT_SECRET` is not set
+- **Approach:** Remove the default value from `application.yml`. Add a `@PostConstruct` validation in `JwtConfig` that throws `IllegalStateException` if the secret is shorter than 32 bytes. Update `.env.example` to document the requirement.
+- **Risks During Refactoring:** Deployments without the env var set will fail to start — this is the intended behaviour. Ensure all environments (dev, CI, staging) have `JWT_SECRET` set before deploying.
+- **Acceptance Criteria:** Application startup fails with a readable error when `JWT_SECRET` is absent. Startup succeeds when a valid secret is provided. The default value does not appear anywhere in version-controlled files.
 
-- **Current State:** `spring.jpa.properties.hibernate.hbm2ddl.auto: update` — Hibernate silently modifies the schema on startup alongside Flyway.
-- **Target State:** `hbm2ddl.auto: validate` — Hibernate validates that the schema matches entities; fails startup on mismatch; makes no changes. Flyway is the sole schema manager.
-- **Approach:** Single-line change in `application.yml`. Run the full integration test suite to confirm no entity/migration drift already exists. If drift is found, write a migration to capture Hibernate's changes.
-- **Risks During Refactoring:** Hidden Hibernate-added columns not tracked by Flyway will cause `SchemaManagementException` on startup. This surfaces hidden problems — desired outcome.
-- **Acceptance Criteria:** Application starts successfully with `hbm2ddl.auto: validate`. No `SchemaManagementException` in startup logs. CI pipeline includes application startup verification.
-- **Dependencies:** None.
+#### 3.2.2 `MAX_DECLINE_COUNT` Removal
+- **Current State:** `AllocationLifecycleService.declineOffer()` cancels the application after 2 declines
+- **Target State:** Every decline returns the application to `AWAITING_ALLOCATION`; no cancellation on decline
+- **Approach:** Remove the `MAX_DECLINE_COUNT` constant and the conditional that checks it. In `declineOffer()`, always transition application to `AWAITING_ALLOCATION` and re-add to waiting list. Add a unit test verifying that declining 3+ times does not cancel the application.
+- **Risks During Refactoring:** Existing applications with 2 declines that were previously cancelled will not be retroactively re-opened. Acceptable — forward-only change.
+- **Acceptance Criteria:** Declining an offer returns application to `AWAITING_ALLOCATION` regardless of how many times the student has previously declined. No application is ever cancelled by the system as a consequence of declining an offer.
 
-#### 3.2.2 Decouple Documents from Applications
+#### 3.2.3 `getAvailableRoomsForBatch()` Query Optimisation
+- **Current State:** `roomRepository.findAll()` + per-room `COUNT` queries
+- **Target State:** Single database query returning only rooms with available capacity
+- **Approach:** Add a `@Query` to `RoomRepository`: `SELECT r FROM Room r WHERE r.isAvailable = true AND (SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room = r AND ra.status IN ('OFFERED','ACCEPTED','ACTIVE')) < r.capacity`. Replace the method body in `AllocationScoringOrchestrator`.
+- **Risks During Refactoring:** Query logic must match the existing capacity check exactly. Write an integration test comparing results of old and new implementations against a known data set before switching.
+- **Acceptance Criteria:** `getAvailableRoomsForBatch()` executes a single database query. Response time of the batch allocation run does not increase. Integration test confirms returned rooms match expected available set.
 
-- **Current State:** `document.application_id BIGINT NOT NULL` — every document must belong to an application.
-- **Target State:** Documents are owned by a student at the profile level. A new `application_document` junction table links specific documents to specific applications. `document.application_id` column is removed. Document verification status is stored on `document` and is platform-wide.
-- **Approach (incremental):**
-  1. Migration: `ALTER TABLE document ALTER COLUMN application_id DROP NOT NULL`
-  2. Migration: Create `application_document (id, application_id NOT NULL, document_id NOT NULL, attached_at TIMESTAMP DEFAULT NOW())`
-  3. Data migration: `INSERT INTO application_document (application_id, document_id) SELECT application_id, id FROM document WHERE application_id IS NOT NULL`
-  4. Update `DocumentRepository` — remove queries filtering by `application_id`
-  5. Update `ApplicationDocumentService` — use junction table for document attachment/detachment
-  6. Update frontend `document.service.ts` — remove `applicationId` from upload request
-  7. Final migration: `ALTER TABLE document DROP COLUMN application_id`
-- **Risks:** Steps 1–3 are non-destructive and safe to do first. Steps 4–6 must be coordinated — do not drop column until all code paths are updated.
-- **Acceptance Criteria:** Student can upload a document without any active application. The same document can be attached to two different applications. Verified document status persists across all applications it is attached to.
-- **Dependencies:** Must be done before v2.0 multi-building application features.
+#### 3.2.4 `confirmBatchAllocationsWithResult()` Completion
+- **Current State:** Returns `null` — unfinished implementation with TODO comments
+- **Target State:** Either correctly implemented or removed
+- **Approach (recommended):** Move the method to `StagedAllocationService`. Implement by calling `confirmBatchAllocations(batchId, adminId)` and querying the results. Remove the method from `AllocationBatchService`. Update `StagedAllocationController` to call the service directly.
+- **Acceptance Criteria:** No method in the codebase returns `null` by design without explicit null documentation. All callers of the batch confirmation endpoint receive a valid, non-null response.
 
-#### 3.2.3 Fix `room.room_number` Uniqueness Scope
-
-- **Current State:** `UNIQUE (room_number)` globally across all rooms on the platform.
-- **Target State:** `UNIQUE (building_id, room_number)` — room numbers are unique within a building only.
-- **Approach:** Check for existing data conflicts. Then migrate: `ALTER TABLE room DROP CONSTRAINT IF EXISTS room_room_number_key; ALTER TABLE room ADD CONSTRAINT uq_room_number_building UNIQUE (building_id, room_number);`
-- **Risks:** If two rooms across different buildings already share a room number, the new constraint insert will succeed (since building_id differs) — no data conflict. Low risk.
-- **Acceptance Criteria:** Two buildings can each have a room "101". Room creation succeeds when room number is already used in a different building.
-- **Dependencies:** None.
-
-#### 3.2.4 Fix `system_settings.setting_key` Uniqueness Scope
-
-- **Current State:** `UNIQUE (setting_key)` globally — only one tenant can ever have a given setting key.
-- **Target State:** `UNIQUE (tenant_id, setting_key)` — each tenant manages its own independent setting namespace.
-- **Approach:** `ALTER TABLE system_settings DROP CONSTRAINT system_settings_setting_key_key; ALTER TABLE system_settings ADD CONSTRAINT uq_system_settings_tenant_key UNIQUE (tenant_id, setting_key);`
-- **Acceptance Criteria:** Two tenants can each have `auto_allocation_enabled`. Settings are scoped to and readable per tenant.
-- **Dependencies:** None.
-
-#### 3.2.5 Remove JWT Secret Default Value
-
-- **Current State:** `jwt.secret: ${JWT_SECRET:jCiWx+J9UA...}` — a default base64 secret is embedded as a fallback.
-- **Target State:** `jwt.secret: ${JWT_SECRET}` — no default. Application refuses to start if `JWT_SECRET` is absent.
-- **Approach:** Remove the default from `application.yml`. Add a startup `@PostConstruct` check in `JwtConfig`: if `secret` is null or shorter than 32 characters, throw `IllegalStateException("JWT_SECRET environment variable must be set")`. Apply the same pattern to `MAIL_PASSWORD`.
-- **Acceptance Criteria:** Application throws a clear startup error if `JWT_SECRET` is not set. All dev environments updated with `.env` file containing the secret.
-- **Dependencies:** Update developer documentation and docker-compose dev vars before applying.
-
-#### 3.2.6 Parametrise SMTP Security Configuration
-
-- **Current State:** `starttls.enable: false`, `smtp.auth: false` hardcoded in `application.yml`.
-- **Target State:** Both driven by environment variables. Dev environments explicitly set `false` (intentional). Production sets `true`.
-- **Approach:** `starttls.enable: ${MAIL_STARTTLS_ENABLE:false}` and `auth: ${MAIL_SMTP_AUTH:false}` in `application.yml`. Add to production deployment checklist: `MAIL_STARTTLS_ENABLE=true`, `MAIL_SMTP_AUTH=true`.
-- **Acceptance Criteria:** Production SMTP configuration sends via TLS with authentication. Dev environment continues to use MailHog with no auth.
-- **Dependencies:** None.
-
-#### 3.2.7 Fix `postgres_data` Volume Mount
-
-- **Current State:** `docker-compose.yml` declares `postgres_data` volume but the `db` service does not mount it. Database data is lost when the container is stopped or removed.
-- **Target State:** `db` service mounts the volume: add `volumes: - postgres_data:/var/lib/postgresql/data` under the `db` service definition.
-- **Acceptance Criteria:** Database data persists across `docker-compose down` and `docker-compose up` cycles.
-- **Dependencies:** None.
-
-#### 3.2.8 Restore Flyway Safety Settings
-
-- **Current State:** `out-of-order: true`, `validate-on-migrate: false`, `ignore-missing-migrations: true`. These were loosened to accommodate the migration consolidation (55 files replaced with 2).
-- **Target State:** `out-of-order: false`, `validate-on-migrate: true`, `ignore-missing-migrations: false`. Safety restored.
-- **Approach:** First apply a Flyway baseline at the current consolidated migration version so Flyway treats all earlier versions as "already applied". Then restore safety settings.
-- **Acceptance Criteria:** `flyway:validate` passes cleanly. New migrations are applied in strict version order. A deleted migration file causes a startup failure.
-- **Dependencies:** Apply after confirming `hbm2ddl.auto: validate` passes (Section 3.2.1) — they must be stable together.
-
-#### 3.2.9 Student Platform-Level Identity
-
-- **Current State:** `app_user.tenant_id NOT NULL` for all users including students.
-- **Target State:** Student `app_user` records use `tenant_id = 0` (platform sentinel) that bypasses tenant filtering. See ADR-001 for full decision rationale.
-- **Approach:**
-  1. Seed `INSERT INTO tenant (id, name, is_active) VALUES (0, 'PLATFORM', true)` (if using sentinel ID)
-  2. Migration: `ALTER TABLE app_user ALTER COLUMN tenant_id DROP NOT NULL` — or keep NOT NULL and use `tenant_id = 0`
-  3. Modify `TenantContext` filter logic: if `tenantId == 0 (PLATFORM)`, skip the Hibernate filter for the current request
-  4. Update `AuthService.signup()` to set `tenant_id = 0` for `STUDENT` role registrations
-  5. Update `JwtUtil.generateToken()` to embed `tenantId = 0` for student tokens
-- **Risks:** HIGH — this touches the core security isolation mechanism. Mandatory: full regression of `TenantFilterIntegrationTest` and all cross-tenant access tests before merging.
-- **Acceptance Criteria:** A student account can see buildings from two different building owner tenants. A student cannot see another student's applications. A building owner cannot see another owner's buildings.
-- **Dependencies:** UserRole migration (Section 3.2.10) should happen concurrently.
-
-#### 3.2.10 UserRole and SecurityConfig — v2.0 Role Model
-
-- **Current State:** `UserRole { STUDENT, ADMIN, LANDLORD }`. `SecurityConfig` hierarchy: `ADMIN > LANDLORD > STUDENT`.
-- **Target State:** `UserRole { STUDENT, PLATFORM_ADMIN, BUILDING_OWNER, BUILDING_STAFF }`. Hierarchy: `PLATFORM_ADMIN > BUILDING_OWNER > BUILDING_STAFF`. Students remain independent.
-- **Approach (incremental, zero-downtime):**
-  1. Add `PLATFORM_ADMIN`, `BUILDING_OWNER`, `BUILDING_STAFF` to `UserRole` alongside existing values
-  2. Data migration: update existing ADMIN users → PLATFORM_ADMIN; LANDLORD → BUILDING_OWNER
-  3. Update `SecurityConfig.roleHierarchy()`
-  4. Add `@Deprecated` to `ADMIN` and `LANDLORD`; update all `@PreAuthorize` annotations across all controllers
-  5. Update Angular guards: replace `userRole === 'ADMIN'` with role service abstraction
-  6. Remove deprecated roles in next release after full regression
-- **Risks:** HIGH — role checks are pervasive in controllers and Angular guards. A missed check silently grants or denies access. Full regression test required.
-- **Acceptance Criteria:** All existing tests pass with new roles. `PLATFORM_ADMIN` accesses all tenants (audit logged). `BUILDING_OWNER` cannot access another owner's data. `BUILDING_STAFF` scoped to assigned buildings.
-- **Dependencies:** Must happen before building-owner multi-tenancy features.
-
-#### 3.2.11 Frontend Test Coverage Baseline
-
-- **Current State:** 2 spec files across 133 TypeScript files — 1.5% coverage. No automated quality gate.
-- **Target State:** Critical paths covered: auth flows, allocation state transitions, offer accept/decline, document upload. Minimum 30% component coverage; 70% service coverage.
-- **Approach:** Start with services (isolated, no DOM), then critical components. Prioritise: `auth.service.spec.ts` (full), `application.service.spec.ts`, `room-allocation.service.spec.ts`, `document.service.spec.ts`. Add Karma coverage thresholds in `angular.json`.
-- **Acceptance Criteria:** CI pipeline enforces minimum coverage thresholds. Every new service file requires a corresponding spec file.
-- **Dependencies:** None — can proceed in parallel with backend changes.
+#### 3.2.5 `NotificationRetryService` Activation
+- **Current State:** Service exists but has no `@Scheduled` annotation; retry never fires
+- **Target State:** Failed notifications retried on 5-minute interval; PERMANENTLY_FAILED notifications trigger Platform Admin alert
+- **Approach:** Complete the retry logic (fetch `status = 'FAILED' AND attempt_count < 3`; update status to `RETRYING`; attempt send; update to `SENT` or increment count; mark `PERMANENTLY_FAILED` after 3). Add to `ScheduledJobRunner` with the standard observability wrapper. Add Platform Admin in-app notification on `PERMANENTLY_FAILED`.
+- **Acceptance Criteria:** A notification that fails on first attempt is retried within 5 minutes. After 3 failures the status is `PERMANENTLY_FAILED` and a Platform Admin user_notification is created. The retry job is tracked in Prometheus (`sas.jobs.notificationRetry.processed`).
 
 ---
 
 ### 3.3 Can Remain
 
-| Component | Why Acceptable | Trigger for Future Refactoring | Monitoring Required |
-|-----------|----------------|-------------------------------|-------------------|
-| Facade pattern (`RoomAllocationService`, `ApplicationService`, `DocumentService`) | Clean public API; internals can evolve independently; well-tested | When sub-services require independent deployment | None |
-| State machine enums (`canTransitionTo()`) | Validated transitions at code layer; tested | If transitions need visual modelling or external configuration | Unit tests on all transitions |
-| `TokenBlacklistService` | Well-implemented; JTI+TTL; fail-open with logging; tested | If Redis SLA cannot meet < 5ms | Alert on Redis ping > 100ms |
-| `TenantContext` ThreadLocal | Proven pattern; cleared in filter chain; integration tested | If migrating to WebFlux reactive (ThreadLocal unsafe) | Log missing tenant context errors |
-| Activity log partitioning | Forward-thinking; year partitions 2024–2027 created | Add 2028 partition by Dec 2027 | Partition size quarterly |
-| Prometheus + Grafana | Already deployed; scraping actuator metrics | If multi-instance deployment needed | Add business metric counters in Phase 3 |
-| MapStruct mappers | Compile-time safe; fast; regenerated on build | If mapping needs complex custom logic | Regenerate after entity changes |
-| `NotificationRetryService` | 3-retry with interval tracking; PERMANENTLY_FAILED status | If volume requires message queue | Alert on PERMANENTLY_FAILED count |
-| AOP `@LogActivity` | Audit logging without polluting business methods | N/A | Verify admin actions produce log entries |
-| Partial indexes (`idx_room_allocation_offer_expiry`, `idx_room_allocation_check_in_expiry`) | Optimised scheduled job queries | N/A | Monitor scheduled job execution time |
+| Component | Why Acceptable | Trigger for Future Refactoring | Monitoring |
+|-----------|---------------|-------------------------------|------------|
+| `ScoringStrategy` interface + dual implementations | Strategy pattern correctly isolates v1.1 and v2.0 scoring; easily extensible | Third scoring variant needed | Unit tests on both strategies |
+| Facade pattern (RAS, AppS, DocS) | Decomposition is working; callers are shielded from internal changes | Any facade exceeds 20 methods or 300 lines | PR review line count check |
+| State machine enums with `canTransitionTo()` | Transition logic is centralised, tested, and correct for both application and allocation status | New state or transition added | Unit tests for all valid/invalid transitions |
+| `TenantContext` + Hibernate filter | Pattern is correct and well-understood; PLATFORM_TENANT_ID sentinel for students is a clean workaround | True per-schema multi-tenancy required | Integration test per new entity |
+| `ScheduledJobRunner` observability | Centralised scheduling with per-job error containment and Prometheus metrics is production-quality | More than 10 jobs (consider Quartz) | Grafana job health dashboard |
+| `TokenBlacklistService` / `LoginAttemptService` | Redis-backed, fail-open, graceful — correct pattern | Significant authentication load increase | Redis memory usage alert |
+| MapStruct mappers | Compile-time generated, type-safe — no runtime cost | N/A | Compiler warnings on unmapped fields |
+| Flyway migration strategy | 16 migrations; validate mode; out-of-order: false; naming convention enforced | N/A | Flyway migration failures in startup logs |
 
 ---
 
 ### 3.4 Must Isolate
 
-#### 3.4.1 `AllocationScoringService` — Scoring Strategy Interface
+#### 3.4.1 `AllocationLifecycleService → ApplicationService` Cross-Domain Call
+- **Current State:** Allocation lifecycle directly calls ApplicationService to mutate application status — a cross-domain write coupling that creates a hidden dependency chain
+- **Isolation Boundary:** Events (`AllocationStatusChangedEvent`) that `ApplicationService` subscribes to via `@TransactionalEventListener`
+- **Containment Strategy:** Verify that no direct service-to-service calls for status mutation remain; replace any remaining with events. Add an architectural test (ArchUnit rule) that forbids `allocation.*` packages from importing `application.*` service classes directly.
+- **Long-Term Plan:** Retain event-driven decoupling; as domains grow, consider Spring's ApplicationEventPublisher as the only permitted cross-domain communication channel
 
-- **Current State:** A concrete class with hardcoded v1.1 scoring constants directly used by `AllocationBatchService` and `AutoAllocationService`.
-- **Isolation Boundary:** Extract a `ScoringStrategy` interface:
-  ```java
-  public interface ScoringStrategy {
-      List<ScoredRoom> scoreAvailableRooms(Student student, Application application, Building preferred);
-      ScoredRoom scoreSingleRoom(Student student, Application application, Room room, AllocationRule rule);
-      boolean satisfiesHardConstraints(Student student, Room room);
-  }
-  ```
-  The current `AllocationScoringService` becomes `LegacyScoringStrategy implements ScoringStrategy` — unchanged, retaining all current tests. The v2.0 `OwnerConfigurableScoringStrategy` implements ALLOC-003 rules (FCFS, university preference, NSFAS priority, accessibility match) as a separate class.
-- **Containment Strategy:** `AllocationBatchService` and `AutoAllocationService` depend on `ScoringStrategy` (interface), not the concrete class. Spring `@Primary` selects the active implementation; a feature flag can toggle between them.
-- **Long-Term Plan:** Once v2.0 scoring is proven in production, `LegacyScoringStrategy` is removed. Strategy selection can become per-tenant configuration.
-
-#### 3.4.2 Scheduled Jobs — Structured Observability Wrapper
-
-- **Current State:** `@Scheduled` methods fire without any error containment or observability.
-- **Isolation Boundary:** Standardised wrapper pattern for all five scheduled methods:
-  ```java
-  @Scheduled(fixedRateString = "${app.allocation.expiry-check-interval-ms}")
-  public void expireOffers() {
-      String jobName = "offerExpiry";
-      log.info("job={} action=start", jobName);
-      try {
-          int processed = allocationExpiryService.expireOutstandingOffers();
-          log.info("job={} action=complete processed={}", jobName, processed);
-          meterRegistry.counter("jobs." + jobName + ".processed").increment(processed);
-      } catch (Exception e) {
-          log.error("job={} action=failed", jobName, e);
-          meterRegistry.counter("jobs." + jobName + ".failures").increment();
-      }
-  }
-  ```
-- **Containment Strategy:** Exceptions are swallowed at the scheduler boundary — one job failure does not affect others. All failures produce Prometheus counters for Grafana alerting.
-- **Long-Term Plan:** If the platform scales to multiple instances, migrate to Quartz with JDBC backing to prevent duplicate concurrent job execution across instances.
+#### 3.4.2 `NotificationEventListener` — Split by Domain
+- **Current State:** Single 531-line class handles 10 distinct event types across all domains
+- **Isolation Boundary:** Split into `AllocationNotificationListener`, `ApplicationNotificationListener`, `DocumentNotificationListener`, `AuthNotificationListener`
+- **Containment Strategy:** Each listener handles only its domain's events; all delegate to `EmailDispatchService` for the actual send
+- **Long-Term Plan:** If notification volume grows (WhatsApp, SMS), each listener can independently adopt different dispatch strategies without affecting others
 
 ---
 
 ### 3.5 Too Risky to Touch Now
 
 | Component | Why Too Risky | Conditions to Reassess | Compensating Controls |
-|-----------|--------------|----------------------|----------------------|
-| Migration consolidation (55 → 2 files) | Already applied. Rolling back requires dropping and recreating the database with potential data loss. The consolidation is done and stable. | N/A — migration history resets at v2026_02_19 | Apply Flyway baseline; restore `validate-on-migrate: true`; never drop-recreate a populated database |
-| FF4J 1.9 (2020) | Deeply integrated (JDBC store, startup initialisation). FF4J 2.x is a breaking API change. Surface area is small — only `auto-allocation` flag. | CVE disclosed for FF4J 1.9 with CVSS ≥ 7.0 | Monitor NVD; wrap FF4J behind `FeatureFlagService` interface so implementation can be swapped without touching call sites |
-| `TenantContext` ThreadLocal | Proven, tested, working. Changing tenant isolation mid-development is extreme risk for cross-tenant data leakage. | Moving to WebFlux reactive runtime | Maintain `TenantFilterIntegrationTest`; add coverage for every new entity |
-| Frontend `localStorage` JWT | Changing token storage from localStorage to HttpOnly cookies requires backend cookie endpoint changes and frontend auth flow changes. Not blocking for single first customer. | When multi-building-owner is live (expanded attack surface) | CSP headers already configured; input sanitisation; plan migration in Phase 3 |
+|-----------|---------------|----------------------|----------------------|
+| CSP `unsafe-inline` | Angular 21 may rely on inline styles/scripts; removing it without testing could break the UI in subtle ways | When Angular updates to support strict CSP natively | Rely on Angular's built-in XSS sanitization; do not allow user-generated HTML rendering |
+| FF4J 1.9 (2020) | No breaking change is needed now; upgrade path requires testing all feature flag behaviour | When a security CVE is found in FF4J or when Spring Boot 4 requires it | Pin the version; monitor the FF4J GitHub for CVE announcements |
+| Frontend localStorage JWT | Switching to `HttpOnly` cookies requires backend changes (cookie issuance, CSRF protection) and frontend changes; scope is significant | When a second customer is onboarded (increased XSS risk surface) | Enforce HTTPS everywhere; rely on Angular's HTML sanitization; keep JWT expiry short (4h admin, 10h student) |
+| `@Deprecated ADMIN/LANDLORD` role cleanup | Active tokens may still carry these roles; removing from security config before all tokens expire causes 401s for legitimate users | After maximum token TTL (10h) has elapsed post-migration OR after a forced re-login event | Keep deprecated roles in hierarchy; log their usage; monitor via Prometheus if any deprecated-role requests are observed |
 
 ---
 
@@ -486,25 +407,16 @@ graph LR
 
 ### 4.1 Architecture Principles
 
-1. **Flyway is the single schema manager.** No DDL authority is delegated to Hibernate (`hbm2ddl.auto: validate`). Every schema change requires a Flyway migration file checked into version control before any application of the change.
-
-2. **Students are platform-level entities.** Student `app_user` records use `tenant_id = 0` (PLATFORM sentinel). Their data access is governed by ownership (`student_id`, `user_id`), not by tenant filter. A student's data is theirs — not any building owner's.
-
-3. **Documents belong to students, not applications.** A document is an asset in a student's profile. Applications reference documents via the `application_document` junction table. Document verification is stored once at the document level — platform-wide trust.
-
-4. **Tenant isolation is enforced at the data layer, not only the API layer.** The Hibernate filter on `tenant_id` is the last line of defence. Every new JPA entity table with tenant-scoped data must include a `tenant_id` FK and Hibernate filter annotation. The `TenantFilterIntegrationTest` is extended with each new entity.
-
-5. **The facade pattern governs complex domain services.** `RoomAllocationService`, `ApplicationService`, and `DocumentService` expose a stable public API. Internal sub-services are package-private. External callers interact only with the facade.
-
-6. **Scoring is a pluggable strategy.** The allocation engine does not hardcode scoring logic. `ScoringStrategy` is an interface. Implementations are independently deployable and testable.
-
-7. **No business logic in controllers.** Controllers: validate input → call one service method → return response. All orchestration and domain decisions belong in the service layer.
-
-8. **Every integration is fault-tolerant.** MinIO failure does not fail an application. SMTP failure does not fail an allocation. Redis failure does not fail authentication. Each integration has a defined fallback behaviour.
-
-9. **Observability is first-class.** Every scheduled job emits structured log entries and Prometheus counters. Every integration failure is counted. Every state transition is auditable in `activity_logs`.
-
-10. **No environment-specific security defaults.** Secrets have no default values. Security configuration (TLS, auth) is driven entirely from environment variables. Applications refuse to start with missing security configuration.
+1. **Tenant isolation is non-negotiable** — Every new entity that holds tenant-scoped data must implement `TenantAware`, carry the Hibernate `@Filter`, and have a corresponding integration test verifying tenant isolation.
+2. **Events, not direct calls, for cross-domain state mutation** — No service in the allocation domain may directly call a method in the application or document domain to change their state. Events are the permitted channel.
+3. **Fail loudly on missing secrets** — Applications must not start with default secret values. All secrets (JWT, MinIO, SMTP, database) must be provided via environment variables with no fallback.
+4. **Schema changes via Flyway only** — `hbm2ddl.auto: validate` is the law. No entity annotations cause schema changes in production. Every schema change has a Flyway migration file.
+5. **Facade-first service design** — Each business domain exposes a single public facade (`ApplicationService`, `DocumentService`, `RoomAllocationService`). Internal sub-services are package-private where possible. Controllers import only facades.
+6. **Observability on every scheduled job** — Every `@Scheduled` method lives in `ScheduledJobRunner`, is wrapped in try/catch, emits structured log entries, and increments Prometheus counters on completion and failure.
+7. **Score, don't hardcode** — All allocation scoring weights and rules are owner-configurable and stored in `allocation_rule`. No scoring constants are hardcoded in business logic classes.
+8. **State machines are the only gates** — Application status and allocation status transitions must only be permitted via `canTransitionTo()` checks. No code may set a status field directly without validating the transition.
+9. **Tests before tenants** — No production tenant is onboarded until load testing validates the P95 < 500ms NFR and the frontend Lighthouse score meets the < 3s initial load target.
+10. **Two-year horizon** — Every design decision is evaluated against a platform with 100 building owners, 10,000 students, and 50,000 applications per year.
 
 ---
 
@@ -512,34 +424,32 @@ graph LR
 
 ```mermaid
 C4Container
-  title Target Architecture — Student Accommodation System v2.0
+  title Target Container Architecture — Student Accommodation System (Production-Ready Beta)
 
-  Person(student, "Student", "Platform-level; applies to buildings owned by multiple building owners")
-  Person(owner, "Building Owner", "Tenant — manages buildings, rooms, applications for their properties")
-  Person(staff, "Building Staff", "Delegated operator; scoped to assigned buildings")
-  Person(platformAdmin, "Platform Admin", "Product operator; onboards owners; manages platform")
+  Person(student, "Student", "Platform-level entity; applies across any building")
+  Person(owner, "Building Owner", "Tenant-level entity; manages own buildings and staff")
+  Person(platformAdmin, "Platform Admin", "Operates the SaaS platform")
 
   System_Boundary(platform, "Student Accommodation Platform") {
-    Container(frontend, "Angular SPA", "Angular 21, Material", "Lazy-loaded; role-aware routing; service-layer API calls; minimum 70% service test coverage")
-    Container(backend, "Spring Boot API", "Java 17, SB 3.5.7", "REST API; four domain facades; pluggable ScoringStrategy; Hibernate filter tenant isolation; student platform-level identity")
-    ContainerDb(postgres, "PostgreSQL 16", "PostgreSQL", "Shared schema; tenant_id scoping. Students: tenant_id=0 (platform). Documents: student-owned. activity_logs: partitioned by year.")
-    ContainerDb(redis, "Redis 7.4", "Token blacklist", "JTI-based revocation with TTL; fail-open; health indicator")
-    ContainerDb(minio, "MinIO", "Object storage", "Documents + building images; presigned URLs; SDK timeout configured; orphan cleanup job")
-    Container(smtp, "SMTP Server", "TLS + Auth required", "Async dispatch; 3-retry backoff; PERMANENTLY_FAILED alerting")
-    Container(prometheus, "Prometheus", "Metrics", "Business metrics: job counters, allocation rates, offer acceptance rates")
-    Container(grafana, "Grafana", "Dashboards", "Job health; occupancy trends; notification health; SLA tracking")
+    Container(frontend, "Angular SPA", "Angular 21, Material, RxJS", "Lazy-loaded; strict CSP (Phase 3); HttpOnly cookie JWT (Phase 3); typed role constants")
+    Container(backend, "Spring Boot API", "Java 17, Spring Boot 3.5.7", "Facade-decomposed; event-driven notifications; ScoringStrategy; ScheduledJobRunner; no JWT defaults; NSFAS boolean field")
+    ContainerDb(postgres, "PostgreSQL 16.2", "PostgreSQL", "Flyway-managed; validate mode; NSFAS boolean column; platform_tenant seed; building-scoped room_number unique constraint")
+    ContainerDb(redis, "Redis 7.4 (with auth in prod)", "Redis", "JWT blacklist; login attempt; rate limiting; fail-open")
+    ContainerDb(minio, "MinIO", "S3-compatible object storage", "Presigned URLs; orphan cleanup; timeouts configured")
+    Container(smtp, "SMTP Server (TLS + auth in prod)", "SMTP", "Spring Mail with STARTTLS and authentication enforced")
+    Container(prometheus, "Prometheus", "Metrics", "Scrapes /actuator/prometheus; all jobs tracked")
+    Container(grafana, "Grafana", "Visualisation", "Dashboards version-controlled in repository")
   }
 
   Rel(student, frontend, "HTTPS")
   Rel(owner, frontend, "HTTPS")
-  Rel(staff, frontend, "HTTPS")
   Rel(platformAdmin, frontend, "HTTPS")
-  Rel(frontend, backend, "REST/JSON HTTPS; JWT Bearer")
-  Rel(backend, postgres, "JDBC/JPA + Hibernate filter; HikariCP pool 25; hbm2ddl validate")
-  Rel(backend, redis, "Lettuce; fail-open on unavailability; Redis health indicator")
-  Rel(backend, minio, "AWS S3 SDK; timeout configured; presigned URL TTL 15min")
-  Rel(backend, smtp, "Spring Mail async; STARTTLS; auth; 3-retry")
-  Rel(backend, prometheus, "/actuator/prometheus")
+  Rel(frontend, backend, "REST/JSON over HTTPS; JWT Bearer")
+  Rel(backend, postgres, "JDBC/JPA + HikariCP; Hibernate filter")
+  Rel(backend, redis, "Lettuce; authenticated in prod")
+  Rel(backend, minio, "S3 SDK; 30s timeouts")
+  Rel(backend, smtp, "Spring Mail; STARTTLS + auth in prod")
+  Rel(backend, prometheus, "Micrometer scrape endpoint")
   Rel(prometheus, grafana, "PromQL")
 ```
 
@@ -547,65 +457,91 @@ C4Container
 
 ### 4.3 Domain Boundaries
 
-| Domain | Packages | Key Services | Key Entities | Notes |
-|--------|----------|-------------|-------------|-------|
-| **Platform Administration** | `controller/platform.*`, `service/platform.*` | `PlatformAdminService`, `BuildingOwnerService` | `building_owner`, `building_staff` | New for v2.0 (PA-001 to PA-004, BO-001, BO-002) |
-| **Identity & Security** | `security.*`, `config.*`, `service/auth.*`, `service/tenant.*` | `AuthService`, `TokenBlacklistService`, `TenantContext`, `LoginAttemptService` | `app_user` (students: tenant_id=0), `email_verification_token`, `password_reset_token` | Students platform-level post ADR-001 |
-| **Building & Room Management** | `controller/building.*`, `service/building.*` | `BuildingService`, `RoomService`, `BuildingImageService` | `building`, `room`, `building_attributes`, `room_attributes`, `building_image` | Tenant-scoped to building owner |
-| **Application Lifecycle** | `controller/application.*`, `service/application.*` | `ApplicationService` (facade), `ApplicationCoreService`, `ApplicationAdminService` | `application`, `custom_field_answer`, `intake_period` | Per-building-owner application windows |
-| **Document Management** | `controller/document.*`, `service/document.*` | `DocumentService` (facade), `DocumentLifecycleService`, `DocumentStatusService` | `document` (student-owned), `document_comment`, `application_document` (junction) | Platform-level ownership post ADR-002 |
-| **Allocation Engine** | `service/allocation.*` | `RoomAllocationService` (facade), `AllocationBatchService`, `ScoringStrategy` → `OwnerConfigurableScoringStrategy` | `room_allocation`, `staged_allocations`, `waiting_list_entry`, `allocation_audit_log` | Scoring pluggable per ADR-003 |
-| **Notification & Communication** | `service/notification.*`, `controller/notification.*` | `NotificationService`, `NotificationRetryService`, `UserNotificationService` | `notification`, `user_notifications` | Async; SSE for in-app; retry tracked |
-| **Analytics & Reporting** | `controller/stats.*`, `service/stats.*` | `AdminStatsService`, `PlatformStatsService` | Aggregates over allocation, application, occupancy | Read-only; no tenant filter bypass |
-| **Configuration & Feature Flags** | `config.*`, `service/settings.*` | `SystemSettingService`, `FeatureFlagService` (wraps FF4J) | `system_settings` (per-tenant unique key), FF4J tables | Per-tenant settings post Section 3.2.4 |
+| Domain | Packages | Key Services | Key Entities | External Dependencies |
+|--------|----------|-------------|-------------|----------------------|
+| Identity & Security | `security.*`, `service/AuthService`, `service/TokenBlacklistService`, `service/LoginAttemptService` | AuthService, JwtUtil, TokenBlacklistService, LoginAttemptService | AppUser, EmailVerificationToken, PasswordResetToken | Redis, BCrypt, JJWT |
+| Tenant Management | `service/tenant.*`, `model/entity/Tenant` | TenantService | Tenant, TenantAware | HibernateFilter |
+| Building & Room | `service/BuildingService`, `service/RoomService`, `service/BuildingImageService` | BuildingService, RoomService | Building, Room, BuildingImage, BuildingAttributes, RoomAttributes | MinIO |
+| Student Profile | `service/StudentService`, `service/UserManagementService` | StudentService, UserManagementService, UserAnonymizationService | Student, AppUser, YearOfStudy, Institution | — |
+| Application Lifecycle | `service/application.*` | ApplicationService (facade), ApplicationCoreService, ApplicationAdminService, ApplicationSearchService | Application, CustomApplicationField, CustomFieldAnswer, IntakePeriod | Events |
+| Document Management | `service/document.*` | DocumentService (facade), DocumentLifecycleService, DocumentQueryService | Document, DocumentType, DocumentComment, ApplicationDocument, RequiredDocumentType | MinIO |
+| Allocation Engine | `service/allocation.*` | RoomAllocationService (facade), AllocationLifecycleService, AllocationBatchService, AllocationScoringOrchestrator, ScoringStrategy | RoomAllocation, StagedAllocation, WaitingListEntry, AllocationRule, AllocationAuditLog | Events, Scheduler |
+| Notification | `service/notification.*`, `model/event/*` | NotificationService, EmailDispatchService, NotificationRetryService, NotificationEventListener | Notification, UserNotification | SMTP |
+| Scheduling | `service/ScheduledJobRunner` | ScheduledJobRunner, OrphanFileCleanupJob | — | Prometheus |
+| Observability | `config/health.*`, Micrometer, Logback | MinioHealthIndicator, SmtpHealthIndicator | — | Prometheus, Grafana |
+| Feature Flags | `service/FeatureFlagService`, `config/FF4jConfig` | FF4JFeatureFlagService | — | FF4J, PostgreSQL |
 
 ---
 
 ### 4.4 Data Architecture
 
-#### Key Schema Changes for v2.0
+**Schema Quality:** 16 Flyway migrations; clean sequential versioning; Flyway in validate mode. Known schema concerns:
 
-| Change | Migration | Risk |
-|--------|-----------|------|
-| `app_user.tenant_id` — allow platform sentinel (0) | Constraint change or nullable | Medium |
-| `document.application_id` — make nullable | `ALTER COLUMN ... DROP NOT NULL` | Low |
-| Add `application_document` junction table | New table | Low |
-| `room.room_number` — per-building uniqueness | Drop + add constraint | Low |
-| `system_settings.setting_key` — per-tenant uniqueness | Drop + add composite constraint | Low |
-| Add `intake_period` table | New table | Low |
-| Add `custom_application_field` + `custom_field_answer` | New tables | Low |
-| Add `building_owner` + `building_staff` tables | New tables | Low |
-| Add `required_document_type` (per-building) | New table | Low |
+| Concern | Status | Action |
+|---------|--------|--------|
+| `hbm2ddl.auto: validate` | ✅ Fixed | Maintain |
+| `room.room_number` building-scoped unique | ✅ Fixed (V2026_02_24_0001) | Maintain |
+| `system_settings.setting_key` tenant-scoped unique | ✅ Fixed (V2026_02_24_0002) | Maintain |
+| `document.application_id` decoupled | ✅ Fixed (V2026_02_25_0010, 0011) | Maintain |
+| `app_user.tenant_id = 0` for students | ⚠️ Convention, not constraint | Add DB comment; document in onboarding |
+| `nsfasFunded` boolean on Application | 🔴 Missing | Add Flyway migration; add entity field |
+| Grafana dashboards | 🔴 Not version-controlled | Commit dashboard JSON to `backend/docs/grafana/` |
 
-#### Connection Pool Recommendation
+**Index Strategy:** Critical indexes that must exist:
 
-```yaml
-hikari:
-  maximum-pool-size: 25        # Up from 10; supports 500 concurrent users
-  minimum-idle: 10
-  connection-timeout: 30000
-  idle-timeout: 300000
-  max-lifetime: 600000
-  leak-detection-threshold: 60000
-```
+| Table | Index | Purpose |
+|-------|-------|---------|
+| `room_allocation` | `idx_room_allocation_offer_expiry` (partial: status='OFFERED') | Offer expiry job |
+| `room_allocation` | `(student_id, status)` | Active allocation check per student |
+| `room_allocation` | `(room_id, status)` | Capacity count per room |
+| `application` | `(tenant_id, status)` | Admin application dashboard |
+| `waiting_list_entry` | `(status, created_at)` | FIFO waiting list queries |
+| `notification` | `(status, attempt_count)` | Retry job |
+| `activity_log` | Partitioned by year (already implemented) | Audit log queries |
 
-#### Architecturally Significant Entity Relationships
+**Connection Pool Tuning:**
+
+| Parameter | Current | Target | Rationale |
+|-----------|---------|--------|-----------|
+| `maximum-pool-size` | 25 | 25–50 (tune after load test) | P99 latency under 500 concurrent users |
+| `minimum-idle` | 10 | 10 | Keep warm connections |
+| `idle-timeout` | 5 min | 5 min | Recycle before Postgres drops |
+| `leak-detection-threshold` | 60s | 60s | Catch unclosed connections |
 
 ```mermaid
 erDiagram
-  tenant ||--o{ building : "owns (tenant-scoped)"
-  app_user ||--o| student : "STUDENT role (platform: tenant_id=0)"
-  student ||--o{ application : "submits to buildings"
-  student ||--o{ document : "owns at profile level"
-  document ||--o{ application_document : "attached to applications via"
-  application ||--o{ application_document : "references documents via"
-  application ||--o| room_allocation : "results in"
-  application }|--|| building : "applies to (tenant-scoped)"
-  building ||--o{ room : "contains"
-  room ||--o{ room_allocation : "assigned via"
-  room_allocation ||--|| student : "allocates"
-  notification ||--o{ user_notifications : "creates in-app copy"
-  activity_logs }|--|| app_user : "generated by (partitioned by year)"
+    app_user ||--o| student : "has profile"
+    app_user ||--o| building_owner : "is owner"
+    app_user ||--o{ building_staff : "is staff"
+    app_user ||--o{ user_notification : "receives"
+
+    building_owner ||--o{ building : "owns (tenant boundary)"
+    building_owner ||--o{ allocation_rule : "configures"
+    building_owner ||--o{ building_staff : "employs"
+
+    building ||--o{ room : "contains"
+    building ||--o{ intake_period : "opens"
+    building ||--o{ required_document_type : "requires"
+    building ||--o{ custom_application_field : "defines"
+
+    room ||--o{ room_allocation : "assigned via"
+    room ||--o{ staged_allocation : "proposed for"
+
+    student ||--o{ application : "submits (cross-tenant)"
+    student ||--o{ document : "owns (platform-level)"
+    student ||--o{ room_allocation : "receives"
+    student ||--o{ waiting_list_entry : "queued in"
+
+    application ||--o{ custom_field_answer : "has"
+    application ||--o{ application_document : "attaches"
+
+    document ||--o{ application_document : "linked via"
+    document ||--o{ document_comment : "has"
+
+    room_allocation ||--|| allocation_audit_log : "logged in"
+    room_allocation ||--o| staged_allocation : "confirmed from"
+
+    notification ||--o| user_notification : "triggers"
 ```
 
 ---
@@ -615,37 +551,54 @@ erDiagram
 ```mermaid
 flowchart LR
   subgraph "Spring Boot API"
-    API[REST Controllers]
-    SVC[Service Layer\nFacades + Sub-services]
-    SCHED[Scheduled Jobs\ntry-catch + Prometheus counters]
+    AS[AllocationService]
+    NS[NotificationService]
+    DS[DocumentService]
+    FS[FileStorageService]
+    FFS[FeatureFlagService]
+    AUTH[AuthService]
+    SCH[ScheduledJobRunner]
   end
 
-  PG[(PostgreSQL 16\nHikariCP pool 25\nhbm2ddl validate)]
-  REDIS[(Redis 7.4\nJTI blacklist\nfail-open)]
-  MINIO[(MinIO\nS3 SDK\ntimeout TBD)]
-  SMTP[SMTP Server\nTLS + Auth\nrequired in prod]
-  PROM[Prometheus]
-  GRAFANA[Grafana\nAlerts configured]
+  subgraph "Persistent Storage"
+    PG[(PostgreSQL 16.2\nHikariCP pool\nFlyway-managed)]
+    RDS[(Redis 7.4\nJWT blacklist\nRate limiting\nLogin attempts)]
+    MIO[(MinIO\nDocuments\nBuilding images)]
+  end
 
-  API --> SVC
-  SVC -->|JDBC/JPA + Hibernate tenant filter| PG
-  SVC -->|Lettuce async\nfail-open on error| REDIS
-  SVC -->|AWS S3 SDK| MINIO
-  SVC -->|@Async Spring Mail\n3-retry exponential backoff| SMTP
-  SCHED -->|structured logs + counters| PROM
-  SVC -->|Micrometer @Timed| PROM
-  PROM --> GRAFANA
+  subgraph "External Services"
+    SMTP[SMTP Server\nTLS + Auth prod\nMailHog dev]
+    OSM[Nominatim OSM\nGeocoding optional\nFeature-flagged]
+  end
+
+  AS -->|JDBC/JPA| PG
+  NS -->|SMTP + retry| SMTP
+  DS --> FS
+  FS -->|S3 API\n30s timeouts| MIO
+  AUTH -->|Lettuce\nfail-open| RDS
+  FFS -->|JDBC| PG
+
+  SCH -->|offerExpiry\ncheckInExpiry\nbatchAllocation\norphanCleanup\nofferReminder\ncheckInReminder| AS
+  SCH -->|notificationRetry| NS
+
+  classDef fixed fill:#d4edda,stroke:#28a745
+  classDef risk fill:#f8d7da,stroke:#dc3545
+  classDef warn fill:#fff3cd,stroke:#ffc107
+
+  class PG,RDS,MIO fixed
+  class SMTP risk
+  class OSM warn
 ```
 
-**Resilience Per Integration:**
+**Per-integration resilience:**
 
-| Integration | Pattern | Fallback | Timeout Target |
-|-------------|---------|----------|----------------|
-| PostgreSQL | Synchronous request-response | Hard fail — no fallback | 30s connection (already configured) |
-| Redis | Fail-open blacklist check | Allow request, log warning | 60s (already configured) |
-| MinIO | Upload + async orphan cleanup | Retry 3x; error response to client | 30s (to be configured) |
-| SMTP | Async fire-and-forget + 3-retry | PERMANENTLY_FAILED status; in-app notification still delivers | 5s connection (to be configured) |
-| Nominatim | Optional enrichment | Save building without coordinates | 5s (to be configured) |
+| Integration | Pattern | Retry | Timeout | Fallback |
+|-------------|---------|-------|---------|---------|
+| PostgreSQL | Synchronous request-response | HikariCP auto-reconnect | 30s connection, 60s leak detection | Hard fail — no database = no service |
+| MinIO | Synchronous for upload/download; async cleanup | OrphanFileCleanupJob (nightly) | 30s connect/read/write | Upload fails → API returns 503; file not orphaned |
+| Redis | Synchronous with fail-open | No retry — ephemeral | Lettuce 60s | Fail-open: blacklist miss is acceptable |
+| SMTP | Async fire-and-forget via `@TransactionalEventListener` | 3 retries via `NotificationRetryService` (5-min interval) | Not configured — add `mail.smtp.timeout` | Retry exhausted → `PERMANENTLY_FAILED`, Platform Admin alerted |
+| Nominatim | Synchronous | No retry | 🔴 Not configured — add 5s timeout | Feature-flagged → building saved without coordinates |
 
 ---
 
@@ -655,60 +608,124 @@ flowchart LR
 
 #### 5.1.1 Backend (Java / Spring Boot)
 
-**Package Structure (enforced):**
+**Package structure (must be followed for all new code):**
 ```
-com.beezhub.student_accommodation
-├── config/           — @Configuration beans only
-├── controller/       — @RestController; no business logic; one service call per method
-├── service/          — Business logic; facades public; sub-services package-private
-│   ├── allocation/   — Allocation sub-services
-│   ├── application/  — Application sub-services
-│   ├── document/     — Document sub-services
-│   ├── notification/ — Notification sub-services
-│   └── tenant/       — TenantContext and tenant management
-├── repository/       — Spring Data JPA repositories only
+com.beezhub.student_accommodation/
+├── controller/          # REST endpoints only — no business logic
+├── service/             # Business logic; sub-packages for complex domains
+│   ├── allocation/      # Allocation engine sub-services
+│   ├── application/     # Application lifecycle sub-services
+│   ├── document/        # Document management sub-services
+│   ├── notification/    # Notification delivery sub-services
+│   └── tenant/          # Tenant context management
+├── repository/          # Spring Data JPA repositories only
 ├── model/
-│   ├── entity/       — JPA entities; one class per table; no DTO imports
-│   ├── dto/          — Request/Response DTOs; no entity references
-│   └── enums/        — Enums with displayName + fromString() + canTransitionTo()
-├── mapper/           — MapStruct interfaces; no logic
-├── security/         — JWT filter, user details, auth components
-├── aspect/           — AOP aspects (@LogActivity)
-├── exceptions/       — One class per exception type
-├── specification/    — JPA Specifications for dynamic filtering
-└── validation/       — Custom validators
+│   ├── entity/          # JPA entities; no business logic
+│   ├── dto/             # Request/response DTOs; no JPA annotations
+│   └── enums/           # Enumerations
+├── mapper/              # MapStruct mappers only
+├── security/            # JWT filter, rate limiting, user details
+├── config/              # Spring configuration classes
+├── event/               # ApplicationEvent subclasses; no logic
+├── exceptions/          # Custom exception hierarchy
+├── specification/       # JPA Specification classes
+├── validation/          # Custom Bean Validation annotations
+├── aspect/              # AOP aspects (logging, activity)
+└── util/                # Pure utility functions; no Spring beans
 ```
 
-**Mandatory Rules:**
-1. **No business logic in controllers.** Controllers validate input, call one service method, return response.
-2. **No entity references in DTOs.** MapStruct converts between layers.
-3. **`@Transactional` service methods are atomic.** Never commit mid-method then throw. Each method is all-or-nothing.
-4. **Throw domain exceptions.** `ApplicationNotFoundException`, `RoomCapacityExceededException` — never raw `RuntimeException`.
-5. **Structured logging.** Format: `log.info("event=offerExpired allocationId={} studentId={} tenantId={}", id, sid, tid)`. INFO for domain events; DEBUG for internal state; WARN for recoverable; ERROR for unhandled.
-6. **Every public service method has a test.** Minimum: one happy-path test + one edge-case test.
-7. **`@Transactional(readOnly = true)`** on all read-only methods and read-only service classes.
-8. **Constructor injection only.** No `@Autowired` field injection. Use Lombok `@RequiredArgsConstructor`.
-9. **Every new entity table with tenant data has a `tenant_id` FK and Hibernate filter.** Verified by `TenantFilterIntegrationTest`.
+**Naming conventions:**
+- Services: `{Domain}Service` for facades, `{Domain}{Concern}Service` for sub-services (e.g., `ApplicationAdminService`)
+- Events: `{Action}Event` in the `model/event/` package (e.g., `AllocationCreatedEvent`)
+- Listeners: `{Domain}NotificationListener` or `{Domain}EventListener`
+- DTOs: `{Entity}Request` for input, `{Entity}Response` for output
+- Specifications: `{Entity}Specification`
+- Exceptions: `{Domain}Exception`, `{Entity}NotFoundException`
+
+**Method length and responsibility:**
+- No method exceeds 50 lines. Extract helper methods.
+- No service method returns `null` without explicit `@Nullable` annotation and documentation.
+- Every `@Transactional` method has a clear comment on its transaction boundary if non-obvious.
+
+**Error handling pattern:**
+```java
+// Domain exceptions thrown by services — controllers catch via @ExceptionHandler
+throw new ApplicationNotFoundException(applicationId);
+throw new InvalidAllocationStatusTransitionException(current, target);
+throw new TenantIsolationViolationException(requestedTenantId);
+
+// Infrastructure exceptions wrapped
+try { minioClient.putObject(...); }
+catch (Exception e) { throw new FileStorageException("Upload failed: " + key, e); }
+```
+
+**Logging standards:**
+- Use structured key=value format: `log.info("job={} action=complete processed={}", jobName, count)`
+- NEVER log personally identifiable information (name, email, student number) at WARN or ERROR level
+- DEBUG for per-record processing; INFO for job-level summaries; WARN for recoverable failures; ERROR for unrecoverable failures with full stack trace
+
+**Test requirements:**
+- Every new service method must have at least one unit test covering the happy path
+- Every new state machine transition must have a unit test for valid and invalid cases
+- Every new JPA entity with `tenant_id` must have an integration test verifying cross-tenant isolation
+- Target: 70% line coverage on service layer; 90% on `AllocationScoringOrchestrator` and `OwnerConfigurableScoringStrategy`
 
 #### 5.1.2 Frontend (Angular / TypeScript)
 
-1. **Lazy loading for every feature module.** All routes use `loadComponent()` for standalone components.
-2. **Services own all HTTP calls.** Components never inject `HttpClient` directly.
-3. **Unsubscribe with `takeUntilDestroyed()` or `async` pipe.** No unmanaged subscriptions.
-4. **Guards enforce role access at route level.** Use a `RoleService.hasRole(Role.BUILDING_OWNER)` abstraction — not inline string comparisons.
-5. **No hardcoded API paths in services.** All paths declared as `private readonly` constants at the top of each service, or centralised in an `ApiEndpoints` constant file.
-6. **Environment files are the only URL source.** `environment.apiUrl` is the only base URL. No other hardcoded URLs.
-7. **Every service file has a corresponding spec file.** Missing spec = PR blocked.
+**Module structure:**
+- Feature modules under `features/{feature-name}/` with `components/`, `services/`, `models/`
+- Shared reusable components in `shared/`
+- Core infrastructure (guards, interceptors, services) in `core/`
+
+**Role checking pattern — single source of truth:**
+```typescript
+// ✅ Correct — typed constants in auth service
+export const ROLES = {
+  PLATFORM_ADMIN: 'PLATFORM_ADMIN',
+  BUILDING_OWNER: 'BUILDING_OWNER',
+  BUILDING_STAFF: 'BUILDING_STAFF',
+  STUDENT: 'STUDENT'
+} as const;
+
+// ❌ Forbidden — string literals in guards
+if (user.role === 'ADMIN') { ... }
+```
+
+**Service responsibilities:**
+- `AuthService` — authentication only: login, signup, token management, current user
+- `ApplicationService` — application CRUD
+- `DocumentService` — document upload, download, status
+- `AllocationService` — allocation operations
+- Mixed-domain operations must live in the domain service, not auth service
+
+**Test requirements:**
+- Every Angular service must have a `.spec.ts` with at least one test covering the primary happy path
+- Every route guard must have a spec verifying it blocks unauthenticated access
+- Target: 50% coverage for the Angular codebase (Phase 2); 70% (Phase 3)
 
 #### 5.1.3 Database
 
-1. **Migration naming:** `V{YYYY_MM_DD_HHMM}__{snake_case_description}.sql`
-2. **Index naming:** `idx_{table}_{column(s)}`
-3. **Constraint naming:** `pk_{table}`, `fk_{table}_{referenced}`, `uq_{table}_{columns}`, `chk_{table}_{condition}`
-4. **All enum columns:** `VARCHAR(255)` — never PostgreSQL native enum types
-5. **All lifecycle timestamps:** `TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP` — never `DATE`
-6. **Migrations are immutable once applied.** Write a new migration to fix an applied one.
-7. **Add an index when** a column is in a `WHERE` clause returning > 0.1% of rows, or is a FK without an existing index.
+**Migration naming convention:** `V{YYYY_MM_DD_HHMM}__{description}.sql`
+- Example: `V2026_03_15_1430__add_nsfas_funded_to_application.sql`
+- Description: lowercase, underscore-separated, max 50 chars, describes the change not the reason
+
+**Column naming:**
+- Use `snake_case` for all columns
+- Boolean columns: `is_{property}` (e.g., `is_available`, `is_active`, `is_nsfas_funded`)
+- Timestamp columns: `created_at`, `updated_at`, `deleted_at`
+- FK columns: `{entity}_id` (e.g., `building_id`, `tenant_id`, `student_id`)
+
+**Constraint naming:**
+- Primary keys: `{table}_pkey`
+- Unique constraints: `uq_{table}_{columns}` (e.g., `uq_room_building_number`)
+- FK constraints: `fk_{table}_{referenced_table}` (e.g., `fk_room_building`)
+- Indexes: `idx_{table}_{columns}` (e.g., `idx_room_allocation_status`)
+
+**When to add an index:**
+- Every FK column used in a `WHERE` clause
+- Every column in a `WHERE` clause of a scheduled job query
+- Every `(tenant_id, {status_or_date})` combination used in filtering queries
+- Never add an index speculatively — add when a slow query is identified
 
 ---
 
@@ -716,22 +733,20 @@ com.beezhub.student_accommodation
 
 | Pattern | When to Use | Example in This System | Anti-Pattern to Avoid |
 |---------|------------|----------------------|----------------------|
-| **Facade** | Complex domains with many sub-operations | `RoomAllocationService`, `ApplicationService`, `DocumentService` | God-service with 30+ public methods |
-| **Repository** | All data access | `RoomAllocationRepository`, `ApplicationRepository` | Direct `EntityManager` usage in services |
-| **Service** | Business logic orchestration | `AllocationBatchService`, `ApplicationAdminService` | Business logic in controllers or entities |
-| **Strategy** | Interchangeable algorithms | `ScoringStrategy` → `OwnerConfigurableScoringStrategy` | Giant if/else scoring chains |
-| **Specification** | Dynamic query building | `ApplicationSpecification` | String-based JPQL concatenation |
-| **Spring Events / Observer** | Side effects of business actions | `ApplicationApprovedEvent → NotificationService` | Direct service-to-service calls for cross-domain side effects |
-| **State Machine (Enum)** | Status lifecycle management | `ApplicationStatus.canTransitionTo()`, `AllocationStatus.canTransitionTo()` | Direct status assignment without transition validation |
-| **MapStruct Mapper** | Entity-DTO conversion | `ApplicationMapper`, `RoomAllocationMapper` | Manual field-by-field assignment in services |
-| **ThreadLocal Context** | Per-request contextual data | `TenantContext.setTenantId()` | Passing `tenantId` as parameter through 5 method layers |
-| **AOP** | Cross-cutting concerns | `@LogActivity` for audit trail | Duplicated audit logging in every service method |
+| **Facade** | A domain has multiple sub-services | `ApplicationService`, `RoomAllocationService`, `DocumentService` | Controllers calling sub-services directly |
+| **Repository** | Data access abstraction | `RoomRepository`, `ApplicationRepository`, `WaitingListRepository` | Direct `EntityManager` usage in services |
+| **Strategy** | Interchangeable algorithms | `ScoringStrategy` → `OwnerConfigurableScoringStrategy` / `LegacyScoringStrategy` | `if/else` on tenant configuration inside a single scoring method |
+| **Domain Event** | Cross-domain side effects | `AllocationCreatedEvent` → `NotificationEventListener` | Direct service-to-service call for notifications |
+| **Specification** | Dynamic filter construction | `ApplicationSpecification` with pageable filtering | String-concatenated JPQL; raw `@Query` with dynamic predicates |
+| **State Machine Enum** | Enforcing valid status transitions | `ApplicationStatus.canTransitionTo()`, `AllocationStatus.canTransitionTo()` | Setting status fields directly without transition validation |
+| **ThreadLocal Context** | Per-request scoped data | `TenantContext` propagated from JWT to Hibernate filter | Passing `tenantId` as a method parameter through 5+ layers |
+| **TransactionalEventListener** | Decouple post-commit side effects | Notification dispatch after allocation commit | Sending emails inside the allocation transaction |
 
-**Banned Anti-Patterns:**
-- **God class:** No service with more than 15 public methods. Decompose using the facade pattern.
-- **Anemic state without protection:** All state-bearing enums must implement `canTransitionTo()`. No raw status assignment.
-- **Service Locator:** No `ApplicationContext.getBean()` inside business logic.
-- **Implicit lazy loading:** All `@OneToMany` and `@ManyToMany` must specify `fetch = FetchType.LAZY` explicitly.
+**Anti-patterns explicitly banned:**
+- **God class** — No service class exceeds 400 lines. If it does, extract sub-services.
+- **Service Locator** — No `ApplicationContext.getBean()` in business logic
+- **Anemic domain model** — Status transition logic belongs in the enum (already done); do not move it to services
+- **Null returns** — Methods that may return nothing must return `Optional<T>`, not `null`
 
 ---
 
@@ -739,15 +754,22 @@ com.beezhub.student_accommodation
 
 | Rule | Standard | Example |
 |------|----------|---------|
-| URL structure | `/api/{scope}/{resource}` — plural nouns, no verbs | `/api/buildings`, `/api/owner/applications`, `/api/platform/owners` |
-| HTTP methods | GET (read), POST (create), PUT (full update), PATCH (partial), DELETE (remove), POST on sub-resource (actions) | `POST /api/allocations/{id}/accept` |
-| Status codes | 200 (ok), 201 (created), 204 (no content), 400 (validation), 401 (unauthenticated), 403 (wrong tenant / unauthorized), 404 (not found), 409 (conflict/duplicate), 422 (business rule violation / invalid state transition), 500 (server error) | 409 for duplicate room; 422 for invalid state transition |
-| Error response | `{ "error": "RESOURCE_NOT_FOUND", "message": "Application 123 not found", "details": [], "timestamp": "2026-..." }` | All `4xx`/`5xx` use `ErrorResponse.java` |
-| Pagination | `?page=0&size=20&sort=createdAt,desc` → `{ "content": [...], "totalElements": N, "totalPages": N }` | `GET /api/owner/applications?page=0&size=25` |
-| Tenant scoping | Never expose `tenant_id` in URL for owner endpoints — infer from JWT claim | `GET /api/buildings` returns only current owner's buildings |
-| State transitions | Action-named sub-resource paths | `POST /api/allocations/{id}/accept` not `PUT /api/allocations/{id}` with `{"status": "ACCEPTED"}` |
-| Dates | ISO 8601 strings in all request and response bodies | `"offerExpiryDate": "2026-03-01T10:00:00Z"` |
-| OpenAPI docs | Every public endpoint: `@Operation(summary)` and `@ApiResponse` annotations | Swagger UI at `/swagger-ui.html` |
+| URL structure | `/api/{domain}/{resource}` — plural nouns, no verbs | `/api/applications`, `/api/buildings/{id}/rooms` |
+| HTTP methods | GET (read), POST (create), PUT (full update), PATCH (partial update), DELETE (remove) | `PUT /api/allocations/{id}/accept` is correct; `POST /api/acceptAllocation` is not |
+| Status codes | 200 (success with body), 201 (created), 204 (no body), 400 (validation), 401 (unauthenticated), 403 (forbidden), 404 (not found), 409 (conflict), 422 (business rule violation), 500 (server error) | |
+| Error response format | `{ "error": "ALLOCATION_DECLINED_LIMIT_EXCEEDED", "message": "Human-readable description", "details": [...] }` | Consistent across all endpoints |
+| Pagination | `?page=0&size=20&sort=createdAt,desc` → `{ "content": [...], "totalElements": N, "totalPages": P, "page": 0, "size": 20 }` | |
+| Tenant scoping | Tenant ID is never accepted as a request parameter — always resolved from JWT | A building owner cannot request another owner's data by passing a tenantId |
+| Breaking change policy | Never change an existing response field name or remove a field without a version bump | Add new fields freely; removing or renaming fields requires version negotiation |
+| Swagger documentation | All endpoints must have `@Operation`, `@ApiResponse`, and `@Parameter` annotations for Swagger UI | Missing documentation blocks PR merge |
+
+**Current API URL patterns that must be migrated:**
+
+| Current Pattern | Target Pattern | Priority |
+|----------------|---------------|----------|
+| `/api/admin/**` | `/api/platform/**` (Platform Admin) or `/api/owner/**` (Building Owner) | P2 |
+| `/api/admin/applications` | `/api/owner/applications` | P2 |
+| `/api/admin/buildings` | `/api/buildings` (scoped by JWT tenant) | P2 |
 
 ---
 
@@ -755,12 +777,12 @@ com.beezhub.student_accommodation
 
 | Aspect | Rule | Rationale |
 |--------|------|-----------|
-| Git branching | `main` (production), `develop` (integration), `feature/{ticket-id}-{kebab-description}` | Clear branch purpose; `develop` as integration buffer |
-| Commit messages | Conventional Commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:` | Enables automated changelog; communicates intent clearly |
-| Database migrations | `V{YYYY_MM_DD_HHMM}__{snake_case}.sql` — timestamp prefix | Chronological ordering; avoids integer version conflicts across parallel branches |
-| API versioning | No versioning for MVP — single `/api/` prefix. When breaking changes required: introduce `/api/v2/` and maintain `/api/v1/` for one release cycle | Pre-launch; no external API consumers requiring version stability yet |
-| Release versioning | Semantic Versioning: `MAJOR.MINOR.PATCH` — `0.x.x` until first production release, then `1.0.0` | Clear communication of change impact |
-| Breaking DTO changes | Any removal, rename, or type change requires: new migration + mapper update + OpenAPI doc update + frontend service update | Prevents silent client breakage |
+| Git branching | `develop` is the integration branch; `main` is production. Feature branches merge into `develop`. `develop` merges to `main` on release. | Matches current convention in CLAUDE.md |
+| Commit messages | Conventional Commits format: `feat(allocation): remove MAX_DECLINE_COUNT`, `fix(security): remove JWT secret default` | Machine-readable; changelogs can be generated |
+| API versioning | No version prefix for MVP. When a breaking change is required, add `/v2/` prefix to affected endpoints only | Premature versioning adds complexity; add when the first breaking change is needed |
+| Database migrations | `V{YYYY_MM_DD_HHMM}__{description}.sql` strictly enforced; `out-of-order: false` means the timestamp must be later than all existing migrations | Prevents accidental ordering conflicts |
+| Release versioning | Semantic Versioning: `MAJOR.MINOR.PATCH`. MAJOR for breaking API changes, MINOR for new features, PATCH for bug fixes | Clear communication of change impact |
+| Dependency upgrades | Security patches: within 48h of CVE disclosure. Minor/patch: monthly dependency review. Major: quarterly evaluation with test suite run | Balance security with stability |
 
 ---
 
@@ -768,12 +790,13 @@ com.beezhub.student_accommodation
 
 | Rule | Details |
 |------|---------|
-| New dependency evaluation | Before adding: (1) Check NVD for known CVEs; (2) Last release date (unmaintained > 2 years = rejected); (3) License (Apache 2.0, MIT, EPL acceptable; GPL requires legal review); (4) Bundle/JAR size impact |
-| Version pinning | All backend deps pinned to exact versions in `build.gradle`. All frontend deps in `package.json` with no `^` or `~` operators |
-| Upgrade policy | Monthly dependency review (`./gradlew dependencyUpdates`, `npm outdated`); security patches applied within 72 hours of CVE disclosure with CVSS ≥ 7.0 |
-| JJWT | Current `0.11.5` — plan upgrade to `0.12.x` in Phase 3 (breaking API change; coordinate with `JwtUtil` refactor) |
-| FF4J | Locked at `1.9`. Wrap behind `FeatureFlagService` interface in Phase 3 |
-| Constructor injection | `@RequiredArgsConstructor` + `final` fields. No `@Autowired` field injection anywhere |
+| New dependency evaluation | Assess: CVE history (check Snyk/OSS Index), last release date (abandoned if >18 months), license (Apache 2.0/MIT preferred), bundle/jar size impact |
+| Version pinning | All dependencies pinned to exact versions in `build.gradle` and `package.json`; no ranges (`^`, `~`) in production dependencies |
+| Upgrade policy | Security patches: within 48 hours of disclosure. Monthly: run `./gradlew dependencyUpdates` and `npm outdated` |
+| Backend banned patterns | No `EntityManager` in service layer; no `@Query` with string concatenation; no reflection-based object mapping outside MapStruct |
+| Frontend banned patterns | No `any` type without explicit `// eslint-disable-next-line @typescript-eslint/no-explicit-any` comment with justification; no direct DOM manipulation (`document.querySelector`) |
+| FF4J | Pin at 1.9 until a deliberate upgrade decision is made; monitor GitHub for CVEs |
+| Test dependencies | Testcontainers, JUnit, Mockito via Spring Boot BOM — no version pinning needed for these |
 
 ---
 
@@ -783,42 +806,44 @@ com.beezhub.student_accommodation
 
 | NFR | Target | Current State | Gap | Recommendation |
 |-----|--------|--------------|-----|----------------|
-| API response (P95) | < 500ms | Unknown — no baseline | No APM instrumentation | Add `@Timed` to service methods; create Grafana P95 SLA dashboard |
-| Frontend initial load | < 3s on 3G | Unknown — no Lighthouse audit | Not measured | Run Lighthouse CI in build pipeline; enforce score ≥ 80 |
-| Batch allocation (50 apps) | < 60s | Unknown — not load tested | `AllocationScoringService` N+1 will degrade under load | Fix PB-001 before load test; profile with 50 realistic applications |
-| DB connection wait | < 30s | HikariCP configured ✅ | Pool max = 10 (low for 500-user target) | Increase to 25 per Section 3.2 |
+| API P95 response time | < 500ms | Unknown — no load test | No baseline established | JMeter/Gatling load test at 500 concurrent users before first production tenant |
+| Frontend initial load | < 3s on 3G | Unknown — no Lighthouse | No baseline | Lighthouse CI in GitHub Actions; target score ≥ 85 |
+| Batch allocation (50 apps) | < 60s | Unknown — not tested | `findAll()` bottleneck | Fix PB-001; then load test with 50 apps and 200 rooms |
+| Notification delivery | < 30s from event | Unknown | No SLA measurement | Add `notification.delivery.latency` histogram to Micrometer |
 
 ### 6.2 Scalability
 
 | Dimension | Current | Target | Gap | Recommendation |
 |-----------|---------|--------|-----|----------------|
-| Concurrent users | Untested | 500 | No load testing performed | k6 load test before first building owner goes live |
-| Tenants | 1 (default) | 100+ | Phase 1 schema conflicts block second tenant | Complete all Phase 1 items before second tenant onboarding |
-| Applications/year | Unknown | 50,000 | Composite index exists ✅; no partitioning yet | Plan range partitioning on `application(created_at)` at 100,000 rows |
-| Activity log volume | Partitioned by year ✅ | Millions/year | 2028 partition not yet created | Create 2028 partition by Dec 2027; automate annually |
+| Concurrent users | Untested | 500 | No load test | Load test with 500 virtual users |
+| Building owners (tenants) | 1 (dev) | 100 | No multi-tenant load test | Test with 10 tenants × 50 applications before scaling |
+| Applications/year | Unknown | 50,000 | No partitioning planned | Add `activity_log` partitioning by year (already done); monitor `application` table size |
+| Waiting list | Small | 500+ students | `getWaitingListWithScores()` scores all entries per call | Batch score; cache intermediate matrix |
 
 ### 6.3 Reliability
 
-| Concern | Current State | Status |
-|---------|--------------|--------|
-| SMTP failure | Async + 3-retry + PERMANENTLY_FAILED ✅ | ✅ Acceptable |
-| Redis failure | Fail-open with warning log ✅ | ✅ Acceptable; document policy |
-| MinIO failure | `OrphanFileCleanupJob` recovers orphaned files ✅; no SDK timeout | ⚠️ Configure SDK timeout |
-| DB connection failure | HikariCP reconnect ✅ | ✅ Acceptable for single-instance MVP |
-| Concurrent offer accept | Optimistic locking on `Room.version` ✅ | ✅ Verify `ObjectOptimisticLockingFailureException` returns 409 |
-| State machine violations | `canTransitionTo()` in enums ✅ | ✅ Add integration test: invalid transition via API → 422 |
-| Scheduled job failure | No error containment ❌ | 🔴 Implement Section 3.4.2 |
+| Mechanism | Status | Gap |
+|-----------|--------|-----|
+| ACID transactions | ✅ PostgreSQL + optimistic locking | — |
+| Notification retry | 🔴 Service exists; not scheduled | Activate `NotificationRetryService` |
+| Scheduled job error containment | ✅ `ScheduledJobRunner` per-job try/catch | — |
+| MinIO orphan cleanup | ✅ `OrphanFileCleanupJob` nightly | — |
+| Redis fail-open | ✅ All Redis calls graceful | — |
+| Offer expiry idempotency | ✅ Partial index + status check | — |
 
 ### 6.4 Observability
 
-| Area | Current State | Gap | Action |
-|------|--------------|-----|--------|
-| Metrics | Micrometer → Prometheus ✅ | No custom business metrics | Add: `allocation.runs.completed`, `offers.issued`, `offers.accepted`, `offers.expired`, `notifications.permanently_failed` |
-| Logging | Logstash JSON encoder ✅ | Scheduled job logs unstructured | Apply `event=jobName action=start/complete/fail processed=N` format |
-| Dashboards | Grafana provisioned ✅ | Dashboard JSON files not in repository | Add to `tools/grafana/dashboards/`; commit as code |
-| Health checks | `/actuator/health` ✅; Minio + SMTP indicators ✅ | No Redis health indicator | Add `RedisHealthIndicator` custom check |
-| Alerting | Not configured | No alerts for job failures, PERMANENTLY_FAILED notifications, high error rates | Configure Grafana alerting rules in Phase 3 |
-| Frontend observability | None | No error rate tracking, no user journey analytics | Add error boundary logging; Angular `ErrorHandler` to track client errors |
+| Concern | Status | Action |
+|---------|--------|--------|
+| Structured JSON logging | ✅ `logstash-logback-encoder` | — |
+| Prometheus metrics | ✅ Micrometer + `/actuator/prometheus` | — |
+| Grafana dashboards | 🔴 Not version-controlled | Commit dashboard JSON to repo |
+| Job health metrics | ✅ `sas.jobs.{name}.processed` + `.failures` | Add to Grafana dashboard |
+| Allocation batch duration | ✅ `sas.batch.allocation.duration` histogram | Add P95 alert in Grafana |
+| Notification delivery latency | 🔴 Not measured | Add `notification.delivery.latency` histogram |
+| SMTP health indicator | ✅ Custom health check | — |
+| MinIO health indicator | ✅ Custom health check | — |
+| Redis health | ⚠️ Relies on Spring Boot Redis health | Add explicit alert on Redis disconnect |
 
 ---
 
@@ -826,392 +851,226 @@ com.beezhub.student_accommodation
 
 | # | Risk | Likelihood | Impact | Severity | Mitigation | Owner |
 |---|------|-----------|--------|----------|------------|-------|
-| RISK-001 | `hbm2ddl.auto: update` causes silent schema drift | HIGH | HIGH | 🔴 CRITICAL | Section 3.2.1 — set `validate` immediately | Backend |
-| RISK-002 | `room.room_number` global unique causes 500 on second tenant | CERTAIN | HIGH | 🔴 CRITICAL | Section 3.2.3 — per-building uniqueness | Backend |
-| RISK-003 | Student tenant binding blocks cross-tenant applications | HIGH | CRITICAL | 🔴 CRITICAL | ADR-001, Section 3.2.9 | Architecture |
-| RISK-004 | `document.application_id NOT NULL` blocks platform-level documents | HIGH | HIGH | 🔴 CRITICAL | ADR-002, Section 3.2.2 | Backend |
-| RISK-005 | JWT secret default used in production | MEDIUM | HIGH | 🔴 HIGH | Section 3.2.5 — remove default value | Backend |
-| RISK-006 | SMTP without TLS/auth in production | MEDIUM | HIGH | 🔴 HIGH | Section 3.2.6 — parametrise via env vars | DevOps |
-| RISK-007 | `postgres_data` volume not mounted — DB data lost | HIGH (dev) | HIGH | 🔴 HIGH | Section 3.2.7 — add volume mount | DevOps |
-| RISK-008 | Scheduled jobs silently fail without alerting | MEDIUM | HIGH | 🔴 HIGH | Section 3.4.2 — try/catch + Prometheus | Backend |
-| RISK-009 | UserRole not updated for v2.0 before features built | HIGH | HIGH | 🔴 HIGH | ADR-004, Section 3.2.10 | Backend |
-| RISK-010 | `AllocationScoringService` v1.1 logic shipped as v2.0 allocation | HIGH | MEDIUM | ⚠️ HIGH | ADR-003, Section 3.4.1 | Architecture |
-| RISK-011 | New JPA entities missing tenant filter → data leak | MEDIUM | CRITICAL | ⚠️ HIGH | Extend `TenantFilterIntegrationTest` with each new entity | Backend |
-| RISK-012 | Flyway relaxed settings hide migration problems | MEDIUM | MEDIUM | ⚠️ MEDIUM | Section 3.2.8 — restore safety settings | Backend |
-| RISK-013 | `system_settings.setting_key` global unique blocks second tenant config | CERTAIN | MEDIUM | ⚠️ MEDIUM | Section 3.2.4 — per-tenant unique | Backend |
-| RISK-014 | HikariCP pool exhaustion under load | MEDIUM | HIGH | ⚠️ MEDIUM | Increase max-pool-size to 25 | Backend |
-| RISK-015 | Frontend 1.5% test coverage — regressions undetected | HIGH | MEDIUM | ⚠️ MEDIUM | Section 3.2.11 — test coverage baseline + CI gate | Frontend |
-| RISK-016 | FF4J 1.9 CVE disclosure | LOW | MEDIUM | ⚠️ LOW | Monitor NVD; wrap behind `FeatureFlagService` interface | Backend |
-| RISK-017 | `AllocationScoringService` N+1 queries under allocation batch | MEDIUM | MEDIUM | ⚠️ MEDIUM | PB-001 — batch-load attributes before scoring loop | Backend |
+| RISK-001 | JWT secret default used in production | Medium | Critical | 🔴 | Remove default from `application.yml`; fail startup if absent | Architecture |
+| RISK-002 | `MAX_DECLINE_COUNT` silently cancels student applications | HIGH (code is active) | HIGH | 🔴 | Remove `MAX_DECLINE_COUNT` guard from `declineOffer()` | Backend |
+| RISK-003 | `confirmBatchAllocationsWithResult` returns null → NPE in prod | Medium | HIGH | 🔴 | Complete or remove the method | Backend |
+| RISK-004 | `getAvailableRoomsForBatch()` full scan degrades with scale | Medium (grows with tenants) | HIGH | 🔴 | Replace with single-query JOIN before first multi-tenant deployment | Backend |
+| RISK-005 | SMTP in production without TLS/auth — emails in plaintext | HIGH (if not configured) | HIGH | 🔴 | Document `MAIL_STARTTLS_ENABLE=true` as required; add startup validation | DevOps |
+| RISK-006 | `NotificationRetryService` never fires — failed emails not retried | HIGH (code confirms) | HIGH | 🔴 | Activate retry schedule | Backend |
+| RISK-007 | No load test — P95 < 500ms NFR unvalidated before production | HIGH | Medium | ⚠️ | Load test before first production tenant | QA |
+| RISK-008 | Multi-tenant data isolation bug — cross-tenant data leak | Low | Critical | 🔴 | Tenant isolation integration test on every new entity | Architecture |
+| RISK-009 | NSFAS detection via keyword match — incorrect priority scoring | Medium | Medium | ⚠️ | Add `nsfasFunded` boolean field to Application | Backend |
+| RISK-010 | Frontend test coverage ~0% — regressions undetected | HIGH | Medium | ⚠️ | Establish Angular test baseline (50% target) | Frontend |
+| RISK-011 | Grafana dashboards not version-controlled — lost on container restart | Medium | Low | ⚠️ | Commit dashboard JSON to repository | DevOps |
+| RISK-012 | FF4J 1.9 (2020) — potential CVE, incompatibility with future Spring Boot | Low | Medium | ⚠️ | Monitor FF4J GitHub; plan upgrade path | Architecture |
+| RISK-013 | `@Deprecated ADMIN/LANDLORD` roles — residual auth bypass window | Low | Low | ⚠️ | Set migration deadline; remove after 10h token TTL | Backend |
 
 ---
 
 ## 8. Architecture Decision Records
 
-### ADR-001: Student Identity — Platform-Level Using Sentinel Tenant ID
-
-- **Status:** Proposed
-- **Context:** `app_user.tenant_id NOT NULL` scopes every user to one tenant. v2.0 requires students to hold one platform-level account and apply to buildings owned by multiple building owners (different tenants). The `TenantContext` Hibernate filter makes cross-tenant student activity architecturally impossible in the current model. (Requirements.md BR-P05, BR-P07, AUTH-002)
-- **Decision:** Introduce a `PLATFORM` tenant with a fixed sentinel ID (e.g., `id = 0` if schema allows, or a fixed UUID-derived bigint). All student `app_user` records receive `tenant_id = 0` (PLATFORM). The `TenantContext` filter logic is updated: if the authenticated user's `tenantId` claim is `0`, the Hibernate filter is not applied for student-owned resources (`document`, `application`, `room_allocation`, `user_notifications`). Tenant-scoped resources (`building`, `room`, `allocation_rule`) continue to be filtered to the building owner's tenant ID embedded in the URL or derived from context.
-- **Alternatives Considered:**
-  - **Separate `platform_user` table** — Too much schema disruption; breaks all existing student queries.
-  - **Nullable `tenant_id` for students** — FK integrity requires a valid tenant reference; sentinel value is cleaner.
-  - **Schema-per-tenant** — Too complex for MVP; 100+ schemas unmanageable.
-- **Consequences:** The `TenantContext` and filter logic require a code change. A `PLATFORM` tenant record must be seeded. All student-facing repositories that currently rely on tenant filtering must be reviewed — student ownership filtering (by `student_id` / `user_id`) replaces tenant filtering for student-owned tables.
-- **Compliance:** `TenantFilterIntegrationTest` must be extended to assert: (1) student can read buildings from two different tenants; (2) student cannot read another student's documents; (3) building owner cannot read another owner's buildings.
-
----
-
-### ADR-002: Document Ownership — Student Profile Level
-
-- **Status:** Proposed
-- **Context:** `document.application_id NOT NULL` ties every document to one application. v2.0 requires documents to be owned by a student profile, reusable across applications, and verified platform-wide. This is Requirements.md's stated core differentiator: "Students upload documents once. Every building owner on the platform benefits." (ST-004, DOC-001 to DOC-003)
-- **Decision:** `document.application_id` becomes nullable via migration. A new `application_document` junction table (`id`, `application_id NOT NULL`, `document_id NOT NULL`, `attached_at TIMESTAMP DEFAULT NOW()`) represents the many-to-many relationship between applications and documents. Document verification status (`PENDING`, `VERIFIED`, `REJECTED`) remains on the `document` entity and is platform-wide.
-- **Alternatives Considered:**
-  - **Separate `profile_document` and `application_document` entity types** — More explicit but doubles document model complexity unnecessarily.
-  - **Keep `application_id`, add separate `profile_document` table** — Dual document types create ambiguity and complexity.
-- **Consequences:** `DocumentService.uploadDocument()` no longer requires `applicationId`. `ApplicationDocumentService` manages attachments via junction table. The frontend `document.service.ts` request body changes. Existing data is migrated via a data migration step.
-- **Compliance:** Integration test: student uploads a document, attaches it to two applications, verifies the same document record is referenced by both. Verified status on the document persists after one application is cancelled.
-
----
-
-### ADR-003: Allocation Scoring — Pluggable Strategy Interface
-
-- **Status:** Proposed
-- **Context:** `AllocationScoringService` is a concrete class with hardcoded v1.1 scoring constants. v2.0 requires owner-configurable rules: FCFS, university preference, NSFAS priority, accessibility match (ALLOC-003, BO-006). The existing class has 90% test coverage — those tests validate v1.1 behaviour and must be preserved.
-- **Decision:** Extract a `ScoringStrategy` interface with `scoreAvailableRooms()`, `scoreSingleRoom()`, and `satisfiesHardConstraints()` methods. The existing `AllocationScoringService` is renamed `LegacyScoringStrategy implements ScoringStrategy` — no behaviour changes, all existing tests pass. A new `OwnerConfigurableScoringStrategy` implements v2.0 rules. `AllocationBatchService` and `AutoAllocationService` depend on `ScoringStrategy` (interface). Spring `@Primary` or `@Qualifier` selects the active implementation; a feature flag can toggle between them.
-- **Alternatives Considered:**
-  - **Extend `AllocationScoringService` directly** — Risks breaking the 90%-covered class and the tests that verify v1.1 correctness.
-  - **Feature flag between two concrete classes** — Valid, but the interface approach is testable independently and cleaner.
-- **Consequences:** `AllocationScoringServiceTest` is updated to test via the interface contract. New `OwnerConfigurableScoringStrategyTest` added with 90% line coverage requirement. `build.gradle` Jacoco rule extended to both implementations.
-- **Compliance:** Both strategy implementations must independently satisfy the 90% line coverage threshold before Phase 2 is closed.
-
----
-
-### ADR-004: Role Model — v1.1 to v2.0 Incremental Migration
-
-- **Status:** Proposed
-- **Context:** `UserRole { STUDENT, ADMIN, LANDLORD }` and `SecurityConfig` hierarchy `ADMIN > LANDLORD > STUDENT` are v1.1 concepts. v2.0 introduces `PLATFORM_ADMIN`, `BUILDING_OWNER`, `BUILDING_STAFF` with distinct, non-overlapping permission scopes. (Requirements.md Section 3.2, Conflicts C-03)
-- **Decision:** Incremental zero-downtime migration. Add v2.0 roles to `UserRole` alongside existing values. Annotate `ADMIN` and `LANDLORD` as `@Deprecated`. Data migrate existing users. Update `SecurityConfig.roleHierarchy()`. Update all `@PreAuthorize` and Angular guards. Remove deprecated roles in the following release.
-- **Alternatives Considered:**
-  - **Big-bang replacement in one PR** — HIGH risk; a single missed `hasRole('ADMIN')` grants incorrect access silently.
-  - **Keep old roles as aliases** — Creates ambiguous dual-role system; maintenance burden compounds.
-- **Consequences:** Temporary period where both old and new role values coexist. Every controller endpoint must have a role-based access test. Angular role guards must use a `RoleService` abstraction rather than string literals.
-- **Compliance:** Before `ADMIN` and `LANDLORD` are removed from the enum, a comprehensive role-access test suite must pass for all controller endpoints.
-
----
-
-### ADR-005: Schema Management — Flyway Exclusively
-
-- **Status:** Proposed
-- **Context:** `hbm2ddl.auto: update` + Flyway both active creates two independent schema managers that can conflict silently.
-- **Decision:** Set `hbm2ddl.auto: validate`. Flyway is the sole schema manager. Hibernate validates — does not modify.
-- **Alternatives Considered:** `hbm2ddl.auto: none` — fully disables Hibernate DDL; valid. `validate` is preferred because it catches entity/migration drift during development as a startup failure rather than a silent runtime bug.
-- **Consequences:** Developers adding entity fields must also write a Flyway migration. Failure to do so causes a startup failure — the desired fast-feedback behaviour.
-- **Compliance:** CI pipeline must include application startup verification. `SchemaManagementException` fails the build.
-
----
-
-### ADR-006: Scheduled Jobs — In-Process with Structured Observability
-
+### ADR-001: Student Accounts as Platform-Level Entities (PLATFORM_TENANT_ID Sentinel)
 - **Status:** Accepted
-- **Context:** Five `@Scheduled` methods run silently with no error containment, Prometheus metrics, or structured logging.
-- **Decision:** Keep `@Scheduled` in-process. Wrap all scheduled method bodies in a standardised try/catch with `log.info("job={} action=start/complete/fail processed={}")` and `meterRegistry.counter()` increments.
-- **Alternatives Considered:** Quartz Scheduler — job history, cluster-safe. Overkill for MVP single-instance. Spring Batch — too heavyweight for simple interval jobs.
-- **Consequences:** All five scheduled jobs produce Grafana-visible failure counters. No new dependencies required.
-- **Compliance:** All scheduled methods must implement the wrapper pattern before Phase 2 work begins.
+- **Context:** Requirements.md v2.0 requires students to apply to buildings owned by multiple tenants. The original `app_user.tenant_id NOT NULL` schema bound students to a single tenant, blocking cross-tenant applications.
+- **Decision:** Students use `tenant_id = 0` (PLATFORM_TENANT_ID) as a sentinel value. The Hibernate tenant filter is bypassed for tenant_id = 0. `TenantContext.PLATFORM_TENANT_ID = 0L` is the shared constant.
+- **Alternatives Considered:** (a) Nullable `tenant_id` for students — rejected because it breaks NOT NULL constraints across the schema and complicates filter logic. (b) Schema-per-tenant — rejected as premature complexity for MVP scale.
+- **Consequences:** Students can apply to any tenant's building. The sentinel is a convention; any new entity with `TenantAware` that forgets to handle PLATFORM_TENANT_ID will incorrectly scope student data. This must be tested on every new entity.
+- **Compliance:** `TenantFilterIntegrationTest` must be extended for each new `TenantAware` entity. PR checklist must include tenant isolation verification.
+
+### ADR-002: ScoringStrategy Interface — Dual Implementation
+- **Status:** Accepted
+- **Context:** v1.0 `AllocationScoringService` had hardcoded weights incompatible with v2.0's owner-configurable rules (ALLOC-003). The 90% test coverage target on the class required preserving the v1.1 behaviour while adding v2.0.
+- **Decision:** Extract `ScoringStrategy` interface. Implement `OwnerConfigurableScoringStrategy` (`@Primary`) for v2.0 FCFS+university+NSFAS+accessibility scoring. Retain `LegacyScoringStrategy` for backward compatibility during transition. The orchestrator (`AllocationScoringOrchestrator`) injects the interface — the active strategy is transparent to it.
+- **Alternatives Considered:** (a) Single strategy with feature-flag switch — rejected as it mixes two scoring models into one class. (b) Big-bang rewrite — rejected as higher risk with active users.
+- **Consequences:** Two test suites to maintain. `LegacyScoringStrategy` can be removed after `OwnerConfigurableScoringStrategy` is fully validated in production.
+- **Compliance:** Both strategies must maintain 90% unit test coverage. `@Primary` annotation on the v2.0 strategy must not change without an ADR.
+
+### ADR-003: Event-Driven Notifications via @TransactionalEventListener
+- **Status:** Accepted
+- **Context:** Sending emails synchronously inside allocation and application transactions caused two problems: transaction rollback on SMTP failure would roll back the allocation; and email latency blocked the API response.
+- **Decision:** All notification side-effects are triggered via domain events published within the business transaction. `NotificationEventListener` listens with `@TransactionalEventListener(AFTER_COMMIT)` and `@Async("notificationExecutor")`. TenantContext is propagated into the async thread.
+- **Alternatives Considered:** (a) Message queue (RabbitMQ, Kafka) — rejected as unnecessary infrastructure for MVP scale. (b) Synchronous async (`@Async` without events) — rejected because it doesn't guarantee post-commit execution.
+- **Consequences:** Email sending is decoupled from business transactions. Failure in notification does not roll back the business operation. `NotificationRetryService` is required for durability. TenantContext propagation in async threads must be verified on every new listener method.
+- **Compliance:** No service class in any domain package may directly call `NotificationService.sendEmail()`. All email dispatches must go through events.
+
+### ADR-004: v2.0 Role Hierarchy — PLATFORM_ADMIN > BUILDING_OWNER > BUILDING_STAFF
+- **Status:** Accepted
+- **Context:** v1.1 had `ADMIN > LANDLORD > STUDENT`. v2.0 product requirements define four roles with a different semantic model. The `LANDLORD` role maps to `BUILDING_OWNER`; `ADMIN` maps to `PLATFORM_ADMIN`; `BUILDING_STAFF` is new.
+- **Decision:** `UserRole` enum now contains `PLATFORM_ADMIN`, `BUILDING_OWNER`, `BUILDING_STAFF`, `STUDENT` as active roles, and `@Deprecated ADMIN`, `@Deprecated LANDLORD` for migration window backward compatibility. `SecurityConfig` role hierarchy: `PLATFORM_ADMIN > BUILDING_OWNER > BUILDING_STAFF`. `STUDENT` is independent.
+- **Alternatives Considered:** (a) Hard migration (drop old roles immediately) — rejected because existing JWT tokens carry old role names; immediate removal causes 401s for all logged-in users.
+- **Consequences:** The deprecated roles will remain functional for the maximum token TTL window (10 hours). After a forced re-login event (or 10 hours after deployment), deprecated roles can be removed from the security config.
+- **Compliance:** No new code should reference `ADMIN` or `LANDLORD` roles. Add a custom Checkstyle rule to flag references to deprecated enum values.
+
+### ADR-005: Scheduled Job Observability via Centralised ScheduledJobRunner
+- **Status:** Accepted
+- **Context:** v1.0 identified that scattered `@Scheduled` methods with no error handling or metrics created a blind spot: jobs could fail silently for days with no alert.
+- **Decision:** All `@Scheduled` annotations live exclusively in `ScheduledJobRunner`. Each job body is called as a method on a domain service. Each call is wrapped in a standardised try/catch that: (a) logs job start and completion with structured key=value, (b) increments `sas.jobs.{name}.processed` with the number of records processed, (c) increments `sas.jobs.{name}.failures` on uncaught exception.
+- **Alternatives Considered:** (a) Quartz Scheduler — rejected as over-engineering for < 10 jobs. (b) Per-service `@Scheduled` — rejected because it scatters observability responsibility.
+- **Consequences:** Adding a new scheduled job requires: (1) implementing the job body in a domain service, (2) adding the `@Scheduled` wrapper in `ScheduledJobRunner`. No other class may have `@Scheduled` annotations.
+- **Compliance:** ArchUnit rule: `@Scheduled` annotations are only permitted in classes named `ScheduledJobRunner`.
+
+### ADR-006: MinIO File Storage with Orphan Cleanup Pattern
+- **Status:** Accepted
+- **Context:** File upload and database record creation are two separate operations. A failure between them leaves either an orphaned file (upload succeeded, record failed) or a missing file (record exists, upload failed).
+- **Decision:** Upload to MinIO first; create database record second. On partial failure, `OrphanFileCleanupJob` runs nightly to reconcile MinIO objects against database records and delete untracked files. Presigned URLs are used for client-side access.
+- **Alternatives Considered:** (a) Saga pattern with compensating transaction — rejected as overkill for MVP. (b) Two-phase commit — rejected as unavailable with MinIO S3.
+- **Consequences:** A window exists (up to 24 hours) where orphaned files consume MinIO storage. The cleanup job must handle MinIO unavailability gracefully. File keys must be deterministic (or stored in the database) to enable cleanup reconciliation.
+- **Compliance:** Never create a MinIO object without immediately following with a database record. All MinIO key generation must use the entity ID as the prefix.
 
 ---
 
 ## 9. Implementation Roadmap
 
-### Phase 1: Critical Stabilisation
-*These items block all other work or represent immediate production risk. Complete before any v2.0 feature development.*
+### Phase 1: Critical Stabilisation (Current Sprint)
+Address all items that can cause production failures or silent product bugs.
 
-| # | Change | Addresses |
-|---|--------|-----------|
-| 1 | Set `hbm2ddl.auto: validate` in `application.yml` | RISK-001, ADR-005 |
-| 2 | Fix `room.room_number` — `UNIQUE (building_id, room_number)` | RISK-002 |
-| 3 | Fix `system_settings.setting_key` — `UNIQUE (tenant_id, setting_key)` | RISK-013 |
-| 4 | Remove JWT secret default value; fail-fast on missing `JWT_SECRET` | RISK-005 |
-| 5 | Parametrise SMTP TLS + auth via env vars | RISK-006 |
-| 6 | Add `postgres_data` volume mount to docker-compose.yml `db` service | RISK-007 |
-| 7 | Restore Flyway: `validate-on-migrate: true`, `out-of-order: false`; apply baseline | RISK-012 |
-| 8 | Wrap all 5 scheduled jobs in try/catch with structured logging + Prometheus counters | RISK-008, ADR-006 |
+1. **Remove JWT secret default value** — addresses RISK-001, SEC-001
+2. **Remove `MAX_DECLINE_COUNT` from `declineOffer()`** — addresses RISK-002, conflict with OFFER-004
+3. **Fix `getAvailableRoomsForBatch()` to use JOIN query** — addresses RISK-004, PB-001
+4. **Complete or remove `confirmBatchAllocationsWithResult()`** — addresses RISK-003
+5. **Activate `NotificationRetryService`** — addresses RISK-006, NOTIF-003
+6. **Document SMTP production requirements in `.env.example`** — addresses RISK-005, SEC-002
 
-**Prerequisites:** None — all Phase 1 items are independent.
-
-**Gate Criteria:** Application starts with `hbm2ddl.auto: validate`. All 8 items merged and CI passing. No globally-unique `room_number` or `setting_key` constraints remain. Every scheduled job emits Prometheus metrics.
+**Prerequisites:** None
+**Gate Criteria to Phase 2:** All 6 items complete; unit tests added for items 2 and 3; integration test confirms retry activates for failed notifications
 
 ---
 
 ### Phase 2: Structural Improvement
-*Resolve v2.0 architecture blockers and build the missing data model.*
+Strengthen architecture quality, complete v2.0 domain model gaps, and establish quality baselines.
 
-| # | Change | Addresses |
-|---|--------|-----------|
-| 1 | Make `document.application_id` nullable; add `application_document` junction table; migrate data | RISK-004, ADR-002 |
-| 2 | Resolve student platform-level identity (sentinel tenant, filter update) | RISK-003, ADR-001 |
-| 3 | Migrate UserRole to v2.0; update SecurityConfig and all @PreAuthorize; update Angular guards | RISK-009, ADR-004 |
-| 4 | Increase HikariCP `maximum-pool-size` to 25 | RISK-014 |
-| 5 | Add `intake_period` table migration | BO-003 |
-| 6 | Add `building_owner` + `building_staff` tables | BO-001, BO-002, PA-001 |
-| 7 | Add `custom_application_field` + `custom_field_answer` tables | BO-004 |
-| 8 | Add `required_document_type` table (per-building) | BO-005 |
-| 9 | Isolate `AllocationScoringService` behind `ScoringStrategy` interface | RISK-010, ADR-003 |
-| 10 | Fix `AllocationScoringService` N+1 — batch-load attributes before scoring loop | RISK-017, PB-001 |
-| 11 | Implement `OwnerConfigurableScoringStrategy` (FCFS, university, NSFAS, accessibility) | ALLOC-003, BO-006 |
-| 12 | Establish frontend test coverage baseline — service tests first (target: 70% service coverage) | RISK-015 |
-| 13 | Extend `TenantFilterIntegrationTest` for all new entity tables | RISK-011 |
+1. **Add `nsfasFunded` boolean to `Application` entity + Flyway migration** — addresses RISK-009, ALLOC-003
+2. **Migrate API URL patterns from `/api/admin/**` to `/api/owner/**` and `/api/platform/**`** — addresses API contract (Requirements.md Section 11)
+3. **Split `NotificationEventListener` into 3 domain-scoped listeners** — addresses coupling analysis section 2.4
+4. **Establish Angular test baseline** — target 50% coverage on `core/` services and all route guards; addresses RISK-010
+5. **Add Lighthouse CI to GitHub Actions** — performance budget: initial load < 3s, score ≥ 85; addresses PB-007
+6. **Commit Grafana dashboard JSON to repository** — addresses RISK-011, observability gap
+7. **Run load test at 500 concurrent users** — validate P95 < 500ms; addresses RISK-007, NFR validation
+8. **Add `notification.delivery.latency` Micrometer histogram** — addresses observability gap in section 6.4
+9. **Add SMTP timeout configuration** (`mail.smtp.timeout`, `mail.smtp.connectiontimeout`)
+10. **Add Nominatim 5-second timeout** in geocoding service HTTP client configuration
 
-**Prerequisites:** Phase 1 complete.
-
-**Gate Criteria:** A second building owner tenant can be onboarded without any constraint violations. A student can apply to buildings from two different tenants. Documents exist at the profile level and can be attached to multiple applications. Allocation scoring uses owner-configured rules. Angular services have 70%+ test coverage.
+**Prerequisites:** Phase 1 complete
+**Gate Criteria to Phase 3:** Load test passes; API URLs migrated; test coverage baseline established; no RISK-001 through RISK-006 items open
 
 ---
 
 ### Phase 3: Enhancement & Optimisation
-*Performance hardening, operational readiness, remaining non-critical improvements.*
+Performance hardening, security hardening, and operational readiness for multi-tenant growth.
 
-| # | Change | Addresses |
-|---|--------|-----------|
-| 1 | Configure MinIO SDK timeout (30s read, 30s write) | SEC-009, integration reliability |
-| 2 | Wrap FF4J behind `FeatureFlagService` interface | RISK-016 |
-| 3 | Upgrade JJWT `0.11.5` → `0.12.x` | Dependency staleness |
-| 4 | Add `RedisHealthIndicator` to `/actuator/health` | SEC-001, observability |
-| 5 | Add Grafana alerting rules: job failures, PERMANENTLY_FAILED, error rate > 1% | RISK-008 |
-| 6 | Commit Grafana dashboard JSON to repository | Operational readiness |
-| 7 | Add `@Timed` to critical service methods for P95 tracking | NFR performance |
-| 8 | Run k6 load test: 500 VUs, 30-minute soak — validate scalability NFRs | Scalability |
-| 9 | Lighthouse CI audit — validate frontend < 3s load on 3G | NFR performance |
-| 10 | Offer expiry reminder notifications (24h before deadline) | NOTIF-001 item 12 |
-| 11 | Check-in reminder notifications (24h before check-in deadline) | NOTIF-001 item 13 |
-| 12 | Evaluate `HttpOnly` cookie JWT storage to replace `localStorage` | SEC-006 |
-| 13 | Plan `application` table partitioning when row count exceeds 100,000 | Scalability |
+1. **Upgrade FF4J** — evaluate FF4J 2.x or replace with a maintained feature flag library
+2. **Evaluate CSP nonce-based policy** — remove `unsafe-inline` from script-src
+3. **Evaluate `HttpOnly` cookie JWT storage** — replace localStorage with cookie + CSRF token pattern
+4. **Remove `@Deprecated ADMIN/LANDLORD` roles** — after confirmed re-login event or token TTL expiry
+5. **Version-control Grafana dashboards with alerting rules** — SMTP failure alert, Redis disconnect alert, job failure alert, allocation batch duration P95 alert
+6. **`getWaitingListWithScores()` batch optimisation** — cache intermediate scoring matrix per request
+7. **Frontend Angular test coverage to 70%** — include feature module components
+8. **Database partitioning review** — evaluate `application` table partitioning if approaching 50,000 rows
 
-**Prerequisites:** Phase 2 complete.
+**Prerequisites:** Phase 2 complete
 
 ---
 
 ## 10. Diagrams
 
 ### 10.1 Current Architecture (C4 Container)
-
-*See Section 2.1*
-
----
+*(See Section 2.1)*
 
 ### 10.2 Target Architecture (C4 Container)
-
-*See Section 4.2*
-
----
+*(See Section 4.2)*
 
 ### 10.3 Service Dependency Graph
+*(See Section 2.4)*
 
-```mermaid
-graph LR
-  subgraph "Facades"
-    RAS[RoomAllocationService\nfacade]
-    AppS[ApplicationService\nfacade]
-    DocS[DocumentService\nfacade]
-  end
-
-  subgraph "Allocation Sub-Services"
-    ABS[AllocationBatchService]
-    ALS[AllocationLifecycleService]
-    ACS[AllocationCheckInService]
-    AES[AllocationExpiryService]
-    AutoAS[AutoAllocationService]
-    AuditS[AllocationAuditService]
-    AEBS[AllocationEligibilityService]
-    RAQS[RoomAllocationQueryService]
-    Strategy[ScoringStrategy\ninterface]
-    Legacy[LegacyScoringStrategy]
-    V2Score[OwnerConfigurableScoringStrategy]
-  end
-
-  subgraph "Application Sub-Services"
-    AppCore[ApplicationCoreService]
-    AppAdmin[ApplicationAdminService]
-    AppSearch[ApplicationSearchService]
-    AppDoc[ApplicationDocumentService]
-    AppQuery[ApplicationQueryService]
-  end
-
-  subgraph "Document Sub-Services"
-    DocLife[DocumentLifecycleService]
-    DocQuery[DocumentQueryService]
-    DocStatus[DocumentStatusService]
-  end
-
-  subgraph "Cross-Domain"
-    NS[NotificationService]
-    WLS[WaitingListService]
-    TCtx[TenantContext]
-    TBL[TokenBlacklistService]
-    AuthS[AuthService]
-    LA[LoginAttemptService]
-  end
-
-  RAS --> ABS & ALS & ACS & AES & AutoAS & AuditS & AEBS & RAQS
-  ABS --> Strategy
-  AutoAS --> Strategy
-  Strategy --- Legacy
-  Strategy --- V2Score
-  ALS --> NS & WLS
-  ACS --> NS
-  AES --> NS & WLS
-  ALS -.->|cross-domain| AppS
-  AppS --> AppCore & AppAdmin & AppSearch & AppDoc & AppQuery
-  AppCore --> NS
-  AppAdmin --> NS
-  AppDoc -.->|cross-domain| DocS
-  DocS --> DocLife & DocQuery & DocStatus
-  DocLife --> NS
-  DocStatus --> NS
-  AuthS --> TBL & LA & NS
-
-  style Strategy fill:#ffffcc,stroke:#cccc00
-  style ALS stroke:#cc0000,stroke-width:2px
-  style AppDoc stroke:#cc0000,stroke-width:2px
-```
-
----
-
-### 10.4 Data Flow Diagram
+### 10.4 Data Flow — Application Submission to Room Allocation
 
 ```mermaid
 flowchart TD
-  subgraph "Application Submission"
-    A([Student submits application]) --> PC{Profile complete?}
-    PC -->|No| PE[400: Complete profile]
-    PC -->|Yes| IC{Intake period open?}
-    IC -->|No| CE[422: Applications closed]
-    IC -->|Yes| MC{Under max applications?}
-    MC -->|No| ME[422: Max reached]
-    MC -->|Yes| DA[Attach documents\nfrom student profile\nvia application_document]
-    DA --> SA[(Save application\nstatus=PENDING\ntenant_id=building_owner)]
-    SA --> NO[Async: notify owner]
-    SA --> AR[201: ApplicationResponse]
-  end
+  A([Student submits application]) --> B[ApplicationCoreService.submitApplication]
+  B --> C{Intake period\nopen?}
+  C -->|No| D[Throw IntakePeriodClosedException]
+  C -->|Yes| E{Student at\nmax applications?}
+  E -->|Yes| F[Throw MaxApplicationsExceededException]
+  E -->|No| G[Create Application - status: PENDING]
+  G --> H[Publish ApplicationSubmittedEvent]
+  H --> I[@TransactionalEventListener AFTER_COMMIT]
+  I --> J[@Async notificationExecutor]
+  J --> K[Send confirmation email to student\nSend new-application notification to owner]
 
-  subgraph "Allocation Trigger Flow"
-    T([Trigger: approved + docs verified\nOR room freed]) --> FF{auto-allocation\nflag ON?}
-    FF -->|No| MO[Manual allocation only]
-    FF -->|Yes| FE[Fetch AWAITING_ALLOCATION apps\ntenant-scoped to building]
-    FE --> FR[Fetch available rooms\n+ batch-load RoomAttributes\n+ batch-load BuildingAttributes]
-    FR --> HC{Pass hard constraints?\ngender, accessibility\nno active offer}
-    HC -->|Fail| SK[Skip — re-evaluate when state changes]
-    HC -->|Pass| SC[ScoringStrategy.score\nFCFS + university + NSFAS + accessibility]
-    SC --> BR[Select highest-scored room]
-    BR --> OC{Student has\nexisting offer?}
-    OC -->|Yes| EO[Expire previous offer\nDecrement old room occupancy\nFree old room]
-    OC -->|No| CO
-    EO --> CO[Create OFFERED allocation\nIncrement room occupancy\nSet offer_expiry_date]
-    CO --> UA[Application → ALLOCATED]
-    UA --> SN[Async: offer email + in-app notification]
-  end
+  K --> L([Admin reviews application])
+  L --> M[ApplicationAdminService.updateStatus - APPROVED]
+  M --> N{All required\ndocuments VERIFIED?}
+  N -->|No| O[Status stays APPROVED - awaiting docs]
+  N -->|Yes| P[Publish ApplicationApprovedEvent]
+  P --> Q[AllocationLifecycleService\ncreateRoomAllocation]
+  Q --> R{Available\nroom found?}
+  R -->|No| S[Add to WaitingListEntry\nApplication status: AWAITING_ALLOCATION]
+  R -->|Yes| T{Student already\nhas active offer?}
+  T -->|Yes| U[Expire old offer\nFree old room\nNotify next waiting student]
+  U --> V
+  T -->|No| V[Create RoomAllocation - status: OFFERED\nIncrement room occupancy\nPublish AllocationCreatedEvent]
+  V --> W[@Async: Send offer notification to student]
+  W --> X([Student accepts or declines])
+  X -->|Accept| Y[AllocationLifecycleService.acceptOffer\nStatus: ACCEPTED\nWithdraw all other applications\nSet check-in deadline]
+  X -->|Decline| Z[AllocationLifecycleService.declineOffer\nStatus: DECLINED\nDecrement occupancy\nApplication: AWAITING_ALLOCATION\nOffer next waiting student]
+  X -->|Ignore| AA[ScheduledJobRunner.runOfferExpiry every 1h\nAllocationExpiryService.expireOffers\nStatus: EXPIRED\nDecrement occupancy\nApplication: AWAITING_ALLOCATION]
+  Y --> AB([Owner/Staff checks student in])
+  AB --> AC[AllocationCheckInService.checkIn\nStatus: ACTIVE]
+  AC --> AD([Owner/Staff checks student out])
+  AD --> AE[AllocationLifecycleService.checkOut\nStatus: COMPLETED\nDecrement occupancy\nTrigger WaitingList for freed room])
 ```
-
----
 
 ### 10.5 Integration Architecture
-
-```mermaid
-flowchart LR
-  subgraph "Spring Boot API"
-    SVC[Service Layer]
-    SCHED[Scheduled Jobs\ntry-catch + Prometheus]
-  end
-
-  PG[(PostgreSQL 16\nHikariCP 25\nhbm2ddl validate\nHibernate filter)]
-  REDIS[(Redis 7.4\nToken blacklist\nJTI+TTL\nfail-open)]
-  MINIO[(MinIO\nDocuments + Images\nOrphan cleanup job\nTimeout 30s)]
-  SMTP[SMTP Server\nTLS + Auth\nRequired in prod\n3-retry backoff]
-  PROM[Prometheus\n/actuator/prometheus]
-  GRAFANA[Grafana\nAlerts: job failures\nPERM_FAILED notifs\nP95 response]
-  NOM[Nominatim OSM\nOptional geocoding\nFeature-flagged\nTimeout 5s]
-
-  SVC -->|JDBC/JPA| PG
-  SVC -->|Lettuce fail-open| REDIS
-  SVC -->|S3 SDK| MINIO
-  SVC -->|@Async Spring Mail| SMTP
-  SVC -->|REST optional| NOM
-  SCHED -->|structured logs + counters| PROM
-  SVC -->|Micrometer metrics| PROM
-  PROM --> GRAFANA
-```
-
----
+*(See Section 4.5)*
 
 ### 10.6 Domain Boundary Map
 
 ```mermaid
 graph TB
-  subgraph "Platform Administration Domain"
-    PA1[PlatformAdminService]
-    PA2[BuildingOwnerService]
-    PA3[building_owner table]
-    PA4[building_staff table]
+  subgraph "Platform Infrastructure"
+    AUTH[AuthService\nJwtUtil\nTokenBlacklistService\nLoginAttemptService\nRateLimitingFilter]
+    TENANT[TenantContext\nTenantService\nHibernate Filter]
+    OBS[ScheduledJobRunner\nMicrometer\nPrometheus]
+    FLAGS[FeatureFlagService\nFF4J]
   end
 
-  subgraph "Identity and Security Domain"
-    ID1[AuthService]
-    ID2[TokenBlacklistService]
-    ID3[TenantContext\nThreadLocal]
-    ID4[LoginAttemptService]
-    ID5[app_user\nSTUDENT: tenant_id=0]
+  subgraph "Building Owner Domain"
+    BUILD[BuildingService\nRoomService\nBuildingImageService]
+    STAFF[UserManagementService\nBuildingOwner\nBuildingStaff]
+    CONFIG[SystemSettingService\nAllocationRuleService]
   end
 
-  subgraph "Building and Room Domain"
-    BR1[BuildingService]
-    BR2[RoomService]
-    BR3[BuildingImageService]
-    BR4[building, room\nbuilding_attributes\nroom_attributes\nbuilding_image]
+  subgraph "Student Domain"
+    STU[StudentService\nUserAnonymizationService]
+    DOCS[DocumentService\nDocumentLifecycleService\nDocumentQueryService]
   end
 
-  subgraph "Application Lifecycle Domain"
-    AL1[ApplicationService facade]
-    AL2[ApplicationCoreService]
-    AL3[ApplicationAdminService]
-    AL4[application\ncustom_field_answer\nintake_period]
+  subgraph "Application Lifecycle"
+    APP[ApplicationService facade\nApplicationCoreService\nApplicationAdminService\nApplicationSearchService]
+    AY[AcademicYearService\nInstitutionService\nYearOfStudyService]
   end
 
-  subgraph "Document Management Domain"
-    DM1[DocumentService facade]
-    DM2[DocumentLifecycleService]
-    DM3[DocumentStatusService]
-    DM4[document - student-owned\napplication_document junction]
+  subgraph "Allocation Engine"
+    ALLOC[RoomAllocationService facade\nAllocationLifecycleService\nAllocationBatchService]
+    SCORE[AllocationScoringOrchestrator\nOwnerConfigurableScoringStrategy\nLegacyScoringStrategy]
+    WAIT[WaitingListService\nAllocationExpiryService\nStagedAllocationService]
+    AUDIT[AllocationAuditService\nAllocationAuditLog]
   end
 
-  subgraph "Allocation Engine Domain"
-    AE1[RoomAllocationService facade]
-    AE2[AllocationBatchService]
-    AE3[ScoringStrategy interface]
-    AE4[room_allocation\nstaged_allocations\nwaiting_list_entry\nallocation_audit_log]
+  subgraph "Notification Pipeline"
+    NOTIF[NotificationService\nEmailDispatchService\nNotificationRetryService\nNotificationEventListener]
   end
 
-  subgraph "Notification Domain"
-    NC1[NotificationService]
-    NC2[NotificationRetryService]
-    NC3[UserNotificationService]
-    NC4[notification\nuser_notifications]
-  end
-
-  subgraph "Observability and Configuration Domain"
-    OC1[ActivityLogService\npartitioned by year]
-    OC2[SystemSettingService\nper-tenant settings]
-    OC3[FeatureFlagService\nwraps FF4J]
-    OC4[activity_logs\nsystem_settings]
-  end
-
-  "Application Lifecycle Domain" -.->|domain event| "Allocation Engine Domain"
-  "Allocation Engine Domain" -.->|side effect| "Notification Domain"
-  "Application Lifecycle Domain" -.->|side effect| "Notification Domain"
-  "Document Management Domain" -.->|side effect| "Notification Domain"
-  "Identity and Security Domain" -->|tenant context per request| "Building and Room Domain"
-  "Identity and Security Domain" -->|tenant context per request| "Application Lifecycle Domain"
+  AUTH --> TENANT
+  ALLOC --> APP
+  ALLOC --> NOTIF
+  APP --> NOTIF
+  APP --> DOCS
+  DOCS --> NOTIF
+  BUILD --> CONFIG
+  ALLOC --> SCORE
+  ALLOC --> WAIT
+  ALLOC --> AUDIT
 ```
 
 ---
@@ -1220,76 +1079,67 @@ graph TB
 
 ### 11.1 Requirements Cross-Reference
 
-| Requirement ID | Summary | Architectural Impact | Section / ADR |
-|---------------|---------|---------------------|--------------|
-| AUTH-001 | JWT with tenant + role claims | `JwtUtil` generates `tenantId` claim ✅ | ADR-005 |
-| AUTH-002 | Multi-tenant data isolation | Hibernate filter + TenantContext ✅; student exemption needed | ADR-001, Section 2.3.2 |
-| AUTH-003 | Password reset | `password_reset_token` table + `AuthService` ✅ | Section 3.3 |
-| ST-004 | Platform-level student document store | `document.application_id NOT NULL` blocks this | ADR-002, Section 3.2.2 |
-| DOC-001 | Upload documents to profile, not application | `application_id NOT NULL` constraint | ADR-002 |
-| DOC-002 | Platform-level document verification | `document_status` per-document ✅ but `application_id NOT NULL` breaks platform scope | ADR-002 |
-| DOC-003 | Document reuse across applications | Blocked by `application_id NOT NULL` | ADR-002 |
-| ALLOC-001 | Auto-allocation with hard constraints | `AutoAllocationService`, feature-flagged ✅ | ADR-003, Section 3.4.1 |
-| ALLOC-003 | Owner-configurable scoring rules | Current scoring is v1.1 hardcoded | ADR-003 |
-| OFFER-002 | One-active-offer rule | `AllocationLifecycleService` handles ✅ | Section 3.3 |
-| NOTIF-001 | Email notifications for key events | `NotificationService`, Thymeleaf templates ✅ | Section 3.3 |
-| NOTIF-003 | Retry failed emails | `NotificationRetryService`, 3 retries ✅ | Section 3.3 |
-| CFG-001 | Runtime feature flags | FF4J with JDBC store ✅ | Section 3.5 |
-| CFG-002 | Per-building-owner configuration | `system_settings` exists; global unique key blocks multi-tenant | Section 3.2.4 |
-| PA-001 | Building owner registration + approval | No `building_owner` table yet | Phase 2 |
-| BO-003 | Per-building intake periods | `academic_year` is v1.1 concept; `intake_period` table missing | Phase 2 |
-| BO-004 | Custom application fields | `custom_application_field` table missing | Phase 2 |
-| BO-005 | Per-building document requirements | `required_document_type` table missing | Phase 2 |
-| BO-006 | Owner-configurable allocation rules | `allocation_rules` table exists ✅; scoring engine needs update | ADR-003 |
-| BM-003 | Room management | `room.room_number UNIQUE` globally — production failure | Section 3.2.3 |
-| C-01 | Single → multi-tenant | Core architecture pivot | ADR-001, ADR-002, Section 3.2.8–3.2.10, Phases 1+2 |
-| C-02 | Academic year → per-building intake | `intake_period` table in Phase 2 | Phase 2 |
-| C-03 | Role hierarchy v1.1 → v2.0 | `UserRole.LANDLORD` not updated | ADR-004, Section 3.2.10 |
-| C-04 | Per-application → platform-level documents | `document.application_id NOT NULL` | ADR-002, Section 3.2.2 |
-| C-05 | Decline limit removed | One-active-offer rule enforced in `AllocationLifecycleService` ✅ | Section 3.3 |
-| C-07 | Students per-owner → platform-level | ADR-001 | Phase 2 |
-| C-08 | Hardcoded → owner-configurable scoring | ADR-003 | Phase 2 |
-
----
+| Requirement ID | Summary | Architectural Impact | Decision/Section Reference |
+|---------------|---------|---------------------|---------------------------|
+| ALLOC-003 | Owner-configurable scoring (FCFS, university, NSFAS, accessibility) | ScoringStrategy interface; NSFAS boolean field on Application | ADR-002; Section 3.2; RISK-009 |
+| OFFER-004 | No decline limit — one-active-offer rule manages abuse | Remove `MAX_DECLINE_COUNT` from `declineOffer()` | RISK-002; Section 3.2.2 |
+| NOTIF-003 | Email retry — 3 attempts; Platform Admin alert on PERMANENTLY_FAILED | `NotificationRetryService` activation; alert on exhaustion | RISK-006; Section 3.2.5 |
+| AUTH-001 | JWT with 256-bit minimum secret | Remove default JWT secret; fail startup if absent | RISK-001; SEC-001; ADR-004 |
+| AUTH-002 | Multi-tenant data isolation | PLATFORM_TENANT_ID sentinel; Hibernate filter; tenant test per entity | ADR-001; SEC-008 |
+| ST-004 | Platform-level document store | Document-application decoupling (V2026_02_25_0010) | Section 2.3 |
+| PA-001 | Platform Admin reviews building owner registrations | `PLATFORM_ADMIN` role in SecurityConfig hierarchy; new endpoints `/api/platform/**` | ADR-004; Section 5.3 |
+| BO-006 | Owner-configurable allocation rules | `AllocationRule` entity; `OwnerConfigurableScoringStrategy` | ADR-002 |
+| CFG-002 | Per-building-owner configuration | `SystemSetting` + tenant scope; per-owner `AllocationRule` | Section 4.3 |
 
 ### 11.2 Technology Evaluation Matrix
 
-| Technology | Purpose | Version | Assessment | Decision | Rationale |
-|-----------|---------|---------|------------|----------|-----------|
-| JJWT | JWT generation | 0.11.5 | Outdated; `0.12.x` available with breaking API | Upgrade Phase 3 | Working; breaking change needs planned migration |
-| FF4J | Feature flags | 1.9 (2020) | Aging; minimal CVE history; small surface area | Keep; wrap interface Phase 3 | Too risky mid-development; interface decouples implementation |
-| MapStruct | Entity-DTO | 1.6.3 | Current stable ✅ | Keep | Compile-time safe; fast; excellent |
-| Micrometer + Prometheus + Grafana | Observability | Prometheus 2.50.1, Grafana 10.3.3 | Current stable ✅ | Keep; extend with business metrics | Already deployed and collecting data |
-| Redis | Token blacklist | 7.4 | Current stable ✅ | Keep; add health indicator | Implemented with graceful degradation |
-| MinIO SDK | Object storage | 8.5.17 | Current stable ✅ | Keep; configure timeouts | Fit for purpose |
-| H2 | Test-only in-memory DB | Test scope | Current ✅ | Keep for unit tests; add Testcontainers for integration | H2 dialect differences can mask PG-specific bugs |
-| Nominatim | Geocoding | External API | Free; no API key; OpenStreetMap | Keep; configure timeout | Replaced Google Maps; appropriate for MVP |
-| `logstash-logback-encoder` | Structured logging | 7.4 | Current ✅ | Keep | Enables Elasticsearch ingestion; JSON format for Grafana |
+| Technology | Purpose | Pros | Cons | Decision | Rationale |
+|-----------|---------|------|------|----------|-----------|
+| Redis | JWT blacklist, rate limiting, login attempts | Fast, proven, simple, already in stack | Additional infrastructure dependency | ✅ Retained | Required; already implemented correctly |
+| FF4J 1.9 | Runtime feature flags | In-process, JDBC-backed, no extra infra | 2020 release; minimal maintenance; outdated | ⚠️ Monitor | Replace in Phase 3 if CVE found or Spring Boot 4 breaks compat |
+| Nominatim OSM | Building geocoding | Free, no API key, GDPR-friendly | Rate-limited (1 req/s), no SLA, no timeout configured | ⚠️ Acceptable for MVP | Feature-flagged; add 5-second timeout; acceptable for MVP volume |
+| Quartz Scheduler | Advanced job scheduling | Clustering, persistence, history | Significant complexity increase | ❌ Not now | `ScheduledJobRunner` + Prometheus is sufficient below 10 jobs |
+| Kafka/RabbitMQ | Reliable async messaging | Durable, distributed, replay | Significant infrastructure and operational overhead | ❌ Not now | Spring Events + retry pattern sufficient for MVP; revisit at 10k+ notifications/day |
+
+### 11.3 Phase 1 Gap Resolution Status (from v1.0 Architecture.md)
+
+| Gap from v1.0 | Description | Status in v1.1 Assessment |
+|---------------|-------------|--------------------------|
+| `hbm2ddl.auto: update` | Dual schema management | ✅ RESOLVED — now `validate` |
+| Flyway relaxed settings | `out-of-order: true`, `validate-on-migrate: false` | ✅ RESOLVED — `out-of-order: false`, `validate-on-migrate: true` |
+| `postgres_data` volume | Database data lost on container restart | ✅ RESOLVED — volume mounted |
+| `AllocationScoringService` N+1 | Per-room attribute queries in loop | ✅ RESOLVED — batch attribute loading in `OwnerConfigurableScoringStrategy` |
+| `AllocationScoringService` hardcoded weights | v1.1 constants, no owner configurability | ✅ RESOLVED — `ScoringStrategy` interface + `OwnerConfigurableScoringStrategy` |
+| Scheduled jobs observability | No try/catch, no metrics on any job | ✅ RESOLVED — `ScheduledJobRunner` with full observability pattern |
+| UserRole hierarchy | `ADMIN > LANDLORD > STUDENT` | ✅ RESOLVED — `PLATFORM_ADMIN > BUILDING_OWNER > BUILDING_STAFF` |
+| HikariCP pool size (10) | Insufficient for 500-user target | ✅ RESOLVED — now max 25 |
+| MinIO timeout not configured | SDK had no timeout | ✅ RESOLVED — 30s connect/read/write |
+| `document.application_id NOT NULL` | Documents locked to one application | ✅ RESOLVED — decoupled via migrations V2026_02_25_0010/0011 |
+| `room.room_number` global unique | Silent 500 on second building owner | ✅ RESOLVED — V2026_02_24_0001: per-building unique |
+| `system_settings.setting_key` global | Silent conflict across tenants | ✅ RESOLVED — V2026_02_24_0002: per-tenant unique |
+| JWT token revocation missing | No server-side revocation | ✅ RESOLVED — `TokenBlacklistService` + Redis |
+| Account lockout / brute force | No protection | ✅ RESOLVED — `LoginAttemptService` + `RateLimitingFilter` |
+| JWT secret default value | Known fallback in application.yml | 🔴 OPEN — must be removed (Phase 1) |
+| SMTP auth/TLS defaults | Unauthenticated, plaintext | 🔴 OPEN — document as required production config |
+| Frontend test coverage ~1.5% | No Angular test baseline | 🔴 OPEN — Phase 2 target: 50% |
+
+### 11.4 New Issues Identified in v1.1 Assessment (Not in v1.0)
+
+| Issue | Section | Priority |
+|-------|---------|----------|
+| `MAX_DECLINE_COUNT` conflict with OFFER-004 | 2.3.3 | 🔴 P1 |
+| `getAvailableRoomsForBatch()` full table scan | 2.3.1 | 🔴 P1 |
+| `confirmBatchAllocationsWithResult()` returns null | 2.3.2 | 🔴 P1 |
+| `NotificationRetryService` has no active schedule | 2.3.5 | 🔴 P1 |
+| NSFAS detection via keyword matching | 2.3.4 | ⚠️ P2 |
+| `NotificationEventListener` — 531 lines, 10 handlers | 2.4 | ⚠️ P2 |
+| `getWaitingListWithScores()` per-entry scoring loop | 2.5 | ⚠️ P2/P3 |
+| CSP `unsafe-inline` scripts | 2.7 | ⚠️ P3 |
+| Grafana dashboards not version-controlled | 6.4 | ⚠️ P2 |
+| No load test baseline established | 6.1 | ⚠️ P2 |
 
 ---
 
-### 11.3 Compliance Checklist
+**Document End**
 
-| Item | Description | Response | Status |
-|------|-------------|----------|--------|
-| C-01 | Single → multi-tenant model | ADR-001 (students), ADR-002 (documents), Section 3.2.8–10 (roles), Phases 1+2 | Roadmapped |
-| C-02 | Academic year → per-building intake periods | `intake_period` table in Phase 2 | Roadmapped |
-| C-03 | Role hierarchy update | ADR-004, Section 3.2.10 | Roadmapped |
-| C-04 | Document scope: per-application → platform-level | ADR-002, Section 3.2.2 | Roadmapped |
-| C-05 | Decline limit removed | One-active-offer enforced ✅ | Addressed |
-| C-06 | Multiple active applications (up to 5) | Multi-application tracked; tenant filter covers isolation | Addressed |
-| C-07 | Student pool: per-owner → platform-level | ADR-001 | Roadmapped |
-| C-08 | Scoring: hardcoded → owner-configurable | ADR-003, Section 3.4.1 | Roadmapped |
-| RISK-001 | `hbm2ddl.auto: update` schema drift | Section 3.2.1 — set `validate` | Phase 1 |
-| RISK-002 | `room_number` global unique | Section 3.2.3 | Phase 1 |
-| RISK-004 | `document.application_id NOT NULL` | Section 3.2.2, ADR-002 | Phase 2 |
-| RISK-005 | JWT secret default value | Section 3.2.5 | Phase 1 |
-| RISK-006 | SMTP no TLS/auth | Section 3.2.6 | Phase 1 |
-| RISK-007 | `postgres_data` volume not mounted | Section 3.2.7 | Phase 1 |
-| RISK-013 | `system_settings` global unique key | Section 3.2.4 | Phase 1 |
-
----
-
-*Document End*
-
-*Produced through structured codebase analysis (65+ backend test files, 133 frontend TypeScript files, 2 Flyway migrations, `application.yml`, `docker-compose.yml`, `build.gradle`, all key service and entity classes) combined with Requirements.md v2.0 review. Assessment performed on branch `feature/verification-report-fixes`, 2026-02-23.*
+*This document was produced through an AI-assisted architectural assessment combining static analysis of the codebase (develop branch, 2026-03-03) with structured evaluation against Requirements.md v2.0. All findings are based on observed code; all recommendations are prescriptive and actionable.*
