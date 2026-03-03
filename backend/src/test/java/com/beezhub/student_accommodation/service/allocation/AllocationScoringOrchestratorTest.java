@@ -238,10 +238,8 @@ class AllocationScoringOrchestratorTest {
 
         @Test
         void getAvailableRoomsForBatch_returnsOnlyAvailable() {
-                // Arrange
-                when(roomRepository.findAll()).thenReturn(Arrays.asList(room1, room2));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L); // Available
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(2L)).thenReturn(1L); // Full (1/1)
+                // Arrange: repository now returns only rooms with available capacity
+                when(roomRepository.findRoomsWithAvailableCapacity()).thenReturn(Arrays.asList(room1));
 
                 // Act
                 List<Room> availableRooms = allocationScoringOrchestrator.getAvailableRoomsForBatch();

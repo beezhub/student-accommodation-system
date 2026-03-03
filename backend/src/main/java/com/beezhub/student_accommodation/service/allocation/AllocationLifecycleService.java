@@ -22,8 +22,6 @@ import java.time.LocalDateTime;
 @Slf4j
 public class AllocationLifecycleService {
 
-    private static final int MAX_DECLINE_COUNT = 2;
-
     @Value("${app.allocation.offer-expiry-days:7}")
     private int offerExpiryDays;
 
@@ -377,10 +375,6 @@ public class AllocationLifecycleService {
     }
 
     private void handleDeclineConsequences(RoomAllocation allocation, long previousDeclineCount) {
-        if (previousDeclineCount < MAX_DECLINE_COUNT) {
-            waitingListService.reQueueStudent(allocation, (int) previousDeclineCount + 1, MAX_DECLINE_COUNT);
-        } else {
-            waitingListService.cancelApplicationAfterMaxDeclines(allocation, MAX_DECLINE_COUNT);
-        }
+        waitingListService.reQueueStudent(allocation, (int) previousDeclineCount + 1);
     }
 }

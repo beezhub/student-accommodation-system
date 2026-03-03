@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ── Secrets scan ──────────────────────────────────────────────────────────
+  secrets-scan:
+    name: Secrets Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Backend ───────────────────────────────────────────────────────────────
+  backend:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      - name: Build (skip tests)
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-only-dummy-secret-that-is-64-chars-long-for-startup-check' }}
+        run: ./gradlew build -x test
+
+      - name: Run tests
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-only-dummy-secret-that-is-64-chars-long-for-startup-check' }}
+        run: ./gradlew test
+
+      - name: Generate Jacoco coverage report
+        run: ./gradlew jacocoTestReport
+        if: always()
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: backend/build/reports/tests/
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage-report
+          path: backend/build/jacocoHtml/
+
+  # ── Frontend ──────────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend Lint & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Build (production)
+        run: npm run build

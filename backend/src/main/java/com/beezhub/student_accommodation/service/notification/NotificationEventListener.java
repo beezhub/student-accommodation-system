@@ -14,6 +14,8 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +24,27 @@ public class NotificationEventListener {
 
     private final NotificationService notificationService;
     private final EmailDispatchService emailDispatchService;
+
+    /** Creates a templateData map with {@code templateName} pre-populated. */
+    private static Map<String, Object> td(String templateName, Map<String, Object> vars) {
+        Map<String, Object> data = new HashMap<>(vars);
+        data.put("templateName", templateName);
+        return data;
+    }
+
+    /** Null-safe string coercion: returns the value if non-null, otherwise empty string. */
+    private static Object ns(Object value) {
+        return value != null ? value : "";
+    }
+
+    /** Builds a Map from key-value pairs, coercing null values to empty string. */
+    private static Map<String, Object> mapOf(Object... keysAndValues) {
+        Map<String, Object> map = new HashMap<>();
+        for (int i = 0; i < keysAndValues.length - 1; i += 2) {
+            map.put((String) keysAndValues[i], ns(keysAndValues[i + 1]));
+        }
+        return map;
+    }
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -49,7 +72,10 @@ public class NotificationEventListener {
 
             Notification notification = notificationService.createNotification(
                     email, subject, notificationType, user,
-                    application.getId(), "Application");
+                    application.getId(), "Application",
+                    td(newStatus == ApplicationStatus.APPROVED ? "application-approved" : "application-rejected",
+                            mapOf("studentName", studentName, "applicationId", application.getId(),
+                                    "email", email)));
 
             try {
                 switch (newStatus) {
@@ -102,7 +128,10 @@ public class NotificationEventListener {
 
             Notification notification = notificationService.createNotification(
                     email, subject, notificationType, user,
-                    document.getId(), "Document");
+                    document.getId(), "Document",
+                    td(newStatus == DocumentStatus.APPROVED ? "document-verified" : "document-rejected",
+                            mapOf("studentName", studentName, "documentType", documentType,
+                                    "documentId", document.getId(), "email", email)));
 
             try {
                 switch (newStatus) {
@@ -151,7 +180,10 @@ public class NotificationEventListener {
                     NotificationType.DOCUMENT_REJECTED,
                     user,
                     document.getId(),
-                    "Document");
+                    "Document",
+                    td("document-comment", mapOf("studentName", studentName, "documentName", documentName,
+                            "documentType", documentType, "commentText", commentText,
+                            "email", email)));
 
             try {
                 emailDispatchService.sendDocumentCommentEmail(
@@ -189,7 +221,10 @@ public class NotificationEventListener {
                     NotificationType.ROOM_ALLOCATED,
                     user,
                     allocation.getId(),
-                    "RoomAllocation");
+                    "RoomAllocation",
+                    td("room-allocated", mapOf("studentName", studentName, "roomNumber", room.getRoomNumber(),
+                            "buildingName", room.getBuilding().getName(), "allocationId", allocation.getId(),
+                            "email", email)));
 
             try {
                 emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, studentName, email);
@@ -229,7 +264,12 @@ public class NotificationEventListener {
                     NotificationType.ROOM_ALLOCATED,
                     user,
                     newAllocation.getId(),
-                    "RoomAllocation");
+                    "RoomAllocation",
+                    td("allocation-moved", mapOf("studentName", studentName,
+                            "newRoomNumber", newRoom.getRoomNumber(),
+                            "newBuildingName", newBuilding.getName(),
+                            "oldRoomNumber", oldRoom.getRoomNumber(),
+                            "oldBuildingName", oldBuilding.getName(), "email", email)));
 
             try {
                 emailDispatchService.sendAllocationMovedEmail(newAllocation, oldRoom, newBuilding, oldBuilding, studentName,
@@ -278,7 +318,11 @@ public class NotificationEventListener {
                 NotificationType.APPLICATION_REJECTED,
                 user,
                 allocation.getId(),
-                "RoomAllocation");
+                "RoomAllocation",
+                td("offer-expired", mapOf("studentName", studentName, "roomNumber", room.getRoomNumber(),
+                        "buildingName", room.getBuilding() != null ? room.getBuilding().getName() : "",
+                        "applicationCode", application != null ? application.getApplicationCode() : "N/A",
+                        "email", email)));
 
         try {
             emailDispatchService.sendOfferExpiredEmail(allocation, application, room, studentName, email,
@@ -306,7 +350,11 @@ public class NotificationEventListener {
                 NotificationType.APPLICATION_REJECTED,
                 user,
                 allocation.getId(),
-                "RoomAllocation");
+                "RoomAllocation",
+                td("check-in-expired", mapOf("studentName", studentName, "roomNumber", room.getRoomNumber(),
+                        "buildingName", room.getBuilding() != null ? room.getBuilding().getName() : "",
+                        "applicationCode", application != null ? application.getApplicationCode() : "N/A",
+                        "email", email)));
 
         try {
             emailDispatchService.sendCheckInExpiredEmail(allocation, application, room, studentName, email,
@@ -337,22 +385,13 @@ public class NotificationEventListener {
         TenantContext.setTenantId(allocation.getTenantId());
         try {
             int totalDeclineCount = event.totalDeclineCount();
-            int maxDeclineCount = event.maxDeclineCount();
-
-            if (totalDeclineCount <= maxDeclineCount) {
-                if (totalDeclineCount < maxDeclineCount) {
-                    sendOfferDeclinedRequeueNotification(allocation, totalDeclineCount, maxDeclineCount);
-                } else {
-                    sendOfferDeclinedMaxReachedNotification(allocation, totalDeclineCount);
-                }
-            }
+            sendOfferDeclinedRequeueNotification(allocation, totalDeclineCount);
         } finally {
             TenantContext.clear();
         }
     }
 
-    private void sendOfferDeclinedRequeueNotification(RoomAllocation allocation, int totalDeclineCount,
-            int maxDeclineCount) {
+    private void sendOfferDeclinedRequeueNotification(RoomAllocation allocation, int totalDeclineCount) {
         Student student = allocation.getStudent();
         AppUser user = student.getAppUser();
         Room room = allocation.getRoom();
@@ -368,38 +407,18 @@ public class NotificationEventListener {
                 NotificationType.ROOM_ALLOCATED,
                 user,
                 allocation.getId(),
-                "RoomAllocation");
+                "RoomAllocation",
+                td("offer-declined-requeue", mapOf("studentName", studentName,
+                        "roomNumber", room.getRoomNumber(),
+                        "buildingName", room.getBuilding() != null ? room.getBuilding().getName() : "",
+                        "totalDeclineCount", totalDeclineCount,
+                        "declineReason", allocation.getDeclineReason() != null
+                                ? allocation.getDeclineReason().getDisplayName() : "Not specified",
+                        "email", email)));
 
         try {
             emailDispatchService.sendOfferDeclinedRequeueEmail(allocation, room, studentName, email, totalDeclineCount,
-                    maxDeclineCount, notification.getSubject());
-            notificationService.markNotificationAsSent(notification);
-        } catch (Exception e) {
-            notificationService.handleNotificationFailure(notification, e);
-        }
-    }
-
-    private void sendOfferDeclinedMaxReachedNotification(RoomAllocation allocation, int totalDeclineCount) {
-        Student student = allocation.getStudent();
-        AppUser user = student.getAppUser();
-        Application application = allocation.getApplication();
-
-        String studentName = user.getFirstName() + " " + user.getLastName();
-        String email = user.getEmail();
-
-        log.info("Sending offer declined max reached notification to {} for allocation {}", email, allocation.getId());
-
-        Notification notification = notificationService.createNotification(
-                email,
-                "Application Closed - Student Accommodation",
-                NotificationType.APPLICATION_REJECTED,
-                user,
-                allocation.getId(),
-                "RoomAllocation");
-
-        try {
-            emailDispatchService.sendOfferDeclinedMaxReachedEmail(allocation, application, studentName, email,
-                    totalDeclineCount, notification.getSubject());
+                    notification.getSubject());
             notificationService.markNotificationAsSent(notification);
         } catch (Exception e) {
             notificationService.handleNotificationFailure(notification, e);
@@ -436,7 +455,11 @@ public class NotificationEventListener {
                 NotificationType.ROOM_ALLOCATED,
                 user,
                 stagedAllocation.getId(),
-                "StagedAllocation");
+                "StagedAllocation",
+                td("allocation-proposal", mapOf("studentName", studentName,
+                        "roomNumber", room.getRoomNumber(),
+                        "buildingName", building.getName(), "proposalId", stagedAllocation.getId(),
+                        "email", email)));
 
         try {
             emailDispatchService.sendAllocationProposalEmail(stagedAllocation, room, building, studentName, email);
@@ -477,7 +500,11 @@ public class NotificationEventListener {
                 NotificationType.ROOM_ALLOCATED,
                 user,
                 allocation.getId(),
-                "RoomAllocation");
+                "RoomAllocation",
+                td("allocation-confirmed", mapOf("studentName", studentName,
+                        "roomNumber", room.getRoomNumber(),
+                        "buildingName", building.getName(), "allocationId", allocation.getId(),
+                        "email", email)));
 
         try {
             emailDispatchService.sendAllocationConfirmedEmail(allocation, room, building, studentName, email);
@@ -518,7 +545,13 @@ public class NotificationEventListener {
                 NotificationType.APPLICATION_REJECTED,
                 user,
                 stagedAllocation.getId(),
-                "StagedAllocation");
+                "StagedAllocation",
+                td("allocation-rejected", mapOf("studentName", studentName,
+                        "roomNumber", room.getRoomNumber(),
+                        "buildingName", building.getName(), "proposalId", stagedAllocation.getId(),
+                        "reason", reason != null ? reason : "",
+                        "waitingListPosition", waitingListPosition != null ? waitingListPosition : 0,
+                        "email", email)));
 
         try {
             emailDispatchService.sendAllocationRejectedEmail(stagedAllocation, room, building, studentName, email,

@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.beezhub'
-version = '0.0.1-SNAPSHOT'
+version = '1.0.0'
 
 java {
 	toolchain {
@@ -21,7 +21,6 @@ configurations {
 }
 
 repositories {
-	mavenLocal()
 	mavenCentral()
 }
 
@@ -74,7 +73,7 @@ test {
 
 jacoco {
 	toolVersion = "0.8.12"
-	reportsDirectory = file("${buildDir}/jacocoHtml")
+	reportsDirectory = layout.buildDirectory.dir("jacocoHtml")
 }
 
 def jacocoExcludes = [

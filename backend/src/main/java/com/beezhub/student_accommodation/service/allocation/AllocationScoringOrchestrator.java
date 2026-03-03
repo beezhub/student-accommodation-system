@@ -72,18 +72,9 @@ public class AllocationScoringOrchestrator {
     }
 
     public List<Room> getAvailableRoomsForBatch() {
-        List<Room> allRooms = roomRepository.findAll();
-        List<Room> availableRooms = new ArrayList<>();
-
-        for (Room room : allRooms) {
-            long activeCount = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-            if (activeCount < room.getCapacity()) {
-                availableRooms.add(room);
-            }
-        }
-
-        return availableRooms;
+        return roomRepository.findRoomsWithAvailableCapacity();
     }
+
 
     public List<WaitingListEntryResponse> getWaitingListWithScores(Long buildingId) {
         log.info("Getting waiting list with scores for building {}", buildingId);

@@ -307,10 +307,9 @@ public class EmailDispatchService {
 
         public void sendOfferDeclinedRequeueEmail(RoomAllocation allocation, Room room, String studentName,
                         String email,
-                        int totalDeclineCount, int maxDeclineCount, String subject) {
+                        int totalDeclineCount, String subject) {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "";
-                int declinesRemaining = maxDeclineCount - totalDeclineCount;
                 String declineReason = allocation.getDeclineReason() != null
                                 ? allocation.getDeclineReason().getDisplayName()
                                 : "Not specified";
@@ -321,7 +320,7 @@ public class EmailDispatchService {
                                 roomNumber,
                                 buildingName,
                                 totalDeclineCount,
-                                declinesRemaining,
+                                0,
                                 declineReason,
                                 portalUrl);
 

@@ -9,6 +9,8 @@
 *.env
 **/.env
 **/env
+backend/.env
+
 
 
 # Git worktrees

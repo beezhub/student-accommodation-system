@@ -241,3 +241,26 @@ Configured in: `backend/src/main/resources/application.yml`
 - `main` - Production-ready code
 - `develop` - Integration branch for features
 - Feature branches merge into `develop`, then `develop` merges to `main`
+
+## Local Setup
+
+Before running docker-compose, you **must** create a `.env` file with the required credentials:
+
+```bash
+# 1. Copy the example file
+cp .env.example .env
+
+# 2. Fill in REQUIRED values (the app will not start without these):
+#    - JWT_SECRET   (generate with: openssl rand -base64 64)
+#    - PASSWORD_DB
+#    - MINIO_ACCESS_KEY
+#    - MINIO_SECRET_KEY
+#    - GRAFANA_ADMIN_PASSWORD
+
+# 3. Start all services
+docker-compose up --build
+```
+
+**Never commit `.env` to version control.** The `.gitignore` is already configured to exclude it.
+
+See `.env.example` for all available variables with descriptions, and `CREDENTIAL_ROTATION.md` for security notes on each credential.

@@ -202,17 +202,16 @@ class WaitingListServiceTest {
         when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
-        waitingListService.reQueueStudent(allocation, 1, 2);
+        waitingListService.reQueueStudent(allocation, 1);
 
         // Assert
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
-        assertThat(application.getRemarks()).contains("Declined offer 1 of 2");
-        verify(waitingListRepository).save(any(WaitingListEntry.class));
+        assertThat(application.getRemarks()).contains("Declined offer 1");
+        assertThat(application.getRemarks()).doesNotContain("1 of ");
         verify(waitingListRepository).save(any(WaitingListEntry.class));
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         AllocationDeclinedEvent event = eventCaptor.getValue();
         assertThat(event.totalDeclineCount()).isEqualTo(1);
-        assertThat(event.maxDeclineCount()).isEqualTo(2);
     }
 
     @Test
@@ -223,7 +222,7 @@ class WaitingListServiceTest {
         when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
-        waitingListService.reQueueStudent(allocation, 2, 2);
+        waitingListService.reQueueStudent(allocation, 2);
 
         // Assert
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
@@ -236,62 +235,10 @@ class WaitingListServiceTest {
         allocation.setApplication(null);
 
         // Act
-        waitingListService.reQueueStudent(allocation, 1, 2);
+        waitingListService.reQueueStudent(allocation, 1);
 
         // Assert
         verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
         verify(applicationRepository, never()).save(any(Application.class));
-    }
-
-    @Test
-    void cancelApplicationAfterMaxDeclines_cancelsApplication() {
-        // Arrange
-        when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
-                .thenReturn(Optional.of(waitingEntry));
-        when(waitingListRepository.save(any(WaitingListEntry.class))).thenAnswer(i -> i.getArguments()[0]);
-
-        // Act
-        waitingListService.cancelApplicationAfterMaxDeclines(allocation, 2);
-
-        // Assert
-        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.CANCELLED);
-        assertThat(application.getRemarks()).contains("Maximum decline limit reached");
-        assertThat(application.getRemarks()).contains("3 declines");
-        verify(applicationRepository).save(application);
-    }
-
-    @Test
-    void cancelApplicationAfterMaxDeclines_removesFromWaitingList() {
-        // Arrange
-        when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
-        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
-                .thenReturn(Optional.of(waitingEntry));
-        when(waitingListRepository.save(any(WaitingListEntry.class))).thenAnswer(i -> i.getArguments()[0]);
-
-        // Act
-        waitingListService.cancelApplicationAfterMaxDeclines(allocation, 2);
-
-        // Assert
-        assertThat(waitingEntry.getStatus()).isEqualTo("CANCELLED");
-        verify(waitingListRepository).save(waitingEntry);
-        verify(waitingListRepository).save(waitingEntry);
-        verify(eventPublisher).publishEvent(eventCaptor.capture());
-        AllocationDeclinedEvent event = eventCaptor.getValue();
-        assertThat(event.totalDeclineCount()).isEqualTo(3);
-        assertThat(event.maxDeclineCount()).isEqualTo(2);
-    }
-
-    @Test
-    void cancelApplicationAfterMaxDeclines_noApplication_logsWarning() {
-        // Arrange
-        allocation.setApplication(null);
-
-        // Act
-        waitingListService.cancelApplicationAfterMaxDeclines(allocation, 2);
-
-        // Assert
-        verify(applicationRepository, never()).save(any(Application.class));
-        verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
     }
 }

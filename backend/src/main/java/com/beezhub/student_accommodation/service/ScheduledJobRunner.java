@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.service.allocation.AllocationExpiryServ
 import com.beezhub.student_accommodation.service.allocation.OfferReminderService;
 import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
+import com.beezhub.student_accommodation.service.notification.NotificationRetryService;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +22,6 @@ import org.springframework.stereotype.Component;
  * </ul>
  *
  * One job failure does NOT affect other jobs — each wrapper has its own try/catch boundary.
- *
- * NOTE: {@code NotificationRetryService.retryFailedNotifications()} is intentionally omitted.
- * Its {@code @Scheduled} annotation is deferred to Phase 3 pending full retry-logic implementation.
- * See the TODO comment in {@link com.beezhub.student_accommodation.service.notification.NotificationRetryService}.
  */
 @Component
 @RequiredArgsConstructor
@@ -36,6 +33,7 @@ public class ScheduledJobRunner {
     private final OrphanFileCleanupJob orphanFileCleanupJob;
     private final OfferReminderService offerReminderService;
     private final CheckInReminderService checkInReminderService;
+    private final NotificationRetryService notificationRetryService;
     private final MeterRegistry meterRegistry;
 
     @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
@@ -116,6 +114,19 @@ public class ScheduledJobRunner {
             int processed = checkInReminderService.sendCheckInReminders();
             log.info("job={} action=complete processed={}", jobName, processed);
             meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
+        } catch (Exception e) {
+            log.error("job={} action=failed", jobName, e);
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
+        }
+    }
+
+    @Scheduled(fixedDelayString = "${app.notification.retry-check-interval-ms:300000}")
+    public void runNotificationRetry() {
+        String jobName = "notificationRetry";
+        log.info("job={} action=start", jobName);
+        try {
+            notificationRetryService.retryFailedNotifications();
+            log.info("job={} action=complete", jobName);
         } catch (Exception e) {
             log.error("job={} action=failed", jobName, e);
             meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();

@@ -109,7 +109,7 @@ class NotificationEventListenerTest {
         Application application = createMockApplication();
         ApplicationStatusChangedEvent event = new ApplicationStatusChangedEvent(application, ApplicationStatus.PENDING, ApplicationStatus.APPROVED);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleApplicationStatusChanged(event);
@@ -123,7 +123,7 @@ class NotificationEventListenerTest {
         Application application = createMockApplication();
         ApplicationStatusChangedEvent event = new ApplicationStatusChangedEvent(application, ApplicationStatus.PENDING, ApplicationStatus.REJECTED);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleApplicationStatusChanged(event);
@@ -137,7 +137,7 @@ class NotificationEventListenerTest {
         Application application = createMockApplication();
         ApplicationStatusChangedEvent event = new ApplicationStatusChangedEvent(application, null, ApplicationStatus.PENDING);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleApplicationStatusChanged(event);
@@ -150,7 +150,7 @@ class NotificationEventListenerTest {
         Application application = createMockApplication();
         ApplicationStatusChangedEvent event = new ApplicationStatusChangedEvent(application, ApplicationStatus.PENDING, ApplicationStatus.APPROVED);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
         doThrow(new RuntimeException("Email failed")).when(emailDispatchService).sendApplicationApprovedEmail(any(), anyString(), anyString());
 
@@ -164,7 +164,7 @@ class NotificationEventListenerTest {
         Document document = createMockDocument();
         DocumentVerificationEvent event = new DocumentVerificationEvent(document, DocumentStatus.PENDING, DocumentStatus.APPROVED, null);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleDocumentVerification(event);
@@ -178,7 +178,7 @@ class NotificationEventListenerTest {
         Document document = createMockDocument();
         DocumentVerificationEvent event = new DocumentVerificationEvent(document, DocumentStatus.PENDING, DocumentStatus.REJECTED, "Blurry");
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleDocumentVerification(event);
@@ -193,7 +193,7 @@ class NotificationEventListenerTest {
         when(document.getDocumentName()).thenReturn("ID_FILE.pdf");
         DocumentCommentEvent event = new DocumentCommentEvent(document, "Please re-upload", "System");
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleDocumentComment(event);
@@ -208,7 +208,7 @@ class NotificationEventListenerTest {
         RoomAllocation allocation = createMockRoomAllocation();
         AllocationCreatedEvent event = new AllocationCreatedEvent(allocation);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleAllocationCreated(event);
@@ -226,7 +226,7 @@ class NotificationEventListenerTest {
         
         AllocationMovedEvent event = new AllocationMovedEvent(allocation, oldRoom, LocalDateTime.now(), "Maintenance");
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleAllocationMoved(event);
@@ -243,7 +243,7 @@ class NotificationEventListenerTest {
         when(allocation.getApplication()).thenReturn(app);
         AllocationExpiredEvent event = new AllocationExpiredEvent(allocation, true);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleAllocationExpired(event);
@@ -259,7 +259,7 @@ class NotificationEventListenerTest {
         when(allocation.getApplication()).thenReturn(app);
         AllocationExpiredEvent event = new AllocationExpiredEvent(allocation, false);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleAllocationExpired(event);
@@ -273,7 +273,7 @@ class NotificationEventListenerTest {
         RoomAllocation allocation = createMockRoomAllocation();
         AllocationAcceptedEvent event = new AllocationAcceptedEvent(allocation);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleAllocationAccepted(event);
@@ -285,30 +285,31 @@ class NotificationEventListenerTest {
     @Test
     void handleAllocationDeclined_Requeue() throws Exception {
         RoomAllocation allocation = createMockRoomAllocation();
-        AllocationDeclinedEvent event = new AllocationDeclinedEvent(allocation, 1, 3);
+        AllocationDeclinedEvent event = new AllocationDeclinedEvent(allocation, 1);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleAllocationDeclined(event);
 
-        verify(emailDispatchService).sendOfferDeclinedRequeueEmail(eq(allocation), any(), eq("John Doe"), eq("test@example.com"), eq(1), eq(3), eq("Test Subject"));
+        verify(emailDispatchService).sendOfferDeclinedRequeueEmail(eq(allocation), any(), eq("John Doe"), eq("test@example.com"), eq(1), eq("Test Subject"));
         verify(notificationService).markNotificationAsSent(notification);
     }
 
     @Test
-    void handleAllocationDeclined_MaxReached() throws Exception {
+    void handleAllocationDeclined_AlwaysRequeues_EvenAfterManyDeclines() throws Exception {
         RoomAllocation allocation = createMockRoomAllocation();
-        Application app = mock(Application.class);
-        when(allocation.getApplication()).thenReturn(app);
-        AllocationDeclinedEvent event = new AllocationDeclinedEvent(allocation, 3, 3);
+        // totalDeclineCount of 3 (previously would have triggered the "max reached" path)
+        AllocationDeclinedEvent event = new AllocationDeclinedEvent(allocation, 3);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleAllocationDeclined(event);
 
-        verify(emailDispatchService).sendOfferDeclinedMaxReachedEmail(eq(allocation), eq(app), eq("John Doe"), eq("test@example.com"), eq(3), eq("Test Subject"));
+        // OFFER-004: no max — always requeue, never call sendOfferDeclinedMaxReachedEmail
+        verify(emailDispatchService).sendOfferDeclinedRequeueEmail(eq(allocation), any(), eq("John Doe"), eq("test@example.com"), eq(3), eq("Test Subject"));
+        verify(emailDispatchService, never()).sendOfferDeclinedMaxReachedEmail(any(), any(), any(), any(), anyInt(), any());
         verify(notificationService).markNotificationAsSent(notification);
     }
 
@@ -317,7 +318,7 @@ class NotificationEventListenerTest {
         StagedAllocation allocation = createMockStagedAllocation();
         StagedAllocationProposedEvent event = new StagedAllocationProposedEvent(allocation);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleStagedAllocationProposed(event);
@@ -332,7 +333,7 @@ class NotificationEventListenerTest {
         RoomAllocation allocation = createMockRoomAllocation();
         StagedAllocationConfirmedEvent event = new StagedAllocationConfirmedEvent(stagedAllocation, allocation);
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleStagedAllocationConfirmed(event);
@@ -346,7 +347,7 @@ class NotificationEventListenerTest {
         StagedAllocation allocation = createMockStagedAllocation();
         StagedAllocationRejectedEvent event = new StagedAllocationRejectedEvent(allocation, "Full");
 
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleStagedAllocationRejected(event);

@@ -17,7 +17,7 @@ The following credentials were found hardcoded in `docker-compose.yml` and poten
 - **Exposed Value:** `jvc+QC/0myyJ9+//Rzo+qYxfMmHDiQdlysvcT9XhUF7/6mvHD9evZBB/ngNAMwTD6sDDQgf4vS0QDZ8JYLoBOA==`
 - **Risk Level:** CRITICAL
 - **Action Required:** Generate new 512-bit base64 JWT secret and update in all environments
-- **Status:** ⏳ Pending rotation
+- **Status:** ✅ Hardcoded default removed from `application.yml` and commented-out value removed from `docker-compose.yml`. Secret now REQUIRED via env var. Rotate the exposed value in all environments.
 
 ### 2. Database Credentials
 - **Location:** `docker-compose.yml` (lines 8-10, 30-32)
@@ -26,8 +26,7 @@ The following credentials were found hardcoded in `docker-compose.yml` and poten
   - Password: `admin`
 - **Risk Level:** HIGH
 - **Action Required:** Change database password in all non-local environments
-- **Status:** ⏳ Pending rotation (production/staging only)
-- **Note:** These are acceptable for local development but must be different in production
+- **Status:** ⏳ Pending rotation (production/staging only) — hardcoded values replaced with `${PASSWORD_DB}` env var ref
 
 ### 3. MinIO Credentials
 - **Location:** `docker-compose.yml` (lines 37-38, 55-56)
@@ -36,8 +35,7 @@ The following credentials were found hardcoded in `docker-compose.yml` and poten
   - Secret Key: `minioadmin`
 - **Risk Level:** HIGH
 - **Action Required:** Generate new MinIO access and secret keys for all environments
-- **Status:** ⏳ Pending rotation
-- **Note:** Default credentials must never be used in production
+- **Status:** ✅ Hardcoded values replaced with `${MINIO_ACCESS_KEY}` / `${MINIO_SECRET_KEY}` env var refs. Rotate credentials in staging/production.
 
 ### 4. SMTP Credentials
 - **Location:** `docker-compose.yml` (lines 42-43)
@@ -55,7 +53,7 @@ The following credentials were found hardcoded in `docker-compose.yml` and poten
   - Check git history for exposed API keys
   - Rotate any exposed Google Maps API keys via Google Cloud Console
   - Add HTTP referrer and IP restrictions to new keys
-- **Status:** ⏳ Requires investigation
+- **Status:** ⏳ Requires investigation — check git history for committed `.env` files
 
 ## Rotation Actions Required
 
@@ -151,6 +149,22 @@ The following measures have been implemented to prevent future credential exposu
 
 ---
 
-**Last Updated:** 2026-02-12
+**Last Updated:** 2026-03-03
 **Owner:** Development Team
-**Status:** In Progress - TASK-1.01
+**Status:** In Progress — devops-hardening
+
+## CI/CD Secrets
+
+The following secrets must be configured in GitHub repository settings under **Settings → Secrets and variables → Actions** before the CI/CD pipeline will function.
+
+| Secret Name | Description | Required For |
+|-------------|-------------|-------------|
+| `JWT_SECRET` | 64+ char base64 JWT signing key | Backend runtime |
+| `GHCR_TOKEN` | GitHub Personal Access Token with `write:packages` scope | Docker image push to GHCR |
+| `GHCR_USERNAME` | GitHub username that owns the GHCR_TOKEN | Docker image push to GHCR |
+| `PASSWORD_DB` | PostgreSQL password for staging/production | Backend runtime |
+| `MINIO_ACCESS_KEY` | MinIO access key | Backend runtime |
+| `MINIO_SECRET_KEY` | MinIO secret key | Backend runtime |
+| `GRAFANA_ADMIN_PASSWORD` | Grafana admin password | Grafana service |
+
+**Note:** Never store these values in `.env` files committed to the repository. Use cloud secret managers (AWS Secrets Manager, Azure Key Vault, HashiCorp Vault) for staging and production environments.

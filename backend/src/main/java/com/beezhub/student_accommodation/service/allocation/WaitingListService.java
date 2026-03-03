@@ -73,7 +73,7 @@ public class WaitingListService {
     }
 
     @Transactional
-    public void reQueueStudent(RoomAllocation allocation, int totalDeclineCount, int maxDeclineCount) {
+    public void reQueueStudent(RoomAllocation allocation, int totalDeclineCount) {
         Application application = allocation.getApplication();
         Student student = allocation.getStudent();
 
@@ -82,14 +82,10 @@ public class WaitingListService {
             return;
         }
 
-        log.info("Re-queueing student {} after decline {} of {}", student.getId(), totalDeclineCount,
-                maxDeclineCount);
+        log.info("Re-queueing student {} after decline {}", student.getId(), totalDeclineCount);
 
-        // Always send to waiting list for fair allocation
-        log.info("Adding student {} to waiting list after decline {}", student.getId(), totalDeclineCount);
         application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
-        String remarks = String.format("Declined offer %d of %d allowed. Added to waiting list.",
-                totalDeclineCount, maxDeclineCount);
+        String remarks = String.format("Declined offer %d. Added to waiting list.", totalDeclineCount);
         application.setRemarks(remarks);
         applicationRepository.save(application);
 
@@ -98,39 +94,6 @@ public class WaitingListService {
         }
 
         // Publish re-queue event
-        eventPublisher.publishEvent(new AllocationDeclinedEvent(allocation, totalDeclineCount, maxDeclineCount));
-    }
-
-    @Transactional
-    public void cancelApplicationAfterMaxDeclines(RoomAllocation allocation, int maxDeclineCount) {
-        Application application = allocation.getApplication();
-        Student student = allocation.getStudent();
-
-        if (application == null) {
-            log.warn("No application linked to allocation {}; cannot cancel", allocation.getId());
-            return;
-        }
-
-        log.info("Cancelling application {} after reaching max decline limit for student {}",
-                application.getId(), student.getId());
-
-        // Update application status to CANCELLED
-        application.setStatus(ApplicationStatus.CANCELLED);
-        String remarks = String.format("Application cancelled: Maximum decline limit reached (%d declines). " +
-                "Student declined all offered rooms.", maxDeclineCount + 1);
-        application.setRemarks(remarks);
-        applicationRepository.save(application);
-
-        // Remove from waiting list
-        waitingListRepository.findByStudent_IdAndStatus(student.getId(), "WAITING")
-                .ifPresent(entry -> {
-                    entry.setStatus("CANCELLED");
-                    waitingListRepository.save(entry);
-                    log.info("Cancelled waiting list entry for student {}", student.getId());
-                });
-
-        // Publish max decline reached event (using same event, listener handles logic
-        // based on counts)
-        eventPublisher.publishEvent(new AllocationDeclinedEvent(allocation, maxDeclineCount + 1, maxDeclineCount));
+        eventPublisher.publishEvent(new AllocationDeclinedEvent(allocation, totalDeclineCount));
     }
 }

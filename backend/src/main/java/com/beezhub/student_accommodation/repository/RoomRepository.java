@@ -55,4 +55,9 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
 
     // Check for duplicate room number within a building, excluding a specific room (for updates)
     boolean existsByRoomNumberAndBuilding_IdAndIdNot(String roomNumber, Long buildingId, Long excludeId);
+
+    // Find rooms that still have available capacity (capacity > active allocation count)
+    @Query("SELECT r FROM Room r WHERE r.capacity > " +
+           "(SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room.id = r.id AND ra.status IN ('ACTIVE', 'ACCEPTED', 'OFFERED'))")
+    List<Room> findRoomsWithAvailableCapacity();
 }
