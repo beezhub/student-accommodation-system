@@ -9,6 +9,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -129,7 +130,7 @@ class NotificationRetryServiceTest {
         templateData.put("studentName", "Alice");
         notification.setTemplateData(templateData);
 
-        doNothing().when(emailService).sendTemplateEmail(anyString(), anyString(), anyString(), any());
+        doNothing().when(emailService).sendTemplateEmail(anyString(), anyString(), anyString(), ArgumentMatchers.<Map<String, Object>>any());
 
         notificationRetryService.retryNotification(notification);
 
@@ -160,7 +161,7 @@ class NotificationRetryServiceTest {
         notification.setTemplateData(templateData);
 
         doThrow(new RuntimeException("SMTP connection refused"))
-                .when(emailService).sendTemplateEmail(anyString(), anyString(), anyString(), any());
+                .when(emailService).sendTemplateEmail(anyString(), anyString(), anyString(), ArgumentMatchers.<Map<String, Object>>any());
 
         notificationRetryService.retryNotification(notification);
 

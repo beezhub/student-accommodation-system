@@ -16,7 +16,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
@@ -30,6 +29,7 @@ class EmailDispatchServiceTest {
 
     @Mock
     private EmailContentBuilder contentBuilder;
+
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private MeterRegistry meterRegistry;
 
@@ -47,11 +47,10 @@ class EmailDispatchServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Set @Value fields
         ReflectionTestUtils.setField(emailDispatchService, "baseUrl", "http://test-url");
         ReflectionTestUtils.setField(emailDispatchService, "supportEmail", "support@test.edu");
+        ReflectionTestUtils.setField(emailDispatchService, "contactPhone", "+27 (0) 11 000 0000");
 
-        // Setup common test data
         user = new AppUser();
         user.setFirstName("John");
         user.setLastName("Doe");
@@ -109,14 +108,11 @@ class EmailDispatchServiceTest {
 
         emailDispatchService.sendApplicationApprovedEmail(application, "John Doe", "john@example.com");
 
-        verify(emailService).sendApplicationApprovedEmail(
+        verify(emailService).sendTemplateEmail(
                 eq("john@example.com"),
-                eq("John Doe"),
-                eq(1L),
-                eq("01 January 2026"),
-                eq("2026/2027"),
-                eq("First Semester"),
-                anyString()
+                eq(EmailSubjects.APPLICATION_APPROVED),
+                eq("application-approved"),
+                any(ApplicationApprovedContext.class)
         );
     }
 
@@ -128,15 +124,11 @@ class EmailDispatchServiceTest {
 
         emailDispatchService.sendApplicationRejectedEmail(application, "John Doe", "john@example.com");
 
-        verify(emailService).sendApplicationRejectedEmail(
+        verify(emailService).sendTemplateEmail(
                 eq("john@example.com"),
-                eq("John Doe"),
-                eq(1L),
-                anyString(),
-                eq("01 January 2026"),
-                eq("01 January 2026"),
-                eq("June 2026"),
-                anyString()
+                eq(EmailSubjects.APPLICATION_REJECTED),
+                eq("application-rejected"),
+                any(ApplicationRejectedContext.class)
         );
     }
 
@@ -146,47 +138,40 @@ class EmailDispatchServiceTest {
 
         emailDispatchService.sendDocumentVerifiedEmail(document, "John Doe", "john@example.com", "ID Document");
 
-        verify(emailService).sendDocumentVerifiedEmail(
+        verify(emailService).sendTemplateEmail(
                 eq("john@example.com"),
-                eq("John Doe"),
-                eq("ID Document"),
-                anyString(),
-                eq("01 January 2026"),
-                anyString(),
-                anyString()
+                eq(EmailSubjects.DOCUMENT_VERIFIED),
+                eq("document-verified"),
+                any(DocumentVerifiedContext.class)
         );
     }
 
     @Test
     void sendDocumentRejectedEmail_validData_sendsEmail() {
         when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
+        when(contentBuilder.parseFeedbackPoints(any())).thenReturn(List.of("Fix this"));
 
         emailDispatchService.sendDocumentRejectedEmail(document, "John Doe", "john@example.com", "ID Document", "Invalid file");
 
-        verify(emailService).sendDocumentRejectedEmail(
+        verify(emailService).sendTemplateEmail(
                 eq("john@example.com"),
-                eq("John Doe"),
-                eq("ID Document"),
-                anyString(),
-                eq("01 January 2026"),
-                eq("01 January 2026"),
-                anyString(),
-                eq("01 January 2026"),
-                anyString(),
-                anyMap()
+                eq(EmailSubjects.DOCUMENT_REJECTED),
+                eq("document-rejected"),
+                any(DocumentRejectedContext.class)
         );
     }
 
     @Test
     void sendDocumentCommentEmail_validData_sendsEmail() {
-        when(contentBuilder.buildDocumentCommentEmailContent(any(), any(), any(), any(), any(), any())).thenReturn("<html></html>");
+        when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
 
         emailDispatchService.sendDocumentCommentEmail(document, "Comment", "John Doe", "john@example.com", "MyDoc", "ID Document", "Subject");
 
-        verify(emailService).sendHtmlEmail(
+        verify(emailService).sendTemplateEmail(
                 eq("john@example.com"),
-                eq("Subject"),
-                eq("<html></html>")
+                eq(EmailSubjects.DOCUMENT_COMMENT),
+                eq("document-comment"),
+                any(DocumentCommentContext.class)
         );
     }
 
@@ -199,21 +184,11 @@ class EmailDispatchServiceTest {
 
         emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, "John Doe", "john@example.com");
 
-        verify(emailService).sendRoomAllocatedEmail(
+        verify(emailService).sendTemplateEmail(
                 eq("john@example.com"),
-                eq("John Doe"),
-                eq("101"),
-                eq("Test Building"),
-                eq(1),
-                eq("Single"),
-                anyString(),
-                anyString(),
-                eq("01 January 2026"),
-                anyString(),
-                eq("1 year"),
-                anyString(),
-                anyString(),
-                anyString()
+                eq(EmailSubjects.ROOM_ALLOCATED),
+                eq("room-allocated"),
+                any(RoomAllocatedContext.class)
         );
     }
 
@@ -224,32 +199,23 @@ class EmailDispatchServiceTest {
 
         emailDispatchService.sendAllocationProposalEmail(stagedAllocation, room, building, "John Doe", "john@example.com");
 
-        verify(emailService).sendAllocationProposalEmail(
+        verify(emailService).sendTemplateEmail(
                 eq("john@example.com"),
-                eq("John Doe"),
-                eq("101"),
-                eq("Test Building"),
-                eq(1),
-                anyInt(),
-                anyString(),
-                any(),
-                anyList(),
-                isNull(),
-                anyString(),
-                anyString()
+                eq(EmailSubjects.ALLOCATION_PROPOSAL),
+                eq("allocation-proposal"),
+                any(AllocationProposalContext.class)
         );
     }
 
     @Test
     void sendOfferDeclinedRequeueEmail_validData_sendsEmail() {
-        when(contentBuilder.buildOfferDeclinedRequeueEmailContent(any(), any(), any(), anyInt(), anyInt(), any(), any())).thenReturn("<html></html>");
+        emailDispatchService.sendOfferDeclinedRequeueEmail(allocation, room, "John Doe", "john@example.com", 1, "Reason");
 
-        emailDispatchService.sendOfferDeclinedRequeueEmail(allocation, room, "John Doe", "john@example.com", 1, "Subject");
-
-        verify(emailService).sendHtmlEmail(
+        verify(emailService).sendTemplateEmail(
                 eq("john@example.com"),
-                eq("Subject"),
-                eq("<html></html>")
+                eq(EmailSubjects.OFFER_DECLINED_REQUEUE),
+                eq("offer-declined-requeue"),
+                any(OfferDeclinedRequeueContext.class)
         );
     }
 }

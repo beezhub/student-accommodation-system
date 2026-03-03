@@ -84,6 +84,7 @@ app:
   base-url: ${APP_BASE_URL:http://localhost:4200}
   support-email: ${APP_SUPPORT_EMAIL:accommodation@university.edu}
   university-name: ${APP_UNIVERSITY_NAME:University}
+  contact-phone: ${APP_CONTACT_PHONE:+27 (0) 11 000 0000}
   notification:
     retry-delay-minutes: ${NOTIFICATION_RETRY_DELAY_MINUTES:5}
     retry-check-interval-ms: ${NOTIFICATION_RETRY_CHECK_INTERVAL_MS:300000}

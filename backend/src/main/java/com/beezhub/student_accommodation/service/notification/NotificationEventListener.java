@@ -67,8 +67,8 @@ public class NotificationEventListener {
                     : NotificationType.APPLICATION_REJECTED;
 
             String subject = newStatus == ApplicationStatus.APPROVED
-                    ? "Application Approved - Student Accommodation"
-                    : "Application Status Update - Student Accommodation";
+                    ? EmailSubjects.APPLICATION_APPROVED
+                    : EmailSubjects.APPLICATION_REJECTED;
 
             Notification notification = notificationService.createNotification(
                     email, subject, notificationType, user,
@@ -123,8 +123,8 @@ public class NotificationEventListener {
                     : NotificationType.DOCUMENT_REJECTED;
 
             String subject = newStatus == DocumentStatus.APPROVED
-                    ? "Document Verified - Student Accommodation"
-                    : "Document Review Required - Student Accommodation";
+                    ? EmailSubjects.DOCUMENT_VERIFIED
+                    : EmailSubjects.DOCUMENT_REJECTED;
 
             Notification notification = notificationService.createNotification(
                     email, subject, notificationType, user,
@@ -176,7 +176,7 @@ public class NotificationEventListener {
 
             Notification notification = notificationService.createNotification(
                     email,
-                    "Document Requires Attention - Student Accommodation",
+                    EmailSubjects.DOCUMENT_COMMENT,
                     NotificationType.DOCUMENT_REJECTED,
                     user,
                     document.getId(),
@@ -186,9 +186,9 @@ public class NotificationEventListener {
                             "email", email)));
 
             try {
-                emailDispatchService.sendDocumentCommentEmail(
-                        document, commentText, studentName, email,
-                        documentName, documentType, notification.getSubject());
+                emailDispatchService.sendDocumentCommentEmailWithTemplate(
+                        document, commentText, "Accommodation Office", studentName, email,
+                        documentName, documentType);
 
                 notificationService.markNotificationAsSent(notification);
             } catch (Exception e) {
@@ -217,7 +217,7 @@ public class NotificationEventListener {
 
             Notification notification = notificationService.createNotification(
                     email,
-                    "Room Allocation Confirmation - Student Accommodation",
+                    EmailSubjects.ROOM_ALLOCATED,
                     NotificationType.ROOM_ALLOCATED,
                     user,
                     allocation.getId(),
@@ -260,7 +260,7 @@ public class NotificationEventListener {
 
             Notification notification = notificationService.createNotification(
                     email,
-                    "Room Change Notification - Student Accommodation",
+                    EmailSubjects.ALLOCATION_MOVED,
                     NotificationType.ROOM_ALLOCATED,
                     user,
                     newAllocation.getId(),
@@ -314,7 +314,7 @@ public class NotificationEventListener {
 
         Notification notification = notificationService.createNotification(
                 email,
-                "Room Offer Expired - Student Accommodation",
+                EmailSubjects.OFFER_EXPIRED,
                 NotificationType.APPLICATION_REJECTED,
                 user,
                 allocation.getId(),
@@ -346,7 +346,7 @@ public class NotificationEventListener {
 
         Notification notification = notificationService.createNotification(
                 email,
-                "Check-In Deadline Expired - Student Accommodation",
+                EmailSubjects.CHECK_IN_EXPIRED,
                 NotificationType.APPLICATION_REJECTED,
                 user,
                 allocation.getId(),
@@ -403,7 +403,7 @@ public class NotificationEventListener {
 
         Notification notification = notificationService.createNotification(
                 email,
-                "Room Offer Declined - Student Accommodation",
+                EmailSubjects.OFFER_DECLINED_REQUEUE,
                 NotificationType.ROOM_ALLOCATED,
                 user,
                 allocation.getId(),
@@ -451,7 +451,7 @@ public class NotificationEventListener {
 
         Notification notification = notificationService.createNotification(
                 email,
-                "Room Allocation Proposal - Student Accommodation",
+                EmailSubjects.ALLOCATION_PROPOSAL,
                 NotificationType.ROOM_ALLOCATED,
                 user,
                 stagedAllocation.getId(),
@@ -496,7 +496,7 @@ public class NotificationEventListener {
 
         Notification notification = notificationService.createNotification(
                 email,
-                "Room Allocation Confirmed - Student Accommodation",
+                EmailSubjects.ALLOCATION_CONFIRMED,
                 NotificationType.ROOM_ALLOCATED,
                 user,
                 allocation.getId(),
@@ -541,7 +541,7 @@ public class NotificationEventListener {
 
         Notification notification = notificationService.createNotification(
                 email,
-                "Room Allocation Update - Student Accommodation",
+                EmailSubjects.ALLOCATION_REJECTED,
                 NotificationType.APPLICATION_REJECTED,
                 user,
                 stagedAllocation.getId(),

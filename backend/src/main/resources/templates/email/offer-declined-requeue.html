@@ -1,54 +1,41 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
 <head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 20px auto; background: #fff;
-                    border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #ffa500 0%, #ff6b6b 100%);
-                 color: #fff; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { padding: 30px; }
-        .info-box { background: #f8f9fa; border-left: 4px solid #ffa500; padding: 15px; margin: 20px 0; }
-        .warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
-        .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                 color: #fff; padding: 12px 30px; text-decoration: none;
-                 border-radius: 5px; margin: 20px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center;
-                 font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
-    </style>
+    <title>Room Offer Declined</title>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Room Offer Declined</h1>
-        </div>
-        <div class="content">
-            <p>Dear <span th:text="${studentName}">Student</span>,</p>
-            <p>We have received your decision to decline the room offer. Your application has been updated accordingly.</p>
-            <div class="info-box">
-                <strong>Declined Room Details:</strong>
-                <ul>
-                    <li><strong>Room:</strong> <span th:text="${roomNumber}">Room</span></li>
-                    <li><strong>Building:</strong> <span th:text="${buildingName}">Building</span></li>
-                    <li><strong>Reason:</strong> <span th:text="${declineReason}">Reason</span></li>
-                </ul>
-            </div>
-            <div class="warning-box">
-                <strong>⚠️ Decline Status:</strong>
-                <p>You have declined <strong th:text="|${totalDeclineCount} of 2|">1 of 2</strong> allowed offers.</p>
-                <p>You have <strong th:text="|${declinesRemaining} decline(s) remaining|">1 decline(s) remaining</strong>.</p>
-                <p>Your application status has been updated to <strong>AWAITING ALLOCATION</strong> and you have been added back to the waiting list. We will notify you when another room becomes available.</p>
-            </div>
-            <center>
-                <a th:href="${portalUrl}" class="button">View Application Status</a>
-            </center>
-        </div>
-        <div class="footer">
-            <p>This is an automated message from the Student Accommodation System.</p>
-            <p>If you have any questions, please contact our support team at <span th:text="${supportEmail}">support@university.edu</span></p>
-            <p>&copy; 2025 <span th:text="${universityName}">University</span> Student Accommodation System. All rights reserved.</p>
-        </div>
+
+<h1 layout:fragment="email-title">Room Offer Declined</h1>
+<span layout:fragment="email-subtitle">You remain in the waiting queue</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+    <p>We have received your decision to decline the room offer. Your application has been updated accordingly.</p>
+
+    <div class="info-box">
+        <h3>Declined Room Details</h3>
+        <ul>
+            <li><strong>Room:</strong> <span th:text="${roomNumber}">Room</span></li>
+            <li><strong>Building:</strong> <span th:text="${buildingName}">Building</span></li>
+            <li><strong>Reason:</strong> <span th:text="${declineReason}">Reason</span></li>
+        </ul>
     </div>
+
+    <div class="warning-box">
+        <h3>Decline Status</h3>
+        <p>You have declined <strong th:text="|${totalDeclineCount} of 2|">1 of 2</strong> allowed offers.</p>
+        <p>You have <strong th:text="|${declinesRemaining} decline(s) remaining|">1 decline(s) remaining</strong>.</p>
+        <p>Your application status has been updated to <strong>AWAITING ALLOCATION</strong> and you have been
+           added back to the waiting list. We will notify you when another room becomes available.</p>
+    </div>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">View Application Status</a>
+    </div>
+</div>
+
 </body>
 </html>

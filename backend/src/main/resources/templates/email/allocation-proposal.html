@@ -1,49 +1,12 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room Allocation Proposal</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .proposal-icon {
-            text-align: center;
-            font-size: 60px;
-            margin: 20px 0;
-        }
-        .message {
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        .room-details {
+        .room-highlight {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #ffffff;
             padding: 20px;
@@ -51,14 +14,8 @@
             border-radius: 8px;
             text-align: center;
         }
-        .room-details h2 {
-            margin: 0 0 10px 0;
-            font-size: 36px;
-        }
-        .room-details p {
-            margin: 5px 0;
-            font-size: 18px;
-        }
+        .room-highlight h2 { margin: 0 0 10px 0; font-size: 36px; }
+        .room-highlight p { margin: 5px 0; font-size: 18px; }
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -71,190 +28,83 @@
             border-radius: 5px;
             border-left: 3px solid #667eea;
         }
-        .info-item strong {
-            display: block;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-        .score-box {
-            background-color: #d4edda;
-            border-left: 4px solid #28a745;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .score-box h3 {
-            margin-top: 0;
-            color: #155724;
-        }
-        .score-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #28a745;
-        }
-        .warning-box {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .warning-box h3 {
-            margin-top: 0;
-            color: #856404;
-        }
-        .warning-box ul {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        .warning-box li {
-            margin: 8px 0;
-        }
-        .pending-box {
-            background-color: #d1ecf1;
-            border-left: 4px solid #17a2b8;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .pending-box h3 {
-            margin-top: 0;
-            color: #0c5460;
-        }
-        .move-in-box {
-            background-color: #e9ecef;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-        }
-        .move-in-box h3 {
-            margin-top: 0;
-            color: #495057;
-        }
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-        }
-        .contact-info {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e9ecef;
-            border-radius: 5px;
-        }
-        .contact-info h4 {
-            margin-top: 0;
-            color: #495057;
-        }
-        .contact-info p {
-            margin: 5px 0;
-        }
-        @media screen and (max-width: 600px) {
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        .info-item strong { display: block; color: #667eea; margin-bottom: 5px; }
+        .score-value { font-size: 24px; font-weight: bold; color: #28a745; }
+        @media screen and (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Room Allocation Proposal</h1>
+
+<h1 layout:fragment="email-title">Room Allocation Proposal</h1>
+<span layout:fragment="email-subtitle">Pending confirmation by the accommodation office</span>
+
+<div layout:fragment="email-content">
+    <p style="text-align:center; font-size: 60px; margin: 20px 0;">&#128203;</p>
+
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <p>Great news! We have found a suitable room for you based on your application preferences.
+       Your accommodation has been proposed and is pending final confirmation.</p>
+
+    <div class="room-highlight">
+        <h2 th:text="${roomNumber}">Room 204</h2>
+        <p th:text="${buildingName}">Building A</p>
+        <p th:if="${floorNumber != null}">Floor <span th:text="${floorNumber}">2</span></p>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item">
+            <strong>Building</strong>
+            <span th:text="${buildingName}">Building A</span>
         </div>
-
-        <div class="content">
-            <div class="proposal-icon">📋</div>
-
-            <p class="message">Dear <span th:text="${studentName}">Student</span>,</p>
-
-            <p class="message">
-                Great news! We have found a suitable room for you based on your application preferences.
-                Your accommodation has been proposed and is pending final confirmation.
-            </p>
-
-            <div class="room-details">
-                <h2 th:text="${roomNumber}">Room 204</h2>
-                <p th:text="${buildingName}">Building A</p>
-                <p th:if="${floorNumber != null}">Floor <span th:text="${floorNumber}">2</span></p>
-            </div>
-
-            <div class="info-grid">
-                <div class="info-item">
-                    <strong>Building</strong>
-                    <span th:text="${buildingName}">Building A</span>
-                </div>
-                <div class="info-item">
-                    <strong>Room Number</strong>
-                    <span th:text="${roomNumber}">204</span>
-                </div>
-                <div class="info-item" th:if="${roomCapacity != null}">
-                    <strong>Room Capacity</strong>
-                    <span th:text="${roomCapacity}">2</span> bed(s)
-                </div>
-                <div class="info-item" th:if="${proposalId != null}">
-                    <strong>Proposal ID</strong>
-                    <span th:text="${proposalId}">PROP-001</span>
-                </div>
-            </div>
-
-            <div class="score-box" th:if="${score != null}">
-                <h3>📊 Match Score</h3>
-                <p>Your room match score: <span class="score-value" th:text="${score}">85.5</span></p>
-                <p style="font-size: 14px; color: #666;">This score reflects how well the room matches your preferences and requirements.</p>
-            </div>
-
-            <div class="warning-box" th:if="${warnings != null and !warnings.isEmpty()}">
-                <h3>⚠️ Important Notes</h3>
-                <ul>
-                    <li th:each="warning : ${warnings}" th:text="${warning}">Warning message</li>
-                </ul>
-            </div>
-
-            <div class="pending-box">
-                <h3>🔄 Pending Confirmation</h3>
-                <p>This proposal is pending confirmation by the accommodation office. You will receive another notification once your allocation has been confirmed.</p>
-                <p style="font-weight: bold; margin-top: 10px;">No action is required from you at this time.</p>
-            </div>
-
-            <div class="move-in-box" th:if="${moveInDate != null}">
-                <h3>📅 Preferred Move-In Date</h3>
-                <p>Your preferred move-in date: <strong th:text="${moveInDate}">2025-02-01</strong></p>
-                <p style="font-size: 14px; color: #666;">Final move-in details will be provided upon confirmation.</p>
-            </div>
-
-            <center>
-                <a href="#" th:href="${portalUrl}" class="cta-button">View Proposal Details</a>
-            </center>
-
-            <div class="contact-info">
-                <h4>Questions About Your Proposal?</h4>
-                <p><strong>Email:</strong> <span th:text="${supportEmail}">accommodation@university.edu</span></p>
-                <p><strong>Office Hours:</strong> Monday - Friday, 8:00 AM - 5:00 PM</p>
-            </div>
-
-            <p class="message" style="margin-top: 30px; font-style: italic;">
-                Thank you for your patience. We will process your allocation shortly.
-            </p>
+        <div class="info-item">
+            <strong>Room Number</strong>
+            <span th:text="${roomNumber}">204</span>
         </div>
-
-        <div class="footer">
-            <p>This is an automated message from the Student Accommodation System.</p>
-            <p>&copy; 2025 Student Accommodation System. All rights reserved.</p>
-            <p style="margin-top: 10px; font-size: 12px;">
-                <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> |
-                <a href="#" style="color: #667eea; text-decoration: none;">Notification Preferences</a> |
-                <a href="#" style="color: #667eea; text-decoration: none;">Contact Support</a>
-            </p>
+        <div class="info-item" th:if="${roomCapacity != null}">
+            <strong>Room Capacity</strong>
+            <span th:text="${roomCapacity}">2</span> bed(s)
+        </div>
+        <div class="info-item" th:if="${proposalId != null}">
+            <strong>Proposal ID</strong>
+            <span th:text="${proposalId}">PROP-001</span>
         </div>
     </div>
+
+    <div class="success-box" th:if="${score != null}">
+        <h3>Match Score</h3>
+        <p>Your room match score: <span class="score-value" th:text="${score}">85.5</span></p>
+        <p style="font-size: 14px; color: #666;">This score reflects how well the room matches your preferences and requirements.</p>
+    </div>
+
+    <div class="warning-box" th:if="${warnings != null and !warnings.isEmpty()}">
+        <h3>Important Notes</h3>
+        <ul>
+            <li th:each="warning : ${warnings}" th:text="${warning}">Warning message</li>
+        </ul>
+    </div>
+
+    <div class="info-box">
+        <h3>Pending Confirmation</h3>
+        <p>This proposal is pending confirmation by the accommodation office. You will receive another
+           notification once your allocation has been confirmed.</p>
+        <p style="font-weight: bold; margin-top: 10px;">No action is required from you at this time.</p>
+    </div>
+
+    <div class="neutral-box" th:if="${moveInDate != null}">
+        <h3>Preferred Move-In Date</h3>
+        <p>Your preferred move-in date: <strong th:text="${moveInDate}">2025-02-01</strong></p>
+        <p style="font-size: 14px; color: #666;">Final move-in details will be provided upon confirmation.</p>
+    </div>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">View Proposal Details</a>
+    </div>
+
+    <p style="margin-top: 30px; font-style: italic;">
+        Thank you for your patience. We will process your allocation shortly.
+    </p>
+</div>
+
 </body>
 </html>
