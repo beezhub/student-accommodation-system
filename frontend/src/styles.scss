@@ -54,6 +54,36 @@ h2,
     @include mixins.status-badge(vars.$slate-100, vars.$slate-700, vars.$slate-200);
 }
 
+// New UI Spec Statuses
+.status-info {
+    background: var(--color-info-bg, #e0f2fe);
+    color: var(--color-info, #0284c7);
+    border: 1px solid var(--color-info-border, #bae6fd);
+}
+
+.status-neutral {
+    background: var(--color-neutral-bg, #f1f5f9);
+    color: var(--color-neutral, #475569);
+    border: 1px solid var(--color-slate-200, #e2e8f0);
+}
+
+.status-changes {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fb923c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+    }
+}
+
 // Global Table Styles
 .table-container {
     @include mixins.card-base;

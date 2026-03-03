@@ -90,9 +90,8 @@
   <mat-card class="table-card">
     <mat-card-content>
       @if (isLoading) {
-        <div class="loading-container">
-          <mat-spinner diameter="48"></mat-spinner>
-          <p>Loading rooms...</p>
+        <div class="loading-container" style="width: 100%;">
+          <app-skeleton-loader type="table-row" [count]="5"></app-skeleton-loader>
         </div>
       }
 

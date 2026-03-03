@@ -210,3 +210,7 @@ export class DocumentService {
     });
   }
 }
+
+export function isNoActiveApplicationError(error: any): boolean {
+  return error?.error?.message?.includes('No active application found') || false;
+}

@@ -17,6 +17,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CreateUserDialogComponent } from './create-user-dialog/create-user-dialog.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-user-management',
@@ -37,6 +39,8 @@ import { CreateUserDialogComponent } from './create-user-dialog/create-user-dial
     MatProgressSpinnerModule,
     MatChipsModule,
     MatTooltipModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class UserManagementComponent implements OnInit {

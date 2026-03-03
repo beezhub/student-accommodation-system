@@ -22,6 +22,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 // Shared Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-applications',
@@ -38,6 +40,8 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatChipsModule,
     MatProgressSpinnerModule,
     ModernStatusBadgeComponent,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

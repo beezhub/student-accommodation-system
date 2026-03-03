@@ -68,9 +68,8 @@
   <mat-card class="table-card">
     <mat-card-content>
       @if (isLoading) {
-        <div class="loading-container">
-          <mat-spinner diameter="48"></mat-spinner>
-          <p>Loading users...</p>
+        <div class="loading-container" style="width: 100%;">
+          <app-skeleton-loader type="table-row" [count]="5"></app-skeleton-loader>
         </div>
       }
 
@@ -222,17 +221,11 @@
           </table>
 
           @if (users.length === 0) {
-            <div class="no-data">
-              <div class="no-data-icon">
-                <mat-icon>person_off</mat-icon>
-              </div>
-              <h3>No Users Found</h3>
-              <p>There are no users matching your current filter.</p>
-              <button mat-stroked-button color="primary" (click)="onFilterChange('all')">
-                <mat-icon>refresh</mat-icon>
-                Show All Users
-              </button>
-            </div>
+            <app-empty-state
+              icon="person_off"
+              title="No Users Found"
+              description="There are no users matching your current filter.">
+            </app-empty-state>
           }
         </div>
       }

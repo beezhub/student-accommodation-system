@@ -27,6 +27,26 @@ export type StatusType =
   | 'ALLOCATED'
   | 'awaiting_allocation'
   | 'AWAITING_ALLOCATION'
+  | 'under_review'
+  | 'UNDER_REVIEW'
+  | 'changes_requested'
+  | 'CHANGES_REQUESTED'
+  | 'withdrawn'
+  | 'WITHDRAWN'
+  | 'checked_in'
+  | 'CHECKED_IN'
+  | 'offered'
+  | 'OFFERED'
+  | 'accepted'
+  | 'ACCEPTED'
+  | 'declined'
+  | 'DECLINED'
+  | 'completed'
+  | 'COMPLETED'
+  | 'terminated'
+  | 'TERMINATED'
+  | 'submitted'
+  | 'SUBMITTED'
   | string;
 
 interface StatusConfig {
@@ -46,6 +66,8 @@ interface StatusConfig {
       [class]="'modern-badge ' + config().colorClass"
       [class.badge-sm]="size() === 'sm'"
       [class.badge-lg]="size() === 'lg'"
+      role="status"
+      [attr.aria-label]="'Status: ' + config().label"
     >
       @if (showEmoji() && config().emoji) {
       <span class="badge-emoji">{{ config().emoji }}</span>
@@ -308,6 +330,66 @@ export class ModernStatusBadgeComponent {
         label: 'Check-In Expired',
         colorClass: 'status-check-in-expired',
         emoji: '🚫',
+      },
+      under_review: {
+        icon: 'rate_review',
+        label: 'Under Review',
+        colorClass: 'status-warning',
+        emoji: '👀',
+      },
+      changes_requested: {
+        icon: 'edit_note',
+        label: 'Changes Requested',
+        colorClass: 'status-changes',
+        emoji: '⚠️',
+      },
+      withdrawn: {
+        icon: 'undo',
+        label: 'Withdrawn',
+        colorClass: 'status-neutral',
+        emoji: '↩️',
+      },
+      checked_in: {
+        icon: 'meeting_room',
+        label: 'Checked In',
+        colorClass: 'status-approved',
+        emoji: '🔑',
+      },
+      offered: {
+        icon: 'local_offer',
+        label: 'Offer Sent',
+        colorClass: 'status-info',
+        emoji: '📩',
+      },
+      accepted: {
+        icon: 'check_circle',
+        label: 'Accepted',
+        colorClass: 'status-approved',
+        emoji: '✅',
+      },
+      declined: {
+        icon: 'thumb_down',
+        label: 'Declined',
+        colorClass: 'status-neutral',
+        emoji: '👎',
+      },
+      completed: {
+        icon: 'task_alt',
+        label: 'Completed',
+        colorClass: 'status-neutral',
+        emoji: '🏁',
+      },
+      terminated: {
+        icon: 'block',
+        label: 'Terminated',
+        colorClass: 'status-rejected',
+        emoji: '🛑',
+      },
+      submitted: {
+        icon: 'send',
+        label: 'Submitted',
+        colorClass: 'status-info',
+        emoji: '📤',
       },
     };
 

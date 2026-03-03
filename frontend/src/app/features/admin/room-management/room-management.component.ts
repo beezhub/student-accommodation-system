@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RoomService, RoomResponse, PageResponse } from '../../../core/services/room.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -50,6 +51,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatChipsModule,
     MatCheckboxModule,
     ModernStatusBadgeComponent,
+    SkeletonLoaderComponent,
   ],
 })
 export class RoomManagementComponent implements OnInit {

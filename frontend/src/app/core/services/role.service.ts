@@ -19,22 +19,22 @@ export class RoleService {
 
   /** True if the current user is a PLATFORM_ADMIN. */
   isPlatformAdmin(): boolean {
-    return this.currentRole === ROLE.PLATFORM_ADMIN;
+    return this.currentRole?.toUpperCase() === ROLE.PLATFORM_ADMIN.toUpperCase() || this.currentRole?.toUpperCase() === ROLE.ADMIN.toUpperCase();
   }
 
   /** True if the current user is a BUILDING_OWNER. */
   isBuildingOwner(): boolean {
-    return this.currentRole === ROLE.BUILDING_OWNER;
+    return this.currentRole?.toUpperCase() === ROLE.BUILDING_OWNER.toUpperCase() || this.currentRole?.toUpperCase() === ROLE.LANDLORD.toUpperCase();
   }
 
   /** True if the current user is a BUILDING_STAFF. */
   isBuildingStaff(): boolean {
-    return this.currentRole === ROLE.BUILDING_STAFF;
+    return this.currentRole?.toUpperCase() === ROLE.BUILDING_STAFF.toUpperCase();
   }
 
   /** True if the current user is a STUDENT. */
   isStudent(): boolean {
-    return this.currentRole === ROLE.STUDENT;
+    return this.currentRole?.toUpperCase() === ROLE.STUDENT.toUpperCase();
   }
 
   /**
@@ -42,9 +42,8 @@ export class RoleService {
    * (PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF).
    */
   isAdmin(): boolean {
-    const role = this.currentRole;
     return (
-      role === ROLE.PLATFORM_ADMIN || role === ROLE.BUILDING_OWNER || role === ROLE.BUILDING_STAFF
+      this.isPlatformAdmin() || this.isBuildingOwner() || this.isBuildingStaff()
     );
   }
 }

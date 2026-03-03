@@ -38,41 +38,7 @@ import { NotificationsComponent } from './notifications/notifications.component'
           Documents
         </button>
         }
-        <!-- Admin menu items -->
-        @if (isAdmin()) {
-        <button mat-menu-item routerLink="/admin">
-          <mat-icon>dashboard</mat-icon>
-          Admin Dashboard
-        </button>
-        <button mat-menu-item routerLink="/admin/applications">
-          <mat-icon>assignment</mat-icon>
-          Applications
-        </button>
-        <button mat-menu-item routerLink="/admin/documents">
-          <mat-icon>verified</mat-icon>
-          Documents
-        </button>
-        <button mat-menu-item routerLink="/admin/users">
-          <mat-icon>people</mat-icon>
-          Users
-        </button>
-        <button mat-menu-item routerLink="/admin/buildings">
-          <mat-icon>apartment</mat-icon>
-          Buildings
-        </button>
-        <button mat-menu-item routerLink="/admin/rooms">
-          <mat-icon>meeting_room</mat-icon>
-          Rooms
-        </button>
-        <button mat-menu-item routerLink="/admin/room-allocations">
-          <mat-icon>assignment_ind</mat-icon>
-          Room Allocations
-        </button>
-        <button mat-menu-item routerLink="/admin/activity-logs">
-          <mat-icon>history</mat-icon>
-          Activity Logs
-        </button>
-        }
+        <!-- Admin menu items removed (now in Sidebar) -->
         <button mat-menu-item [matMenuTriggerFor]="profileMenu">
           <mat-icon>account_circle</mat-icon>
           Profile
@@ -111,29 +77,7 @@ import { NotificationsComponent } from './notifications/notifications.component'
         >
         <a mat-button routerLink="/documents"><mat-icon>folder</mat-icon><span>Documents</span></a>
         }
-        <!-- Admin navigation tabs -->
-        @if (isAdmin()) {
-        <a mat-button routerLink="/admin"><mat-icon>dashboard</mat-icon><span>Dashboard</span></a>
-        <a mat-button routerLink="/admin/applications"
-          ><mat-icon>assignment</mat-icon><span>Applications</span></a
-        >
-        <a mat-button routerLink="/admin/documents"
-          ><mat-icon>verified</mat-icon><span>Documents</span></a
-        >
-        <a mat-button routerLink="/admin/users"><mat-icon>people</mat-icon><span>Users</span></a>
-        <a mat-button routerLink="/admin/buildings"
-          ><mat-icon>apartment</mat-icon><span>Buildings</span></a
-        >
-        <a mat-button routerLink="/admin/rooms"
-          ><mat-icon>meeting_room</mat-icon><span>Rooms</span></a
-        >
-        <a mat-button routerLink="/admin/room-allocations"
-          ><mat-icon>assignment_ind</mat-icon><span>Allocations</span></a
-        >
-        <a mat-button routerLink="/admin/activity-logs"
-          ><mat-icon>history</mat-icon><span>Activity Logs</span></a
-        >
-        }
+        <!-- Admin navigation tabs removed (now in Sidebar) -->
         <button mat-button [matMenuTriggerFor]="profileMenu" class="profile-btn">
           <mat-icon>account_circle</mat-icon><span>Profile</span><mat-icon>expand_more</mat-icon>
         </button>
