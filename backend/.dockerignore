@@ -4,9 +4,9 @@ target/
 out/
 *.log
 
-# Gradle
+# Gradle — exclude the project-local cache dir but keep the wrapper
 .gradle/
-gradle-wrapper.jar
+# Note: gradle/wrapper/gradle-wrapper.jar must NOT be excluded — it is required by ./gradlew
 
 # IDE
 .idea/

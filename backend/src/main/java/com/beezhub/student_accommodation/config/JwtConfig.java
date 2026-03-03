@@ -25,9 +25,10 @@ public class JwtConfig {
 
     @PostConstruct
     public void validateSecurityConfiguration() {
-        if (secretKeyString == null || secretKeyString.isBlank() || secretKeyString.length() < 32) {
+        if (secretKeyString == null || secretKeyString.isBlank() || secretKeyString.length() < 64) {
             throw new IllegalStateException(
-                "JWT_SECRET environment variable must be set and be at least 32 characters. " +
+                "JWT_SECRET environment variable must be set and be at least 64 characters. " +
+                "Generate one with: openssl rand -base64 64. " +
                 "Application startup aborted for security reasons."
             );
         }

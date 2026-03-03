@@ -1,80 +1,122 @@
+networks:
+  app-network:
+    driver: bridge
+  monitoring-network:
+    driver: bridge
+
 services:
   db:
     image: postgres:16.2-alpine
     container_name: student-accommodation-local-db
     environment:
-      POSTGRES_PASSWORD: admin
-      POSTGRES_USER: localadmin
+      POSTGRES_PASSWORD: ${PASSWORD_DB}
+      POSTGRES_USER: ${USER_DB}
       POSTGRES_DB: studentaccommodationlocaldb
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USER_DB:-localadmin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
-#  student-accommodation-back-end:
-#    container_name: student-accommodation-back-end
-#    image: student-accommodation-back-end:latest
-#    build:
-#      context: ./backend
-#      dockerfile: Dockerfile
-#      no_cache: true
-#      args:
-#        - BUILDKIT_INLINE_CACHE=0
-#    ports:
-#      - "8080:8080"
-#    depends_on:
-#      db:
-#        condition: service_started
-#      minio:
-#        condition: service_started
-#      mailhog:
-#        condition: service_started
-#      redis:
-#        condition: service_healthy
-#    environment:
-#      - POSTGRES_DB=studentaccommodationlocaldb
-#      - USER_DB=localadmin
-#      - PASSWORD_DB=admin
-#      - DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb
-#      - JWT_SECRET=jvc+QC/0myyJ9+//Rzo+qYxfMmHDiQdlysvcT9XhUF7/6mvHD9evZBB/ngNAMwTD6sDDQgf4vS0QDZ8JYLoBOA==
-#      - JWT_EXPIRATION=360000
-#      - MINIO_ENDPOINT=http://minio:9000
-#      - MINIO_ACCESS_KEY=minioadmin
-#      - MINIO_SECRET_KEY=minioadmin
-#      - MINIO_BUCKET=student-accommodation-bucket
-#      - MAIL_HOST=mailhog
-#      - MAIL_PORT=1025
-#      - MAIL_USERNAME=student@gmail.com
-#      - MAIL_PASSWORD=test
-#      - MAIL_SMTP_AUTH=false
-#      - MAIL_STARTTLS_ENABLE=false
-#      - APP_BASE_URL=http://localhost:3000
-#      - APP_SUPPORT_EMAIL=accommodation@university.edu
-#      - APP_UNIVERSITY_NAME=University
-#      - REDIS_HOST=redis
-#      - REDIS_PORT=6379
+  student-accommodation-back-end:
+    container_name: student-accommodation-back-end
+    image: student-accommodation-back-end:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - POSTGRES_DB=studentaccommodationlocaldb
+      - USER_DB=${USER_DB}
+      - PASSWORD_DB=${PASSWORD_DB}
+      - DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-36000000}
+      - JWT_ADMIN_EXPIRATION=${JWT_ADMIN_EXPIRATION:-14400000}
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_BUCKET=${MINIO_BUCKET:-student-accommodation-bucket}
+      - MAIL_HOST=mailhog
+      - MAIL_PORT=1025
+      - MAIL_USERNAME=${MAIL_USERNAME:-noreply@studentaccommodation.local}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-test}
+      - MAIL_SMTP_AUTH=${MAIL_SMTP_AUTH:-false}
+      - MAIL_STARTTLS_ENABLE=${MAIL_STARTTLS_ENABLE:-false}
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:4200}
+      - APP_SUPPORT_EMAIL=${APP_SUPPORT_EMAIL:-accommodation@university.edu}
+      - APP_UNIVERSITY_NAME=${APP_UNIVERSITY_NAME:-University}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2024-11-07T00-52-20Z
     container_name: student-accommodation-minio
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   mailhog:
-    image: mailhog/mailhog:latest
+    image: mailhog/mailhog:v1.0.1
     container_name: student-accommodation-mailhog
     ports:
       - "1025:1025"  # SMTP server
       - "8025:8025"  # Web UI
     logging:
       driver: "none"  # Disable logs to reduce noise
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   redis:
     image: redis:7.4-alpine
@@ -90,6 +132,13 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   prometheus:
     image: prom/prometheus:v2.50.1
@@ -100,6 +149,14 @@ services:
       - "9090:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+    restart: unless-stopped
+    networks:
+      - app-network
+      - monitoring-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   grafana:
     image: grafana/grafana:10.3.3
@@ -107,16 +164,22 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./tools/grafana/provisioning:/etc/grafana/provisioning
       - ./tools/grafana/dashboards:/var/lib/grafana/dashboards
-      - ./tools/grafana/alerts:/etc/grafana/provisioning/alerting/rules
       - ./tools/grafana/alerts:/etc/grafana/provisioning/alerting
     depends_on:
       - prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
 volumes:
   minio_data:

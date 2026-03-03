@@ -69,7 +69,7 @@ springdoc:
     tags-sorter: alpha
     disable-swagger-default-url: true
 jwt:
-  secret: ${JWT_SECRET:jvc+QC/0myyJ9+//Rzo+qYxfMmHDiQdlysvcT9XhUF7/6mvHD9evZBB/ngNAMwTD6sDDQgf4vS0QDZ8JYLoBOA==}
+  secret: ${JWT_SECRET}
   expiration-time-ms: ${JWT_EXPIRATION:36000000}
   admin-expiration-time-ms: ${JWT_ADMIN_EXPIRATION:14400000}
 minio:
