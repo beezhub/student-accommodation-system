@@ -32,7 +32,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -213,7 +215,7 @@ class AllocationLifecycleServiceTest {
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.DECLINED);
         verify(roomOccupancyManager).updateOccupancy(room, -1);
         verify(roomAllocationRepository).save(allocation);
-        verify(waitingListService).reQueueStudent(any(), eq(1), eq(2));
+        verify(waitingListService).reQueueStudent(any(), eq(1));
     }
 
     @Test
@@ -237,11 +239,11 @@ class AllocationLifecycleServiceTest {
 
         // Check delegation
         verify(roomOccupancyManager).updateOccupancy(room, -1);
-        verify(waitingListService).reQueueStudent(any(), eq(2), eq(2));
+        verify(waitingListService).reQueueStudent(any(), eq(2));
     }
 
     @Test
-    void declineOffer_thirdDecline_shouldCancel() {
+    void declineOffer_thirdDecline_shouldReQueueUnlimited() {
         RoomAllocation allocation = new RoomAllocation();
         allocation.setId(1L);
         allocation.setStatus(AllocationStatus.OFFERED);
@@ -260,8 +262,9 @@ class AllocationLifecycleServiceTest {
 
         allocationLifecycleService.declineOffer(1L, request);
 
+        // Verify no cancellation — student is re-queued regardless of decline count
         verify(roomOccupancyManager).updateOccupancy(room, -1);
-        verify(waitingListService).cancelApplicationAfterMaxDeclines(any(), eq(2));
+        verify(waitingListService).reQueueStudent(any(), eq(3));
     }
 
     @Test

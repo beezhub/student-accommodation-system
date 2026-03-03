@@ -273,45 +273,7 @@ public class AllocationBatchService {
 
     @Transactional
     public BatchConfirmationResult confirmBatchAllocationsWithResult(String batchId, Long adminId) {
-        // This was duplicate logic, reusing confirmBatchAllocations logic but returning
-        // result
-        // For now, delegate to stagedAllocationService.confirmBatchAllocations, but we
-        // need result stats.
-        // StagedAllocationService.confirmBatchAllocations is void.
-        // I should update StagedAllocationService to return result or implement logic
-        // here calling single confirm.
-
-        // Implementing logic here to return stats, calling
-        // stagedAllocationService.confirmAllocation per item
-        // Or update StagedAllocationService to return stats.
-        // Let's implement here for now using single confirm
-
-        // Wait, I can't access stagedAllocationRepository directly if I want to keep
-        // this thin.
-        // But StagedAllocationService has getStagedAllocations.
-        // I will use StagedAllocationService to fetch and confirm.
-
-        // However, StagedAllocationService already has confirmBatchAllocations(void).
-        // I'll keep the logic here for now, but I need StagedAllocationRepository
-        // access or use StagedAllocationService query.
-
-        // Actually, looking at the previous implementation,
-        // confirmBatchAllocationsWithResult was very similar to
-        // confirmBatchAllocations.
-        // I will assume StagedAllocationService can handle it or I should move this
-        // method there too.
-        // The reviewer said "AllocationBatchService (< 300 lines)".
-        // Moving confirmBatchAllocationsWithResult to StagedAllocationService is
-        // better.
-
-        // I'll leave it here but using StagedAllocationService methods if possible,
-        // but I can't iterate without repository.
-        // I will return empty result for now and TODO: move to StagedAllocationService
-
-        // Or better, let's look at StagedAllocationService again.
-        // It has confirmBatchAllocations (void).
-        // I'll add confirmBatchAllocationsWithResult to StagedAllocationService.
-        return null; // Placeholder, I will update StagedAllocationService next.
+        return stagedAllocationService.confirmBatchAllocationsWithResult(batchId, adminId);
     }
 
     public PageResponse<StagedAllocationResponse> getStagedAllocations(String batchId, StagedAllocationStatus status,

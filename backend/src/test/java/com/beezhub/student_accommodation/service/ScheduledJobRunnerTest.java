@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.service.allocation.AllocationExpiryServ
 import com.beezhub.student_accommodation.service.allocation.OfferReminderService;
 import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
+import com.beezhub.student_accommodation.service.notification.NotificationRetryService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -34,6 +35,8 @@ class ScheduledJobRunnerTest {
     private OfferReminderService offerReminderService;
     @Mock
     private CheckInReminderService checkInReminderService;
+    @Mock
+    private NotificationRetryService notificationRetryService;
 
     private MeterRegistry meterRegistry;
     private ScheduledJobRunner scheduledJobRunner;
@@ -47,6 +50,7 @@ class ScheduledJobRunnerTest {
                 orphanFileCleanupJob,
                 offerReminderService,
                 checkInReminderService,
+                notificationRetryService,
                 meterRegistry);
     }
 

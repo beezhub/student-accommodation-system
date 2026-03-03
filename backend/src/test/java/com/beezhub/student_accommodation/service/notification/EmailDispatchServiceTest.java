@@ -244,7 +244,7 @@ class EmailDispatchServiceTest {
     void sendOfferDeclinedRequeueEmail_validData_sendsEmail() {
         when(contentBuilder.buildOfferDeclinedRequeueEmailContent(any(), any(), any(), anyInt(), anyInt(), any(), any())).thenReturn("<html></html>");
 
-        emailDispatchService.sendOfferDeclinedRequeueEmail(allocation, room, "John Doe", "john@example.com", 1, 2, "Subject");
+        emailDispatchService.sendOfferDeclinedRequeueEmail(allocation, room, "John Doe", "john@example.com", 1, "Subject");
 
         verify(emailService).sendHtmlEmail(
                 eq("john@example.com"),

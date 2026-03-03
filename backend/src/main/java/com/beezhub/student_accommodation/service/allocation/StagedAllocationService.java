@@ -9,6 +9,7 @@ import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
 import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationProposalResponse;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationRequest;
+import com.beezhub.student_accommodation.model.dto.BatchConfirmationResult;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationResponse;
 import com.beezhub.student_accommodation.model.dto.StagedAllocationResponse;
 import com.beezhub.student_accommodation.model.dto.ScoredRoom;
@@ -151,6 +152,41 @@ public class StagedAllocationService {
             }
         }
         log.info("Batch {} confirmation complete: {} confirmed, {} failed", batchId, confirmed, failed);
+    }
+
+    @Transactional
+    public BatchConfirmationResult confirmBatchAllocationsWithResult(String batchId, Long adminId) {
+        log.info("Confirming batch allocations with result for batch {} by admin {}", batchId, adminId);
+        List<StagedAllocation> proposals = stagedAllocationRepository.findByBatchIdAndStatus(batchId,
+                StagedAllocationStatus.PROPOSED);
+
+        List<Long> confirmedIds = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        int attempted = proposals.size();
+
+        for (StagedAllocation staged : proposals) {
+            try {
+                RoomAllocationResponse response = confirmAllocation(staged.getId(), adminId);
+                confirmedIds.add(response.getId());
+            } catch (Exception e) {
+                log.error("Failed to confirm allocation {} in batch {}: {}", staged.getId(), batchId, e.getMessage());
+                errors.add("Staged allocation " + staged.getId() + ": " + e.getMessage());
+            }
+        }
+
+        int successCount = confirmedIds.size();
+        int failureCount = errors.size();
+        log.info("Batch {} result: {}/{} confirmed", batchId, successCount, attempted);
+
+        return BatchConfirmationResult.builder()
+                .success(failureCount == 0)
+                .totalAttempted(attempted)
+                .successCount(successCount)
+                .failureCount(failureCount)
+                .errors(errors.isEmpty() ? null : errors)
+                .confirmedAllocationIds(confirmedIds.isEmpty() ? null : confirmedIds)
+                .processedAt(LocalDateTime.now())
+                .build();
     }
 
     // ==================== Private Helpers ====================

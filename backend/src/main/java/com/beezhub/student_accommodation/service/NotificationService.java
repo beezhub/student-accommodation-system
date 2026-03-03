@@ -17,6 +17,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -76,6 +77,14 @@ public class NotificationService {
     public Notification createNotification(String recipient, String subject,
             NotificationType type, AppUser user,
             Long referenceId, String referenceType) {
+        return createNotification(recipient, subject, type, user, referenceId, referenceType, null);
+    }
+
+    @Transactional
+    public Notification createNotification(String recipient, String subject,
+            NotificationType type, AppUser user,
+            Long referenceId, String referenceType,
+            Map<String, Object> templateData) {
         Notification notification = Notification.builder()
                 .recipient(recipient)
                 .subject(subject)
@@ -85,7 +94,8 @@ public class NotificationService {
                 .referenceId(referenceId)
                 .referenceType(referenceType)
                 .retryCount(0)
-                .maxRetries(3) // Assuming MAX_RETRIES was 3, hardcoding it here as per removal instruction
+                .maxRetries(3)
+                .templateData(templateData)
                 .build();
 
         return notificationRepository.save(notification);
