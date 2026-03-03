@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AdminService, AdminUser, CreateUserRequest } from '../../../core/services/admin.service';
+import { ReactiveFormsModule } from '@angular/forms';
+import { AdminService, AdminUser } from '../../../core/services/admin.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -46,6 +46,10 @@ import { TenantService, Tenant } from '../../../core/services/tenant.service';
   ],
 })
 export class UserManagementComponent implements OnInit {
+  private adminService = inject(AdminService);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   users: AdminUser[] = [];
   displayedColumns: string[] = ['id', 'name', 'email', 'role', 'mustChangePassword', 'actions'];
   isLoading = false;
@@ -54,13 +58,10 @@ export class UserManagementComponent implements OnInit {
   tenants: Tenant[] = [];
   filterTenantId: number | 'all' = 'all';
 
-  constructor(
-    private adminService: AdminService,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar,
-    private authService: AuthService,
-    private tenantService: TenantService
-  ) {
+  private authService = inject(AuthService);
+  private tenantService = inject(TenantService);
+
+  constructor() {
     this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
   }
 
@@ -81,7 +82,7 @@ export class UserManagementComponent implements OnInit {
           this.users = users;
           this.isLoading = false;
         },
-        error: (error) => {
+        error: (_err) => {
           this.isLoading = false;
           this.snackBar.open('Failed to load users', 'Close', {
             duration: 3000,
@@ -95,7 +96,7 @@ export class UserManagementComponent implements OnInit {
           this.users = users;
           this.isLoading = false;
         },
-        error: (error) => {
+        error: (_err) => {
           this.isLoading = false;
           this.snackBar.open('Failed to load users', 'Close', {
             duration: 3000,

@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -347,10 +347,10 @@ import { RoomResponse } from '../../../../core/services/room.service';
   ],
 })
 export class RoomDetailsDialogComponent {
-  constructor(
-    public dialogRef: MatDialogRef<RoomDetailsDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { room: RoomResponse }
-  ) {}
+  public dialogRef = inject(MatDialogRef<RoomDetailsDialogComponent>);
+  public data: { room: RoomResponse } = inject(MAT_DIALOG_DATA);
+
+  constructor() {}
 
   getAvailableSpots(): number {
     return this.data.room.capacity - this.data.room.currentOccupancy;

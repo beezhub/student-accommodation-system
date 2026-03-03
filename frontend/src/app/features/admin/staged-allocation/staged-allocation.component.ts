@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatStepper, MatStepperModule } from '@angular/material/stepper';
@@ -38,6 +38,11 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
   styleUrls: ['./staged-allocation.component.css'],
 })
 export class StagedAllocationComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private adminService = inject(AdminService);
+  private stagedAllocationService = inject(StagedAllocationService);
+  private snackBar = inject(MatSnackBar);
+
   @ViewChild('stepper') stepper!: MatStepper;
 
   // Step 1: Selection
@@ -70,12 +75,7 @@ export class StagedAllocationComponent implements OnInit {
   ];
   confirmedCount = 0;
 
-  constructor(
-    private fb: FormBuilder,
-    private adminService: AdminService,
-    private stagedAllocationService: StagedAllocationService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.selectionForm = this.fb.group({
       selectedCount: [0, [Validators.required, Validators.min(1), Validators.max(50)]],
     });
@@ -177,7 +177,7 @@ export class StagedAllocationComponent implements OnInit {
     if (proposal.status !== 'PROPOSED') return;
 
     this.stagedAllocationService.confirmAllocation(proposal.id).subscribe({
-      next: (result) => {
+      next: () => {
         // Update local state
         proposal.status = 'CONFIRMED'; // Optimistic update or use returned object if mapped
         this.confirmedCount++;
@@ -222,7 +222,7 @@ export class StagedAllocationComponent implements OnInit {
             if (p.status === 'PROPOSED') p.status = 'CONFIRMED';
           });
         },
-        error: (err) => {
+        error: () => {
           this.snackBar.open('Batch confirm failed', 'Close', { duration: 3000 });
         },
       });

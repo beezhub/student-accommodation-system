@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AdminService, DashboardStats, OccupancyStats } from '../../../core/services/admin.service';
 
@@ -32,6 +32,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
   ],
 })
 export class AdminDashboardComponent implements OnInit {
+  private adminService = inject(AdminService);
+
   today = new Date();
 
   stats: DashboardStats = {
@@ -113,8 +115,6 @@ export class AdminDashboardComponent implements OnInit {
       class: 'settings',
     },
   ];
-
-  constructor(private adminService: AdminService) {}
 
   ngOnInit(): void {
     this.loadStats();

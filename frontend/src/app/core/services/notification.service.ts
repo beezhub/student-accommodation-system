@@ -10,6 +10,8 @@ import { TokenStorageService } from './token-storage.service';
   providedIn: 'root',
 })
 export class NotificationService {
+  private http = inject(HttpClient);
+
   private apiUrl = `${environment.apiUrl}/notifications`;
   private notificationsSubject = new BehaviorSubject<Notification[]>([]);
   private unreadCountSubject = new BehaviorSubject<number>(0);
@@ -22,8 +24,6 @@ export class NotificationService {
 
   public notifications$ = this.notificationsSubject.asObservable();
   public unreadCount$ = this.unreadCountSubject.asObservable();
-
-  constructor(private http: HttpClient) {}
 
   /**
    * Initialize notifications (try SSE, fallback to polling)
@@ -92,7 +92,8 @@ export class NotificationService {
   /**
    * Handle incoming notification from SSE
    */
-  private handleNewNotification(notification: any): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private handleNewNotification(_notification: any): void {
     // Refresh full list to keep sync (simplest approach for now)
     // Or optimize by appending to list
     this.fetchNotifications().subscribe();

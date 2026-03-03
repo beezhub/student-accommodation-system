@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -20,7 +20,6 @@ import {
 } from '../../../../core/services/room-allocation.service';
 import { RoomService, RoomResponse } from '../../../../core/services/room.service';
 import { AdminService, ApplicationResponse } from '../../../../core/services/admin.service';
-import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
 
 @Component({
   selector: 'app-allocate-dialog',
@@ -501,6 +500,14 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
   ],
 })
 export class AllocateDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private allocationService = inject(RoomAllocationService);
+  private roomService = inject(RoomService);
+  private adminService = inject(AdminService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<AllocateDialogComponent>>(MatDialogRef);
+  data = inject(MAT_DIALOG_DATA);
+
   allocateForm: FormGroup;
   isSubmitting = false;
   availableRooms: RoomResponse[] = [];
@@ -511,15 +518,7 @@ export class AllocateDialogComponent implements OnInit {
   availability: RoomAvailabilityResponse | null = null;
   availabilityChecked = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private allocationService: RoomAllocationService,
-    private roomService: RoomService,
-    private adminService: AdminService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<AllocateDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {
+  constructor() {
     this.allocateForm = this.fb.group({
       studentId: ['', [Validators.required, Validators.min(1)]],
       roomId: ['', Validators.required],

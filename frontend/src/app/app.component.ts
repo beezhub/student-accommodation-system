@@ -1,11 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 
 import { AuthService } from './core/services/auth.service';
 import { IconService } from './core/services/icon.service';
 import { User } from './core/models/user.model';
 import { Subscription } from 'rxjs';
-import { routes } from './app-routing.module';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -37,17 +36,17 @@ import { AppNavMenuComponent } from './shared/app-nav-menu.component';
   providers: [],
 })
 export class AppComponent implements OnInit, OnDestroy {
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private breakpointObserver = inject(BreakpointObserver);
+  private iconService = inject(IconService);
+
   title = 'Student Accommodation Management';
   currentUser: User | null = null;
   private userSub!: Subscription;
   isMobile = false;
   isHomePage = false;
-  constructor(
-    private authService: AuthService,
-    private router: Router,
-    private breakpointObserver: BreakpointObserver,
-    private iconService: IconService
-  ) {
+  constructor() {
     this.isMobile = this.breakpointObserver.isMatched(Breakpoints.Handset);
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {

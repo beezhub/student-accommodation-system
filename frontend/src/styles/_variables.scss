@@ -111,12 +111,17 @@ $breakpoint-desktop: 1024px;
 $breakpoint-large: 1200px;
 
 // -----------------------------------------------------------------------------
-// 7. Motion
+// 7. Motion & Glassmorphism
 // -----------------------------------------------------------------------------
 
 $motion-fast: 150ms;
-$motion-medium: 250ms;
-$motion-spring: cubic-bezier(0.2, 0.9, 0.3, 1);
+$motion-medium: 300ms;
+$motion-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275); // Bouncier spring
+
+$glass-bg: rgba(255, 255, 255, 0.65);
+$glass-border: rgba(255, 255, 255, 0.5);
+$glass-blur: blur(20px);
+$glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
 
 // -----------------------------------------------------------------------------
 // 8. CSS Custom Properties Export (Root Variables)
@@ -161,10 +166,15 @@ $motion-spring: cubic-bezier(0.2, 0.9, 0.3, 1);
     --radius-xl: #{$radius-xl};
     --radius-pill: #{$radius-pill};
 
-    // Shadows
+    // Shadows & Glass
     --shadow-subtle: #{$shadow-subtle};
     --shadow-medium: #{$shadow-medium};
     --shadow-elevated: #{$shadow-elevated};
+
+    --glass-bg: #{$glass-bg};
+    --glass-border: #{$glass-border};
+    --glass-blur: #{$glass-blur};
+    --glass-shadow: #{$glass-shadow};
 
     // Typography
     --font-sans: #{$font-sans};

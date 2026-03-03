@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -43,6 +43,11 @@ import { MatMenuModule } from '@angular/material/menu';
   ],
 })
 export class InstitutionManagementComponent implements OnInit {
+  private institutionService = inject(InstitutionService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   institutions: InstitutionResponse[] = [];
   displayedColumns: string[] = ['name', 'address', 'phoneNumber', 'emailAddress', 'actions'];
 
@@ -53,12 +58,7 @@ export class InstitutionManagementComponent implements OnInit {
 
   filterForm: FormGroup;
 
-  constructor(
-    private institutionService: InstitutionService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       name: [''],
       address: [''],

@@ -165,7 +165,15 @@ describe('InstitutionService', () => {
     });
 
     it('searchInstitutions_withAllFilters_appendsAllParams', () => {
-      service.searchInstitutions({ name: 'Uni', address: '1 St', contactEmail: 'a@b.com', page: 1, size: 5 }).subscribe();
+      service
+        .searchInstitutions({
+          name: 'Uni',
+          address: '1 St',
+          contactEmail: 'a@b.com',
+          page: 1,
+          size: 5,
+        })
+        .subscribe();
 
       const req = httpMock.expectOne((r) => r.url === `${apiUrl}/search`);
       expect(req.request.params.get('name')).toBe('Uni');

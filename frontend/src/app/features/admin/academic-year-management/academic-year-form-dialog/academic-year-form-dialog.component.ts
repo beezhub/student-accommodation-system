@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -39,17 +39,19 @@ export interface AcademicYearDialogData {
   ],
 })
 export class AcademicYearFormDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private academicYearService = inject(AcademicYearService);
+  private dialogRef = inject<MatDialogRef<AcademicYearFormDialogComponent>>(MatDialogRef);
+  private snackBar = inject(MatSnackBar);
+  data = inject<AcademicYearDialogData>(MAT_DIALOG_DATA);
+
   form: FormGroup;
   isSubmitting = false;
   isEditMode = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private academicYearService: AcademicYearService,
-    private dialogRef: MatDialogRef<AcademicYearFormDialogComponent>,
-    private snackBar: MatSnackBar,
-    @Inject(MAT_DIALOG_DATA) public data: AcademicYearDialogData
-  ) {
+  constructor() {
+    const data = this.data;
+
     this.isEditMode = data.mode === 'edit';
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(50)]],

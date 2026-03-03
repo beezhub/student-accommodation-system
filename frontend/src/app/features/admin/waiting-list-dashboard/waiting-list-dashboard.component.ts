@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -43,6 +43,13 @@ import { Router } from '@angular/router';
   styleUrls: ['./waiting-list-dashboard.component.scss'],
 })
 export class WaitingListDashboardComponent implements OnInit, AfterViewInit {
+  private fb = inject(FormBuilder);
+  private stagedAllocationService = inject(StagedAllocationService);
+  private buildingService = inject(BuildingService);
+  private adminService = inject(AdminService);
+  private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
+
   filterForm: FormGroup;
   buildings: BuildingResponse[] = [];
 
@@ -62,14 +69,7 @@ export class WaitingListDashboardComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  constructor(
-    private fb: FormBuilder,
-    private stagedAllocationService: StagedAllocationService,
-    private buildingService: BuildingService,
-    private adminService: AdminService, // For future detail view
-    private snackBar: MatSnackBar,
-    private router: Router
-  ) {
+  constructor() {
     this.dataSource = new MatTableDataSource<WaitingListEntry>([]);
 
     this.filterForm = this.fb.group({

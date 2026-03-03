@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -47,20 +47,20 @@ import { AllocationRuleDialogComponent } from './allocation-rule-dialog/allocati
   styleUrls: ['./allocation-rule-management.component.scss'],
 })
 export class AllocationRuleManagementComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private allocationRuleService = inject(AllocationRuleService);
+  private buildingService = inject(BuildingService);
+  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+  private route = inject(ActivatedRoute);
+
   buildingForm: FormGroup;
   buildings: BuildingResponse[] = [];
   rules: AllocationRule[] = [];
   isLoading = false;
   displayedColumns: string[] = ['priority', 'ruleName', 'weights', 'active', 'actions'];
 
-  constructor(
-    private fb: FormBuilder,
-    private allocationRuleService: AllocationRuleService,
-    private buildingService: BuildingService,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog,
-    private route: ActivatedRoute
-  ) {
+  constructor() {
     this.buildingForm = this.fb.group({
       buildingId: [''],
     });

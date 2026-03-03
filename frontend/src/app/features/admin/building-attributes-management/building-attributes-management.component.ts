@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -67,12 +67,12 @@ export class BuildingAttributesManagementComponent implements OnInit {
     'actions',
   ];
 
-  constructor(
-    private fb: FormBuilder,
-    private buildingService: BuildingService,
-    private attributesService: BuildingAttributesService,
-    private snackBar: MatSnackBar
-  ) {
+  private fb = inject(FormBuilder);
+  private buildingService = inject(BuildingService);
+  private attributesService = inject(BuildingAttributesService);
+  private snackBar = inject(MatSnackBar);
+
+  constructor() {
     this.buildingForm = this.fb.group({
       buildingId: [''],
     });
@@ -163,7 +163,7 @@ export class BuildingAttributesManagementComponent implements OnInit {
     };
 
     this.attributesService.saveBuildingAttributes(this.selectedBuildingId, payload).subscribe({
-      next: (res) => {
+      next: () => {
         this.snackBar.open('Building attributes saved successfully', 'Close', { duration: 3000 });
         this.isSaving = false;
       },
@@ -179,13 +179,14 @@ export class BuildingAttributesManagementComponent implements OnInit {
     if (!room.id) return;
 
     const update: Partial<RoomAttributes> = {};
-    // @ts-ignore
+    // @ts-expect-error dynamic key assignment
     update[field] = value;
 
     this.attributesService.saveRoomAttributes(room.roomId, update).subscribe({
       next: (updated) => {
         // Update local state
         Object.assign(room, updated);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.snackBar.open('Room updated', 'Close', { duration: 1000 });
       },
       error: (err) => {

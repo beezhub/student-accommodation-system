@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, inject } from '@angular/core';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -87,9 +87,9 @@ import { NotificationsComponent } from './notifications/notifications.component'
   styleUrls: ['./app-nav-menu.component.scss'],
 })
 export class AppNavMenuComponent {
-  @Output() logout = new EventEmitter<void>();
+  private authService = inject(AuthService);
 
-  constructor(private authService: AuthService) {}
+  @Output() logout = new EventEmitter<void>();
 
   isAdmin(): boolean {
     const currentUser = this.authService.currentUserValue;

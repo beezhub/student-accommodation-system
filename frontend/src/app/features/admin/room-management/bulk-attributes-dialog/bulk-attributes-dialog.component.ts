@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -43,6 +43,13 @@ export interface BulkAttributesDialogData {
   styleUrls: ['./bulk-attributes-dialog.component.css'],
 })
 export class BulkAttributesDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<BulkAttributesDialogComponent>>(MatDialogRef);
+  data = inject<BulkAttributesDialogData>(MAT_DIALOG_DATA);
+  private roomAttributesService = inject(RoomAttributesService);
+  private yearOfStudyService = inject(YearOfStudyService);
+  private snackBar = inject(MatSnackBar);
+
   attributesForm: FormGroup;
   isSaving = false;
 
@@ -61,14 +68,7 @@ export class BulkAttributesDialogComponent implements OnInit {
   isLoadingYears = false;
   unparseableYears: string[] = []; // Years that couldn't be converted to numbers
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<BulkAttributesDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: BulkAttributesDialogData,
-    private roomAttributesService: RoomAttributesService,
-    private yearOfStudyService: YearOfStudyService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.attributesForm = this.fb.group({
       genderRestriction: ['ANY'],
       accessibilityCompliant: [false],

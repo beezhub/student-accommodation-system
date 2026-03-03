@@ -58,6 +58,7 @@ export class ApplicationReviewComponent implements OnInit {
   institutions: readonly Institution[] = [];
   currentApplication: any = null;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
     if (!this.currentUser) {
@@ -81,7 +82,9 @@ export class ApplicationReviewComponent implements OnInit {
         if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
           this.yearOfStudy = (yearOfStudy as any).content;
         } else if (Array.isArray(yearOfStudy)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.yearOfStudy = yearOfStudy;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } else {
           this.yearOfStudy = [];
         }
@@ -97,7 +100,9 @@ export class ApplicationReviewComponent implements OnInit {
           this.institutions = (institutions as any).content;
         } else if (Array.isArray(institutions)) {
           this.institutions = institutions;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.institutions = [];
         }
       },

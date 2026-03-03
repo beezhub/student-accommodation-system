@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -54,6 +54,11 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
   ],
 })
 export class DocumentTypeManagementComponent implements OnInit {
+  private documentTypeService = inject(DocumentTypeService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   documentTypes: DocumentTypeResponse[] = [];
   displayedColumns: string[] = ['typeName', 'description', 'isRequired', 'createdAt', 'actions'];
 
@@ -64,12 +69,7 @@ export class DocumentTypeManagementComponent implements OnInit {
 
   filterForm: FormGroup;
 
-  constructor(
-    private documentTypeService: DocumentTypeService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       name: [''],
       isRequired: [''],

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -33,6 +33,11 @@ import { TenantService, Tenant } from '../../../../core/services/tenant.service'
   ],
 })
 export class CreateUserDialogComponent {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<CreateUserDialogComponent>>(MatDialogRef);
+  private adminService = inject(AdminService);
+  private snackBar = inject(MatSnackBar);
+
   createUserForm: FormGroup;
   isSubmitting = false;
   hidePassword = true;
@@ -41,16 +46,11 @@ export class CreateUserDialogComponent {
 
   readonly availableRoles: string[] = ['PLATFORM_ADMIN', 'BUILDING_OWNER', 'BUILDING_STAFF'];
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<CreateUserDialogComponent>,
-    private adminService: AdminService,
-    private snackBar: MatSnackBar,
-    private authService: AuthService,
-    private tenantService: TenantService
-  ) {
-    this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
+  private authService = inject(AuthService);
+  private tenantService = inject(TenantService);
 
+  constructor() {
+    this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
     this.createUserForm = this.fb.group({
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
@@ -73,7 +73,7 @@ export class CreateUserDialogComponent {
       this.isSubmitting = true;
 
       this.adminService.createUser(this.createUserForm.value).subscribe({
-        next: (user) => {
+        next: () => {
           this.isSubmitting = false;
           this.snackBar.open('User created successfully!', 'Close', {
             duration: 3000,

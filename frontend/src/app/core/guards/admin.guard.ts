@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { CanActivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { RoleService } from '../services/role.service';
@@ -7,11 +7,9 @@ import { RoleService } from '../services/role.service';
   providedIn: 'root',
 })
 export class AdminGuard implements CanActivate {
-  constructor(
-    private authService: AuthService,
-    private roleService: RoleService,
-    private router: Router
-  ) {}
+  private authService = inject(AuthService);
+  private roleService = inject(RoleService);
+  private router = inject(Router);
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
     const currentUser = this.authService.currentUserValue;

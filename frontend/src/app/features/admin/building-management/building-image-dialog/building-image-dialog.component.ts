@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -28,17 +28,17 @@ import {
   ],
 })
 export class BuildingImageDialogComponent implements OnInit {
+  private buildingService = inject(BuildingService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<BuildingImageDialogComponent>>(MatDialogRef);
+  data = inject<{
+    building: BuildingResponse;
+  }>(MAT_DIALOG_DATA);
+
   images: BuildingImageResponse[] = [];
   isLoading = false;
   isUploading = false;
   selectedFiles: File[] = [];
-
-  constructor(
-    private buildingService: BuildingService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<BuildingImageDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { building: BuildingResponse }
-  ) {}
 
   ngOnInit(): void {
     this.loadImages();

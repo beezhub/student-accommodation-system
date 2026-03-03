@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
@@ -32,13 +32,14 @@ export interface ErrorDisplayOptions {
   providedIn: 'root',
 })
 export class ErrorHandlingService {
+  private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
+
   private defaultOptions: ErrorDisplayOptions = {
     showSnackbar: true,
     snackbarDuration: 5000,
     navigateOnUnauthorized: true,
   };
-
-  constructor(private snackBar: MatSnackBar, private router: Router) {}
 
   /**
    * Parse an HTTP error response into a standardized format

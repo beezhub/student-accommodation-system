@@ -114,7 +114,7 @@ export class ApplicationsComponent implements OnInit {
     }
   }
 
-  cancelApplication(applicationId: number) {
+  cancelApplication(_applicationId: number) {
     // Note: Application cancellation is not currently supported by the backend API
     // This is a placeholder for future implementation
     alert(

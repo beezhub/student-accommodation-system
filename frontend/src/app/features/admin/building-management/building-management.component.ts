@@ -1,11 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import {
   BuildingService,
   BuildingResponse,
-  BuildingRequest,
   PageResponse,
 } from '../../../core/services/building.service';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
@@ -49,6 +48,12 @@ import { MatMenuModule } from '@angular/material/menu';
   ],
 })
 export class BuildingManagementComponent implements OnInit {
+  private buildingService = inject(BuildingService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
+
   buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
     'name',
@@ -66,13 +71,7 @@ export class BuildingManagementComponent implements OnInit {
 
   filterForm: FormGroup;
 
-  constructor(
-    private buildingService: BuildingService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar,
-    private router: Router
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       name: [''],
       address: [''],

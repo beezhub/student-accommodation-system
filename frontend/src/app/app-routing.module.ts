@@ -154,7 +154,10 @@ export const routes: Routes = [
   {
     path: 'admin',
     canActivate: [AuthGuard, AdminGuard],
-    loadComponent: () => import('./features/admin/admin-layout/admin-layout.component').then(m => m.AdminLayoutComponent),
+    loadComponent: () =>
+      import('./features/admin/admin-layout/admin-layout.component').then(
+        (m) => m.AdminLayoutComponent
+      ),
     children: [
       {
         path: '',

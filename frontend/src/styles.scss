@@ -22,6 +22,11 @@ body {
     margin: 0;
     font-family: vars.$font-sans;
     background-color: vars.$slate-50;
+    background-image:
+        radial-gradient(at 40% 20%, hsla(250, 100%, 74%, 0.15) 0px, transparent 50%),
+        radial-gradient(at 80% 0%, hsla(189, 100%, 56%, 0.15) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, hsla(355, 100%, 93%, 0.1) 0px, transparent 50%);
+    background-attachment: fixed;
     color: vars.$slate-800;
 }
 
@@ -43,9 +48,16 @@ h2,
 .mat-mdc-raised-button,
 .mat-mdc-unelevated-button,
 .mat-mdc-outlined-button {
-    border-radius: vars.$radius-md !important; // 10px
-    letter-spacing: 0.02em;
-    font-weight: 500;
+    border-radius: vars.$radius-pill !important; // Pill shaped for modern aesthetics
+    letter-spacing: 0.03em;
+    font-weight: 600;
+    transition: all 0.3s vars.$motion-spring !important;
+}
+
+.mat-mdc-raised-button:hover,
+.mat-mdc-unelevated-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
 }
 
 // Global Status Badges (Backward Compatibility)

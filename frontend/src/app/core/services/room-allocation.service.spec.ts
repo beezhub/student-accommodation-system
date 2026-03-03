@@ -226,18 +226,20 @@ describe('RoomAllocationService', () => {
     });
 
     it('searchAllocations_withAllFilters_sendsAllParams', () => {
-      service.searchAllocations({
-        studentId: 1,
-        roomId: 2,
-        buildingId: 3,
-        fromDate: '2026-01-01',
-        toDate: '2026-12-31',
-        studentName: 'Jane',
-        roomNumber: '101',
-        status: 'ACTIVE',
-        page: 1,
-        size: 5,
-      }).subscribe();
+      service
+        .searchAllocations({
+          studentId: 1,
+          roomId: 2,
+          buildingId: 3,
+          fromDate: '2026-01-01',
+          toDate: '2026-12-31',
+          studentName: 'Jane',
+          roomNumber: '101',
+          status: 'ACTIVE',
+          page: 1,
+          size: 5,
+        })
+        .subscribe();
 
       const req = httpMock.expectOne((r) => r.url === `${apiUrl}/search`);
       expect(req.request.params.get('studentId')).toBe('1');

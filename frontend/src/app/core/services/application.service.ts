@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, catchError, of, forkJoin } from 'rxjs';
+import { Observable, map, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 import { Application } from '../models/application.model';
@@ -120,11 +120,13 @@ export interface ReviewProgressRequest {
   providedIn: 'root',
 })
 export class ApplicationService {
+  private http = inject(HttpClient);
+
   private apiUrl = `${environment.apiUrl}/applications`;
 
-  constructor(private http: HttpClient) {}
-
   createApplication(applicationData: any): Observable<Application> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return this.http.post<Application>(`${this.apiUrl}/submit`, applicationData);
   }
 

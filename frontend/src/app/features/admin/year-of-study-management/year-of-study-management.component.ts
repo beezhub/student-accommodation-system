@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -43,6 +43,11 @@ import { MatMenuModule } from '@angular/material/menu';
   ],
 })
 export class YearOfStudyManagementComponent implements OnInit {
+  private yearOfStudyService = inject(YearOfStudyService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   yearsOfStudy: YearOfStudyResponse[] = [];
   displayedColumns: string[] = ['yearOfStudy', 'actions'];
 
@@ -53,12 +58,7 @@ export class YearOfStudyManagementComponent implements OnInit {
 
   filterForm: FormGroup;
 
-  constructor(
-    private yearOfStudyService: YearOfStudyService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       year: [''],
     });

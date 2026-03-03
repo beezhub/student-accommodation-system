@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -30,16 +30,16 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class ForgotPasswordComponent {
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private snackBar = inject(MatSnackBar);
+
   forgotPasswordForm: FormGroup;
   isSubmitting = false;
   emailSent = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.forgotPasswordForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
     });
@@ -67,6 +67,7 @@ export class ForgotPasswordComponent {
         error: (error: any) => {
           this.isSubmitting = false;
           const errorMessage =
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             error?.error?.message ||
             error?.message ||
             'Failed to send reset link. Please try again.';

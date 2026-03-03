@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -129,6 +129,10 @@ export interface DeclineOfferDialogData {
   ],
 })
 export class DeclineOfferDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<DeclineOfferDialogComponent>>(MatDialogRef);
+  data = inject<DeclineOfferDialogData>(MAT_DIALOG_DATA);
+
   form: FormGroup;
   declinesRemaining: number;
 
@@ -141,11 +145,7 @@ export class DeclineOfferDialogComponent implements OnInit {
     { value: DeclineReason.OTHER, label: 'Other' },
   ];
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<DeclineOfferDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: DeclineOfferDialogData
-  ) {
+  constructor() {
     this.declinesRemaining = 2 - this.data.previousDeclineCount;
     this.form = this.fb.group({
       declineReason: [null, Validators.required],

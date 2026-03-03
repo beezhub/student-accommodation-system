@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -36,6 +36,12 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class ResetPasswordComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private snackBar = inject(MatSnackBar);
+
   resetPasswordForm: FormGroup;
   isSubmitting = false;
   isVerifying = true;
@@ -45,13 +51,7 @@ export class ResetPasswordComponent implements OnInit {
   hideConfirmPassword = true;
   token: string = '';
 
-  constructor(
-    private fb: FormBuilder,
-    private route: ActivatedRoute,
-    private router: Router,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.resetPasswordForm = this.fb.group(
       {
         newPassword: ['', [Validators.required, Validators.minLength(8)]],
@@ -102,6 +102,7 @@ export class ResetPasswordComponent implements OnInit {
         this.isVerifying = false;
         this.tokenValid = false;
         const errorMessage = error?.error?.message || 'Token verification failed';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.snackBar.open(errorMessage, 'Close', {
           duration: 5000,
           panelClass: ['error-snackbar'],
@@ -132,6 +133,7 @@ export class ResetPasswordComponent implements OnInit {
             error?.message ||
             'Failed to reset password. Please try again.';
           this.snackBar.open(errorMessage, 'Close', {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             duration: 5000,
             panelClass: ['error-snackbar'],
           });

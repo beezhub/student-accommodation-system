@@ -1,6 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { ApplicationService, ReviewProgressRequest, ApplicationFullDetails } from './application.service';
+import {
+  ApplicationService,
+  ReviewProgressRequest,
+  ApplicationFullDetails,
+} from './application.service';
 import { environment } from '../../../environments/environment';
 import { Application } from '../models/application.model';
 
@@ -19,6 +23,8 @@ describe('ApplicationService', () => {
     updatedAt: '2026-01-01',
   } as any;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -147,6 +153,9 @@ describe('ApplicationService', () => {
 
       service.saveReviewProgress(request).subscribe((r) => (result = r));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const req = httpMock.expectOne(`${apiUrl}/1/save-review-progress`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(request);
@@ -214,8 +223,10 @@ describe('ApplicationService', () => {
     it('getApplicationFullDetails_validId_getsFromFullDetailsEndpoint', () => {
       const mockDetails = { id: 1, applicationCode: 'APP-001' } as any;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       service.getApplicationFullDetails(1).subscribe();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const req = httpMock.expectOne(`${apiUrl}/1/full-details`);
       expect(req.request.method).toBe('GET');
       req.flush(mockDetails);
@@ -231,7 +242,13 @@ describe('ApplicationService', () => {
         applicationDate: '2026-01-01',
         createdAt: '2026-01-01',
         updatedAt: '2026-01-01',
-        studentProfile: { id: 1, studentNumber: 'S001', firstName: 'Jane', lastName: 'Doe', email: 'jane@test.com' },
+        studentProfile: {
+          id: 1,
+          studentNumber: 'S001',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@test.com',
+        },
         documents: [
           {
             id: 10,
@@ -244,8 +261,21 @@ describe('ApplicationService', () => {
             comments: [],
           },
         ],
-        requiredDocumentsChecklist: { applicationId: 1, totalRequired: 1, approved: 1, pending: 0, rejected: 0, notUploaded: 0, documents: [], allApproved: true },
-        allocationEligibility: { eligible: true, applicationApproved: true, allDocumentsApproved: true },
+        requiredDocumentsChecklist: {
+          applicationId: 1,
+          totalRequired: 1,
+          approved: 1,
+          pending: 0,
+          rejected: 0,
+          notUploaded: 0,
+          documents: [],
+          allApproved: true,
+        },
+        allocationEligibility: {
+          eligible: true,
+          applicationApproved: true,
+          allDocumentsApproved: true,
+        },
       };
 
       let result: any;
@@ -254,9 +284,11 @@ describe('ApplicationService', () => {
       const req = httpMock.expectOne(`${apiUrl}/1/full-details`);
       req.flush(fullDetails);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(result.length).toBe(1);
       expect(result[0].documentName).toBe('id.pdf');
       expect(result[0].documentStatus).toBe('APPROVED');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     });
   });
 

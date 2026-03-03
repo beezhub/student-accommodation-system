@@ -1,10 +1,5 @@
-import { Injectable } from '@angular/core';
-import {
-  HttpClient,
-  HttpParams,
-  HttpEvent,
-  HttpEventType,
-} from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Observable, map, filter } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DocumentData } from '../models/document.model';
@@ -23,14 +18,15 @@ export interface FileValidationResult {
   providedIn: 'root',
 })
 export class DocumentService {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+
   private apiUrl = `${environment.apiUrl}/documents`;
 
   // File validation constants
   private readonly MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   private readonly ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
   private readonly ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
-
-  constructor(private http: HttpClient, private authService: AuthService) {}
 
   /**
    * Validates a file before upload
@@ -145,6 +141,7 @@ export class DocumentService {
           switch (event.type) {
             case HttpEventType.UploadProgress:
               const progress = event.total ? Math.round((100 * event.loaded) / event.total) : 0;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               return { status: 'progress' as const, progress };
             case HttpEventType.Response:
               return {
@@ -168,6 +165,7 @@ export class DocumentService {
     files.forEach((file) => formData.append('files', file));
 
     let params = new HttpParams();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     documentTypes.forEach((type) => {
       params = params.append('documentTypes', type.toString());
     });

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, tap, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -28,10 +28,10 @@ export interface PageResponse<T> {
   providedIn: 'root',
 })
 export class YearOfStudyService {
+  private http = inject(HttpClient);
+
   private yearsOfStudyUrl = `${environment.apiUrl}/year-of-study`;
   private yearsCache: YearOfStudy[] | null = null;
-
-  constructor(private http: HttpClient) {}
 
   getYearsOfStudy(): Observable<YearOfStudy[]> {
     if (this.yearsCache) {
@@ -48,6 +48,7 @@ export class YearOfStudyService {
   }
 
   getAllYearsOfStudyPaginated(filters: any): Observable<PageResponse<YearOfStudyResponse>> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
@@ -56,6 +57,7 @@ export class YearOfStudyService {
   }
 
   searchYearsOfStudy(filters: any): Observable<PageResponse<YearOfStudyResponse>> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -32,17 +32,17 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class LoginComponent {
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private roleService = inject(RoleService);
+  private snackBar = inject(MatSnackBar);
+
   loginForm: FormGroup;
   isSubmitting = false;
   errorMessage: string = '';
   hidePassword = true;
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: AuthService,
-    private roleService: RoleService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
@@ -99,6 +99,7 @@ export class LoginComponent {
           this.errorMessage =
             error?.error?.message || error?.message || 'Login failed. Please try again.';
           this.snackBar.open(this.errorMessage, 'Close', {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             duration: 5000,
             panelClass: ['error-snackbar'],
           });

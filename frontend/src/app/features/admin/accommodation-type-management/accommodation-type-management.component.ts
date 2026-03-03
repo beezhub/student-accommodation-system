@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -47,6 +47,11 @@ import { MatChipsModule } from '@angular/material/chips';
   ],
 })
 export class AccommodationTypeManagementComponent implements OnInit {
+  private accommodationTypeService = inject(AccommodationTypeService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   accommodationTypes: AccommodationType[] = [];
   displayedColumns: string[] = ['name', 'description', 'isActive', 'actions'];
 
@@ -57,12 +62,7 @@ export class AccommodationTypeManagementComponent implements OnInit {
 
   filterForm: FormGroup;
 
-  constructor(
-    private accommodationTypeService: AccommodationTypeService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       name: [''],
     });
