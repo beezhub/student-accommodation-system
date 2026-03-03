@@ -129,11 +129,19 @@ export class ApplicationService {
   }
 
   getApplicationByStatus(status: string): Observable<Application[]> {
-    return this.http.get<Application[]>(`${this.apiUrl}/${status}`);
+    return this.http.get<Application[]>(`${this.apiUrl}/status/${status}`);
   }
 
   getApplicationById(applicationId: number): Observable<Application> {
     return this.http.get<Application>(`${this.apiUrl}/${applicationId}`);
+  }
+
+  getApplicationsByStudentId(studentId: number): Observable<Application[]> {
+    return this.http.get<Application[]>(`${this.apiUrl}/student/${studentId}`);
+  }
+
+  deleteApplication(applicationId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${applicationId}`);
   }
 
   getMyApplications(): Observable<Application[]> {

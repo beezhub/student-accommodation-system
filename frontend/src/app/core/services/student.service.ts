@@ -29,4 +29,16 @@ export class StudentService {
 
     return this.http.put<StudentResponse>(`${this.apiUrl}/${userId}`, studentData);
   }
+
+  getAllStudents(params?: any): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}`, { params });
+  }
+
+  searchStudents(params?: any): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/search`, { params });
+  }
+
+  deleteStudent(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
 }

@@ -8,6 +8,7 @@ import com.beezhub.student_accommodation.model.dto.UserData;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,6 +45,13 @@ public class UserManagementService {
             request,
             passwordEncoder.encode(request.getPassword())
         );
+
+        // Assign tenant
+        if (request.getTenantId() != null) {
+            user.setTenantId(request.getTenantId());
+        } else if (TenantContext.getTenantId() != null) {
+            user.setTenantId(TenantContext.getTenantId());
+        }
 
         // Save and return
         AppUser savedUser = userRepository.save(user);

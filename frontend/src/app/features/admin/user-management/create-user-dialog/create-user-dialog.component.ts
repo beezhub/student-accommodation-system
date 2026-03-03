@@ -12,6 +12,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { AuthService } from '../../../../core/services/auth.service';
+import { TenantService, Tenant } from '../../../../core/services/tenant.service';
 
 @Component({
   selector: 'app-create-user-dialog',
@@ -34,6 +36,8 @@ export class CreateUserDialogComponent {
   createUserForm: FormGroup;
   isSubmitting = false;
   hidePassword = true;
+  isPlatformAdmin = false;
+  tenants: Tenant[] = [];
 
   readonly availableRoles: string[] = ['PLATFORM_ADMIN', 'BUILDING_OWNER', 'BUILDING_STAFF'];
 
@@ -41,8 +45,12 @@ export class CreateUserDialogComponent {
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<CreateUserDialogComponent>,
     private adminService: AdminService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private authService: AuthService,
+    private tenantService: TenantService
   ) {
+    this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
+
     this.createUserForm = this.fb.group({
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
@@ -50,6 +58,14 @@ export class CreateUserDialogComponent {
       password: ['', [Validators.required, Validators.minLength(8)]],
       userRole: ['BUILDING_OWNER', [Validators.required]],
     });
+
+    if (this.isPlatformAdmin) {
+      this.createUserForm.addControl('tenantId', this.fb.control(null, [Validators.required]));
+      this.tenantService.getAllTenants().subscribe({
+        next: (tenants) => this.tenants = tenants,
+        error: () => this.snackBar.open('Failed to load tenants', 'Close', { duration: 3000 })
+      });
+    }
   }
 
   onSubmit(): void {
