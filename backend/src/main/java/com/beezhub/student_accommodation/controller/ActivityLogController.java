@@ -73,6 +73,23 @@ public class ActivityLogController {
     }
 
     @Operation(
+            summary = "Get activity log by ID",
+            description = "Retrieves a specific activity log by its ID. Admin only."
+    )
+    @ApiResponse(responseCode = "200", description = "Activity log retrieved successfully")
+    @ApiResponse(responseCode = "404", description = "Activity log not found")
+    @ApiResponse(responseCode = "403", description = "Access denied - Admin only")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @GetMapping("/{id}")
+    public ResponseEntity<com.beezhub.student_accommodation.model.dto.ActivityLogResponse> getActivityLogById(
+            @Parameter(description = "Activity log ID")
+            @PathVariable Long id
+    ) {
+        log.debug("GET /api/admin/activity-logs/{}", id);
+        return ResponseEntity.ok(activityLogService.getActivityLogById(id));
+    }
+
+    @Operation(
             summary = "Export activity logs to CSV",
             description = "Exports filtered activity logs to CSV format. Admin only."
     )

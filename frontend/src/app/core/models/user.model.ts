@@ -7,4 +7,5 @@ export interface User {
   userRole: string;
   mustChangePassword?: boolean;
   emailVerified?: boolean;
+  tenantId?: number;
 }

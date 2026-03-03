@@ -31,6 +31,17 @@ public class BuildingController {
     private final BuildingService buildingService;
     private final BuildingImageService buildingImageService;
 
+    @GetMapping("/maps-config")
+    @Operation(summary = "Get maps configuration", description = "Returns the configuration for maps in the frontend")
+    public ResponseEntity<java.util.Map<String, Object>> getMapsConfig() {
+        log.info("Fetching maps config");
+        // Returning a basic config for maps. 
+        java.util.Map<String, Object> config = new java.util.HashMap<>();
+        config.put("enabled", true);
+        config.put("apiKey", "dummy-api-key-for-development"); // In a real app, this should come from application properties
+        return ResponseEntity.ok(config);
+    }
+
     @GetMapping
     @Operation(summary = "Get all buildings", description = "Returns a paginated list of all accommodation buildings. Supports pagination with query params: page, size, sort")
     public ResponseEntity<PageResponse<BuildingResponse>> getAllBuildings(

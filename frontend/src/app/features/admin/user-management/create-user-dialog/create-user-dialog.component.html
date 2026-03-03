@@ -93,6 +93,22 @@
           Students register through the public portal
         </mat-hint>
       </mat-form-field>
+
+      @if (isPlatformAdmin) {
+        <!-- Tenant Selection -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Tenant</mat-label>
+          <mat-icon matPrefix>business</mat-icon>
+          <mat-select formControlName="tenantId" required>
+            @for (tenant of tenants; track tenant.id) {
+              <mat-option [value]="tenant.id">{{ tenant.name }}</mat-option>
+            }
+          </mat-select>
+          @if (createUserForm.get('tenantId')?.hasError('required')) {
+            <mat-error>Tenant is required</mat-error>
+          }
+        </mat-form-field>
+      }
     </form>
   </mat-dialog-content>
 

@@ -55,6 +55,10 @@ export class AuthService {
   signup(data: SignupData): Observable<User> {
     return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/signup`, data).pipe(
       map((response) => {
+        const tenantId = this.extractTenantIdFromToken(response.token);
+        if (tenantId !== undefined) {
+          response.user.tenantId = tenantId;
+        }
         this.tokenStorage.setToken(response.token);
         localStorage.setItem('currentUser', JSON.stringify(response.user));
         this.currentUserSubject.next(response.user);
@@ -90,6 +94,10 @@ export class AuthService {
   login(data: any): Observable<User> {
     return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/login`, data).pipe(
       map((response) => {
+        const tenantId = this.extractTenantIdFromToken(response.token);
+        if (tenantId !== undefined) {
+          response.user.tenantId = tenantId;
+        }
         this.tokenStorage.setToken(response.token);
         localStorage.setItem('currentUser', JSON.stringify(response.user));
         this.currentUserSubject.next(response.user);
@@ -100,6 +108,16 @@ export class AuthService {
         return response.user;
       })
     );
+  }
+
+  private extractTenantIdFromToken(token: string): number | undefined {
+    try {
+      const payload = token.split('.')[1];
+      const decoded = JSON.parse(atob(payload));
+      return decoded.tenantId;
+    } catch {
+      return undefined;
+    }
   }
 
   isTokenExpired(): boolean {

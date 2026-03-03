@@ -19,6 +19,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CreateUserDialogComponent } from './create-user-dialog/create-user-dialog.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { AuthService } from '../../../core/services/auth.service';
+import { TenantService, Tenant } from '../../../core/services/tenant.service';
 
 @Component({
   selector: 'app-user-management',
@@ -48,17 +50,28 @@ export class UserManagementComponent implements OnInit {
   displayedColumns: string[] = ['id', 'name', 'email', 'role', 'mustChangePassword', 'actions'];
   isLoading = false;
   filterRole: string = 'all';
+  isPlatformAdmin = false;
+  tenants: Tenant[] = [];
+  filterTenantId: number | 'all' = 'all';
 
   constructor(
     private adminService: AdminService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {}
-
-  ngOnInit(): void {
-    this.loadUsers();
+    private snackBar: MatSnackBar,
+    private authService: AuthService,
+    private tenantService: TenantService
+  ) {
+    this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
   }
 
+  ngOnInit(): void {
+    if (this.isPlatformAdmin) {
+      this.tenantService.getAllTenants().subscribe({
+        next: (tenants) => this.tenants = tenants
+      });
+    }
+    this.loadUsers();
+  }
   loadUsers(): void {
     this.isLoading = true;
 

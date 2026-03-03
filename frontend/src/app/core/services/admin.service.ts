@@ -9,6 +9,7 @@ export interface CreateUserRequest {
   email: string;
   password: string;
   userRole: string; // Role must be PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF
+  tenantId?: number;
 }
 
 export interface AdminUser {
