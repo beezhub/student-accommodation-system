@@ -1,206 +1,58 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Verified</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
-            color: #ffffff;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .success-icon {
-            text-align: center;
-            font-size: 60px;
-            margin: 20px 0;
-        }
-        .message {
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        .document-box {
-            background-color: #d4edda;
-            border-left: 4px solid #28a745;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .document-box h3 {
-            margin-top: 0;
-            color: #155724;
-        }
-        .document-box p {
-            margin: 5px 0;
-        }
-        .info-box {
-            background-color: #d1ecf1;
-            border-left: 4px solid #17a2b8;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .info-box h3 {
-            margin-top: 0;
-            color: #0c5460;
-        }
-        .info-box ul {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        .info-box li {
-            margin: 8px 0;
-        }
-        .progress-tracker {
-            background-color: #f8f9fa;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-        .progress-tracker h3 {
-            margin-top: 0;
-            color: #495057;
-        }
-        .progress-item {
-            display: flex;
-            align-items: center;
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #fff;
-            border-radius: 3px;
-        }
-        .progress-item.completed {
-            border-left: 3px solid #28a745;
-        }
-        .progress-item.current {
-            border-left: 3px solid #ffc107;
-            background-color: #fff3cd;
-        }
-        .progress-item.pending {
-            border-left: 3px solid #dee2e6;
-        }
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
-            color: #ffffff;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-        }
-    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Document Verified</h1>
-        </div>
 
-        <div class="content">
-            <div class="success-icon">✓</div>
+<h1 layout:fragment="email-title">Document Verified</h1>
+<span layout:fragment="email-subtitle">Your document has been approved</span>
 
-            <p class="message">Dear <span th:text="${studentName}">Student</span>,</p>
+<div layout:fragment="email-content">
+    <p style="text-align:center; font-size: 60px; margin: 20px 0;">&#10003;</p>
 
-            <p class="message">
-                Great news! Your document has been successfully verified and approved.
-            </p>
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
-            <div class="document-box">
-                <h3>Verified Document</h3>
-                <p><strong>Document Type:</strong> <span th:text="${documentType}">Identity Document</span></p>
-                <p><strong>Document Reference:</strong> <span th:text="${documentReference}">DOC-2025-001234</span></p>
-                <p><strong>Verified Date:</strong> <span th:text="${verificationDate}">2025-01-20</span></p>
-                <p><strong>Verified By:</strong> <span th:text="${verifiedBy}">Accommodation Office</span></p>
-            </div>
+    <p>Great news! Your document has been successfully verified and approved.</p>
 
-            <div class="progress-tracker">
-                <h3>Your Application Progress</h3>
-                <div class="progress-item completed">
-                    <span>✓ Application Submitted</span>
-                </div>
-                <div class="progress-item completed">
-                    <span>✓ Application Approved</span>
-                </div>
-                <div class="progress-item completed">
-                    <span>✓ Document Verified</span>
-                </div>
-                <div class="progress-item current">
-                    <span>⟳ Awaiting Room Allocation</span>
-                </div>
-                <div class="progress-item pending">
-                    <span>○ Move-In</span>
-                </div>
-            </div>
-
-            <div class="info-box">
-                <h3>Next Steps in the Process</h3>
-                <ul>
-                    <li>Your application is now in the room allocation queue</li>
-                    <li>Room allocation typically takes 2-3 business days</li>
-                    <li>You will receive an email notification once a room is allocated</li>
-                    <li>Ensure your contact information is up to date</li>
-                    <li>Keep checking your student portal for updates</li>
-                </ul>
-            </div>
-
-            <div class="info-box">
-                <h3>What Happens Next?</h3>
-                <p>
-                    Our accommodation team will now process your room allocation based on
-                    your preferences and availability. You will receive a detailed email
-                    with your room assignment, building information, and move-in instructions
-                    as soon as the allocation is complete.
-                </p>
-            </div>
-
-            <center>
-                <a href="#" th:href="${portalUrl}" class="cta-button">View Application Status</a>
-            </center>
-
-            <p class="message" style="margin-top: 30px; font-style: italic;">
-                Thank you for completing this step. We look forward to welcoming you to your new accommodation!
-            </p>
-        </div>
-
-        <div class="footer">
-            <p>This is an automated message from the Student Accommodation System.</p>
-            <p>&copy; 2025 Student Accommodation System. All rights reserved.</p>
-            <p style="margin-top: 10px; font-size: 12px;">
-                <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> |
-                <a href="#" style="color: #667eea; text-decoration: none;">Notification Preferences</a> |
-                <a href="#" style="color: #667eea; text-decoration: none;">Contact Support</a>
-            </p>
-        </div>
+    <div class="success-box">
+        <h3>Verified Document</h3>
+        <p><strong>Document Type:</strong> <span th:text="${documentType}">Identity Document</span></p>
+        <p><strong>Document Reference:</strong> <span th:text="${documentReference}">DOC-2025-001234</span></p>
+        <p><strong>Verified Date:</strong> <span th:text="${verificationDate}">2025-01-20</span></p>
+        <p><strong>Verified By:</strong> <span th:text="${verifiedBy}">Accommodation Office</span></p>
     </div>
+
+    <div class="info-box">
+        <h3>Next Steps in the Process</h3>
+        <ul>
+            <li>Your application is now in the room allocation queue</li>
+            <li>Room allocation typically takes 2-3 business days</li>
+            <li>You will receive an email notification once a room is allocated</li>
+            <li>Ensure your contact information is up to date</li>
+            <li>Keep checking your student portal for updates</li>
+        </ul>
+    </div>
+
+    <div class="info-box">
+        <h3>What Happens Next?</h3>
+        <p>Our accommodation team will now process your room allocation based on
+           your preferences and availability. You will receive a detailed email
+           with your room assignment, building information, and move-in instructions
+           as soon as the allocation is complete.</p>
+    </div>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">View Application Status</a>
+    </div>
+
+    <p style="margin-top: 30px; font-style: italic;">
+        Thank you for completing this step. We look forward to welcoming you to your new accommodation!
+    </p>
+</div>
+
 </body>
 </html>

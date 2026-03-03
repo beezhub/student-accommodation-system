@@ -7,6 +7,7 @@ import com.beezhub.student_accommodation.model.enums.NotificationStatus;
 import com.beezhub.student_accommodation.model.enums.NotificationType;
 import com.beezhub.student_accommodation.repository.NotificationRepository;
 import com.beezhub.student_accommodation.service.notification.EmailDispatchService;
+import com.beezhub.student_accommodation.service.notification.EmailSubjects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -35,7 +36,7 @@ public class NotificationService {
 
         Notification notification = createNotification(
                 email,
-                "Welcome to Student Accommodation System",
+                EmailSubjects.WELCOME,
                 NotificationType.WELCOME_EMAIL,
                 user,
                 user.getId(),
@@ -58,7 +59,7 @@ public class NotificationService {
 
         Notification notification = createNotification(
                 email,
-                "Password Reset Request - Student Accommodation System",
+                EmailSubjects.PASSWORD_RESET,
                 NotificationType.PASSWORD_RESET,
                 user,
                 user.getId(),
@@ -123,7 +124,7 @@ public class NotificationService {
         if (status == ApplicationStatus.APPROVED) {
             Notification notification = createNotification(
                     email,
-                    "Application Approved - Student Accommodation System",
+                    EmailSubjects.APPLICATION_APPROVED,
                     NotificationType.APPLICATION_APPROVED,
                     user,
                     application.getId(),
@@ -137,7 +138,7 @@ public class NotificationService {
         } else if (status == ApplicationStatus.REJECTED) {
             Notification notification = createNotification(
                     email,
-                    "Application Rejected - Student Accommodation System",
+                    EmailSubjects.APPLICATION_REJECTED,
                     NotificationType.APPLICATION_REJECTED,
                     user,
                     application.getId(),

@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.service.notification.*;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -131,115 +132,117 @@ class EmailServiceTest {
     }
 
     @Test
-    void sendApplicationApprovedEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withApplicationApprovedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendApplicationApprovedEmail("test@example.com", "Student Name", 1L, 
-                "2023-01-01", "2023", "Spring", "url");
+        var ctx = new ApplicationApprovedContext("Student Name", 1L, "2023-01-01", "2023", "Spring", "url");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_APPROVED, "application-approved", ctx);
 
         verify(templateEngine).process(eq("email/application-approved"), any(Context.class));
     }
 
     @Test
-    void sendApplicationRejectedEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withApplicationRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendApplicationRejectedEmail("test@example.com", "Student Name", 1L, 
-                "Reason", "2023-01-01", "2023-01-02", "Fall", "url");
+        var ctx = new ApplicationRejectedContext("Student Name", 1L, "Reason", "2023-01-01", "2023-01-02", "Fall", "url");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_REJECTED, "application-rejected", ctx);
 
         verify(templateEngine).process(eq("email/application-rejected"), any(Context.class));
     }
 
     @Test
-    void sendDocumentVerifiedEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withDocumentVerifiedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendDocumentVerifiedEmail("test@example.com", "Student Name", "ID", 
-                "REF", "2023-01-01", "Admin", "url");
+        var ctx = new DocumentVerifiedContext("Student Name", "ID", "REF", "2023-01-01", "Admin", "url");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.DOCUMENT_VERIFIED, "document-verified", ctx);
 
         verify(templateEngine).process(eq("email/document-verified"), any(Context.class));
     }
 
     @Test
-    void sendDocumentRejectedEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withDocumentRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendDocumentRejectedEmail("test@example.com", "Student Name", "ID", 
-                "REF", "2023-01-01", "2023-01-02", "Blurry", "2023-01-10", "url", Map.of("extra", "info"));
+        var ctx = new DocumentRejectedContext("Student Name", "ID", "REF", "2023-01-01",
+                "2023-01-02", "Blurry", "2023-01-10", "url", List.of());
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.DOCUMENT_REJECTED, "document-rejected", ctx);
 
         verify(templateEngine).process(eq("email/document-rejected"), any(Context.class));
     }
 
     @Test
-    void sendRoomAllocatedEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withRoomAllocatedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendRoomAllocatedEmail("test@example.com", "Student Name", "101", 
-                "Building", 1, "Single", "1", "ALLOC1", "2023-01-01", "2023-12-31", 
-                "1 Year", "Office", "Address", "url");
+        var ctx = new RoomAllocatedContext("Student Name", "101", "Building", 1, "Single",
+                "1", "ALLOC1", "2023-01-01", "2023-12-31", "1 Year", "Office", "Address", "url");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.ROOM_ALLOCATED, "room-allocated", ctx);
 
         verify(templateEngine).process(eq("email/room-allocated"), any(Context.class));
     }
 
     @Test
-    void sendWelcomeEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withWelcomeContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendWelcomeEmail("test@example.com", "Student Name", "test@example.com", 
-                "ST123", "2023-01-01", "url", "guide_url");
+        var ctx = new WelcomeContext("Student Name", "test@example.com", "ST123", "2023-01-01", "url", "guide_url");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.WELCOME, "welcome", ctx);
 
         verify(templateEngine).process(eq("email/welcome"), any(Context.class));
     }
 
     @Test
-    void sendAllocationProposalEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withAllocationProposalContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendAllocationProposalEmail("test@example.com", "Student Name", "101", 
-                "Building", 1, 2, "PROP1", new BigDecimal("100"), List.of("Warning"), 
-                "2023-01-01", "url", "support@example.com");
+        var ctx = new AllocationProposalContext("Student Name", "101", "Building", 1, 2,
+                "PROP1", new BigDecimal("100"), List.of("Warning"), "2023-01-01", "url");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_PROPOSAL, "allocation-proposal", ctx);
 
         verify(templateEngine).process(eq("email/allocation-proposal"), any(Context.class));
     }
 
     @Test
-    void sendAllocationConfirmedEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withAllocationConfirmedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendAllocationConfirmedEmail("test@example.com", "Student", "101", "Building", 
-                1, "Single", "ALLOC1", "2023-01-01", "2023-01-01", "2023-12-31", 
-                "url", "support", "phone");
+        var ctx = new AllocationConfirmedContext("Student", "101", "Building", 1, "Single",
+                "ALLOC1", "2023-01-01", "2023-01-01", "2023-12-31", "url");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_CONFIRMED, "allocation-confirmed", ctx);
 
         verify(templateEngine).process(eq("email/allocation-confirmed"), any(Context.class));
     }
 
     @Test
-    void sendAllocationRejectedEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withAllocationRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendAllocationRejectedEmail("test@example.com", "Student", "101", "Building", 
-                "PROP1", "Full", 5, "url", "support", "phone");
+        var ctx = new AllocationRejectedContext("Student", "101", "Building", "PROP1", "Full", 5, "url");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_REJECTED, "allocation-rejected", ctx);
 
         verify(templateEngine).process(eq("email/allocation-rejected"), any(Context.class));
     }
 
     @Test
-    void sendAllocationMovedEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withAllocationMovedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendAllocationMovedEmail("test@example.com", "Student", "101", "Bld1", 1, 
-                "201", "Bld2", 2, "Double", "2023-01-01", "Maintenance", "url", "support", "phone");
+        var ctx = new AllocationMovedContext("Student", "101", "Bld1", 1, "201", "Bld2", 2,
+                "Double", "2023-01-01", "Maintenance", "url");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_MOVED, "allocation-moved", ctx);
 
         verify(templateEngine).process(eq("email/allocation-moved"), any(Context.class));
     }
 
     @Test
-    void sendDocumentCommentEmail_shouldSendTemplateEmail() {
+    void sendTemplateEmail_withDocumentCommentContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        
-        emailService.sendDocumentCommentEmail("test@example.com", "Student", "ID", "id.jpg", 
-                "APP1", "2023-01-01", "REJECTED", "Blurry", "Admin", "2023-01-02", 
-                "url", "support", "phone");
+        var ctx = new DocumentCommentContext("Student", "ID", "id.jpg", "DOC-1",
+                "2023-01-01", "REJECTED", "Blurry", "Admin", "2023-01-02", "url");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.DOCUMENT_COMMENT, "document-comment", ctx);
 
         verify(templateEngine).process(eq("email/document-comment"), any(Context.class));
     }

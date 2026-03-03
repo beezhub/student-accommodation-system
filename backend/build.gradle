@@ -14,6 +14,18 @@ java {
 	}
 }
 
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs += ['--enable-preview']
+}
+
+tasks.withType(Test).configureEach {
+	jvmArgs '--enable-preview'
+}
+
+tasks.withType(JavaExec).configureEach {
+	jvmArgs '--enable-preview'
+}
+
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
@@ -39,6 +51,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:3.4.0'
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'

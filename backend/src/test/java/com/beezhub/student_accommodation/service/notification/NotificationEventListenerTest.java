@@ -198,8 +198,9 @@ class NotificationEventListenerTest {
 
         notificationEventListener.handleDocumentComment(event);
 
-        verify(emailDispatchService).sendDocumentCommentEmail(eq(document), eq("Please re-upload"), eq("John Doe"), 
-                eq("test@example.com"), eq("ID_FILE.pdf"), eq("ID_DOCUMENT"), eq("Test Subject"));
+        // sendDocumentCommentEmail delegates to sendDocumentCommentEmailWithTemplate (merged path)
+        verify(emailDispatchService).sendDocumentCommentEmailWithTemplate(eq(document), eq("Please re-upload"),
+                eq("Accommodation Office"), eq("John Doe"), eq("test@example.com"), eq("ID_FILE.pdf"), eq("ID_DOCUMENT"));
         verify(notificationService).markNotificationAsSent(notification);
     }
 

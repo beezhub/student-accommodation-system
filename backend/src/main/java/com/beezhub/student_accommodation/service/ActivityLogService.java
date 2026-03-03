@@ -82,7 +82,7 @@ public class ActivityLogService {
         log.debug("Fetching activity log with ID: {}", id);
 
         ActivityLog logEntry = activityLogRepository.findById(id)
-                .orElseThrow(() -> new com.beezhub.student_accommodation.exceptions.ResourceNotFoundException("ActivityLog", "id", id));
+                .orElseThrow(() -> new com.beezhub.student_accommodation.exceptions.ResourceNotFoundException("ActivityLog not found with id: " + id));
 
         return mapToResponse(logEntry);
     }
