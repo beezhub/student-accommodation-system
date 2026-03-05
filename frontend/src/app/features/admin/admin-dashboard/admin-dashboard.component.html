@@ -15,11 +15,10 @@
     </div>
   </div>
 
-  <!-- Loading Spinner -->
+  <!-- Loading State -->
   @if (isLoading) {
     <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
-      <p>Loading dashboard data...</p>
+      <app-skeleton-loader [type]="'card'" [count]="4"></app-skeleton-loader>
     </div>
   }
 
@@ -194,8 +193,7 @@
 
     @if (isLoadingOccupancy) {
       <div class="loading-container small">
-        <mat-spinner diameter="40"></mat-spinner>
-        <p>Loading occupancy data...</p>
+        <app-skeleton-loader [type]="'table-row'" [count]="3"></app-skeleton-loader>
       </div>
     }
 

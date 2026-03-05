@@ -8,6 +8,7 @@ import {
   PageResponse,
 } from '../../../core/services/building.service';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -45,6 +46,7 @@ import { MatMenuModule } from '@angular/material/menu';
     MatTooltipModule,
     MatMenuModule,
     SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class BuildingManagementComponent implements OnInit {

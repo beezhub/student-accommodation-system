@@ -19,6 +19,8 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-activity-logs',
@@ -42,6 +44,8 @@ import { MatChipsModule } from '@angular/material/chips';
     MatTooltipModule,
     MatChipsModule,
     MatSnackBarModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class ActivityLogsComponent implements OnInit {

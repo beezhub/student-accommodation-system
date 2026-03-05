@@ -38,6 +38,8 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import {
   ApplicationDetailDialogComponent,
   ApplicationDetailDialogData,
@@ -82,6 +84,8 @@ import {
     MatNativeDateModule,
     ModernStatusBadgeComponent,
     ErrorDisplayComponent,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class ApplicationReviewComponent implements OnInit {

@@ -69,6 +69,13 @@ export class SystemSettingsComponent implements OnInit {
       route: '/admin/year-of-study',
       class: 'years',
     },
+    {
+      title: 'Feature Flags',
+      description: 'Toggle FF4J feature flags for the system',
+      icon: 'toggle_on',
+      route: '/admin/feature-flags',
+      class: 'feature-flags',
+    },
   ];
 
   ngOnInit(): void {

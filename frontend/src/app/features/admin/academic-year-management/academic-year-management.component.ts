@@ -16,6 +16,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-academic-year-management',
@@ -36,6 +37,7 @@ import { MatChipsModule } from '@angular/material/chips';
     MatSnackBarModule,
     MatTooltipModule,
     MatChipsModule,
+    EmptyStateComponent,
   ],
 })
 export class AcademicYearManagementComponent implements OnInit {

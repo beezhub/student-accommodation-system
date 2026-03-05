@@ -67,6 +67,7 @@
               mat-icon-button
               color="primary"
               matTooltip="Edit"
+              aria-label="Edit"
               (click)="openEditDialog(year)"
             >
               <mat-icon>edit</mat-icon>
@@ -75,6 +76,7 @@
               mat-icon-button
               color="accent"
               matTooltip="Set as Current"
+              aria-label="Set as Current"
               (click)="setAsCurrent(year)"
               [disabled]="year.isCurrent"
             >
@@ -84,6 +86,7 @@
               mat-icon-button
               color="warn"
               matTooltip="Delete"
+              aria-label="Delete"
               (click)="deleteAcademicYear(year)"
             >
               <mat-icon>delete</mat-icon>
@@ -96,10 +99,11 @@
       </table>
 
       @if (academicYears.length === 0) {
-        <div class="no-data">
-          <mat-icon>event_note</mat-icon>
-          <p>No academic years found. Create one to get started.</p>
-        </div>
+        <app-empty-state
+          [icon]="'event_note'"
+          [title]="'No Academic Years Found'"
+          [description]="'No academic years found. Create one to get started.'">
+        </app-empty-state>
       }
     }
   </mat-card-content>

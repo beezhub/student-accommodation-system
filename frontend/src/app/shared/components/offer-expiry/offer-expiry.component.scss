@@ -1,0 +1,89 @@
+@use '../../../../styles/variables' as vars;
+
+.offer-expiry {
+  display: inline-flex;
+  align-items: center;
+}
+
+// ── Shared chip base ─────────────────────────────────────────────────────────
+.expiry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$space-2;
+  padding: vars.$space-1 vars.$space-3;
+  border-radius: vars.$radius-pill;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  &.normal {
+    background-color: color-mix(in srgb, vars.$accent-blue-dark 10%, transparent);
+    color: vars.$accent-blue-dark;
+
+    mat-icon { color: vars.$accent-blue-dark; }
+  }
+
+  &.warning {
+    background-color: color-mix(in srgb, vars.$warning 12%, transparent);
+    color: vars.$warning;
+
+    mat-icon { color: vars.$warning; }
+  }
+
+  &.critical {
+    background-color: color-mix(in srgb, vars.$error 10%, transparent);
+    color: vars.$error;
+    animation: pulse 1.5s ease-in-out infinite;
+
+    mat-icon { color: vars.$error; }
+  }
+
+  &.expired {
+    background-color: color-mix(in srgb, vars.$error 10%, transparent);
+    color: vars.$error;
+
+    mat-icon { color: vars.$error; }
+  }
+}
+
+// ── Alarm banner (< 1 hour) ───────────────────────────────────────────────────
+.expiry-banner {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+  padding: vars.$space-2 vars.$space-4;
+  border-radius: vars.$radius-md;
+  font-size: 0.9375rem;
+  font-weight: 600;
+
+  &.alarm {
+    background-color: vars.$error;
+    color: #fff;
+
+    mat-icon {
+      font-size: 1.25rem;
+      width: 1.25rem;
+      height: 1.25rem;
+      color: #fff;
+    }
+  }
+}
+
+// ── Pulse animation ───────────────────────────────────────────────────────────
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expiry-chip.critical {
+    animation: none;
+  }
+}

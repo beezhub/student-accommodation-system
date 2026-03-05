@@ -92,6 +92,7 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
       horizontalPosition: 'right',
       verticalPosition: 'top',
       panelClass: ['error-snackbar'],
+      politeness: 'assertive',
     });
   };
 

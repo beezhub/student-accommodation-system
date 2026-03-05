@@ -1,19 +1,12 @@
 @use '../../../../styles/variables' as vars;
 @use '../../../../styles/mixins' as mixins;
 
-// Fix for icons rendering as text
-mat-icon {
-    font-family: 'Material Icons' !important;
-    font-weight: normal;
-    font-style: normal;
-}
 
 .room-management-container {
     padding: 1rem;
     max-width: 1600px;
     margin: 0 auto;
-    min-height: calc(100vh - 64px);
-    margin-top: 64px;
+    min-height: 100vh;
 
     @media (min-width: vars.$breakpoint-tablet) {
         padding: 1.5rem;

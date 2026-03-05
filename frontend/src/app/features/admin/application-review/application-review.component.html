@@ -120,7 +120,7 @@
   <mat-card-content>
       @if (isLoading) {
         <div class="loading-container">
-          <mat-spinner diameter="48"></mat-spinner>
+          <app-skeleton-loader [type]="'table-row'" [count]="8"></app-skeleton-loader>
         </div>
       }
 
@@ -163,13 +163,13 @@
               </div>
 
               <div class="mobile-actions">
-                <button mat-icon-button color="primary" (click)="openDetailDialog(app)">
+                <button mat-icon-button color="primary" (click)="openDetailDialog(app)" aria-label="Review Application">
                   <mat-icon>rate_review</mat-icon>
                 </button>
-                <button mat-icon-button (click)="openPreferencesDialog(app)">
+                <button mat-icon-button (click)="openPreferencesDialog(app)" aria-label="View Preferences">
                   <mat-icon>tune</mat-icon>
                 </button>
-                 <button mat-icon-button [matMenuTriggerFor]="mobileMenu">
+                 <button mat-icon-button [matMenuTriggerFor]="mobileMenu" aria-label="More Actions">
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #mobileMenu="matMenu">
@@ -285,11 +285,11 @@
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let application">
-                <button mat-icon-button color="primary" (click)="openDetailDialog(application)" matTooltip="Review Application">
+                <button mat-icon-button color="primary" (click)="openDetailDialog(application)" matTooltip="Review Application" aria-label="Review Application">
                   <mat-icon>rate_review</mat-icon>
                 </button>
 
-                <button mat-icon-button (click)="openPreferencesDialog(application)" matTooltip="View Preferences">
+                <button mat-icon-button (click)="openPreferencesDialog(application)" matTooltip="View Preferences" aria-label="View Preferences">
                   <mat-icon>tune</mat-icon>
                 </button>
 
@@ -297,11 +297,12 @@
                   color="accent"
                   [disabled]="application.status !== 'AWAITING_ALLOCATION'"
                   (click)="openAllocationDialog(application)"
-                  matTooltip="Allocate Room">
+                  matTooltip="Allocate Room"
+                  aria-label="Allocate Room">
                   <mat-icon>assignment_turned_in</mat-icon>
                 </button>
 
-                <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="More Actions">
+                <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="More Actions" aria-label="More Actions">
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
@@ -336,10 +337,11 @@
         </div>
 
         @if (applications.length === 0) {
-          <div class="no-data">
-            <mat-icon>inbox</mat-icon>
-            <p>No applications found</p>
-          </div>
+          <app-empty-state
+            [icon]="'inbox'"
+            [title]="'No Applications Found'"
+            [description]="'No applications match your current filters.'">
+          </app-empty-state>
         }
 
         @if (applications.length > 0) {

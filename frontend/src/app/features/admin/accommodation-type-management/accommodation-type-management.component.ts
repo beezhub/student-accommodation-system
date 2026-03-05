@@ -22,6 +22,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-accommodation-type-management',
@@ -44,6 +45,7 @@ import { MatChipsModule } from '@angular/material/chips';
     MatTooltipModule,
     MatMenuModule,
     MatChipsModule,
+    EmptyStateComponent,
   ],
 })
 export class AccommodationTypeManagementComponent implements OnInit {

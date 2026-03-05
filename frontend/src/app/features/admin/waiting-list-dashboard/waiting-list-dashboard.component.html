@@ -32,10 +32,11 @@
 
     <mat-card-content>
       <!-- Loading -->
-      <!-- Loading -->
-      <div class="loading-container" *ngIf="isLoading">
-        <mat-spinner diameter="40"></mat-spinner>
-      </div>
+      @if (isLoading) {
+        <div class="loading-container">
+          <app-skeleton-loader [type]="'table-row'" [count]="6"></app-skeleton-loader>
+        </div>
+      }
 
       <div [class.hidden]="isLoading">
         <!-- Mobile Cards List -->
@@ -77,13 +78,11 @@
           }
 
           @if (dataSource.data.length === 0) {
-            <div class="no-data">
-              <div class="no-data-icon">
-                <mat-icon>hourglass_empty</mat-icon>
-              </div>
-              <h3>No Students in Waiting List</h3>
-              <p>The waiting list is currently empty or no students match the selected filter.</p>
-            </div>
+            <app-empty-state
+              [icon]="'hourglass_empty'"
+              [title]="'No Students in Waiting List'"
+              [description]="'The waiting list is currently empty or no students match the selected filter.'">
+            </app-empty-state>
           }
         </div>
 

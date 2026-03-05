@@ -26,6 +26,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 // Modern UI Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-document-type-management',
@@ -51,6 +52,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatChipsModule,
     MatSlideToggleModule,
     ModernStatusBadgeComponent,
+    EmptyStateComponent,
   ],
 })
 export class DocumentTypeManagementComponent implements OnInit {

@@ -61,9 +61,11 @@
   <div class="data-card"> <!-- Removed mat-card wrapper to control padding manually or via CSS -->
       
       <!-- Loading State -->
-      <div *ngIf="isLoading" class="loading-container">
-        <mat-spinner diameter="40"></mat-spinner>
-      </div>
+      @if (isLoading) {
+        <div class="loading-container">
+          <app-skeleton-loader [type]="'card'" [count]="4"></app-skeleton-loader>
+        </div>
+      }
 
       <!-- Empty State -->
       <div *ngIf="!isLoading && !rules.length" class="empty-state">
@@ -102,10 +104,10 @@
                     </div>
                   </div>
                   <div class="mobile-actions-top">
-                     <button mat-icon-button class="action-btn edit" (click)="openRuleDialog(rule)">
+                     <button mat-icon-button class="action-btn edit" (click)="openRuleDialog(rule)" aria-label="Edit Rule">
                         <mat-icon>edit</mat-icon>
                      </button>
-                     <button mat-icon-button class="action-btn delete" (click)="deleteRule(rule)">
+                     <button mat-icon-button class="action-btn delete" (click)="deleteRule(rule)" aria-label="Delete Rule">
                         <mat-icon>delete</mat-icon>
                      </button>
                   </div>
@@ -210,10 +212,10 @@
                 <ng-container matColumnDef="actions">
                   <th mat-header-cell *matHeaderCellDef> Actions </th>
                   <td mat-cell *matCellDef="let rule">
-                    <button mat-icon-button class="action-btn edit" (click)="openRuleDialog(rule)" matTooltip="Edit Rule">
+                    <button mat-icon-button class="action-btn edit" (click)="openRuleDialog(rule)" matTooltip="Edit Rule" aria-label="Edit Rule">
                       <mat-icon>edit</mat-icon>
                     </button>
-                    <button mat-icon-button class="action-btn delete" (click)="deleteRule(rule)" matTooltip="Delete Rule">
+                    <button mat-icon-button class="action-btn delete" (click)="deleteRule(rule)" matTooltip="Delete Rule" aria-label="Delete Rule">
                       <mat-icon>delete</mat-icon>
                     </button>
                   </td>

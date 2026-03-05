@@ -159,12 +159,10 @@
               </div>
 
               @if (roomAllocation.status === AllocationStatus.OFFERED) {
-                @if (roomAllocation.offerExpiryDate) {
-                  <div class="offer-expiry-notice" style="margin-top: 10px; display: flex; align-items: center; gap: 8px; color: #f59e0b;">
-                    <mat-icon>timer</mat-icon>
-                    <span><strong>Offer expires:</strong> {{ roomAllocation.offerExpiryDate | date: 'MMM d, y, h:mm a' }}</span>
-                  </div>
-                }
+                <app-offer-expiry
+                  [expiryDate]="roomAllocation.offerExpiryDate ?? null"
+                  [status]="roomAllocation.status">
+                </app-offer-expiry>
                 <div class="offer-actions" style="margin-top: 15px; display: flex; gap: 10px;">
                     <button mat-raised-button color="primary" (click)="acceptOffer()" [disabled]="processing">Accept Offer</button>
                     <button mat-button color="warn" (click)="declineOffer()" [disabled]="processing">Decline</button>

@@ -120,15 +120,15 @@
                 <!-- Actions in header for mobile -->
                  <div class="mobile-actions-top">
                     <!-- Attributes Button -->
-                    <button mat-icon-button class="action-btn attributes" (click)="openAttributesDialog(room)">
+                    <button mat-icon-button class="action-btn attributes" (click)="openAttributesDialog(room)" aria-label="Room Attributes">
                       <mat-icon>tune</mat-icon>
                     </button>
                     <!-- Edit Button -->
-                    <button mat-icon-button class="action-btn edit" (click)="openEditDialog(room)">
+                    <button mat-icon-button class="action-btn edit" (click)="openEditDialog(room)" aria-label="Edit Room">
                       <mat-icon>edit</mat-icon>
                     </button>
                     <!-- Delete Button -->
-                    <button mat-icon-button class="action-btn delete" (click)="deleteRoom(room)">
+                    <button mat-icon-button class="action-btn delete" (click)="deleteRoom(room)" aria-label="Delete Room">
                       <mat-icon>delete</mat-icon>
                     </button>
                  </div>
@@ -304,13 +304,13 @@
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let room">
                 <div class="actions-cell">
-                  <button mat-icon-button (click)="openAttributesDialog(room)" matTooltip="Room Attributes (Gender, Accessibility)" class="action-btn attributes">
+                  <button mat-icon-button (click)="openAttributesDialog(room)" matTooltip="Room Attributes (Gender, Accessibility)" aria-label="Room Attributes" class="action-btn attributes">
                     <mat-icon>tune</mat-icon>
                   </button>
-                  <button mat-icon-button (click)="openEditDialog(room)" matTooltip="Edit Room" class="action-btn edit">
+                  <button mat-icon-button (click)="openEditDialog(room)" matTooltip="Edit Room" aria-label="Edit Room" class="action-btn edit">
                     <mat-icon>edit</mat-icon>
                   </button>
-                  <button mat-icon-button (click)="deleteRoom(room)" matTooltip="Delete Room" class="action-btn delete">
+                  <button mat-icon-button (click)="deleteRoom(room)" matTooltip="Delete Room" aria-label="Delete Room" class="action-btn delete">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
@@ -324,17 +324,11 @@
           </table>
 
           @if (rooms.length === 0) {
-            <div class="no-data">
-              <div class="no-data-icon">
-                <mat-icon>door_sliding</mat-icon>
-              </div>
-              <h3>No Rooms Found</h3>
-              <p>Get started by adding your first room to a building.</p>
-              <button mat-raised-button color="primary" (click)="openCreateDialog()">
-                <mat-icon>add</mat-icon>
-                Add First Room
-              </button>
-            </div>
+            <app-empty-state
+              [icon]="'door_sliding'"
+              [title]="'No Rooms Found'"
+              [description]="'Get started by adding your first room to a building.'">
+            </app-empty-state>
           }
         </div>
 

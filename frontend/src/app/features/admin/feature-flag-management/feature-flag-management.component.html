@@ -1,0 +1,111 @@
+<div class="feature-flags-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>
+        <mat-icon>toggle_on</mat-icon>
+        Feature Flags
+      </h1>
+      <p class="subtitle">Manage FF4J feature flags to enable or disable system capabilities</p>
+    </div>
+    <div class="header-actions">
+      <button mat-icon-button (click)="loadFlags()" matTooltip="Refresh" aria-label="Refresh feature flags">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading) {
+    <app-skeleton-loader type="table-row" [count]="4"></app-skeleton-loader>
+  }
+
+  <!-- Empty State -->
+  @else if (flags.length === 0) {
+    <app-empty-state
+      [icon]="'toggle_off'"
+      [title]="'No Feature Flags'"
+      [description]="'No feature flags are registered in the system.'">
+    </app-empty-state>
+  }
+
+  @else {
+    <!-- Mobile Card List -->
+    <div class="mobile-list">
+      @for (flag of flags; track flag.uid) {
+        <mat-card class="flag-card">
+          <mat-card-content>
+            <div class="flag-header">
+              <div class="flag-info">
+                <div class="flag-uid">{{ flag.uid }}</div>
+                @if (flag.group) {
+                  <span class="flag-group">{{ flag.group }}</span>
+                }
+              </div>
+              <mat-slide-toggle
+                [checked]="flag.enable"
+                (change)="toggleFlag(flag)"
+                color="primary"
+                [attr.aria-label]="'Toggle ' + flag.uid">
+              </mat-slide-toggle>
+            </div>
+            @if (flag.description) {
+              <p class="flag-description">{{ flag.description }}</p>
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+
+    <!-- Desktop Table -->
+    <div class="table-container">
+      <table mat-table [dataSource]="flags" class="flags-table">
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Flag ID</th>
+          <td mat-cell *matCellDef="let flag">
+            <strong>{{ flag.uid }}</strong>
+          </td>
+        </ng-container>
+
+        <!-- Description Column -->
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Description</th>
+          <td mat-cell *matCellDef="let flag">
+            {{ flag.description || '—' }}
+          </td>
+        </ng-container>
+
+        <!-- Group Column -->
+        <ng-container matColumnDef="group">
+          <th mat-header-cell *matHeaderCellDef>Group</th>
+          <td mat-cell *matCellDef="let flag">
+            @if (flag.group) {
+              <span class="group-badge">{{ flag.group }}</span>
+            } @else {
+              —
+            }
+          </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let flag">
+            <mat-slide-toggle
+              [checked]="flag.enable"
+              (change)="toggleFlag(flag)"
+              color="primary"
+              [attr.aria-label]="'Toggle ' + flag.uid">
+              {{ flag.enable ? 'Enabled' : 'Disabled' }}
+            </mat-slide-toggle>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+    </div>
+  }
+</div>

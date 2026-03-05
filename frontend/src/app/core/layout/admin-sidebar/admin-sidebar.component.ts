@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
@@ -15,11 +15,16 @@ interface NavItem {
   label: string;
 }
 
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
 @Component({
   selector: 'app-admin-sidebar',
   standalone: true,
   imports: [
-    CommonModule,
+    AsyncPipe,
     RouterModule,
     MatSidenavModule,
     MatListModule,
@@ -40,23 +45,49 @@ export class AdminSidebarComponent {
     shareReplay()
   );
 
-  navItems: NavItem[] = [
-    { path: '/admin', icon: 'dashboard', label: 'Dashboard' },
-    { path: '/admin/applications', icon: 'assignment', label: 'Applications' },
-    { path: '/admin/documents', icon: 'description', label: 'Documents' },
-    { path: '/admin/users', icon: 'people', label: 'Users' },
-    { path: '/admin/buildings', icon: 'apartment', label: 'Buildings' },
-    { path: '/admin/rooms', icon: 'meeting_room', label: 'Rooms' },
-    { path: '/admin/room-allocations', icon: 'hotel', label: 'Allocations' },
-    { path: '/admin/allocations/staged', icon: 'pending_actions', label: 'Staged Alloc.' },
-    { path: '/admin/waiting-list', icon: 'format_list_numbered', label: 'Waiting List' },
-    { path: '/admin/accommodation-types', icon: 'category', label: 'Accomm. Types' },
-    { path: '/admin/institutions', icon: 'school', label: 'Institutions' },
-    { path: '/admin/year-of-study', icon: 'timeline', label: 'Years of Study' },
-    { path: '/admin/academic-years', icon: 'date_range', label: 'Academic Years' },
-    { path: '/admin/document-types', icon: 'folder', label: 'Doc Types' },
-    { path: '/admin/allocation-rules', icon: 'rule', label: 'Alloc. Rules' },
-    { path: '/admin/activity-logs', icon: 'history', label: 'Activity Logs' },
-    { path: '/admin/settings', icon: 'settings', label: 'Settings' },
+  navGroups: NavGroup[] = [
+    {
+      label: 'Overview',
+      items: [
+        { path: '/admin', icon: 'dashboard', label: 'Dashboard' },
+      ],
+    },
+    {
+      label: 'Applications',
+      items: [
+        { path: '/admin/applications', icon: 'assignment', label: 'Applications' },
+        { path: '/admin/room-allocations', icon: 'hotel', label: 'Allocations' },
+        { path: '/admin/allocations/staged', icon: 'pending_actions', label: 'Staged Allocations' },
+        { path: '/admin/waiting-list', icon: 'format_list_numbered', label: 'Waiting List' },
+      ],
+    },
+    {
+      label: 'Buildings & Rooms',
+      items: [
+        { path: '/admin/buildings', icon: 'apartment', label: 'Buildings' },
+        { path: '/admin/rooms', icon: 'meeting_room', label: 'Rooms' },
+      ],
+    },
+    {
+      label: 'Configuration',
+      items: [
+        { path: '/admin/allocation-rules', icon: 'rule', label: 'Allocation Rules' },
+        { path: '/admin/accommodation-types', icon: 'category', label: 'Accomm. Types' },
+        { path: '/admin/institutions', icon: 'school', label: 'Institutions' },
+        { path: '/admin/year-of-study', icon: 'timeline', label: 'Years of Study' },
+        { path: '/admin/academic-years', icon: 'date_range', label: 'Academic Years' },
+        { path: '/admin/document-types', icon: 'folder', label: 'Doc Types' },
+        { path: '/admin/settings', icon: 'settings', label: 'System Settings' },
+        { path: '/admin/feature-flags', icon: 'toggle_on', label: 'Feature Flags' },
+      ],
+    },
+    {
+      label: 'Administration',
+      items: [
+        { path: '/admin/users', icon: 'people', label: 'Users' },
+        { path: '/admin/documents', icon: 'description', label: 'Documents' },
+        { path: '/admin/activity-logs', icon: 'history', label: 'Activity Logs' },
+      ],
+    },
   ];
 }

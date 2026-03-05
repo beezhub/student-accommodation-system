@@ -196,6 +196,32 @@ gmp-internal-place-autocomplete-overlay::part(item) {
     font-weight: 600 !important;
 }
 
+// Global Snackbar Colour Classes
+// UISpec §3.8 naming (snack-*) + existing codebase aliases (*-snackbar)
+.snack-success .mat-mdc-snackbar-surface,
+.success-snackbar .mat-mdc-snackbar-surface {
+  background: #065f46 !important;
+  color: #d1fae5 !important;
+}
+
+.snack-error .mat-mdc-snackbar-surface,
+.error-snackbar .mat-mdc-snackbar-surface {
+  background: #7f1d1d !important;
+  color: #fee2e2 !important;
+}
+
+.snack-warning .mat-mdc-snackbar-surface,
+.warning-snackbar .mat-mdc-snackbar-surface {
+  background: #78350f !important;
+  color: #fef3c7 !important;
+}
+
+.snack-info .mat-mdc-snackbar-surface,
+.info-snackbar .mat-mdc-snackbar-surface {
+  background: #0c4a6e !important;
+  color: #e0f2fe !important;
+}
+
 // Global Dialog Overrides
 .mat-mdc-dialog-container {
     --mdc-dialog-container-shape: #{vars.$radius-xl} !important;

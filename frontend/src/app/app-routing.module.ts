@@ -278,6 +278,13 @@ export const routes: Routes = [
             (m) => m.WaitingListDashboardComponent
           ),
       },
+      {
+        path: 'feature-flags',
+        loadComponent: () =>
+          import('./features/admin/feature-flag-management/feature-flag-management.component').then(
+            (m) => m.FeatureFlagManagementComponent
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '/home' },
