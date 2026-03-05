@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Unit tests for {@link JwtConfig} fail-fast validation.
  *
  * <p>Verifies that the application refuses to start when {@code JWT_SECRET} is absent,
- * blank, or shorter than the minimum required length of 32 characters.
+ * blank, or shorter than the minimum required length of 64 characters.
  *
  * <p>These tests exercise the {@code @PostConstruct} method directly (by constructing
  * the component and calling {@code validateSecurityConfiguration()} explicitly) so that
@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class JwtConfigTest {
 
     private static final String VALID_SECRET =
-            "jvc+QC/0myyJ9+Rzo+qYxfMmHDiQdlysvcT9XhUF7/6mvHD9evZBB/ngNAMwTD";
+            "jvc+QC/0myyJ9+Rzo+qYxfMmHDiQdlysvcT9XhUF7/6mvHD9evZBB/ngNAMwTDabc";
     private static final String EXPIRATION = "36000000";
     private static final String ADMIN_EXPIRATION = "14400000";
 
@@ -51,13 +51,13 @@ class JwtConfigTest {
     @Test
     @DisplayName("startup_withShortJwtSecret_throwsIllegalStateException")
     void startup_withShortJwtSecret_throwsIllegalStateException() {
-        // 31 characters — one short of the minimum 32
+        // 31 characters — one short of the minimum 64
         JwtConfig config = new JwtConfig("this-is-only-31-chars-long-----", EXPIRATION, ADMIN_EXPIRATION);
 
         assertThatThrownBy(config::validateSecurityConfiguration)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("JWT_SECRET")
-                .hasMessageContaining("32 characters");
+                .hasMessageContaining("64 characters");
     }
 
     @Test
@@ -70,10 +70,10 @@ class JwtConfigTest {
     }
 
     @Test
-    @DisplayName("startup_withExactly32CharSecret_succeeds")
-    void startup_withExactly32CharSecret_succeeds() {
-        String exactly32Chars = "12345678901234567890123456789012"; // exactly 32 chars
-        JwtConfig config = new JwtConfig(exactly32Chars, EXPIRATION, ADMIN_EXPIRATION);
+    @DisplayName("startup_withExactly64CharSecret_succeeds")
+    void startup_withExactly64CharSecret_succeeds() {
+        String exactly64Chars = "1234567890123456789012345678901212345678901234567890123456789012"; // exactly 64 chars
+        JwtConfig config = new JwtConfig(exactly64Chars, EXPIRATION, ADMIN_EXPIRATION);
 
         assertThatCode(config::validateSecurityConfiguration)
                 .doesNotThrowAnyException();

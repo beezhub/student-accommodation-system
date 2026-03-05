@@ -1,12 +1,16 @@
 -- =============================================================================
 -- V2026_02_19_2100 - Complete schema for student accommodation system
 -- =============================================================================
--- Replaces all 55 previous migration files.
--- Applied to a fresh (empty) database after dropping the old one.
+-- Replaces all previous migration files (including V2026_02_13_1221,
+-- V2026_02_13_1300, V2026_02_15_1400, V2026_02_15_1410, V2026_02_15_1411,
+-- V2026_02_15_1420, V2026_02_16_1400, and V2026_03_01_1101 which have been deleted).
+-- Applied to a fresh (empty) database.
 -- Key fixes vs old migrations:
 --   * All enum columns use VARCHAR(255) — avoids Hibernate hbm2ddl ALTER TYPE error
 --   * activity_logs created as partitioned table from the start
 --   * No duplicate indexes, clean FK dependency order
+--   * app_user includes account_locked_until and failed_login_attempts from the start
+--   * All tables include tenant_id NOT NULL with FK to tenant from the start
 -- =============================================================================
 
 
@@ -48,7 +52,7 @@ COMMENT ON COLUMN tenant.config IS 'Tenant-specific configuration overrides (JSO
 -- =============================================================================
 
 CREATE TABLE institution (
-    id           SERIAL       PRIMARY KEY,
+    id           BIGSERIAL       PRIMARY KEY,
     name         VARCHAR(100) NOT NULL UNIQUE,
     address      VARCHAR(255),
     phone_number VARCHAR(20),
@@ -58,14 +62,14 @@ CREATE TABLE institution (
 );
 
 CREATE TABLE year_of_study (
-    id         SERIAL    PRIMARY KEY,
+    id         BIGSERIAL    PRIMARY KEY,
     year       VARCHAR   NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE document_type (
-    id          SERIAL      PRIMARY KEY,
+    id          BIGSERIAL      PRIMARY KEY,
     type_name   VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(255),
     is_required BOOLEAN     NOT NULL DEFAULT FALSE,
@@ -83,7 +87,7 @@ CREATE TABLE accommodation_type (
 );
 
 CREATE TABLE academic_year (
-    id                     SERIAL      PRIMARY KEY,
+    id                     BIGSERIAL      PRIMARY KEY,
     name                   VARCHAR(20) NOT NULL UNIQUE,
     start_date             DATE        NOT NULL,
     end_date               DATE        NOT NULL,
@@ -110,7 +114,7 @@ COMMENT ON COLUMN academic_year.is_current IS 'Only one row can have this set to
 -- =============================================================================
 
 CREATE TABLE app_user (
-    id                    SERIAL       PRIMARY KEY,
+    id                    BIGSERIAL       PRIMARY KEY,
     email                 VARCHAR(100) NOT NULL UNIQUE,
     user_password         VARCHAR(255) NOT NULL,
     user_role             VARCHAR(20)  NOT NULL,
@@ -135,16 +139,16 @@ COMMENT ON COLUMN app_user.email_verified IS 'Flag to indicate if user email has
 COMMENT ON COLUMN app_user.tenant_id      IS 'FK to tenant table; admin users scoped to tenant';
 
 CREATE TABLE student (
-    id                   SERIAL      PRIMARY KEY,
+    id                   BIGSERIAL      PRIMARY KEY,
     student_number       VARCHAR(20) NOT NULL UNIQUE,
     phone_number         VARCHAR(20),
     date_of_birth        DATE,
     registration_date    DATE        NOT NULL,
     gender               VARCHAR(30),
     special_requirements VARCHAR(100),
-    user_id              INT         NOT NULL,
-    institution_id       INT,
-    year_of_study_id     INT,
+    user_id              BIGINT      NOT NULL,
+    institution_id       BIGINT,
+    year_of_study_id     BIGINT,
     created_at           TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     updated_at           TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id)          REFERENCES app_user(id)     ON DELETE CASCADE,
@@ -158,7 +162,7 @@ CREATE TABLE student (
 -- =============================================================================
 
 CREATE TABLE building (
-    id                 SERIAL          PRIMARY KEY,
+    id                 BIGSERIAL          PRIMARY KEY,
     name               VARCHAR(100)    NOT NULL UNIQUE,
     address            VARCHAR(255),
     description        TEXT,
@@ -181,12 +185,12 @@ CREATE INDEX idx_building_place_id     ON building(place_id);
 COMMENT ON COLUMN building.tenant_id IS 'FK to tenant table; building owner';
 
 CREATE TABLE room (
-    id                SERIAL    PRIMARY KEY,
+    id                BIGSERIAL    PRIMARY KEY,
     room_number       VARCHAR(20) NOT NULL UNIQUE,
     capacity          INT         NOT NULL,
     current_occupancy INTEGER     NOT NULL DEFAULT 0,
     version           BIGINT      NOT NULL DEFAULT 0,
-    building_id       INT,
+    building_id       BIGINT,
     tenant_id         BIGINT      NOT NULL,
     created_at        TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
     updated_at        TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
@@ -205,16 +209,16 @@ COMMENT ON COLUMN room.tenant_id IS 'FK to tenant table; belongs to building';
 -- =============================================================================
 
 CREATE TABLE application (
-    id                     SERIAL                  PRIMARY KEY,
+    id                     BIGSERIAL                  PRIMARY KEY,
     application_code       VARCHAR(50)             NOT NULL UNIQUE,
     application_date       DATE                    DEFAULT CURRENT_DATE,
     status                 VARCHAR(20)             NOT NULL DEFAULT 'PENDING',
     remarks                VARCHAR(255),
     version                BIGINT                  NOT NULL DEFAULT 0,
-    student_id             INT                     NOT NULL,
-    academic_year_id       INT,
+    student_id             BIGINT                  NOT NULL,
+    academic_year_id       BIGINT,
     tenant_id              BIGINT                  NOT NULL,
-    preferred_building_id  INT,
+    preferred_building_id  BIGINT,
     allocation_method      VARCHAR(255)             DEFAULT 'MANUAL',
     requires_accessibility BOOLEAN                 DEFAULT FALSE,
     preferred_room_type    VARCHAR(50),
@@ -245,13 +249,13 @@ COMMENT ON COLUMN application.tenant_id IS 'FK to tenant table; student applicat
 -- =============================================================================
 
 CREATE TABLE document (
-    id               SERIAL     PRIMARY KEY,
+    id               BIGSERIAL     PRIMARY KEY,
     document_name    VARCHAR(100) NOT NULL,
-    document_type_id INT          NOT NULL,
+    document_type_id BIGINT       NOT NULL,
     document_path    VARCHAR(255) NOT NULL,
     document_status  VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
     file_size        BIGINT,
-    student_id       INT          NOT NULL,
+    student_id       BIGINT       NOT NULL,
     application_id   BIGINT       NOT NULL,
     tenant_id        BIGINT       NOT NULL,
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
@@ -270,9 +274,9 @@ COMMENT ON COLUMN document.file_size  IS 'File size in bytes of the uploaded doc
 COMMENT ON COLUMN document.tenant_id  IS 'FK to tenant table';
 
 CREATE TABLE document_comments (
-    id           SERIAL PRIMARY KEY,
-    document_id  INT    NOT NULL,
-    admin_id     INT    NOT NULL,
+    id           BIGSERIAL PRIMARY KEY,
+    document_id  BIGINT NOT NULL,
+    admin_id     BIGINT NOT NULL,
     comment_text TEXT   NOT NULL,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (document_id) REFERENCES document(id)  ON DELETE CASCADE,
@@ -288,7 +292,7 @@ CREATE INDEX idx_document_comments_admin_id    ON document_comments(admin_id);
 -- =============================================================================
 
 CREATE TABLE room_allocation (
-    id                     SERIAL     PRIMARY KEY,
+    id                     BIGSERIAL     PRIMARY KEY,
     allocation_date        TIMESTAMP  DEFAULT CURRENT_TIMESTAMP,
     status                 VARCHAR(20),
     allocation_method      VARCHAR(50),
@@ -300,10 +304,10 @@ CREATE TABLE room_allocation (
     check_in_expiry_date   TIMESTAMP,
     decline_reason         VARCHAR(50),
     decline_reason_text    VARCHAR(500),
-    student_id             INT        NOT NULL,
-    room_id                INT        NOT NULL,
-    application_id         INT,
-    academic_year_id       INT,
+    student_id             BIGINT     NOT NULL,
+    room_id                BIGINT     NOT NULL,
+    application_id         BIGINT,
+    academic_year_id       BIGINT,
     tenant_id              BIGINT     NOT NULL,
     created_at             TIMESTAMP  DEFAULT CURRENT_TIMESTAMP,
     updated_at             TIMESTAMP  DEFAULT CURRENT_TIMESTAMP,
@@ -332,14 +336,14 @@ COMMENT ON COLUMN room_allocation.tenant_id IS 'FK to tenant table';
 -- =============================================================================
 
 CREATE TABLE staged_allocations (
-    id             SERIAL                        PRIMARY KEY,
-    student_id     INT                            NOT NULL,
-    room_id        INT                            NOT NULL,
-    application_id INT,
+    id             BIGSERIAL                        PRIMARY KEY,
+    student_id     BIGINT                         NOT NULL,
+    room_id        BIGINT                         NOT NULL,
+    application_id BIGINT,
     status         VARCHAR(255)                   DEFAULT 'PROPOSED',
     score          DECIMAL(10,4),
     warnings       JSONB,
-    proposed_by    INT,
+    proposed_by    BIGINT,
     batch_id       VARCHAR(100),
     tenant_id      BIGINT                         NOT NULL,
     created_at     TIMESTAMP                      DEFAULT CURRENT_TIMESTAMP,
@@ -367,15 +371,15 @@ COMMENT ON COLUMN staged_allocations.tenant_id IS 'FK to tenant table';
 -- =============================================================================
 
 CREATE TABLE allocation_audit_log (
-    id                  SERIAL                      PRIMARY KEY,
-    allocation_id       INT,
+    id                  BIGSERIAL                      PRIMARY KEY,
+    allocation_id       BIGINT,
     action_type         VARCHAR(255)                NOT NULL,
     previous_status     VARCHAR(50),
     new_status          VARCHAR(50),
-    admin_user_id       INT,
+    admin_user_id       BIGINT,
     reason              TEXT,
-    old_room_id         INT,
-    new_room_id         INT,
+    old_room_id         BIGINT,
+    new_room_id         BIGINT,
     constraint_bypassed VARCHAR(255),
     created_at          TIMESTAMP                   DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (allocation_id)  REFERENCES room_allocation(id) ON DELETE SET NULL,
@@ -435,8 +439,8 @@ FOR EACH ROW EXECUTE FUNCTION set_waiting_list_updated_at();
 -- =============================================================================
 
 CREATE TABLE allocation_rules (
-    id                      SERIAL       PRIMARY KEY,
-    building_id             INT,
+    id                      BIGSERIAL       PRIMARY KEY,
+    building_id             BIGINT,
     rule_name               VARCHAR(100) NOT NULL,
     preference_match_weight DECIMAL(5,2) DEFAULT 1.0,
     desirability_weight     DECIMAL(5,2) DEFAULT 1.0,
@@ -444,7 +448,7 @@ CREATE TABLE allocation_rules (
     active                  BOOLEAN      DEFAULT TRUE,
     priority                INT          DEFAULT 0,
     tenant_id               BIGINT       NOT NULL,
-    created_by              INT,
+    created_by              BIGINT,
     created_at              TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     updated_at              TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (building_id) REFERENCES building(id)  ON DELETE CASCADE,
@@ -466,8 +470,8 @@ COMMENT ON COLUMN allocation_rules.tenant_id IS 'FK to tenant table';
 -- =============================================================================
 
 CREATE TABLE building_attributes (
-    id                     SERIAL                  PRIMARY KEY,
-    building_id            INT                     NOT NULL UNIQUE,
+    id                     BIGSERIAL                  PRIMARY KEY,
+    building_id            BIGINT                  NOT NULL UNIQUE,
     gender_restriction     VARCHAR(255)            DEFAULT 'ANY',
     accessibility_features JSONB,
     desirability_score     INT CHECK (desirability_score >= 1 AND desirability_score <= 10),
@@ -481,8 +485,8 @@ CREATE INDEX idx_building_attributes_building_id        ON building_attributes(b
 CREATE INDEX idx_building_attributes_gender_restriction ON building_attributes(gender_restriction);
 
 CREATE TABLE room_attributes (
-    id                      SERIAL                  PRIMARY KEY,
-    room_id                 INT                     NOT NULL UNIQUE,
+    id                      BIGSERIAL                  PRIMARY KEY,
+    room_id                 BIGINT                  NOT NULL UNIQUE,
     accessibility_compliant BOOLEAN                 DEFAULT FALSE,
     gender_restriction      VARCHAR(255),
     desirability_override   INT                     CHECK (desirability_override IS NULL OR (desirability_override >= 1 AND desirability_override <= 10)),
@@ -667,7 +671,7 @@ COMMENT ON COLUMN activity_logs.tenant_id   IS 'FK to tenant table';
 -- =============================================================================
 
 CREATE TABLE system_settings (
-    id            SERIAL       PRIMARY KEY,
+    id            BIGSERIAL       PRIMARY KEY,
     setting_key   VARCHAR(100) NOT NULL UNIQUE,
     setting_value VARCHAR(255),
     description   TEXT,

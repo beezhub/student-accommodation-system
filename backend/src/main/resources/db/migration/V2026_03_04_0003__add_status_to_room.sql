@@ -1,0 +1,2 @@
+ALTER TABLE room ADD COLUMN status VARCHAR(20);
+UPDATE room SET status = 'AVAILABLE' WHERE status IS NULL;

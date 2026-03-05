@@ -18,8 +18,11 @@ public class Student {
     private String studentNumber;
     @Column(name = "phone_number")
     private String phoneNumber;
+    @Temporal(TemporalType.DATE)
     @Column(name="date_of_birth")
     private Date dateOfBirth;
+    
+    @Temporal(TemporalType.DATE)
     @Column(name = "registration_date")
     private Date registrationDate;
     @Column(name = "gender")
