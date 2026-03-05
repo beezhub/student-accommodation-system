@@ -6,25 +6,60 @@
 }
 
 .sidenav {
-    width: 250px;
+    width: 280px;
     background-color: white;
     border-right: 1px solid vars.$slate-200;
+    display: flex;
+    flex-direction: column;
 }
 
-.sidebar-header {
-    padding: vars.$space-5 vars.$space-4;
-    border-bottom: 1px solid vars.$slate-100;
+/* Branding header */
+.sidebar-brand {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1rem;
+    border-bottom: 1px solid vars.$slate-200;
+    flex-shrink: 0;
 
-    h2 {
-        margin: 0;
-        font-size: vars.$font-size-title;
-        color: vars.$slate-800;
+    .brand-icon {
+        color: vars.$accent-purple-dark;
+        font-size: 1.75rem;
+        width: 1.75rem;
+        height: 1.75rem;
+    }
+
+    .brand-name {
         font-weight: 700;
+        font-size: 1.125rem;
+        color: vars.$slate-800;
+        letter-spacing: -0.01em;
     }
 }
 
+/* Navigation */
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: vars.$space-2 0;
+}
+
+.nav-group {
+    margin-bottom: vars.$space-1;
+}
+
+.nav-group-label {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: vars.$slate-400;
+    padding: vars.$space-3 vars.$space-4 vars.$space-1;
+}
+
 mat-nav-list {
-    padding-top: vars.$space-2;
+    padding-top: 0;
 
     a.mat-mdc-list-item {
         margin: 0 vars.$space-2 vars.$space-1;
@@ -41,6 +76,9 @@ mat-nav-list {
             background-color: vars.$slate-100;
             color: vars.$accent-purple-dark;
             font-weight: 600;
+            margin-left: calc(vars.$space-2 - 3px);
+            border-left: 3px solid vars.$accent-purple-dark;
+            padding-left: calc(vars.$space-3 + 3px);
 
             mat-icon {
                 color: vars.$accent-purple-dark;
@@ -53,6 +91,7 @@ mat-nav-list {
     }
 }
 
+/* Mobile top bar */
 .header-toolbar {
     height: 56px;
     display: flex;

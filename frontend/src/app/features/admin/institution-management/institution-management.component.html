@@ -185,12 +185,14 @@
                   <button mat-icon-button
                           (click)="openEditDialog(institution)"
                           matTooltip="Edit"
+                          aria-label="Edit"
                           class="action-btn edit">
                     <mat-icon>edit</mat-icon>
                   </button>
                   <button mat-icon-button
                           (click)="deleteInstitution(institution)"
                           matTooltip="Delete"
+                          aria-label="Delete"
                           class="action-btn delete">
                     <mat-icon>delete</mat-icon>
                   </button>
@@ -203,17 +205,11 @@
           </table>
 
           @if (institutions.length === 0) {
-            <div class="no-data">
-              <div class="no-data-icon">
-                <mat-icon>school</mat-icon>
-              </div>
-              <h3>No Institutions Found</h3>
-              <p>Add your first educational institution to get started.</p>
-              <button mat-raised-button color="primary" (click)="openCreateDialog()">
-                <mat-icon>add</mat-icon>
-                Add First Institution
-              </button>
-            </div>
+            <app-empty-state
+              [icon]="'school'"
+              [title]="'No Institutions Found'"
+              [description]="'Add your first educational institution to get started.'">
+            </app-empty-state>
           }
         </div>
 

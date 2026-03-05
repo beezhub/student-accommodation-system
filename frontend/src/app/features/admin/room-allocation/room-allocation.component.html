@@ -89,8 +89,7 @@
     <mat-card-content>
       @if (isLoading) {
         <div class="loading-container">
-          <mat-spinner diameter="48"></mat-spinner>
-          <p>Loading allocations...</p>
+          <app-skeleton-loader [type]="'table-row'" [count]="8"></app-skeleton-loader>
         </div>
       }
 
@@ -149,7 +148,7 @@
                     <mat-icon>event_busy</mat-icon>
                     End
                  </button>
-                 <button mat-icon-button color="warn" (click)="deleteAllocation(allocation)">
+                 <button mat-icon-button color="warn" (click)="deleteAllocation(allocation)" aria-label="Delete Allocation">
                     <mat-icon>delete</mat-icon>
                  </button>
               </div>
@@ -239,6 +238,7 @@
                           (click)="checkIn(allocation)"
                           [disabled]="allocation.status !== 'ACCEPTED'"
                           matTooltip="Confirm Check-In"
+                          aria-label="Confirm Check-In"
                           class="action-btn check-in"
                           *ngIf="allocation.status === 'ACCEPTED'">
                     <mat-icon>login</mat-icon>
@@ -247,6 +247,7 @@
                           (click)="checkOut(allocation)"
                           [disabled]="allocation.status !== 'ACTIVE'"
                           matTooltip="Confirm Check-Out"
+                          aria-label="Confirm Check-Out"
                           class="action-btn check-out"
                           *ngIf="allocation.status === 'ACTIVE'">
                     <mat-icon>logout</mat-icon>
@@ -255,6 +256,7 @@
                           (click)="moveStudent(allocation)"
                           [disabled]="allocation.status !== 'ACTIVE' && allocation.status !== 'ACCEPTED'"
                           matTooltip="Move Student"
+                          aria-label="Move Student"
                           class="action-btn move"
                           *ngIf="allocation.status === 'ACTIVE' || allocation.status === 'ACCEPTED'">
                     <mat-icon>transfer_within_a_station</mat-icon>
@@ -262,6 +264,7 @@
                   <button mat-icon-button
                           (click)="deleteAllocation(allocation)"
                           matTooltip="Delete Allocation"
+                          aria-label="Delete Allocation"
                           class="action-btn delete">
                     <mat-icon>delete</mat-icon>
                   </button>
@@ -274,17 +277,11 @@
           </table>
 
           @if (allocations.length === 0) {
-            <div class="no-data">
-              <div class="no-data-icon">
-                <mat-icon>assignment_late</mat-icon>
-              </div>
-              <h3>No Allocations Found</h3>
-              <p>Start by allocating a room to a student.</p>
-              <button mat-raised-button color="primary" (click)="openAllocateDialog()">
-                <mat-icon>add</mat-icon>
-                Allocate First Room
-              </button>
-            </div>
+            <app-empty-state
+              [icon]="'assignment_late'"
+              [title]="'No Allocations Found'"
+              [description]="'Start by allocating a room to a student.'">
+            </app-empty-state>
           }
         </div>
 

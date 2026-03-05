@@ -21,6 +21,7 @@ import { AllocationRuleService } from '../../../core/services/allocation-rule.se
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
 import { AllocationRule } from '../../../core/models/allocation.models';
 import { AllocationRuleDialogComponent } from './allocation-rule-dialog/allocation-rule-dialog.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 
 @Component({
   selector: 'app-allocation-rule-management',
@@ -42,6 +43,7 @@ import { AllocationRuleDialogComponent } from './allocation-rule-dialog/allocati
     MatSlideToggleModule,
     MatChipsModule,
     MatDividerModule,
+    SkeletonLoaderComponent,
   ],
   templateUrl: './allocation-rule-management.component.html',
   styleUrls: ['./allocation-rule-management.component.scss'],

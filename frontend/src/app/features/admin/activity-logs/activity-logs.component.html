@@ -107,23 +107,16 @@
     
     @if (isLoading) {
       <div class="loading-container">
-        <mat-spinner diameter="48"></mat-spinner>
-        <p>Loading activity logs...</p>
+        <app-skeleton-loader [type]="'table-row'" [count]="8"></app-skeleton-loader>
       </div>
     }
 
     @if (!isLoading && dataSource.data.length === 0) {
-      <div class="no-data">
-        <div class="no-data-icon">
-          <mat-icon>history_toggle_off</mat-icon>
-        </div>
-        <h3>No Activity Logs Found</h3>
-        <p>There are no logs matching your current filters.</p>
-        <button mat-stroked-button color="primary" (click)="onClearFilters()">
-          <mat-icon>refresh</mat-icon>
-          Reset Filters
-        </button>
-      </div>
+      <app-empty-state
+        [icon]="'history_toggle_off'"
+        [title]="'No Activity Logs Found'"
+        [description]="'There are no logs matching your current filters.'">
+      </app-empty-state>
     }
 
     @if (!isLoading && dataSource.data.length > 0) {

@@ -12,6 +12,7 @@ import { MatGridListModule } from '@angular/material/grid-list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -29,6 +30,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatProgressBarModule,
     MatTableModule,
     MatTooltipModule,
+    SkeletonLoaderComponent,
   ],
 })
 export class AdminDashboardComponent implements OnInit {

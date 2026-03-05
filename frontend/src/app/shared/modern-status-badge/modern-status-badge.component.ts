@@ -116,7 +116,6 @@ interface StatusConfig {
       }
 
       .badge-label {
-        text-transform: capitalize;
       }
 
       .badge-pulse {
@@ -185,7 +184,8 @@ interface StatusConfig {
       /* Warning/Pending/Full */
       .status-pending,
       .status-full,
-      .status-awaiting_allocation {
+      .status-awaiting_allocation,
+      .status-warning {
         background: var(--color-warning-bg, linear-gradient(135deg, #fef3c7 0%, #fde68a 100%));
         color: var(--color-warning, #b45309);
         border: 1px solid var(--color-warning-border, #fcd34d);
@@ -212,20 +212,29 @@ interface StatusConfig {
         border: 1px solid #f87171;
       }
 
-      /* Info/Available */
-      .status-available {
+      /* Info/Available/Offered/Submitted */
+      .status-available,
+      .status-info {
         background: var(--color-info-bg, linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%));
         color: var(--color-info, #0369a1);
         border: 1px solid var(--color-info-border, #7dd3fc);
       }
 
-      /* Neutral/Maintenance/Inactive */
+      /* Neutral/Maintenance/Inactive/Withdrawn/Declined/Completed */
       .status-maintenance,
       .status-inactive,
-      .status-occupied {
+      .status-occupied,
+      .status-neutral {
         background: var(--color-slate-100, #f1f5f9);
         color: var(--color-slate-600, #475569);
         border: 1px solid var(--color-slate-200, #cbd5e1);
+      }
+
+      /* Changes Requested */
+      .status-changes {
+        background: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #fb923c;
       }
 
       .status-default {

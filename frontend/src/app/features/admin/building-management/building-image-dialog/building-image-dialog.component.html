@@ -53,6 +53,7 @@
                   mat-icon-button
                   (click)="setPrimary(image)"
                   [matTooltip]="image.isPrimary ? 'Primary Image' : 'Set as Primary'"
+                  [attr.aria-label]="image.isPrimary ? 'Primary Image' : 'Set as Primary'"
                   [class.is-primary]="image.isPrimary"
                   class="primary-btn"
                 >
@@ -63,6 +64,7 @@
                   color="warn"
                   (click)="deleteImage(image)"
                   matTooltip="Delete Image"
+                  aria-label="Delete Image"
                   class="delete-btn"
                 >
                   <mat-icon>delete</mat-icon>

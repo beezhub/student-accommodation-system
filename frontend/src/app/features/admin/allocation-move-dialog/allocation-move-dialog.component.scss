@@ -1,12 +1,6 @@
 @use '../../../../styles/variables' as vars;
 @use '../../../../styles/mixins' as mixins;
 
-// Fix for icon alignment
-mat-icon {
-    font-family: 'Material Icons' !important;
-    font-weight: normal;
-    font-style: normal;
-}
 
 :host {
     display: block;

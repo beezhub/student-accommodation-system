@@ -38,6 +38,7 @@ import {
   DeclineOfferDialogData,
 } from './decline-offer-dialog/decline-offer-dialog.component';
 import { DeclineOfferRequest } from '../../core/services/room-allocation.service';
+import { OfferExpiryComponent } from '../../shared/components/offer-expiry/offer-expiry.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -59,6 +60,7 @@ import { DeclineOfferRequest } from '../../core/services/room-allocation.service
     MatDividerModule,
     MatDialogModule,
     ModernStatusBadgeComponent,
+    OfferExpiryComponent,
   ],
 })
 export class DashboardComponent implements OnInit {

@@ -5,6 +5,8 @@ import { AdminService, DocumentResponse, PageResponse } from '../../../core/serv
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { DocumentViewerComponent } from '../../dashboard/documents/document-viewer/document-viewer.component';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -40,6 +42,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatTooltipModule,
     DocumentViewerComponent,
     ModernStatusBadgeComponent,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class DocumentVerificationComponent implements OnInit {

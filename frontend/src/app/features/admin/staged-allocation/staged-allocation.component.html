@@ -20,10 +20,11 @@
             </div>
 
             <!-- Loading State -->
-            <div *ngIf="isLoadingApplications" class="loading-state">
-              <mat-spinner diameter="40"></mat-spinner>
-              <p>Loading applications...</p>
-            </div>
+            @if (isLoadingApplications) {
+              <div class="loading-state">
+                <app-skeleton-loader [type]="'table-row'" [count]="8"></app-skeleton-loader>
+              </div>
+            }
 
             <!-- Empty State -->
             <div *ngIf="!isLoadingApplications && availableApplications.length === 0" class="empty-state">

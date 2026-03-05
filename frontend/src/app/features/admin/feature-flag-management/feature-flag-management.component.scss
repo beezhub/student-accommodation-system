@@ -1,0 +1,104 @@
+.feature-flags-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+
+  h1 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 4px;
+    font-size: 28px;
+    font-weight: 700;
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  .subtitle {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+  }
+}
+
+// Mobile card list
+.mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.flag-card {
+  .flag-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .flag-uid {
+    font-weight: 600;
+    font-size: 14px;
+    font-family: monospace;
+  }
+
+  .flag-group {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    background: #e2e8f0;
+    color: #475569;
+  }
+
+  .flag-description {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+  }
+}
+
+// Desktop table
+.table-container {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: block;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.flags-table {
+  width: 100%;
+}
+
+.group-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #e2e8f0;
+  color: #475569;
+}

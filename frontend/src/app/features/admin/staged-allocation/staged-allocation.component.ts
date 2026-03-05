@@ -16,6 +16,7 @@ import { AdminService, ApplicationResponse } from '../../../core/services/admin.
 import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
 import { StagedAllocation, BatchAllocationProposal } from '../../../core/models/allocation.models';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 
 @Component({
   selector: 'app-staged-allocation',
@@ -33,6 +34,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatSnackBarModule,
     MatChipsModule,
     ModernStatusBadgeComponent,
+    SkeletonLoaderComponent,
   ],
   templateUrl: './staged-allocation.component.html',
   styleUrls: ['./staged-allocation.component.css'],

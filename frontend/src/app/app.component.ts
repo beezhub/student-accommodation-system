@@ -46,12 +46,21 @@ export class AppComponent implements OnInit, OnDestroy {
   private userSub!: Subscription;
   isMobile = false;
   isHomePage = false;
+  isAdminRoute = false;
+
+  private static readonly TOOLBAR_HIDDEN_ROUTES = [
+    '/home', '/login', '/signup', '/verify-email', '/forgot-password', '/reset-password',
+  ];
+
   constructor() {
     this.isMobile = this.breakpointObserver.isMatched(Breakpoints.Handset);
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
-        this.isHomePage =
-          event.urlAfterRedirects === '/home' || event.urlAfterRedirects === '/login';
+        const url = event.urlAfterRedirects;
+        this.isAdminRoute = url.startsWith('/admin');
+        this.isHomePage = AppComponent.TOOLBAR_HIDDEN_ROUTES.some(
+          (route) => url === route || url.startsWith(route + '?')
+        );
       }
     });
   }

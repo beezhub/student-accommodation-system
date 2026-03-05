@@ -90,7 +90,7 @@
                 </div>
                 <!-- Actions in header for mobile -->
                  <div class="mobile-actions-top">
-                    <button mat-icon-button color="warn" (click)="deleteUser(user)">
+                    <button mat-icon-button color="warn" (click)="deleteUser(user)" aria-label="Delete User">
                       <mat-icon>delete</mat-icon>
                     </button>
                  </div>
@@ -208,6 +208,7 @@
                     mat-icon-button
                     (click)="deleteUser(user)"
                     matTooltip="Delete user"
+                    aria-label="Delete User"
                     class="action-btn delete"
                     >
                     <mat-icon>delete</mat-icon>

@@ -20,6 +20,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-institution-management',
@@ -40,6 +41,7 @@ import { MatMenuModule } from '@angular/material/menu';
     MatSnackBarModule,
     MatTooltipModule,
     MatMenuModule,
+    EmptyStateComponent,
   ],
 })
 export class InstitutionManagementComponent implements OnInit {

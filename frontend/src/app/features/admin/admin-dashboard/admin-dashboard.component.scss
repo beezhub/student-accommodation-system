@@ -1,19 +1,12 @@
+@use 'sass:color';
 @use '../../../../styles/variables' as vars;
 @use '../../../../styles/mixins' as mixins;
-
-// Fix for icons rendering as text
-mat-icon {
-    font-family: 'Material Icons' !important;
-    font-weight: normal;
-    font-style: normal;
-}
 
 .admin-dashboard-container {
     padding: 1rem;
     max-width: 1600px;
     margin: 0 auto;
-    min-height: calc(100vh - 64px);
-    margin-top: 64px;
+    min-height: 100vh;
 
     @media (min-width: vars.$breakpoint-tablet) {
         padding: 1.5rem;
@@ -165,22 +158,22 @@ mat-icon {
     }
 
     .students & {
-        background: linear-gradient(135deg, vars.$success, darken(vars.$success, 10%));
+        background: linear-gradient(135deg, vars.$success, color.scale(vars.$success, $lightness: -10%));
     }
 
     .occupancy & {
         background: linear-gradient(135deg, vars.$accent-purple-light, vars.$accent-purple-dark);
 
         &.low-occupancy {
-            background: linear-gradient(135deg, vars.$success, darken(vars.$success, 10%));
+            background: linear-gradient(135deg, vars.$success, color.scale(vars.$success, $lightness: -10%));
         }
 
         &.medium-occupancy {
-            background: linear-gradient(135deg, vars.$warning, darken(vars.$warning, 10%));
+            background: linear-gradient(135deg, vars.$warning, color.scale(vars.$warning, $lightness: -10%));
         }
 
         &.high-occupancy {
-            background: linear-gradient(135deg, vars.$error, darken(vars.$error, 10%));
+            background: linear-gradient(135deg, vars.$error, color.scale(vars.$error, $lightness: -10%));
         }
     }
 }
@@ -615,7 +608,7 @@ mat-icon {
     }
 
     .documents & {
-        background: linear-gradient(135deg, vars.$warning, darken(vars.$warning, 10%));
+        background: linear-gradient(135deg, vars.$warning, color.scale(vars.$warning, $lightness: -10%));
     }
 
     .allocations & {

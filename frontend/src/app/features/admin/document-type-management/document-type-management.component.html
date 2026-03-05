@@ -178,18 +178,21 @@
                   <button mat-icon-button
                           (click)="openEditDialog(docType)"
                           matTooltip="Edit"
+                          aria-label="Edit"
                           class="action-btn edit">
                     <mat-icon>edit</mat-icon>
                   </button>
                   <button mat-icon-button
                           (click)="toggleRequiredFlag(docType)"
                           [matTooltip]="docType.isRequired ? 'Mark as Optional' : 'Mark as Required'"
+                          [attr.aria-label]="docType.isRequired ? 'Mark as Optional' : 'Mark as Required'"
                           class="action-btn toggle">
                     <mat-icon>{{ docType.isRequired ? 'toggle_off' : 'toggle_on' }}</mat-icon>
                   </button>
                   <button mat-icon-button
                           (click)="deleteDocumentType(docType)"
                           matTooltip="Delete"
+                          aria-label="Delete"
                           class="action-btn delete">
                     <mat-icon>delete</mat-icon>
                   </button>
@@ -202,17 +205,11 @@
           </table>
 
           @if (documentTypes.length === 0) {
-            <div class="no-data">
-              <div class="no-data-icon">
-                <mat-icon>description</mat-icon>
-              </div>
-              <h3>No Document Types Found</h3>
-              <p>Create your first document type to get started.</p>
-              <button mat-raised-button color="primary" (click)="openCreateDialog()">
-                <mat-icon>add</mat-icon>
-                Add First Document Type
-              </button>
-            </div>
+            <app-empty-state
+              [icon]="'description'"
+              [title]="'No Document Types Found'"
+              [description]="'Create your first document type to get started.'">
+            </app-empty-state>
           }
         </div>
 

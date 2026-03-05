@@ -13,6 +13,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
@@ -38,6 +40,8 @@ import { Router } from '@angular/router';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
   templateUrl: './waiting-list-dashboard.component.html',
   styleUrls: ['./waiting-list-dashboard.component.scss'],

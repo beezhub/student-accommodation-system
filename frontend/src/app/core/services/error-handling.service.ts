@@ -265,6 +265,7 @@ export class ErrorHandlingService {
       panelClass: ['error-snackbar'],
       horizontalPosition: 'end',
       verticalPosition: 'top',
+      politeness: 'assertive',
     });
   }
 
@@ -277,6 +278,7 @@ export class ErrorHandlingService {
       panelClass: ['success-snackbar'],
       horizontalPosition: 'end',
       verticalPosition: 'top',
+      politeness: 'polite',
     });
   }
 
@@ -289,6 +291,7 @@ export class ErrorHandlingService {
       panelClass: ['warning-snackbar'],
       horizontalPosition: 'end',
       verticalPosition: 'top',
+      politeness: 'polite',
     });
   }
 
@@ -301,6 +304,7 @@ export class ErrorHandlingService {
       panelClass: ['info-snackbar'],
       horizontalPosition: 'end',
       verticalPosition: 'top',
+      politeness: 'polite',
     });
   }
 

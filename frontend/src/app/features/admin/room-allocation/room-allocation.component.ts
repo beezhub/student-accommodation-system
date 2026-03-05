@@ -24,6 +24,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-room-allocation',
@@ -48,6 +50,8 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatMenuModule,
     MatChipsModule,
     ModernStatusBadgeComponent,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class RoomAllocationComponent implements OnInit {
