@@ -1,72 +1,390 @@
-.management-card {
-    margin: 16px;
+@use '../../../../styles/variables' as vars;
+@use '../../../../styles/mixins' as mixins;
+
+// Accent colour for Academic Year module (teal-green, academic calendar theme)
+$accent: vars.$accent-green-dark;
+
+// ─── Page Container ────────────────────────────────────────────────────────────
+
+.academic-year-container {
+    padding: 1rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    min-height: 100vh;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        padding: 1.5rem;
+    }
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        padding: 2rem;
+    }
 }
 
-.header-row {
+// ─── Page Header ───────────────────────────────────────────────────────────────
+
+.page-header {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+    }
+}
+
+.header-content h1 {
+    display: flex;
     align-items: center;
-    width: 100%;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: vars.$slate-900;
+
+    mat-icon {
+        font-size: 1.75rem;
+        width: 1.75rem;
+        height: 1.75rem;
+        color: $accent;
+    }
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        font-size: 1.875rem;
+
+        mat-icon {
+            font-size: 2rem;
+            width: 2rem;
+            height: 2rem;
+        }
+    }
 }
 
-.loading-container {
+.subtitle {
+    color: vars.$slate-500;
+    font-size: 0.9375rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+.header-actions {
     display: flex;
-    justify-content: center;
-    padding: 40px;
-}
-
-.full-width {
-    width: 100%;
-}
-
-.status-chips {
-    display: flex;
-    gap: 8px;
     flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+
+    @media (min-width: vars.$breakpoint-tablet) {
+        width: auto;
+    }
+
+    .add-btn {
+        flex: 1;
+
+        @media (min-width: vars.$breakpoint-tablet) {
+            flex: 0 1 auto;
+        }
+    }
 }
 
-.current-chip {
-    background-color: #1976d2 !important;
-    color: white !important;
-}
-
-.open-chip {
-    background-color: #4caf50 !important;
-    color: white !important;
-}
-
-.closed-chip {
-    background-color: #9e9e9e !important;
-    color: white !important;
-}
-
-.no-data {
+.stat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px;
-    color: #666;
+    padding: 0.5rem 1rem;
+    background: white;
+    border-radius: vars.$radius-md;
+    border: 1px solid vars.$slate-200;
+    box-shadow: vars.$shadow-subtle;
+    min-width: 100px;
+}
 
-    mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        margin-bottom: 16px;
-    }
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: $accent;
+}
 
-    p {
-        margin: 0;
-        font-size: 16px;
+.stat-label {
+    font-size: 0.75rem;
+    color: vars.$slate-500;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+// ─── Table Card ────────────────────────────────────────────────────────────────
+
+.table-card {
+    @include mixins.card-base;
+}
+
+// Desktop table — hidden on mobile
+.table-container {
+    display: none;
+    background: white;
+    border-radius: vars.$radius-xl;
+    overflow: hidden;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        display: block;
     }
 }
 
-table {
+.years-table {
+    width: 100%;
+
     th {
         font-weight: 600;
-        color: #333;
+        color: vars.$slate-600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 1rem 1.25rem;
+        background: vars.$slate-50;
+        border-bottom: 1px solid vars.$slate-200;
     }
 
     td {
+        padding: 1rem 1.25rem;
+        font-size: 0.875rem;
+        color: vars.$slate-700;
+        border-bottom: 1px solid vars.$slate-100;
         vertical-align: middle;
+    }
+
+    tr:hover td {
+        background: vars.$slate-50;
+    }
+}
+
+// ─── Year Cell ─────────────────────────────────────────────────────────────────
+
+.year-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.year-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba($accent, 0.1);
+    border-radius: vars.$radius-md;
+    flex-shrink: 0;
+
+    mat-icon {
+        color: $accent;
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+}
+
+.year-name {
+    font-weight: 600;
+    color: vars.$slate-900;
+    font-size: 0.9375rem;
+}
+
+// ─── Date Cell ─────────────────────────────────────────────────────────────────
+
+.date-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: vars.$slate-600;
+    font-size: 0.875rem;
+
+    mat-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+        color: vars.$slate-400;
+        flex-shrink: 0;
+    }
+}
+
+// ─── Status Badges ─────────────────────────────────────────────────────────────
+
+.status-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: vars.$radius-pill;
+    font-size: vars.$font-size-badge;
+    font-weight: vars.$font-weight-badge;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+
+    mat-icon {
+        font-size: 0.875rem;
+        width: 0.875rem;
+        height: 0.875rem;
+    }
+
+    &.current-badge {
+        background: rgba(vars.$success, 0.12);
+        color: vars.$success;
+        border: 1px solid rgba(vars.$success, 0.25);
+    }
+
+    &.open-badge {
+        background: rgba(vars.$info, 0.12);
+        color: vars.$info;
+        border: 1px solid rgba(vars.$info, 0.25);
+    }
+
+    &.closed-badge {
+        background: vars.$slate-100;
+        color: vars.$slate-500;
+        border: 1px solid vars.$slate-200;
+    }
+}
+
+// ─── Actions Cell ──────────────────────────────────────────────────────────────
+
+.actions-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+
+    mat-icon {
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    &.edit {
+        color: vars.$accent-blue-dark;
+    }
+
+    &.set-current {
+        color: $accent;
+
+        &[disabled] {
+            opacity: 0.35;
+        }
+    }
+
+    &.delete {
+        color: vars.$error;
+    }
+}
+
+// ─── Mobile Cards ──────────────────────────────────────────────────────────────
+
+.mobile-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    @media (min-width: vars.$breakpoint-desktop) {
+        display: none;
+    }
+}
+
+.mobile-card {
+    @include mixins.card-base;
+    padding: 1rem;
+    border: 1px solid vars.$slate-200;
+    background: white;
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid vars.$slate-100;
+}
+
+.mobile-year-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.mobile-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba($accent, 0.1);
+    border-radius: vars.$radius-md;
+
+    mat-icon {
+        color: $accent;
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+}
+
+.mobile-name-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-name {
+    font-weight: 600;
+    color: vars.$slate-900;
+    font-size: 0.9375rem;
+}
+
+.mobile-period {
+    font-size: 0.75rem;
+    color: vars.$slate-500;
+}
+
+.mobile-actions-top {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.mobile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mobile-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    .label {
+        font-size: 0.75rem;
+        color: vars.$slate-500;
+        font-weight: 500;
+    }
+
+    .value {
+        font-size: 0.875rem;
+        color: vars.$slate-800;
+        font-weight: 500;
     }
 }

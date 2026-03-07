@@ -1,0 +1,321 @@
+- generic [ref=e1]:
+  - main [ref=e4]:
+    - generic [ref=e7]:
+      - navigation [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]:
+            - img [ref=e12]: school
+            - generic [ref=e13]: UniAccom
+          - navigation [ref=e14]:
+            - generic [ref=e15]:
+              - generic [ref=e16]: Overview
+              - navigation [ref=e17]:
+                - link [ref=e445] [cursor=pointer]:
+                  - /url: /admin
+                  - img [ref=e19]: dashboard
+                  - generic [ref=e20]: Dashboard
+            - generic [ref=e21]:
+              - generic [ref=e22]: Applications
+              - navigation [ref=e23]:
+                - link [ref=e446] [cursor=pointer]:
+                  - /url: /admin/applications
+                  - img [ref=e25]: assignment
+                  - generic [ref=e26]: Applications
+                - link [ref=e447] [cursor=pointer]:
+                  - /url: /admin/room-allocations
+                  - img [ref=e28]: hotel
+                  - generic [ref=e29]: Allocations
+                - link [ref=e448] [cursor=pointer]:
+                  - /url: /admin/allocations/staged
+                  - img [ref=e31]: pending_actions
+                  - generic [ref=e32]: Staged Allocations
+                - link [ref=e449] [cursor=pointer]:
+                  - /url: /admin/waiting-list
+                  - img [ref=e34]: format_list_numbered
+                  - generic [ref=e35]: Waiting List
+            - generic [ref=e36]:
+              - generic [ref=e37]: Buildings & Rooms
+              - navigation [ref=e38]:
+                - link [ref=e450] [cursor=pointer]:
+                  - /url: /admin/buildings
+                  - img [ref=e40]: apartment
+                  - generic [ref=e41]: Buildings
+                - link [ref=e451] [cursor=pointer]:
+                  - /url: /admin/rooms
+                  - img [ref=e43]: meeting_room
+                  - generic [ref=e44]: Rooms
+            - generic [ref=e45]:
+              - generic [ref=e46]: Configuration
+              - navigation [ref=e47]:
+                - link [ref=e452] [cursor=pointer]:
+                  - /url: /admin/allocation-rules
+                  - img [ref=e49]: rule
+                  - generic [ref=e50]: Allocation Rules
+                - link [ref=e453] [cursor=pointer]:
+                  - /url: /admin/accommodation-types
+                  - img [ref=e52]: category
+                  - generic [ref=e53]: Accomm. Types
+                - link [ref=e454] [cursor=pointer]:
+                  - /url: /admin/institutions
+                  - img [ref=e55]: school
+                  - generic [ref=e56]: Institutions
+                - link [ref=e455] [cursor=pointer]:
+                  - /url: /admin/year-of-study
+                  - img [ref=e58]: timeline
+                  - generic [ref=e59]: Years of Study
+                - link [ref=e456] [cursor=pointer]:
+                  - /url: /admin/academic-years
+                  - img [ref=e61]: date_range
+                  - generic [ref=e62]: Academic Years
+                - link [ref=e457] [cursor=pointer]:
+                  - /url: /admin/document-types
+                  - img [ref=e64]: folder
+                  - generic [ref=e65]: Doc Types
+                - link [ref=e458] [cursor=pointer]:
+                  - /url: /admin/settings
+                  - img [ref=e67]: settings
+                  - generic [ref=e68]: System Settings
+                - link [ref=e459] [cursor=pointer]:
+                  - /url: /admin/feature-flags
+                  - img [ref=e70]: toggle_on
+                  - generic [ref=e71]: Feature Flags
+            - generic [ref=e72]:
+              - generic [ref=e73]: Administration
+              - navigation [ref=e74]:
+                - link [ref=e460] [cursor=pointer]:
+                  - /url: /admin/users
+                  - img [ref=e76]: people
+                  - generic [ref=e77]: Users
+                - link [ref=e461] [cursor=pointer]:
+                  - /url: /admin/documents
+                  - img [ref=e79]: description
+                  - generic [ref=e80]: Documents
+                - link [ref=e462] [cursor=pointer]:
+                  - /url: /admin/activity-logs
+                  - img [ref=e82]: history
+                  - generic [ref=e83]: Activity Logs
+      - generic [ref=e88]:
+        - generic [ref=e89]:
+          - heading [level=1] [ref=e463]:
+            - img [ref=e91]: assignment
+            - text: Application Review
+          - paragraph [ref=e92]: Review and manage student accommodation applications
+        - generic [ref=e95]:
+          - generic [ref=e98]:
+            - generic [ref=e99]: Application Code
+            - textbox [ref=e464]:
+              - /placeholder: e.g., APP-2024-001
+            - img [ref=e103]: search
+          - generic [ref=e106]:
+            - generic [ref=e107]: Student Name
+            - textbox [ref=e465]:
+              - /placeholder: Search by name
+            - img [ref=e111]: person_search
+          - generic [ref=e114]:
+            - generic [ref=e115]: Preferred Building
+            - combobox [ref=e466]
+            - img [ref=e119]: apartment
+          - generic [ref=e122] [cursor=pointer]:
+            - generic [ref=e123]: Application Status
+            - combobox [ref=e467]:
+              - generic [ref=e126]:
+                - generic [ref=e128]: All Statuses
+                - img [ref=e131]
+          - generic [ref=e135] [cursor=pointer]:
+            - generic [ref=e136]: Allocation Status
+            - combobox [ref=e468]:
+              - generic [ref=e139]:
+                - generic [ref=e141]: All Allocation Statuses
+                - img [ref=e144]
+          - generic [ref=e148]:
+            - generic [ref=e149]: Start Date
+            - textbox [ref=e469]:
+              - /placeholder: Choose date
+            - button [ref=e470] [cursor=pointer]:
+              - img [ref=e155]
+          - generic [ref=e161]:
+            - generic [ref=e162]: End Date
+            - textbox [ref=e471]:
+              - /placeholder: Choose date
+            - button [ref=e472] [cursor=pointer]:
+              - img [ref=e168]
+          - generic [ref=e172]:
+            - button [ref=e473]:
+              - img [ref=e174]: search
+              - generic [ref=e175]: Search
+            - button [ref=e474]:
+              - img [ref=e179]: clear
+              - generic [ref=e180]: Clear
+        - generic [ref=e184]:
+          - table [ref=e354]:
+            - rowgroup [ref=e355]:
+              - row [ref=e475]:
+                - columnheader [ref=e476]: Code
+                - columnheader [ref=e477]: Student
+                - columnheader [ref=e478]: Preferred Building
+                - columnheader [ref=e479]: Score
+                - columnheader [ref=e480]: Document Status
+                - columnheader [ref=e481]: Allocation
+                - columnheader [ref=e482]: App Status
+                - columnheader [ref=e483]: Date
+                - columnheader [ref=e484]: Actions
+            - rowgroup [ref=e366]:
+              - row [ref=e485]:
+                - cell [ref=e486]:
+                  - strong [ref=e369]: APP-2026-001
+                - cell [ref=e487]:
+                  - generic [ref=e372]: test@test.com
+                - cell [ref=e488]: "-"
+                - cell [ref=e489]: "-"
+                - cell [ref=e490]:
+                  - generic [ref=e376]:
+                    - progressbar [ref=e377]
+                    - generic [ref=e380]: 0/5 approved
+                - cell [ref=e491]:
+                  - status [ref=e492]:
+                    - img [ref=e384]: schedule
+                    - generic [ref=e385]: Pending
+                - cell [ref=e493]:
+                  - status [ref=e494]:
+                    - img [ref=e389]: schedule
+                    - generic [ref=e390]: Pending
+                - cell [ref=e495]: Mar 4, 2026
+                - cell [ref=e496]:
+                  - button [ref=e497] [cursor=pointer]:
+                    - img [ref=e394]: rate_review
+                  - button [ref=e498] [cursor=pointer]:
+                    - img [ref=e398]: tune
+                  - button [disabled]:
+                    - img: assignment_turned_in
+                  - button [ref=e499] [cursor=pointer]:
+                    - img [ref=e402]: more_vert
+          - group [ref=e405]:
+            - generic [ref=e407]:
+              - generic [ref=e408]:
+                - generic [ref=e409]: "Items per page:"
+                - combobox [ref=e500] [cursor=pointer]:
+                  - generic [ref=e415]:
+                    - generic [ref=e417]: "20"
+                    - img [ref=e420]
+              - generic [ref=e423]:
+                - status [ref=e424]: 1 – 1 of 1
+                - button [disabled] [ref=e501]:
+                  - img [ref=e426]
+                - button [disabled] [ref=e502]:
+                  - img [ref=e431]
+                - button [disabled] [ref=e503]:
+                  - img [ref=e436]
+                - button [disabled] [ref=e504]:
+                  - img [ref=e441]
+  - 'dialog "Application Review APP-2026-001 • test test Status: Pending Close dialog" [ref=e508]':
+    - generic [ref=e512]:
+      - generic [ref=e513]:
+        - generic [ref=e514]:
+          - heading "Application Review" [level=2] [ref=e516]
+          - generic [ref=e517]:
+            - generic [ref=e518]: APP-2026-001
+            - generic [ref=e519]: •
+            - generic [ref=e520]: test test
+        - generic [ref=e521]:
+          - 'status "Status: Pending" [ref=e523]':
+            - img [ref=e524]: schedule
+            - generic [ref=e525]: Pending
+          - button "Close dialog" [active] [ref=e526] [cursor=pointer]:
+            - img [ref=e527]: close
+      - generic [ref=e531]:
+        - generic [ref=e532]:
+          - generic [ref=e533]:
+            - img [ref=e534]: person
+            - generic [ref=e536]: Student Profile
+          - generic [ref=e538]:
+            - generic [ref=e539]:
+              - generic [ref=e540]: Full Name
+              - generic [ref=e541]: test test
+            - generic [ref=e542]:
+              - generic [ref=e543]: Email
+              - generic [ref=e544]: test@test.com
+            - generic [ref=e545]:
+              - generic [ref=e546]: Phone
+              - generic [ref=e547]: "0123456789"
+            - generic [ref=e548]:
+              - generic [ref=e549]: Student Number
+              - generic [ref=e550]: "123456789"
+            - generic [ref=e551]:
+              - generic [ref=e552]: Gender
+              - generic [ref=e553]: male
+            - generic [ref=e554]:
+              - generic [ref=e555]: Institution
+              - generic [ref=e556]: University of Example
+            - generic [ref=e557]:
+              - generic [ref=e558]: Year of Study
+              - generic [ref=e559]: First Year
+            - generic [ref=e560]:
+              - generic [ref=e561]: Special Requirements
+              - generic [ref=e562]: none
+        - generic [ref=e563]:
+          - generic [ref=e564]:
+            - img [ref=e565]: tune
+            - generic [ref=e566]:
+              - generic [ref=e567]: Application Preferences
+              - generic [ref=e568]: Submitted on March 4, 2026
+          - generic [ref=e570]:
+            - generic [ref=e571]:
+              - generic [ref=e572]: Preferred Building
+              - generic [ref=e573]: Any Building
+            - generic [ref=e574]:
+              - generic [ref=e575]: Course Name
+              - generic [ref=e576]: IT
+            - generic [ref=e577]:
+              - generic [ref=e578]: Institution
+              - generic [ref=e579]: University of Example
+            - generic [ref=e580]:
+              - generic [ref=e581]: Requires Accessibility
+              - generic [ref=e582]: "No"
+            - generic [ref=e583]:
+              - generic [ref=e584]: Special Requirements
+              - generic [ref=e585]: none
+        - generic [ref=e586]:
+          - generic [ref=e587]:
+            - img [ref=e588]: checklist
+            - generic [ref=e589]:
+              - generic [ref=e590]: Required Document Checklist
+              - generic [ref=e591]: 0/3 required documents approved
+          - generic [ref=e592]:
+            - generic [ref=e593]:
+              - progressbar [ref=e594]
+              - generic [ref=e597]: 0%
+            - generic [ref=e598]:
+              - generic [ref=e599]:
+                - img [ref=e600]: cloud_upload
+                - generic [ref=e601]:
+                  - generic [ref=e602]: ID Document
+                  - generic [ref=e603]: RequiredNOT UPLOADED
+              - generic [ref=e604]:
+                - img [ref=e605]: cloud_upload
+                - generic [ref=e606]:
+                  - generic [ref=e607]: Proof of Address
+                  - generic [ref=e608]: RequiredNOT UPLOADED
+              - generic [ref=e609]:
+                - img [ref=e610]: cloud_upload
+                - generic [ref=e611]:
+                  - generic [ref=e612]: Proof of Enrollment
+                  - generic [ref=e613]: RequiredNOT UPLOADED
+        - generic [ref=e614]:
+          - generic [ref=e615]:
+            - img [ref=e616]: folder
+            - generic [ref=e617]:
+              - generic [ref=e618]: Documents Review
+              - generic [ref=e619]: 0 document(s) uploaded
+          - generic [ref=e621]:
+            - img [ref=e622]: cloud_upload
+            - paragraph [ref=e623]: No documents uploaded yet
+      - generic [ref=e624]:
+        - button "Reject Application" [ref=e625]:
+          - img [ref=e626]: block
+          - generic [ref=e627]: Reject Application
+        - button "Approve Application" [disabled]:
+          - img: check_circle
+          - generic: Approve Application
+        - button "Save Progress" [disabled]:
+          - img: save
+          - generic: Save Progress

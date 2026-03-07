@@ -12,6 +12,7 @@ import com.beezhub.student_accommodation.model.entity.ApplicationDocument;
 import com.beezhub.student_accommodation.repository.ApplicationDocumentRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.specification.ApplicationSpecification;
@@ -46,6 +47,7 @@ public class ApplicationSearchService {
     private final ApplicationDocumentRepository applicationDocumentRepository;
     private final StagedAllocationRepository stagedAllocationRepository;
     private final ApplicationMapper applicationMapper;
+    private final DocumentTypeRepository documentTypeRepository;
 
     /**
      * Retrieves all applications with pagination.
@@ -139,6 +141,9 @@ public class ApplicationSearchService {
 
         List<Long> appIds = applications.stream().map(Application::getId).collect(Collectors.toList());
 
+        // Fetch actual required document type count once for all applications
+        int requiredDocCount = documentTypeRepository.findByIsRequiredTrue().size();
+
         // Fetch junction entries in batch; group documents by application ID
         List<ApplicationDocument> allJunctionEntries = applicationDocumentRepository.findByApplication_IdIn(appIds);
         Map<Long, List<ApplicationDocument>> entriesByApp = allJunctionEntries.stream()
@@ -162,9 +167,8 @@ public class ApplicationSearchService {
                     .filter(e -> e.getDocument().getDocumentStatus() == DocumentStatus.APPROVED)
                     .count();
             response.setApprovedDocuments((int) approvedCount);
-            // Assuming 5 required documents for student accommodation
-            response.setTotalRequiredDocuments(5);
-            response.setDocumentCompletionPercent(entries.isEmpty() ? 0 : (int) ((approvedCount * 100) / 5));
+            response.setTotalRequiredDocuments(requiredDocCount);
+            response.setDocumentCompletionPercent(requiredDocCount == 0 ? 0 : (int) ((approvedCount * 100) / requiredDocCount));
 
             // Handle Allocation
             if (app.getStatus() == ApplicationStatus.ALLOCATED) {

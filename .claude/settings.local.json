@@ -116,7 +116,15 @@
       "mcp__plugin_serena_serena__get_symbols_overview",
       "Bash(while read commit msg)",
       "Bash(do echo \"=== $commit ===\")",
-      "Bash(./gradlew jacocoTestCoverageVerification:*)"
+      "Bash(./gradlew jacocoTestCoverageVerification:*)",
+      "Bash(npx skills:*)",
+      "Bash(npm run:*)",
+      "mcp__plugin_serena_serena__replace_content",
+      "Bash(npx playwright:*)",
+      "Bash(npx playwright-cli:*)",
+      "Bash(npm list:*)",
+      "Bash(npm info:*)",
+      "Bash(playwright-cli:*)"
     ],
     "deny": [],
     "ask": []

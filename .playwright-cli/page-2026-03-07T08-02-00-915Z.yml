@@ -1,0 +1,32 @@
+- main [ref=e4]:
+  - generic [ref=e42]:
+    - generic [ref=e43]:
+      - heading "Welcome Back" [level=1] [ref=e44]
+      - paragraph [ref=e45]: Sign in to your Student Housing account
+    - generic [ref=e46]:
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - text: Email Address
+          - generic [ref=e51]: "*"
+        - textbox "Email Address" [ref=e53]:
+          - /placeholder: Enter your email
+          - text: admin@test.com
+        - img [ref=e55]: email
+      - generic [ref=e58]:
+        - generic [ref=e59]:
+          - text: Password
+          - generic [ref=e60]: "*"
+        - textbox "Password" [active] [ref=e62]:
+          - /placeholder: Enter your password
+          - text: "12345678"
+        - button "Hide password" [pressed] [ref=e64] [cursor=pointer]:
+          - img [ref=e65]: visibility_off
+      - button "Sign In" [ref=e80]:
+        - generic [ref=e81]: Sign In
+      - generic [ref=e68]: or
+      - button "Sign up" [ref=e69]:
+        - img [ref=e70]: person_add
+        - generic [ref=e71]: Sign up
+      - link "Forgot your password?" [ref=e75] [cursor=pointer]:
+        - /url: /forgot-password
+        - generic [ref=e76]: Forgot your password?

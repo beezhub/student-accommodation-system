@@ -36,7 +36,8 @@ import { AdminService } from '../../../../core/services/admin.service';
 import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-badge/modern-status-badge.component';
 import { DocumentCommentSectionComponent } from '../../../shared/components/document-comment-section/document-comment-section.component';
 import { TimeagoPipe } from '../../../../shared/pipes/timeago.pipe';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
+import { Subscription } from 'rxjs';
 
 export interface ApplicationDetailDialogData {
   applicationId: number;
@@ -117,10 +118,11 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   expandedDocumentId: number | null = null;
 
   // Document preview states
-  documentPreviews: Map<number, SafeResourceUrl | null> = new Map();
+  documentPreviews: Map<number, SafeResourceUrl | SafeUrl | null> = new Map();
   documentPreviewTypes: Map<number, 'pdf' | 'image' | 'unknown'> = new Map();
   documentLoadingStates: Map<number, boolean> = new Map();
   documentPreviewErrors: Map<number, boolean> = new Map();
+  private documentPreviewSubscriptions: Map<number, Subscription> = new Map();
 
   // Expanded comments section
   expandedCommentsId: number | null = null;
@@ -363,8 +365,21 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
 
     // First approve the application, then move to allocation
     this.adminService.updateApplicationStatus(this.data.applicationId, 'APPROVED').subscribe({
-      next: () => {
-        // Now move to allocation phase
+      next: (updatedApp) => {
+        // If auto-allocation already moved the app past APPROVED, skip moveToAllocationPhase
+        if (updatedApp.status !== 'APPROVED') {
+          this.snackBar.open('Application approved and moved to allocation', 'Close', {
+            duration: 3000,
+          });
+          this.isApproving = false;
+          this.dialogRef.close({
+            action: 'allocated',
+            applicationId: this.data.applicationId,
+            newStatus: updatedApp.status,
+          } as ApplicationDetailDialogResult);
+          return;
+        }
+        // Application is APPROVED but not yet allocated — explicitly move to allocation phase
         this.applicationService.moveToAllocationPhase(this.data.applicationId).subscribe({
           next: () => {
             this.snackBar.open('Application approved and moved to allocation', 'Close', {
@@ -379,11 +394,10 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             console.error('Failed to move to allocation:', error);
-            this.snackBar.open('Application approved, but failed to move to allocation', 'Close', {
+            this.snackBar.open(error.error?.message || 'Failed to move to allocation phase', 'Close', {
               duration: 5000,
             });
             this.isApproving = false;
-            // Still close with approved status
             this.dialogRef.close({
               action: 'saved',
               applicationId: this.data.applicationId,
@@ -455,6 +469,13 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   }
 
   // Utility methods
+  getInitials(): string {
+    if (!this.student) return '?';
+    const first = (this.student.firstName || '').charAt(0);
+    const last = (this.student.lastName || '').charAt(0);
+    return (first + last).toUpperCase() || '?';
+  }
+
   formatDate(date: string | undefined): string {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -481,51 +502,69 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   }
 
   private loadDocumentPreview(doc: DocumentWithComments): void {
+    // Cancel any in-flight request for this doc
+    this.documentPreviewSubscriptions.get(doc.id)?.unsubscribe();
+
     this.documentLoadingStates.set(doc.id, true);
     this.documentPreviewErrors.set(doc.id, false);
-    this.documentPreviews.set(doc.id, null); // Mark as being loaded
+    this.documentPreviews.set(doc.id, null); // Mark as loading
 
-    this.adminService.downloadDocument(doc.id).subscribe({
+    const sub = this.adminService.downloadDocument(doc.id).subscribe({
       next: (blob: Blob) => {
         const url = URL.createObjectURL(blob);
 
-        // Determine file type from blob type or filename
+        // Determine file type: prefer Content-Type header via blob.type,
+        // fall back to filename extension (backend may serve application/octet-stream)
         let fileType: 'pdf' | 'image' | 'unknown' = 'unknown';
-        if (blob.type.includes('pdf')) {
+        const mimeType = blob.type.toLowerCase();
+        if (mimeType.includes('pdf')) {
           fileType = 'pdf';
-        } else if (blob.type.includes('image')) {
+        } else if (mimeType.startsWith('image/')) {
           fileType = 'image';
         } else {
-          // Try to determine from document name
-          const fileName = doc.fileName?.toLowerCase() || '';
+          const fileName = (doc.fileName ?? '').toLowerCase();
           if (fileName.endsWith('.pdf')) {
             fileType = 'pdf';
-          } else if (fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) {
+          } else if (/\.(jpe?g|png|gif|webp|bmp|svg)$/.test(fileName)) {
             fileType = 'image';
           }
         }
 
         this.documentPreviewTypes.set(doc.id, fileType);
-        this.documentPreviews.set(doc.id, this.sanitizer.bypassSecurityTrustResourceUrl(url));
+        // Use SafeUrl for images (SecurityContext.URL), SafeResourceUrl for iframes (SecurityContext.RESOURCE_URL)
+        const safeUrl = fileType === 'image'
+          ? this.sanitizer.bypassSecurityTrustUrl(url)
+          : this.sanitizer.bypassSecurityTrustResourceUrl(url);
+        this.documentPreviews.set(doc.id, safeUrl);
         this.documentLoadingStates.set(doc.id, false);
+        this.documentPreviewSubscriptions.delete(doc.id);
       },
       error: (error) => {
         console.error('Failed to load document preview:', error);
         this.documentLoadingStates.set(doc.id, false);
         this.documentPreviewErrors.set(doc.id, true);
+        this.documentPreviewSubscriptions.delete(doc.id);
       },
     });
+
+    this.documentPreviewSubscriptions.set(doc.id, sub);
   }
 
   private cleanupDocumentPreview(docId: number): void {
+    // Cancel any in-flight request
+    this.documentPreviewSubscriptions.get(docId)?.unsubscribe();
+    this.documentPreviewSubscriptions.delete(docId);
+
+    // Revoke the blob URL to free memory
     const previewUrl = this.documentPreviews.get(docId);
     if (previewUrl) {
-      // Extract the actual URL string and revoke it
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const urlString = (previewUrl as any).changingThisBreaksApplicationSecurity;
-      if (urlString && urlString.startsWith('blob:')) {
+      if (typeof urlString === 'string' && urlString.startsWith('blob:')) {
         URL.revokeObjectURL(urlString);
       }
     }
+
     this.documentPreviews.delete(docId);
     this.documentPreviewTypes.delete(docId);
     this.documentLoadingStates.delete(docId);
@@ -533,9 +572,11 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Cleanup all blob URLs when component is destroyed
-    this.documentPreviews.forEach((_, docId) => {
-      this.cleanupDocumentPreview(docId);
-    });
+    // Cancel all in-flight preview requests and revoke blob URLs
+    const docIds = new Set([
+      ...this.documentPreviews.keys(),
+      ...this.documentPreviewSubscriptions.keys(),
+    ]);
+    docIds.forEach((docId) => this.cleanupDocumentPreview(docId));
   }
 }

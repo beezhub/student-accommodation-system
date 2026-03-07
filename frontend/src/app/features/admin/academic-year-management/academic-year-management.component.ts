@@ -12,11 +12,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatChipsModule } from '@angular/material/chips';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 
 @Component({
   selector: 'app-academic-year-management',
@@ -33,11 +32,10 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
     MatFormFieldModule,
     MatInputModule,
     MatDialogModule,
-    MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatChipsModule,
     EmptyStateComponent,
+    SkeletonLoaderComponent,
   ],
 })
 export class AcademicYearManagementComponent implements OnInit {

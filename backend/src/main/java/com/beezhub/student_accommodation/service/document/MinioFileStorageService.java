@@ -89,6 +89,21 @@ public class MinioFileStorageService implements FileStorageService {
     }
 
     @Override
+    public String getContentType(String key) {
+        String bucketName = minioConfig.getBucketName();
+        try {
+            return minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(key)
+                            .build()).contentType();
+        } catch (Exception e) {
+            log.warn("Could not determine content type for key {}: {}", key, e.getMessage());
+            return "application/octet-stream";
+        }
+    }
+
+    @Override
     public String generatePresignedUrl(String key, Duration expiry) {
         String bucketName = minioConfig.getBucketName();
         try {

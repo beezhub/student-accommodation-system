@@ -1,0 +1,25 @@
+- main [ref=e4]:
+  - generic [ref=e6]:
+    - generic [ref=e8]:
+      - heading "Find Your Perfect Student Accommodation" [level=1] [ref=e9]
+      - paragraph [ref=e10]: Simple, secure, and hassle-free student housing management platform
+      - generic [ref=e11]:
+        - button "Register Now" [ref=e12]:
+          - img [ref=e13]: person_add
+          - generic [ref=e14]: Register Now
+        - button "Sign In" [ref=e17]:
+          - img [ref=e18]: login
+          - text: Sign In
+    - generic [ref=e20]:
+      - generic [ref=e22]:
+        - img [ref=e24]: person_add
+        - generic [ref=e25]: Easy Registration
+        - generic [ref=e26]: Simple and quick registration process for students
+      - generic [ref=e28]:
+        - img [ref=e30]: home
+        - generic [ref=e31]: Room Selection
+        - generic [ref=e32]: Choose from various accommodation options
+      - generic [ref=e34]:
+        - img [ref=e36]: security
+        - generic [ref=e37]: Secure Platform
+        - generic [ref=e38]: Safe and secure platform for all transactions

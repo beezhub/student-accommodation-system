@@ -1,0 +1,238 @@
+- generic [active] [ref=e1]:
+  - main [ref=e4]:
+    - generic [ref=e86]:
+      - navigation [ref=e88]:
+        - generic [ref=e89]:
+          - generic [ref=e90]:
+            - img [ref=e91]: school
+            - generic [ref=e92]: UniAccom
+          - navigation [ref=e93]:
+            - generic [ref=e94]:
+              - generic [ref=e95]: Overview
+              - navigation [ref=e96]:
+                - link "Dashboard" [ref=e97] [cursor=pointer]:
+                  - /url: /admin
+                  - img [ref=e98]: dashboard
+                  - generic [ref=e99]: Dashboard
+            - generic [ref=e100]:
+              - generic [ref=e101]: Applications
+              - navigation [ref=e102]:
+                - link "Applications" [ref=e103] [cursor=pointer]:
+                  - /url: /admin/applications
+                  - img [ref=e104]: assignment
+                  - generic [ref=e105]: Applications
+                - link "Allocations" [ref=e106] [cursor=pointer]:
+                  - /url: /admin/room-allocations
+                  - img [ref=e107]: hotel
+                  - generic [ref=e108]: Allocations
+                - link "Staged Allocations" [ref=e109] [cursor=pointer]:
+                  - /url: /admin/allocations/staged
+                  - img [ref=e110]: pending_actions
+                  - generic [ref=e111]: Staged Allocations
+                - link "Waiting List" [ref=e112] [cursor=pointer]:
+                  - /url: /admin/waiting-list
+                  - img [ref=e113]: format_list_numbered
+                  - generic [ref=e114]: Waiting List
+            - generic [ref=e115]:
+              - generic [ref=e116]: Buildings & Rooms
+              - navigation [ref=e117]:
+                - link "Buildings" [ref=e118] [cursor=pointer]:
+                  - /url: /admin/buildings
+                  - img [ref=e119]: apartment
+                  - generic [ref=e120]: Buildings
+                - link "Rooms" [ref=e121] [cursor=pointer]:
+                  - /url: /admin/rooms
+                  - img [ref=e122]: meeting_room
+                  - generic [ref=e123]: Rooms
+            - generic [ref=e124]:
+              - generic [ref=e125]: Configuration
+              - navigation [ref=e126]:
+                - link "Allocation Rules" [ref=e127] [cursor=pointer]:
+                  - /url: /admin/allocation-rules
+                  - img [ref=e128]: rule
+                  - generic [ref=e129]: Allocation Rules
+                - link "Accomm. Types" [ref=e130] [cursor=pointer]:
+                  - /url: /admin/accommodation-types
+                  - img [ref=e131]: category
+                  - generic [ref=e132]: Accomm. Types
+                - link "Institutions" [ref=e133] [cursor=pointer]:
+                  - /url: /admin/institutions
+                  - img [ref=e134]: school
+                  - generic [ref=e135]: Institutions
+                - link "Years of Study" [ref=e136] [cursor=pointer]:
+                  - /url: /admin/year-of-study
+                  - img [ref=e137]: timeline
+                  - generic [ref=e138]: Years of Study
+                - link "Academic Years" [ref=e139] [cursor=pointer]:
+                  - /url: /admin/academic-years
+                  - img [ref=e140]: date_range
+                  - generic [ref=e141]: Academic Years
+                - link "Doc Types" [ref=e142] [cursor=pointer]:
+                  - /url: /admin/document-types
+                  - img [ref=e143]: folder
+                  - generic [ref=e144]: Doc Types
+                - link "System Settings" [ref=e145] [cursor=pointer]:
+                  - /url: /admin/settings
+                  - img [ref=e146]: settings
+                  - generic [ref=e147]: System Settings
+                - link "Feature Flags" [ref=e148] [cursor=pointer]:
+                  - /url: /admin/feature-flags
+                  - img [ref=e149]: toggle_on
+                  - generic [ref=e150]: Feature Flags
+            - generic [ref=e151]:
+              - generic [ref=e152]: Administration
+              - navigation [ref=e153]:
+                - link "Users" [ref=e154] [cursor=pointer]:
+                  - /url: /admin/users
+                  - img [ref=e155]: people
+                  - generic [ref=e156]: Users
+                - link "Documents" [ref=e157] [cursor=pointer]:
+                  - /url: /admin/documents
+                  - img [ref=e158]: description
+                  - generic [ref=e159]: Documents
+                - link "Activity Logs" [ref=e160] [cursor=pointer]:
+                  - /url: /admin/activity-logs
+                  - img [ref=e161]: history
+                  - generic [ref=e162]: Activity Logs
+      - generic [ref=e167]:
+        - generic [ref=e168]:
+          - generic [ref=e169]:
+            - heading "Admin Dashboard" [level=1] [ref=e170]:
+              - img [ref=e171]: dashboard
+              - text: Admin Dashboard
+            - paragraph [ref=e172]: System overview and real-time analytics
+          - generic [ref=e174]:
+            - img [ref=e175]: calendar_today
+            - generic [ref=e176]: Saturday, March 7, 2026
+        - generic [ref=e177]:
+          - generic [ref=e179]:
+            - img [ref=e181]: description
+            - generic [ref=e182]:
+              - generic [ref=e183]: "1"
+              - generic [ref=e184]: Total Applications
+            - generic [ref=e186]: 1 pending
+          - generic [ref=e188]:
+            - img [ref=e190]: meeting_room
+            - generic [ref=e191]:
+              - generic [ref=e192]: "1"
+              - generic [ref=e193]: Total Rooms
+            - generic [ref=e195]: 1 available
+          - generic [ref=e197]:
+            - img [ref=e199]: school
+            - generic [ref=e200]:
+              - generic [ref=e201]: "1"
+              - generic [ref=e202]: Registered Students
+            - generic [ref=e203]:
+              - img [ref=e204]: trending_up
+              - generic [ref=e205]: Active
+          - generic [ref=e207]:
+            - img [ref=e209]: analytics
+            - generic [ref=e210]:
+              - generic [ref=e211]: 0%
+              - generic [ref=e212]: Overall Occupancy
+        - heading "Analytics Overview" [level=2] [ref=e215]:
+          - img [ref=e216]: insights
+          - text: Analytics Overview
+        - generic [ref=e217]:
+          - generic [ref=e219]:
+            - generic [ref=e221]:
+              - img [ref=e222]: assignment
+              - generic [ref=e223]: Application Status
+            - 'img "Application Status: 1 applications total" [ref=e224]':
+              - generic [ref=e226]:
+                - generic [ref=e227]: "1"
+                - generic [ref=e228]: Total
+              - generic [ref=e230]:
+                - generic [ref=e232]: Pending
+                - generic [ref=e233]: "1"
+          - generic [ref=e235]:
+            - generic [ref=e237]:
+              - img [ref=e238]: folder
+              - generic [ref=e239]: Document Status
+            - 'img "Document Status: 3 documents total" [ref=e240]':
+              - generic [ref=e242]:
+                - generic [ref=e243]: "3"
+                - generic [ref=e244]: Total
+              - generic [ref=e246]:
+                - generic [ref=e248]: Pending
+                - generic [ref=e249]: "3"
+          - generic [ref=e251]:
+            - generic [ref=e253]:
+              - img [ref=e254]: door_sliding
+              - generic [ref=e255]: Room Status
+            - 'img "Room Status: 1 rooms total" [ref=e256]':
+              - generic [ref=e258]:
+                - generic [ref=e259]: "1"
+                - generic [ref=e260]: Total
+              - generic [ref=e262]:
+                - generic [ref=e264]: Available
+                - generic [ref=e265]: "1"
+        - heading "Building Occupancy" [level=2] [ref=e267]:
+          - img [ref=e268]: apartment
+          - text: Building Occupancy
+        - table [ref=e272]:
+          - rowgroup [ref=e273]:
+            - row "Building Rooms Capacity Occupied Occupancy Rate" [ref=e274]:
+              - columnheader "Building" [ref=e275]
+              - columnheader "Rooms" [ref=e276]
+              - columnheader "Capacity" [ref=e277]
+              - columnheader "Occupied" [ref=e278]
+              - columnheader "Occupancy Rate" [ref=e279]
+          - rowgroup [ref=e280]:
+            - row "DKY 1 1 beds 0 / 1 0%" [ref=e281]:
+              - cell "DKY" [ref=e282]:
+                - generic [ref=e283]:
+                  - img [ref=e285]: apartment
+                  - generic [ref=e286]: DKY
+              - cell "1" [ref=e287]
+              - cell "1 beds" [ref=e288]:
+                - generic [ref=e289]:
+                  - img [ref=e290]: king_bed
+                  - text: 1 beds
+              - cell "0 / 1" [ref=e291]
+              - cell "0%" [ref=e292]:
+                - generic [ref=e295]: 0%
+        - heading "Quick Access" [level=2] [ref=e297]:
+          - img [ref=e298]: rocket_launch
+          - text: Quick Access
+        - generic [ref=e299]:
+          - generic [ref=e301] [cursor=pointer]:
+            - img [ref=e303]: assignment
+            - generic [ref=e304]:
+              - heading "Application Review" [level=3] [ref=e305]
+              - paragraph [ref=e306]: Review and manage student applications
+            - img [ref=e308]: arrow_forward
+          - generic [ref=e310] [cursor=pointer]:
+            - img [ref=e312]: verified_user
+            - generic [ref=e313]:
+              - heading "Document Verification" [level=3] [ref=e314]
+              - paragraph [ref=e315]: Verify student documents
+            - img [ref=e317]: arrow_forward
+          - generic [ref=e319] [cursor=pointer]:
+            - img [ref=e321]: meeting_room
+            - generic [ref=e322]:
+              - heading "Room Allocations" [level=3] [ref=e323]
+              - paragraph [ref=e324]: Manage room allocations
+            - img [ref=e326]: arrow_forward
+          - generic [ref=e328] [cursor=pointer]:
+            - img [ref=e330]: apartment
+            - generic [ref=e331]:
+              - heading "Building Management" [level=3] [ref=e332]
+              - paragraph [ref=e333]: Manage buildings and institutions
+            - img [ref=e335]: arrow_forward
+          - generic [ref=e337] [cursor=pointer]:
+            - img [ref=e339]: hourglass_empty
+            - generic [ref=e340]:
+              - heading "Waiting List" [level=3] [ref=e341]
+              - paragraph [ref=e342]: View student waiting list
+            - img [ref=e344]: arrow_forward
+          - generic [ref=e346] [cursor=pointer]:
+            - img [ref=e348]: settings
+            - generic [ref=e349]:
+              - heading "System Settings" [level=3] [ref=e350]
+              - paragraph [ref=e351]: Configure system-wide settings
+            - img [ref=e353]: arrow_forward
+  - generic [ref=e360]:
+    - generic [ref=e361]: Login successful!
+    - button "Close" [ref=e363]:
+      - generic [ref=e364]: Close

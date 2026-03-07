@@ -14,7 +14,12 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
+import com.beezhub.student_accommodation.model.entity.Application;
+import com.beezhub.student_accommodation.model.entity.ApplicationDocument;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.repository.ApplicationDocumentRepository;
+import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
@@ -47,6 +52,8 @@ public class DocumentLifecycleService {
     private final DocumentTypeRepository documentTypeRepository;
     private final StudentRepository studentRepository;
     private final AppUserRepository appUserRepository;
+    private final ApplicationRepository applicationRepository;
+    private final ApplicationDocumentRepository applicationDocumentRepository;
     private final DocumentMapper documentMapper;
 
     @Transactional
@@ -171,6 +178,36 @@ public class DocumentLifecycleService {
                 .student(student)
                 .documentStatus(PENDING)
                 .build();
-        return documentRepository.save(document);
+        Document savedDocument = documentRepository.save(document);
+
+        linkDocumentToActiveApplication(student, savedDocument);
+
+        return savedDocument;
+    }
+
+    private static final List<ApplicationStatus> ACTIVE_STATUSES = List.of(
+            ApplicationStatus.PENDING,
+            ApplicationStatus.UNDER_REVIEW,
+            ApplicationStatus.CHANGES_REQUESTED,
+            ApplicationStatus.APPROVED,
+            ApplicationStatus.AWAITING_ALLOCATION
+    );
+
+    private void linkDocumentToActiveApplication(Student student, Document document) {
+        applicationRepository.findByStudent_Id(student.getId())
+                .stream()
+                .filter(app -> ACTIVE_STATUSES.contains(app.getStatus()))
+                .findFirst()
+                .ifPresent(application -> {
+                    if (!applicationDocumentRepository.existsByApplication_IdAndDocument_Id(
+                            application.getId(), document.getId())) {
+                        ApplicationDocument junction = ApplicationDocument.builder()
+                                .application(application)
+                                .document(document)
+                                .build();
+                        applicationDocumentRepository.save(junction);
+                        log.info("Linked document {} to application {}", document.getId(), application.getId());
+                    }
+                });
     }
 }
