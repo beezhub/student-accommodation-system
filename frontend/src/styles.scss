@@ -21,12 +21,7 @@ body {
     height: 100%;
     margin: 0;
     font-family: vars.$font-sans;
-    background-color: vars.$slate-50;
-    background-image:
-        radial-gradient(at 40% 20%, hsla(250, 100%, 74%, 0.15) 0px, transparent 50%),
-        radial-gradient(at 80% 0%, hsla(189, 100%, 56%, 0.15) 0px, transparent 50%),
-        radial-gradient(at 0% 50%, hsla(355, 100%, 93%, 0.1) 0px, transparent 50%);
-    background-attachment: fixed;
+    background-color: #f8fafc;
     color: vars.$slate-800;
 }
 
@@ -220,6 +215,51 @@ gmp-internal-place-autocomplete-overlay::part(item) {
 .info-snackbar .mat-mdc-snackbar-surface {
   background: #0c4a6e !important;
   color: #e0f2fe !important;
+}
+
+// ─── Dark Sidebar Nav Overrides ──────────────────────────────────────────────
+// Material MDC list items override text color aggressively; must patch globally.
+
+app-admin-sidebar {
+    // All nav items: default muted white text
+    .sidenav mat-nav-list a.mat-mdc-list-item {
+        .mdc-list-item__primary-text {
+            color: rgba(255, 255, 255, 0.6) !important;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        // Icon colour
+        .mat-mdc-list-item-icon {
+            color: rgba(255, 255, 255, 0.38) !important;
+        }
+
+        // Hover: brighter text
+        &:hover:not(.active) {
+            .mdc-list-item__primary-text {
+                color: rgba(255, 255, 255, 0.88) !important;
+            }
+            .mat-mdc-list-item-icon {
+                color: rgba(255, 255, 255, 0.65) !important;
+            }
+        }
+
+        // Active: purple tint
+        &.active {
+            .mdc-list-item__primary-text {
+                color: #c4b5fd !important;
+                font-weight: 600;
+            }
+            .mat-mdc-list-item-icon {
+                color: #a78bfa !important;
+            }
+        }
+    }
+
+    // Ripple on dark background
+    .sidenav mat-nav-list a.mat-mdc-list-item .mat-mdc-list-item-ripple {
+        background: rgba(255, 255, 255, 0.06);
+    }
 }
 
 // Global Dialog Overrides
