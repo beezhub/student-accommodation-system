@@ -124,7 +124,9 @@
       "Bash(npx playwright-cli:*)",
       "Bash(npm list:*)",
       "Bash(npm info:*)",
-      "Bash(playwright-cli:*)"
+      "Bash(playwright-cli:*)",
+      "mcp__plugin_serena_serena__replace_symbol_body",
+      "mcp__plugin_serena_serena__create_text_file"
     ],
     "deny": [],
     "ask": []

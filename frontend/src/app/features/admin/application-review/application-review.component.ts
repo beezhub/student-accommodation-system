@@ -100,9 +100,8 @@ export class ApplicationReviewComponent implements OnInit {
 
   applications: ApplicationResponse[] = [];
   displayedColumns: string[] = [
-    'applicationCode',
     'studentName',
-    'studentEmail',
+    'applicationCode',
     'preferredBuilding',
     'allocationScore',
     'documentStatus',
@@ -117,9 +116,15 @@ export class ApplicationReviewComponent implements OnInit {
   pageSize = 20;
   currentPage = 0;
 
+  // Filter panel state
+  filtersVisible = false;
+  activeFilterCount = 0;
+
+  // Metric counts
+  counts = { total: 0, pending: 0, awaitingAllocation: 0, allocated: 0 };
+
   filterForm: FormGroup;
 
-  // Dropdown options
   statuses = [
     { value: 'PENDING', label: 'Pending' },
     { value: 'APPROVED', label: 'Approved' },
@@ -134,11 +139,9 @@ export class ApplicationReviewComponent implements OnInit {
     { value: 'REJECTED', label: 'Rejected' },
   ];
 
-  // Buildings for autocomplete
   buildings: BuildingResponse[] = [];
   filteredBuildings$!: Observable<BuildingResponse[]>;
 
-  // Error state
   loadError: ParsedError | null = null;
   isRetrying = false;
 
@@ -158,16 +161,40 @@ export class ApplicationReviewComponent implements OnInit {
     this.loadBuildings();
     this.setupBuildingAutocomplete();
     this.loadApplications();
+    this.loadCounts();
+    this.filterForm.valueChanges.subscribe(() => this.computeActiveFilterCount());
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
+
+  computeActiveFilterCount(): void {
+    const v = this.filterForm.value;
+    let count = 0;
+    if (v.applicationCode) count++;
+    if (v.studentName) count++;
+    if (v.status) count++;
+    if (v.allocationStatus) count++;
+    if (v.preferredBuilding) count++;
+    if (v.startDate) count++;
+    if (v.endDate) count++;
+    this.activeFilterCount = count;
+  }
+
+  loadCounts(): void {
+    const fetch = (status: string) =>
+      this.adminService.searchApplications({ status, page: 0, size: 1 });
+
+    fetch('PENDING').subscribe({ next: (r) => (this.counts.pending = r.totalElements), error: () => {} });
+    fetch('AWAITING_ALLOCATION').subscribe({ next: (r) => (this.counts.awaitingAllocation = r.totalElements), error: () => {} });
+    fetch('ALLOCATED').subscribe({ next: (r) => (this.counts.allocated = r.totalElements), error: () => {} });
   }
 
   loadBuildings(): void {
     this.buildingService.getAllBuildingsNoPagination().subscribe({
-      next: (buildings) => {
-        this.buildings = buildings;
-      },
-      error: (error) => {
-        console.error('Failed to load buildings:', error);
-      },
+      next: (buildings) => { this.buildings = buildings; },
+      error: (error) => { console.error('Failed to load buildings:', error); },
     });
   }
 
@@ -197,7 +224,6 @@ export class ApplicationReviewComponent implements OnInit {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   loadApplications(): void {
     this.isLoading = true;
     this.loadError = null;
@@ -223,6 +249,7 @@ export class ApplicationReviewComponent implements OnInit {
       next: (response: PageResponse<ApplicationResponse>) => {
         this.applications = response.content;
         this.totalElements = response.totalElements;
+        this.counts.total = response.totalElements;
         this.isLoading = false;
         this.isRetrying = false;
       },
@@ -235,13 +262,8 @@ export class ApplicationReviewComponent implements OnInit {
     });
   }
 
-  retryLoadApplications(): void {
-    this.loadApplications();
-  }
-
-  dismissLoadError(): void {
-    this.loadError = null;
-  }
+  retryLoadApplications(): void { this.loadApplications(); }
+  dismissLoadError(): void { this.loadError = null; }
 
   onFilter(): void {
     this.currentPage = 0;
@@ -250,6 +272,7 @@ export class ApplicationReviewComponent implements OnInit {
 
   onClearFilters(): void {
     this.filterForm.reset();
+    this.activeFilterCount = 0;
     this.currentPage = 0;
     this.loadApplications();
   }
@@ -267,37 +290,40 @@ export class ApplicationReviewComponent implements OnInit {
         this.loadApplications();
       },
       error: (error) => {
-        console.error('Failed to update status:', error);
         const parsedError = this.errorService.parseError(error);
         this.errorService.showErrorSnackbar(parsedError);
       },
     });
   }
 
-  getStatusClass(status: string): string {
-    return status.toLowerCase();
+  getStatusClass(status: string): string { return status.toLowerCase(); }
+
+  getStudentInitials(app: ApplicationResponse): string {
+    const first = (app.studentFirstName || '').charAt(0).toUpperCase();
+    const last = (app.studentLastName || '').charAt(0).toUpperCase();
+    return (first + last) || '?';
+  }
+
+  getScoreRingStyle(score: number | null | undefined): Record<string, string> {
+    if (score === null || score === undefined) return {};
+    const pct = Math.min(100, Math.max(0, score));
+    const color = score >= 80 ? '#059669' : score >= 50 ? '#d97706' : '#dc2626';
+    return { '--score-pct': `${pct}`, '--ring-color': color };
   }
 
   private formatDate(date: Date | string): string {
     if (!date) return '';
     if (typeof date === 'string') return date;
     const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   getStatusIcon(status: string): string {
     switch (status) {
-      case 'PENDING':
-        return 'pending_actions';
-      case 'APPROVED':
-        return 'check_circle';
-      case 'REJECTED':
-        return 'cancel';
-      default:
-        return 'help';
+      case 'PENDING': return 'pending_actions';
+      case 'APPROVED': return 'check_circle';
+      case 'REJECTED': return 'cancel';
+      default: return 'help';
     }
   }
 
@@ -311,10 +337,7 @@ export class ApplicationReviewComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe((result: ApplicationDetailDialogResult | undefined) => {
-      if (
-        result &&
-        (result.action === 'allocated' || result.action === 'rejected' || result.action === 'saved')
-      ) {
+      if (result && (result.action === 'allocated' || result.action === 'rejected' || result.action === 'saved')) {
         this.loadApplications();
       }
     });
@@ -325,16 +348,11 @@ export class ApplicationReviewComponent implements OnInit {
       width: '650px',
       maxWidth: '95vw',
       panelClass: 'allocation-choice-dialog',
-      data: {
-        applicationId: application.id,
-        studentId: application.studentId,
-      } as AllocationChoiceDialogData,
+      data: { applicationId: application.id, studentId: application.studentId } as AllocationChoiceDialogData,
     });
 
     dialogRef.afterClosed().subscribe((result: any) => {
-      if (result && result.action === 'allocated') {
-        this.loadApplications();
-      }
+      if (result && result.action === 'allocated') { this.loadApplications(); }
     });
   }
 
@@ -345,7 +363,6 @@ export class ApplicationReviewComponent implements OnInit {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getScoreClass(score: number | undefined): string {
     if (score === undefined || score === null) return '';
     if (score >= 80) return 'score-high';
@@ -355,43 +372,27 @@ export class ApplicationReviewComponent implements OnInit {
 
   runAutoAllocation(application: ApplicationResponse): void {
     if (application.status !== 'AWAITING_ALLOCATION') {
-      this.errorService.showWarning(
-        'Application must be in "Awaiting Allocation" status for auto-allocation.'
-      );
+      this.errorService.showWarning('Application must be in "Awaiting Allocation" status for auto-allocation.');
       return;
     }
 
     const batchId = `auto-${application.id}-${Date.now()}`;
-
     this.snackBar.open('Running auto-allocation...', 'Close', { duration: 2000 });
 
     this.stagedAllocationService.proposeAllocation([application.studentId], batchId).subscribe({
       next: (proposal) => {
         if (proposal.proposals && proposal.proposals.length > 0) {
-          const stagedAllocation = proposal.proposals[0];
-          // Auto-confirm the allocation
-          this.stagedAllocationService.confirmAllocation(stagedAllocation.id).subscribe({
-            next: () => {
-              this.errorService.showSuccess('Room allocated successfully!');
-              this.loadApplications();
-            },
-            error: (error) => {
-              console.error('Failed to confirm allocation:', error);
-              this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-            },
+          this.stagedAllocationService.confirmAllocation(proposal.proposals[0].id).subscribe({
+            next: () => { this.errorService.showSuccess('Room allocated successfully!'); this.loadApplications(); },
+            error: (error) => { this.errorService.showErrorSnackbar(this.errorService.parseError(error)); },
           });
         } else {
           this.enqueueWaitingListForAutoAllocation(application);
         }
       },
       error: (error) => {
-        console.error('Failed to run auto-allocation:', error);
         const parsedError = this.errorService.parseError(error);
-        if (
-          parsedError.message.includes('No eligible') ||
-          parsedError.message.includes('no room') ||
-          parsedError.message.includes('No available rooms')
-        ) {
+        if (parsedError.message.includes('No eligible') || parsedError.message.includes('no room') || parsedError.message.includes('No available rooms')) {
           this.enqueueWaitingListForAutoAllocation(application);
         } else {
           this.errorService.showErrorSnackbar(parsedError);
@@ -401,32 +402,19 @@ export class ApplicationReviewComponent implements OnInit {
   }
 
   private enqueueWaitingListForAutoAllocation(application: ApplicationResponse): void {
-    this.stagedAllocationService
-      .enqueueWaitingList(application.studentId, application.id)
-      .subscribe({
-        next: (res) => {
-          this.errorService.showWarning(
-            res.message || 'No suitable room found. Student added to waiting list.'
-          );
-          this.loadApplications();
-        },
-
-        error: () => {
-          this.errorService.showWarning('No suitable room found for auto-allocation.');
-        },
-      });
+    this.stagedAllocationService.enqueueWaitingList(application.studentId, application.id).subscribe({
+      next: (res) => {
+        this.errorService.showWarning(res.message || 'No suitable room found. Student added to waiting list.');
+        this.loadApplications();
+      },
+      error: () => { this.errorService.showWarning('No suitable room found for auto-allocation.'); },
+    });
   }
 
   markUnderReview(application: ApplicationResponse): void {
     this.applicationService.markUnderReview(application.id).subscribe({
-      next: () => {
-        this.errorService.showSuccess('Application marked as Under Review');
-        this.loadApplications();
-      },
-      error: (error) => {
-        console.error('Failed to mark under review:', error);
-        this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-      },
+      next: () => { this.errorService.showSuccess('Application marked as Under Review'); this.loadApplications(); },
+      error: (error) => { this.errorService.showErrorSnackbar(this.errorService.parseError(error)); },
     });
   }
 
@@ -435,14 +423,8 @@ export class ApplicationReviewComponent implements OnInit {
     if (!reason) return;
 
     this.applicationService.requestChanges(application.id, reason).subscribe({
-      next: () => {
-        this.errorService.showSuccess('Changes requested successfully');
-        this.loadApplications();
-      },
-      error: (error) => {
-        console.error('Failed to request changes:', error);
-        this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-      },
+      next: () => { this.errorService.showSuccess('Changes requested successfully'); this.loadApplications(); },
+      error: (error) => { this.errorService.showErrorSnackbar(this.errorService.parseError(error)); },
     });
   }
 }
