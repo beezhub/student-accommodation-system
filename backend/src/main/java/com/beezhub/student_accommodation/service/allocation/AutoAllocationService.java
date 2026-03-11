@@ -103,10 +103,15 @@ public class AutoAllocationService {
                     bestRoom.getRoomNumber(), student.getId(), application.getId(),
                     bestRoom.getTotalScore());
 
-        } catch (RoomCapacityExceededException | StudentAlreadyAllocatedException e) {
+        } catch (RoomCapacityExceededException e) {
             log.warn("Auto-allocation race condition for application {}: {}. Enqueueing waiting list.",
                     application.getId(), e.getMessage());
             setAwaitingAndEnqueueWaitingList(application, student);
+
+        } catch (StudentAlreadyAllocatedException e) {
+            // Student already has an active offer pending acceptance — do NOT re-queue.
+            log.info("Student {} already has an active allocation; skipping auto-allocation for application {}",
+                    student.getId(), application.getId());
 
         } catch (Exception e) {
             log.error("Unexpected error during auto-allocation for application {}, requires manual allocation",
