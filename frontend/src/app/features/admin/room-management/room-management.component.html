@@ -1,347 +1,153 @@
-<div class="room-management-container">
-  <div class="page-header">
-    <div class="header-content">
-      <h1>
-        <mat-icon>meeting_room</mat-icon>
-        Room Management
-      </h1>
+<div class="premium-container">
+  <header class="premium-header">
+    <div class="header-title">
+      <h1>Room Management</h1>
       <p class="subtitle">Manage rooms, capacity, and occupancy</p>
     </div>
     <div class="header-actions">
       <div class="stat-item">
-        <span class="stat-value">{{ totalElements }}</span>
-        <span class="stat-label">Total Rooms</span>
+        <span class="stat-number">{{ totalElements }}</span>
+        <span class="stat-label">Rooms</span>
       </div>
-      @if (selection.selected.length > 0) {
-        <button mat-raised-button color="accent" (click)="openBulkAttributesDialog()" class="bulk-edit-btn">
-          <mat-icon>edit_note</mat-icon>
-          Edit {{ selection.selected.length }} Selected
-        </button>
-        <button mat-stroked-button (click)="clearSelection()" class="clear-selection-btn">
-          <mat-icon>clear</mat-icon>
-          Clear
-        </button>
-      }
-      <button mat-stroked-button color="primary" (click)="openBulkCreateDialog()" class="bulk-add-btn">
-        <mat-icon>library_add</mat-icon>
-        Bulk Add
-      </button>
-      <button mat-raised-button color="primary" (click)="openCreateDialog()" class="add-btn">
-        <mat-icon>add</mat-icon>
-        Add Room
-      </button>
+      <div class="action-buttons-group">
+        @if (selection.selected.length > 0) {
+          <button class="premium-btn-secondary" (click)="openBulkAttributesDialog()">
+            Edit {{ selection.selected.length }} Selected
+          </button>
+          <button class="premium-btn-secondary danger-border" (click)="clearSelection()">Clear</button>
+        }
+        <button class="premium-btn-secondary" (click)="openBulkCreateDialog()">Bulk Add</button>
+        <button class="premium-btn-primary" (click)="openCreateDialog()">Add Room</button>
+      </div>
     </div>
+  </header>
+
+  <div class="premium-filter-section">
+    <form [formGroup]="filterForm" class="filter-form">
+      <div class="input-group">
+        <input type="text" formControlName="roomNumber" placeholder="Search room number" class="premium-input">
+      </div>
+      <div class="input-group">
+        <select formControlName="buildingId" class="premium-input">
+          <option value="">All Buildings</option>
+          @for (building of buildings; track building.id) {
+            <option [value]="building.id">{{ building.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="input-group small-input">
+        <input type="number" formControlName="minCapacity" placeholder="Min Cap" class="premium-input" min="1">
+      </div>
+      <div class="input-group small-input">
+        <input type="number" formControlName="maxCapacity" placeholder="Max Cap" class="premium-input" min="1">
+      </div>
+      <div class="filter-actions">
+        <button type="button" class="premium-btn-secondary" (click)="onClearFilters()">Reset</button>
+        <button type="button" class="premium-btn-primary" (click)="onFilter()">Search</button>
+      </div>
+    </form>
   </div>
 
-  <!-- Filter Card -->
-  <mat-card class="filter-card">
-    <mat-card-content>
-      <div class="filter-header">
-        <mat-icon>filter_list</mat-icon>
-        <span>Filter Rooms</span>
-      </div>
-      <form [formGroup]="filterForm" class="filter-form">
-        <mat-form-field appearance="outline">
-          <mat-label>Room Number</mat-label>
-          <mat-icon matPrefix>meeting_room</mat-icon>
-          <input matInput formControlName="roomNumber" placeholder="Search by room number">
-        </mat-form-field>
+  <div class="premium-table-section">
+    @if (isLoading) {
+      <div class="loading-state">Loading rooms...</div>
+    } @else {
+      <div class="table-container">
+        <table mat-table [dataSource]="rooms" class="premium-table">
+          <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef class="checkbox-col">
+              <mat-checkbox (change)="$event ? toggleAllRows() : null"
+                            [checked]="isAllSelected()"
+                            [indeterminate]="isSomeSelected()">
+              </mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let room" class="checkbox-col">
+              <mat-checkbox (click)="$event.stopPropagation()"
+                            (change)="$event ? selection.toggle(room) : null"
+                            [checked]="selection.isSelected(room)">
+              </mat-checkbox>
+            </td>
+          </ng-container>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Building</mat-label>
-          <mat-icon matPrefix>apartment</mat-icon>
-          <mat-select formControlName="buildingId">
-            <mat-option value="">All Buildings</mat-option>
-            @for (building of buildings; track building.id) {
-              <mat-option [value]="building.id">
-                {{ building.name }}
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+          <ng-container matColumnDef="roomNumber">
+            <th mat-header-cell *matHeaderCellDef>Room</th>
+            <td mat-cell *matCellDef="let room">
+              <span class="mono-text fw-600">{{ room.roomNumber }}</span>
+            </td>
+          </ng-container>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Min Capacity</mat-label>
-          <mat-icon matPrefix>person</mat-icon>
-          <input matInput type="number" formControlName="minCapacity" placeholder="Min" min="1">
-        </mat-form-field>
+          <ng-container matColumnDef="buildingName">
+            <th mat-header-cell *matHeaderCellDef>Building</th>
+            <td mat-cell *matCellDef="let room">
+              <span class="fw-500">{{ room.buildingName }}</span>
+            </td>
+          </ng-container>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Max Capacity</mat-label>
-          <mat-icon matPrefix>groups</mat-icon>
-          <input matInput type="number" formControlName="maxCapacity" placeholder="Max" min="1">
-        </mat-form-field>
+          <ng-container matColumnDef="capacity">
+            <th mat-header-cell *matHeaderCellDef>Capacity</th>
+            <td mat-cell *matCellDef="let room">
+              <span class="premium-badge">{{ room.capacity }}</span>
+            </td>
+          </ng-container>
 
-        <div class="filter-actions">
-          <button type="button" mat-raised-button color="primary" (click)="onFilter()" class="search-btn">
-            <mat-icon>search</mat-icon>
-            Search
-          </button>
-          <button type="button" mat-stroked-button (click)="onClearFilters()" class="clear-btn">
-            <mat-icon>refresh</mat-icon>
-            Reset
-          </button>
-        </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
-
-  <!-- Table Card -->
-  <mat-card class="table-card">
-    <mat-card-content>
-      @if (isLoading) {
-        <div class="loading-container" style="width: 100%;">
-          <app-skeleton-loader type="table-row" [count]="5"></app-skeleton-loader>
-        </div>
-      }
-
-      @if (!isLoading) {
-        <!-- Mobile Card View -->
-        <div class="mobile-cards-container">
-          @for (room of rooms; track room.id) {
-            <div class="mobile-card" [class.selected-card]="selection.isSelected(room)">
-              <div class="mobile-card-header">
-                <div class="mobile-room-info">
-                   <div class="mobile-icon" [class.has-checkbox]="true">
-                      <!-- Mobile Checkbox -->
-                      <mat-checkbox
-                        (click)="$event.stopPropagation()"
-                        (change)="$event ? selection.toggle(room) : null"
-                        [checked]="selection.isSelected(room)"
-                        color="primary">
-                      </mat-checkbox> 
-                      <mat-icon *ngIf="!selection.isSelected(room)">meeting_room</mat-icon>
-                   </div>
-                   <div class="mobile-name-col">
-                      <span class="mobile-name">{{ room.roomNumber }}</span>
-                      <span class="mobile-building">{{ room.buildingName }}</span>
-                   </div>
-                </div>
-                <!-- Actions in header for mobile -->
-                 <div class="mobile-actions-top">
-                    <!-- Attributes Button -->
-                    <button mat-icon-button class="action-btn attributes" (click)="openAttributesDialog(room)" aria-label="Room Attributes">
-                      <mat-icon>tune</mat-icon>
-                    </button>
-                    <!-- Edit Button -->
-                    <button mat-icon-button class="action-btn edit" (click)="openEditDialog(room)" aria-label="Edit Room">
-                      <mat-icon>edit</mat-icon>
-                    </button>
-                    <!-- Delete Button -->
-                    <button mat-icon-button class="action-btn delete" (click)="deleteRoom(room)" aria-label="Delete Room">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                 </div>
+          <ng-container matColumnDef="currentOccupancy">
+            <th mat-header-cell *matHeaderCellDef>Occupancy</th>
+            <td mat-cell *matCellDef="let room">
+              <div class="occupancy-info">
+                <span class="occupancy-fraction">{{ room.currentOccupancy }} / {{ room.capacity }}</span>
+                <span class="status-dot" [attr.data-status]="getOccupancyClass(room)"></span>
               </div>
+            </td>
+          </ng-container>
 
-              <div class="mobile-details">
-                <!-- Capacity & Occupancy -->
-                <div class="mobile-detail-item">
-                   <span class="label">Occupancy</span>
-                   <div class="value">
-                      <div class="occupancy-cell" style="width: 100px;">
-                        <div class="occupancy-bar">
-                           <div class="occupancy-fill" [class]="getOccupancyClass(room)"
-                                [style.width.%]="room.capacity > 0 ? (room.currentOccupancy / room.capacity * 100) : 0">
-                           </div>
-                        </div>
-                        <span class="occupancy-text" [class]="getOccupancyClass(room)">
-                           {{ getOccupancyText(room) }}
-                        </span>
-                      </div>
-                   </div>
-                </div>
-
-                <!-- Attributes -->
-                 <div class="mobile-detail-item">
-                    <span class="label">Attributes</span>
-                    <div class="attributes-cell">
-                        <span class="attribute-badge gender"
-                            [class.male]="room.genderRestriction === 'MALE_ONLY'"
-                            [class.female]="room.genderRestriction === 'FEMALE_ONLY'"
-                            *ngIf="room.genderRestriction && room.genderRestriction !== 'ANY'">
-                        <mat-icon>{{ room.genderRestriction === 'MALE_ONLY' ? 'male' : 'female' }}</mat-icon>
-                        </span>
-                        <span class="attribute-badge accessible" *ngIf="room.accessibilityCompliant === true">
-                            <mat-icon>accessible</mat-icon>
-                        </span>
-                         <span class="attribute-badge year-restriction" *ngIf="room.minYearOfStudy || room.maxYearOfStudy">
-                            <mat-icon>school</mat-icon>
-                        </span>
-                         @if ((!room.genderRestriction || room.genderRestriction === 'ANY') && room.accessibilityCompliant !== true && !room.minYearOfStudy && !room.maxYearOfStudy) {
-                            <span class="no-attributes">—</span>
-                        }
-                    </div>
-                 </div>
-
-                 <!-- Status -->
-                 <div class="mobile-detail-item">
-                    <span class="label">Status</span>
-                    <app-modern-status-badge [status]="room.status" size="sm"></app-modern-status-badge>
-                 </div>
+          <ng-container matColumnDef="attributes">
+            <th mat-header-cell *matHeaderCellDef>Attributes</th>
+            <td mat-cell *matCellDef="let room">
+              <div class="attributes-list">
+                @if (room.genderRestriction && room.genderRestriction !== 'ANY') {
+                  <span class="attr-tag">{{ room.genderRestriction === 'MALE_ONLY' ? 'Male' : 'Female' }}</span>
+                }
+                @if (room.accessibilityCompliant) {
+                  <span class="attr-tag">Accessible</span>
+                }
+                @if (room.minYearOfStudy || room.maxYearOfStudy) {
+                  <span class="attr-tag">Yr {{ room.minYearOfStudy || '1' }}-{{ room.maxYearOfStudy || 'âˆž' }}</span>
+                }
+                @if ((!room.genderRestriction || room.genderRestriction === 'ANY') && !room.accessibilityCompliant && !room.minYearOfStudy && !room.maxYearOfStudy) {
+                  <span class="text-muted">â€”</span>
+                }
               </div>
-            </div>
-          }
-        </div>
+            </td>
+          </ng-container>
 
-        <!-- Desktop Table View -->
-        <div class="table-container">
-          <table mat-table [dataSource]="rooms" class="rooms-table">
-            <!-- Checkbox Column -->
-            <ng-container matColumnDef="select">
-              <th mat-header-cell *matHeaderCellDef>
-                <mat-checkbox
-                  (change)="$event ? toggleAllRows() : null"
-                  [checked]="isAllSelected()"
-                  [indeterminate]="isSomeSelected()"
-                  color="primary">
-                </mat-checkbox>
-              </th>
-              <td mat-cell *matCellDef="let room">
-                <mat-checkbox
-                  (click)="$event.stopPropagation()"
-                  (change)="$event ? selection.toggle(room) : null"
-                  [checked]="selection.isSelected(room)"
-                  color="primary">
-                </mat-checkbox>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let room">
+              <span class="premium-badge" [attr.data-status]="room.status.toLowerCase()">{{ room.status }}</span>
+            </td>
+          </ng-container>
 
-            <!-- Room Number Column -->
-            <ng-container matColumnDef="roomNumber">
-              <th mat-header-cell *matHeaderCellDef>Room</th>
-              <td mat-cell *matCellDef="let room">
-                <div class="room-cell">
-                  <div class="room-icon">
-                    <mat-icon>meeting_room</mat-icon>
-                  </div>
-                  <span class="room-number">{{ room.roomNumber }}</span>
-                </div>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let room" class="actions-cell">
+              <button class="action-link" (click)="openAttributesDialog(room)">Attributes</button>
+              <button class="action-link ml-3" (click)="openEditDialog(room)">Edit</button>
+              <button class="action-link danger ml-3" (click)="deleteRoom(room)">Delete</button>
+            </td>
+          </ng-container>
 
-            <!-- Building Name Column -->
-            <ng-container matColumnDef="buildingName">
-              <th mat-header-cell *matHeaderCellDef>Building</th>
-              <td mat-cell *matCellDef="let room">
-                <div class="building-cell">
-                  <mat-icon>apartment</mat-icon>
-                  <span>{{ room.buildingName }}</span>
-                </div>
-              </td>
-            </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.selected]="selection.isSelected(row)"></tr>
+        </table>
 
-            <!-- Capacity Column -->
-            <ng-container matColumnDef="capacity">
-              <th mat-header-cell *matHeaderCellDef>Capacity</th>
-              <td mat-cell *matCellDef="let room">
-                <span class="capacity-badge">
-                  <mat-icon>group</mat-icon>
-                  {{ room.capacity }}
-                </span>
-              </td>
-            </ng-container>
-
-            <!-- Occupancy Column -->
-            <ng-container matColumnDef="currentOccupancy">
-              <th mat-header-cell *matHeaderCellDef>Occupancy</th>
-              <td mat-cell *matCellDef="let room">
-                <div class="occupancy-cell">
-                  <div class="occupancy-bar">
-                    <div class="occupancy-fill" [class]="getOccupancyClass(room)"
-                         [style.width.%]="room.capacity > 0 ? (room.currentOccupancy / room.capacity * 100) : 0">
-                    </div>
-                  </div>
-                  <span class="occupancy-text" [class]="getOccupancyClass(room)">
-                    {{ getOccupancyText(room) }}
-                  </span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Attributes Column -->
-            <ng-container matColumnDef="attributes">
-              <th mat-header-cell *matHeaderCellDef>Attributes</th>
-              <td mat-cell *matCellDef="let room">
-                <div class="attributes-cell">
-                  <span class="attribute-badge gender"
-                        [class.male]="room.genderRestriction === 'MALE_ONLY'"
-                        [class.female]="room.genderRestriction === 'FEMALE_ONLY'"
-                        *ngIf="room.genderRestriction && room.genderRestriction !== 'ANY'"
-                        matTooltip="Gender Restriction">
-                    <mat-icon>{{ room.genderRestriction === 'MALE_ONLY' ? 'male' : 'female' }}</mat-icon>
-                    {{ room.genderRestriction === 'MALE_ONLY' ? 'Male' : 'Female' }}
-                  </span>
-                  <span class="attribute-badge accessible"
-                        *ngIf="room.accessibilityCompliant === true"
-                        matTooltip="Accessibility Compliant">
-                    <mat-icon>accessible</mat-icon>
-                  </span>
-                  <span class="attribute-badge year-restriction"
-                        *ngIf="room.minYearOfStudy || room.maxYearOfStudy"
-                        [matTooltip]="getYearRestrictionTooltip(room)">
-                    <mat-icon>school</mat-icon>
-                  </span>
-                  @if ((!room.genderRestriction || room.genderRestriction === 'ANY') && room.accessibilityCompliant !== true && !room.minYearOfStudy && !room.maxYearOfStudy) {
-                    <span class="no-attributes">
-                      —
-                    </span>
-                  }
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Status Column -->
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Status</th>
-              <td mat-cell *matCellDef="let room">
-                <app-modern-status-badge [status]="room.status" size="sm"></app-modern-status-badge>
-              </td>
-            </ng-container>
-
-            <!-- Actions Column -->
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let room">
-                <div class="actions-cell">
-                  <button mat-icon-button (click)="openAttributesDialog(room)" matTooltip="Room Attributes (Gender, Accessibility)" aria-label="Room Attributes" class="action-btn attributes">
-                    <mat-icon>tune</mat-icon>
-                  </button>
-                  <button mat-icon-button (click)="openEditDialog(room)" matTooltip="Edit Room" aria-label="Edit Room" class="action-btn edit">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button mat-icon-button (click)="deleteRoom(room)" matTooltip="Delete Room" aria-label="Delete Room" class="action-btn delete">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-                [class.selected-row]="selection.isSelected(row)"
-                (click)="selection.toggle(row)"></tr>
-          </table>
-
-          @if (rooms.length === 0) {
-            <app-empty-state
-              [icon]="'door_sliding'"
-              [title]="'No Rooms Found'"
-              [description]="'Get started by adding your first room to a building.'">
-            </app-empty-state>
-          }
-        </div>
-
-        @if (rooms.length > 0) {
-          <mat-paginator
-            [length]="totalElements"
-            [pageSize]="pageSize"
-            [pageSizeOptions]="[10, 20, 50, 100]"
-            (page)="onPageChange($event)"
-            showFirstLastButtons>
-          </mat-paginator>
+        @if (rooms.length === 0) {
+          <div class="empty-state">No Rooms Found. Add your first room.</div>
         }
-      }
-    </mat-card-content>
-  </mat-card>
+      </div>
+
+      <div class="pagination-wrapper mt-5">
+        <mat-paginator [length]="totalElements" [pageSize]="pageSize" [pageSizeOptions]="[10, 20, 50, 100]" (page)="onPageChange($event)"></mat-paginator>
+      </div>
+    }
+  </div>
 </div>
