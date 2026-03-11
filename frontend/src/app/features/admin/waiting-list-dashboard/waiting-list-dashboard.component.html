@@ -1,157 +1,88 @@
-<div class="dashboard-container">
-  <div class="page-header">
-    <div class="header-left">
-      <h1>
-        <mat-icon>hourglass_top</mat-icon>
-        Waiting List Priority
-      </h1>
-      <p class="subtitle">View and manage student priority scores for automated allocation.</p>
+<div class="premium-container">
+  <header class="premium-header">
+    <div class="header-title">
+      <h1>Waiting List Priority</h1>
+      <p class="subtitle">View and manage student priority scores for automated allocation</p>
     </div>
-    <div class="header-right">
-      <button mat-flat-button color="accent" (click)="rescoreList()" [disabled]="isRescoring">
-        <mat-icon [class.spin]="isRescoring">autorenew</mat-icon>
+    <div class="header-actions">
+      <button class="premium-btn-primary" (click)="rescoreList()" [disabled]="isRescoring">
         {{ isRescoring ? 'Calculating...' : 'Re-calculate Scores' }}
       </button>
     </div>
+  </header>
+
+  <div class="premium-filter-section">
+    <form [formGroup]="filterForm" class="filter-form">
+      <div class="input-group">
+        <label class="input-label">Filter by Building</label>
+        <select formControlName="buildingId" class="premium-input">
+          <option value="">All Buildings</option>
+          @for (b of buildings; track b.id) {
+            <option [value]="b.id">{{ b.name }}</option>
+          }
+        </select>
+      </div>
+    </form>
   </div>
 
-  <mat-card class="content-card">
-    <mat-card-header>
-      <mat-card-title>
-        <form [formGroup]="filterForm" class="filter-form">
-          <mat-form-field appearance="outline" class="building-select">
-            <mat-label>Filter by Preferred Building</mat-label>
-            <mat-select formControlName="buildingId">
-              <mat-option value="">All Buildings</mat-option>
-              <mat-option *ngFor="let b of buildings" [value]="b.id">{{b.name}}</mat-option>
-            </mat-select>
-          </mat-form-field>
-        </form>
-      </mat-card-title>
-    </mat-card-header>
+  <div class="premium-table-section">
+    @if (isLoading) {
+      <div class="loading-state">Loading...</div>
+    } @else {
+      <div class="table-container">
+        <table mat-table [dataSource]="dataSource" matSort class="premium-table">
+          <ng-container matColumnDef="position">
+            <th mat-header-cell *matHeaderCellDef>Rank</th>
+            <td mat-cell *matCellDef="let element; let i = index">
+              <span class="rank-number" [class.top-rank]="i < 3">{{i + 1 + (paginator?.pageIndex || 0) * (paginator?.pageSize || 10)}}</span>
+            </td>
+          </ng-container>
 
-    <mat-card-content>
-      <!-- Loading -->
-      @if (isLoading) {
-        <div class="loading-container">
-          <app-skeleton-loader [type]="'table-row'" [count]="6"></app-skeleton-loader>
-        </div>
-      }
-
-      <div [class.hidden]="isLoading">
-        <!-- Mobile Cards List -->
-        <div class="mobile-cards-container">
-          @for (element of dataSource.data; track element.applicationCode; let i = $index) {
-            <div class="mobile-card">
-              <div class="mobile-card-header">
-                <div class="mobile-student-info">
-                  <span class="rank-badge" [class.top-3]="i < 3">{{ i + 1 }}</span>
-                  <span class="mobile-student-name">{{ element.studentName }}</span>
-                </div>
-                <div class="score-display">
-                  <span class="score-val">{{ element.priorityScore }}</span>
-                  <mat-progress-spinner mode="determinate" [value]="element.priorityScore" diameter="20" color="primary"></mat-progress-spinner>
-                </div>
+          <ng-container matColumnDef="studentName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
+            <td mat-cell *matCellDef="let element">
+              <div class="student-info">
+                <span class="student-name">{{element.studentName}}</span>
+                <span class="student-code mono-text">{{element.applicationCode}}</span>
               </div>
+            </td>
+          </ng-container>
 
-              <div class="mobile-details">
-                <div class="mobile-detail-item">
-                  <span class="label">Application Code</span>
-                  <span class="value code-text">{{ element.applicationCode }}</span>
-                </div>
-                <div class="mobile-detail-item">
-                  <span class="label">Preferred Building</span>
-                  <span class="value">{{ element.preferredBuildingName || 'Any' }}</span>
-                </div>
-                <div class="mobile-detail-item">
-                  <span class="label">Applied</span>
-                  <span class="value">{{ element.createdAt | date:'shortDate' }}</span>
-                </div>
-              </div>
+          <ng-container matColumnDef="priorityScore">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Score</th>
+            <td mat-cell *matCellDef="let element">
+              <span class="score-value">{{element.priorityScore}}</span>
+            </td>
+          </ng-container>
 
-              <div class="mobile-card-actions">
-                <button mat-icon-button color="primary" (click)="openAllocation(element)" matTooltip="Review Application">
-                  <mat-icon>visibility</mat-icon>
-                </button>
-              </div>
-            </div>
-          }
+          <ng-container matColumnDef="preferredBuilding">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Preference</th>
+            <td mat-cell *matCellDef="let element">{{element.preferredBuildingName || 'Any'}}</td>
+          </ng-container>
 
-          @if (dataSource.data.length === 0) {
-            <app-empty-state
-              [icon]="'hourglass_empty'"
-              [title]="'No Students in Waiting List'"
-              [description]="'The waiting list is currently empty or no students match the selected filter.'">
-            </app-empty-state>
-          }
-        </div>
+          <ng-container matColumnDef="applicationDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Applied</th>
+            <td mat-cell *matCellDef="let element">{{element.createdAt | date:'MMM d, y'}}</td>
+          </ng-container>
 
-        <!-- Desktop Table -->
-        <div class="table-container">
-          <table mat-table [dataSource]="dataSource" matSort class="waiting-table">
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let element" class="actions-cell">
+              <button class="action-link" (click)="openAllocation(element)">Review</button>
+            </td>
+          </ng-container>
 
-            <!-- Position Column -->
-            <ng-container matColumnDef="position">
-              <th mat-header-cell *matHeaderCellDef> # </th>
-              <td mat-cell *matCellDef="let element; let i = index">
-                <span class="rank-badge" [class.top-3]="i < 3">{{i + 1 + (paginator?.pageIndex || 0) * (paginator?.pageSize || 10)}}</span>
-              </td>
-            </ng-container>
-
-            <!-- Student Name Column -->
-            <ng-container matColumnDef="studentName">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header> Student </th>
-              <td mat-cell *matCellDef="let element">
-                <strong>{{element.studentName}}</strong>
-                <div class="code-text">{{element.applicationCode}}</div>
-              </td>
-            </ng-container>
-
-            <!-- Priority Score Column -->
-            <ng-container matColumnDef="priorityScore">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header> Priority Score </th>
-              <td mat-cell *matCellDef="let element">
-                <div class="score-display">
-                  <span class="score-val">{{element.priorityScore}}</span>
-                  <mat-progress-spinner mode="determinate" [value]="element.priorityScore" diameter="24" color="primary"></mat-progress-spinner>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Preferred Building Column -->
-            <ng-container matColumnDef="preferredBuilding">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header> Preferred Building </th>
-              <td mat-cell *matCellDef="let element"> {{element.preferredBuildingName || 'Any'}} </td>
-            </ng-container>
-
-            <!-- Date Column -->
-            <ng-container matColumnDef="applicationDate">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header> Applied </th>
-              <td mat-cell *matCellDef="let element"> {{element.createdAt | date:'shortDate'}} </td>
-            </ng-container>
-
-            <!-- Actions Column -->
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef> Action </th>
-              <td mat-cell *matCellDef="let element">
-                 <button mat-icon-button color="primary" (click)="openAllocation(element)" matTooltip="Review Application">
-                   <mat-icon>visibility</mat-icon>
-                 </button>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-
-            <!-- No Data Row -->
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell" colspan="6">No students in waiting list</td>
-            </tr>
-          </table>
-
-          <mat-paginator [pageSizeOptions]="[10, 20, 50]" showFirstLastButtons aria-label="Select page of students"></mat-paginator>
-        </div>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty-state" colspan="6">No students in waiting list</td>
+          </tr>
+        </table>
       </div>
-    </mat-card-content>
-  </mat-card>
+
+      <div class="pagination-wrapper mt-5">
+        <mat-paginator [pageSizeOptions]="[10, 20, 50]" showFirstLastButtons></mat-paginator>
+      </div>
+    }
+  </div>
 </div>

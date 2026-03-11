@@ -1,193 +1,167 @@
-<div class="staged-allocation-container">
-  <div class="page-header">
-    <h1>
-      <mat-icon>checklist_rtl</mat-icon>
-      Batch Allocation
-    </h1>
-    <p class="subtitle">Select students and run the allocation engine in batches.</p>
-  </div>
+<div class="premium-container">
+  <header class="premium-header">
+    <div class="header-title">
+      <h1>Batch Allocation</h1>
+      <p class="subtitle">Select students and run the allocation engine in batches</p>
+    </div>
+  </header>
 
-  <mat-card>
-    <mat-card-content>
-      <mat-stepper [linear]="true" #stepper>
-        
-        <!-- Step 1: Select Students -->
-        <mat-step [stepControl]="selectionForm" label="Select Students">
-          <div class="step-content">
-            <div class="info-banner" *ngIf="availableApplications.length > 0">
-              <mat-icon color="primary">info</mat-icon>
-              <span>Showing all students waiting for allocation. Select up to 50.</span>
-            </div>
-
-            <!-- Loading State -->
-            @if (isLoadingApplications) {
-              <div class="loading-state">
-                <app-skeleton-loader [type]="'table-row'" [count]="8"></app-skeleton-loader>
-              </div>
-            }
-
-            <!-- Empty State -->
-            <div *ngIf="!isLoadingApplications && availableApplications.length === 0" class="empty-state">
-              <mat-icon>inbox</mat-icon>
-              <p>No students awaiting allocation.</p>
-            </div>
-
-            <!-- Table -->
-            <div class="table-container" *ngIf="availableApplications.length > 0">
-              <table mat-table [dataSource]="availableApplications" class="selection-table">
-                
-                <!-- Checkbox Column -->
+  <div class="stepper-wrapper">
+    <mat-stepper [linear]="true" #stepper class="premium-stepper">
+      <!-- Step 1 -->
+      <mat-step [stepControl]="selectionForm" label="Select Students">
+        <div class="step-content">
+          @if (isLoadingApplications) {
+            <div class="loading-state">Loading applications...</div>
+          } @else if (availableApplications.length === 0) {
+            <div class="empty-state">No students awaiting allocation.</div>
+          } @else {
+            <div class="table-container">
+              <table mat-table [dataSource]="availableApplications" class="premium-table">
                 <ng-container matColumnDef="select">
                   <th mat-header-cell *matHeaderCellDef>
                     <mat-checkbox (change)="$event ? toggleAllRows() : null; onSelectionChange()"
                                   [checked]="selection.hasValue() && isAllSelected()"
-                                  [indeterminate]="selection.hasValue() && !isAllSelected()"
-                                  [aria-label]="checkboxLabel()">
+                                  [indeterminate]="selection.hasValue() && !isAllSelected()">
                     </mat-checkbox>
                   </th>
                   <td mat-cell *matCellDef="let row">
                     <mat-checkbox (click)="$event.stopPropagation()"
                                   (change)="$event ? selection.toggle(row) : null; onSelectionChange()"
-                                  [checked]="selection.isSelected(row)"
-                                  [aria-label]="checkboxLabel(row)">
+                                  [checked]="selection.isSelected(row)">
                     </mat-checkbox>
                   </td>
                 </ng-container>
 
                 <ng-container matColumnDef="studentName">
-                  <th mat-header-cell *matHeaderCellDef> Student </th>
-                  <td mat-cell *matCellDef="let app"> 
-                    <strong>{{app.studentFirstName}} {{app.studentLastName}}</strong>
+                  <th mat-header-cell *matHeaderCellDef>Student</th>
+                  <td mat-cell *matCellDef="let app">
+                    <span class="fw-500">{{app.studentFirstName}} {{app.studentLastName}}</span>
                   </td>
                 </ng-container>
 
                 <ng-container matColumnDef="applicationCode">
-                  <th mat-header-cell *matHeaderCellDef> Code </th>
-                  <td mat-cell *matCellDef="let app"> {{app.applicationCode}} </td>
+                  <th mat-header-cell *matHeaderCellDef>Code</th>
+                  <td mat-cell *matCellDef="let app"><span class="mono-text">{{app.applicationCode}}</span></td>
                 </ng-container>
 
                 <ng-container matColumnDef="preferredBuilding">
-                  <th mat-header-cell *matHeaderCellDef> Preference </th>
-                  <td mat-cell *matCellDef="let app"> {{app.preferredBuildingName || 'Any'}} </td>
+                  <th mat-header-cell *matHeaderCellDef>Preference</th>
+                  <td mat-cell *matCellDef="let app">{{app.preferredBuildingName || 'Any'}}</td>
                 </ng-container>
 
                 <ng-container matColumnDef="status">
-                  <th mat-header-cell *matHeaderCellDef> Status </th>
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
                   <td mat-cell *matCellDef="let app">
-                    <app-modern-status-badge [status]="app.status" size="sm"></app-modern-status-badge>
+                    <span class="premium-badge">{{app.status}}</span>
                   </td>
                 </ng-container>
 
                 <tr mat-header-row *matHeaderRowDef="displayedColumnsSelection"></tr>
-                <tr mat-row *matRowDef="let row; columns: displayedColumnsSelection"
-                    (click)="selection.toggle(row); onSelectionChange()">
-                </tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumnsSelection" (click)="selection.toggle(row); onSelectionChange()"></tr>
               </table>
             </div>
 
             <div class="step-actions">
-              <span class="selection-info">{{selection.selected.length}} students selected</span>
-              <button mat-raised-button color="primary" matStepperNext [disabled]="selection.selected.length === 0 || selection.selected.length > 50">
-                Next: Review
+              <span class="selection-count">{{selection.selected.length}} students selected</span>
+              <button class="premium-btn-primary" matStepperNext [disabled]="selection.selected.length === 0 || selection.selected.length > 50">
+                Continue to Review
               </button>
             </div>
-          </div>
-        </mat-step>
+          }
+        </div>
+      </mat-step>
 
-        <!-- Step 2: Propose Batch -->
-        <mat-step label="Run Proposal">
-          <div class="proposal-wait-state">
-            <ng-container *ngIf="!isProposing && !proposals.length">
-               <h3>Ready to Propose Allocation?</h3>
-               <p>The system will attempt to find the best room for {{selection.selected.length}} students based on configured rules.</p>
-               <button mat-raised-button color="primary" class="propose-btn" (click)="proposeBatch()">
-                 Generate Proposals
-               </button>
-               <p *ngIf="proposalError" class="error-text">{{proposalError}}</p>
+      <!-- Step 2 -->
+      <mat-step label="Run Proposal">
+        <div class="proposal-wait-state">
+          @if (!isProposing && !proposals.length) {
+            <h2>Ready to Allocate</h2>
+            <p>The engine will calculate optimal rooms for {{selection.selected.length}} students.</p>
+            <button class="premium-btn-primary large-btn" (click)="proposeBatch()">
+              Generate Proposals
+            </button>
+            @if (proposalError) {
+              <p class="error-text">{{proposalError}}</p>
+            }
+          } @else if (isProposing) {
+            <div class="spinner-container">
+               <p>Calculating allocations...</p>
+            </div>
+          }
+        </div>
+      </mat-step>
+
+      <!-- Step 3 -->
+      <mat-step label="Review & Confirm">
+        <div class="step-content">
+          <div class="results-header">
+            <h2>Proposed Allocations</h2>
+            <button class="premium-btn-secondary" (click)="confirmAllRemaining()">Confirm All</button>
+          </div>
+
+          <table mat-table [dataSource]="proposals" class="premium-table">
+            <ng-container matColumnDef="studentName">
+              <th mat-header-cell *matHeaderCellDef>Student ID</th>
+              <td mat-cell *matCellDef="let p">#{{p.studentId}}</td>
             </ng-container>
 
-            <ng-container *ngIf="isProposing">
-              <mat-spinner diameter="60"></mat-spinner>
-              <p>Running allocation algorithm...</p>
+            <ng-container matColumnDef="room">
+              <th mat-header-cell *matHeaderCellDef>Proposed Room</th>
+              <td mat-cell *matCellDef="let p">
+                @if (p.roomDetails) {
+                  <span class="fw-500">{{p.roomDetails.buildingName}}</span> <span class="mono-text ml-2">{{p.roomDetails.roomNumber}}</span>
+                } @else {
+                  <span class="text-muted">No room matched</span>
+                }
+              </td>
             </ng-container>
+
+            <ng-container matColumnDef="score">
+              <th mat-header-cell *matHeaderCellDef>Score</th>
+              <td mat-cell *matCellDef="let p">
+                <span class="score-text">{{p.score}}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="warnings">
+              <th mat-header-cell *matHeaderCellDef>Warnings</th>
+              <td mat-cell *matCellDef="let p">
+                <div class="warning-list">
+                  @for (w of p.warnings; track w) {
+                    <span class="warning-item">{{w}}</span>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let p">
+                <span class="premium-badge">{{p.status}}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let p" class="actions-cell">
+                @if (p.status === 'PROPOSED') {
+                  <button class="action-link" (click)="confirmAllocation(p)">Confirm</button>
+                  <button class="action-link danger ml-3" (click)="rejectAllocation(p)">Skip</button>
+                }
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumnsReview"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumnsReview"></tr>
+          </table>
+
+          <div class="step-actions mt-5">
+            <button class="premium-btn-secondary" matStepperPrevious>Back</button>
+            <button class="premium-btn-primary" routerLink="/admin/applications">Finish & Exit</button>
           </div>
-        </mat-step>
-
-        <!-- Step 3: Review Results -->
-        <mat-step label="Review & Confirm">
-          <div class="step-content">
-             <div class="results-header">
-               <h3>Allocation Proposals</h3>
-               <div class="batch-actions">
-                 <button mat-stroked-button color="primary" (click)="confirmAllRemaining()">Confirm All Pending</button>
-               </div>
-             </div>
-
-             <table mat-table [dataSource]="proposals" class="review-table">
-               <ng-container matColumnDef="studentName">
-                 <th mat-header-cell *matHeaderCellDef> Student </th>
-                 <td mat-cell *matCellDef="let p"> #{{p.studentId}} </td>
-               </ng-container>
-
-               <ng-container matColumnDef="room">
-                 <th mat-header-cell *matHeaderCellDef> Proposed Room </th>
-                 <td mat-cell *matCellDef="let p"> 
-                    <div *ngIf="p.roomDetails">
-                      <strong>{{p.roomDetails.buildingName}} - {{p.roomDetails.roomNumber}}</strong>
-                    </div>
-                    <span *ngIf="!p.roomDetails" class="no-match">No room found</span>
-                 </td>
-               </ng-container>
-
-               <ng-container matColumnDef="score">
-                 <th mat-header-cell *matHeaderCellDef> Score </th>
-                 <td mat-cell *matCellDef="let p"> 
-                   <span class="score-badge" [class.high-score]="p.score > 80">{{p.score}}</span>
-                 </td>
-               </ng-container>
-
-               <ng-container matColumnDef="warnings">
-                 <th mat-header-cell *matHeaderCellDef> Warnings </th>
-                 <td mat-cell *matCellDef="let p">
-                    <mat-chip-set>
-                      <mat-chip color="warn" *ngFor="let w of p.warnings">{{w}}</mat-chip>
-                    </mat-chip-set>
-                 </td>
-               </ng-container>
-
-               <ng-container matColumnDef="status">
-                 <th mat-header-cell *matHeaderCellDef> Status </th>
-                 <td mat-cell *matCellDef="let p">
-                   <span class="status-badge" [class]="p.status">{{p.status}}</span>
-                 </td>
-               </ng-container>
-
-               <ng-container matColumnDef="actions">
-                 <th mat-header-cell *matHeaderCellDef> Actions </th>
-                 <td mat-cell *matCellDef="let p">
-                   <ng-container *ngIf="p.status === 'PROPOSED'">
-                     <button mat-icon-button color="primary" (click)="confirmAllocation(p)" matTooltip="Confirm">
-                       <mat-icon>check_circle</mat-icon>
-                     </button>
-                     <button mat-icon-button color="warn" (click)="rejectAllocation(p)" matTooltip="Skip">
-                       <mat-icon>cancel</mat-icon>
-                     </button>
-                   </ng-container>
-                 </td>
-               </ng-container>
-
-               <tr mat-header-row *matHeaderRowDef="displayedColumnsReview"></tr>
-               <tr mat-row *matRowDef="let row; columns: displayedColumnsReview"></tr>
-             </table>
-
-             <div class="step-actions">
-               <button mat-button matStepperPrevious>Back</button>
-               <button mat-raised-button color="accent" routerLink="/admin/applications">Finish</button>
-             </div>
-          </div>
-        </mat-step>
-
-      </mat-stepper>
-    </mat-card-content>
-  </mat-card>
+        </div>
+      </mat-step>
+    </mat-stepper>
+  </div>
 </div>

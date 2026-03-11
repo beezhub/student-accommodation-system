@@ -1,244 +1,111 @@
-<div class="building-management-container">
-  <div class="page-header">
-    <div class="header-content">
-      <h1>
-        <mat-icon>apartment</mat-icon>
-        Building Management
-      </h1>
+<div class="premium-container">
+  <header class="premium-header">
+    <div class="header-title">
+      <h1>Building Management</h1>
       <p class="subtitle">Manage accommodation buildings and facilities</p>
     </div>
     <div class="header-actions">
       <div class="stat-item">
-        <span class="stat-value">{{ totalElements }}</span>
-        <span class="stat-label">Total Buildings</span>
+        <span class="stat-number">{{ totalElements }}</span>
+        <span class="stat-label">Buildings</span>
       </div>
-      <button mat-raised-button color="primary" (click)="openCreateDialog()" class="add-btn">
-        <mat-icon>add</mat-icon>
+      <button class="premium-btn-primary" (click)="openCreateDialog()">
         Add Building
       </button>
     </div>
+  </header>
+
+  <div class="premium-filter-section">
+    <form [formGroup]="filterForm" class="filter-form">
+      <div class="input-group">
+        <input type="text" formControlName="name" placeholder="Search by name" class="premium-input">
+      </div>
+      <div class="input-group">
+        <input type="text" formControlName="address" placeholder="Search by address" class="premium-input">
+      </div>
+      <div class="filter-actions">
+        <button type="button" class="premium-btn-secondary" (click)="onClearFilters()">Reset</button>
+        <button type="button" class="premium-btn-primary" (click)="onFilter()">Search</button>
+      </div>
+    </form>
   </div>
 
-  <!-- Filter Card -->
-  <mat-card class="filter-card">
-    <mat-card-content>
-      <div class="filter-header">
-        <mat-icon>filter_list</mat-icon>
-        <span>Filter Buildings</span>
-      </div>
-      <form [formGroup]="filterForm" class="filter-form">
-        <mat-form-field appearance="outline">
-          <mat-label>Building Name</mat-label>
-          <mat-icon matPrefix>apartment</mat-icon>
-          <input matInput formControlName="name" placeholder="Search by name">
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Address</mat-label>
-          <mat-icon matPrefix>location_on</mat-icon>
-          <input matInput formControlName="address" placeholder="Search by address">
-        </mat-form-field>
-
-        <div class="filter-actions">
-          <button type="button" mat-raised-button color="primary" (click)="onFilter()" class="search-btn">
-            <mat-icon>search</mat-icon>
-            Search
-          </button>
-          <button type="button" mat-stroked-button (click)="onClearFilters()" class="clear-btn">
-            <mat-icon>refresh</mat-icon>
-            Reset
-          </button>
-        </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
-
-  <!-- Table Card -->
-  <mat-card class="table-card">
-    <mat-card-content>
-      @if (isLoading) {
-        <div class="loading-container" style="width: 100%;">
-          <app-skeleton-loader type="table-row" [count]="5"></app-skeleton-loader>
-        </div>
-      }
-
-      @if (!isLoading) {
-        <!-- Mobile Card View -->
-        <div class="mobile-cards-container">
-          @for (building of buildings; track building.id) {
-            <div class="mobile-card">
-              <div class="mobile-card-header">
-                <div class="mobile-building-info">
-                   <div class="mobile-icon">
-                      <mat-icon>apartment</mat-icon>
-                   </div>
-                   <div class="mobile-name-col">
-                      <span class="mobile-name">{{ building.name }}</span>
-                      <span class="mobile-desc">{{ building.description || 'No description' }}</span>
-                   </div>
-                </div>
-                <!-- Actions in header for mobile -->
-                 <div class="mobile-actions-top">
-                    <button mat-icon-button class="action-btn images" (click)="openImageDialog(building)" matTooltip="Manage Images" aria-label="Manage Images">
-                      <mat-icon>photo_library</mat-icon>
-                    </button>
-                    <button mat-icon-button class="action-btn edit" (click)="openEditDialog(building)" aria-label="Edit Building">
-                      <mat-icon>edit</mat-icon>
-                    </button>
-                    <button mat-icon-button class="action-btn delete" (click)="deleteBuilding(building)" aria-label="Delete Building">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                    <button mat-icon-button class="action-btn rules" (click)="navigateToAllocationRules(building.id)" aria-label="Allocation Rules">
-                      <mat-icon>rule</mat-icon>
-                    </button>
-                 </div>
+  <div class="premium-table-section">
+    @if (isLoading) {
+      <div class="loading-state">Loading buildings...</div>
+    } @else {
+      <div class="table-container">
+        <table mat-table [dataSource]="buildings" class="premium-table">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Building</th>
+            <td mat-cell *matCellDef="let building">
+              <div class="building-info">
+                <span class="building-name fw-500">{{ building.name }}</span>
+                <span class="building-desc text-muted">{{ building.description || 'No description' }}</span>
               </div>
+            </td>
+          </ng-container>
 
-              <div class="mobile-details">
-                <div class="mobile-detail-item address-detail">
-                   <span class="label">Address</span>
-                   <span class="value address-value">
-                     <mat-icon class="address-icon">location_on</mat-icon>
-                     {{ building.address || 'No address' }}
-                   </span>
-                </div>
-                 <div class="mobile-detail-item">
-                   <span class="label">Floors</span>
-                   <span class="floors-badge">
-                      <mat-icon>layers</mat-icon>
-                      {{ building.totalFloors || '—' }}
-                   </span>
-                </div>
-                 <div class="mobile-detail-item">
-                    <span class="label">Institutions</span>
-                    <div class="value">
-                       @if (building.institutions && building.institutions.length > 0) {
-                          <span class="institution-chip">{{ building.institutions[0].name }}</span>
-                          @if (building.institutions.length > 1) {
-                            <span class="more-badge">+{{ building.institutions.length - 1 }}</span>
-                          }
-                       } @else {
-                          <span class="all-institutions">All</span>
-                       }
-                    </div>
-                 </div>
-              </div>
-            </div>
-          }
-        </div>
+          <ng-container matColumnDef="address">
+            <th mat-header-cell *matHeaderCellDef>Address</th>
+            <td mat-cell *matCellDef="let building">
+              <span class="text-muted">{{ building.address || 'No address' }}</span>
+            </td>
+          </ng-container>
 
-        <!-- Desktop Table View -->
-        <div class="table-container">
-          <table mat-table [dataSource]="buildings" class="buildings-table">
-            <!-- Name Column -->
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef>Building</th>
-              <td mat-cell *matCellDef="let building">
-                <div class="building-cell">
-                  <div class="building-icon">
-                    <mat-icon>apartment</mat-icon>
-                  </div>
-                  <div class="building-info">
-                    <span class="building-name">{{ building.name }}</span>
-                    <span class="building-desc">{{ building.description || 'No description' }}</span>
-                  </div>
-                </div>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="totalFloors">
+            <th mat-header-cell *matHeaderCellDef>Floors</th>
+            <td mat-cell *matCellDef="let building">
+              <span class="premium-badge">{{ building.totalFloors || 'â€”' }}</span>
+            </td>
+          </ng-container>
 
-            <!-- Address Column -->
-            <ng-container matColumnDef="address">
-              <th mat-header-cell *matHeaderCellDef>Address</th>
-              <td mat-cell *matCellDef="let building">
-                <div class="address-cell">
-                  <mat-icon>location_on</mat-icon>
-                  <span>{{ building.address || 'No address' }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Total Floors Column -->
-            <ng-container matColumnDef="totalFloors">
-              <th mat-header-cell *matHeaderCellDef>Floors</th>
-              <td mat-cell *matCellDef="let building">
-                <span class="floors-badge">
-                  <mat-icon>layers</mat-icon>
-                  {{ building.totalFloors || '—' }}
-                </span>
-              </td>
-            </ng-container>
-
-            <!-- Institutions Column -->
-            <ng-container matColumnDef="institutions">
-              <th mat-header-cell *matHeaderCellDef>Institutions</th>
-              <td mat-cell *matCellDef="let building">
-                <div class="institutions-cell">
-                  @if (building.institutions && building.institutions.length > 0) {
-                    @for (institution of building.institutions.slice(0, 2); track institution.id) {
-                      <span class="institution-chip">{{ institution.name }}</span>
-                    }
-                    @if (building.institutions.length > 2) {
-                      <span class="more-badge">+{{ building.institutions.length - 2 }}</span>
-                    }
-                  } @else {
-                    <span class="all-institutions">All Institutions</span>
+          <ng-container matColumnDef="institutions">
+            <th mat-header-cell *matHeaderCellDef>Institutions</th>
+            <td mat-cell *matCellDef="let building">
+              <div class="institutions-list">
+                @if (building.institutions && building.institutions.length > 0) {
+                  @for (inst of building.institutions.slice(0, 2); track inst.id) {
+                    <span class="premium-badge filled">{{ inst.name }}</span>
                   }
-                </div>
-              </td>
-            </ng-container>
+                  @if (building.institutions.length > 2) {
+                    <span class="premium-badge">+{{ building.institutions.length - 2 }}</span>
+                  }
+                } @else {
+                  <span class="premium-badge success">All Institutions</span>
+                }
+              </div>
+            </td>
+          </ng-container>
 
-            <!-- Created At Column -->
-            <ng-container matColumnDef="createdAt">
-              <th mat-header-cell *matHeaderCellDef>Created</th>
-              <td mat-cell *matCellDef="let building">
-                <div class="date-cell">
-                  <mat-icon>calendar_today</mat-icon>
-                  <span>{{ building.createdAt | date: 'MMM d, y' }}</span>
-                </div>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Created</th>
+            <td mat-cell *matCellDef="let building">
+              <span class="text-muted">{{ building.createdAt | date: 'MMM d, y' }}</span>
+            </td>
+          </ng-container>
 
-            <!-- Actions Column -->
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let building">
-                  <div class="actions-cell">
-                  <button mat-icon-button (click)="openImageDialog(building)" matTooltip="Manage Images" aria-label="Manage Images" class="action-btn images">
-                    <mat-icon>photo_library</mat-icon>
-                  </button>
-                  <button mat-icon-button (click)="openEditDialog(building)" matTooltip="Edit Building" aria-label="Edit Building" class="action-btn edit">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button mat-icon-button (click)="deleteBuilding(building)" matTooltip="Delete Building" aria-label="Delete Building" class="action-btn delete">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </div>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let building" class="actions-cell">
+              <button class="action-link" (click)="openImageDialog(building)">Images</button>
+              <button class="action-link ml-3" (click)="openEditDialog(building)">Edit</button>
+              <button class="action-link danger ml-3" (click)="deleteBuilding(building)">Delete</button>
+            </td>
+          </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-          </table>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
 
-          @if (buildings.length === 0) {
-            <app-empty-state
-              [icon]="'domain_disabled'"
-              [title]="'No Buildings Found'"
-              [description]="'Get started by adding your first building to the system.'">
-            </app-empty-state>
-          }
-        </div>
-
-        @if (buildings.length > 0) {
-          <mat-paginator
-            [length]="totalElements"
-            [pageSize]="pageSize"
-            [pageSizeOptions]="[10, 20, 50]"
-            (page)="onPageChange($event)"
-            showFirstLastButtons>
-          </mat-paginator>
+        @if (buildings.length === 0) {
+          <div class="empty-state">No Buildings Found. Add your first building.</div>
         }
-      }
-    </mat-card-content>
-  </mat-card>
+      </div>
+
+      <div class="pagination-wrapper mt-5">
+        <mat-paginator [length]="totalElements" [pageSize]="pageSize" [pageSizeOptions]="[10, 20, 50]" (page)="onPageChange($event)"></mat-paginator>
+      </div>
+    }
+  </div>
 </div>

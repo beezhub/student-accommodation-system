@@ -1,0 +1,228 @@
+@use '../../../../styles/variables' as vars;
+
+.premium-container {
+    padding: 4rem 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #111;
+}
+
+.premium-header {
+    margin-bottom: 5rem;
+    border-bottom: 1px solid #eaeaea;
+    padding-bottom: 2rem;
+
+    .header-title {
+        h1 {
+            font-size: 3rem;
+            font-weight: 400;
+            letter-spacing: -0.03em;
+            margin: 0 0 0.5rem 0;
+            color: #000;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #666;
+            margin: 0;
+            font-weight: 300;
+        }
+    }
+}
+
+.stepper-wrapper {
+    ::ng-deep {
+        .mat-stepper-horizontal {
+            background: transparent;
+        }
+        .mat-horizontal-stepper-header {
+            padding: 1.5rem 0;
+            .mat-step-icon {
+                background-color: #000 !important;
+                color: #fff !important;
+            }
+        }
+    }
+}
+
+.premium-btn-primary {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-radius: 4px;
+
+    &:hover:not([disabled]) {
+        background: #333;
+    }
+
+    &[disabled] {
+        background: #f5f5f5;
+        color: #999;
+        cursor: not-allowed;
+    }
+}
+
+.large-btn {
+    padding: 1.5rem 3rem;
+    font-size: 1.125rem;
+}
+
+.premium-btn-secondary {
+    background: transparent;
+    color: #000;
+    border: 1px solid #000;
+    padding: 1rem 2rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 4px;
+
+    &:hover {
+        background: #f5f5f5;
+    }
+}
+
+.step-content {
+    padding: 3rem 0;
+}
+
+.premium-table {
+    width: 100%;
+    background: transparent;
+
+    th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #666;
+        font-weight: 500;
+        padding: 1.5rem 1rem;
+        border-bottom: 1px solid #eaeaea;
+        text-align: left;
+    }
+
+    td {
+        padding: 1.5rem 1rem;
+        border-bottom: 1px solid #f5f5f5;
+        font-size: 0.9375rem;
+        color: #111;
+        vertical-align: middle;
+    }
+
+    tr:hover td {
+        background: #fafafa;
+    }
+}
+
+.fw-500 { font-weight: 500; }
+.mono-text { font-family: 'JetBrains Mono', monospace; }
+.text-muted { color: #666; }
+.ml-2 { margin-left: 0.5rem; }
+.ml-3 { margin-left: 1rem; }
+.mt-5 { margin-top: 3rem; }
+
+.premium-badge {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    background: #f5f5f5;
+    color: #333;
+}
+
+.step-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #eaeaea;
+
+    .selection-count {
+        font-size: 0.875rem;
+        color: #666;
+        font-weight: 500;
+    }
+}
+
+.proposal-wait-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8rem 0;
+    text-align: center;
+
+    h2 {
+        font-size: 2.5rem;
+        font-weight: 300;
+        margin: 0 0 1rem;
+        color: #000;
+    }
+
+    p {
+        font-size: 1.125rem;
+        color: #666;
+        margin-bottom: 3rem;
+    }
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 3rem;
+
+    h2 {
+        font-size: 2rem;
+        font-weight: 400;
+        margin: 0;
+    }
+}
+
+.actions-cell {
+    text-align: right;
+}
+
+.action-link {
+    background: none;
+    border: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #000;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+
+    &:hover { color: #666; }
+    &.danger {
+        color: #c62828;
+        &:hover { color: #d32f2f; }
+    }
+}
+
+.warning-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    .warning-item {
+        font-size: 0.75rem;
+        color: #c62828;
+        background: #ffebee;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        display: inline-block;
+        width: fit-content;
+    }
+}
