@@ -7,6 +7,7 @@ import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.entity.WaitingListEntry;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
 import com.beezhub.student_accommodation.service.NotificationService;
@@ -27,6 +28,7 @@ public class WaitingListService {
     private final WaitingListRepository waitingListRepository;
     private final ApplicationRepository applicationRepository;
     private final StudentRepository studentRepository;
+    private final RoomAllocationRepository roomAllocationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -43,6 +45,11 @@ public class WaitingListService {
             return new MessageResponse("Student is already on the waiting list");
         }
 
+        if (roomAllocationRepository.existsActiveAllocationByStudentId(studentId)) {
+            log.info("Student {} has an active allocation; cannot add to waiting list", studentId);
+            return new MessageResponse("Student already has an active allocation offer");
+        }
+
         enqueueWaitingList(student, application);
         return new MessageResponse("Student added to waiting list");
     }
@@ -51,6 +58,13 @@ public class WaitingListService {
         // Check if student is already on the waiting list to prevent duplicates
         if (waitingListRepository.existsByStudent_IdAndStatus(student.getId(), "WAITING")) {
             log.info("Student {} is already on the waiting list, skipping", student.getId());
+            return;
+        }
+
+        // Do not enqueue if student already has an active offer (OFFERED/ACCEPTED/ACTIVE).
+        // They must accept or decline their current offer before re-entering the queue.
+        if (roomAllocationRepository.existsActiveAllocationByStudentId(student.getId())) {
+            log.info("Student {} has an active allocation; skipping waiting-list enqueue", student.getId());
             return;
         }
 
