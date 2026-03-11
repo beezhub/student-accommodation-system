@@ -14,4 +14,4 @@ backend/.env
 
 
 # Git worktrees
-.worktrees/
+# .worktrees/
