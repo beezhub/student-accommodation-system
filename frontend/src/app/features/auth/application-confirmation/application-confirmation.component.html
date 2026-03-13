@@ -1,60 +1,120 @@
-<div class="confirmation-container">
-  <div class="confirmation-wrapper">
-    <mat-card class="confirmation-card mat-elevation-z8">
-      <mat-card-content>
-        <!-- Title and Description -->
-        <div class="setup-header">
-          <mat-icon class="success-icon">check_circle</mat-icon>
-          <h1 class="welcome-title">Application Submitted!</h1>
-          <p class="welcome-subtitle">Thank you for completing your application. We will review your submission and
-            notify you of the next steps.</p>
-        </div>
+<div class="step-page">
 
-        <!-- Information Alert -->
-        <mat-card class="info-card" appearance="outlined">
-          <mat-card-content>
-            <h3 class="info-title">
-              <mat-icon>info</mat-icon>
-              What's Next?
-            </h3>
-            <p class="info-text">
-              Our team will review your application and documents. You'll receive email notifications about your
-              application status.
-            </p>
-          </mat-card-content>
-        </mat-card>
+  <!-- Progress Strip — all steps completed -->
+  <div class="step-progress-strip">
+    <div class="strip-inner">
+      <div class="sp-step completed">
+        <div class="sp-bubble"><mat-icon>check</mat-icon></div>
+        <span class="sp-label">Account</span>
+      </div>
+      <div class="sp-line"></div>
+      <div class="sp-step completed">
+        <div class="sp-bubble"><mat-icon>check</mat-icon></div>
+        <span class="sp-label">Profile</span>
+      </div>
+      <div class="sp-line"></div>
+      <div class="sp-step completed">
+        <div class="sp-bubble"><mat-icon>check</mat-icon></div>
+        <span class="sp-label">Application</span>
+      </div>
+      <div class="sp-line"></div>
+      <div class="sp-step completed">
+        <div class="sp-bubble"><mat-icon>check</mat-icon></div>
+        <span class="sp-label">Documents</span>
+      </div>
+      <div class="sp-line"></div>
+      <div class="sp-step completed active">
+        <div class="sp-bubble"><mat-icon>check</mat-icon></div>
+        <span class="sp-label">Submitted</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Body -->
+  <div class="step-body">
+    <div class="step-card">
+
+      <!-- Card Header -->
+      <div class="step-card-header">
+        <div class="header-icon-row">
+          <div class="success-ring" aria-hidden="true">
+            <mat-icon class="success-icon">check_circle</mat-icon>
+          </div>
+        </div>
+        <span class="step-eyebrow">All Done</span>
+        <h2 class="step-title">Application Submitted</h2>
+        <p class="step-subtitle">
+          Thank you. Our team will review your submission and notify you of the next steps via email.
+        </p>
+      </div>
+
+      <!-- Card Body -->
+      <div class="step-card-body">
 
         <!-- Application Details -->
-        <div class="application-details">
-          <div class="detail-item">
-            <span class="detail-label">Application ID</span>
-            <span class="detail-value">{{application?.applicationCode}}</span>
-          </div>
+        <div class="review-section">
+          <span class="section-label">Application Details</span>
+          <div class="info-block">
+            <div class="info-grid single-col">
 
-          <mat-divider></mat-divider>
+              <div class="info-item">
+                <span class="info-label">Application ID</span>
+                <span class="info-value mono">{{ application?.applicationCode }}</span>
+              </div>
 
-          <div class="detail-item">
-            <span class="detail-label">Status</span>
-            <app-modern-status-badge [status]="application?.status || 'pending'" />
-          </div>
+              <div class="info-item">
+                <span class="info-label">Status</span>
+                <app-modern-status-badge [status]="application?.status || 'submitted'" size="sm" />
+              </div>
 
-          <mat-divider></mat-divider>
+              <div class="info-item">
+                <span class="info-label">Submitted On</span>
+                <span class="info-value">{{ application?.applicationDate | date:'mediumDate' }}</span>
+              </div>
 
-          <div class="detail-item">
-            <span class="detail-label">Submitted On</span>
-            <span class="detail-value">{{application?.applicationDate | date:'mediumDate'}}</span>
+            </div>
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button mat-raised-button color="primary" class="primary-button" (click)="goToDashboard()">
-            <mat-icon>dashboard</mat-icon>
-            Go to Dashboard
-          </button>
-          <!-- Download Application Copy button removed as requested -->
+        <!-- What Happens Next -->
+        <div class="review-section">
+          <span class="section-label">What Happens Next</span>
+          <div class="info-block steps-block">
+            <div class="next-step-item">
+              <div class="next-step-dot step-done"></div>
+              <div class="next-step-text">
+                <span class="next-step-title">Application received</span>
+                <span class="next-step-desc">Your application and documents are in our system.</span>
+              </div>
+            </div>
+            <div class="next-step-item">
+              <div class="next-step-dot step-pending"></div>
+              <div class="next-step-text">
+                <span class="next-step-title">Document review</span>
+                <span class="next-step-desc">Our team verifies your uploaded documents.</span>
+              </div>
+            </div>
+            <div class="next-step-item">
+              <div class="next-step-dot step-pending"></div>
+              <div class="next-step-text">
+                <span class="next-step-title">Room allocation</span>
+                <span class="next-step-desc">You will be notified by email once a room is allocated.</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </mat-card-content>
-    </mat-card>
+
+      </div>
+
+      <!-- Card Footer -->
+      <div class="step-card-footer">
+        <button mat-flat-button class="submit-btn" (click)="goToDashboard()">
+          <mat-icon>grid_view</mat-icon>
+          <span>Go to Dashboard</span>
+        </button>
+      </div>
+
+    </div>
   </div>
+
 </div>

@@ -5,9 +5,11 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { map, shareReplay } from 'rxjs/operators';
 import { Observable } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
 
 interface NavItem {
   path: string;
@@ -30,6 +32,7 @@ interface NavGroup {
     MatListModule,
     MatIconModule,
     MatButtonModule,
+    MatTooltipModule,
   ],
   templateUrl: './admin-sidebar.component.html',
   styleUrls: ['./admin-sidebar.component.scss'],
@@ -37,6 +40,13 @@ interface NavGroup {
 })
 export class AdminSidebarComponent {
   private breakpointObserver = inject(BreakpointObserver);
+  private authService = inject(AuthService);
+
+  currentUser$ = this.authService.currentUser;
+
+  logout(): void {
+    this.authService.logout();
+  }
 
   isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset).pipe(
     map((result: any) => result.matches),

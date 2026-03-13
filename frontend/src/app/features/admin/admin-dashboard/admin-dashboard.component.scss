@@ -111,30 +111,22 @@
 .kpi-card {
     background: white;
     border-radius: 16px;
-    padding: 1.5rem;
+    padding: 1.75rem 1.5rem 1.25rem;
     position: relative;
     overflow: hidden;
     border: 1px solid vars.$slate-100;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
     cursor: default;
-
-    &:hover {
-        box-shadow: 0 6px 24px rgba(0,0,0,0.08);
-        transform: translateY(-2px);
-    }
 }
 
 .kpi-body {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    position: relative;
-    z-index: 1;
 }
 
 .kpi-number {
-    font-size: 2.5rem;
+    font-size: 2.75rem;
     font-weight: 800;
     line-height: 1;
     letter-spacing: -0.04em;
@@ -150,91 +142,40 @@
 .kpi-label {
     font-size: 0.8125rem;
     font-weight: 500;
-    color: vars.$slate-500;
+    color: vars.$slate-400;
     margin-top: 0.125rem;
 }
 
+.kpi-divider {
+    height: 1px;
+    background: vars.$slate-100;
+    margin: 1.25rem 0 0;
+}
+
 .kpi-footer {
-    margin-top: 1.25rem;
-    position: relative;
-    z-index: 1;
+    padding-top: 0.875rem;
 }
 
-.kpi-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.625rem;
-    border-radius: vars.$radius-pill;
-    font-size: 0.75rem;
-    font-weight: 600;
-
-    mat-icon {
-        font-size: 0.875rem;
-        width: 0.875rem;
-        height: 0.875rem;
-    }
-}
-
-.badge-warning {
-    background: rgba(217, 119, 6, 0.1);
-    color: #b45309;
-}
-
-.badge-success {
-    background: rgba(5, 150, 105, 0.1);
-    color: #065f46;
-}
-
-.badge-info {
-    background: rgba(59, 130, 246, 0.1);
-    color: #1d4ed8;
-}
-
-.kpi-progress-wrap {
-    margin-top: 1.25rem;
-    position: relative;
-    z-index: 1;
+.kpi-sub {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: vars.$slate-400;
 }
 
 .kpi-progress-track {
-    height: 5px;
+    height: 3px;
     background: vars.$slate-100;
     border-radius: vars.$radius-pill;
     overflow: hidden;
+    margin-top: 0.375rem;
 }
 
 .kpi-progress-fill {
     height: 100%;
     border-radius: vars.$radius-pill;
+    background: vars.$slate-900;
     transition: width 0.6s ease;
-
-    &.low-occupancy { background: vars.$success; }
-    &.medium-occupancy { background: vars.$warning; }
-    &.high-occupancy { background: vars.$error; }
 }
-
-// Background watermark icons per card
-.kpi-icon-bg {
-    position: absolute;
-    bottom: -0.75rem;
-    right: -0.5rem;
-    opacity: 0.055;
-    pointer-events: none;
-
-    mat-icon {
-        font-size: 5.5rem;
-        width: 5.5rem;
-        height: 5.5rem;
-        color: vars.$slate-900;
-    }
-}
-
-// Per-card accent on left border
-.kpi-applications { border-top: 3px solid vars.$accent-blue-dark; }
-.kpi-rooms        { border-top: 3px solid vars.$accent-cyan-dark; }
-.kpi-students     { border-top: 3px solid vars.$success; }
-.kpi-occupancy    { border-top: 3px solid vars.$accent-purple-dark; }
 
 // ─── Analytics Row ────────────────────────────────────────────────────────────
 

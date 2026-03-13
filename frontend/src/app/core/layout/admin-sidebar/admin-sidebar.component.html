@@ -28,6 +28,28 @@
       }
     </nav>
 
+    @if (currentUser$ | async; as user) {
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">
+            <mat-icon>account_circle</mat-icon>
+          </div>
+          <div class="user-details">
+            <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span>
+            <span class="user-role">Administrator</span>
+          </div>
+        </div>
+        <button
+          mat-icon-button
+          class="logout-btn"
+          (click)="logout()"
+          matTooltip="Sign out"
+          aria-label="Sign out">
+          <mat-icon>logout</mat-icon>
+        </button>
+      </div>
+    }
+
   </mat-sidenav>
   <mat-sidenav-content>
     @if (isHandset$ | async) {

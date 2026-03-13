@@ -28,62 +28,49 @@
     <!-- KPI Strip -->
     <div class="kpi-strip">
 
-      <div class="kpi-card kpi-applications">
+      <div class="kpi-card">
         <div class="kpi-body">
           <span class="kpi-number">{{ stats.totalApplications }}</span>
           <span class="kpi-label">Applications</span>
         </div>
+        <div class="kpi-divider"></div>
         <div class="kpi-footer">
-          <span class="kpi-badge badge-warning">{{ stats.pendingApplications }} pending</span>
-        </div>
-        <div class="kpi-icon-bg">
-          <mat-icon>assignment</mat-icon>
+          <span class="kpi-sub">{{ stats.pendingApplications }} pending review</span>
         </div>
       </div>
 
-      <div class="kpi-card kpi-rooms">
+      <div class="kpi-card">
         <div class="kpi-body">
           <span class="kpi-number">{{ stats.totalRooms }}</span>
           <span class="kpi-label">Total Rooms</span>
         </div>
+        <div class="kpi-divider"></div>
         <div class="kpi-footer">
-          <span class="kpi-badge badge-success">{{ stats.availableRooms }} available</span>
-        </div>
-        <div class="kpi-icon-bg">
-          <mat-icon>meeting_room</mat-icon>
+          <span class="kpi-sub">{{ stats.availableRooms }} available</span>
         </div>
       </div>
 
-      <div class="kpi-card kpi-students">
+      <div class="kpi-card">
         <div class="kpi-body">
           <span class="kpi-number">{{ stats.totalStudents }}</span>
           <span class="kpi-label">Students</span>
         </div>
+        <div class="kpi-divider"></div>
         <div class="kpi-footer">
-          <span class="kpi-badge badge-info">
-            <mat-icon>trending_up</mat-icon>
-            Active
-          </span>
-        </div>
-        <div class="kpi-icon-bg">
-          <mat-icon>school</mat-icon>
+          <span class="kpi-sub">Active students</span>
         </div>
       </div>
 
-      <div class="kpi-card kpi-occupancy" [class]="getOccupancyClass(stats.overallOccupancyRate)">
+      <div class="kpi-card">
         <div class="kpi-body">
           <span class="kpi-number">{{ stats.overallOccupancyRate }}<span class="kpi-unit">%</span></span>
-          <span class="kpi-label">Occupancy</span>
+          <span class="kpi-label">Occupancy Rate</span>
         </div>
-        <div class="kpi-progress-wrap">
+        <div class="kpi-divider"></div>
+        <div class="kpi-footer">
           <div class="kpi-progress-track">
-            <div class="kpi-progress-fill"
-                 [style.width.%]="stats.overallOccupancyRate"
-                 [class]="getOccupancyClass(stats.overallOccupancyRate)"></div>
+            <div class="kpi-progress-fill" [style.width.%]="stats.overallOccupancyRate"></div>
           </div>
-        </div>
-        <div class="kpi-icon-bg">
-          <mat-icon>donut_large</mat-icon>
         </div>
       </div>
 

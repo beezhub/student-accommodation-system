@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -48,6 +48,7 @@ export class ApplicationReviewComponent implements OnInit {
   private readonly yearOfStudyService = inject(YearOfStudyService);
   private readonly institutionService = inject(InstitutionService);
   private readonly applicationService = inject(ApplicationService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   isSubmitting = false;
   termsAccepted = false;
@@ -70,6 +71,7 @@ export class ApplicationReviewComponent implements OnInit {
     this.studentService.getStudentProfile().subscribe({
       next: (student) => {
         this.studentProfile = student;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Failed to load student profile', err);
@@ -88,6 +90,7 @@ export class ApplicationReviewComponent implements OnInit {
         } else {
           this.yearOfStudy = [];
         }
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Failed to load year of study', err);
@@ -105,6 +108,7 @@ export class ApplicationReviewComponent implements OnInit {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.institutions = [];
         }
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Failed to load institutions', err);
@@ -117,6 +121,7 @@ export class ApplicationReviewComponent implements OnInit {
         if (applications && applications.length > 0) {
           this.currentApplication = applications[0];
           console.log('Application data loaded:', this.currentApplication);
+          this.cdr.markForCheck();
 
           // Load documents for this specific application
           if (this.currentApplication.id) {
@@ -124,6 +129,7 @@ export class ApplicationReviewComponent implements OnInit {
               next: (docsInfo) => {
                 this.documents = docsInfo;
                 console.log('Application documents loaded:', docsInfo);
+                this.cdr.markForCheck();
               },
               error: (err) => console.error('Failed to load application documents', err),
             });

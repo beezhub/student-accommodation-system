@@ -1,170 +1,177 @@
-<div class="review-container">
-  <mat-card class="review-card">
-    <div class="setup-header">
-      <h1 class="welcome-title">Review Your Application</h1>
-      <p class="welcome-subtitle">Please review your information before final submission</p>
-    </div>
+<div class="step-page">
 
-    <mat-card-content class="review-content">
-      <!-- Progress Bar -->
-      <div class="progress-section">
-        <mat-progress-bar mode="determinate" value="100"></mat-progress-bar>
-        <p class="progress-text">Step 4 of 4</p>
+  <!-- Progress Strip — all steps completed -->
+  <div class="step-progress-strip">
+    <div class="strip-inner">
+      <div class="sp-step completed">
+        <div class="sp-bubble"><mat-icon>check</mat-icon></div>
+        <span class="sp-label">Account</span>
+      </div>
+      <div class="sp-line"></div>
+      <div class="sp-step completed">
+        <div class="sp-bubble"><mat-icon>check</mat-icon></div>
+        <span class="sp-label">Profile</span>
+      </div>
+      <div class="sp-line"></div>
+      <div class="sp-step completed">
+        <div class="sp-bubble"><mat-icon>check</mat-icon></div>
+        <span class="sp-label">Application</span>
+      </div>
+      <div class="sp-line"></div>
+      <div class="sp-step completed">
+        <div class="sp-bubble"><mat-icon>check</mat-icon></div>
+        <span class="sp-label">Documents</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Body -->
+  <div class="step-body">
+    <div class="step-card">
+
+      <div class="step-card-header">
+        <span class="step-eyebrow">Final Step</span>
+        <h2 class="step-title">Review Your Application</h2>
+        <p class="step-subtitle">Please review your information before final submission</p>
       </div>
 
-      <div class="review-sections">
+      <div class="step-card-body">
+
         <!-- Personal Information -->
         <div class="review-section">
-          <h3 class="section-title">
-            <mat-icon>person</mat-icon>
-            Personal Information
-          </h3>
-          <mat-card class="info-card">
-            <mat-card-content>
-              <div class="info-grid">
-                <div class="info-item">
-                  <span class="info-label">Name:</span>
-                  <span class="info-value">
-                    {{
+          <span class="section-label">Personal Information</span>
+          <div class="info-block">
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Name</span>
+                <span class="info-value">
+                  {{
                     currentUser?.firstName && currentUser?.lastName
-                    ? (currentUser?.firstName + ' ' + currentUser?.lastName)
-                    : currentUser?.firstName || currentUser?.lastName || 'N/A'
-                    }}
-                  </span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Email:</span>
-                  <span class="info-value">{{ currentUser?.email || 'N/A' }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Student Number:</span>
-                  <span class="info-value">{{ studentProfile?.studentNumber || 'N/A' }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Phone Number:</span>
-                  <span class="info-value">{{ studentProfile?.phoneNumber || 'N/A' }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Date of Birth:</span>
-                  <span class="info-value">
-                    {{ studentProfile?.dateOfBirth ? (studentProfile?.dateOfBirth | date: 'longDate') : 'N/A' }}
-                  </span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Institution:</span>
-                  <span class="info-value">{{ getInstitutionName() }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Year of Study:</span>
-                  <span class="info-value">{{ getYearOfStudyName() }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Gender:</span>
-                  <span class="info-value">{{ studentProfile?.gender || 'N/A' }}</span>
-                </div>
+                      ? (currentUser?.firstName + ' ' + currentUser?.lastName)
+                      : currentUser?.firstName || currentUser?.lastName || 'N/A'
+                  }}
+                </span>
               </div>
-            </mat-card-content>
-          </mat-card>
+              <div class="info-item">
+                <span class="info-label">Email</span>
+                <span class="info-value">{{ currentUser?.email || 'N/A' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Student Number</span>
+                <span class="info-value">{{ studentProfile?.studentNumber || 'N/A' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Phone Number</span>
+                <span class="info-value">{{ studentProfile?.phoneNumber || 'N/A' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Date of Birth</span>
+                <span class="info-value">
+                  {{ studentProfile?.dateOfBirth ? (studentProfile?.dateOfBirth | date: 'longDate') : 'N/A' }}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Institution</span>
+                <span class="info-value">{{ getInstitutionName() }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Year of Study</span>
+                <span class="info-value">{{ getYearOfStudyName() }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Gender</span>
+                <span class="info-value">{{ studentProfile?.gender || 'N/A' }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <mat-divider></mat-divider>
-
-        <!-- Application Preferences -->
+        <!-- Accommodation Preferences -->
         @if (currentApplication) {
           <div class="review-section">
-            <h3 class="section-title">
-              <mat-icon>home</mat-icon>
-              Accommodation Preferences
-            </h3>
-            <mat-card class="info-card">
-              <mat-card-content>
-                <div class="info-grid">
-                  @if (currentApplication.preferredBuildingName) {
-                    <div class="info-item">
-                      <span class="info-label">Preferred Building:</span>
-                      <span class="info-value">{{ currentApplication.preferredBuildingName }}</span>
-                    </div>
-                  }
-                  @if (currentApplication.requiresAccessibility !== null && currentApplication.requiresAccessibility !== undefined) {
-                    <div class="info-item">
-                      <span class="info-label">Accessibility Required:</span>
-                      <span class="info-value">{{ currentApplication.requiresAccessibility ? 'Yes' : 'No' }}</span>
-                    </div>
-                  }
-                  @if (currentApplication.specialRequirements) {
-                    <div class="info-item full-width">
-                      <span class="info-label">Special Requirements:</span>
-                      <span class="info-value">{{ currentApplication.specialRequirements }}</span>
-                    </div>
-                  }
-                  @if (currentApplication.institutionName) {
-                    <div class="info-item">
-                      <span class="info-label">Institution:</span>
-                      <span class="info-value">{{ currentApplication.institutionName }}</span>
-                    </div>
-                  }
-                  @if (currentApplication.courseName) {
-                    <div class="info-item">
-                      <span class="info-label">Course:</span>
-                      <span class="info-value">{{ currentApplication.courseName }}</span>
-                    </div>
-                  }
-                </div>
-              </mat-card-content>
-            </mat-card>
-          </div>
-
-          <mat-divider></mat-divider>
-        }
-
-        <!-- Documents -->
-        <div class="review-section">
-          <h3 class="section-title">
-            <mat-icon>description</mat-icon>
-            Uploaded Documents
-          </h3>
-          <mat-card class="info-card">
-            <mat-card-content>
-              <div class="documents-list">
-                @for (doc of documents; track doc) {
-                  <div class="document-item">
-                    <mat-icon class="document-icon success-icon">check_circle</mat-icon>
-                    <span class="document-name">{{ doc.documentTypeName }}</span>
+            <span class="section-label">Accommodation Preferences</span>
+            <div class="info-block">
+              <div class="info-grid">
+                @if (currentApplication.preferredBuildingName) {
+                  <div class="info-item">
+                    <span class="info-label">Preferred Building</span>
+                    <span class="info-value">{{ currentApplication.preferredBuildingName }}</span>
                   </div>
                 }
-                @if (documents.length === 0) {
-                  <div class="no-documents">
-                    <mat-icon class="warning-icon">warning</mat-icon>
-                    <span>No documents uploaded.</span>
+                @if (currentApplication.requiresAccessibility !== null && currentApplication.requiresAccessibility !== undefined) {
+                  <div class="info-item">
+                    <span class="info-label">Accessibility Required</span>
+                    <span class="info-value">{{ currentApplication.requiresAccessibility ? 'Yes' : 'No' }}</span>
+                  </div>
+                }
+                @if (currentApplication.institutionName) {
+                  <div class="info-item">
+                    <span class="info-label">Institution</span>
+                    <span class="info-value">{{ currentApplication.institutionName }}</span>
+                  </div>
+                }
+                @if (currentApplication.courseName) {
+                  <div class="info-item">
+                    <span class="info-label">Course</span>
+                    <span class="info-value">{{ currentApplication.courseName }}</span>
+                  </div>
+                }
+                @if (currentApplication.specialRequirements) {
+                  <div class="info-item full-span">
+                    <span class="info-label">Special Requirements</span>
+                    <span class="info-value">{{ currentApplication.specialRequirements }}</span>
                   </div>
                 }
               </div>
-            </mat-card-content>
-          </mat-card>
+            </div>
+          </div>
+        }
+
+        <!-- Uploaded Documents -->
+        <div class="review-section">
+          <span class="section-label">Uploaded Documents</span>
+          <div class="info-block">
+            <div class="documents-list">
+              @for (doc of documents; track doc) {
+                <div class="document-item">
+                  <mat-icon class="doc-check">check_circle</mat-icon>
+                  <span class="document-name">{{ doc.documentTypeName }}</span>
+                </div>
+              }
+              @if (documents.length === 0) {
+                <div class="no-documents">
+                  <mat-icon>warning</mat-icon>
+                  <span>No documents uploaded yet</span>
+                </div>
+              }
+            </div>
+          </div>
         </div>
 
-        <mat-divider></mat-divider>
-
-        <!-- Terms and Conditions -->
-        <div class="review-section terms-section">
-          <mat-checkbox [(ngModel)]="termsAccepted" class="terms-checkbox" required>
+        <!-- Confirmation -->
+        <div class="confirm-section">
+          <mat-checkbox [(ngModel)]="termsAccepted" class="confirm-checkbox">
             I confirm that all the information provided is accurate and complete
           </mat-checkbox>
         </div>
-      </div>
-    </mat-card-content>
 
-    <mat-card-actions class="review-actions">
-      <button mat-raised-button color="primary" class="submit-button" (click)="onSubmit()"
-        [disabled]="isSubmitting || !termsAccepted">
-        @if (isSubmitting) {
-          <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-        }
-        @if (!isSubmitting) {
-          <mat-icon>send</mat-icon>
-        }
-        {{ isSubmitting ? "Submitting..." : "Submit Application" }}
-      </button>
-    </mat-card-actions>
-  </mat-card>
+      </div>
+
+      <div class="step-card-footer">
+        <div></div>
+        <button mat-flat-button class="submit-btn" (click)="onSubmit()"
+          [disabled]="isSubmitting || !termsAccepted">
+          @if (isSubmitting) {
+            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            <span>Submitting...</span>
+          } @else {
+            <span>Submit Application</span>
+            <mat-icon>send</mat-icon>
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
+
 </div>

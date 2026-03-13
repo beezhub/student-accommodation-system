@@ -1,53 +1,60 @@
-<div class="verification-required-container">
-  <mat-card class="verification-card">
-    <div class="card-content">
-      <div class="icon-container">
-        <mat-icon class="email-icon">mark_email_unread</mat-icon>
+<div class="verify-page">
+
+  <!-- ── Brand panel (left) ─────────────────────────────────────────────── -->
+  <aside class="brand-panel">
+    <div class="brand-inner">
+
+      <div class="brand-logo">
+        <mat-icon class="logo-icon">home_work</mat-icon>
+        <span class="logo-text">BeeZhub</span>
       </div>
 
-      <h1>Verify Your Email</h1>
-
-      <p class="subtitle">
-        Your application has been submitted successfully!
-      </p>
-
-      <p class="description">
-        To access your dashboard and track your application status, please verify your email address.
-        We've sent a verification link to:
-      </p>
-
-      <div class="email-display">
-        <mat-icon>email</mat-icon>
-        <span>{{ currentUser?.email }}</span>
+      <div class="brand-copy">
+        <div class="mail-icon-wrap">
+          <mat-icon class="mail-icon">mark_email_unread</mat-icon>
+        </div>
+        <h1 class="brand-headline">Check your inbox</h1>
+        <p class="brand-subline">We sent a verification link to:</p>
+        <div class="email-chip">{{ currentUser?.email }}</div>
       </div>
 
-      <div class="instructions">
-        <h3>What to do:</h3>
-        <ol>
-          <li>Check your email inbox (and spam folder)</li>
-          <li>Click the verification link in the email</li>
-          <li>Return here and click "I've Verified My Email"</li>
-        </ol>
+    </div>
+  </aside>
+
+  <!-- ── Content panel (right) ─────────────────────────────────────────── -->
+  <main class="content-panel">
+    <div class="content-inner">
+
+      <div class="content-header">
+        <span class="content-eyebrow">Almost there</span>
+        <h2 class="content-title">Verify your email</h2>
+        <p class="content-subtitle">Complete your registration by verifying your email address</p>
       </div>
+
+      <ol class="instructions">
+        <li>
+          <span class="inst-num">1</span>
+          <span class="inst-text">Check your email inbox (and spam/junk folder)</span>
+        </li>
+        <li>
+          <span class="inst-num">2</span>
+          <span class="inst-text">Click the verification link in the email from BeeZhub</span>
+        </li>
+        <li>
+          <span class="inst-num">3</span>
+          <span class="inst-text">Return here and click "I've Verified My Email"</span>
+        </li>
+      </ol>
 
       <div class="action-buttons">
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="checkVerificationStatus()"
-          class="verify-btn">
+        <button mat-flat-button (click)="checkVerificationStatus()" class="primary-btn">
           <mat-icon>check_circle</mat-icon>
           I've Verified My Email
         </button>
 
-        <button
-          mat-stroked-button
-          color="primary"
-          (click)="resendVerificationEmail()"
-          [disabled]="isResending"
-          class="resend-btn">
+        <button mat-stroked-button (click)="resendVerificationEmail()" [disabled]="isResending" class="secondary-btn">
           @if (isResending) {
-            <mat-spinner diameter="20"></mat-spinner>
+            <mat-spinner diameter="18"></mat-spinner>
           } @else {
             <mat-icon>refresh</mat-icon>
           }
@@ -55,12 +62,14 @@
         </button>
       </div>
 
-      <div class="footer-actions">
-        <button mat-button (click)="logout()" class="logout-btn">
+      <div class="sign-out-row">
+        <button mat-button (click)="logout()" class="signout-btn">
           <mat-icon>logout</mat-icon>
           Sign out and use a different account
         </button>
       </div>
+
     </div>
-  </mat-card>
+  </main>
+
 </div>

@@ -7,10 +7,8 @@ import { Application } from '../../../core/models/application.model';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 
 // Material imports
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
   selector: 'app-application-confirmation',
@@ -20,10 +18,8 @@ import { MatDividerModule } from '@angular/material/divider';
   imports: [
     CommonModule,
     RouterModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatDividerModule,
     ModernStatusBadgeComponent,
   ],
 })
@@ -34,8 +30,6 @@ export class ApplicationConfirmationComponent implements OnInit {
   private applicationService = inject(ApplicationService);
 
   currentUser: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  currentDate: Date = new Date();
   application: Application | null = null;
   applicationId: number | null = null;
 
@@ -46,7 +40,6 @@ export class ApplicationConfirmationComponent implements OnInit {
     }
     const idParam = this.route.snapshot.paramMap.get('applicationId');
     this.applicationId = idParam !== null && !isNaN(Number(idParam)) ? Number(idParam) : null;
-    console.log('Application ID:', this.applicationId);
 
     if (this.applicationId && this.applicationId > 0) {
       this.applicationService.getApplicationById(this.applicationId).subscribe({

@@ -21,15 +21,9 @@ import { Application } from '../../core/models/application.model';
 import { AllocationStatus } from '../../core/models/status.model';
 
 // Material imports
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatBadgeModule } from '@angular/material/badge';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatGridListModule } from '@angular/material/grid-list';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ModernStatusBadgeComponent } from '../../shared/modern-status-badge/modern-status-badge.component';
 import { AcceptOfferDialogComponent } from './accept-offer-dialog/accept-offer-dialog.component';
@@ -39,6 +33,7 @@ import {
 } from './decline-offer-dialog/decline-offer-dialog.component';
 import { DeclineOfferRequest } from '../../core/services/room-allocation.service';
 import { OfferExpiryComponent } from '../../shared/components/offer-expiry/offer-expiry.component';
+import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader/skeleton-loader.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -49,18 +44,13 @@ import { OfferExpiryComponent } from '../../shared/components/offer-expiry/offer
     CommonModule,
     RouterModule,
     DocumentViewerComponent,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule,
-    MatBadgeModule,
-    MatProgressBarModule,
     MatProgressSpinnerModule,
-    MatGridListModule,
-    MatDividerModule,
     MatDialogModule,
     ModernStatusBadgeComponent,
     OfferExpiryComponent,
+    SkeletonLoaderComponent,
   ],
 })
 export class DashboardComponent implements OnInit {
@@ -136,9 +126,8 @@ export class DashboardComponent implements OnInit {
             this.isLoadingRoom = false;
             this.cdr.markForCheck();
           },
-          error: (err) => {
-            // Student might not have a room allocation yet
-            console.log('No active room allocation found:', err);
+          error: () => {
+            // Student might not have a room allocation yet — expected state
             this.roomAllocation = null;
             this.isLoadingRoom = false;
             this.cdr.markForCheck();
@@ -331,6 +320,34 @@ export class DashboardComponent implements OnInit {
     return sorted[0];
   }
 
+  get timeOfDay(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  get journeySteps(): { label: string; done: boolean; active: boolean }[] {
+    const status = this.currentApplication?.status?.toUpperCase() ?? '';
+    const steps = [
+      { label: 'Submitted', key: 'SUBMITTED' },
+      { label: 'Reviewing', key: 'UNDER_REVIEW' },
+      { label: 'Approved', key: 'APPROVED' },
+      { label: 'Awaiting', key: 'AWAITING_ALLOCATION' },
+      { label: 'Offered', key: 'OFFERED' },
+    ];
+    const order = [
+      'PENDING', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED',
+      'AWAITING_ALLOCATION', 'OFFERED', 'ACCEPTED', 'CHECKED_IN',
+    ];
+    const currentIdx = order.indexOf(status);
+    return steps.map((step, i) => ({
+      label: step.label,
+      done: order.indexOf(step.key) < currentIdx,
+      active: step.key === status || (status === 'PENDING' && i === 0),
+    }));
+  }
+
   logout() {
     this.authService.logout();
     this.router.navigate(['/login']);
@@ -342,21 +359,5 @@ export class DashboardComponent implements OnInit {
 
   closeViewer() {
     this.selectedDocument = null;
-  }
-
-  getStatusClass(status: string): string {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return 'status-approved';
-      case 'pending':
-        return 'status-pending';
-      case 'rejected':
-        return 'status-rejected';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      case 'verified':
-        return 'status-verified';
-      default:
-        return '';
-    }
   }
 }
