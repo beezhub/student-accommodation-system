@@ -53,6 +53,8 @@ export class NotificationService {
     this.eventSource.onopen = () => {
       console.log('SSE connection opened');
       this.reconnectAttempts = 0;
+      // Load existing notifications immediately after connection is established
+      this.fetchNotifications().subscribe();
     };
 
     this.eventSource.addEventListener('notification', (event: MessageEvent) => {

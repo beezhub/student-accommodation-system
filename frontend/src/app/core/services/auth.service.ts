@@ -35,6 +35,8 @@ export class AuthService {
     if (storedUser) {
       try {
         this.currentUserSubject.next(JSON.parse(storedUser));
+        // Re-initialize notification stream on page refresh if user is already logged in
+        this.notificationService.initializeNotifications();
       } catch {
         localStorage.removeItem('currentUser');
       }

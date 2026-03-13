@@ -126,7 +126,11 @@
       "Bash(npm info:*)",
       "Bash(playwright-cli:*)",
       "mcp__plugin_serena_serena__replace_symbol_body",
-      "mcp__plugin_serena_serena__create_text_file"
+      "mcp__plugin_serena_serena__create_text_file",
+      "Bash(git worktree:*)",
+      "Skill(playwright-cli)",
+      "Bash(docker ps:*)",
+      "Bash(grep -n \"filtersVisible\\\\|activeFilterCount\\\\|toggleFilters\" \\\\\n  /c/Users/dev_t/Documents/practice/Projects/student-accommodation-system/frontend/src/app/features/admin/allocation-rule-management/allocation-rule-management.component.ts 2>/dev/null\necho \"---\"\ngrep -n \"filterForm\\\\|onClearFilters\\\\|onFilter\" \\\\\n  /c/Users/dev_t/Documents/practice/Projects/student-accommodation-system/frontend/src/app/features/admin/institution-management/institution-management.component.ts 2>/dev/null | head -20)"
     ],
     "deny": [],
     "ask": []

@@ -138,7 +138,28 @@ export class WaitingListDashboardComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // Helper for "Allocate Now"
+  // ── UI helpers ──────────────────────────────────────────────
+
+  getRank(index: number): number {
+    return index + 1 + (this.paginator?.pageIndex ?? 0) * (this.paginator?.pageSize ?? 10);
+  }
+
+  getWLInitials(entry: WaitingListEntry): string {
+    const parts = (entry.studentName ?? '').trim().split(/\s+/);
+    const f = parts[0]?.[0] ?? '';
+    const l = parts[1]?.[0] ?? '';
+    return (f + l).toUpperCase();
+  }
+
+  getScoreRingStyle(score: number): { [key: string]: string } {
+    const maxScore = 200;
+    const pct = Math.min(100, Math.round((score / maxScore) * 100));
+    const color =
+      score >= 140 ? '#10b981' : score >= 70 ? '#f59e0b' : '#ef4444';
+    return { '--score-pct': `${pct}`, '--ring-color': color };
+  }
+
+  // Helper for "Review"
   openAllocation(entry: WaitingListEntry): void {
     // Navigate to a detail view or open dialog?
     // For now, let's just show a not implemented or navigate to application review

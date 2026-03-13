@@ -17,6 +17,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AllocationRuleService } from '../../../../core/services/allocation-rule.service';
 import { AllocationRule } from '../../../../core/models/allocation.models';
@@ -40,6 +41,7 @@ export interface AllocationRuleDialogData {
     MatSliderModule,
     MatIconModule,
     MatProgressBarModule,
+    MatProgressSpinnerModule,
   ],
   templateUrl: './allocation-rule-dialog.component.html',
   styleUrls: ['./allocation-rule-dialog.component.css'],

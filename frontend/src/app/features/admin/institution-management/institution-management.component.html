@@ -1,143 +1,137 @@
-<div class="institution-container">
-  <div class="page-header">
-    <div class="header-content">
-      <h1>
-        <mat-icon>school</mat-icon>
-        Institutions
-      </h1>
-      <p class="subtitle">Manage partner educational institutions</p>
-    </div>
-    <div class="header-actions">
-      <div class="stat-item">
-        <span class="stat-value">{{ totalElements }}</span>
-        <span class="stat-label">Total Institutions</span>
+<div class="institution-mgmt-page">
+
+  <!-- ══════════════════════════════════════════════════════
+       HERO HEADER BAND
+  ══════════════════════════════════════════════════════ -->
+  <div class="page-hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-icon-wrap" aria-hidden="true">
+          <mat-icon>account_balance</mat-icon>
+        </div>
+        <div class="hero-text">
+          <h1 class="hero-title">Institutions</h1>
+          <p class="hero-subtitle">Manage partner educational institutions</p>
+        </div>
       </div>
-      <button mat-raised-button color="primary" (click)="openCreateDialog()" class="add-btn">
-        <mat-icon>add</mat-icon>
-        Add Institution
-      </button>
+
+      <div class="hero-right">
+        <div class="hero-metrics" role="list" aria-label="Institution summary">
+          <div class="metric-chip" role="listitem">
+            <span class="metric-value">{{ totalElements | number }}</span>
+            <span class="metric-label">Institutions</span>
+          </div>
+        </div>
+
+        <button
+          mat-raised-button
+          class="add-btn"
+          (click)="openCreateDialog()">
+          <mat-icon>add</mat-icon>
+          Add Institution
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Filter Card -->
-  <mat-card class="filter-card">
-    <mat-card-content>
-      <div class="filter-header">
-        <mat-icon>filter_list</mat-icon>
-        <span>Filter Institutions</span>
-      </div>
-      <form [formGroup]="filterForm" class="filter-form">
-        <mat-form-field appearance="outline">
-          <mat-label>Institution Name</mat-label>
-          <mat-icon matPrefix>search</mat-icon>
-          <input matInput formControlName="name" placeholder="Search by name">
-        </mat-form-field>
+  <!-- ══════════════════════════════════════════════════════
+       FILTER TOGGLE BAR
+  ══════════════════════════════════════════════════════ -->
+  <div class="filter-toggle-bar">
+    <button
+      mat-stroked-button
+      class="filter-toggle-btn"
+      (click)="toggleFilters()"
+      [attr.aria-expanded]="filtersVisible"
+      aria-controls="filter-panel">
+      <mat-icon>tune</mat-icon>
+      Filters
+      @if (activeFilterCount > 0) {
+        <span class="filter-active-badge" [attr.aria-label]="activeFilterCount + ' active filters'">{{ activeFilterCount }}</span>
+      }
+      <mat-icon class="chevron-icon" [class.rotated]="filtersVisible">expand_more</mat-icon>
+    </button>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Address</mat-label>
-          <mat-icon matPrefix>location_on</mat-icon>
-          <input matInput formControlName="address" placeholder="Search by address">
-        </mat-form-field>
+    @if (activeFilterCount > 0) {
+      <button mat-button class="clear-all-btn" (click)="onClearFilters()">
+        <mat-icon>close</mat-icon>
+        Clear filters
+      </button>
+    }
 
-        <mat-form-field appearance="outline">
-          <mat-label>Email</mat-label>
-          <mat-icon matPrefix>email</mat-icon>
-          <input matInput formControlName="contactEmail" placeholder="Search by email">
-        </mat-form-field>
+    <div class="result-summary" aria-live="polite">
+      @if (!isLoading) {
+        <span>{{ totalElements | number }} result{{ totalElements !== 1 ? 's' : '' }}</span>
+      }
+    </div>
+  </div>
 
-        <div class="filter-actions">
-          <button mat-raised-button color="primary" (click)="onFilter()" class="search-btn">
-            <mat-icon>search</mat-icon>
-            Search
-          </button>
-          <button mat-stroked-button (click)="onClearFilters()" class="clear-btn">
-            <mat-icon>refresh</mat-icon>
-            Reset
-          </button>
-        </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
+  <!-- ══════════════════════════════════════════════════════
+       COLLAPSIBLE FILTER PANEL
+  ══════════════════════════════════════════════════════ -->
+  @if (filtersVisible) {
+    <mat-card class="filter-card" id="filter-panel" role="search" aria-label="Institution filters">
+      <mat-card-content>
+        <form [formGroup]="filterForm" class="filter-form" (ngSubmit)="onFilter()">
 
-  <!-- Table Card -->
+          <mat-form-field appearance="outline">
+            <mat-label>Institution Name</mat-label>
+            <input matInput formControlName="name" placeholder="Search by name">
+            <mat-icon matSuffix>account_balance</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Address</mat-label>
+            <input matInput formControlName="address" placeholder="Search by address">
+            <mat-icon matSuffix>location_on</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input matInput formControlName="contactEmail" placeholder="Search by email">
+            <mat-icon matSuffix>email</mat-icon>
+          </mat-form-field>
+
+          <div class="filter-actions">
+            <button mat-raised-button color="primary" type="submit">
+              <mat-icon>search</mat-icon>
+              Search
+            </button>
+            <button mat-stroked-button type="button" (click)="onClearFilters()">
+              <mat-icon>clear</mat-icon>
+              Clear
+            </button>
+          </div>
+
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       DATA TABLE CARD
+  ══════════════════════════════════════════════════════ -->
   <mat-card class="table-card">
     <mat-card-content>
+
       @if (isLoading) {
         <div class="loading-container">
-          <mat-spinner diameter="48"></mat-spinner>
-          <p>Loading institutions...</p>
+          <app-skeleton-loader [type]="'table-row'" [count]="8"></app-skeleton-loader>
         </div>
       }
 
       @if (!isLoading) {
-        <!-- Mobile Cards List -->
-        <div class="mobile-cards-container">
-          @for (institution of institutions; track institution.id) {
-            <div class="mobile-card">
-              <div class="mobile-card-header">
-                <div class="mobile-type-info">
-                  <div class="institution-icon">
-                    <mat-icon>account_balance</mat-icon>
-                  </div>
-                  <span class="institution-name">{{ institution.name }}</span>
-                </div>
-              </div>
-              
-              <div class="mobile-card-body">
-                @if (institution.address) {
-                  <div class="mobile-data-row">
-                    <p class="description-label">Address</p>
-                    <div class="address-cell">
-                      <mat-icon>location_on</mat-icon>
-                      <span>{{ institution.address }}</span>
-                    </div>
-                  </div>
-                }
 
-                @if (institution.emailAddress) {
-                  <div class="mobile-data-row">
-                    <p class="description-label">Email</p>
-                    <div class="contact-cell email">
-                      <mat-icon>email</mat-icon>
-                      <span>{{ institution.emailAddress }}</span>
-                    </div>
-                  </div>
-                }
+        <div class="table-container">
+          <table mat-table [dataSource]="institutions" class="institutions-table" aria-label="Institutions list">
 
-                @if (institution.phoneNumber) {
-                  <div class="mobile-data-row">
-                    <p class="description-label">Phone</p>
-                    <div class="contact-cell">
-                      <mat-icon>phone</mat-icon>
-                      <span>{{ institution.phoneNumber }}</span>
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <div class="mobile-card-actions">
-                <button mat-button color="primary" (click)="openEditDialog(institution)">
-                  <mat-icon>edit</mat-icon>
-                  Edit
-                </button>
-                <button mat-button color="warn" (click)="deleteInstitution(institution)">
-                  <mat-icon>delete</mat-icon>
-                  Delete
-                </button>
-              </div>
-            </div>
-          }
-        </div>
-
-        <div class="table-wrapper">
-          <table mat-table [dataSource]="institutions" class="institutions-table">
-            <!-- Name Column -->
+            <!-- Institution Column -->
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef>Institution</th>
               <td mat-cell *matCellDef="let institution">
                 <div class="institution-cell">
-                  <div class="institution-icon">
-                    <mat-icon>account_balance</mat-icon>
+                  <div class="institution-avatar" aria-hidden="true">
+                    {{ institution.name?.charAt(0)?.toUpperCase() || 'I' }}
                   </div>
                   <span class="institution-name">{{ institution.name }}</span>
                 </div>
@@ -149,19 +143,19 @@
               <th mat-header-cell *matHeaderCellDef>Address</th>
               <td mat-cell *matCellDef="let institution">
                 <div class="address-cell">
-                  <mat-icon>location_on</mat-icon>
-                  <span>{{ institution.address || '—' }}</span>
+                  <mat-icon class="cell-icon" aria-hidden="true">location_on</mat-icon>
+                  <span class="cell-text">{{ institution.address || '—' }}</span>
                 </div>
               </td>
             </ng-container>
 
-            <!-- Phone Number Column -->
+            <!-- Phone Column -->
             <ng-container matColumnDef="phoneNumber">
               <th mat-header-cell *matHeaderCellDef>Phone</th>
               <td mat-cell *matCellDef="let institution">
                 <div class="contact-cell">
-                  <mat-icon>phone</mat-icon>
-                  <span>{{ institution.phoneNumber || '—' }}</span>
+                  <mat-icon class="cell-icon" aria-hidden="true">phone</mat-icon>
+                  <span class="cell-text">{{ institution.phoneNumber || '—' }}</span>
                 </div>
               </td>
             </ng-container>
@@ -171,58 +165,66 @@
               <th mat-header-cell *matHeaderCellDef>Email</th>
               <td mat-cell *matCellDef="let institution">
                 <div class="contact-cell email">
-                  <mat-icon>email</mat-icon>
-                  <span>{{ institution.emailAddress || '—' }}</span>
+                  <mat-icon class="cell-icon" aria-hidden="true">email</mat-icon>
+                  <span class="cell-text">{{ institution.emailAddress || '—' }}</span>
                 </div>
               </td>
             </ng-container>
 
             <!-- Actions Column -->
             <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let institution">
                 <div class="actions-cell">
-                  <button mat-icon-button
-                          (click)="openEditDialog(institution)"
-                          matTooltip="Edit"
-                          aria-label="Edit"
-                          class="action-btn edit">
+                  <button
+                    mat-icon-button
+                    class="action-btn edit"
+                    (click)="openEditDialog(institution)"
+                    matTooltip="Edit institution"
+                    aria-label="Edit institution">
                     <mat-icon>edit</mat-icon>
                   </button>
-                  <button mat-icon-button
-                          (click)="deleteInstitution(institution)"
-                          matTooltip="Delete"
-                          aria-label="Delete"
-                          class="action-btn delete">
-                    <mat-icon>delete</mat-icon>
+                  <button
+                    mat-icon-button
+                    class="action-btn delete"
+                    (click)="deleteInstitution(institution)"
+                    matTooltip="Delete institution"
+                    aria-label="Delete institution">
+                    <mat-icon>delete_outline</mat-icon>
                   </button>
                 </div>
               </td>
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
           </table>
-
-          @if (institutions.length === 0) {
-            <app-empty-state
-              [icon]="'school'"
-              [title]="'No Institutions Found'"
-              [description]="'Add your first educational institution to get started.'">
-            </app-empty-state>
-          }
         </div>
+
+        @if (institutions.length === 0) {
+          <app-empty-state
+            icon="account_balance"
+            title="No Institutions Found"
+            description="No institutions match your filters. Add your first institution to get started."
+            ctaLabel="Add Institution">
+          </app-empty-state>
+        }
 
         @if (institutions.length > 0) {
           <mat-paginator
+            class="table-paginator"
             [length]="totalElements"
             [pageSize]="pageSize"
             [pageSizeOptions]="[10, 20, 50, 100]"
             (page)="onPageChange($event)"
-            showFirstLastButtons>
+            showFirstLastButtons
+            aria-label="Institutions pagination">
           </mat-paginator>
         }
+
       }
+
     </mat-card-content>
   </mat-card>
+
 </div>

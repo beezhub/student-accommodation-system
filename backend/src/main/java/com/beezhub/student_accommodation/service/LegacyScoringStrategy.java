@@ -570,6 +570,10 @@ public class LegacyScoringStrategy implements ScoringStrategy {
     private List<Room> getAvailableRooms() {
         return roomRepository.findAll().stream()
                 .filter(room -> {
+                    String status = room.getStatus();
+                    if (!"AVAILABLE".equals(status) && !"OCCUPIED".equals(status)) {
+                        return false;
+                    }
                     long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
                     return activeAllocations < room.getCapacity();
                 })

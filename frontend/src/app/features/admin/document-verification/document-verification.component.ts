@@ -59,8 +59,18 @@ export class DocumentVerificationComponent implements OnInit {
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
+  filtersVisible = false;
 
   filterForm: FormGroup;
+
+  get activeFilterCount(): number {
+    const v = this.filterForm?.value ?? {};
+    return [v.studentName, v.documentTypeId, v.status].filter(Boolean).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
 
   statuses = ['PENDING', 'APPROVED', 'REJECTED'];
   documentTypes: any[] = [];

@@ -1,88 +1,180 @@
-<div class="premium-container">
-  <header class="premium-header">
-    <div class="header-title">
-      <h1>Waiting List Priority</h1>
-      <p class="subtitle">View and manage student priority scores for automated allocation</p>
-    </div>
-    <div class="header-actions">
-      <button class="premium-btn-primary" (click)="rescoreList()" [disabled]="isRescoring">
-        {{ isRescoring ? 'Calculating...' : 'Re-calculate Scores' }}
-      </button>
-    </div>
-  </header>
+<div class="waiting-list-page">
 
-  <div class="premium-filter-section">
-    <form [formGroup]="filterForm" class="filter-form">
-      <div class="input-group">
-        <label class="input-label">Filter by Building</label>
-        <select formControlName="buildingId" class="premium-input">
-          <option value="">All Buildings</option>
+  <!-- ══════════════════════════════════════════════════════
+       HERO HEADER BAND
+  ══════════════════════════════════════════════════════ -->
+  <div class="page-hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-icon-wrap" aria-hidden="true">
+          <mat-icon>format_list_numbered</mat-icon>
+        </div>
+        <div class="hero-text">
+          <h1 class="hero-title">Waiting List Priority</h1>
+          <p class="hero-subtitle">View and manage student priority scores for automated allocation</p>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="hero-metrics" role="list" aria-label="Waiting list summary">
+          <div class="metric-chip" role="listitem">
+            <span class="metric-value">{{ dataSource.data.length | number }}</span>
+            <span class="metric-label">Total</span>
+          </div>
+        </div>
+
+        <button
+          mat-raised-button
+          class="rescore-btn"
+          (click)="rescoreList()"
+          [disabled]="isRescoring"
+          matTooltip="Recalculate priority scores for all waiting students">
+          <mat-icon>{{ isRescoring ? 'hourglass_top' : 'refresh' }}</mat-icon>
+          {{ isRescoring ? 'Calculating...' : 'Re-score' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       FILTER BAR
+  ══════════════════════════════════════════════════════ -->
+  <div class="filter-bar">
+    <form [formGroup]="filterForm" class="filter-bar-inner">
+      <mat-form-field appearance="outline" class="building-filter">
+        <mat-label>Filter by Building</mat-label>
+        <mat-select formControlName="buildingId">
+          <mat-option value="">All Buildings</mat-option>
           @for (b of buildings; track b.id) {
-            <option [value]="b.id">{{ b.name }}</option>
+            <mat-option [value]="b.id">{{ b.name }}</mat-option>
           }
-        </select>
+        </mat-select>
+        <mat-icon matSuffix>apartment</mat-icon>
+      </mat-form-field>
+
+      <div class="result-summary" aria-live="polite">
+        @if (!isLoading) {
+          <span>{{ dataSource.data.length | number }} student{{ dataSource.data.length !== 1 ? 's' : '' }}</span>
+        }
       </div>
     </form>
   </div>
 
-  <div class="premium-table-section">
-    @if (isLoading) {
-      <div class="loading-state">Loading...</div>
-    } @else {
-      <div class="table-container">
-        <table mat-table [dataSource]="dataSource" matSort class="premium-table">
-          <ng-container matColumnDef="position">
-            <th mat-header-cell *matHeaderCellDef>Rank</th>
-            <td mat-cell *matCellDef="let element; let i = index">
-              <span class="rank-number" [class.top-rank]="i < 3">{{i + 1 + (paginator?.pageIndex || 0) * (paginator?.pageSize || 10)}}</span>
-            </td>
-          </ng-container>
+  <!-- ══════════════════════════════════════════════════════
+       TABLE CARD
+  ══════════════════════════════════════════════════════ -->
+  <mat-card class="table-card">
+    <mat-card-content>
 
-          <ng-container matColumnDef="studentName">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
-            <td mat-cell *matCellDef="let element">
-              <div class="student-info">
-                <span class="student-name">{{element.studentName}}</span>
-                <span class="student-code mono-text">{{element.applicationCode}}</span>
-              </div>
-            </td>
-          </ng-container>
+      @if (isLoading) {
+        <div class="loading-container">
+          <app-skeleton-loader [type]="'table-row'" [count]="8"></app-skeleton-loader>
+        </div>
+      }
 
-          <ng-container matColumnDef="priorityScore">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Score</th>
-            <td mat-cell *matCellDef="let element">
-              <span class="score-value">{{element.priorityScore}}</span>
-            </td>
-          </ng-container>
+      @if (!isLoading) {
 
-          <ng-container matColumnDef="preferredBuilding">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Preference</th>
-            <td mat-cell *matCellDef="let element">{{element.preferredBuildingName || 'Any'}}</td>
-          </ng-container>
+        @if (dataSource.data.length === 0) {
+          <app-empty-state
+            icon="playlist_remove"
+            title="Waiting List is Empty"
+            description="No students are currently on the waiting list for the selected building.">
+          </app-empty-state>
+        } @else {
 
-          <ng-container matColumnDef="applicationDate">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Applied</th>
-            <td mat-cell *matCellDef="let element">{{element.createdAt | date:'MMM d, y'}}</td>
-          </ng-container>
+          <div class="table-container">
+            <table mat-table [dataSource]="dataSource" matSort class="waiting-table" aria-label="Waiting list priority">
 
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef></th>
-            <td mat-cell *matCellDef="let element" class="actions-cell">
-              <button class="action-link" (click)="openAllocation(element)">Review</button>
-            </td>
-          </ng-container>
+              <!-- Rank Column -->
+              <ng-container matColumnDef="position">
+                <th mat-header-cell *matHeaderCellDef>Rank</th>
+                <td mat-cell *matCellDef="let element; let i = index">
+                  <div class="rank-cell">
+                    @if (getRank(i) <= 3) {
+                      <span class="rank-badge" [class]="'rank-badge-' + getRank(i)" [attr.aria-label]="'Rank ' + getRank(i)">
+                        {{ getRank(i) }}
+                      </span>
+                    } @else {
+                      <span class="rank-number">{{ getRank(i) }}</span>
+                    }
+                  </div>
+                </td>
+              </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-          <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell empty-state" colspan="6">No students in waiting list</td>
-          </tr>
-        </table>
-      </div>
+              <!-- Student Column -->
+              <ng-container matColumnDef="studentName">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Student</th>
+                <td mat-cell *matCellDef="let element">
+                  <div class="student-cell">
+                    <div class="avatar-circle" aria-hidden="true">{{ getWLInitials(element) }}</div>
+                    <div class="student-info">
+                      <span class="student-name">{{ element.studentName }}</span>
+                      <span class="student-code">{{ element.applicationCode }}</span>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
 
-      <div class="pagination-wrapper mt-5">
-        <mat-paginator [pageSizeOptions]="[10, 20, 50]" showFirstLastButtons></mat-paginator>
-      </div>
-    }
-  </div>
+              <!-- Score Column -->
+              <ng-container matColumnDef="priorityScore">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Score</th>
+                <td mat-cell *matCellDef="let element">
+                  <div class="score-ring" [ngStyle]="getScoreRingStyle(element.priorityScore)" [attr.aria-label]="'Score: ' + element.priorityScore">
+                    <span class="score-ring-text">{{ element.priorityScore | number:'1.0-0' }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Preferred Building Column -->
+              <ng-container matColumnDef="preferredBuilding">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Preference</th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="building-value">{{ element.preferredBuildingName || 'Any' }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Applied Date Column -->
+              <ng-container matColumnDef="applicationDate">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Applied</th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="date-value">{{ element.createdAt | date:'MMM d, y' }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let element">
+                  <div class="actions-cell">
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      class="review-btn"
+                      (click)="openAllocation(element)"
+                      matTooltip="Review application">
+                      <mat-icon>rate_review</mat-icon>
+                      Review
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
+            </table>
+          </div>
+
+          <mat-paginator
+            class="table-paginator"
+            [pageSizeOptions]="[10, 20, 50]"
+            showFirstLastButtons
+            aria-label="Waiting list pagination">
+          </mat-paginator>
+
+        }
+      }
+
+    </mat-card-content>
+  </mat-card>
+
 </div>

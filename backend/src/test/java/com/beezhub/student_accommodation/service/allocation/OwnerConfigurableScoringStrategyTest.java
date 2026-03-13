@@ -274,8 +274,9 @@ class OwnerConfigurableScoringStrategyTest {
     @Nested
     class ScoreAvailableRooms {
 
-        /** Shared setup: room has capacity, no declines, no attributes */
+        /** Shared setup: room has capacity, status AVAILABLE, no declines, no attributes */
         private void stubAvailableRoom() {
+            room.setStatus("AVAILABLE");
             when(roomRepository.findAll()).thenReturn(List.of(room));
             when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
             when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
@@ -295,6 +296,7 @@ class OwnerConfigurableScoringStrategyTest {
 
         @Test
         void scoreAvailableRooms_excludesDeclinedRoom() {
+            room.setStatus("AVAILABLE");
             when(roomRepository.findAll()).thenReturn(List.of(room));
             when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
             when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
@@ -307,6 +309,7 @@ class OwnerConfigurableScoringStrategyTest {
 
         @Test
         void scoreAvailableRooms_excludesFullRoom() {
+            room.setStatus("AVAILABLE");
             when(roomRepository.findAll()).thenReturn(List.of(room)); // capacity = 2
             when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // full
 
@@ -335,6 +338,7 @@ class OwnerConfigurableScoringStrategyTest {
                     .active(true).priority(0).build();
 
             when(roomRepository.findAll()).thenReturn(List.of(room));
+            room.setStatus("AVAILABLE");
             when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
             when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
             when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
@@ -397,6 +401,52 @@ class OwnerConfigurableScoringStrategyTest {
         }
 
         @Test
+        void scoreAvailableRooms_nullPreferredBuilding_returnsResults() {
+            // application has no preferred building — should still score rooms
+            application.setPreferredBuilding(null);
+
+            stubAvailableRoom();
+
+            List<ScoredRoom> result = strategy.scoreAvailableRooms(student, application, null);
+
+            assertThat(result).isNotEmpty();
+            assertThat(result.get(0).getRoomId()).isEqualTo(1L);
+            // No BUILDING_MISMATCH warning when no preferred building is set
+            assertThat(result.get(0).getWarnings()).doesNotContain("BUILDING_MISMATCH");
+        }
+
+        @Test
+        void scoreAvailableRooms_excludesMaintenanceRoom() {
+            room.setStatus("MAINTENANCE");
+
+            when(roomRepository.findAll()).thenReturn(List.of(room));
+            // countActiveAllocationsByRoomId is NOT called — status filter short-circuits
+
+            List<ScoredRoom> result = strategy.scoreAvailableRooms(student, application, null);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        void scoreAvailableRooms_includesOccupiedRoomWithCapacity() {
+            room.setStatus("OCCUPIED");
+            room.setCapacity(2);
+
+            when(roomRepository.findAll()).thenReturn(List.of(room));
+            when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L); // 1 of 2 used
+            when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
+            when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
+            when(roomAllocationRepository.hasStudentDeclinedRoom(anyLong(), anyLong())).thenReturn(false);
+            when(allocationRuleRepository.findByBuilding_IdAndActiveTrue(1L))
+                    .thenReturn(List.of(defaultRule));
+
+            List<ScoredRoom> result = strategy.scoreAvailableRooms(student, application, null);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getAvailableSpots()).isEqualTo(1);
+        }
+
+        @Test
         void scoreAvailableRooms_sortedDescByTotalScore() {
             // Two rooms — room2 gets higher NSFAS bonus
             Building building2 = new Building();
@@ -408,7 +458,9 @@ class OwnerConfigurableScoringStrategyTest {
             room2.setRoomNumber("201");
             room2.setCapacity(2);
             room2.setBuilding(building2);
+            room2.setStatus("AVAILABLE");
 
+            room.setStatus("AVAILABLE");
             student.setSpecialRequirements("nsfas funded"); // NSFAS bonus applies to all rooms
 
             when(roomRepository.findAll()).thenReturn(List.of(room, room2));

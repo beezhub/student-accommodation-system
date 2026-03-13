@@ -10,6 +10,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
 
 import { AcademicYearService } from '../../../../core/services/academic-year.service';
 import { AcademicYear, AcademicYearRequest } from '../../../../core/models/academic-year.model';
@@ -36,6 +37,7 @@ export interface AcademicYearDialogData {
     MatCheckboxModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    MatIconModule,
   ],
 })
 export class AcademicYearFormDialogComponent implements OnInit {

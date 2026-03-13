@@ -1,334 +1,509 @@
 @use '../../../../styles/variables' as vars;
 @use '../../../../styles/mixins' as mixins;
 
-.system-settings-container {
-    padding: 1.5rem;
-    max-width: 1400px;
-    margin: 0 auto;
-
-    @media (min-width: vars.$breakpoint-desktop) {
-        padding: 2rem;
-    }
+// ─────────────────────────────────────────────────────────────
+// Page wrapper
+// ─────────────────────────────────────────────────────────────
+.system-settings-page {
+  min-height: 100vh;
+  background: vars.$slate-50;
 }
 
-/* Page Header */
-.page-header {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 2rem;
+// ─────────────────────────────────────────────────────────────
+// Hero header band  (gray = settings module)
+// ─────────────────────────────────────────────────────────────
+.page-hero {
+  background: vars.$slate-900;
+  padding: 2rem 1.5rem 1.75rem;
+  position: relative;
 
-    @media (min-width: vars.$breakpoint-tablet) {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: flex-start;
-    }
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, vars.$slate-600 0%, vars.$slate-400 100%);
+  }
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    padding: 2.5rem 2.5rem 2.25rem;
+  }
+
+  @media (min-width: vars.$breakpoint-large) {
+    padding: 2.5rem 3rem 2.25rem;
+  }
 }
 
-.header-content {
-    h1 {
-        @include mixins.page-title;
-        margin-bottom: 0.5rem;
+.hero-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 
-        mat-icon {
-            font-size: 2rem;
-            width: 2rem;
-            height: 2rem;
-            color: vars.$slate-600;
-        }
-    }
-
-    .subtitle {
-        @include mixins.page-subtitle;
-    }
-}
-
-.header-stats {
-    display: flex;
+  @media (min-width: vars.$breakpoint-tablet) {
+    flex-direction: row;
     align-items: center;
-    gap: 1rem;
-    margin-top: 1rem;
-
-    @media (min-width: vars.$breakpoint-tablet) {
-        margin-top: 0;
-    }
+    justify-content: space-between;
+    gap: 2rem;
+  }
 }
 
-.stat-item {
-    @include mixins.card-base;
-    padding: 0.75rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: vars.$slate-50;
-    border: 1px solid vars.$slate-200;
+.hero-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.stat-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: vars.$slate-900;
-    line-height: 1;
-    margin-bottom: 0.25rem;
-}
+.hero-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: vars.$radius-md;
+  background: linear-gradient(135deg, vars.$slate-500 0%, vars.$slate-700 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 
-.stat-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: vars.$slate-500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-/* Global Settings Section */
-.global-settings-section {
-    margin-bottom: 2rem;
-}
-
-.feature-flag-card {
-    background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
-    border-color: #fcd34d !important;
-
-    .card-icon {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    }
-
-    .card-info {
-        h2 {
-            color: #92400e;
-        }
-
-        p {
-            color: #b45309;
-        }
-    }
-}
-
-/* Settings Grid */
-.settings-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-
-    @media (min-width: vars.$breakpoint-tablet) {
-        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-    }
-}
-
-/* Settings Card */
-.settings-card {
-    @include mixins.card-base;
-    padding: 0 !important;
-    cursor: pointer;
-    overflow: hidden;
-    height: 100%;
-    border: 1px solid vars.$slate-200;
-    background: white;
-    transition: all 0.2s ease-in-out;
-
-    &:hover {
-        transform: translateY(-4px);
-        box-shadow: vars.$shadow-elevated;
-    }
-
-    ::ng-deep .mat-mdc-card-content {
-        padding: 1.5rem !important;
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-        height: 100%;
-    }
-
-    // Contextual Colors
-    &.accommodation-types {
-        .card-icon {
-            background: linear-gradient(135deg, vars.$accent-orange-light, vars.$accent-orange-dark);
-        }
-
-        &:hover {
-            border-color: vars.$accent-orange-light;
-        }
-    }
-
-    &.documents {
-        .card-icon {
-            background: linear-gradient(135deg, vars.$accent-blue-light, vars.$accent-blue-dark);
-        }
-
-        &:hover {
-            border-color: vars.$accent-blue-light;
-        }
-    }
-
-    &.institutions {
-        .card-icon {
-            background: linear-gradient(135deg, vars.$accent-purple-light, vars.$accent-purple-dark);
-        }
-
-        &:hover {
-            border-color: vars.$accent-purple-light;
-        }
-    }
-
-    &.years {
-        .card-icon {
-            background: linear-gradient(135deg, vars.$accent-green-light, vars.$accent-green-dark);
-        }
-
-        &:hover {
-            border-color: vars.$accent-green-light;
-        }
-    }
-}
-
-/* Card Icon */
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: vars.$radius-lg;
-    flex-shrink: 0;
+  mat-icon {
     color: white;
-    box-shadow: vars.$shadow-subtle;
-    transition: transform 0.3s ease;
-
-    mat-icon {
-        font-size: 1.5rem;
-        width: 1.5rem;
-        height: 1.5rem;
-    }
+    font-size: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
 }
 
-.settings-card:hover .card-icon {
-    transform: scale(1.1) rotate(5deg);
+.hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-/* Card Info */
-.card-info {
-    flex: 1;
-    min-width: 0;
+.hero-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.01em;
 
-    h2 {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: vars.$slate-900;
-        margin-bottom: 0.25rem;
-    }
-
-    p {
-        font-size: 0.875rem;
-        color: vars.$slate-500;
-        margin: 0;
-        line-height: 1.4;
-    }
+  @media (min-width: vars.$breakpoint-tablet) {
+    font-size: 1.875rem;
+  }
 }
 
-/* Card Action */
-.card-action {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+.hero-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: vars.$slate-400;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    font-size: 0.9375rem;
+  }
+}
+
+.hero-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+// ── Metric chips ──────────────────────────────────────────────
+.hero-metrics {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.metric-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.625rem 1rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: vars.$radius-md;
+  min-width: 72px;
+  transition: background vars.$motion-fast ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.11);
+  }
+}
+
+.metric-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+}
+
+.metric-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: vars.$slate-400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Page content wrapper
+// ─────────────────────────────────────────────────────────────
+.page-content {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 2rem;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    padding: 1.5rem 2.5rem 2rem;
+  }
+
+  @media (min-width: vars.$breakpoint-large) {
+    padding: 1.5rem 3rem 2rem;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Auto-allocation toggle section
+// ─────────────────────────────────────────────────────────────
+.toggle-section {
+  margin-bottom: 1.5rem;
+}
+
+// ── Skeleton while loading ─────────────────────────────────────
+.toggle-card-skeleton {
+  @include mixins.card-base;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+
+  %shimmer {
+    background: linear-gradient(
+      90deg,
+      vars.$slate-100 25%,
+      vars.$slate-200 50%,
+      vars.$slate-100 75%
+    );
+    background-size: 400px 100%;
+    animation: shimmer 1.4s ease infinite;
+    border-radius: vars.$radius-sm;
+  }
+
+  .skeleton-icon {
+    @extend %shimmer;
+    width: 52px;
+    height: 52px;
+    border-radius: vars.$radius-md;
     flex-shrink: 0;
-}
+  }
 
-.manage-text {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: vars.$slate-400;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0;
-    transform: translateX(-10px);
-    transition: all 0.3s ease;
-
-    @media (max-width: vars.$breakpoint-tablet) {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.settings-card:hover .manage-text {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.arrow-circle {
+  .skeleton-text {
+    flex: 1;
     display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .skeleton-line {
+    @extend %shimmer;
+    height: 14px;
+
+    &--title { width: 160px; height: 18px; }
+    &--sub   { width: 320px; }
+  }
+
+  .skeleton-toggle {
+    @extend %shimmer;
+    width: 52px;
+    height: 28px;
+    border-radius: vars.$radius-pill;
+    flex-shrink: 0;
+  }
+}
+
+// ── Toggle card ───────────────────────────────────────────────
+.toggle-card {
+  @include mixins.card-base;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-left: 4px solid vars.$slate-300;
+  transition: border-color vars.$motion-medium ease, box-shadow vars.$motion-fast ease;
+
+  &--enabled {
+    border-left-color: vars.$accent-green-dark;
+    box-shadow: 0 4px 24px rgba(vars.$accent-green-dark, 0.08), vars.$shadow-medium;
+  }
+
+  &--disabled {
+    border-left-color: vars.$slate-300;
+  }
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+}
+
+// ── Toggle icon ───────────────────────────────────────────────
+.toggle-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: vars.$radius-md;
+  background: vars.$slate-100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background vars.$motion-medium ease;
+
+  mat-icon {
+    font-size: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: vars.$slate-400;
+    transition: color vars.$motion-medium ease;
+  }
+
+  &.icon-enabled {
+    background: rgba(vars.$accent-green-dark, 0.1);
+
+    mat-icon {
+      color: vars.$accent-green-dark;
+    }
+  }
+}
+
+// ── Toggle info ───────────────────────────────────────────────
+.toggle-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.toggle-title {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: vars.$slate-900;
+  letter-spacing: -0.01em;
+}
+
+.toggle-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: vars.$slate-500;
+  line-height: 1.5;
+  max-width: 520px;
+}
+
+// ── Toggle action ─────────────────────────────────────────────
+.toggle-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    background: vars.$slate-50;
-    border-radius: 50%;
-    transition: all 0.3s ease;
-
-    mat-icon {
-        font-size: 1.25rem;
-        width: 1.25rem;
-        height: 1.25rem;
-        color: vars.$slate-400;
-        transition: all 0.3s ease;
-    }
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
-.settings-card:hover .arrow-circle {
-    background: vars.$slate-100;
-    transform: translateX(5px);
+.toggle-state-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: vars.$slate-400;
+  transition: color vars.$motion-medium ease;
+  white-space: nowrap;
 
-    mat-icon {
-        color: vars.$slate-900;
-    }
+  &.state-enabled {
+    color: vars.$accent-green-dark;
+  }
 }
 
-/* Info Section */
-.info-section {
-    margin-top: 3rem;
+// ─────────────────────────────────────────────────────────────
+// Settings category grid
+// ─────────────────────────────────────────────────────────────
+.settings-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+
+  @media (min-width: vars.$breakpoint-desktop) {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
-.info-card {
-    @include mixins.card-base;
-    background: linear-gradient(135deg, vars.$slate-50 0%, white 100%);
-    border: 1px dashed vars.$slate-200;
+// ── Settings card (base) ──────────────────────────────────────
+.settings-card {
+  @include mixins.card-base;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform vars.$motion-fast ease,
+    box-shadow vars.$motion-fast ease,
+    background vars.$motion-fast ease;
 
-    ::ng-deep .mat-mdc-card-content {
-        padding: 1.5rem !important;
-        display: flex;
-        align-items: flex-start;
-        gap: 1rem;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: vars.$shadow-elevated;
+
+    .card-arrow mat-icon {
+      transform: translateX(3px);
     }
+  }
 
-    .info-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 2.5rem;
-        height: 2.5rem;
-        background: rgba(vars.$accent-purple-light, 0.1);
-        border-radius: vars.$radius-md;
-        flex-shrink: 0;
+  &:focus-visible {
+    outline: 2px solid vars.$accent-gray-light;
+    outline-offset: 2px;
+  }
+}
 
-        mat-icon {
-            color: vars.$accent-purple-dark;
-            font-size: 1.25rem;
-            width: 1.25rem;
-            height: 1.25rem;
-        }
-    }
+// ── Card icon ─────────────────────────────────────────────────
+.card-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: vars.$radius-md;
+  background: linear-gradient(135deg, vars.$slate-400 0%, vars.$slate-600 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 
-    .info-content {
-        h3 {
-            font-size: 1rem;
-            font-weight: 600;
-            color: vars.$slate-900;
-            margin-bottom: 0.25rem;
-        }
+  mat-icon {
+    color: white;
+    font-size: 1.375rem;
+    width: 1.375rem;
+    height: 1.375rem;
+  }
+}
 
-        p {
-            font-size: 0.875rem;
-            color: vars.$slate-500;
-            line-height: 1.5;
-            margin: 0;
-        }
-    }
+// ── Card info ─────────────────────────────────────────────────
+.card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: vars.$slate-900;
+  letter-spacing: -0.01em;
+}
+
+.card-desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: vars.$slate-500;
+  line-height: 1.4;
+}
+
+// ── Card arrow ────────────────────────────────────────────────
+.card-arrow {
+  flex-shrink: 0;
+
+  mat-icon {
+    color: vars.$slate-300;
+    font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    transition: transform vars.$motion-fast ease, color vars.$motion-fast ease;
+  }
+}
+
+.settings-card:hover .card-arrow mat-icon {
+  color: vars.$slate-500;
+}
+
+// ── Per-category icon gradients ───────────────────────────────
+.settings-card.accommodation-types {
+  .card-icon-wrap {
+    background: linear-gradient(135deg, vars.$accent-purple-light 0%, vars.$accent-purple-dark 100%);
+  }
+  &:hover { background: rgba(vars.$accent-purple-dark, 0.015); }
+  &:focus-visible { outline-color: vars.$accent-purple-dark; }
+}
+
+.settings-card.documents {
+  .card-icon-wrap {
+    background: linear-gradient(135deg, vars.$accent-blue-light 0%, vars.$accent-blue-dark 100%);
+  }
+  &:hover { background: rgba(vars.$accent-blue-dark, 0.015); }
+  &:focus-visible { outline-color: vars.$accent-blue-dark; }
+}
+
+.settings-card.institutions {
+  .card-icon-wrap {
+    background: linear-gradient(135deg, vars.$accent-orange-light 0%, vars.$accent-orange-dark 100%);
+  }
+  &:hover { background: rgba(vars.$accent-orange-dark, 0.015); }
+  &:focus-visible { outline-color: vars.$accent-orange-dark; }
+}
+
+.settings-card.years {
+  .card-icon-wrap {
+    background: linear-gradient(135deg, vars.$accent-green-light 0%, vars.$accent-green-dark 100%);
+  }
+  &:hover { background: rgba(vars.$accent-green-dark, 0.015); }
+  &:focus-visible { outline-color: vars.$accent-green-dark; }
+}
+
+.settings-card.feature-flags {
+  .card-icon-wrap {
+    background: linear-gradient(135deg, vars.$slate-500 0%, vars.$slate-700 100%);
+  }
+  &:hover { background: rgba(vars.$slate-600, 0.02); }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Info note
+// ─────────────────────────────────────────────────────────────
+.info-note {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1.125rem;
+  background: rgba(vars.$info, 0.06);
+  border: 1px solid rgba(vars.$info, 0.15);
+  border-radius: vars.$radius-md;
+
+  mat-icon {
+    color: vars.$info;
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-size: 0.8125rem;
+    color: vars.$slate-600;
+    line-height: 1.5;
+  }
 }

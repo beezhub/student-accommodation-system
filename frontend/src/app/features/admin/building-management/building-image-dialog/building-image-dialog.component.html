@@ -1,6 +1,6 @@
 <div class="dialog-container">
   <div class="dialog-header">
-    <div class="header-icon">
+    <div class="header-icon-wrap" aria-hidden="true">
       <mat-icon>photo_library</mat-icon>
     </div>
     <div class="header-text">
@@ -22,7 +22,6 @@
       />
       <button
         mat-raised-button
-        color="primary"
         (click)="fileInput.click()"
         [disabled]="isUploading"
         class="upload-btn"
@@ -30,13 +29,13 @@
         <mat-icon>cloud_upload</mat-icon>
         {{ isUploading ? 'Uploading...' : 'Upload Images' }}
       </button>
-      <p class="upload-hint">Maximum 5MB per image. Supported: JPEG, PNG, GIF, WebP</p>
+      <p class="upload-hint">Maximum 5MB per image &mdash; JPEG, PNG, GIF, WebP</p>
     </div>
 
     <!-- Loading State -->
     @if (isLoading) {
       <div class="loading-container">
-        <mat-spinner diameter="40"></mat-spinner>
+        <mat-spinner diameter="36"></mat-spinner>
         <p>Loading images...</p>
       </div>
     }
@@ -61,7 +60,6 @@
                 </button>
                 <button
                   mat-icon-button
-                  color="warn"
                   (click)="deleteImage(image)"
                   matTooltip="Delete Image"
                   aria-label="Delete Image"
@@ -86,8 +84,8 @@
     @if (!isLoading && images.length === 0) {
       <div class="empty-state">
         <mat-icon>add_photo_alternate</mat-icon>
-        <p>No images uploaded yet</p>
-        <button mat-raised-button color="primary" (click)="fileInput.click()">
+        <p>No images uploaded yet. Add photos to showcase this building.</p>
+        <button mat-raised-button (click)="fileInput.click()" class="upload-btn-empty">
           <mat-icon>cloud_upload</mat-icon>
           Upload First Image
         </button>
@@ -96,7 +94,7 @@
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-raised-button color="primary" (click)="onClose()">
+    <button mat-raised-button (click)="onClose()" class="done-btn">
       <mat-icon>check</mat-icon>
       Done
     </button>

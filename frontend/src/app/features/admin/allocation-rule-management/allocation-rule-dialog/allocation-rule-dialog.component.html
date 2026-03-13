@@ -1,109 +1,139 @@
-<h2 mat-dialog-title>
-  <mat-icon>tune</mat-icon>
-  {{ isEditMode ? 'Edit Allocation Rule' : 'Create New Allocation Rule' }}
-</h2>
-
-<mat-dialog-content>
-  <form [formGroup]="ruleForm" class="rule-form">
-
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Rule Name</mat-label>
-      <input matInput formControlName="ruleName" placeholder="e.g. Standard Allocation">
-      <mat-hint>A descriptive name for this rule</mat-hint>
-      <mat-error *ngIf="ruleForm.get('ruleName')?.hasError('required')">Name is required</mat-error>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Priority</mat-label>
-      <input matInput type="number" formControlName="priority" min="1">
-      <mat-hint>Higher number = Higher priority (used first)</mat-hint>
-    </mat-form-field>
-
-    <div class="checkbox-container half-width">
-      <mat-checkbox formControlName="active" color="primary">Active</mat-checkbox>
-      <span class="checkbox-hint">Only active rules are used during allocation</span>
-    </div>
-
-    <div class="section-divider"></div>
-
-    <h3>
-      <mat-icon>balance</mat-icon>
-      Scoring Weights
-    </h3>
-    <p class="description">
-      Adjust how important each factor is when calculating match scores.
-      Weights must sum to exactly 100%.
-    </p>
-
-    <!-- Weights Sum Indicator -->
-    <div class="weights-sum-container" [ngClass]="weightsSumClass">
-      <div class="weights-sum-header">
-        <span class="weights-sum-label">Total Weight:</span>
-        <span class="weights-sum-value">{{ weightsSum }}%</span>
-        <mat-icon *ngIf="isWeightsSumValid" class="valid-icon">check_circle</mat-icon>
-        <mat-icon *ngIf="!isWeightsSumValid" class="invalid-icon">error</mat-icon>
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="dialog-header-inner">
+      <div class="header-icon-wrap">
+        <mat-icon>tune</mat-icon>
       </div>
-      <mat-progress-bar
-        [mode]="'determinate'"
-        [value]="weightsSum"
-        [color]="isWeightsSumValid ? 'primary' : 'warn'">
-      </mat-progress-bar>
-      <span class="weights-sum-hint" *ngIf="!isWeightsSumValid">
-        {{ weightsSum < 100 ? 'Add ' + (100 - weightsSum) + '% more' : 'Remove ' + (weightsSum - 100) + '%' }}
-      </span>
+      <div class="header-text">
+        <h2 class="dialog-title">{{ isEditMode ? 'Edit Allocation Rule' : 'Create Allocation Rule' }}</h2>
+        <p class="dialog-subtitle">{{ isEditMode ? 'Update rule weights and settings' : 'Define a new scoring rule for allocation' }}</p>
+      </div>
     </div>
+  </div>
 
-    <div class="slider-group">
-      <div class="slider-header">
-        <label>
-          <mat-icon class="weight-icon pref">favorite</mat-icon>
-          Preference Match
+  <mat-dialog-content>
+    <form [formGroup]="ruleForm" class="rule-form">
+
+      <div class="form-field-wrapper">
+        <label class="field-label">
+          <mat-icon>label</mat-icon>
+          Rule Name
         </label>
-        <span class="slider-value">{{ ruleForm.get('preferenceMatchWeight')?.value }}%</span>
+        <mat-form-field appearance="outline" class="full-width">
+          <input matInput formControlName="ruleName" placeholder="e.g. Standard Allocation">
+          <mat-hint>A descriptive name for this rule</mat-hint>
+          <mat-error *ngIf="ruleForm.get('ruleName')?.hasError('required')">Name is required</mat-error>
+        </mat-form-field>
       </div>
-      <mat-slider min="0" max="100" step="5" showTickMarks discrete>
-        <input matSliderThumb formControlName="preferenceMatchWeight">
-      </mat-slider>
-      <span class="slider-hint">How much to prioritize student's preferred building</span>
-    </div>
 
-    <div class="slider-group">
-      <div class="slider-header">
-        <label>
-          <mat-icon class="weight-icon desir">star</mat-icon>
-          Desirability Score
-        </label>
-        <span class="slider-value">{{ ruleForm.get('desirabilityWeight')?.value }}%</span>
+      <div class="form-row">
+        <div class="form-field-wrapper">
+          <label class="field-label">
+            <mat-icon>low_priority</mat-icon>
+            Priority
+          </label>
+          <mat-form-field appearance="outline" class="full-width">
+            <input matInput type="number" formControlName="priority" min="1">
+            <mat-hint>Higher number = Higher priority</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="active-card" [class.active]="ruleForm.get('active')?.value">
+          <mat-checkbox formControlName="active" color="primary">
+            <div class="checkbox-content">
+              <mat-icon class="active-icon">{{ ruleForm.get('active')?.value ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+              <div class="checkbox-text">
+                <span class="checkbox-label">Active</span>
+                <span class="checkbox-hint">Used during allocation</span>
+              </div>
+            </div>
+          </mat-checkbox>
+        </div>
       </div>
-      <mat-slider min="0" max="100" step="5" showTickMarks discrete>
-        <input matSliderThumb formControlName="desirabilityWeight">
-      </mat-slider>
-      <span class="slider-hint">How much to prioritize room/building quality rating</span>
-    </div>
 
-    <div class="slider-group">
-      <div class="slider-header">
-        <label>
-          <mat-icon class="weight-icon access">accessible</mat-icon>
-          Accessibility Needs
-        </label>
-        <span class="slider-value">{{ ruleForm.get('accessibilityWeight')?.value }}%</span>
+      <div class="weights-section">
+        <div class="weights-heading">
+          <mat-icon>balance</mat-icon>
+          <span>Scoring Weights</span>
+        </div>
+        <p class="weights-description">Adjust how important each factor is when calculating match scores. Weights must sum to exactly 100%.</p>
+
+        <div class="weights-sum-container" [ngClass]="weightsSumClass">
+          <div class="weights-sum-header">
+            <span class="weights-sum-label">Total Weight:</span>
+            <span class="weights-sum-value">{{ weightsSum }}%</span>
+            <mat-icon *ngIf="isWeightsSumValid" class="valid-icon">check_circle</mat-icon>
+            <mat-icon *ngIf="!isWeightsSumValid" class="invalid-icon">error</mat-icon>
+          </div>
+          <mat-progress-bar
+            [mode]="'determinate'"
+            [value]="weightsSum"
+            [color]="isWeightsSumValid ? 'primary' : 'warn'">
+          </mat-progress-bar>
+          <span class="weights-sum-hint" *ngIf="!isWeightsSumValid">
+            {{ weightsSum < 100 ? 'Add ' + (100 - weightsSum) + '% more' : 'Remove ' + (weightsSum - 100) + '%' }}
+          </span>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <label>
+              <mat-icon class="weight-icon pref">favorite</mat-icon>
+              Preference Match
+            </label>
+            <span class="slider-value">{{ ruleForm.get('preferenceMatchWeight')?.value }}%</span>
+          </div>
+          <mat-slider min="0" max="100" step="5" showTickMarks discrete>
+            <input matSliderThumb formControlName="preferenceMatchWeight">
+          </mat-slider>
+          <span class="slider-hint">How much to prioritize student's preferred building</span>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <label>
+              <mat-icon class="weight-icon desir">star</mat-icon>
+              Desirability Score
+            </label>
+            <span class="slider-value">{{ ruleForm.get('desirabilityWeight')?.value }}%</span>
+          </div>
+          <mat-slider min="0" max="100" step="5" showTickMarks discrete>
+            <input matSliderThumb formControlName="desirabilityWeight">
+          </mat-slider>
+          <span class="slider-hint">How much to prioritize room/building quality rating</span>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <label>
+              <mat-icon class="weight-icon access">accessible</mat-icon>
+              Accessibility Needs
+            </label>
+            <span class="slider-value">{{ ruleForm.get('accessibilityWeight')?.value }}%</span>
+          </div>
+          <mat-slider min="0" max="100" step="5" showTickMarks discrete>
+            <input matSliderThumb formControlName="accessibilityWeight">
+          </mat-slider>
+          <span class="slider-hint">How much to prioritize accessibility compliance</span>
+        </div>
       </div>
-      <mat-slider min="0" max="100" step="5" showTickMarks discrete>
-        <input matSliderThumb formControlName="accessibilityWeight">
-      </mat-slider>
-      <span class="slider-hint">How much to prioritize accessibility compliance</span>
-    </div>
 
-  </form>
-</mat-dialog-content>
+    </form>
+  </mat-dialog-content>
 
-<mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Cancel</button>
-  <button mat-raised-button color="primary"
-          (click)="onSubmit()"
-          [disabled]="ruleForm.invalid || isSaving || !isWeightsSumValid">
-    <mat-icon *ngIf="!isSaving">{{ isEditMode ? 'save' : 'add' }}</mat-icon>
-    {{ isSaving ? 'Saving...' : (isEditMode ? 'Update Rule' : 'Create Rule') }}
-  </button>
-</mat-dialog-actions>
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button mat-dialog-close class="cancel-btn">Cancel</button>
+    <button mat-raised-button
+            (click)="onSubmit()"
+            [disabled]="ruleForm.invalid || isSaving || !isWeightsSumValid"
+            class="submit-btn">
+      @if (isSaving) {
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>Saving...</span>
+      } @else {
+        <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
+        <span>{{ isEditMode ? 'Update Rule' : 'Create Rule' }}</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</div>

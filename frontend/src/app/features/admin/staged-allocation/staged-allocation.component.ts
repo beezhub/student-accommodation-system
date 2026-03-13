@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatTableModule } from '@angular/material/table';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -10,6 +11,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { SelectionModel } from '@angular/cdk/collections';
 
 import { AdminService, ApplicationResponse } from '../../../core/services/admin.service';
@@ -17,6 +19,7 @@ import { StagedAllocationService } from '../../../core/services/staged-allocatio
 import { StagedAllocation, BatchAllocationProposal } from '../../../core/models/allocation.models';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-staged-allocation',
@@ -24,6 +27,7 @@ import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loa
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    RouterModule,
     MatStepperModule,
     MatTableModule,
     MatCheckboxModule,
@@ -33,11 +37,13 @@ import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loa
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatChipsModule,
+    MatTooltipModule,
     ModernStatusBadgeComponent,
     SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
   templateUrl: './staged-allocation.component.html',
-  styleUrls: ['./staged-allocation.component.css'],
+  styleUrls: ['./staged-allocation.component.scss'],
 })
 export class StagedAllocationComponent implements OnInit {
   private fb = inject(FormBuilder);
@@ -208,6 +214,26 @@ export class StagedAllocationComponent implements OnInit {
           this.snackBar.open('Failed to reject allocation', 'Close', { duration: 3000 });
         },
       });
+  }
+
+  // ── UI helpers ──────────────────────────────────────────────
+
+  get hasPendingProposals(): boolean {
+    return this.proposals.some((p) => p.status === 'PROPOSED');
+  }
+
+  getInitials(app: ApplicationResponse): string {
+    const f = app.studentFirstName?.[0] ?? '';
+    const l = app.studentLastName?.[0] ?? '';
+    return (f + l).toUpperCase();
+  }
+
+  getScoreRingStyle(score: number): { [key: string]: string } {
+    const maxScore = 200;
+    const pct = Math.min(100, Math.round((score / maxScore) * 100));
+    const color =
+      score >= 140 ? '#10b981' : score >= 70 ? '#f59e0b' : '#ef4444';
+    return { '--score-pct': `${pct}`, '--ring-color': color };
   }
 
   confirmAllRemaining(): void {

@@ -63,6 +63,7 @@ class AllocationScoringServiceTest {
         room.setRoomNumber("101");
         room.setCapacity(2);
         room.setBuilding(building);
+        room.setStatus("AVAILABLE");
 
         application = new Application();
         application.setId(1L);
@@ -471,6 +472,7 @@ class AllocationScoringServiceTest {
         room2.setRoomNumber("102");
         room2.setCapacity(2);
         room2.setBuilding(building);
+        room2.setStatus("AVAILABLE");
 
         Application earlierApp = new Application();
         earlierApp.setId(1L);
@@ -781,6 +783,7 @@ class AllocationScoringServiceTest {
         eligibleRoom.setRoomNumber("102");
         eligibleRoom.setCapacity(2);
         eligibleRoom.setBuilding(building);
+        eligibleRoom.setStatus("AVAILABLE");
 
         RoomAttributes room1Attrs = new RoomAttributes();
         room1Attrs.setGenderRestriction(GenderRestriction.FEMALE_ONLY);

@@ -21,6 +21,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SelectionModel } from '@angular/cdk/collections';
@@ -49,6 +50,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatSnackBarModule,
     MatTooltipModule,
     MatMenuModule,
+    MatDividerModule,
     MatChipsModule,
     MatCheckboxModule,
     ModernStatusBadgeComponent,
@@ -80,6 +82,8 @@ export class RoomManagementComponent implements OnInit {
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
+
+  filtersVisible = false;
 
   filterForm: FormGroup;
 
@@ -239,6 +243,19 @@ export class RoomManagementComponent implements OnInit {
         }
       });
     });
+  }
+
+  // ── UI helpers ──────────────────────────────────────────────
+
+  get activeFilterCount(): number {
+    const v = this.filterForm.value;
+    return [v.roomNumber, v.buildingId, v.minCapacity, v.maxCapacity].filter(
+      (x) => x !== null && x !== '' && x !== undefined
+    ).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
   }
 
   getOccupancyText(room: RoomResponse): string {

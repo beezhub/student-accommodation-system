@@ -27,7 +27,7 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
   template: `
     <div class="dialog-container">
       <div class="dialog-header">
-        <div class="header-icon">
+        <div class="header-icon-wrap" aria-hidden="true">
           <mat-icon>{{ data.mode === 'create' ? 'add_business' : 'edit' }}</mat-icon>
         </div>
         <div class="header-text">
@@ -35,11 +35,7 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
             {{ data.mode === 'create' ? 'Add New Building' : 'Edit Building' }}
           </h2>
           <p class="subtitle">
-            {{
-              data.mode === 'create'
-                ? 'Create a new accommodation building'
-                : 'Update building information'
-            }}
+            {{ data.mode === 'create' ? 'Create a new accommodation building' : 'Update building information' }}
           </p>
         </div>
       </div>
@@ -51,11 +47,10 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
             <mat-icon matPrefix>apartment</mat-icon>
             <input matInput formControlName="name" placeholder="e.g., North Hall" required />
             @if (buildingForm.get('name')?.hasError('required')) {
-            <mat-error>Building name is required</mat-error>
+              <mat-error>Building name is required</mat-error>
             }
           </mat-form-field>
 
-          <!-- Address with Nominatim autocomplete -->
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Address</mat-label>
             <mat-icon matPrefix>location_on</mat-icon>
@@ -73,46 +68,41 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
               (optionSelected)="onSuggestionSelected($event.option.value)"
             >
               @if (isSearching) {
-              <mat-option disabled>
-                <div class="searching-hint">
-                  <mat-spinner diameter="16"></mat-spinner>
-                  Searching...
-                </div>
-              </mat-option>
-              } @for (suggestion of addressSuggestions; track suggestion.placeId) {
-              <mat-option [value]="suggestion">
-                <mat-icon class="suggestion-icon">place</mat-icon>
-                <span class="suggestion-text">{{ suggestion.displayName }}</span>
-              </mat-option>
+                <mat-option disabled>
+                  <div class="searching-hint">
+                    <mat-spinner diameter="16"></mat-spinner>
+                    Searching...
+                  </div>
+                </mat-option>
+              }
+              @for (suggestion of addressSuggestions; track suggestion.placeId) {
+                <mat-option [value]="suggestion">
+                  <mat-icon class="suggestion-icon">place</mat-icon>
+                  <span class="suggestion-text">{{ suggestion.displayName }}</span>
+                </mat-option>
               }
             </mat-autocomplete>
           </mat-form-field>
 
           @if (buildingForm.get('latitude')?.value) {
-          <div class="coords-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Latitude</mat-label>
-              <mat-icon matPrefix>my_location</mat-icon>
-              <input matInput formControlName="latitude" readonly />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Longitude</mat-label>
-              <mat-icon matPrefix>my_location</mat-icon>
-              <input matInput formControlName="longitude" readonly />
-            </mat-form-field>
-          </div>
+            <div class="coords-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Latitude</mat-label>
+                <mat-icon matPrefix>my_location</mat-icon>
+                <input matInput formControlName="latitude" readonly />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Longitude</mat-label>
+                <mat-icon matPrefix>my_location</mat-icon>
+                <input matInput formControlName="longitude" readonly />
+              </mat-form-field>
+            </div>
           }
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Total Floors</mat-label>
             <mat-icon matPrefix>layers</mat-icon>
-            <input
-              matInput
-              type="number"
-              formControlName="totalFloors"
-              placeholder="e.g., 5"
-              min="1"
-            />
+            <input matInput type="number" formControlName="totalFloors" placeholder="e.g., 5" min="1" />
             <mat-hint>Number of floors in the building</mat-hint>
           </mat-form-field>
 
@@ -121,12 +111,10 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
             <mat-icon matPrefix>school</mat-icon>
             <mat-select formControlName="institutionIds" multiple>
               @for (institution of institutions; track institution.id) {
-              <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
+                <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
               }
             </mat-select>
-            <mat-hint
-              >Select which institutions this building serves (leave empty for all)</mat-hint
-            >
+            <mat-hint>Leave empty to serve all institutions</mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
@@ -135,7 +123,7 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
             <textarea
               matInput
               formControlName="description"
-              rows="4"
+              rows="3"
               placeholder="Additional information about the building"
             ></textarea>
           </mat-form-field>
@@ -143,29 +131,21 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button
-          mat-stroked-button
-          (click)="onCancel()"
-          [disabled]="isSubmitting"
-          class="cancel-btn"
-        >
+        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
           Cancel
         </button>
         <button
           mat-raised-button
-          color="primary"
           (click)="onSubmit()"
           [disabled]="!buildingForm.valid || isSubmitting"
           class="submit-btn"
         >
           @if (isSubmitting) {
-          <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-          {{ data.mode === 'create' ? 'Creating...' : 'Updating...' }}
+            <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+            {{ data.mode === 'create' ? 'Creating...' : 'Updating...' }}
           } @else {
-          <ng-container>
             <mat-icon>{{ data.mode === 'create' ? 'add' : 'check' }}</mat-icon>
             {{ data.mode === 'create' ? 'Create Building' : 'Update Building' }}
-          </ng-container>
           }
         </button>
       </mat-dialog-actions>
@@ -173,322 +153,129 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
   `,
   styles: [
     `
-      /* ===== Mobile-first base styles ===== */
-      .dialog-container {
-        width: 100%;
-      }
+      .dialog-container { width: 100%; }
 
-      /* Dialog Header */
+      /* ── Header band ── */
       .dialog-header {
         display: flex;
-        align-items: flex-start;
-        gap: 14px;
-        padding: 16px 16px 0;
-      }
-
-      .header-icon {
-        display: flex;
         align-items: center;
-        justify-content: center;
-        width: 48px;
-        height: 48px;
-        min-width: 48px;
-        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-        border-radius: 14px;
-        border: 1px solid #fed7aa;
-        box-shadow: 0 4px 12px rgba(234, 88, 12, 0.1);
+        gap: 0.875rem;
+        padding: 1.25rem 1.5rem 1.125rem;
+        background: #0f172a;
+        position: relative;
+        flex-shrink: 0;
       }
-
-      .header-icon mat-icon {
-        font-size: 24px;
-        width: 24px;
-        height: 24px;
-        color: #ea580c;
+      .dialog-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #c2410c 0%, #f97316 100%);
       }
-
+      .header-icon-wrap {
+        width: 40px; height: 40px; min-width: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #f97316 0%, #c2410c 100%);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .header-icon-wrap mat-icon {
+        color: white;
+        font-size: 1.25rem; width: 1.25rem; height: 1.25rem;
+      }
       .header-text h2 {
-        margin: 0 0 4px 0;
-        font-size: 18px;
+        margin: 0 0 0.125rem 0;
+        font-size: 1.0625rem;
         font-weight: 700;
-        color: #1e293b;
-        background: linear-gradient(135deg, #1e293b 0%, #ea580c 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        color: white;
+        letter-spacing: -0.01em;
       }
-
       .header-text .subtitle {
         margin: 0;
-        font-size: 13px;
-        color: #64748b;
-        font-weight: 500;
+        font-size: 0.8125rem;
+        color: #94a3b8;
       }
 
-      /* Dialog Content */
+      /* ── Content ── */
       mat-dialog-content {
-        padding: 16px !important;
+        padding: 1.25rem 1.5rem !important;
         max-height: 65vh;
         overflow-y: auto;
       }
-
       .building-form {
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 0.875rem;
       }
-
-      .full-width {
-        width: 100%;
-      }
-
-      .half-width {
-        flex: 1;
-      }
-
-      .coords-row {
-        display: flex;
-        gap: 12px;
-      }
-
-      mat-form-field {
-        margin-bottom: 4px;
-      }
+      .full-width { width: 100%; }
+      .half-width { flex: 1; }
+      .coords-row { display: flex; gap: 0.75rem; }
 
       mat-icon[matPrefix] {
         color: #94a3b8;
-        margin-right: 8px;
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
+        margin-right: 0.5rem;
+        font-size: 1.125rem; width: 1.125rem; height: 1.125rem;
       }
 
-      mat-hint {
-        color: #94a3b8;
-        font-size: 11px;
-        margin-top: 4px;
-      }
-
-      mat-error {
-        color: #dc2626;
-        font-size: 12px;
-        font-weight: 500;
-      }
-
-      /* Autocomplete option styling */
       .suggestion-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
-        color: #ea580c;
-        margin-right: 8px;
-        vertical-align: middle;
+        font-size: 1rem; width: 1rem; height: 1rem;
+        color: #ea580c; margin-right: 0.5rem; vertical-align: middle;
       }
-
       .suggestion-text {
-        font-size: 13px;
-        color: #1e293b;
-        white-space: normal;
-        line-height: 1.4;
+        font-size: 0.8125rem; color: #1e293b;
+        white-space: normal; line-height: 1.4;
       }
-
       .searching-hint {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #94a3b8;
-        font-size: 13px;
+        display: flex; align-items: center;
+        gap: 0.5rem; color: #94a3b8; font-size: 0.8125rem;
       }
 
-      /* Multi-select styling */
-      mat-select[multiple] {
-        padding: 4px 0;
-      }
-
-      /* Dialog Actions */
+      /* ── Actions ── */
       mat-dialog-actions {
-        flex-direction: column-reverse;
-        padding: 16px !important;
-        gap: 10px;
+        padding: 0.875rem 1.5rem 1.25rem !important;
+        gap: 0.75rem;
         border-top: 1px solid #f1f5f9;
-        margin-top: 8px;
+        flex-direction: column-reverse;
+        margin-top: 0;
       }
-
       .cancel-btn {
-        border-radius: 12px !important;
-        padding: 0 20px !important;
-        width: 100%;
-        height: 44px;
+        border-radius: 8px !important;
+        height: 44px; width: 100%;
         color: #64748b;
         border-color: #e2e8f0 !important;
         font-weight: 600;
-        transition: all 0.2s ease;
       }
-
-      .cancel-btn:hover {
-        background-color: #f8fafc;
-        border-color: #cbd5e1 !important;
-        color: #475569;
-      }
-
       .submit-btn {
-        border-radius: 12px !important;
-        padding: 0 20px !important;
-        width: 100%;
-        height: 44px;
+        border-radius: 8px !important;
+        height: 44px; width: 100%;
+        background: #ea580c !important;
+        color: white !important;
         font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        transition: all 0.2s ease;
+        display: flex; align-items: center;
+        justify-content: center; gap: 0.375rem;
       }
+      .submit-btn:hover:not(:disabled) { background: #f97316 !important; }
+      .submit-btn:disabled { opacity: 0.6; }
+      .submit-btn mat-icon { font-size: 1.125rem; width: 1.125rem; height: 1.125rem; }
+      .button-spinner { display: inline-block; margin-right: 0.375rem; }
 
-      .submit-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-      }
-
-      .submit-btn:disabled {
-        transform: none;
-        box-shadow: none;
-      }
-
-      .submit-btn mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-      }
-
-      .button-spinner {
-        display: inline-block;
-        margin-right: 8px;
-      }
-
-      /* ===== Tablet breakpoint (min-width: 480px) ===== */
+      /* ── Tablet+ ── */
       @media (min-width: 480px) {
-        .dialog-header {
-          padding: 20px 20px 0;
-          gap: 16px;
-        }
-
-        .header-icon {
-          width: 52px;
-          height: 52px;
-          min-width: 52px;
-          border-radius: 16px;
-        }
-
-        .header-icon mat-icon {
-          font-size: 26px;
-          width: 26px;
-          height: 26px;
-        }
-
-        .header-text h2 {
-          font-size: 20px;
-        }
-
-        .header-text .subtitle {
-          font-size: 14px;
-        }
-
-        mat-dialog-content {
-          padding: 20px !important;
-        }
-
-        .building-form {
-          gap: 16px;
-        }
-
-        mat-dialog-actions {
-          padding: 20px !important;
-          gap: 12px;
-        }
-
-        mat-icon[matPrefix] {
-          margin-right: 10px;
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
-        }
-
-        mat-hint {
-          font-size: 12px;
-        }
+        .dialog-header { padding: 1.5rem 1.75rem 1.375rem; gap: 1rem; }
+        .header-icon-wrap { width: 44px; height: 44px; }
+        .header-text h2 { font-size: 1.125rem; }
+        mat-dialog-content { padding: 1.5rem 1.75rem !important; }
+        mat-dialog-actions { padding: 1rem 1.75rem 1.5rem !important; }
       }
 
-      /* ===== Desktop breakpoint (min-width: 600px) ===== */
       @media (min-width: 600px) {
-        .dialog-container {
-          min-width: 520px;
-          max-width: 600px;
-        }
-
-        .dialog-header {
-          padding: 28px 28px 0;
-          gap: 18px;
-        }
-
-        .header-icon {
-          width: 60px;
-          height: 60px;
-          min-width: 60px;
-          border-radius: 18px;
-        }
-
-        .header-icon mat-icon {
-          font-size: 30px;
-          width: 30px;
-          height: 30px;
-        }
-
-        .header-text h2 {
-          margin-bottom: 6px;
-          font-size: 24px;
-        }
-
-        .header-text .subtitle {
-          font-size: 15px;
-        }
-
-        mat-dialog-content {
-          padding: 28px !important;
-        }
-
-        .building-form {
-          gap: 20px;
-        }
-
-        mat-icon[matPrefix] {
-          margin-right: 12px;
-        }
-
+        .dialog-container { min-width: 520px; max-width: 600px; }
+        mat-dialog-content { max-height: 70vh; }
         mat-dialog-actions {
           flex-direction: row;
           justify-content: flex-end;
-          padding: 20px 28px 28px !important;
-          gap: 16px;
-          margin-top: 12px;
         }
-
-        .cancel-btn {
-          width: auto;
-          padding: 0 24px !important;
-          height: 48px;
-        }
-
-        .submit-btn {
-          width: auto;
-          padding: 0 28px !important;
-          height: 48px;
-        }
-
-        .submit-btn mat-icon {
-          font-size: 22px;
-          width: 22px;
-          height: 22px;
-        }
+        .cancel-btn, .submit-btn { width: auto; padding: 0 1.5rem !important; }
       }
     `,
   ],
@@ -595,7 +382,6 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
 
   onAddressInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
-    // Clear coordinates when user types a new address
     if (this.buildingForm.get('latitude')?.value) {
       this.buildingForm.patchValue({ placeId: '', latitude: null, longitude: null });
     }
@@ -636,7 +422,6 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
 
     this.isSubmitting = true;
 
-    // If user typed an address but didn't select from dropdown, treat it as plain text
     const formValue = this.buildingForm.value;
     const buildingData: BuildingRequest = {
       name: formValue.name,

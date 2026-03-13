@@ -260,4 +260,44 @@ class AllocationBatchServiceTest {
         verify(allocationLifecycleService, never()).createRoomAllocation(any());
         verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
     }
+
+    @Test
+    void batchAllocate_nullPreferredBuilding_stillAllocates() {
+        // Application has no preferred building — allocation should proceed normally
+        Student student = new Student();
+        student.setId(1L);
+        Application application = new Application();
+        application.setId(10L);
+        application.setStudent(student);
+        application.setStatus(ApplicationStatus.APPROVED);
+        application.setPreferredBuilding(null); // explicitly no preference
+
+        WaitingListEntry entry = new WaitingListEntry();
+        entry.setStudent(student);
+        entry.setApplication(application);
+        entry.setStatus("WAITING");
+
+        Room room = new Room();
+        room.setId(100L);
+        room.setCapacity(1);
+        room.setCurrentOccupancy(0);
+
+        ScoredRoom scoredRoom = ScoredRoom.builder()
+                .roomId(100L)
+                .totalScore(new BigDecimal("100.0"))
+                .build();
+
+        when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
+        when(allocationScoringOrchestrator.buildScoringMatrix(any()))
+                .thenReturn(java.util.Map.of(1L, List.of(scoredRoom)));
+        when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(room));
+        when(allocationScoringOrchestrator.buildRoomCapacityMap(any()))
+                .thenReturn(new java.util.HashMap<>(java.util.Map.of(100L, 1)));
+
+        BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(10);
+
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(0, result.getFailureCount());
+        verify(allocationLifecycleService).createRoomAllocation(any());
+    }
 }

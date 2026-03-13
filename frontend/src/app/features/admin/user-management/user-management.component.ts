@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 
+import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AdminService, AdminUser } from '../../../core/services/admin.service';
 
@@ -28,6 +29,7 @@ import { TenantService, Tenant } from '../../../core/services/tenant.service';
   styleUrls: ['./user-management.component.scss'],
   standalone: true,
   imports: [
+    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
@@ -57,6 +59,27 @@ export class UserManagementComponent implements OnInit {
   isPlatformAdmin = false;
   tenants: Tenant[] = [];
   filterTenantId: number | 'all' = 'all';
+  filtersVisible = false;
+
+  get activeFilterCount(): number {
+    return this.filterRole !== 'all' ? 1 : 0;
+  }
+
+  get adminCount(): number {
+    return this.users.filter(u => u.userRole === 'ADMIN').length;
+  }
+
+  get landlordCount(): number {
+    return this.users.filter(u => u.userRole === 'LANDLORD').length;
+  }
+
+  get studentCount(): number {
+    return this.users.filter(u => u.userRole === 'STUDENT').length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
 
   private authService = inject(AuthService);
   private tenantService = inject(TenantService);

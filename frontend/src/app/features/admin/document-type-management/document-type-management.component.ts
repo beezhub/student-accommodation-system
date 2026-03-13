@@ -26,7 +26,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 // Modern UI Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { DecimalPipe } from '@angular/common';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 
 @Component({
   selector: 'app-document-type-management',
@@ -53,6 +55,8 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
     MatSlideToggleModule,
     ModernStatusBadgeComponent,
     EmptyStateComponent,
+    SkeletonLoaderComponent,
+    DecimalPipe,
   ],
 })
 export class DocumentTypeManagementComponent implements OnInit {
@@ -68,8 +72,18 @@ export class DocumentTypeManagementComponent implements OnInit {
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
+  filtersVisible = false;
 
   filterForm: FormGroup;
+
+  get activeFilterCount(): number {
+    const v = this.filterForm.value;
+    return [v.name, v.isRequired !== '' ? v.isRequired : null].filter((x: unknown) => x !== null && x !== '' && x !== undefined).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
 
   constructor() {
     this.filterForm = this.fb.group({

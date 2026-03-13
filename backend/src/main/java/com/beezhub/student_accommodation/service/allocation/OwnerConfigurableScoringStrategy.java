@@ -418,6 +418,10 @@ public class OwnerConfigurableScoringStrategy implements ScoringStrategy {
     private List<Room> getAvailableRooms() {
         return roomRepository.findAll().stream()
                 .filter(room -> {
+                    String status = room.getStatus();
+                    if (!"AVAILABLE".equals(status) && !"OCCUPIED".equals(status)) {
+                        return false;
+                    }
                     long active = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
                     return active < room.getCapacity();
                 })

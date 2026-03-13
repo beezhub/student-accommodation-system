@@ -22,6 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
@@ -48,6 +49,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
     MatSnackBarModule,
     MatTooltipModule,
     MatMenuModule,
+    MatDividerModule,
     MatChipsModule,
     ModernStatusBadgeComponent,
     SkeletonLoaderComponent,
@@ -65,7 +67,6 @@ export class RoomAllocationComponent implements OnInit {
   buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
     'studentName',
-    'studentEmail',
     'roomNumber',
     'buildingName',
     'allocationDate',
@@ -77,6 +78,9 @@ export class RoomAllocationComponent implements OnInit {
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
+
+  // Filter panel state
+  filtersVisible = false;
 
   filterForm: FormGroup;
 
@@ -259,6 +263,25 @@ export class RoomAllocationComponent implements OnInit {
         },
       });
     }
+  }
+
+  // ── UI helpers ──────────────────────────────────────────────
+
+  get activeFilterCount(): number {
+    const v = this.filterForm.value;
+    return [v.studentName, v.roomNumber, v.buildingId, v.status].filter(
+      (x) => x !== null && x !== '' && x !== undefined
+    ).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
+
+  getInitials(allocation: RoomAllocationResponse): string {
+    const f = allocation.studentFirstName?.[0] ?? '';
+    const l = allocation.studentLastName?.[0] ?? '';
+    return (f + l).toUpperCase();
   }
 
   getStatusClass(status: string): string {

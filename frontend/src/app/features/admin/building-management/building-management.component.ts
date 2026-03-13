@@ -23,6 +23,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
   selector: 'app-building-management',
@@ -45,6 +46,7 @@ import { MatMenuModule } from '@angular/material/menu';
     MatSnackBarModule,
     MatTooltipModule,
     MatMenuModule,
+    MatDividerModule,
     SkeletonLoaderComponent,
     EmptyStateComponent,
   ],
@@ -70,6 +72,8 @@ export class BuildingManagementComponent implements OnInit {
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
+
+  filtersVisible = false;
 
   filterForm: FormGroup;
 
@@ -181,6 +185,26 @@ export class BuildingManagementComponent implements OnInit {
     this.router.navigate(['/admin/allocation-rules'], {
       queryParams: { buildingId: buildingId },
     });
+  }
+
+  // ── UI helpers ──────────────────────────────────────────────
+
+  get activeFilterCount(): number {
+    const v = this.filterForm.value;
+    return [v.name, v.address].filter(
+      (x) => x !== null && x !== '' && x !== undefined
+    ).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
+
+  getBuildingInitials(building: BuildingResponse): string {
+    const words = (building.name ?? '').trim().split(/\s+/);
+    const f = words[0]?.[0] ?? '';
+    const l = words[1]?.[0] ?? '';
+    return (f + l).toUpperCase();
   }
 
   openImageDialog(building: BuildingResponse): void {
