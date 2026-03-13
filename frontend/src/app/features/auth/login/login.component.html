@@ -1,83 +1,102 @@
-<div class="login-container">
-  <mat-card class="login-card">
-    <mat-card-content>
-      <!-- Apple-inspired Header Section -->
-      <div class="setup-header">
-        <h1 class="welcome-title">Welcome Back</h1>
-        <p class="welcome-subtitle">Sign in to your Student Housing account</p>
+<div class="login-page">
+
+  <!-- ── Brand panel (left) ─────────────────────────────────────────────────── -->
+  <aside class="brand-panel">
+    <div class="brand-inner">
+
+      <div class="brand-logo">
+        <mat-icon class="logo-icon">home_work</mat-icon>
+        <span class="logo-text">BeeZhub</span>
+      </div>
+
+      <div class="brand-copy">
+        <h1 class="brand-headline">Student<br>Housing,<br>Simplified.</h1>
+        <p class="brand-subline">Apply for accommodation, track your application, and manage your housing — all in one secure portal.</p>
+      </div>
+
+      <div class="brand-stats">
+        <div class="stat-row">
+          <span class="stat-val">5,000+</span>
+          <span class="stat-lbl">Students housed</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-val">200+</span>
+          <span class="stat-lbl">Rooms available</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-val">48h</span>
+          <span class="stat-lbl">Average response time</span>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ── Form panel (right) ─────────────────────────────────────────────────── -->
+  <main class="form-panel">
+    <div class="form-inner">
+
+      <div class="form-header">
+        <span class="form-eyebrow">Student Housing Portal</span>
+        <h2 class="form-title">Welcome back</h2>
+        <p class="form-subtitle">Sign in to your account to continue</p>
       </div>
 
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
-        <!-- Email Field -->
+
         <mat-form-field appearance="outline" class="form-field">
           <mat-label>Email Address</mat-label>
-          <input matInput type="email" formControlName="email" placeholder="Enter your email" autocomplete="email">
-          <mat-icon matSuffix>email</mat-icon>
+          <input matInput type="email" formControlName="email"
+            placeholder="you@university.edu" autocomplete="email">
           @if (loginForm.get('email')?.hasError('required')) {
-            <mat-error>
-              Email is required
-            </mat-error>
+            <mat-error>Email is required</mat-error>
           }
           @if (loginForm.get('email')?.hasError('email')) {
-            <mat-error>
-              Please enter a valid email address
-            </mat-error>
+            <mat-error>Please enter a valid email address</mat-error>
           }
         </mat-form-field>
 
-        <!-- Password Field -->
         <mat-form-field appearance="outline" class="form-field">
           <mat-label>Password</mat-label>
-          <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password"
-            placeholder="Enter your password" autocomplete="current-password">
-            <button mat-icon-button matSuffix type="button" (click)="togglePasswordVisibility()"
-              [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hidePassword">
-              <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
-            </button>
-            @if (loginForm.get('password')?.hasError('required')) {
-              <mat-error>
-                Password is required
-              </mat-error>
-            }
-            @if (loginForm.get('password')?.hasError('minlength')) {
-              <mat-error>
-                Password must be at least 8 characters long
-              </mat-error>
-            }
-          </mat-form-field>
-
-          <!-- Submit Button -->
-          <button mat-raised-button color="primary" type="submit" class="login-button"
-            [disabled]="isSubmitting || loginForm.invalid">
-            @if (isSubmitting) {
-              <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            }
-            @if (!isSubmitting) {
-              <span>Sign In</span>
-            }
-            @if (isSubmitting) {
-              <span>Signing in...</span>
-            }
+          <input matInput [type]="hidePassword ? 'password' : 'text'"
+            formControlName="password" placeholder="Enter your password"
+            autocomplete="current-password">
+          <button mat-icon-button matSuffix type="button"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="'Toggle password visibility'"
+            [attr.aria-pressed]="!hidePassword">
+            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
+          @if (loginForm.get('password')?.hasError('required')) {
+            <mat-error>Password is required</mat-error>
+          }
+          @if (loginForm.get('password')?.hasError('minlength')) {
+            <mat-error>Password must be at least 8 characters long</mat-error>
+          }
+        </mat-form-field>
 
-          <!-- Divider -->
-          <div class="login-divider">
-            <span>or</span>
-          </div>
+        <div class="forgot-row">
+          <a routerLink="/forgot-password" class="forgot-link">Forgot password?</a>
+        </div>
 
-          <!-- Sign Up Link -->
-          <button mat-button color="accent" routerLink="/signup" class="signup-button" type="button">
-            <mat-icon>person_add</mat-icon>
-            Sign up
-          </button>
+        <button mat-flat-button type="submit" class="submit-btn"
+          [disabled]="isSubmitting || loginForm.invalid">
+          @if (isSubmitting) {
+            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            <span>Signing in...</span>
+          } @else {
+            <span>Sign In</span>
+          }
+        </button>
 
-          <!-- Forgot Password Link -->
-          <div class="forgot-password">
-            <a mat-button routerLink="/forgot-password" class="forgot-link">
-              Forgot your password?
-            </a>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
-  </div>
+      </form>
+
+      <div class="form-footer">
+        <span class="footer-text">Don't have an account?</span>
+        <a routerLink="/signup" class="signup-link">Create account</a>
+      </div>
+
+    </div>
+  </main>
+
+</div>

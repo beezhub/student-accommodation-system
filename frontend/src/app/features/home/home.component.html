@@ -1,36 +1,52 @@
 <div class="home-container">
-  <!-- Hero Section -->
+
+  <!-- ── Hero ──────────────────────────────────────────────────────────────── -->
   <section class="hero-section">
-    <div class="hero-content">
-      <h1 class="hero-title">Find Your Perfect Student Accommodation</h1>
-      <p class="hero-subtitle">Simple, secure, and hassle-free student housing management platform</p>
+    <div class="hero-inner">
+      <span class="hero-eyebrow">Student Accommodation Portal</span>
+      <h1 class="hero-title">Find your perfect<br>student housing.</h1>
+      <p class="hero-subtitle">
+        Apply for housing, track your application, and manage your accommodation — all in one place.
+      </p>
       <div class="hero-actions">
-        <button mat-raised-button color="primary" routerLink="/signup" class="hero-button primary-button">
-          <mat-icon>person_add</mat-icon>
-          Register Now
-        </button>
-        <button mat-outlined-button routerLink="/login" class="hero-button secondary-button">
-          <mat-icon>login</mat-icon>
-          Sign In
-        </button>
+        <a mat-flat-button routerLink="/signup" class="cta-primary">Get Started</a>
+        <a mat-stroked-button routerLink="/login" class="cta-secondary">Sign In</a>
+      </div>
+    </div>
+    <div class="hero-deco" aria-hidden="true">Housing</div>
+  </section>
+
+  <!-- ── Stats ─────────────────────────────────────────────────────────────── -->
+  <section class="stats-section">
+    <div class="stats-strip">
+      @for (stat of stats; track stat.label) {
+        <div class="stat-item">
+          <span class="stat-number">{{ stat.value }}</span>
+          <span class="stat-label">{{ stat.label }}</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ── Features ──────────────────────────────────────────────────────────── -->
+  <section class="features-section">
+    <div class="page-inner">
+      <div class="section-label"><span>How it works</span></div>
+      <div class="features-grid">
+        @for (feature of features; track feature.title; let i = $index) {
+          <div class="feature-item">
+            <span class="feature-num">0{{ i + 1 }}</span>
+            <div class="feature-icon" [ngClass]="feature.iconClass">
+              <mat-icon>{{ feature.icon }}</mat-icon>
+            </div>
+            <div class="feature-text">
+              <h3 class="feature-title">{{ feature.title }}</h3>
+              <p class="feature-desc">{{ feature.description }}</p>
+            </div>
+          </div>
+        }
       </div>
     </div>
   </section>
 
-  <!-- Features Section -->
-  <section class="features-section">
-    <div class="features-grid">
-      @for (feature of features; track feature) {
-        <mat-card class="feature-card">
-          <mat-card-content class="feature-content">
-            <div class="feature-icon-container">
-              <mat-icon class="feature-icon">{{feature.icon}}</mat-icon>
-            </div>
-            <mat-card-title class="feature-title">{{feature.title}}</mat-card-title>
-            <mat-card-subtitle class="feature-description">{{feature.description}}</mat-card-subtitle>
-          </mat-card-content>
-        </mat-card>
-      }
-    </div>
-  </section>
 </div>
