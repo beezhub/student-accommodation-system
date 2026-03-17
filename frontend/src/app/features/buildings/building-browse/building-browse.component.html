@@ -1,0 +1,145 @@
+<div class="browse-page">
+
+  <!-- ══════════════════════════════════════════════════════
+       PAGE HERO
+  ══════════════════════════════════════════════════════ -->
+  <div class="page-hero">
+    <div class="hero-inner">
+      <div class="hero-icon-wrap" aria-hidden="true">
+        <mat-icon>apartment</mat-icon>
+      </div>
+      <div class="hero-text">
+        <h1 class="hero-title">Browse Accommodation</h1>
+        <p class="hero-subtitle">
+          Explore our available student buildings — no account needed
+        </p>
+      </div>
+      <div class="hero-actions">
+        <a mat-stroked-button routerLink="/login" class="signin-btn">
+          <mat-icon>login</mat-icon>
+          Sign In to Apply
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SEARCH BAR
+  ══════════════════════════════════════════════════════ -->
+  <div class="search-wrap">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search buildings</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearch()"
+        placeholder="Name, location, or description…"
+      />
+      @if (searchQuery) {
+        <button matSuffix mat-icon-button (click)="clearSearch()" aria-label="Clear search">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+    @if (!isLoading) {
+      <p class="result-count">
+        {{ filteredBuildings.length }} building{{ filteredBuildings.length !== 1 ? 's' : '' }} found
+      </p>
+    }
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       LOADING
+  ══════════════════════════════════════════════════════ -->
+  @if (isLoading) {
+    <div class="loading-wrap">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading buildings…</p>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       ERROR
+  ══════════════════════════════════════════════════════ -->
+  @if (error) {
+    <div class="error-wrap">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error }}</p>
+      <button mat-stroked-button (click)="loadBuildings()">
+        <mat-icon>refresh</mat-icon>
+        Retry
+      </button>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       BUILDINGS GRID
+  ══════════════════════════════════════════════════════ -->
+  @if (!isLoading && !error) {
+    @if (filteredBuildings.length === 0) {
+      <div class="empty-state">
+        <mat-icon>search_off</mat-icon>
+        <h3>No buildings found</h3>
+        <p>Try a different search term or clear the filter.</p>
+        @if (searchQuery) {
+          <button mat-stroked-button (click)="clearSearch()">Clear search</button>
+        }
+      </div>
+    } @else {
+      <div class="buildings-grid">
+        @for (building of filteredBuildings; track building.id) {
+          <a class="building-card" [routerLink]="['/buildings', building.id]">
+            <!-- Image -->
+            <div class="card-image">
+              @if (building.primaryImageUrl) {
+                <img [src]="building.primaryImageUrl" [alt]="building.name" loading="lazy" />
+              } @else {
+                <div class="placeholder-img">
+                  <mat-icon>apartment</mat-icon>
+                </div>
+              }
+              @if (building.images && building.images.length > 1) {
+                <span class="image-count">
+                  <mat-icon>photo_library</mat-icon>
+                  {{ building.images.length }}
+                </span>
+              }
+            </div>
+            <!-- Info -->
+            <div class="card-body">
+              <h2 class="card-title">{{ building.name }}</h2>
+              @if (building.address) {
+                <div class="card-meta">
+                  <mat-icon>location_on</mat-icon>
+                  <span>{{ building.address }}</span>
+                </div>
+              }
+              @if (building.totalFloors) {
+                <div class="card-meta">
+                  <mat-icon>layers</mat-icon>
+                  <span>{{ building.totalFloors }} floors</span>
+                </div>
+              }
+              @if (building.institutions && building.institutions.length > 0) {
+                <div class="institutions">
+                  @for (inst of building.institutions; track inst.id) {
+                    <span class="inst-chip">{{ inst.name }}</span>
+                  }
+                </div>
+              }
+              @if (building.description) {
+                <p class="card-desc">{{ building.description }}</p>
+              }
+              <div class="card-cta">
+                <span>View details</span>
+                <mat-icon>arrow_forward</mat-icon>
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+    }
+  }
+
+</div>

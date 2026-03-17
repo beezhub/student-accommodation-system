@@ -35,10 +35,20 @@ export class BuildingImageDialogComponent implements OnInit {
     building: BuildingResponse;
   }>(MAT_DIALOG_DATA);
 
+  static readonly MAX_IMAGES = 10;
+
   images: BuildingImageResponse[] = [];
   isLoading = false;
   isUploading = false;
   selectedFiles: File[] = [];
+
+  get imageCount(): number {
+    return this.images.length;
+  }
+
+  get atImageCap(): boolean {
+    return this.images.length >= BuildingImageDialogComponent.MAX_IMAGES;
+  }
 
   ngOnInit(): void {
     this.loadImages();

@@ -11,7 +11,7 @@
 
   <mat-dialog-content>
     <!-- File Upload Area -->
-    <div class="upload-area">
+    <div class="upload-area" [class.at-cap]="atImageCap">
       <input
         type="file"
         #fileInput
@@ -23,12 +23,21 @@
       <button
         mat-raised-button
         (click)="fileInput.click()"
-        [disabled]="isUploading"
+        [disabled]="isUploading || atImageCap"
         class="upload-btn"
       >
         <mat-icon>cloud_upload</mat-icon>
         {{ isUploading ? 'Uploading...' : 'Upload Images' }}
       </button>
+      @if (!isLoading) {
+        <p class="upload-count" [class.at-cap]="atImageCap">
+          @if (atImageCap) {
+            Maximum of 10 images reached
+          } @else {
+            {{ imageCount }} of 10 images used
+          }
+        </p>
+      }
       <p class="upload-hint">Maximum 5MB per image &mdash; JPEG, PNG, GIF, WebP</p>
     </div>
 

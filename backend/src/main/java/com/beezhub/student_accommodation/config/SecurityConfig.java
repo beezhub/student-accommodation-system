@@ -74,6 +74,14 @@ public class SecurityConfig {
                                 "/api/auth/verify-email",
                                 "/api/auth/resend-verification")
                         .permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/building",
+                                "/api/building/all",
+                                "/api/building/search",
+                                "/api/building/{id}",
+                                "/api/building/by-institution/{institutionId}",
+                                "/api/building/{buildingId}/images")
+                        .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")

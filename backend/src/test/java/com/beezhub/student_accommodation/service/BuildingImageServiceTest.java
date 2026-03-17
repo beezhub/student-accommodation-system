@@ -250,4 +250,90 @@ class BuildingImageServiceTest {
 
         assertThat(url).isNull();
     }
+
+    // ---- Image cap tests ----
+
+    @Test
+    void uploadImages_WithinLimit_Succeeds() throws Exception {
+        // 6 existing + 3 incoming = 9 (within limit)
+        List<BuildingImage> existing = java.util.stream.IntStream.range(0, 6)
+                .mapToObj(i -> {
+                    BuildingImage img = new BuildingImage();
+                    img.setBuilding(building);
+                    return img;
+                }).toList();
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(buildingImageRepository.findByBuilding_IdOrderByDisplayOrderAsc(1L)).thenReturn(existing);
+        when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(null);
+        when(buildingImageRepository.save(any(BuildingImage.class))).thenAnswer(i -> {
+            BuildingImage saved = i.getArgument(0);
+            saved.setId(200L);
+            return saved;
+        });
+        mockPresignedUrl();
+
+        List<MultipartFile> files = List.of(validFile, validFile, validFile);
+        List<BuildingImageResponse> responses = service.uploadImages(1L, files);
+
+        assertThat(responses).hasSize(3);
+    }
+
+    @Test
+    void uploadImages_ReachesExactlyTen_Succeeds() throws Exception {
+        // 9 existing + 1 incoming = 10 (exactly at limit)
+        List<BuildingImage> existing = java.util.stream.IntStream.range(0, 9)
+                .mapToObj(i -> {
+                    BuildingImage img = new BuildingImage();
+                    img.setBuilding(building);
+                    return img;
+                }).toList();
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(buildingImageRepository.findByBuilding_IdOrderByDisplayOrderAsc(1L)).thenReturn(existing);
+        when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(null);
+        when(buildingImageRepository.save(any(BuildingImage.class))).thenAnswer(i -> {
+            BuildingImage saved = i.getArgument(0);
+            saved.setId(201L);
+            return saved;
+        });
+        mockPresignedUrl();
+
+        List<BuildingImageResponse> responses = service.uploadImages(1L, List.of(validFile));
+
+        assertThat(responses).hasSize(1);
+    }
+
+    @Test
+    void uploadImages_ExceedsLimit_ThrowsException() {
+        // 9 existing + 2 incoming = 11 (exceeds limit)
+        List<BuildingImage> existing = java.util.stream.IntStream.range(0, 9)
+                .mapToObj(i -> {
+                    BuildingImage img = new BuildingImage();
+                    img.setBuilding(building);
+                    return img;
+                }).toList();
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(buildingImageRepository.findByBuilding_IdOrderByDisplayOrderAsc(1L)).thenReturn(existing);
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> service.uploadImages(1L, List.of(validFile, validFile)));
+
+        assertThat(ex.getMessage()).contains("cannot have more than 10 images");
+        assertThat(ex.getMessage()).contains("current: 9");
+        assertThat(ex.getMessage()).contains("requested: 2");
+    }
+
+    @Test
+    void uploadImages_AlreadyAtLimit_ThrowsException() {
+        // 10 existing + 1 incoming = 11 (already at limit)
+        List<BuildingImage> existing = java.util.stream.IntStream.range(0, 10)
+                .mapToObj(i -> {
+                    BuildingImage img = new BuildingImage();
+                    img.setBuilding(building);
+                    return img;
+                }).toList();
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(buildingImageRepository.findByBuilding_IdOrderByDisplayOrderAsc(1L)).thenReturn(existing);
+
+        assertThrows(RuntimeException.class, () -> service.uploadImages(1L, List.of(validFile)));
+    }
 }

@@ -306,6 +306,71 @@
 }
 
 // ─────────────────────────────────────────────────────────────
+// Preferred buildings list
+// ─────────────────────────────────────────────────────────────
+.preferred-buildings-section {
+  margin-top: 1.25rem;
+}
+
+.preferred-buildings-label {
+  margin-bottom: 0.625rem;
+}
+
+.preferred-buildings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.preferred-building-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: vars.$slate-50;
+  border: 1px solid vars.$slate-200;
+  border-radius: vars.$radius-md;
+}
+
+.pref-rank-badge {
+  flex-shrink: 0;
+  min-width: 2.25rem;
+  height: 1.625rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: vars.$radius-sm;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &.pref-rank-badge--1 {
+    background: vars.$accent-orange-light;
+    color: vars.$accent-orange-dark;
+    border: 1px solid vars.$accent-orange-dark;
+  }
+
+  &.pref-rank-badge--2 {
+    background: vars.$slate-100;
+    color: vars.$slate-600;
+    border: 1px solid vars.$slate-300;
+  }
+
+  &.pref-rank-badge--3 {
+    background: vars.$slate-100;
+    color: vars.$slate-500;
+    border: 1px solid vars.$slate-200;
+  }
+}
+
+.pref-building-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: vars.$slate-900;
+}
+
+// ─────────────────────────────────────────────────────────────
 // Responsive — tablet+
 // ─────────────────────────────────────────────────────────────
 @media (min-width: vars.$breakpoint-tablet) {
