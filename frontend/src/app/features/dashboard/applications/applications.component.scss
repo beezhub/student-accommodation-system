@@ -1,11 +1,13 @@
 @use '../../../../styles/variables' as vars;
 @use '../../../../styles/mixins' as mixins;
 
-/* Modern My Applications Page Design - Mobile First */
+// ─────────────────────────────────────────────────────────────
+// Page shell
+// ─────────────────────────────────────────────────────────────
 .main-content {
   margin-top: 64px;
   padding: 1.5rem 0;
-  background: linear-gradient(135deg, vars.$slate-50 0%, vars.$slate-200 100%);
+  background: vars.$slate-50;
   min-height: calc(100vh - 64px);
 }
 
@@ -15,37 +17,30 @@
   padding: 0 1rem;
 }
 
-/* Page Header */
+// ─────────────────────────────────────────────────────────────
+// Page header
+// ─────────────────────────────────────────────────────────────
 .page-header {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
   padding: 1.5rem;
-  background: linear-gradient(135deg, vars.$slate-900 0%, vars.$accent-cyan-dark 100%);
+  background: vars.$slate-900;
   border-radius: vars.$radius-xl;
-  position: relative;
-  overflow: hidden;
   box-shadow: vars.$shadow-elevated;
   text-align: center;
-}
 
-.page-header::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -10%;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
-  filter: blur(40px);
-  pointer-events: none;
+  // Blue accent bar — Applications module colour
+  &::after {
+    display: none; // handled by border-bottom below
+  }
+
+  border-bottom: 3px solid vars.$accent-blue-dark;
 }
 
 .header-content {
   position: relative;
-  z-index: 1;
 }
 
 .page-header h2 {
@@ -62,49 +57,50 @@
     font-size: 2rem;
     width: 2rem;
     height: 2rem;
-    display: none; // Hide icon on very small screens if needed, or keeping it
   }
 }
 
 .page-subtitle {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.875rem;
   font-weight: 400;
   margin: 0;
 }
 
+// ─────────────────────────────────────────────────────────────
+// New Application button
+// ─────────────────────────────────────────────────────────────
 .new-application-btn {
-  position: relative;
-  z-index: 1;
-  height: 48px;
+  height: 44px;
   width: 100%;
-  /* Full width on mobile */
   padding: 0 1.5rem !important;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  border-radius: 24px !important;
-  background: rgba(255, 255, 255, 0.2) !important;
-  color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  backdrop-filter: blur(10px);
-  box-shadow: vars.$shadow-subtle;
+  border-radius: vars.$radius-md !important;
+  background: white !important;
+  color: vars.$slate-900 !important;
+  border: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: all 0.2s ease;
+  transition: background vars.$motion-fast ease;
+  cursor: pointer;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-    transform: translateY(-2px);
+    background: vars.$slate-100 !important;
   }
 
   mat-icon {
     font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
   }
 }
 
-/* Applications Card Container */
+// ─────────────────────────────────────────────────────────────
+// Applications card container
+// ─────────────────────────────────────────────────────────────
 .applications-card {
   @include mixins.card-base;
   padding: 0 !important;
@@ -117,22 +113,21 @@
   border-bottom: 1px solid vars.$slate-200;
   display: flex;
   flex-direction: column;
-  /* Stack on mobile */
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: flex-start;
 }
 
 .card-title {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1.125rem;
+  gap: 0.625rem;
+  font-size: 1rem;
   font-weight: 700;
   color: vars.$slate-900;
   margin: 0;
 
   mat-icon {
-    color: vars.$accent-cyan-dark;
+    color: vars.$accent-blue-dark;
     font-size: 1.25rem;
     width: 1.25rem;
     height: 1.25rem;
@@ -142,25 +137,26 @@
 .application-count {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  background: rgba(8, 145, 178, 0.1);
-  border-radius: 20px;
-  border: 1px solid rgba(8, 145, 178, 0.2);
+  padding: 0.1875rem 0.625rem;
+  background: rgba(vars.$accent-blue-dark, 0.08);
+  border: 1px solid rgba(vars.$accent-blue-dark, 0.18);
+  border-radius: vars.$radius-pill;
   font-size: 0.75rem;
-  font-weight: 600;
-  color: vars.$accent-cyan-dark;
+  font-weight: 700;
+  color: vars.$accent-blue-dark;
 }
 
 .mat-mdc-card-content {
   padding: 0 !important;
 }
 
-/* Mobile Card View (Default) */
+// ─────────────────────────────────────────────────────────────
+// Mobile card view (default)
+// ─────────────────────────────────────────────────────────────
 .mobile-cards-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   padding: 1rem;
 }
 
@@ -171,8 +167,7 @@
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  box-shadow: vars.$shadow-subtle;
+  gap: 0.875rem;
 }
 
 .mobile-card-header {
@@ -188,21 +183,22 @@
   align-items: center;
   gap: 0.5rem;
   color: vars.$slate-700;
-  font-weight: 600;
+  font-weight: 700;
   font-family: monospace;
+  font-size: 0.9375rem;
 
   mat-icon {
     font-size: 18px;
     width: 18px;
     height: 18px;
-    color: vars.$accent-cyan-dark;
+    color: vars.$accent-blue-dark;
   }
 }
 
 .mobile-card-body {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.375rem;
 }
 
 .mobile-info-row {
@@ -217,33 +213,31 @@
   }
 
   .value {
-    color: vars.$slate-900;
+    color: vars.$slate-800;
     font-weight: 600;
   }
 }
 
 .mobile-card-actions {
   display: flex;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: 0.625rem;
 
   button {
     flex: 1;
-    border-radius: 8px;
+    border-radius: vars.$radius-md !important;
   }
 }
 
-/* Desktop Table View (Hidden on mobile) */
+// ─────────────────────────────────────────────────────────────
+// Desktop table view (hidden on mobile)
+// ─────────────────────────────────────────────────────────────
 .desktop-table-container {
   display: none;
-  /* Hidden by default */
   overflow-x: auto;
 }
 
-/* Table Styling */
 .applications-table {
   width: 100%;
-  border-collapse: collapse;
 }
 
 ::ng-deep .applications-card .mat-mdc-table {
@@ -252,25 +246,29 @@
 
 ::ng-deep .applications-card .mat-mdc-header-row {
   background: vars.$slate-50;
-  border-bottom: 2px solid vars.$slate-200;
+  border-bottom: 1px solid vars.$slate-200;
 }
 
 ::ng-deep .applications-card .mat-mdc-header-cell {
   font-weight: 700;
-  color: vars.$slate-700;
-  font-size: 0.75rem;
+  color: vars.$slate-600;
+  font-size: 0.6875rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1rem;
+  letter-spacing: 0.06em;
+  padding: 0.875rem 1rem;
   border-bottom: none;
 }
 
 ::ng-deep .applications-card .mat-mdc-row {
-  transition: all 0.2s ease;
-  border-bottom: 1px solid vars.$slate-200;
+  border-bottom: 1px solid vars.$slate-100;
+  transition: background vars.$motion-fast ease;
 
   &:hover {
-    background: rgba(236, 254, 255, 0.5);
+    background: rgba(vars.$accent-blue-dark, 0.03);
+  }
+
+  &:last-child {
+    border-bottom: none;
   }
 }
 
@@ -282,82 +280,68 @@
   border-bottom: none;
 }
 
-/* Table Cells */
+// ─────────────────────────────────────────────────────────────
+// Table cell components
+// ─────────────────────────────────────────────────────────────
 .app-id-cell {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
 }
 
 .app-icon {
-  width: 32px;
-  height: 32px;
-  background: rgba(8, 145, 178, 0.1);
-  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  background: rgba(vars.$accent-blue-dark, 0.08);
+  border-radius: vars.$radius-sm;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 
   mat-icon {
-    font-size: 18px;
-    color: vars.$accent-cyan-dark;
-    width: 18px;
-    height: 18px;
+    font-size: 16px;
+    color: vars.$accent-blue-dark;
+    width: 16px;
+    height: 16px;
   }
 }
 
 .app-id {
   font-family: monospace;
-  font-weight: 600;
+  font-weight: 700;
   color: vars.$slate-900;
 }
 
-.year-badge,
-.type-badge {
+.year-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
+  gap: 0.3125rem;
+  padding: 0.1875rem 0.5rem;
+  background: vars.$slate-100;
+  border: 1px solid vars.$slate-200;
+  border-radius: vars.$radius-sm;
   font-weight: 600;
   font-size: 0.75rem;
-}
-
-.year-badge {
-  background: vars.$slate-100;
   color: vars.$slate-600;
-  border: 1px solid vars.$slate-200;
 
   mat-icon {
-    font-size: 14px;
-    width: 14px;
-    height: 14px;
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
   }
 }
 
-.type-badge {
-  background: rgba(8, 145, 178, 0.1);
-  color: vars.$accent-cyan-dark;
-  border: 1px solid rgba(8, 145, 178, 0.2);
-
-  mat-icon {
-    font-size: 14px;
-    width: 14px;
-    height: 14px;
-  }
-}
-
-.date-cell,
-.duration-cell {
+.date-cell {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4375rem;
   color: vars.$slate-500;
 
   mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
     color: vars.$slate-400;
   }
 }
@@ -370,66 +354,39 @@
 
 .view-btn {
   height: 32px;
-  padding: 0 1rem !important;
+  padding: 0 0.875rem !important;
   font-size: 0.75rem;
   font-weight: 600;
 }
 
 .cancel-btn {
   height: 32px;
-  padding: 0 1rem !important;
+  padding: 0 0.875rem !important;
   font-size: 0.75rem;
   font-weight: 600;
 }
 
-/* Loading & Empty States */
-.loading-container,
-.no-applications {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
+// ─────────────────────────────────────────────────────────────
+// Loading state
+// ─────────────────────────────────────────────────────────────
+.loading-container {
+  padding: 1.5rem;
 }
 
-.loading-container mat-spinner {
-  margin-bottom: 1rem;
-}
-
-.no-applications-icon {
-  width: 80px;
-  height: 80px;
-  background: rgba(8, 145, 178, 0.1);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-
-  mat-icon {
-    font-size: 40px;
-    width: 40px;
-    height: 40px;
-    color: vars.$accent-cyan-dark;
-  }
-}
-
-/* Tablet+ Responsive Overrides */
+// ─────────────────────────────────────────────────────────────
+// Responsive — tablet+
+// ─────────────────────────────────────────────────────────────
 @media (min-width: vars.$breakpoint-tablet) {
   .page-header {
     flex-direction: row;
     justify-content: space-between;
+    align-items: center;
     text-align: left;
     padding: 2rem;
   }
 
-  .new-application-btn {
-    width: auto;
-  }
-
   .page-header h2 {
-    font-size: 2rem;
+    font-size: 1.75rem;
 
     mat-icon {
       display: inline-block;
@@ -437,27 +394,26 @@
   }
 
   .page-subtitle {
-    font-size: 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .new-application-btn {
+    width: auto;
+    flex-shrink: 0;
   }
 
   .card-header {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 1.5rem 2rem;
+    padding: 1.25rem 1.5rem;
   }
 
   .mobile-cards-container {
     display: none;
-    /* Hide mobile cards */
   }
 
   .desktop-table-container {
     display: block;
-    /* Show table */
-  }
-
-  .mat-mdc-card-content {
-    padding: 0 !important;
   }
 }

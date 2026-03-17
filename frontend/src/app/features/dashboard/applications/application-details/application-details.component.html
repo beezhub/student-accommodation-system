@@ -15,10 +15,20 @@
       }
     </div>
 
-    <!-- Loading Spinner -->
+    <!-- Loading skeleton -->
     @if (isLoading) {
       <div class="loading-container">
-        <mat-spinner></mat-spinner>
+        <div class="skeleton-card">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line medium"></div>
+          <div class="skeleton-line full"></div>
+          <div class="skeleton-line medium"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line full"></div>
+          <div class="skeleton-line medium"></div>
+        </div>
       </div>
     }
 

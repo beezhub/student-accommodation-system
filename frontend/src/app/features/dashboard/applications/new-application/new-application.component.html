@@ -1,146 +1,174 @@
-<div class="page-container">
-  <mat-card class="application-card">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon>add_circle</mat-icon>
-        New Accommodation Application
-      </mat-card-title>
-      <mat-card-subtitle>
-        Provide your accommodation preferences to help us find the best match for you
-      </mat-card-subtitle>
-    </mat-card-header>
+<div class="new-app-page">
 
-    <mat-divider></mat-divider>
-
-    <mat-card-content>
-      <!-- Load Error Display -->
-      @if (loadError) {
-        <app-error-display
-          mode="inline"
-          [type]="loadError.type"
-          [message]="loadError.message"
-          [showRetry]="loadError.canRetry"
-          [isRetrying]="isRetrying"
-          (retry)="retryLoadProfile()">
-        </app-error-display>
-      }
-
-      <!-- Submit Error Display -->
-      @if (submitError) {
-        <app-error-display
-          mode="inline"
-          [type]="submitError.type"
-          [message]="submitError.message"
-          [details]="submitError.details"
-          [showRetry]="submitError.canRetry"
-          [showDismiss]="true"
-          (retry)="retrySubmit()"
-          (dismiss)="dismissError()">
-        </app-error-display>
-      }
-
-      <form [formGroup]="applicationForm" (ngSubmit)="onSubmit()">
-
-        <!-- Course Information -->
-        <div class="form-section">
-          <h3 class="section-title">
-            <mat-icon>school</mat-icon>
-            Academic Information
-          </h3>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Course Name</mat-label>
-            <input matInput formControlName="courseName" placeholder="e.g., Computer Science">
-            <mat-icon matPrefix>book</mat-icon>
-            @if (applicationForm.get('courseName')?.hasError('required')) {
-              <mat-error>
-                Course name is required
-              </mat-error>
-            }
-          </mat-form-field>
-
+  <!-- ══════════════════════════════════════════════════════
+       HERO HEADER BAND
+  ══════════════════════════════════════════════════════ -->
+  <div class="page-hero">
+    <div class="hero-inner">
+      <div class="hero-icon-wrap" aria-hidden="true">
+        <mat-icon>add_circle_outline</mat-icon>
+      </div>
+      <div class="hero-text">
+        <h1 class="hero-title">New Application</h1>
+        <p class="hero-subtitle">
           @if (institutionName) {
-            <div class="info-card">
-              <mat-icon>location_city</mat-icon>
-              <div class="info-content">
-                <strong>Institution:</strong> {{ institutionName }}
+            Applying for accommodation at {{ institutionName }}
+          } @else {
+            Fill in your preferences to submit an accommodation application
+          }
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       LOAD ERROR
+  ══════════════════════════════════════════════════════ -->
+  @if (loadError) {
+    <div class="error-wrap">
+      <app-error-display
+        mode="inline"
+        [type]="loadError.type"
+        [message]="loadError.message"
+        [showRetry]="loadError.canRetry"
+        [isRetrying]="isRetrying"
+        (retry)="retryLoadProfile()">
+      </app-error-display>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       FORM CARD
+  ══════════════════════════════════════════════════════ -->
+  <div class="form-wrap">
+    <mat-card class="form-card">
+      <mat-card-content>
+
+        @if (submitError) {
+          <div class="submit-error-wrap">
+            <app-error-display
+              mode="inline"
+              [type]="submitError.type"
+              [message]="submitError.message"
+              [details]="submitError.details"
+              [showRetry]="submitError.canRetry"
+              [showDismiss]="true"
+              (retry)="retrySubmit()"
+              (dismiss)="dismissError()">
+            </app-error-display>
+          </div>
+        }
+
+        <form [formGroup]="applicationForm" (ngSubmit)="onSubmit()">
+
+          <!-- ── Academic Information ── -->
+          <div class="form-section">
+            <div class="section-header">
+              <div class="section-icon-wrap" aria-hidden="true">
+                <mat-icon>school</mat-icon>
+              </div>
+              <div>
+                <h2 class="section-title">Academic Information</h2>
+                <p class="section-desc">Tell us about your course of study</p>
               </div>
             </div>
-          }
-        </div>
 
-        <mat-divider></mat-divider>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Course Name</mat-label>
+              <input matInput formControlName="courseName" placeholder="e.g., Computer Science">
+              <mat-icon matPrefix>book</mat-icon>
+              @if (applicationForm.get('courseName')?.hasError('required')) {
+                <mat-error>Course name is required</mat-error>
+              }
+            </mat-form-field>
 
-        <!-- Accommodation Preferences -->
-        <div class="form-section">
-          <h3 class="section-title">
-            <mat-icon>home</mat-icon>
-            Accommodation Preferences
-          </h3>
-
-          <app-building-gallery
-            [buildings]="buildings"
-            [selectedBuildingId]="applicationForm.get('preferredBuildingId')?.value"
-            (buildingSelected)="onBuildingSelected($event)"
-          ></app-building-gallery>
-
-          <div class="checkbox-section">
-            <mat-checkbox formControlName="requiresAccessibility" color="primary">
-              I require an accessible room (wheelchair accessible, mobility support, etc.)
-            </mat-checkbox>
+            @if (institutionName) {
+              <div class="institution-badge">
+                <mat-icon>location_city</mat-icon>
+                <span>{{ institutionName }}</span>
+              </div>
+            }
           </div>
-        </div>
 
-        <mat-divider></mat-divider>
+          <div class="section-divider"></div>
 
-        <!-- Special Requirements -->
-        <div class="form-section">
-          <h3 class="section-title">
-            <mat-icon>accessible</mat-icon>
-            Special Requirements (Optional)
-          </h3>
+          <!-- ── Accommodation Preferences ── -->
+          <div class="form-section">
+            <div class="section-header">
+              <div class="section-icon-wrap" aria-hidden="true">
+                <mat-icon>home</mat-icon>
+              </div>
+              <div>
+                <h2 class="section-title">Accommodation Preferences</h2>
+                <p class="section-desc">Select your preferred building</p>
+              </div>
+            </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Special Requirements or Accessibility Needs</mat-label>
-            <textarea matInput formControlName="specialRequirements"
-              rows="4"
-            placeholder="e.g., Ground floor access, wheelchair accessible, dietary requirements, etc."></textarea>
-            <mat-icon matPrefix>notes</mat-icon>
-            <mat-hint>Please describe any special needs or requirements</mat-hint>
-          </mat-form-field>
-        </div>
+            <app-building-gallery
+              [buildings]="buildings"
+              [selectedBuildingId]="applicationForm.get('preferredBuildingId')?.value"
+              (buildingSelected)="onBuildingSelected($event)">
+            </app-building-gallery>
 
-        <mat-divider></mat-divider>
+            <div class="accessibility-check">
+              <mat-checkbox formControlName="requiresAccessibility" color="primary">
+                I require an accessible room (wheelchair accessible, mobility support, etc.)
+              </mat-checkbox>
+            </div>
+          </div>
 
-        <!-- Action Buttons -->
-        <mat-card-actions class="action-buttons">
-          <button mat-button type="button" routerLink="/applications" class="cancel-button">
-            <mat-icon>close</mat-icon>
-            Cancel
-          </button>
+          <div class="section-divider"></div>
 
-          <button mat-raised-button color="primary" type="submit"
-            [disabled]="isSubmitting || !applicationForm.valid" class="submit-button">
-            @if (isSubmitting) {
-              <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            }
-            @if (!isSubmitting) {
-              <mat-icon>send</mat-icon>
-            }
-            @if (!isSubmitting) {
-              <span>Submit Application</span>
-            }
-            @if (isSubmitting) {
-              <span>Submitting...</span>
-            }
-          </button>
-        </mat-card-actions>
-      </form>
-    </mat-card-content>
-  </mat-card>
+          <!-- ── Special Requirements ── -->
+          <div class="form-section">
+            <div class="section-header">
+              <div class="section-icon-wrap" aria-hidden="true">
+                <mat-icon>notes</mat-icon>
+              </div>
+              <div>
+                <h2 class="section-title">
+                  Special Requirements
+                  <span class="optional-tag">Optional</span>
+                </h2>
+                <p class="section-desc">Any accessibility needs or special requests</p>
+              </div>
+            </div>
 
-  <div class="help-text">
-    <mat-icon>info</mat-icon>
-    <p>Your application will be reviewed by our team. You'll receive a notification once it's processed.</p>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Special Requirements or Accessibility Needs</mat-label>
+              <textarea matInput formControlName="specialRequirements" rows="4"
+                placeholder="e.g., Ground floor access, wheelchair accessible, dietary requirements..."></textarea>
+              <mat-hint>Optional — leave blank if none</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <!-- ── Actions ── -->
+          <div class="form-actions">
+            <button mat-button type="button" routerLink="/applications" class="cancel-btn">
+              <mat-icon>arrow_back</mat-icon>
+              Back
+            </button>
+
+            <button mat-flat-button color="primary" type="submit"
+              [disabled]="isSubmitting || !applicationForm.valid" class="submit-btn">
+              @if (isSubmitting) {
+                <mat-spinner diameter="18"></mat-spinner>
+                Submitting…
+              } @else {
+                <mat-icon>send</mat-icon>
+                Submit Application
+              }
+            </button>
+          </div>
+
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <p class="review-note">
+      <mat-icon aria-hidden="true">info_outline</mat-icon>
+      Your application will be reviewed by our team. You'll receive a notification once it's processed.
+    </p>
   </div>
+
 </div>
