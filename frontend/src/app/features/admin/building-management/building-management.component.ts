@@ -1,7 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
 import {
   BuildingService,
   BuildingResponse,
@@ -33,8 +32,7 @@ import { MatDividerModule } from '@angular/material/divider';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    RouterModule,
-    MatCardModule,
+MatCardModule,
     MatTableModule,
     MatPaginatorModule,
     MatButtonModule,
@@ -56,9 +54,7 @@ export class BuildingManagementComponent implements OnInit {
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
-  private router = inject(Router);
-
-  buildings: BuildingResponse[] = [];
+buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
     'name',
     'address',
@@ -180,14 +176,7 @@ export class BuildingManagementComponent implements OnInit {
     }
   }
 
-  navigateToAllocationRules(buildingId: number): void {
-    // Navigate to allocation rules page with the building pre-selected
-    this.router.navigate(['/admin/allocation-rules'], {
-      queryParams: { buildingId: buildingId },
-    });
-  }
-
-  // ── UI helpers ──────────────────────────────────────────────
+// ── UI helpers ──────────────────────────────────────────────
 
   get activeFilterCount(): number {
     const v = this.filterForm.value;

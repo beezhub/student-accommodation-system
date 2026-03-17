@@ -79,8 +79,7 @@ export class AdminSidebarComponent {
     {
       label: 'Configuration',
       items: [
-        { path: '/admin/allocation-rules', icon: 'rule', label: 'Allocation Rules' },
-        { path: '/admin/accommodation-types', icon: 'category', label: 'Accomm. Types' },
+{ path: '/admin/accommodation-types', icon: 'category', label: 'Accomm. Types' },
         { path: '/admin/institutions', icon: 'school', label: 'Institutions' },
         { path: '/admin/year-of-study', icon: 'timeline', label: 'Years of Study' },
         { path: '/admin/academic-years', icon: 'date_range', label: 'Academic Years' },

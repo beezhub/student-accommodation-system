@@ -251,13 +251,6 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'allocation-rules',
-        loadComponent: () =>
-          import(
-            './features/admin/allocation-rule-management/allocation-rule-management.component'
-          ).then((m) => m.AllocationRuleManagementComponent),
-      },
-      {
         path: 'accommodation-types',
         loadComponent: () =>
           import(

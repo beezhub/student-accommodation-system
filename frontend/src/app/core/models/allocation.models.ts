@@ -6,18 +6,6 @@ export interface DocumentComment {
   createdAt: Date;
 }
 
-export interface AllocationRule {
-  id: number;
-  buildingId?: number;
-  ruleName: string;
-  preferenceMatchWeight: number;
-  desirabilityWeight: number;
-  accessibilityWeight: number;
-  active: boolean;
-  priority: number;
-  createdAt: Date;
-}
-
 export interface BuildingAttributes {
   id: number;
   buildingId: number;
