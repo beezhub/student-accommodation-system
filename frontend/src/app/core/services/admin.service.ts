@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { BuildingPreferenceResponse } from './application.service';
 
 export interface CreateUserRequest {
   firstName: string;
@@ -42,6 +43,7 @@ export interface ApplicationResponse {
   requiresAccessibility?: boolean;
   specialRequirements?: string;
   courseName?: string;
+  preferredBuildings?: BuildingPreferenceResponse[];
   createdAt: string;
   updatedAt: string;
 }

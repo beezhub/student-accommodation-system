@@ -100,14 +100,14 @@
               </div>
               <div>
                 <h2 class="section-title">Accommodation Preferences</h2>
-                <p class="section-desc">Select your preferred building</p>
+                <p class="section-desc">Select up to 3 preferred buildings in order of preference</p>
               </div>
             </div>
 
             <app-building-gallery
               [buildings]="buildings"
-              [selectedBuildingId]="applicationForm.get('preferredBuildingId')?.value"
-              (buildingSelected)="onBuildingSelected($event)">
+              [selectedBuildingIds]="applicationForm.get('preferredBuildingIds')?.value ?? []"
+              (buildingSelectionChanged)="onBuildingSelectionChanged($event)">
             </app-building-gallery>
 
             <div class="accessibility-check">

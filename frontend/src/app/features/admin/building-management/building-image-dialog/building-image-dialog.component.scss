@@ -69,6 +69,7 @@ mat-dialog-content {
   transition: border-color 0.2s ease;
 
   &:hover { border-color: #ea580c; }
+  &.at-cap { border-color: #fca5a5; background: #fef2f2; }
 }
 
 .upload-btn {
@@ -89,6 +90,17 @@ mat-dialog-content {
   &:disabled { opacity: 0.6; }
 
   mat-icon { font-size: 1.25rem; width: 1.25rem; height: 1.25rem; }
+}
+
+.upload-count {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+
+  &.at-cap {
+    color: #dc2626;
+  }
 }
 
 .upload-hint {

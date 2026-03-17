@@ -16,9 +16,182 @@
 }
 
 .gallery-subtitle {
-  margin: 0 0 vars.$space-6 0;
+  margin: 0 0 vars.$space-5 0;
   font-size: vars.$font-size-body;
   color: vars.$slate-500;
+  line-height: 1.6;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Selected preferences list
+// ─────────────────────────────────────────────────────────────
+.selected-section {
+  margin-bottom: vars.$space-5;
+  background: vars.$slate-50;
+  border: 1.5px solid vars.$slate-200;
+  border-radius: vars.$radius-lg;
+  overflow: hidden;
+}
+
+.selected-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: vars.$space-3 vars.$space-4;
+  border-bottom: 1px solid vars.$slate-200;
+  background: white;
+}
+
+.selected-label {
+  font-size: vars.$font-size-small;
+  font-weight: 600;
+  color: vars.$slate-700;
+}
+
+.clear-all-btn {
+  color: vars.$slate-500 !important;
+  font-size: vars.$font-size-small !important;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    color: vars.$error !important;
+  }
+}
+
+.selected-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.selected-item {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-3;
+  padding: vars.$space-3 vars.$space-4;
+  background: white;
+
+  & + & {
+    border-top: 1px solid vars.$slate-100;
+  }
+}
+
+.selected-item-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: vars.$space-3;
+  min-width: 0;
+}
+
+.selected-item-thumb {
+  width: 40px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: vars.$radius-sm;
+  flex-shrink: 0;
+  border: 1px solid vars.$slate-200;
+}
+
+.selected-item-placeholder {
+  width: 40px;
+  height: 30px;
+  border-radius: vars.$radius-sm;
+  background: vars.$slate-100;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: vars.$slate-400;
+  }
+}
+
+.selected-item-name {
+  font-size: vars.$font-size-small;
+  font-weight: 500;
+  color: vars.$slate-800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove-btn {
+  color: vars.$slate-400 !important;
+  width: 32px !important;
+  height: 32px !important;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    color: vars.$error !important;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Rank badges (shared between list and card overlay)
+// ─────────────────────────────────────────────────────────────
+.rank-badge {
+  flex-shrink: 0;
+  width: 36px;
+  height: 24px;
+  border-radius: vars.$radius-md;
+  font-size: vars.$font-size-tiny;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &--1 {
+    background: rgba(vars.$accent-blue-dark, 0.12);
+    color: vars.$accent-blue-dark;
+  }
+
+  &--2 {
+    background: rgba(vars.$accent-purple-dark, 0.12);
+    color: vars.$accent-purple-dark;
+  }
+
+  &--3 {
+    background: rgba(vars.$accent-orange-dark, 0.12);
+    color: vars.$accent-orange-dark;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Cap message
+// ─────────────────────────────────────────────────────────────
+.cap-message {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+  padding: vars.$space-3 vars.$space-4;
+  background: rgba(vars.$accent-blue-dark, 0.06);
+  border: 1px solid rgba(vars.$accent-blue-dark, 0.15);
+  border-radius: vars.$radius-md;
+  margin-bottom: vars.$space-5;
+  font-size: vars.$font-size-small;
+  color: vars.$accent-blue-dark;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -42,10 +215,11 @@
   cursor: pointer;
   transition:
     border-color vars.$motion-fast ease,
-    box-shadow vars.$motion-fast ease;
+    box-shadow vars.$motion-fast ease,
+    opacity vars.$motion-fast ease;
   box-shadow: vars.$shadow-subtle;
 
-  &:hover {
+  &:hover:not(.disabled) {
     border-color: vars.$slate-300;
     box-shadow: vars.$shadow-medium;
   }
@@ -54,15 +228,21 @@
     border-color: vars.$accent-blue-dark;
     box-shadow: vars.$shadow-medium;
   }
+
+  &.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Card image area — takes up ~65% of card height
+// Card image
 // ─────────────────────────────────────────────────────────────
 .card-image {
   position: relative;
   width: 100%;
-  padding-top: 62.5%; // 8:5 aspect ratio
+  padding-top: 62.5%;
   background: vars.$slate-100;
   overflow: hidden;
 
@@ -73,21 +253,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-  }
-
-  &.no-preference {
-    background: vars.$slate-100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    mat-icon {
-      position: absolute;
-      font-size: 56px;
-      width: 56px;
-      height: 56px;
-      color: vars.$slate-300;
-    }
   }
 
   .placeholder-image {
@@ -104,6 +269,36 @@
       height: 56px;
       color: rgba(vars.$accent-blue-dark, 0.3);
     }
+  }
+}
+
+// Rank overlay badge on card image
+.card-rank-badge {
+  position: absolute;
+  top: vars.$space-2;
+  left: vars.$space-2;
+  height: 24px;
+  padding: 0 vars.$space-2;
+  border-radius: vars.$radius-md;
+  font-size: vars.$font-size-tiny;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  box-shadow: vars.$shadow-medium;
+
+  &--1 {
+    background: vars.$accent-blue-dark;
+    color: white;
+  }
+
+  &--2 {
+    background: vars.$accent-purple-dark;
+    color: white;
+  }
+
+  &--3 {
+    background: vars.$accent-orange-dark;
+    color: white;
   }
 }
 
@@ -157,16 +352,16 @@
 }
 
 // ─────────────────────────────────────────────────────────────
-// Selected indicator
+// Card action icon (top-right)
 // ─────────────────────────────────────────────────────────────
-.selected-indicator {
+.card-action-icon {
   position: absolute;
   top: vars.$space-3;
   right: vars.$space-3;
-  background: vars.$accent-blue-dark;
-  border-radius: 50%;
   width: 32px;
   height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -177,6 +372,10 @@
     width: 20px;
     height: 20px;
     color: white;
+  }
+
+  &--selected {
+    background: vars.$accent-blue-dark;
   }
 }
 

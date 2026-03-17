@@ -280,5 +280,19 @@ export const routes: Routes = [
       },
     ],
   },
+  {
+    path: 'buildings',
+    loadComponent: () =>
+      import('./features/buildings/building-browse/building-browse.component').then(
+        (m) => m.BuildingBrowseComponent
+      ),
+  },
+  {
+    path: 'buildings/:id',
+    loadComponent: () =>
+      import('./features/buildings/building-detail/building-detail.component').then(
+        (m) => m.BuildingDetailComponent
+      ),
+  },
   { path: '**', redirectTo: '/home' },
 ];

@@ -117,8 +117,36 @@
     }
 }
 
-// Decorative large background word — adds depth without decoration
-.hero-deco {
+// Browse Buildings CTA: orange-tinted ghost on dark
+.cta-browse {
+    height: 46px !important;
+    padding: 0 1.5rem !important;
+    font-size: 0.9375rem !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    letter-spacing: -0.01em !important;
+    border-radius: vars.$radius-md !important;
+    cursor: pointer;
+    text-decoration: none;
+    border-color: rgba(vars.$accent-orange-light, 0.4) !important;
+    color: vars.$accent-orange-light !important;
+    transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease !important;
+
+    mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-right: 6px;
+    }
+
+    &:hover {
+        border-color: vars.$accent-orange-light !important;
+        background: rgba(vars.$accent-orange-light, 0.08) !important;
+        color: white !important;
+    }
+}
+
+
     position: absolute;
     right: -1rem;
     bottom: -2rem;

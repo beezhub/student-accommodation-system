@@ -6,6 +6,12 @@ import { environment } from '../../../environments/environment';
 import { Application } from '../models/application.model';
 import { ApplicationStatus } from '../models/status.model';
 
+export interface BuildingPreferenceResponse {
+  buildingId: number;
+  buildingName: string;
+  preferenceOrder: number;
+}
+
 export interface StudentProfile {
   id: number;
   studentNumber: string;
@@ -57,6 +63,7 @@ export interface ApplicationFullDetails {
   courseName?: string;
   preferredBuildingId?: number;
   preferredBuildingName?: string;
+  preferredBuildings?: BuildingPreferenceResponse[];
   allocationMethod?: string;
   // Nested objects
   studentProfile: StudentProfile;

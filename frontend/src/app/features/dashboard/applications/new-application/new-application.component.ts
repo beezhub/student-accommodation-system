@@ -83,7 +83,7 @@ export class NewApplicationComponent implements OnInit {
   constructor() {
     this.applicationForm = this.fb.group({
       requiresAccessibility: [false],
-      preferredBuildingId: [''],
+      preferredBuildingIds: [[] as number[]],
       specialRequirements: [''],
       courseName: ['', Validators.required],
     });
@@ -215,7 +215,7 @@ export class NewApplicationComponent implements OnInit {
       const applicationData = {
         studentId: this.studentId,
         requiresAccessibility: formValue.requiresAccessibility || false,
-        preferredBuildingId: formValue.preferredBuildingId || null,
+        preferredBuildingIds: (formValue.preferredBuildingIds as number[]) || [],
         specialRequirements: formValue.specialRequirements || null,
         institutionName: this.institutionName || 'Not specified',
         courseName: formValue.courseName,
@@ -246,8 +246,8 @@ export class NewApplicationComponent implements OnInit {
     }
   }
 
-  onBuildingSelected(buildingId: number | null): void {
-    this.applicationForm.patchValue({ preferredBuildingId: buildingId });
+  onBuildingSelectionChanged(buildingIds: number[]): void {
+    this.applicationForm.patchValue({ preferredBuildingIds: buildingIds });
     this.cdr.markForCheck();
   }
 

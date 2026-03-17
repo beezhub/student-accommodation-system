@@ -459,9 +459,23 @@ public class OwnerConfigurableScoringStrategy implements ScoringStrategy {
     }
 
     private boolean isPreferredBuilding(Room room, Building explicit, Application application) {
-        Building pref = explicit != null ? explicit : (application != null ? application.getPreferredBuilding() : null);
-        if (pref == null || room.getBuilding() == null) return false;
-        return room.getBuilding().getId().equals(pref.getId());
+        // Check explicit override first
+        if (explicit != null && room.getBuilding() != null) {
+            return room.getBuilding().getId().equals(explicit.getId());
+        }
+        if (room.getBuilding() == null) return false;
+        // Check multi-preference list
+        if (application != null && application.getBuildingPreferences() != null
+                && !application.getBuildingPreferences().isEmpty()) {
+            return application.getBuildingPreferences().stream()
+                    .anyMatch(p -> p.getBuilding() != null
+                            && p.getBuilding().getId().equals(room.getBuilding().getId()));
+        }
+        // Fall back to legacy single preference
+        if (application != null && application.getPreferredBuilding() != null) {
+            return room.getBuilding().getId().equals(application.getPreferredBuilding().getId());
+        }
+        return false;
     }
 
     private String effectiveGenderRestriction(RoomAttributes roomAttrs, BuildingAttributes buildingAttrs) {
@@ -479,9 +493,23 @@ public class OwnerConfigurableScoringStrategy implements ScoringStrategy {
     private List<String> buildWarnings(Student student, Application application, Room room,
                                         RoomAttributes roomAttrs, BigDecimal totalScore) {
         List<String> warnings = new ArrayList<>();
-        if (application != null && application.getPreferredBuilding() != null) {
-            if (room.getBuilding() == null
-                    || !room.getBuilding().getId().equals(application.getPreferredBuilding().getId())) {
+        if (application != null && room.getBuilding() != null) {
+            boolean hasPreference = false;
+            boolean matchesPreference = false;
+            // Check multi-preference list first
+            if (application.getBuildingPreferences() != null
+                    && !application.getBuildingPreferences().isEmpty()) {
+                hasPreference = true;
+                matchesPreference = application.getBuildingPreferences().stream()
+                        .anyMatch(p -> p.getBuilding() != null
+                                && p.getBuilding().getId().equals(room.getBuilding().getId()));
+            } else if (application.getPreferredBuilding() != null) {
+                // Fall back to legacy single preference
+                hasPreference = true;
+                matchesPreference = room.getBuilding().getId()
+                        .equals(application.getPreferredBuilding().getId());
+            }
+            if (hasPreference && !matchesPreference) {
                 warnings.add("BUILDING_MISMATCH");
             }
         }

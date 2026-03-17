@@ -33,6 +33,7 @@ public class BuildingImageService {
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     private static final List<String> ALLOWED_CONTENT_TYPES = List.of(
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp");
+    static final int MAX_IMAGES_PER_BUILDING = 10;
 
     @Transactional
     public List<BuildingImageResponse> uploadImages(Long buildingId, List<MultipartFile> files) {
@@ -43,6 +44,14 @@ public class BuildingImageService {
         List<BuildingImage> existingImages = buildingImageRepository
                 .findByBuilding_IdOrderByDisplayOrderAsc(buildingId);
         boolean isFirstImage = existingImages.isEmpty();
+
+        int existingCount = existingImages.size();
+        int incomingCount = files.size();
+        if (existingCount + incomingCount > MAX_IMAGES_PER_BUILDING) {
+            throw new RuntimeException(String.format(
+                    "Building cannot have more than %d images (current: %d, requested: %d)",
+                    MAX_IMAGES_PER_BUILDING, existingCount, incomingCount));
+        }
 
         for (MultipartFile file : files) {
             validateImage(file);

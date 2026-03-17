@@ -14,11 +14,13 @@ import com.beezhub.student_accommodation.model.dto.ApplicationRequest;
 import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
 
 import com.beezhub.student_accommodation.model.entity.Application;
+import com.beezhub.student_accommodation.model.entity.ApplicationBuildingPreference;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Building;
 
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.UserRole;
+import com.beezhub.student_accommodation.repository.ApplicationBuildingPreferenceRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 
@@ -31,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,6 +47,7 @@ public class ApplicationCoreService {
         private final ApplicationRepository applicationRepository;
         private final StudentRepository studentRepository;
         private final BuildingRepository buildingRepository;
+        private final ApplicationBuildingPreferenceRepository buildingPreferenceRepository;
 
         private final ApplicationMapper applicationMapper;
         private final AuthService authService;
@@ -83,7 +87,7 @@ public class ApplicationCoreService {
                                                         currentYear.getApplicationCloseDate());
                 }
 
-                // Validate and get preferred building if provided
+                // Validate and get preferred building if provided (legacy single field)
                 Building preferredBuilding = null;
                 if (request.getPreferredBuildingId() != null) {
                         preferredBuilding = buildingRepository.findById(request.getPreferredBuildingId())
@@ -91,6 +95,12 @@ public class ApplicationCoreService {
                                                         "Building not found with ID: "
                                                                         + request.getPreferredBuildingId()));
                         log.info("Setting preferred building {} for application", preferredBuilding.getName());
+                }
+
+                // Validate multi-preference building IDs
+                List<Long> preferredBuildingIds = request.getPreferredBuildingIds();
+                if (preferredBuildingIds != null && preferredBuildingIds.size() > 3) {
+                        throw new RuntimeException("You can select at most 3 preferred buildings");
                 }
 
                 // Create and save application
@@ -111,6 +121,26 @@ public class ApplicationCoreService {
                                 .build();
 
                 Application savedApplication = applicationRepository.save(application);
+
+                // Persist ordered building preferences
+                if (preferredBuildingIds != null && !preferredBuildingIds.isEmpty()) {
+                        List<ApplicationBuildingPreference> preferences = new ArrayList<>();
+                        for (int i = 0; i < preferredBuildingIds.size(); i++) {
+                                Long buildingId = preferredBuildingIds.get(i);
+                                Building building = buildingRepository.findById(buildingId)
+                                                .orElseThrow(() -> new RuntimeException(
+                                                                "Building not found with ID: " + buildingId));
+                                preferences.add(ApplicationBuildingPreference.builder()
+                                                .application(savedApplication)
+                                                .building(building)
+                                                .preferenceOrder(i + 1)
+                                                .build());
+                        }
+                        buildingPreferenceRepository.saveAll(preferences);
+                        log.info("Saved {} building preference(s) for application {}",
+                                        preferences.size(), savedApplication.getApplicationCode());
+                }
+
                 log.info("Application submitted successfully with code: {}", savedApplication.getApplicationCode());
 
                 return applicationMapper.toResponse(savedApplication);
