@@ -31,113 +31,95 @@ import { AuthService } from '../../../../core/services/auth.service';
   template: `
     <div class="dialog-container">
       <div class="dialog-header">
-        <div class="header-icon">
-          <mat-icon>vpn_key</mat-icon>
+        <div class="header-icon-wrap">
+          <mat-icon class="header-icon" aria-hidden="true">lock</mat-icon>
         </div>
-        <h2>Change Password</h2>
-        <p>Update your password to keep your account secure</p>
+        <div>
+          <h2>Change Password</h2>
+          <p>Keep your account secure with a strong password</p>
+        </div>
       </div>
 
       <mat-dialog-content>
         <form [formGroup]="passwordForm">
-          <div class="form-field-wrapper">
-            <label class="field-label">
-              <mat-icon>lock</mat-icon>
-              Current Password
-            </label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input
-                matInput
-                [type]="hideCurrentPassword ? 'password' : 'text'"
-                formControlName="currentPassword"
-                placeholder="Enter current password"
-                autocomplete="current-password"
-              />
-              <button
-                mat-icon-button
-                matSuffix
-                (click)="hideCurrentPassword = !hideCurrentPassword"
-                type="button"
-                class="visibility-toggle"
-              >
-                <mat-icon>{{ hideCurrentPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-              </button>
-              @if (passwordForm.get('currentPassword')?.invalid &&
-              passwordForm.get('currentPassword')?.touched) {
-              <mat-error>Current password is required</mat-error>
-              }
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Current Password</mat-label>
+            <input
+              matInput
+              [type]="hideCurrentPassword ? 'password' : 'text'"
+              formControlName="currentPassword"
+              placeholder="Enter current password"
+              autocomplete="current-password"
+            />
+            <button
+              mat-icon-button
+              matSuffix
+              (click)="hideCurrentPassword = !hideCurrentPassword"
+              type="button"
+            >
+              <mat-icon>{{ hideCurrentPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (passwordForm.get('currentPassword')?.invalid &&
+            passwordForm.get('currentPassword')?.touched) {
+            <mat-error>Current password is required</mat-error>
+            }
+          </mat-form-field>
 
-          <div class="form-field-wrapper">
-            <label class="field-label">
-              <mat-icon>lock_open</mat-icon>
-              New Password
-            </label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input
-                matInput
-                [type]="hideNewPassword ? 'password' : 'text'"
-                formControlName="newPassword"
-                placeholder="Enter new password"
-                autocomplete="new-password"
-              />
-              <button
-                mat-icon-button
-                matSuffix
-                (click)="hideNewPassword = !hideNewPassword"
-                type="button"
-                class="visibility-toggle"
-              >
-                <mat-icon>{{ hideNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-              </button>
-              @if (passwordForm.get('newPassword')?.hasError('required') &&
-              passwordForm.get('newPassword')?.touched) {
-              <mat-error>New password is required</mat-error>
-              } @if (passwordForm.get('newPassword')?.hasError('minlength')) {
-              <mat-error>Password must be at least 8 characters</mat-error>
-              }
-            </mat-form-field>
-            <div class="password-hint">
-              <mat-icon>info_outline</mat-icon>
-              <span>Minimum 8 characters required</span>
-            </div>
-          </div>
+          <div class="field-gap"></div>
 
-          <div class="form-field-wrapper">
-            <label class="field-label">
-              <mat-icon>check_circle</mat-icon>
-              Confirm Password
-            </label>
-            <mat-form-field appearance="outline" class="full-width">
-              <input
-                matInput
-                [type]="hideConfirmPassword ? 'password' : 'text'"
-                formControlName="confirmPassword"
-                placeholder="Confirm new password"
-                autocomplete="new-password"
-              />
-              <button
-                mat-icon-button
-                matSuffix
-                (click)="hideConfirmPassword = !hideConfirmPassword"
-                type="button"
-                class="visibility-toggle"
-              >
-                <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-              </button>
-              @if (passwordForm.get('confirmPassword')?.hasError('required') &&
-              passwordForm.get('confirmPassword')?.touched) {
-              <mat-error>Please confirm your password</mat-error>
-              } @if (passwordForm.get('confirmPassword')?.hasError('passwordMismatch')) {
-              <mat-error>Passwords do not match</mat-error>
-              }
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>New Password</mat-label>
+            <input
+              matInput
+              [type]="hideNewPassword ? 'password' : 'text'"
+              formControlName="newPassword"
+              placeholder="At least 8 characters"
+              autocomplete="new-password"
+            />
+            <button
+              mat-icon-button
+              matSuffix
+              (click)="hideNewPassword = !hideNewPassword"
+              type="button"
+            >
+              <mat-icon>{{ hideNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (passwordForm.get('newPassword')?.hasError('required') &&
+            passwordForm.get('newPassword')?.touched) {
+            <mat-error>New password is required</mat-error>
+            } @if (passwordForm.get('newPassword')?.hasError('minlength')) {
+            <mat-error>Password must be at least 8 characters</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Confirm New Password</mat-label>
+            <input
+              matInput
+              [type]="hideConfirmPassword ? 'password' : 'text'"
+              formControlName="confirmPassword"
+              placeholder="Re-enter new password"
+              autocomplete="new-password"
+            />
+            <button
+              mat-icon-button
+              matSuffix
+              (click)="hideConfirmPassword = !hideConfirmPassword"
+              type="button"
+            >
+              <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (passwordForm.get('confirmPassword')?.hasError('required') &&
+            passwordForm.get('confirmPassword')?.touched) {
+            <mat-error>Please confirm your password</mat-error>
+            } @if (passwordForm.get('confirmPassword')?.hasError('passwordMismatch')) {
+            <mat-error>Passwords do not match</mat-error>
+            }
+          </mat-form-field>
 
           @if (errorMessage) {
-          <div class="error-message">
-            <mat-icon>error_outline</mat-icon>
+          <div class="error-alert" role="alert">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
             <span>{{ errorMessage }}</span>
           </div>
           }
@@ -154,18 +136,17 @@ import { AuthService } from '../../../../core/services/auth.service';
           Cancel
         </button>
         <button
-          mat-raised-button
+          mat-flat-button
           color="primary"
           (click)="onSubmit()"
           [disabled]="!passwordForm.valid || isSubmitting"
           class="submit-btn"
         >
           @if (isSubmitting) {
-          <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+          <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
           <span>Updating...</span>
           } @else {
-          <mat-icon>vpn_key</mat-icon>
-          <span>Change Password</span>
+          <span>Update Password</span>
           }
         </button>
       </mat-dialog-actions>
@@ -174,140 +155,96 @@ import { AuthService } from '../../../../core/services/auth.service';
   styles: [
     `
       .dialog-container {
-        min-width: 420px;
+        min-width: 440px;
+        max-width: 100%;
       }
 
-      /* Dialog Header */
       .dialog-header {
-        text-align: center;
-        padding: 24px 24px 0 24px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem 1.5rem 0;
+      }
+
+      .header-icon-wrap {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
       }
 
       .header-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 64px;
-        height: 64px;
-        border-radius: 16px;
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        margin-bottom: 16px;
-      }
-
-      .header-icon mat-icon {
-        font-size: 32px;
-        width: 32px;
-        height: 32px;
-        color: #ffffff;
+        color: #0891b2;
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
       }
 
       .dialog-header h2 {
-        font-size: 22px;
+        font-size: 1.0625rem;
         font-weight: 700;
-        margin: 0 0 6px 0;
-        color: #1e293b;
+        color: #0f172a;
+        margin: 0 0 0.2rem;
       }
 
       .dialog-header p {
-        font-size: 13px;
+        font-size: 0.8125rem;
         color: #64748b;
         margin: 0;
       }
 
-      /* Dialog Content */
       mat-dialog-content {
-        padding: 24px !important;
+        padding: 1.5rem !important;
         max-height: 60vh;
-      }
-
-      /* Form Field Wrapper */
-      .form-field-wrapper {
-        margin-bottom: 16px;
-      }
-
-      .field-label {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #475569;
-        margin-bottom: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-      }
-
-      .field-label mat-icon {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
-        color: #64748b;
       }
 
       .full-width {
         width: 100%;
       }
 
-      /* Visibility Toggle */
-      .visibility-toggle {
-        color: #94a3b8 !important;
+      .field-gap {
+        height: 0.5rem;
       }
 
-      .visibility-toggle:hover {
-        color: #64748b !important;
-      }
-
-      /* Password Hint */
-      .password-hint {
+      .error-alert {
         display: flex;
         align-items: center;
-        gap: 4px;
-        font-size: 11px;
-        color: #94a3b8;
-        margin-top: 4px;
-      }
-
-      .password-hint mat-icon {
-        font-size: 12px;
-        width: 12px;
-        height: 12px;
-      }
-
-      /* Error Message */
-      .error-message {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 12px 16px;
-        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        gap: 0.625rem;
+        padding: 0.75rem 1rem;
+        background: #fef2f2;
         border: 1px solid #fca5a5;
-        border-radius: 10px;
+        border-radius: 8px;
         color: #dc2626;
-        font-size: 13px;
-        margin-top: 8px;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
       }
 
-      .error-message mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
+      .error-alert mat-icon {
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
         flex-shrink: 0;
       }
 
-      /* Dialog Actions */
       mat-dialog-actions {
-        padding: 16px 24px 24px 24px !important;
-        gap: 12px;
+        padding: 1rem 1.5rem 1.5rem !important;
+        gap: 0.75rem;
         justify-content: flex-end;
       }
 
       .cancel-btn {
-        height: 42px;
-        border-radius: 10px !important;
+        height: 40px;
+        border-radius: 8px !important;
         font-weight: 500;
         color: #64748b;
         border-color: #e2e8f0 !important;
-        padding: 0 20px !important;
+        padding: 0 1.25rem !important;
+        cursor: pointer;
       }
 
       .cancel-btn:hover {
@@ -315,29 +252,23 @@ import { AuthService } from '../../../../core/services/auth.service';
       }
 
       .submit-btn {
-        height: 42px;
-        border-radius: 10px !important;
+        height: 40px;
+        border-radius: 8px !important;
         font-weight: 600;
-        padding: 0 20px !important;
+        padding: 0 1.5rem !important;
         display: flex !important;
         align-items: center;
-        gap: 6px;
+        gap: 0.5rem;
+        cursor: pointer;
       }
 
-      .submit-btn mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
+      .btn-spinner {
+        display: inline-block;
       }
 
-      .button-spinner {
-        margin-right: 6px;
-      }
-
-      /* Responsive */
       @media (max-width: 480px) {
         .dialog-container {
-          min-width: 100%;
+          min-width: unset;
         }
 
         mat-dialog-actions {
@@ -347,6 +278,7 @@ import { AuthService } from '../../../../core/services/auth.service';
         .cancel-btn,
         .submit-btn {
           width: 100%;
+          justify-content: center;
         }
       }
     `,

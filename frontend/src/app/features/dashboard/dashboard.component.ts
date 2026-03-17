@@ -337,8 +337,14 @@ export class DashboardComponent implements OnInit {
       { label: 'Offered', key: 'OFFERED' },
     ];
     const order = [
-      'PENDING', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED',
-      'AWAITING_ALLOCATION', 'OFFERED', 'ACCEPTED', 'CHECKED_IN',
+      'PENDING',
+      'SUBMITTED',
+      'UNDER_REVIEW',
+      'APPROVED',
+      'AWAITING_ALLOCATION',
+      'OFFERED',
+      'ACCEPTED',
+      'CHECKED_IN',
     ];
     const currentIdx = order.indexOf(status);
     return steps.map((step, i) => ({

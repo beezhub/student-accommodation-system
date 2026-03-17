@@ -10,7 +10,7 @@ export interface Tenant {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TenantService {
   private apiUrl = `${environment.apiUrl}/admin/tenants`;

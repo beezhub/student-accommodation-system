@@ -66,15 +66,15 @@ export class UserManagementComponent implements OnInit {
   }
 
   get adminCount(): number {
-    return this.users.filter(u => u.userRole === 'ADMIN').length;
+    return this.users.filter((u) => u.userRole === 'ADMIN').length;
   }
 
   get landlordCount(): number {
-    return this.users.filter(u => u.userRole === 'LANDLORD').length;
+    return this.users.filter((u) => u.userRole === 'LANDLORD').length;
   }
 
   get studentCount(): number {
-    return this.users.filter(u => u.userRole === 'STUDENT').length;
+    return this.users.filter((u) => u.userRole === 'STUDENT').length;
   }
 
   toggleFilters(): void {
@@ -91,7 +91,7 @@ export class UserManagementComponent implements OnInit {
   ngOnInit(): void {
     if (this.isPlatformAdmin) {
       this.tenantService.getAllTenants().subscribe({
-        next: (tenants) => this.tenants = tenants
+        next: (tenants) => (this.tenants = tenants),
       });
     }
     this.loadUsers();

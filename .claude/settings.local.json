@@ -130,7 +130,16 @@
       "Bash(git worktree:*)",
       "Skill(playwright-cli)",
       "Bash(docker ps:*)",
-      "Bash(grep -n \"filtersVisible\\\\|activeFilterCount\\\\|toggleFilters\" \\\\\n  /c/Users/dev_t/Documents/practice/Projects/student-accommodation-system/frontend/src/app/features/admin/allocation-rule-management/allocation-rule-management.component.ts 2>/dev/null\necho \"---\"\ngrep -n \"filterForm\\\\|onClearFilters\\\\|onFilter\" \\\\\n  /c/Users/dev_t/Documents/practice/Projects/student-accommodation-system/frontend/src/app/features/admin/institution-management/institution-management.component.ts 2>/dev/null | head -20)"
+      "Bash(grep -n \"filtersVisible\\\\|activeFilterCount\\\\|toggleFilters\" \\\\\n  /c/Users/dev_t/Documents/practice/Projects/student-accommodation-system/frontend/src/app/features/admin/allocation-rule-management/allocation-rule-management.component.ts 2>/dev/null\necho \"---\"\ngrep -n \"filterForm\\\\|onClearFilters\\\\|onFilter\" \\\\\n  /c/Users/dev_t/Documents/practice/Projects/student-accommodation-system/frontend/src/app/features/admin/institution-management/institution-management.component.ts 2>/dev/null | head -20)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzUxMiJ9.eyJqdGkiOiI1NzllMDM5OC05Yzk4LTQwNzAtOGE2Ny01N2I4NzlmNTk4OGEiLCJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGVzIjpbIlJPTEVfUExBVEZPUk1fQURNSU4iXSwidGVuYW50SWQiOjEsImlhdCI6MTc3Mzc1NDk2MCwiZXhwIjoxNzczNzY5MzYwfQ.phQtCiS_5VjVBAWgtip7h2lya6rPEyRIg99Fhx3oE7d19UV08YFNEYNYGa0D-QR-7vrtzi0ycouU1YKSqlUITQ\")",
+      "Bash(__NEW_LINE_fb9f4357f64a3fd7__ curl:*)",
+      "Bash(__NEW_LINE_163c75c7d41e24a9__ curl:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzUxMiJ9.eyJqdGkiOiI1NzllMDM5OC05Yzk4LTQwNzAtOGE2Ny01N2I4NzlmNTk4OGEiLCJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGVzIjpbIlJPTEVfUExBVEZPUk1fQURNSU4iXSwidGVuYW50SWQiOjEsImlhdCI6MTc3Mzc1NDk2MCwiZXhwIjoxNzczNzY5MzYwfQ.phQtCiS_5VjVBAWgtip7h2lya6rPEyRIg99Fhx3oE7d19UV08YFNEYNYGa0D-QR-7vrtzi0ycouU1YKSqlUITQ\" __NEW_LINE_a429b24c586741c0__ curl -sv -H \"Authorization: Bearer $TOKEN\" \"http://localhost:8080/api/admin/allocation/staged?status=PROPOSED&page=0&size=100\")",
+      "Bash(python -m json.tool)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzUxMiJ9.eyJqdGkiOiI1NzllMDM5OC05Yzk4LTQwNzAtOGE2Ny01N2I4NzlmNTk4OGEiLCJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGVzIjpbIlJPTEVfUExBVEZPUk1fQURNSU4iXSwidGVuYW50SWQiOjEsImlhdCI6MTc3Mzc1NDk2MCwiZXhwIjoxNzczNzY5MzYwfQ.phQtCiS_5VjVBAWgtip7h2lya6rPEyRIg99Fhx3oE7d19UV08YFNEYNYGa0D-QR-7vrtzi0ycouU1YKSqlUITQ\" __NEW_LINE_9cf26b9aa46c115e__ curl -s -H \"Authorization: Bearer $TOKEN\" \"http://localhost:8080/api/applications?page=0&size=5\")",
+      "Bash(tasklist)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzUxMiJ9.eyJqdGkiOiI1NzllMDM5OC05Yzk4LTQwNzAtOGE2Ly01N2I4NzlmNTk4OGEiLCJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGVzIjpbIlJPTEVfUExBVEZPUk1fQURNSU4iXSwidGVuYW50SWQiOjEsImlhdCI6MTc3Mzc1NDk2MCwiZXhwIjoxNzczNzY5MzYwfQ.phQtCiS_5VjVBAWgtip7h2lya6rPEyRIg99Fhx3oE7d19UV08YFNEYNYGa0D-QR-7vrtzi0ycouU1YKSqlUITQ\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzUxMiJ9.eyJqdGkiOiI1NzllMDM5OC05Yzk4LTQwNzAtOGE2Ny01N2I4NzlmNTk4OGEiLCJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGVzIjpbIlJPTEVfUExBVEZPUk1fQURNSU4iXSwidGVuYW50SWQiOjEsImlhdCI6MTc3Mzc1NDk2MCwiZXhwIjoxNzczNzY5MzYwfQ.phQtCiS_5VjVBAWgtip7h2lya6rPEyRIg99Fhx3oE7d19UV08YFNEYNYGa0D-QR-7vrtzi0ycouU1YKSqlUITQ\" curl -v -H \"Authorization: Bearer $TOKEN\" \"http://localhost:8080/api/room-allocation?page=0&size=5\")"
     ],
     "deny": [],
     "ask": []

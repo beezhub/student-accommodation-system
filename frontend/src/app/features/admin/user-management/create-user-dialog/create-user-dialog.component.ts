@@ -62,8 +62,8 @@ export class CreateUserDialogComponent {
     if (this.isPlatformAdmin) {
       this.createUserForm.addControl('tenantId', this.fb.control(null, [Validators.required]));
       this.tenantService.getAllTenants().subscribe({
-        next: (tenants) => this.tenants = tenants,
-        error: () => this.snackBar.open('Failed to load tenants', 'Close', { duration: 3000 })
+        next: (tenants) => (this.tenants = tenants),
+        error: () => this.snackBar.open('Failed to load tenants', 'Close', { duration: 3000 }),
       });
     }
   }

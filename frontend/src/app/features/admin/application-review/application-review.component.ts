@@ -149,7 +149,7 @@ export class ApplicationReviewComponent implements OnInit {
     this.filterForm = this.fb.group({
       applicationCode: [''],
       studentName: [''],
-      status: [''],
+      status: ['PENDING'],
       allocationStatus: [''],
       preferredBuilding: [''],
       startDate: [''],
@@ -186,15 +186,28 @@ export class ApplicationReviewComponent implements OnInit {
     const fetch = (status: string) =>
       this.adminService.searchApplications({ status, page: 0, size: 1 });
 
-    fetch('PENDING').subscribe({ next: (r) => (this.counts.pending = r.totalElements), error: () => {} });
-    fetch('AWAITING_ALLOCATION').subscribe({ next: (r) => (this.counts.awaitingAllocation = r.totalElements), error: () => {} });
-    fetch('ALLOCATED').subscribe({ next: (r) => (this.counts.allocated = r.totalElements), error: () => {} });
+    fetch('PENDING').subscribe({
+      next: (r) => (this.counts.pending = r.totalElements),
+      error: () => {},
+    });
+    fetch('AWAITING_ALLOCATION').subscribe({
+      next: (r) => (this.counts.awaitingAllocation = r.totalElements),
+      error: () => {},
+    });
+    fetch('ALLOCATED').subscribe({
+      next: (r) => (this.counts.allocated = r.totalElements),
+      error: () => {},
+    });
   }
 
   loadBuildings(): void {
     this.buildingService.getAllBuildingsNoPagination().subscribe({
-      next: (buildings) => { this.buildings = buildings; },
-      error: (error) => { console.error('Failed to load buildings:', error); },
+      next: (buildings) => {
+        this.buildings = buildings;
+      },
+      error: (error) => {
+        console.error('Failed to load buildings:', error);
+      },
     });
   }
 
@@ -262,8 +275,12 @@ export class ApplicationReviewComponent implements OnInit {
     });
   }
 
-  retryLoadApplications(): void { this.loadApplications(); }
-  dismissLoadError(): void { this.loadError = null; }
+  retryLoadApplications(): void {
+    this.loadApplications();
+  }
+  dismissLoadError(): void {
+    this.loadError = null;
+  }
 
   onFilter(): void {
     this.currentPage = 0;
@@ -271,7 +288,7 @@ export class ApplicationReviewComponent implements OnInit {
   }
 
   onClearFilters(): void {
-    this.filterForm.reset();
+    this.filterForm.reset({ status: 'PENDING' });
     this.activeFilterCount = 0;
     this.currentPage = 0;
     this.loadApplications();
@@ -296,12 +313,14 @@ export class ApplicationReviewComponent implements OnInit {
     });
   }
 
-  getStatusClass(status: string): string { return status.toLowerCase(); }
+  getStatusClass(status: string): string {
+    return status.toLowerCase();
+  }
 
   getStudentInitials(app: ApplicationResponse): string {
     const first = (app.studentFirstName || '').charAt(0).toUpperCase();
     const last = (app.studentLastName || '').charAt(0).toUpperCase();
-    return (first + last) || '?';
+    return first + last || '?';
   }
 
   getScoreRingStyle(score: number | null | undefined): Record<string, string> {
@@ -315,15 +334,21 @@ export class ApplicationReviewComponent implements OnInit {
     if (!date) return '';
     if (typeof date === 'string') return date;
     const d = new Date(date);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate()
+    ).padStart(2, '0')}`;
   }
 
   getStatusIcon(status: string): string {
     switch (status) {
-      case 'PENDING': return 'pending_actions';
-      case 'APPROVED': return 'check_circle';
-      case 'REJECTED': return 'cancel';
-      default: return 'help';
+      case 'PENDING':
+        return 'pending_actions';
+      case 'APPROVED':
+        return 'check_circle';
+      case 'REJECTED':
+        return 'cancel';
+      default:
+        return 'help';
     }
   }
 
@@ -337,7 +362,10 @@ export class ApplicationReviewComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe((result: ApplicationDetailDialogResult | undefined) => {
-      if (result && (result.action === 'allocated' || result.action === 'rejected' || result.action === 'saved')) {
+      if (
+        result &&
+        (result.action === 'allocated' || result.action === 'rejected' || result.action === 'saved')
+      ) {
         this.loadApplications();
       }
     });
@@ -348,11 +376,16 @@ export class ApplicationReviewComponent implements OnInit {
       width: '650px',
       maxWidth: '95vw',
       panelClass: 'allocation-choice-dialog',
-      data: { applicationId: application.id, studentId: application.studentId } as AllocationChoiceDialogData,
+      data: {
+        applicationId: application.id,
+        studentId: application.studentId,
+      } as AllocationChoiceDialogData,
     });
 
     dialogRef.afterClosed().subscribe((result: any) => {
-      if (result && result.action === 'allocated') { this.loadApplications(); }
+      if (result && result.action === 'allocated') {
+        this.loadApplications();
+      }
     });
   }
 
@@ -372,7 +405,9 @@ export class ApplicationReviewComponent implements OnInit {
 
   runAutoAllocation(application: ApplicationResponse): void {
     if (application.status !== 'AWAITING_ALLOCATION') {
-      this.errorService.showWarning('Application must be in "Awaiting Allocation" status for auto-allocation.');
+      this.errorService.showWarning(
+        'Application must be in "Awaiting Allocation" status for auto-allocation.'
+      );
       return;
     }
 
@@ -383,8 +418,13 @@ export class ApplicationReviewComponent implements OnInit {
       next: (proposal) => {
         if (proposal.proposals && proposal.proposals.length > 0) {
           this.stagedAllocationService.confirmAllocation(proposal.proposals[0].id).subscribe({
-            next: () => { this.errorService.showSuccess('Room allocated successfully!'); this.loadApplications(); },
-            error: (error) => { this.errorService.showErrorSnackbar(this.errorService.parseError(error)); },
+            next: () => {
+              this.errorService.showSuccess('Room allocated successfully!');
+              this.loadApplications();
+            },
+            error: (error) => {
+              this.errorService.showErrorSnackbar(this.errorService.parseError(error));
+            },
           });
         } else {
           this.enqueueWaitingListForAutoAllocation(application);
@@ -392,7 +432,11 @@ export class ApplicationReviewComponent implements OnInit {
       },
       error: (error) => {
         const parsedError = this.errorService.parseError(error);
-        if (parsedError.message.includes('No eligible') || parsedError.message.includes('no room') || parsedError.message.includes('No available rooms')) {
+        if (
+          parsedError.message.includes('No eligible') ||
+          parsedError.message.includes('no room') ||
+          parsedError.message.includes('No available rooms')
+        ) {
           this.enqueueWaitingListForAutoAllocation(application);
         } else {
           this.errorService.showErrorSnackbar(parsedError);
@@ -402,19 +446,30 @@ export class ApplicationReviewComponent implements OnInit {
   }
 
   private enqueueWaitingListForAutoAllocation(application: ApplicationResponse): void {
-    this.stagedAllocationService.enqueueWaitingList(application.studentId, application.id).subscribe({
-      next: (res) => {
-        this.errorService.showWarning(res.message || 'No suitable room found. Student added to waiting list.');
-        this.loadApplications();
-      },
-      error: () => { this.errorService.showWarning('No suitable room found for auto-allocation.'); },
-    });
+    this.stagedAllocationService
+      .enqueueWaitingList(application.studentId, application.id)
+      .subscribe({
+        next: (res) => {
+          this.errorService.showWarning(
+            res.message || 'No suitable room found. Student added to waiting list.'
+          );
+          this.loadApplications();
+        },
+        error: () => {
+          this.errorService.showWarning('No suitable room found for auto-allocation.');
+        },
+      });
   }
 
   markUnderReview(application: ApplicationResponse): void {
     this.applicationService.markUnderReview(application.id).subscribe({
-      next: () => { this.errorService.showSuccess('Application marked as Under Review'); this.loadApplications(); },
-      error: (error) => { this.errorService.showErrorSnackbar(this.errorService.parseError(error)); },
+      next: () => {
+        this.errorService.showSuccess('Application marked as Under Review');
+        this.loadApplications();
+      },
+      error: (error) => {
+        this.errorService.showErrorSnackbar(this.errorService.parseError(error));
+      },
     });
   }
 
@@ -423,8 +478,13 @@ export class ApplicationReviewComponent implements OnInit {
     if (!reason) return;
 
     this.applicationService.requestChanges(application.id, reason).subscribe({
-      next: () => { this.errorService.showSuccess('Changes requested successfully'); this.loadApplications(); },
-      error: (error) => { this.errorService.showErrorSnackbar(this.errorService.parseError(error)); },
+      next: () => {
+        this.errorService.showSuccess('Changes requested successfully');
+        this.loadApplications();
+      },
+      error: (error) => {
+        this.errorService.showErrorSnackbar(this.errorService.parseError(error));
+      },
     });
   }
 }

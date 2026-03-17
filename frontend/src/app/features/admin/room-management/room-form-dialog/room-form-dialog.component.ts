@@ -23,7 +23,9 @@ import { BuildingResponse } from '../../../../core/services/building.service';
         <div class="header-text">
           <h2 mat-dialog-title>{{ data.mode === 'create' ? 'Add New Room' : 'Edit Room' }}</h2>
           <p class="subtitle">
-            {{ data.mode === 'create' ? 'Create a new room in a building' : 'Update room information' }}
+            {{
+              data.mode === 'create' ? 'Create a new room in a building' : 'Update room information'
+            }}
           </p>
         </div>
       </div>
@@ -34,9 +36,14 @@ import { BuildingResponse } from '../../../../core/services/building.service';
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Room Number</mat-label>
               <mat-icon matPrefix>meeting_room</mat-icon>
-              <input matInput formControlName="roomNumber" placeholder="e.g., 101, A-201" required />
+              <input
+                matInput
+                formControlName="roomNumber"
+                placeholder="e.g., 101, A-201"
+                required
+              />
               @if (roomForm.get('roomNumber')?.hasError('required')) {
-                <mat-error>Room number is required</mat-error>
+              <mat-error>Room number is required</mat-error>
               }
             </mat-form-field>
 
@@ -45,11 +52,11 @@ import { BuildingResponse } from '../../../../core/services/building.service';
               <mat-icon matPrefix>apartment</mat-icon>
               <mat-select formControlName="buildingId" required>
                 @for (building of data.buildings; track building.id) {
-                  <mat-option [value]="building.id">{{ building.name }}</mat-option>
+                <mat-option [value]="building.id">{{ building.name }}</mat-option>
                 }
               </mat-select>
               @if (roomForm.get('buildingId')?.hasError('required')) {
-                <mat-error>Building is required</mat-error>
+              <mat-error>Building is required</mat-error>
               }
             </mat-form-field>
           </div>
@@ -58,19 +65,31 @@ import { BuildingResponse } from '../../../../core/services/building.service';
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Capacity</mat-label>
               <mat-icon matPrefix>group</mat-icon>
-              <input matInput type="number" formControlName="capacity" placeholder="e.g., 2" min="1" required />
+              <input
+                matInput
+                type="number"
+                formControlName="capacity"
+                placeholder="e.g., 2"
+                min="1"
+                required
+              />
               @if (roomForm.get('capacity')?.hasError('required')) {
-                <mat-error>Capacity is required</mat-error>
-              }
-              @if (roomForm.get('capacity')?.hasError('min')) {
-                <mat-error>Capacity must be at least 1</mat-error>
+              <mat-error>Capacity is required</mat-error>
+              } @if (roomForm.get('capacity')?.hasError('min')) {
+              <mat-error>Capacity must be at least 1</mat-error>
               }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Current Occupancy</mat-label>
               <mat-icon matPrefix>person</mat-icon>
-              <input matInput type="number" formControlName="currentOccupancy" placeholder="e.g., 0" min="0" />
+              <input
+                matInput
+                type="number"
+                formControlName="currentOccupancy"
+                placeholder="e.g., 0"
+                min="0"
+              />
               <mat-hint>Leave as 0 for new rooms</mat-hint>
             </mat-form-field>
           </div>
@@ -105,14 +124,19 @@ import { BuildingResponse } from '../../../../core/services/building.service';
               </mat-option>
             </mat-select>
             @if (roomForm.get('status')?.hasError('required')) {
-              <mat-error>Status is required</mat-error>
+            <mat-error>Status is required</mat-error>
             }
           </mat-form-field>
         </form>
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+        <button
+          mat-stroked-button
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+          class="cancel-btn"
+        >
           Cancel
         </button>
         <button
@@ -122,11 +146,11 @@ import { BuildingResponse } from '../../../../core/services/building.service';
           class="submit-btn"
         >
           @if (isSubmitting) {
-            <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
-            {{ data.mode === 'create' ? 'Creating...' : 'Updating...' }}
+          <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+          {{ data.mode === 'create' ? 'Creating...' : 'Updating...' }}
           } @if (!isSubmitting) {
-            <mat-icon>{{ data.mode === 'create' ? 'add' : 'check' }}</mat-icon>
-            {{ data.mode === 'create' ? 'Create Room' : 'Update Room' }}
+          <mat-icon>{{ data.mode === 'create' ? 'add' : 'check' }}</mat-icon>
+          {{ data.mode === 'create' ? 'Create Room' : 'Update Room' }}
           }
         </button>
       </mat-dialog-actions>
@@ -134,7 +158,9 @@ import { BuildingResponse } from '../../../../core/services/building.service';
   `,
   styles: [
     `
-      .dialog-container { width: 100%; }
+      .dialog-container {
+        width: 100%;
+      }
 
       /* ── Header band (cyan = rooms) ── */
       .dialog-header {
@@ -149,20 +175,28 @@ import { BuildingResponse } from '../../../../core/services/building.service';
       .dialog-header::after {
         content: '';
         position: absolute;
-        bottom: 0; left: 0; right: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
         height: 3px;
         background: linear-gradient(90deg, #0891b2 0%, #06b6d4 100%);
       }
       .header-icon-wrap {
-        width: 40px; height: 40px; min-width: 40px;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
         border-radius: 10px;
         background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-        display: flex; align-items: center; justify-content: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         flex-shrink: 0;
       }
       .header-icon-wrap mat-icon {
         color: white;
-        font-size: 1.25rem; width: 1.25rem; height: 1.25rem;
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
       }
       .header-text h2 {
         margin: 0 0 0.125rem 0;
@@ -193,22 +227,41 @@ import { BuildingResponse } from '../../../../core/services/building.service';
         grid-template-columns: 1fr;
         gap: 0.25rem;
       }
-      .form-field, .full-width { width: 100%; }
+      .form-field,
+      .full-width {
+        width: 100%;
+      }
 
       mat-icon[matPrefix] {
         color: #94a3b8;
         margin-right: 0.5rem;
-        font-size: 1.125rem; width: 1.125rem; height: 1.125rem;
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
       }
 
       .status-option {
-        display: flex; align-items: center; gap: 0.625rem;
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
       }
-      .status-option mat-icon { font-size: 1.25rem; width: 1.25rem; height: 1.25rem; }
-      .status-available { color: #059669; }
-      .status-occupied  { color: #2563eb; }
-      .status-full      { color: #dc2626; }
-      .status-maintenance { color: #525252; }
+      .status-option mat-icon {
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+      .status-available {
+        color: #059669;
+      }
+      .status-occupied {
+        color: #2563eb;
+      }
+      .status-full {
+        color: #dc2626;
+      }
+      .status-maintenance {
+        color: #525252;
+      }
 
       /* ── Actions ── */
       mat-dialog-actions {
@@ -220,41 +273,77 @@ import { BuildingResponse } from '../../../../core/services/building.service';
       }
       .cancel-btn {
         border-radius: 8px !important;
-        height: 44px; width: 100%;
+        height: 44px;
+        width: 100%;
         color: #64748b;
         border-color: #e2e8f0 !important;
         font-weight: 600;
       }
       .submit-btn {
         border-radius: 8px !important;
-        height: 44px; width: 100%;
+        height: 44px;
+        width: 100%;
         background: #0891b2 !important;
         color: white !important;
         font-weight: 700;
-        display: flex; align-items: center;
-        justify-content: center; gap: 0.375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
       }
-      .submit-btn:hover:not(:disabled) { background: #06b6d4 !important; }
-      .submit-btn:disabled { opacity: 0.6; }
-      .submit-btn mat-icon { font-size: 1.125rem; width: 1.125rem; height: 1.125rem; }
-      .button-spinner { display: inline-block; margin-right: 0.375rem; }
+      .submit-btn:hover:not(:disabled) {
+        background: #06b6d4 !important;
+      }
+      .submit-btn:disabled {
+        opacity: 0.6;
+      }
+      .submit-btn mat-icon {
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
+      }
+      .button-spinner {
+        display: inline-block;
+        margin-right: 0.375rem;
+      }
 
       /* ── Tablet+ ── */
       @media (min-width: 480px) {
-        .dialog-header { padding: 1.5rem 1.75rem 1.375rem; gap: 1rem; }
-        .header-icon-wrap { width: 44px; height: 44px; }
-        .header-text h2 { font-size: 1.125rem; }
-        mat-dialog-content { padding: 1.25rem 1.75rem !important; }
-        .form-row { grid-template-columns: 1fr 1fr; gap: 1rem; }
-        mat-dialog-actions { padding: 1rem 1.75rem 1.5rem !important; }
+        .dialog-header {
+          padding: 1.5rem 1.75rem 1.375rem;
+          gap: 1rem;
+        }
+        .header-icon-wrap {
+          width: 44px;
+          height: 44px;
+        }
+        .header-text h2 {
+          font-size: 1.125rem;
+        }
+        mat-dialog-content {
+          padding: 1.25rem 1.75rem !important;
+        }
+        .form-row {
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+        }
+        mat-dialog-actions {
+          padding: 1rem 1.75rem 1.5rem !important;
+        }
       }
       @media (min-width: 600px) {
-        .dialog-container { min-width: 500px; }
+        .dialog-container {
+          min-width: 500px;
+        }
         mat-dialog-actions {
           flex-direction: row;
           justify-content: flex-end;
         }
-        .cancel-btn, .submit-btn { width: auto; padding: 0 1.5rem !important; }
+        .cancel-btn,
+        .submit-btn {
+          width: auto;
+          padding: 0 1.5rem !important;
+        }
       }
     `,
   ],

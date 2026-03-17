@@ -394,9 +394,13 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             console.error('Failed to move to allocation:', error);
-            this.snackBar.open(error.error?.message || 'Failed to move to allocation phase', 'Close', {
-              duration: 5000,
-            });
+            this.snackBar.open(
+              error.error?.message || 'Failed to move to allocation phase',
+              'Close',
+              {
+                duration: 5000,
+              }
+            );
             this.isApproving = false;
             this.dialogRef.close({
               action: 'saved',
@@ -532,9 +536,10 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
 
         this.documentPreviewTypes.set(doc.id, fileType);
         // Use SafeUrl for images (SecurityContext.URL), SafeResourceUrl for iframes (SecurityContext.RESOURCE_URL)
-        const safeUrl = fileType === 'image'
-          ? this.sanitizer.bypassSecurityTrustUrl(url)
-          : this.sanitizer.bypassSecurityTrustResourceUrl(url);
+        const safeUrl =
+          fileType === 'image'
+            ? this.sanitizer.bypassSecurityTrustUrl(url)
+            : this.sanitizer.bypassSecurityTrustResourceUrl(url);
         this.documentPreviews.set(doc.id, safeUrl);
         this.documentLoadingStates.set(doc.id, false);
         this.documentPreviewSubscriptions.delete(doc.id);

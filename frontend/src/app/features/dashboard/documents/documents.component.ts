@@ -21,6 +21,8 @@ import { DocumentType } from '../../../core/models/document-type.model';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 import { ApplicationService } from '../../../core/services/application.service';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -65,6 +67,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     MatProgressBarModule,
     ModernStatusBadgeComponent,
     ErrorDisplayComponent,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -103,8 +107,8 @@ export class DocumentsComponent implements OnInit {
   readonly displayedColumns: readonly string[] = [
     'name',
     'type',
-    'uploadDate',
     'status',
+    'uploadDate',
     'size',
     'actions',
   ] as const;

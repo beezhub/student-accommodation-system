@@ -1,10 +1,11 @@
 package com.beezhub.student_accommodation.model.entity;
 
-import com.beezhub.student_accommodation.model.converter.JsonMapConverter;
 import com.beezhub.student_accommodation.model.enums.NotificationStatus;
 import com.beezhub.student_accommodation.model.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -81,7 +82,7 @@ public class Notification implements TenantAware {
      * May be {@code null} for notifications created before this column was added or
      * for notification types that do not use templateData-based retry.
      */
-    @Convert(converter = JsonMapConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "template_data", columnDefinition = "jsonb")
     private Map<String, Object> templateData;
 

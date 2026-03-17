@@ -78,7 +78,9 @@ export class DocumentTypeManagementComponent implements OnInit {
 
   get activeFilterCount(): number {
     const v = this.filterForm.value;
-    return [v.name, v.isRequired !== '' ? v.isRequired : null].filter((x: unknown) => x !== null && x !== '' && x !== undefined).length;
+    return [v.name, v.isRequired !== '' ? v.isRequired : null].filter(
+      (x: unknown) => x !== null && x !== '' && x !== undefined
+    ).length;
   }
 
   toggleFilters(): void {

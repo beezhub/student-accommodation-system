@@ -154,8 +154,7 @@ export class WaitingListDashboardComponent implements OnInit, AfterViewInit {
   getScoreRingStyle(score: number): { [key: string]: string } {
     const maxScore = 200;
     const pct = Math.min(100, Math.round((score / maxScore) * 100));
-    const color =
-      score >= 140 ? '#10b981' : score >= 70 ? '#f59e0b' : '#ef4444';
+    const color = score >= 140 ? '#10b981' : score >= 70 ? '#f59e0b' : '#ef4444';
     return { '--score-pct': `${pct}`, '--ring-color': color };
   }
 

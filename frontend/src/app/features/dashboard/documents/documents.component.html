@@ -1,143 +1,202 @@
-<div class="page-container">
-  <!-- Documents Card -->
-  <mat-card class="documents-card">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon>folder_open</mat-icon>
-        My Documents
-      </mat-card-title>
-      <mat-card-subtitle>Manage and upload your accommodation application documents</mat-card-subtitle>
-    </mat-card-header>
+<main class="main-content">
+  <div class="page-container">
 
-    <mat-divider></mat-divider>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-content">
+        <h2><mat-icon>folder_open</mat-icon> My Documents</h2>
+        <p class="page-subtitle">Manage and upload your accommodation application documents</p>
+      </div>
+      <button mat-flat-button class="upload-btn" (click)="openUploadModal()" [disabled]="isUploading">
+        <mat-icon>upload_file</mat-icon>
+        Upload Document
+      </button>
+    </div>
 
-    <mat-card-content>
-      <!-- Load Error Display -->
-      @if (loadError) {
-        <app-error-display
-          mode="inline"
-          [type]="loadError.type"
-          [message]="loadError.message"
-          [showRetry]="loadError.canRetry"
-          [isRetrying]="isRetrying"
-          (retry)="retryLoadDocuments()">
-        </app-error-display>
-      }
+    <!-- Loading State -->
+    @if (isCheckingApplication || isRetrying) {
+      <mat-card class="documents-card">
+        <mat-card-content>
+          <div class="loading-container">
+            <app-skeleton-loader type="table-row" [count]="4"></app-skeleton-loader>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
 
-      <!-- Empty State -->
-      @if (!loadError && (!documents || documents.length === 0)) {
-        <div class="empty-state">
-          <mat-icon class="empty-icon">inbox</mat-icon>
-          <p class="empty-title">No documents uploaded yet</p>
-          <p class="empty-hint">Upload your required documents to complete your application</p>
-          <button mat-raised-button color="primary" (click)="openUploadModal()" class="empty-action">
-            <mat-icon>add</mat-icon>
-            Upload Your First Document
-          </button>
+    <!-- Error State -->
+    @else if (loadError) {
+      <mat-card class="documents-card">
+        <mat-card-content class="card-padding">
+          <app-error-display
+            mode="inline"
+            [type]="loadError.type"
+            [message]="loadError.message"
+            [showRetry]="loadError.canRetry"
+            [isRetrying]="isRetrying"
+            (retry)="retryLoadDocuments()">
+          </app-error-display>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Documents List -->
+    @else if (documents.length > 0) {
+      <mat-card class="documents-card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <mat-icon>description</mat-icon> Document History
+          </h3>
+          <span class="doc-count">{{ documents.length }} document(s)</span>
         </div>
-      }
+        <mat-card-content>
 
-      <!-- Documents List -->
-      @if (!loadError && documents && documents.length > 0) {
-        <div class="documents-list">
-          @for (doc of documents; track doc; let last = $last) {
-            <div class="document-item">
-              <div class="document-header">
-                <div class="document-info">
-                  <mat-icon class="document-icon">description</mat-icon>
-                  <div class="document-details">
-                    <h4 class="document-name">{{doc.name}}</h4>
-                    <p class="document-type">{{doc.type}}</p>
+          <!-- Mobile Card View -->
+          <div class="mobile-cards-container">
+            @for (doc of documents; track doc.id) {
+              <div class="mobile-doc-card">
+                <div class="mobile-card-header">
+                  <div class="mobile-card-name">
+                    <mat-icon>description</mat-icon>
+                    <span>{{ doc.name }}</span>
                   </div>
-                </div>
-                <div class="document-status">
                   <app-modern-status-badge [status]="doc.status" size="sm"></app-modern-status-badge>
                 </div>
+                <div class="mobile-card-body">
+                  <div class="mobile-info-row">
+                    <span class="label">Type</span>
+                    <span class="value">{{ doc.type }}</span>
+                  </div>
+                  <div class="mobile-info-row">
+                    <span class="label">Uploaded</span>
+                    <span class="value">{{ doc.uploadDate | date:'mediumDate' }}</span>
+                  </div>
+                  @if (doc.size) {
+                    <div class="mobile-info-row">
+                      <span class="label">Size</span>
+                      <span class="value">{{ doc.size }}</span>
+                    </div>
+                  }
+                </div>
+                <div class="mobile-card-actions">
+                  <button mat-stroked-button class="view-btn" (click)="viewDocument(doc)">
+                    View
+                  </button>
+                  <button mat-flat-button class="delete-btn" (click)="deleteDocument(doc.id)">
+                    Delete
+                  </button>
+                </div>
               </div>
-              <div class="document-meta">
-                <span class="meta-item">
-                  <mat-icon>event</mat-icon>
-                  <span>{{doc.uploadDate | date: 'MMM d, y'}}</span>
-                </span>
-                @if (doc.size) {
-                  <span class="meta-item">
-                    <mat-icon>storage</mat-icon>
-                    <span>{{doc.size}}</span>
-                  </span>
-                }
-              </div>
-              <div class="document-actions">
-                <button mat-button color="primary" (click)="viewDocument(doc)">
-                  <mat-icon>visibility</mat-icon>
-                  <span>View</span>
-                </button>
-                <button mat-button color="warn" (click)="deleteDocument(doc.id)">
-                  <mat-icon>delete</mat-icon>
-                  <span>Delete</span>
-                </button>
-              </div>
-              @if (!last) {
-                <mat-divider class="item-divider"></mat-divider>
-              }
-            </div>
-          }
-        </div>
-      }
-
-      <!-- Guidelines Section -->
-      @if (!loadError && documents && documents.length > 0) {
-        <div class="guidelines-section">
-          <mat-divider class="section-divider"></mat-divider>
-          <h3 class="section-title">
-            <mat-icon>info</mat-icon>
-            Upload Guidelines
-          </h3>
-          <div class="guidelines-list">
-            <div class="guideline-item">
-              <mat-icon class="guideline-icon success">check_circle</mat-icon>
-              <div class="guideline-text">
-                <strong>Accepted Formats:</strong> PDF, JPG, PNG
-              </div>
-            </div>
-            <div class="guideline-item">
-              <mat-icon class="guideline-icon success">check_circle</mat-icon>
-              <div class="guideline-text">
-                <strong>Maximum File Size:</strong> 5MB per document
-              </div>
-            </div>
-            <div class="guideline-item">
-              <mat-icon class="guideline-icon success">check_circle</mat-icon>
-              <div class="guideline-text">
-                <strong>Quality Requirements:</strong> Documents must be clear and readable
-              </div>
-            </div>
-            <div class="guideline-item">
-              <mat-icon class="guideline-icon success">check_circle</mat-icon>
-              <div class="guideline-text">
-                <strong>Processing Time:</strong> Documents are typically verified within 24-48 hours
-              </div>
-            </div>
+            }
           </div>
-        </div>
-      }
-    </mat-card-content>
 
-    <mat-divider></mat-divider>
+          <!-- Desktop Table View -->
+          <div class="desktop-table-container">
+            <table mat-table [dataSource]="dataSource" class="documents-table" aria-label="Documents table">
 
-    <!-- Action Buttons -->
-    <mat-card-actions class="action-buttons">
-      <button mat-button color="primary" routerLink="/dashboard" class="back-button">
-        <mat-icon>arrow_back</mat-icon>
-        Back to Dashboard
-      </button>
-      <button mat-raised-button color="primary" (click)="openUploadModal()" [disabled]="isUploading"
-        class="upload-button">
-        <mat-icon>upload_file</mat-icon>
-        <span>Upload Document</span>
-      </button>
-    </mat-card-actions>
-  </mat-card>
-</div>
+              <!-- Document Name Column -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef>Document</th>
+                <td mat-cell *matCellDef="let doc">
+                  <div class="doc-name-cell">
+                    <div class="doc-icon"><mat-icon>description</mat-icon></div>
+                    <span class="doc-name">{{ doc.name }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Type Column -->
+              <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef>Type</th>
+                <td mat-cell *matCellDef="let doc">{{ doc.type }}</td>
+              </ng-container>
+
+              <!-- Status Column -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let doc">
+                  <app-modern-status-badge [status]="doc.status" size="sm"></app-modern-status-badge>
+                </td>
+              </ng-container>
+
+              <!-- Upload Date Column -->
+              <ng-container matColumnDef="uploadDate">
+                <th mat-header-cell *matHeaderCellDef>Uploaded</th>
+                <td mat-cell *matCellDef="let doc">
+                  <div class="date-cell">
+                    <mat-icon>schedule</mat-icon>
+                    {{ doc.uploadDate | date:'mediumDate' }}
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Size Column -->
+              <ng-container matColumnDef="size">
+                <th mat-header-cell *matHeaderCellDef>Size</th>
+                <td mat-cell *matCellDef="let doc">{{ doc.size || '—' }}</td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <td mat-cell *matCellDef="let doc">
+                  <div class="actions-cell">
+                    <button mat-flat-button class="view-btn" (click)="viewDocument(doc)">
+                      <mat-icon>visibility</mat-icon> View
+                    </button>
+                    <button mat-flat-button class="delete-btn" (click)="deleteDocument(doc.id)">
+                      <mat-icon>delete_outline</mat-icon> Delete
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            </table>
+          </div>
+
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Upload Guidelines -->
+      <div class="guidelines">
+        <span class="guidelines__label">
+          <mat-icon>info_outline</mat-icon>
+          Upload Requirements
+        </span>
+        <ul class="guidelines__list">
+          <li><strong>Formats:</strong> PDF, JPG, PNG</li>
+          <li><strong>Max size:</strong> 5MB per document</li>
+          <li><strong>Quality:</strong> Must be clear and readable</li>
+          <li><strong>Verification:</strong> Typically reviewed within 24–48 hours</li>
+        </ul>
+      </div>
+    }
+
+    <!-- Empty State -->
+    @else {
+      <mat-card class="documents-card">
+        <mat-card-content>
+          <div class="empty-state-container">
+            <div class="empty-state-icon">
+              <mat-icon>inbox</mat-icon>
+            </div>
+            <h3 class="empty-state-title">No Documents Yet</h3>
+            <p class="empty-state-description">
+              Upload your required documents to complete your accommodation application
+            </p>
+            <button mat-flat-button class="upload-cta" (click)="openUploadModal()">
+              <mat-icon>upload_file</mat-icon>
+              Upload Document
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+
+  </div>
+</main>
 
 <!-- Document Viewer Modal -->
 @if (selectedDocument) {
@@ -148,17 +207,22 @@
 <!-- Upload Dialog -->
 @if (showUploadModal) {
   <div class="modal-overlay" (click)="closeUploadModal()">
-    <mat-card class="upload-modal" (click)="$event.stopPropagation()">
-      <mat-card-header>
-        <mat-card-title>
+    <div class="upload-modal" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h2 class="modal-title">
           <mat-icon>upload_file</mat-icon>
-          Upload New Document
-        </mat-card-title>
-      </mat-card-header>
-      <mat-divider></mat-divider>
-      <mat-card-content>
+          Upload Document
+        </h2>
+        <button mat-icon-button (click)="closeUploadModal()" [disabled]="isUploading"
+          class="modal-close" aria-label="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
         <form [formGroup]="uploadForm">
-          <!-- Document Type -->
+
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Document Type</mat-label>
             <mat-select formControlName="documentType">
@@ -173,27 +237,24 @@
             </mat-select>
             <mat-icon matPrefix>category</mat-icon>
             @if (uploadForm.get('documentType')?.hasError('required')) {
-              <mat-error>
-                Document type is required
-              </mat-error>
+              <mat-error>Document type is required</mat-error>
             }
           </mat-form-field>
-          <!-- File Validation Errors -->
+
           @if (fileValidationErrors.length > 0) {
             <div class="validation-errors">
-              <div class="validation-error-header">
-                <mat-icon>warning</mat-icon>
-                <span>File validation failed</span>
+              <mat-icon>warning</mat-icon>
+              <div>
+                <p class="validation-errors__heading">File validation failed</p>
+                <ul class="validation-errors__list">
+                  @for (error of fileValidationErrors; track error) {
+                    <li>{{ error }}</li>
+                  }
+                </ul>
               </div>
-              <ul class="validation-error-list">
-                @for (error of fileValidationErrors; track error) {
-                  <li>{{ error }}</li>
-                }
-              </ul>
             </div>
           }
 
-          <!-- Upload Error -->
           @if (uploadError) {
             <app-error-display
               mode="inline"
@@ -208,71 +269,64 @@
             </app-error-display>
           }
 
-          <!-- Upload Progress -->
           @if (uploadStatus === 'uploading') {
-            <div class="upload-progress-container">
-              <div class="upload-progress-header">
-                <mat-icon class="uploading-icon">cloud_upload</mat-icon>
+            <div class="upload-progress">
+              <div class="upload-progress__header">
+                <mat-icon class="upload-progress__icon">cloud_upload</mat-icon>
                 <span>Uploading document...</span>
-                <span class="progress-percentage">{{ uploadProgress }}%</span>
+                <span class="upload-progress__pct">{{ uploadProgress }}%</span>
               </div>
-              <mat-progress-bar mode="determinate" [value]="uploadProgress" color="primary"></mat-progress-bar>
+              <mat-progress-bar mode="determinate" [value]="uploadProgress" color="primary">
+              </mat-progress-bar>
             </div>
           }
 
-          <!-- Upload Complete -->
           @if (uploadStatus === 'complete') {
-            <div class="upload-complete">
-              <mat-icon class="success-icon">check_circle</mat-icon>
+            <div class="upload-success">
+              <mat-icon>check_circle</mat-icon>
               <span>Upload complete!</span>
             </div>
           }
-          <!-- File Upload Area -->
+
           <div class="file-upload-area">
-            <div class="file-input-wrapper">
-              <input type="file" #fileInput id="fileInput" (change)="onFileSelected($event)" accept=".pdf,.jpg,.jpeg,.png"
-                class="file-input" />
-                <label for="fileInput" class="file-upload-label">
-                  <div class="upload-icon-container">
-                    <mat-icon class="upload-icon">cloud_upload</mat-icon>
-                  </div>
-                  <span class="upload-text">
-                    {{selectedFile ? selectedFile.name : 'Click to select or drag and drop your file'}}
-                  </span>
-                  <span class="upload-hint">PDF, JPG, or PNG (Max 5MB)</span>
-                </label>
+            <input type="file" #fileInput id="fileInput" (change)="onFileSelected($event)"
+              accept=".pdf,.jpg,.jpeg,.png" class="file-input" />
+            <label for="fileInput" class="file-upload-label">
+              <mat-icon class="file-upload-label__icon">cloud_upload</mat-icon>
+              <span class="file-upload-label__text">
+                {{ selectedFile ? selectedFile.name : 'Click to select or drag and drop your file' }}
+              </span>
+              <span class="file-upload-label__hint">PDF, JPG, or PNG · Max 5MB</span>
+            </label>
+          </div>
+
+          @if (selectedFile) {
+            <div class="file-info">
+              <mat-icon>check_circle</mat-icon>
+              <div class="file-info__details">
+                <strong>{{ selectedFile.name }}</strong>
+                <span>{{ formatFileSize(selectedFile.size) }}</span>
               </div>
             </div>
-            <!-- File Info -->
-            @if (selectedFile) {
-              <div class="file-info">
-                <mat-icon>check_circle</mat-icon>
-                <div class="file-details">
-                  <strong>{{selectedFile.name}}</strong>
-                  <span class="file-size">{{formatFileSize(selectedFile.size)}}</span>
-                </div>
-              </div>
-            }
-          </form>
-        </mat-card-content>
-        <mat-divider></mat-divider>
-        <!-- Action Buttons -->
-        <mat-card-actions class="modal-actions">
-          <button mat-button (click)="closeUploadModal()" [disabled]="isUploading">
-            <mat-icon>close</mat-icon>
-            Cancel
-          </button>
-          <button mat-raised-button color="primary" (click)="uploadDocument()"
-            [disabled]="!selectedFile || !uploadForm.valid || isUploading">
-            @if (isUploading) {
-              <mat-spinner diameter="20"></mat-spinner>
-            }
-            @if (!isUploading) {
-              <mat-icon>upload</mat-icon>
-            }
-            <span>{{isUploading ? 'Uploading...' : 'Upload'}}</span>
-          </button>
-        </mat-card-actions>
-      </mat-card>
+          }
+
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-button (click)="closeUploadModal()" [disabled]="isUploading">Cancel</button>
+        <button mat-flat-button class="submit-btn" (click)="uploadDocument()"
+          [disabled]="!selectedFile || !uploadForm.valid || isUploading">
+          @if (isUploading) {
+            <mat-spinner diameter="18"></mat-spinner>
+            Uploading...
+          } @else {
+            <mat-icon>upload</mat-icon>
+            Upload
+          }
+        </button>
+      </div>
+
     </div>
-  }
+  </div>
+}

@@ -23,19 +23,22 @@ export class HomeComponent {
       icon: 'person_add',
       iconClass: 'icon-blue',
       title: 'Simple Applications',
-      description: 'Submit your housing application in minutes with a guided step-by-step process and instant confirmation.',
+      description:
+        'Submit your housing application in minutes with a guided step-by-step process and instant confirmation.',
     },
     {
       icon: 'meeting_room',
       iconClass: 'icon-cyan',
       title: 'Room Selection',
-      description: 'Browse available rooms, compare options, and choose the accommodation that fits your needs and budget.',
+      description:
+        'Browse available rooms, compare options, and choose the accommodation that fits your needs and budget.',
     },
     {
       icon: 'security',
       iconClass: 'icon-purple',
       title: 'Secure & Reliable',
-      description: 'Your personal data and documents are protected with enterprise-grade security throughout the process.',
+      description:
+        'Your personal data and documents are protected with enterprise-grade security throughout the process.',
     },
   ] as const;
 }

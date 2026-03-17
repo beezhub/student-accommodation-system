@@ -20,16 +20,18 @@ export class FeatureFlagService {
   private apiUrl = `${environment.apiUrl}/admin/features`;
 
   getAll(): Observable<FeatureFlag[]> {
-    return this.http.get<Record<string, Partial<FeatureFlag> & { uid: string; enable: boolean }>>(this.apiUrl).pipe(
-      map((response) =>
-        Object.values(response).map((flag) => ({
-          uid: flag.uid,
-          enable: flag.enable,
-          description: flag.description,
-          group: flag.group,
-        }))
-      )
-    );
+    return this.http
+      .get<Record<string, Partial<FeatureFlag> & { uid: string; enable: boolean }>>(this.apiUrl)
+      .pipe(
+        map((response) =>
+          Object.values(response).map((flag) => ({
+            uid: flag.uid,
+            enable: flag.enable,
+            description: flag.description,
+            group: flag.group,
+          }))
+        )
+      );
   }
 
   enable(uid: string): Observable<void> {

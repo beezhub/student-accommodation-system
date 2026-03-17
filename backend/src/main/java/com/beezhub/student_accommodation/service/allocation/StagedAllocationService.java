@@ -246,8 +246,10 @@ public class StagedAllocationService {
 
     private void logConfirmationAudit(RoomAllocation saved, StagedAllocation staged, Long adminId) {
         AppUser admin = appUserRepository.findById(adminId).orElse(null);
-        allocationAuditService.logAuditAction(saved, AllocationAuditActionType.FORCE_ALLOCATE, admin,
-                "Confirmed from staged allocation batch: " + staged.getBatchId(), null, staged.getRoom());
+        // Use in-current-transaction variant: saved allocation is not yet committed, so REQUIRES_NEW
+        // would open a separate transaction that cannot see it, causing an FK violation.
+        allocationAuditService.logAuditActionInCurrentTransaction(saved, AllocationAuditActionType.FORCE_ALLOCATE,
+                admin, "Confirmed from staged allocation batch: " + staged.getBatchId(), null, staged.getRoom());
     }
 
     private void sendConfirmationNotification(RoomAllocation saved) {
@@ -332,6 +334,16 @@ public class StagedAllocationService {
         int failCount = 0;
 
         for (Long studentId : request.getStudentIds()) {
+            if (stagedAllocationRepository.findByStudent_IdAndStatus(studentId, StagedAllocationStatus.PROPOSED)
+                    .isPresent()) {
+                log.info("Skipping student {} - already has a pending proposal", studentId);
+                String studentName = studentRepository.findById(studentId)
+                        .map(s -> s.getAppUser().getFirstName() + " " + s.getAppUser().getLastName())
+                        .orElse("Unknown");
+                response.addWarning("Student " + studentName + " (ID: " + studentId
+                        + ") already has a pending proposal — skipped");
+                continue;
+            }
             try {
                 StagedAllocationResponse proposal = createProposalForStudent(studentId, request.getBatchId(),
                         preferredBuilding, admin);

@@ -49,7 +49,12 @@ export class AppComponent implements OnInit, OnDestroy {
   isAdminRoute = false;
 
   private static readonly TOOLBAR_HIDDEN_ROUTES = [
-    '/home', '/login', '/signup', '/verify-email', '/forgot-password', '/reset-password',
+    '/home',
+    '/login',
+    '/signup',
+    '/verify-email',
+    '/forgot-password',
+    '/reset-password',
   ];
 
   constructor() {

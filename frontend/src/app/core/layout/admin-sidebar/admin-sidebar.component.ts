@@ -58,9 +58,7 @@ export class AdminSidebarComponent {
   navGroups: NavGroup[] = [
     {
       label: 'Overview',
-      items: [
-        { path: '/admin', icon: 'dashboard', label: 'Dashboard' },
-      ],
+      items: [{ path: '/admin', icon: 'dashboard', label: 'Dashboard' }],
     },
     {
       label: 'Applications',

@@ -191,9 +191,7 @@ export class BuildingManagementComponent implements OnInit {
 
   get activeFilterCount(): number {
     const v = this.filterForm.value;
-    return [v.name, v.address].filter(
-      (x) => x !== null && x !== '' && x !== undefined
-    ).length;
+    return [v.name, v.address].filter((x) => x !== null && x !== '' && x !== undefined).length;
   }
 
   toggleFilters(): void {

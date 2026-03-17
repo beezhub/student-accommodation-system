@@ -47,7 +47,19 @@ export class StagedAllocationService {
       params = params.set('status', status);
     }
 
-    return this.http.get<PageResponse<StagedAllocation>>(this.apiUrl, { params });
+    return this.http.get<PageResponse<StagedAllocation>>(`${this.apiUrl}/staged`, { params });
+  }
+
+  getExistingProposals(
+    status: string = 'PROPOSED',
+    page: number = 0,
+    size: number = 100
+  ): Observable<PageResponse<StagedAllocation>> {
+    const params = new HttpParams()
+      .set('status', status)
+      .set('page', page.toString())
+      .set('size', size.toString());
+    return this.http.get<PageResponse<StagedAllocation>>(`${this.apiUrl}/staged`, { params });
   }
 
   confirmAllocation(stagedId: number): Observable<RoomAllocationResponse> {

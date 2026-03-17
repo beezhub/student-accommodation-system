@@ -83,6 +83,10 @@ export class StagedAllocationComponent implements OnInit {
   ];
   confirmedCount = 0;
 
+  // Existing proposals (loaded from DB on init)
+  existingProposals: StagedAllocation[] = [];
+  isLoadingExistingProposals = false;
+
   constructor() {
     this.selectionForm = this.fb.group({
       selectedCount: [0, [Validators.required, Validators.min(1), Validators.max(50)]],
@@ -91,6 +95,7 @@ export class StagedAllocationComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadApplications();
+    this.loadExistingProposals();
   }
 
   // --- Step 1: Selection Logic ---
@@ -140,6 +145,57 @@ export class StagedAllocationComponent implements OnInit {
   updateSelectionCount(): void {
     const count = this.selection.selected.length;
     this.selectionForm.patchValue({ selectedCount: count });
+  }
+
+  loadExistingProposals(): void {
+    this.isLoadingExistingProposals = true;
+    this.stagedAllocationService.getExistingProposals().subscribe({
+      next: (page) => {
+        this.existingProposals = page.content;
+        this.isLoadingExistingProposals = false;
+      },
+      error: (err) => {
+        console.error('Failed to load existing proposals', err);
+        this.isLoadingExistingProposals = false;
+      },
+    });
+  }
+
+  confirmExistingAllocation(proposal: StagedAllocation): void {
+    if (proposal.status !== 'PROPOSED') return;
+    this.stagedAllocationService.confirmAllocation(proposal.id).subscribe({
+      next: () => {
+        proposal.status = 'CONFIRMED';
+        this.confirmedCount++;
+        this.snackBar.open('Allocation confirmed — student will now see the offer', 'Close', {
+          duration: 3000,
+        });
+      },
+      error: (err) => {
+        console.error('Confirm failed', err);
+        this.snackBar.open('Failed to confirm allocation', 'Close', { duration: 3000 });
+      },
+    });
+  }
+
+  rejectExistingAllocation(proposal: StagedAllocation): void {
+    if (proposal.status !== 'PROPOSED') return;
+    this.stagedAllocationService
+      .rejectAllocation(proposal.id, 'Admin rejected from pending proposals')
+      .subscribe({
+        next: () => {
+          proposal.status = 'REJECTED';
+          this.snackBar.open('Allocation rejected', 'Close', { duration: 2000 });
+        },
+        error: (err) => {
+          console.error('Reject failed', err);
+          this.snackBar.open('Failed to reject allocation', 'Close', { duration: 3000 });
+        },
+      });
+  }
+
+  get pendingExistingProposals(): StagedAllocation[] {
+    return this.existingProposals.filter((p) => p.status === 'PROPOSED');
   }
 
   // --- Step 2: Propose Logic ---
@@ -231,8 +287,7 @@ export class StagedAllocationComponent implements OnInit {
   getScoreRingStyle(score: number): { [key: string]: string } {
     const maxScore = 200;
     const pct = Math.min(100, Math.round((score / maxScore) * 100));
-    const color =
-      score >= 140 ? '#10b981' : score >= 70 ? '#f59e0b' : '#ef4444';
+    const color = score >= 140 ? '#10b981' : score >= 70 ? '#f59e0b' : '#ef4444';
     return { '--score-pct': `${pct}`, '--ring-color': color };
   }
 

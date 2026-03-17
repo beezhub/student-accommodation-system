@@ -1,6 +1,9 @@
 @use '../../../../../styles/variables' as vars;
 @use '../../../../../styles/mixins' as mixins;
 
+// Documents module accent — blue, per variables.scss "Applications, Documents"
+$blue: vars.$accent-blue-dark;
+
 mat-icon {
     font-family: 'Material Icons' !important;
     font-weight: normal;
@@ -254,6 +257,24 @@ mat-icon {
 
     button {
         min-width: 100px;
+    }
+}
+
+.download-btn {
+    background: $blue !important;
+    color: white !important;
+    border-radius: vars.$radius-md !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+
+    mat-icon {
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    &:hover {
+        background: vars.$accent-blue-light !important;
     }
 }
 

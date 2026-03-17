@@ -15,13 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
   templateUrl: './application-confirmation.component.html',
   styleUrls: ['./application-confirmation.component.css'],
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatButtonModule,
-    MatIconModule,
-    ModernStatusBadgeComponent,
-  ],
+  imports: [CommonModule, RouterModule, MatButtonModule, MatIconModule, ModernStatusBadgeComponent],
 })
 export class ApplicationConfirmationComponent implements OnInit {
   private router = inject(Router);

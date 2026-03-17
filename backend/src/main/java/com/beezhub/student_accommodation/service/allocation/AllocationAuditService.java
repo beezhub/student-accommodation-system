@@ -54,6 +54,29 @@ public class AllocationAuditService {
     }
 
     /**
+     * Logs an audit action within the caller's existing transaction.
+     * Use this when the allocation was just created and has not yet been committed —
+     * REQUIRES_NEW would open a separate transaction that cannot see the uncommitted row,
+     * causing an FK violation. With REQUIRED, Hibernate flushes the INSERT for the
+     * allocation before the audit log INSERT, satisfying the constraint.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void logAuditActionInCurrentTransaction(RoomAllocation allocation, AllocationAuditActionType actionType,
+                                                   AppUser admin, String reason, Room oldRoom, Room newRoom) {
+        AllocationAuditLog auditLog = AllocationAuditLog.builder()
+                .allocation(allocation)
+                .actionType(actionType)
+                .adminUser(admin)
+                .reason(reason)
+                .oldRoom(oldRoom)
+                .newRoom(newRoom)
+                .build();
+        allocationAuditLogRepository.save(auditLog);
+        log.info("Audit log created: {} for allocation {}", actionType,
+                allocation != null ? allocation.getId() : "N/A");
+    }
+
+    /**
      * Records a status transition audit entry within the caller's transaction.
      * Uses REQUIRED propagation so the audit entry is committed with the
      * allocation status change — consistent and safe for new allocations.
