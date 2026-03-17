@@ -14,7 +14,7 @@ backend/.env
 
 
 # Git worktrees
-# .worktrees/
+.worktrees/
 
 
 .playwright-cli
