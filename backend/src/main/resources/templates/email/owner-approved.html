@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Your building owner account has been approved</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Account Approved!</h1>
+<span layout:fragment="email-subtitle">Set your password and start managing your buildings</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${ownerName}">Owner</span>,</p>
+
+    <p>Congratulations! Your building owner registration for <strong th:text="${organisationName}">Your Organisation</strong> has been reviewed and approved.</p>
+
+    <div class="success-box">
+        <h3>Your account is ready</h3>
+        <p>Click the button below to set your password and activate your account. This link is valid for <strong>48 hours</strong>.</p>
+        <div style="text-align: center; margin: 20px 0;">
+            <a th:href="${passwordSetupUrl}"
+               style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                Set Your Password
+            </a>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <h3>What you can do in the Owner Portal</h3>
+        <ul>
+            <li>View all buildings assigned to your organisation</li>
+            <li>Monitor room occupancy and allocation statistics</li>
+            <li>Stay informed about student allocations</li>
+        </ul>
+        <p style="margin-top: 15px;">
+            <a th:href="${portalUrl}">Access the Owner Portal</a>
+        </p>
+    </div>
+
+    <p>For assistance, contact us at <span th:text="${supportEmail}">support@accommodation.edu</span>.</p>
+</div>
+
+</body>
+</html>

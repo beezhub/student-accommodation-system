@@ -3,6 +3,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { AdminGuard } from './core/guards/admin.guard';
 import { StudentGuard } from './core/guards/student.guard';
 import { EmailVerifiedGuard } from './core/guards/email-verified.guard';
+import { BuildingOwnerGuard } from './core/guards/building-owner.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' },
@@ -278,7 +279,64 @@ export const routes: Routes = [
             (m) => m.FeatureFlagManagementComponent
           ),
       },
+      {
+        path: 'owner-registrations',
+        loadComponent: () =>
+          import('./features/admin/owner-registrations/owner-registrations.component').then(
+            (m) => m.OwnerRegistrationsComponent
+          ),
+      },
     ],
+  },
+  // Owner registration (public)
+  {
+    path: 'owner/register',
+    loadComponent: () =>
+      import('./features/owner-registration/owner-registration-form/owner-registration-form.component').then(
+        (m) => m.OwnerRegistrationFormComponent
+      ),
+  },
+  {
+    path: 'owner/verify-email',
+    loadComponent: () =>
+      import('./features/owner-registration/owner-email-verify/owner-email-verify.component').then(
+        (m) => m.OwnerEmailVerifyComponent
+      ),
+  },
+  {
+    path: 'owner/verification-pending',
+    loadComponent: () =>
+      import('./features/owner-registration/owner-verification-pending/owner-verification-pending.component').then(
+        (m) => m.OwnerVerificationPendingComponent
+      ),
+  },
+  {
+    path: 'owner/awaiting-approval',
+    loadComponent: () =>
+      import('./features/owner-registration/owner-awaiting-approval/owner-awaiting-approval.component').then(
+        (m) => m.OwnerAwaitingApprovalComponent
+      ),
+  },
+  {
+    path: 'owner/set-password',
+    loadComponent: () =>
+      import('./features/owner-registration/owner-set-password/owner-set-password.component').then(
+        (m) => m.OwnerSetPasswordComponent
+      ),
+  },
+  // Owner portal (authenticated)
+  {
+    path: 'owner',
+    redirectTo: '/owner/dashboard',
+    pathMatch: 'full',
+  },
+  {
+    path: 'owner/dashboard',
+    loadComponent: () =>
+      import('./features/owner/owner-dashboard/owner-dashboard.component').then(
+        (m) => m.OwnerDashboardComponent
+      ),
+    canActivate: [AuthGuard, BuildingOwnerGuard],
   },
   {
     path: 'buildings',

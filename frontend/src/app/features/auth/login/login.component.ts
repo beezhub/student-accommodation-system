@@ -89,6 +89,8 @@ export class LoginComponent {
             // Redirect based on user role
             if (this.roleService.isPlatformAdmin()) {
               this.router.navigate(['/admin']);
+            } else if (this.roleService.isBuildingOwner()) {
+              this.router.navigate(['/owner/dashboard']);
             } else {
               this.router.navigate(['/dashboard']);
             }

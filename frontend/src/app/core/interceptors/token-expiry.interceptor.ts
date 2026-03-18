@@ -19,6 +19,7 @@ export const tokenExpiryInterceptor: HttpInterceptorFn = (req, next) => {
     '/api/auth/reset-password',
     '/api/auth/verify-email',
     '/api/auth/resend-verification',
+    '/api/public/owner/',
   ];
 
   const isPublicEndpoint = publicEndpoints.some((endpoint) => req.url.includes(endpoint));

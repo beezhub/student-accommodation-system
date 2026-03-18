@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Update on your building owner registration</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Registration Update</h1>
+<span layout:fragment="email-subtitle">Your building owner registration was not approved at this time</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${ownerName}">Owner</span>,</p>
+
+    <p>Thank you for your interest in joining our platform as a building owner. After reviewing your registration, we are unfortunately unable to approve it at this time.</p>
+
+    <div th:if="${reason != null and !#strings.isEmpty(reason)}" class="warning-box">
+        <h3>Reason provided</h3>
+        <p th:text="${reason}">Reason text.</p>
+    </div>
+
+    <div class="info-box">
+        <h3>You can re-apply</h3>
+        <p>You are welcome to submit a new registration request. Please address any concerns mentioned above before re-applying.</p>
+        <div style="text-align: center; margin: 20px 0;">
+            <a th:href="${reapplyUrl}"
+               style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                Submit New Registration
+            </a>
+        </div>
+    </div>
+
+    <p>If you have questions, contact us at <span th:text="${supportEmail}">support@accommodation.edu</span>.</p>
+</div>
+
+</body>
+</html>

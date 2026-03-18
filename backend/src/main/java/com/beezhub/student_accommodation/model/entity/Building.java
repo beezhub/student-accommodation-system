@@ -80,6 +80,10 @@ public class Building implements TenantAware {
     @JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)
     private Tenant tenant;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private BuildingOwner owner;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
