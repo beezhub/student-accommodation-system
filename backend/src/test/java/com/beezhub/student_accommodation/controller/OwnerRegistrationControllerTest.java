@@ -22,8 +22,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -46,6 +48,21 @@ class OwnerRegistrationControllerTest {
     @MockitoBean private com.beezhub.student_accommodation.security.user.AppUserDetailsService appUserDetailsService;
     @MockitoBean private com.beezhub.student_accommodation.security.jwt.JwtAuthenticationFilter jwtAuthenticationFilter;
     @MockitoBean private RateLimitingFilter rateLimitingFilter;
+
+    @BeforeEach
+    void setUpFilters() throws Exception {
+        doAnswer(invocation -> {
+            jakarta.servlet.FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(jwtAuthenticationFilter).doFilter(any(), any(), any());
+
+        doAnswer(invocation -> {
+            jakarta.servlet.FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(rateLimitingFilter).doFilter(any(), any(), any());
+    }
 
     private Map<String, String> validRegisterBody() {
         return Map.of(

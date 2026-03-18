@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { OwnerRegistrationAdminService, OwnerRegistrationSummary } from '../owner-registration-admin.service';
 
 @Component({
@@ -27,6 +28,7 @@ import { OwnerRegistrationAdminService, OwnerRegistrationSummary } from '../owne
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatDividerModule,
+    MatTooltipModule,
   ],
 })
 export class OwnerRegistrationReviewDialogComponent {
@@ -81,6 +83,16 @@ export class OwnerRegistrationReviewDialogComponent {
         });
       },
     });
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'PENDING': return 'Pending Email Verification';
+      case 'PENDING_REVIEW': return 'Pending Review';
+      case 'APPROVED': return 'Approved';
+      case 'REJECTED': return 'Rejected';
+      default: return status;
+    }
   }
 
   close(): void {

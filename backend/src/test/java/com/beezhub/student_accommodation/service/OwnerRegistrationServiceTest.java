@@ -173,17 +173,17 @@ class OwnerRegistrationServiceTest {
     class VerifyEmail {
 
         @Test
-        @DisplayName("advances status to PENDING_REVIEW and clears token")
+        @DisplayName("advances status to PENDING_REVIEW and clears token via @Modifying query")
         void verifyEmail_validToken_advancesStatus() {
             OwnerRegistration reg = pendingRegistration("jane@acme.com");
             when(registrationRepository.findByEmailVerificationToken("token-abc")).thenReturn(Optional.of(reg));
+            when(registrationRepository.markEmailVerified(eq(reg.getId()), any(LocalDateTime.class),
+                    eq(OwnerRegistrationStatus.PENDING_REVIEW))).thenReturn(1);
 
             service.verifyEmail("token-abc");
 
-            assertThat(reg.getStatus()).isEqualTo(OwnerRegistrationStatus.PENDING_REVIEW);
-            assertThat(reg.getEmailVerificationToken()).isNull();
-            assertThat(reg.getVerifiedAt()).isNotNull();
-            verify(registrationRepository).save(reg);
+            verify(registrationRepository).markEmailVerified(
+                    eq(reg.getId()), any(LocalDateTime.class), eq(OwnerRegistrationStatus.PENDING_REVIEW));
         }
 
         @Test
@@ -422,7 +422,7 @@ class OwnerRegistrationServiceTest {
             service.setPassword(passwordRequest("setup-token"));
 
             assertThat(user.getUserPassword()).isEqualTo("hashed");
-            assertThat(user.isMustChangePassword()).isFalse();
+            assertThat(user.getMustChangePassword()).isFalse();
             assertThat(reg.getPasswordSetupToken()).isNull();
             verify(appUserRepository).save(user);
             verify(registrationRepository).save(reg);

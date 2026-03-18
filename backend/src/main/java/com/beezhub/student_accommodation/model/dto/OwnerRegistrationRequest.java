@@ -24,4 +24,11 @@ public class OwnerRegistrationRequest {
     private String contactPhone;
 
     private String message;
+
+    /**
+     * Optional institution tenant the owner is registering under.
+     * When provided, the approved owner account will be scoped to this tenant.
+     * Cannot be 0 (the platform tenant).
+     */
+    private Long tenantId;
 }

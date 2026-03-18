@@ -253,6 +253,39 @@
   color: #7c3aed;
 }
 
+/* Building owner secondary link */
+.owner-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.owner-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: color 0.18s ease;
+  cursor: pointer;
+}
+
+.owner-link mat-icon {
+  font-size: 13px;
+  width: 13px;
+  height: 13px;
+  transition: transform 0.15s ease;
+}
+
+.owner-link:hover {
+  color: #64748b;
+}
+
+.owner-link:hover mat-icon {
+  transform: translateX(3px);
+}
+
 /* ── RESPONSIVE ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {

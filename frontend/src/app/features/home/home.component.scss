@@ -319,6 +319,37 @@
     }
 }
 
+.footer-owner-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.3);
+    text-decoration: none;
+    transition: color 0.15s ease;
+    flex-shrink: 0;
+
+    mat-icon {
+        font-size: 13px;
+        width: 13px;
+        height: 13px;
+        transition: transform 0.15s ease;
+    }
+
+    &:hover {
+        color: rgba(255, 255, 255, 0.65);
+
+        mat-icon {
+            transform: translateX(3px);
+        }
+    }
+
+    @media (max-width: vars.$breakpoint-tablet) {
+        order: -1;
+    }
+}
+
 // The brand-logo toolbar variant links to /dashboard; pointer-events none
 // keeps it as a visual anchor only in the footer
 .footer-brand {

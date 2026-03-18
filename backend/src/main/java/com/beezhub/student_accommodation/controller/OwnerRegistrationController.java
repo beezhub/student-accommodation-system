@@ -39,6 +39,12 @@ public class OwnerRegistrationController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Re-apply after a previous registration was rejected")
+    @PostMapping("/reapply")
+    public ResponseEntity<OwnerRegistrationResponse> reapply(@Valid @RequestBody OwnerRegistrationRequest request) {
+        return ResponseEntity.status(201).body(ownerRegistrationService.reapply(request));
+    }
+
     @Operation(summary = "Set password using token from approval email (activates account)")
     @PostMapping("/set-password")
     public ResponseEntity<Void> setPassword(@Valid @RequestBody SetOwnerPasswordRequest request) {

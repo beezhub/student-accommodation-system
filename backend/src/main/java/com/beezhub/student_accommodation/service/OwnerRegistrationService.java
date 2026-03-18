@@ -19,6 +19,7 @@ import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.BuildingOwnerRepository;
 import com.beezhub.student_accommodation.repository.OwnerRegistrationRepository;
 import com.beezhub.student_accommodation.service.notification.EmailDispatchService;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,6 +63,10 @@ public class OwnerRegistrationService {
         if (hasPending) {
             throw new DuplicateResourceException("A pending registration already exists for this email");
         }
+        // Building owners must be scoped to an institution tenant, not the platform tenant
+        if (request.getTenantId() != null && TenantContext.PLATFORM_TENANT_ID.equals(request.getTenantId())) {
+            throw new IllegalArgumentException("Building owners must be scoped to a specific institution tenant");
+        }
 
         String token = UUID.randomUUID().toString();
         OwnerRegistration registration = OwnerRegistration.builder()
@@ -70,6 +75,7 @@ public class OwnerRegistrationService {
                 .organisationName(request.getOrganisationName())
                 .contactPhone(request.getContactPhone())
                 .message(request.getMessage())
+                .tenantId(request.getTenantId())
                 .status(OwnerRegistrationStatus.PENDING)
                 .emailVerificationToken(token)
                 .emailVerificationExpiresAt(LocalDateTime.now().plusHours(24))
@@ -98,11 +104,7 @@ public class OwnerRegistrationService {
             throw new TokenExpiredException("This verification link has expired");
         }
 
-        registration.setStatus(OwnerRegistrationStatus.PENDING_REVIEW);
-        registration.setVerifiedAt(LocalDateTime.now());
-        registration.setEmailVerificationToken(null);
-        registration.setEmailVerificationExpiresAt(null);
-        registrationRepository.save(registration);
+        registrationRepository.markEmailVerified(registration.getId(), LocalDateTime.now(), OwnerRegistrationStatus.PENDING_REVIEW);
     }
 
     // ── Task 3.2: Resend verification ───────────────────────────────────────
@@ -254,8 +256,9 @@ public class OwnerRegistrationService {
 
     // ── Admin query ────────────────────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public List<OwnerRegistrationSummaryDto> getPendingRegistrations() {
-        return registrationRepository.findByStatus(OwnerRegistrationStatus.PENDING_REVIEW)
+        return registrationRepository.findByStatusOrderByCreatedAtAsc(OwnerRegistrationStatus.PENDING_REVIEW)
                 .stream()
                 .map(mapper::toSummary)
                 .collect(Collectors.toList());

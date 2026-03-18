@@ -38,8 +38,14 @@
       </div>
       <div class="detail-item">
         <span class="detail-label">Status</span>
-        <span class="detail-value">{{ registration.status }}</span>
+        <span class="detail-value">{{ getStatusLabel(registration.status) }}</span>
       </div>
+      @if (registration.status === 'PENDING') {
+        <div class="detail-item pending-notice">
+          <mat-icon class="notice-icon">info</mat-icon>
+          <span>Awaiting email verification from the applicant before approval is possible.</span>
+        </div>
+      }
     </div>
 
     @if (registration.message) {
@@ -76,7 +82,13 @@
         <mat-icon>cancel</mat-icon>
         Reject
       </button>
-      <button mat-raised-button color="primary" (click)="approve()" [disabled]="isApproving">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="approve()"
+        [disabled]="isApproving || registration.status === 'PENDING'"
+        [matTooltip]="registration.status === 'PENDING' ? 'Owner must verify their email before you can approve' : ''"
+      >
         @if (isApproving) {
           <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
           Approving...
