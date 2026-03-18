@@ -12,13 +12,15 @@
           <div class="nav-group-label">{{ group.label }}</div>
           <mat-nav-list>
             @for (item of group.items; track item.path) {
-              <a mat-list-item
-                 [routerLink]="item.path"
-                 routerLinkActive="active"
-                 [routerLinkActiveOptions]="{exact: item.path === '/admin'}">
-                <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-                <span matListItemTitle>{{ item.label }}</span>
-              </a>
+              @if (!item.platformAdminOnly || (isPlatformAdmin$ | async)) {
+                <a mat-list-item
+                   [routerLink]="item.path"
+                   routerLinkActive="active"
+                   [routerLinkActiveOptions]="{exact: item.path === '/admin'}">
+                  <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                  <span matListItemTitle>{{ item.label }}</span>
+                </a>
+              }
             }
           </mat-nav-list>
         </div>

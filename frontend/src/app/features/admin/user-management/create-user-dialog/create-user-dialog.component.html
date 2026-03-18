@@ -107,8 +107,8 @@
           @if (createUserForm.get('tenantId')?.hasError('required')) {
             <mat-error>Tenant is required</mat-error>
           }
-          @if (showOwnerTenantWarning) {
-            <mat-error>Building owners cannot be assigned to the platform tenant</mat-error>
+          @if (showTenantScopeWarning) {
+            <mat-error>Tenant admins must be scoped to a specific institution tenant</mat-error>
           }
         </mat-form-field>
       }

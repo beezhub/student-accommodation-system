@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.exceptions;
 
 import com.beezhub.student_accommodation.model.dto.ErrorResponse;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,17 @@ import java.util.stream.Collectors;
 
 @ControllerAdvice(basePackages = "com.beezhub.student_accommodation.controller")
 public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler {
+
+        @ExceptionHandler(DataIntegrityViolationException.class)
+        public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+                        DataIntegrityViolationException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                "A record with the same unique value already exists",
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
 
         @ExceptionHandler({ IllegalArgumentException.class, IllegalStateException.class })
         protected ResponseEntity<Object> handleConflict(RuntimeException ex, WebRequest request) {

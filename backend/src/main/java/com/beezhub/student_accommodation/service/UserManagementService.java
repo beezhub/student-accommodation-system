@@ -36,9 +36,9 @@ public class UserManagementService {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
 
-        // Validate role is PLATFORM_ADMIN or BUILDING_STAFF (not STUDENT or deprecated roles)
+        // Validate role is admin-creatable
         UserRole role = UserRole.enumRoleOf(request.getUserRole());
-        validateAdminCreatableRole(role);
+        validateAdminCreatableRole(role, request.getTenantId());
 
         // Create user entity
         AppUser user = appUserMapper.toEntityFromAdminRequest(
@@ -92,16 +92,24 @@ public class UserManagementService {
     }
 
     /**
-     * Validates that the given role is admin-creatable.
-     * STUDENT and deprecated roles (ADMIN) are not permitted.
+     * Validates that the given role is admin-creatable and that tenant scoping rules are met.
      *
-     * @param role the role to validate
-     * @throws IllegalArgumentException if the role is not admin-creatable
+     * <ul>
+     *   <li>{@code STUDENT} — never admin-creatable</li>
+     *   <li>{@code ADMIN} — allowed, but must be scoped to a non-platform tenant (tenantId != 0)</li>
+     *   <li>{@code PLATFORM_ADMIN}, {@code BUILDING_STAFF} — no tenant restriction</li>
+     * </ul>
      */
-    private void validateAdminCreatableRole(UserRole role) {
-        if (role == UserRole.STUDENT || role == UserRole.ADMIN) {
+    private void validateAdminCreatableRole(UserRole role, Long tenantId) {
+        if (role == UserRole.STUDENT) {
             throw new IllegalArgumentException(
-                    "Invalid role for admin creation. Allowed: PLATFORM_ADMIN, BUILDING_STAFF");
+                    "Invalid role for admin creation. Allowed: PLATFORM_ADMIN, ADMIN, BUILDING_STAFF");
+        }
+        if (role == UserRole.ADMIN) {
+            if (tenantId == null || tenantId == 0L) {
+                throw new IllegalArgumentException(
+                        "Tenant admins must be scoped to a specific institution tenant");
+            }
         }
     }
 }

@@ -278,6 +278,13 @@ export const routes: Routes = [
             (m) => m.FeatureFlagManagementComponent
           ),
       },
+      {
+        path: 'tenants',
+        loadComponent: () =>
+          import('./features/admin/tenant-management/tenant-management.component').then(
+            (m) => m.TenantManagementComponent
+          ),
+      },
     ],
   },
   {

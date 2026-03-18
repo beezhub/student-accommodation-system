@@ -16,6 +16,7 @@ interface NavItem {
   path: string;
   icon: string;
   label: string;
+  platformAdminOnly?: boolean;
 }
 
 interface NavGroup {
@@ -45,6 +46,10 @@ export class AdminSidebarComponent {
   private authService = inject(AuthService);
 
   currentUser$ = this.authService.currentUser;
+
+  isPlatformAdmin$ = this.authService.currentUser.pipe(
+    map((user) => user?.userRole === 'PLATFORM_ADMIN')
+  );
 
   logout(): void {
     this.authService.logout();
@@ -94,6 +99,7 @@ export class AdminSidebarComponent {
       label: 'Administration',
       items: [
         { path: '/admin/users', icon: 'people', label: 'Users' },
+        { path: '/admin/tenants', icon: 'corporate_fare', label: 'Tenants', platformAdminOnly: true },
         { path: '/admin/documents', icon: 'description', label: 'Documents' },
         { path: '/admin/activity-logs', icon: 'history', label: 'Activity Logs' },
       ],

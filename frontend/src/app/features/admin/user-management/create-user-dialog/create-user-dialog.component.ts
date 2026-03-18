@@ -44,7 +44,7 @@ export class CreateUserDialogComponent {
   isPlatformAdmin = false;
   tenants: Tenant[] = [];
 
-  readonly availableRoles: string[] = ['PLATFORM_ADMIN', 'BUILDING_OWNER', 'BUILDING_STAFF'];
+  readonly availableRoles: string[] = ['PLATFORM_ADMIN', 'ADMIN', 'BUILDING_STAFF'];
 
   private authService = inject(AuthService);
   private tenantService = inject(TenantService);
@@ -69,16 +69,17 @@ export class CreateUserDialogComponent {
   }
 
   get availableTenantsForRole(): Tenant[] {
-    if (this.createUserForm.get('userRole')?.value === 'BUILDING_OWNER') {
+    const role = this.createUserForm.get('userRole')?.value;
+    if (role === 'ADMIN') {
       return this.tenants.filter((t) => t.id !== 0);
     }
     return this.tenants;
   }
 
-  get showOwnerTenantWarning(): boolean {
+  get showTenantScopeWarning(): boolean {
     const role = this.createUserForm.get('userRole')?.value;
     const tenantId = this.createUserForm.get('tenantId')?.value;
-    return role === 'BUILDING_OWNER' && tenantId === 0;
+    return role === 'ADMIN' && tenantId === 0;
   }
 
   onSubmit(): void {

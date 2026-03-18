@@ -1,0 +1,70 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="dialog-header-inner">
+      <div class="header-icon-wrap">
+        <mat-icon>{{ mode === 'create' ? 'add_business' : 'edit' }}</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">{{ getTitle() }}</h2>
+        <p class="dialog-subtitle">{{ mode === 'create' ? 'Register a new institution tenant' : 'Update tenant details' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <mat-dialog-content>
+    <form [formGroup]="tenantForm" class="tenant-form">
+
+      @if (serverError) {
+        <div class="server-error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ serverError }}</span>
+        </div>
+      }
+
+      <div class="form-field-wrapper">
+        <label class="field-label">
+          <mat-icon>corporate_fare</mat-icon>
+          Tenant Name <span class="required-mark">*</span>
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input matInput formControlName="name" placeholder="e.g., University of Cape Town">
+          @if (tenantForm.get('name')?.hasError('required') && tenantForm.get('name')?.touched) {
+            <mat-error>Tenant name is required</mat-error>
+          }
+          @if (tenantForm.get('name')?.hasError('maxlength')) {
+            <mat-error>Name cannot exceed 200 characters</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="form-field-wrapper">
+        <label class="field-label">
+          <mat-icon>language</mat-icon>
+          Domain <span class="optional-mark">(optional)</span>
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input matInput formControlName="domain" placeholder="e.g., uct.ac.za">
+          @if (tenantForm.get('domain')?.hasError('maxlength')) {
+            <mat-error>Domain cannot exceed 255 characters</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button mat-stroked-button (click)="onCancel()" [disabled]="isLoading" class="cancel-btn">
+      Cancel
+    </button>
+    <button mat-raised-button (click)="onSubmit()" [disabled]="isLoading || tenantForm.invalid" class="submit-btn">
+      @if (isLoading) {
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>{{ mode === 'create' ? 'Creating...' : 'Saving...' }}</span>
+      } @else {
+        <mat-icon>{{ mode === 'create' ? 'add' : 'save' }}</mat-icon>
+        <span>{{ mode === 'create' ? 'Create Tenant' : 'Save Changes' }}</span>
+      }
+    </button>
+  </mat-dialog-actions>
+</div>
