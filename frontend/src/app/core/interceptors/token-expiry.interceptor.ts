@@ -23,7 +23,8 @@ export const tokenExpiryInterceptor: HttpInterceptorFn = (req, next) => {
 
   const isPublicEndpoint = publicEndpoints.some((endpoint) => req.url.includes(endpoint));
 
-  if (!isPublicEndpoint && !tokenStorage.isTokenValid()) {
+  const token = tokenStorage.getToken();
+  if (!isPublicEndpoint && token && !tokenStorage.isTokenValid()) {
     authService.logout();
     router.navigate(['/login']);
     return throwError(() => new Error('Token expired'));

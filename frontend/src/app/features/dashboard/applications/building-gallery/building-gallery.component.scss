@@ -172,6 +172,54 @@
 }
 
 // ─────────────────────────────────────────────────────────────
+// Search
+// ─────────────────────────────────────────────────────────────
+.gallery-search {
+  margin-bottom: vars.$space-4;
+}
+
+.search-field-wrap {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+}
+
+.search-field {
+  flex: 1;
+}
+
+.search-clear-btn {
+  flex-shrink: 0;
+  color: vars.$slate-400 !important;
+
+  &:hover {
+    color: vars.$slate-700 !important;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// No-results state
+// ─────────────────────────────────────────────────────────────
+.no-results {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+  padding: vars.$space-5 vars.$space-4;
+  text-align: center;
+  justify-content: center;
+  font-size: vars.$font-size-small;
+  color: vars.$slate-500;
+  margin-bottom: vars.$space-5;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: vars.$slate-400;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // Cap message
 // ─────────────────────────────────────────────────────────────
 .cap-message {

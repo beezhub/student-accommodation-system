@@ -148,8 +148,15 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
-        // Allow all headers
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        // Explicitly list allowed headers — wildcard (*) is forbidden with allowCredentials=true per CORS spec
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "X-Silent-Error"
+        ));
 
         // Allow credentials (cookies, authorization headers)
         configuration.setAllowCredentials(true);

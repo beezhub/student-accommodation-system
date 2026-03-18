@@ -2,7 +2,7 @@
   <h3 class="gallery-title">Select Your Preferred Buildings</h3>
   <p class="gallery-subtitle">
     Add up to {{ MAX_SELECTIONS }} buildings in order of preference.
-    You can skip this if you have no preference.
+    Showing the first 5 buildings — search to find others.
   </p>
 
   <!-- ── Selected preferences list ────────────────────────── -->
@@ -47,11 +47,34 @@
     </div>
   }
 
+  <!-- ── Search ────────────────────────────────────────────── -->
+  <div class="gallery-search">
+    <div class="search-field-wrap">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search buildings</mat-label>
+        <input matInput [value]="searchQuery" (input)="onSearch($event)" placeholder="Name, address…" autocomplete="off" />
+      </mat-form-field>
+      @if (searchQuery) {
+        <button mat-icon-button class="search-clear-btn" aria-label="Clear search" (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+  </div>
+
   <!-- ── Cap message ────────────────────────────────────────── -->
   @if (isAtMax) {
     <div class="cap-message">
       <mat-icon>info_outline</mat-icon>
       <span>Maximum of {{ MAX_SELECTIONS }} buildings reached. Remove one to add another.</span>
+    </div>
+  }
+
+  <!-- ── Empty search result ───────────────────────────────── -->
+  @if (buildings.length === 0 && searchQuery.trim()) {
+    <div class="no-results">
+      <mat-icon>search_off</mat-icon>
+      <span>No buildings match "<strong>{{ searchQuery }}</strong>"</span>
     </div>
   }
 

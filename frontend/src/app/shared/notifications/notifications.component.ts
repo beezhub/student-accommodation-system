@@ -8,7 +8,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NotificationService } from '../../core/services/notification.service';
 import { Notification } from '../../core/models/notification.model';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, catchError, EMPTY } from 'rxjs';
 
 @Component({
   selector: 'app-notifications',
@@ -45,17 +45,23 @@ export class NotificationsComponent implements OnDestroy {
   markAsRead(notification: Notification, event: Event): void {
     event.stopPropagation();
     if (!notification.isRead) {
-      this.notificationService.markAsRead(notification.id).subscribe();
+      this.notificationService.markAsRead(notification.id).pipe(
+        catchError(() => EMPTY)
+      ).subscribe();
     }
   }
 
   markAllAsRead(): void {
-    this.notificationService.markAllAsRead().subscribe();
+    this.notificationService.markAllAsRead().pipe(
+      catchError(() => EMPTY)
+    ).subscribe();
   }
 
   deleteNotification(notificationId: number, event: Event): void {
     event.stopPropagation();
-    this.notificationService.deleteNotification(notificationId).subscribe();
+    this.notificationService.deleteNotification(notificationId).pipe(
+      catchError(() => EMPTY)
+    ).subscribe();
   }
 
   getIcon(type: string): string {

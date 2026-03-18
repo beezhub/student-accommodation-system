@@ -6,7 +6,6 @@ import com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedExcep
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
-import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationProposalResponse;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationRequest;
 import com.beezhub.student_accommodation.model.dto.BatchConfirmationResult;
@@ -26,6 +25,7 @@ import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -57,6 +57,9 @@ public class StagedAllocationService {
 
     private final StagedAllocationMapper stagedAllocationMapper;
     private final RoomAllocationMapper roomAllocationMapper;
+
+    @Value("${app.allocation.offer-expiry-days:7}")
+    private int offerExpiryDays;
     private final WaitingListService waitingListService;
     private final RoomOccupancyManager roomOccupancyManager;
 
@@ -232,6 +235,7 @@ public class StagedAllocationService {
         allocation.setAllocationDate(LocalDateTime.now());
         AllocationStatusValidator.validate(allocation, AllocationStatus.OFFERED);
         allocation.setStatus(AllocationStatus.OFFERED);
+        allocation.setOfferExpiryDate(LocalDateTime.now().plusDays(offerExpiryDays));
         allocation.setAllocationMethod(AllocationMethod.AUTO);
         return allocation;
     }

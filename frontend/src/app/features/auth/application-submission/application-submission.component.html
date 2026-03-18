@@ -92,14 +92,30 @@
 
             <app-building-gallery
               [buildings]="buildings"
-              [selectedBuildingId]="applicationForm.get('preferredBuildingId')?.value"
-              (buildingSelected)="onBuildingSelected($event)"
+              [selectedBuildingIds]="applicationForm.get('preferredBuildingIds')?.value ?? []"
+              (buildingSelectionChanged)="onBuildingSelectionChanged($event)"
+              (searchChanged)="onBuildingSearch($event)"
             ></app-building-gallery>
 
-            <div class="checkbox-section">
-              <mat-checkbox formControlName="requiresAccessibility" color="primary">
-                I require an accessible room (wheelchair accessible, mobility support, etc.)
-              </mat-checkbox>
+            <div class="accessibility-section">
+              <div class="accessibility-card" [class.is-active]="applicationForm.get('requiresAccessibility')?.value">
+                <div class="accessibility-icon-wrap">
+                  <mat-icon>accessible</mat-icon>
+                </div>
+                <div class="accessibility-body">
+                  <span class="accessibility-title">Accessibility Requirements</span>
+                  <span class="accessibility-desc">
+                    Check this only if you need a wheelchair-accessible room, step-free access, or other
+                    mobility support. <strong>This restricts your allocation to accessible rooms only.</strong>
+                  </span>
+                </div>
+                <mat-checkbox
+                  formControlName="requiresAccessibility"
+                  color="primary"
+                  class="accessibility-checkbox"
+                  aria-label="I require an accessible room"
+                ></mat-checkbox>
+              </div>
             </div>
           </div>
 

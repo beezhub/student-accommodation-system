@@ -246,6 +246,22 @@ export class NewApplicationComponent implements OnInit {
     }
   }
 
+  onBuildingSearch(query: string): void {
+    if (!query) {
+      this.loadBuildings();
+      return;
+    }
+    this.buildingService.searchBuildings({ name: query, size: 10 }).subscribe({
+      next: (response) => {
+        this.buildings = response.content;
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.error('Building search failed', error);
+      },
+    });
+  }
+
   onBuildingSelectionChanged(buildingIds: number[]): void {
     this.applicationForm.patchValue({ preferredBuildingIds: buildingIds });
     this.cdr.markForCheck();

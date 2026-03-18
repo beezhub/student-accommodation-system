@@ -12,11 +12,7 @@ import { BuildingService, BuildingResponse } from '../../../core/services/buildi
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
 
 @Component({
   selector: 'app-building-browse',
@@ -30,11 +26,7 @@ import { MatChipsModule } from '@angular/material/chips';
     FormsModule,
     MatButtonModule,
     MatIconModule,
-    MatInputModule,
-    MatFormFieldModule,
     MatProgressSpinnerModule,
-    MatCardModule,
-    MatChipsModule,
   ],
 })
 export class BuildingBrowseComponent implements OnInit {

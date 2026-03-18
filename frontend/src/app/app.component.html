@@ -3,10 +3,7 @@
   @if (!isAdminRoute && !isHomePage) {
     <mat-toolbar class="app-toolbar" color="primary">
       <div class="toolbar-content">
-        <a class="brand-link" routerLink="/home" mat-button>
-          <mat-icon>home</mat-icon>
-          <span class="brand-text">Student Housing</span>
-        </a>
+        <app-brand-logo variant="toolbar" />
 
         <div class="nav-spacer"></div>
 

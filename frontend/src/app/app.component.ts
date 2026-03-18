@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
+import { Location } from '@angular/common';
 
 import { AuthService } from './core/services/auth.service';
 import { IconService } from './core/services/icon.service';
@@ -16,6 +17,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { AppNavMenuComponent } from './shared/app-nav-menu.component';
+import { BrandLogoComponent } from './shared/components/brand-logo/brand-logo.component';
 
 @Component({
   selector: 'app-root',
@@ -32,12 +34,14 @@ import { AppNavMenuComponent } from './shared/app-nav-menu.component';
     MatSidenavModule,
     MatListModule,
     AppNavMenuComponent,
+    BrandLogoComponent,
   ],
   providers: [],
 })
 export class AppComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private router = inject(Router);
+  private location = inject(Location);
   private breakpointObserver = inject(BreakpointObserver);
   private iconService = inject(IconService);
 
@@ -59,15 +63,22 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor() {
     this.isMobile = this.breakpointObserver.isMatched(Breakpoints.Handset);
+    // Initialize immediately so the toolbar is hidden on the first render
+    this.updateRouteFlags(this.location.path() || '/');
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
-        const url = event.urlAfterRedirects;
-        this.isAdminRoute = url.startsWith('/admin');
-        this.isHomePage = AppComponent.TOOLBAR_HIDDEN_ROUTES.some(
-          (route) => url === route || url.startsWith(route + '?')
-        );
+        this.updateRouteFlags(event.urlAfterRedirects);
       }
     });
+  }
+
+  private updateRouteFlags(url: string): void {
+    this.isAdminRoute = url.startsWith('/admin');
+    this.isHomePage =
+      url.startsWith('/buildings') ||
+      AppComponent.TOOLBAR_HIDDEN_ROUTES.some(
+        (route) => url === route || url.startsWith(route + '?')
+      );
   }
 
   ngOnInit() {

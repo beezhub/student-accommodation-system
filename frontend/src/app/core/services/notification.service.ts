@@ -203,6 +203,16 @@ export class NotificationService {
       PAYMENT_DUE: 'payment',
       SYSTEM_ANNOUNCEMENT: 'campaign',
       INFO: 'info',
+      ALLOCATION_CONFIRMED: 'home',
+      ALLOCATION_PROPOSED: 'pending_actions',
+      ALLOCATION_REJECTED: 'block',
+      CHECK_IN_CONFIRMED: 'how_to_reg',
+      CHECK_IN_EXPIRED: 'event_busy',
+      CHECK_IN_REMINDER: 'event',
+      OFFER_EXPIRED: 'timer_off',
+      OFFER_EXPIRY_REMINDER: 'timer',
+      ROOM_MOVED: 'swap_horiz',
+      WAITING_LIST: 'queue',
     };
     return iconMap[type] || 'notifications';
   }
@@ -220,6 +230,16 @@ export class NotificationService {
       PAYMENT_DUE: 'accent',
       SYSTEM_ANNOUNCEMENT: 'primary',
       INFO: 'primary',
+      ALLOCATION_CONFIRMED: 'success',
+      ALLOCATION_PROPOSED: 'primary',
+      ALLOCATION_REJECTED: 'warn',
+      CHECK_IN_CONFIRMED: 'success',
+      CHECK_IN_EXPIRED: 'warn',
+      CHECK_IN_REMINDER: 'accent',
+      OFFER_EXPIRED: 'warn',
+      OFFER_EXPIRY_REMINDER: 'accent',
+      ROOM_MOVED: 'primary',
+      WAITING_LIST: 'accent',
     };
     return colorMap[type] || 'primary';
   }

@@ -4,10 +4,7 @@
       [mode]="(isHandset$ | async) ? 'over' : 'side'"
       [opened]="(isHandset$ | async) === false">
 
-    <div class="sidebar-brand">
-      <mat-icon class="brand-icon">school</mat-icon>
-      <span class="brand-name">UniAccom</span>
-    </div>
+    <app-brand-logo variant="sidebar" />
 
     <nav class="sidebar-nav">
       @for (group of navGroups; track group.label) {

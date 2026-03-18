@@ -10,6 +10,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { map, shareReplay } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
+import { BrandLogoComponent } from '../../../shared/components/brand-logo/brand-logo.component';
 
 interface NavItem {
   path: string;
@@ -33,6 +34,7 @@ interface NavGroup {
     MatIconModule,
     MatButtonModule,
     MatTooltipModule,
+    BrandLogoComponent,
   ],
   templateUrl: './admin-sidebar.component.html',
   styleUrls: ['./admin-sidebar.component.scss'],

@@ -107,39 +107,30 @@
             <app-building-gallery
               [buildings]="buildings"
               [selectedBuildingIds]="applicationForm.get('preferredBuildingIds')?.value ?? []"
-              (buildingSelectionChanged)="onBuildingSelectionChanged($event)">
+              (buildingSelectionChanged)="onBuildingSelectionChanged($event)"
+              (searchChanged)="onBuildingSearch($event)">
             </app-building-gallery>
 
-            <div class="accessibility-check">
-              <mat-checkbox formControlName="requiresAccessibility" color="primary">
-                I require an accessible room (wheelchair accessible, mobility support, etc.)
-              </mat-checkbox>
-            </div>
-          </div>
-
-          <div class="section-divider"></div>
-
-          <!-- ── Special Requirements ── -->
-          <div class="form-section">
-            <div class="section-header">
-              <div class="section-icon-wrap" aria-hidden="true">
-                <mat-icon>notes</mat-icon>
-              </div>
-              <div>
-                <h2 class="section-title">
-                  Special Requirements
-                  <span class="optional-tag">Optional</span>
-                </h2>
-                <p class="section-desc">Any accessibility needs or special requests</p>
+            <div class="accessibility-section">
+              <div class="accessibility-card" [class.is-active]="applicationForm.get('requiresAccessibility')?.value">
+                <div class="accessibility-icon-wrap">
+                  <mat-icon>accessible</mat-icon>
+                </div>
+                <div class="accessibility-body">
+                  <span class="accessibility-title">Accessibility Requirements</span>
+                  <span class="accessibility-desc">
+                    Check this only if you need a wheelchair-accessible room, step-free access, or other
+                    mobility support. <strong>This restricts your allocation to accessible rooms only.</strong>
+                  </span>
+                </div>
+                <mat-checkbox
+                  formControlName="requiresAccessibility"
+                  color="primary"
+                  class="accessibility-checkbox"
+                  aria-label="I require an accessible room"
+                ></mat-checkbox>
               </div>
             </div>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Special Requirements or Accessibility Needs</mat-label>
-              <textarea matInput formControlName="specialRequirements" rows="4"
-                placeholder="e.g., Ground floor access, wheelchair accessible, dietary requirements..."></textarea>
-              <mat-hint>Optional — leave blank if none</mat-hint>
-            </mat-form-field>
           </div>
 
           <!-- ── Actions ── -->

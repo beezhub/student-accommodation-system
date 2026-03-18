@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -52,6 +52,7 @@ export class ApplicationSubmissionComponent implements OnInit {
   private readonly institutionService = inject(InstitutionService);
   private readonly buildingService = inject(BuildingService);
   private readonly errorService = inject(ErrorHandlingService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   applicationForm: FormGroup;
   isSubmitting = false;
@@ -68,7 +69,7 @@ export class ApplicationSubmissionComponent implements OnInit {
   constructor() {
     this.applicationForm = this.fb.group({
       requiresAccessibility: [false],
-      preferredBuildingId: [''],
+      preferredBuildingIds: [[]],
       specialRequirements: [''],
       courseName: ['', Validators.required],
     });
@@ -84,16 +85,17 @@ export class ApplicationSubmissionComponent implements OnInit {
     this.loadStudentProfile();
   }
 
+  private readonly BUILDINGS_PAGE_SIZE = 5;
+
   loadBuildings(): void {
-    // If student has an institution, only show buildings that serve that institution
     if (this.studentInstitutionId) {
       this.buildingService.getBuildingsByInstitution(this.studentInstitutionId).subscribe({
         next: (buildings) => {
-          this.buildings = buildings;
+          this.buildings = buildings.slice(0, this.BUILDINGS_PAGE_SIZE);
+          this.cdr.markForCheck();
         },
         error: (error) => {
           console.error('Failed to load buildings for institution', error);
-          // Fall back to all buildings
           this.loadAllBuildings();
         },
       });
@@ -103,12 +105,29 @@ export class ApplicationSubmissionComponent implements OnInit {
   }
 
   private loadAllBuildings(): void {
-    this.buildingService.getAllBuildingsNoPagination().subscribe({
-      next: (buildings) => {
-        this.buildings = buildings;
+    this.buildingService.getAllBuildings(0, this.BUILDINGS_PAGE_SIZE).subscribe({
+      next: (response) => {
+        this.buildings = response.content;
+        this.cdr.markForCheck();
       },
       error: (error) => {
         console.error('Failed to load buildings', error);
+      },
+    });
+  }
+
+  onBuildingSearch(query: string): void {
+    if (!query) {
+      this.loadBuildings();
+      return;
+    }
+    this.buildingService.searchBuildings({ name: query, size: 10 }).subscribe({
+      next: (response) => {
+        this.buildings = response.content;
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.error('Building search failed', error);
       },
     });
   }
@@ -194,7 +213,7 @@ export class ApplicationSubmissionComponent implements OnInit {
       const applicationData = {
         studentId: this.studentId,
         requiresAccessibility: formValue.requiresAccessibility || false,
-        preferredBuildingId: formValue.preferredBuildingId || null,
+        preferredBuildingIds: formValue.preferredBuildingIds?.length ? formValue.preferredBuildingIds : null,
         specialRequirements: formValue.specialRequirements || null,
         institutionName: this.institutionName || 'Not specified',
         courseName: formValue.courseName,
@@ -223,8 +242,8 @@ export class ApplicationSubmissionComponent implements OnInit {
     }
   }
 
-  onBuildingSelected(buildingId: number | null): void {
-    this.applicationForm.patchValue({ preferredBuildingId: buildingId });
+  onBuildingSelectionChanged(buildingIds: number[]): void {
+    this.applicationForm.patchValue({ preferredBuildingIds: buildingIds });
   }
 
   dismissError(): void {

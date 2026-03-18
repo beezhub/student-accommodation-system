@@ -43,6 +43,9 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}

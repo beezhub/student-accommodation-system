@@ -14,31 +14,6 @@
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
 }
 
-/* Branding header */
-.sidebar-brand {
-    height: 68px;
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    padding: 0 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    flex-shrink: 0;
-
-    .brand-icon {
-        color: #a78bfa;
-        font-size: 1.625rem;
-        width: 1.625rem;
-        height: 1.625rem;
-    }
-
-    .brand-name {
-        font-weight: 800;
-        font-size: 1.125rem;
-        color: #f8fafc;
-        letter-spacing: -0.02em;
-    }
-}
-
 /* Navigation */
 .sidebar-nav {
     flex: 1;
