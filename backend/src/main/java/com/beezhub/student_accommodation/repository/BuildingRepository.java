@@ -14,4 +14,6 @@ public interface BuildingRepository extends JpaRepository<Building, Long>, JpaSp
     
     @Query("SELECT b FROM Building b JOIN b.institutions i WHERE i.id = :institutionId")
     List<Building> findByInstitutionId(@Param("institutionId") Long institutionId);
+
+    List<Building> findByOwner_Id(Long ownerId);
 }

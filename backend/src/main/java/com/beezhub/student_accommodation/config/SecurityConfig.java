@@ -82,6 +82,9 @@ public class SecurityConfig {
                                 "/api/building/by-institution/{institutionId}",
                                 "/api/building/{buildingId}/images")
                         .permitAll()
+                        .requestMatchers("/api/public/owner/**").permitAll()
+                        .requestMatchers("/api/admin/owner-registrations/**").hasRole("PLATFORM_ADMIN")
+                        .requestMatchers("/api/owner/**").hasRole("BUILDING_OWNER")
                         .requestMatchers("/api/admin/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")

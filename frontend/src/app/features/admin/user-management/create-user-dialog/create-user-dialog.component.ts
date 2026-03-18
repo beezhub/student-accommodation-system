@@ -68,6 +68,19 @@ export class CreateUserDialogComponent {
     }
   }
 
+  get availableTenantsForRole(): Tenant[] {
+    if (this.createUserForm.get('userRole')?.value === 'BUILDING_OWNER') {
+      return this.tenants.filter((t) => t.id !== 0);
+    }
+    return this.tenants;
+  }
+
+  get showOwnerTenantWarning(): boolean {
+    const role = this.createUserForm.get('userRole')?.value;
+    const tenantId = this.createUserForm.get('tenantId')?.value;
+    return role === 'BUILDING_OWNER' && tenantId === 0;
+  }
+
   onSubmit(): void {
     if (this.createUserForm.valid) {
       this.isSubmitting = true;

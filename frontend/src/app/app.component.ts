@@ -59,6 +59,11 @@ export class AppComponent implements OnInit, OnDestroy {
     '/verify-email',
     '/forgot-password',
     '/reset-password',
+    '/owner/register',
+    '/owner/verify-email',
+    '/owner/verification-pending',
+    '/owner/awaiting-approval',
+    '/owner/set-password',
   ];
 
   constructor() {

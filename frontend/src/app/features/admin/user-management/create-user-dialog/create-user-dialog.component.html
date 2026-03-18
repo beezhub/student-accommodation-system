@@ -100,12 +100,15 @@
           <mat-label>Tenant</mat-label>
           <mat-icon matPrefix>business</mat-icon>
           <mat-select formControlName="tenantId" required>
-            @for (tenant of tenants; track tenant.id) {
+            @for (tenant of availableTenantsForRole; track tenant.id) {
               <mat-option [value]="tenant.id">{{ tenant.name }}</mat-option>
             }
           </mat-select>
           @if (createUserForm.get('tenantId')?.hasError('required')) {
             <mat-error>Tenant is required</mat-error>
+          }
+          @if (showOwnerTenantWarning) {
+            <mat-error>Building owners cannot be assigned to the platform tenant</mat-error>
           }
         </mat-form-field>
       }

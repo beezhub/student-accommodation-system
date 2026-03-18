@@ -433,6 +433,34 @@ public class EmailDispatchService {
                 log.info("Check-in reminder email sent to {}", email);
         }
 
+        // ── Building owner onboarding emails ────────────────────────────────────
+
+        public void sendOwnerRegistrationConfirmEmail(String email, String ownerName, String organisationName, String verificationUrl) {
+                var ctx = new OwnerRegistrationConfirmContext(ownerName, email, organisationName, verificationUrl, supportEmail);
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OWNER_REGISTRATION_CONFIRM, "owner-registration-confirm", ctx));
+                log.info("Owner registration confirm email sent to {}", email);
+        }
+
+        public void sendOwnerVerificationReminderEmail(String email, String ownerName, String verificationUrl) {
+                var ctx = new OwnerVerificationReminderContext(ownerName, verificationUrl, supportEmail);
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OWNER_VERIFICATION_REMINDER, "owner-verification-reminder", ctx));
+                log.info("Owner verification reminder email sent to {}", email);
+        }
+
+        public void sendOwnerApprovedEmail(String email, String ownerName, String organisationName, String passwordSetupUrl) {
+                String portalUrl = baseUrl + "/owner/dashboard";
+                var ctx = new OwnerApprovedContext(ownerName, organisationName, passwordSetupUrl, portalUrl, supportEmail);
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OWNER_REGISTRATION_APPROVED, "owner-approved", ctx));
+                log.info("Owner approved email sent to {}", email);
+        }
+
+        public void sendOwnerRejectedEmail(String email, String ownerName, String reason) {
+                String reapplyUrl = baseUrl + "/owner/register";
+                var ctx = new OwnerRejectedContext(ownerName, reason, reapplyUrl, supportEmail);
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OWNER_REGISTRATION_REJECTED, "owner-rejected", ctx));
+                log.info("Owner rejected email sent to {}", email);
+        }
+
         private void monitorEmail(Runnable action) {
                 try {
                         action.run();
