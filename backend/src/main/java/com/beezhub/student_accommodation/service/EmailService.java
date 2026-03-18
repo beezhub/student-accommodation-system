@@ -305,31 +305,6 @@ public class EmailService {
                 vars.put("buildingName", c.buildingName());
                 vars.put("portalUrl", c.portalUrl());
             }
-            case OwnerRegistrationConfirmContext c -> {
-                vars.put("ownerName", c.ownerName());
-                vars.put("email", c.email());
-                vars.put("organisationName", c.organisationName());
-                vars.put("verificationUrl", c.verificationUrl());
-                vars.put("supportEmail", c.supportEmail());
-            }
-            case OwnerVerificationReminderContext c -> {
-                vars.put("ownerName", c.ownerName());
-                vars.put("verificationUrl", c.verificationUrl());
-                vars.put("supportEmail", c.supportEmail());
-            }
-            case OwnerApprovedContext c -> {
-                vars.put("ownerName", c.ownerName());
-                vars.put("organisationName", c.organisationName());
-                vars.put("passwordSetupUrl", c.passwordSetupUrl());
-                vars.put("portalUrl", c.portalUrl());
-                vars.put("supportEmail", c.supportEmail());
-            }
-            case OwnerRejectedContext c -> {
-                vars.put("ownerName", c.ownerName());
-                vars.put("reason", c.reason());
-                vars.put("reapplyUrl", c.reapplyUrl());
-                vars.put("supportEmail", c.supportEmail());
-            }
         }
         return vars;
     }

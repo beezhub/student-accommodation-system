@@ -36,12 +36,6 @@ class UserRoleTest {
     }
 
     @Test
-    @DisplayName("BUILDING_OWNER.isAdmin() returns false")
-    void isAdmin_buildingOwner_returnsFalse() {
-        assertThat(UserRole.BUILDING_OWNER.isAdmin()).isFalse();
-    }
-
-    @Test
     @DisplayName("BUILDING_STAFF.isAdmin() returns false")
     void isAdmin_buildingStaff_returnsFalse() {
         assertThat(UserRole.BUILDING_STAFF.isAdmin()).isFalse();
@@ -73,8 +67,6 @@ class UserRoleTest {
                 Arguments.of("Platform_Admin",   UserRole.PLATFORM_ADMIN),
                 Arguments.of("PLATFORM_ADMIN",   UserRole.PLATFORM_ADMIN),
                 Arguments.of("platform_admin",   UserRole.PLATFORM_ADMIN),
-                Arguments.of("Building_Owner",   UserRole.BUILDING_OWNER),
-                Arguments.of("BUILDING_OWNER",   UserRole.BUILDING_OWNER),
                 Arguments.of("Building_Staff",   UserRole.BUILDING_STAFF),
                 Arguments.of("BUILDING_STAFF",   UserRole.BUILDING_STAFF)
         );

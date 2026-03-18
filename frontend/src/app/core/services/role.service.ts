@@ -25,14 +25,6 @@ export class RoleService {
     );
   }
 
-  /** True if the current user is a BUILDING_OWNER. */
-  isBuildingOwner(): boolean {
-    return (
-      this.currentRole?.toUpperCase() === ROLE.BUILDING_OWNER.toUpperCase() ||
-      this.currentRole?.toUpperCase() === ROLE.LANDLORD.toUpperCase()
-    );
-  }
-
   /** True if the current user is a BUILDING_STAFF. */
   isBuildingStaff(): boolean {
     return this.currentRole?.toUpperCase() === ROLE.BUILDING_STAFF.toUpperCase();
@@ -45,9 +37,9 @@ export class RoleService {
 
   /**
    * True if the current user has any administrative role
-   * (PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF).
+   * (PLATFORM_ADMIN or BUILDING_STAFF).
    */
   isAdmin(): boolean {
-    return this.isPlatformAdmin() || this.isBuildingOwner() || this.isBuildingStaff();
+    return this.isPlatformAdmin() || this.isBuildingStaff();
   }
 }

@@ -36,7 +36,7 @@ public class UserManagementService {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
 
-        // Validate role is PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF (not STUDENT or deprecated roles)
+        // Validate role is PLATFORM_ADMIN or BUILDING_STAFF (not STUDENT or deprecated roles)
         UserRole role = UserRole.enumRoleOf(request.getUserRole());
         validateAdminCreatableRole(role);
 
@@ -48,10 +48,6 @@ public class UserManagementService {
 
         // Assign tenant
         if (request.getTenantId() != null) {
-            // Building owners must be scoped to a specific institution tenant, not the platform tenant
-            if (role == UserRole.BUILDING_OWNER && request.getTenantId().equals(TenantContext.PLATFORM_TENANT_ID)) {
-                throw new IllegalArgumentException("Building owners must be scoped to a specific institution tenant");
-            }
             user.setTenantId(request.getTenantId());
         } else if (TenantContext.getTenantId() != null) {
             user.setTenantId(TenantContext.getTenantId());
@@ -97,15 +93,15 @@ public class UserManagementService {
 
     /**
      * Validates that the given role is admin-creatable.
-     * STUDENT and deprecated roles (ADMIN, LANDLORD) are not permitted.
+     * STUDENT and deprecated roles (ADMIN) are not permitted.
      *
      * @param role the role to validate
      * @throws IllegalArgumentException if the role is not admin-creatable
      */
     private void validateAdminCreatableRole(UserRole role) {
-        if (role == UserRole.STUDENT || role == UserRole.ADMIN || role == UserRole.LANDLORD) {
+        if (role == UserRole.STUDENT || role == UserRole.ADMIN) {
             throw new IllegalArgumentException(
-                    "Invalid role for admin creation. Allowed: PLATFORM_ADMIN, BUILDING_OWNER, BUILDING_STAFF");
+                    "Invalid role for admin creation. Allowed: PLATFORM_ADMIN, BUILDING_STAFF");
         }
     }
 }

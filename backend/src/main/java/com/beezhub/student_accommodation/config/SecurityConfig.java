@@ -82,9 +82,6 @@ public class SecurityConfig {
                                 "/api/building/by-institution/{institutionId}",
                                 "/api/building/{buildingId}/images")
                         .permitAll()
-                        .requestMatchers("/api/public/owner/**").permitAll()
-                        .requestMatchers("/api/admin/owner-registrations/**").hasRole("PLATFORM_ADMIN")
-                        .requestMatchers("/api/owner/**").hasRole("BUILDING_OWNER")
                         .requestMatchers("/api/admin/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")
@@ -101,16 +98,14 @@ public class SecurityConfig {
 
     /**
      * Configure role hierarchy for the application.
-     * Management chain: PLATFORM_ADMIN has all privileges of BUILDING_OWNER and BUILDING_STAFF.
-     * BUILDING_OWNER has all privileges of BUILDING_STAFF.
+     * PLATFORM_ADMIN has all privileges of BUILDING_STAFF.
      * STUDENT is an independent role and is NOT part of the management hierarchy.
      * Endpoints accessible to both students and platform admins must use hasAnyRole('STUDENT', 'PLATFORM_ADMIN').
      */
     @Bean
     public RoleHierarchy roleHierarchy() {
         return RoleHierarchyImpl.fromHierarchy(
-                "ROLE_PLATFORM_ADMIN > ROLE_BUILDING_OWNER \n" +
-                "ROLE_BUILDING_OWNER > ROLE_BUILDING_STAFF");
+                "ROLE_PLATFORM_ADMIN > ROLE_BUILDING_STAFF");
     }
 
     /**

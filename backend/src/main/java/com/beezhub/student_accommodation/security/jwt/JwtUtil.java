@@ -73,10 +73,8 @@ public class JwtUtil {
         }
         
         Long tenantId = null;
-        Long ownerProfileId = null;
         if (userDetails instanceof AppUserDetails appUserDetails) {
             tenantId = appUserDetails.getTenantId();
-            ownerProfileId = appUserDetails.getOwnerProfileId();
         }
 
         return Jwts.builder()
@@ -84,20 +82,10 @@ public class JwtUtil {
             .subject(userDetails.getUsername())
             .claim("roles", roles)
             .claim("tenantId", tenantId)
-            .claim("ownerProfileId", ownerProfileId)
             .issuedAt(new Date())
             .expiration(new Date(System.currentTimeMillis() + expirationMs))
             .signWith(key)
             .compact();
-    }
-
-    public Long extractOwnerProfileId(String token) {
-        Claims claims = extractAllClaims(token);
-        Object val = claims.get("ownerProfileId");
-        if (val instanceof Number) {
-            return ((Number) val).longValue();
-        }
-        return null;
     }
 
     public boolean validateToken(String token, UserDetails userDetails) {

@@ -3,6 +3,8 @@ package com.beezhub.student_accommodation.service.tenant;
 import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
 import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.repository.TenantRepository;
+
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,16 @@ public class TenantService {
     static final String DEFAULT_TENANT_NAME = "Default Tenant";
 
     private final TenantRepository tenantRepository;
+
+    /**
+     * Returns all tenants in the system.
+     * Safe to call regardless of current {@link TenantContext} value because the
+     * {@code tenantFilter} Hibernate filter is not applied to the {@code tenant} table.
+     */
+    @Transactional(readOnly = true)
+    public List<Tenant> getAllTenants() {
+        return tenantRepository.findAll();
+    }
 
     /**
      * Returns the default tenant used for new sign-ups and single-tenant deployments.

@@ -94,7 +94,6 @@ export class AdminSidebarComponent {
       label: 'Administration',
       items: [
         { path: '/admin/users', icon: 'people', label: 'Users' },
-        { path: '/admin/owner-registrations', icon: 'business', label: 'Owner Registrations' },
         { path: '/admin/documents', icon: 'description', label: 'Documents' },
         { path: '/admin/activity-logs', icon: 'history', label: 'Activity Logs' },
       ],

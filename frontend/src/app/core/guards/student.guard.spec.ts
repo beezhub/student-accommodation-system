@@ -65,10 +65,10 @@ describe('StudentGuard', () => {
     expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin']);
   });
 
-  it('canActivate_buildingOwnerUser_redirectsToHome_returnsFalse', () => {
+  it('canActivate_buildingStaffUser_redirectsToHome_returnsFalse', () => {
     (
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
-    ).and.returnValue({ userRole: ROLE.BUILDING_OWNER });
+    ).and.returnValue({ userRole: ROLE.BUILDING_STAFF });
     roleServiceSpy.isStudent.and.returnValue(false);
     roleServiceSpy.isPlatformAdmin.and.returnValue(false);
 

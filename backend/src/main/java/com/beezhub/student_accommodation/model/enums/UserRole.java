@@ -10,10 +10,8 @@ import java.util.Arrays;
 public enum UserRole {
     STUDENT("Student"),
     PLATFORM_ADMIN("Platform_Admin"),
-    BUILDING_OWNER("Building_Owner"),
     BUILDING_STAFF("Building_Staff"),
-    @Deprecated ADMIN("Admin"),
-    @Deprecated LANDLORD("Landlord");
+    @Deprecated ADMIN("Admin");
 
     private final String role;
 

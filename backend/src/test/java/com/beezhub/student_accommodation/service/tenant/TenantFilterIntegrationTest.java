@@ -1,19 +1,12 @@
 package com.beezhub.student_accommodation.service.tenant;
 
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
-import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Building;
-import com.beezhub.student_accommodation.model.entity.BuildingOwner;
-import com.beezhub.student_accommodation.model.entity.BuildingStaff;
 import com.beezhub.student_accommodation.model.entity.CustomApplicationField;
 import com.beezhub.student_accommodation.model.entity.IntakePeriod;
 import com.beezhub.student_accommodation.model.entity.RequiredDocumentType;
-import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
-import com.beezhub.student_accommodation.repository.AppUserRepository;
-import com.beezhub.student_accommodation.repository.BuildingOwnerRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
-import com.beezhub.student_accommodation.repository.BuildingStaffRepository;
 import com.beezhub.student_accommodation.repository.CustomApplicationFieldRepository;
 import com.beezhub.student_accommodation.repository.IntakePeriodRepository;
 import com.beezhub.student_accommodation.repository.RequiredDocumentTypeRepository;
@@ -70,15 +63,6 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
     private AcademicYearRepository academicYearRepository;
 
     @Autowired
-    private AppUserRepository appUserRepository;
-
-    @Autowired
-    private BuildingOwnerRepository buildingOwnerRepository;
-
-    @Autowired
-    private BuildingStaffRepository buildingStaffRepository;
-
-    @Autowired
     private BuildingRepository buildingRepository;
 
     @Autowired
@@ -92,14 +76,6 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
 
     @org.junit.jupiter.api.BeforeEach
     void setUpTenants() {
-        // Seed Tenant rows for all tenant IDs used in these tests.
-        // AcademicYear, BuildingOwner and BuildingStaff each carry
-        // @ManyToOne @JoinColumn(name = "tenant_id") which Hibernate's
-        // create-drop DDL turns into a real FK constraint in PostgreSQL.
-        // Native SQL lets us supply explicit IDs (including the PLATFORM
-        // sentinel 0) that are impossible to generate via JPA sequences.
-        // The enclosing @Transactional (from @DataJpaTest) rolls these rows
-        // back after each test, so sequences are never affected.
         entityManager.createNativeQuery(
                 "INSERT INTO tenant (id, name, config, is_active, created_at, updated_at) VALUES " +
                 "(0,   'Platform', '{}', true, current_timestamp, current_timestamp), " +
@@ -213,32 +189,20 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
     }
 
     // ────────────────────────────────────────────────────────────
-    // TASK-2.02: PLATFORM sentinel compliance
+    // PLATFORM sentinel compliance
     // ────────────────────────────────────────────────────────────
 
-    /**
-     * A student (tenantId=PLATFORM_TENANT_ID) must be able to see records that belong to
-     * two different building-owner tenants.
-     *
-     * <p>In production, {@link com.beezhub.student_accommodation.config.TenantFilterConfig}
-     * skips enabling the Hibernate filter when the authenticated user's tenant ID equals
-     * {@link TenantContext#PLATFORM_TENANT_ID}.  This test replicates that behaviour
-     * directly: the filter is intentionally NOT enabled (matching the PLATFORM sentinel
-     * bypass logic) and we assert that records for both tenants are visible.
-     */
     @Test
     @DisplayName("student_canSeeBuildings_fromTwoDifferentTenants")
     void student_canSeeBuildings_fromTwoDifferentTenants() {
-        // Arrange: one academic year per building-owner tenant
+        // Arrange: one academic year per tenant
         saveYearForTenant("2025 Owner-A", TENANT_1_ID);
         saveYearForTenant("2025 Owner-B", TENANT_2_ID);
         entityManager.flush();
         entityManager.clear();
 
         // Act: student request — filter is NOT enabled (PLATFORM sentinel bypass).
-        // TenantFilterConfig.preHandle() skips enableFilter() when tenantId==0.
         TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
-        // Do NOT call enableTenantFilter() — that is the key invariant being tested.
         List<AcademicYear> results = academicYearRepository.findAll();
 
         // Assert: student sees records from both tenants
@@ -247,45 +211,29 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
                 .containsExactlyInAnyOrder(TENANT_1_ID, TENANT_2_ID);
     }
 
-    /**
-     * Student-owned data isolation is enforced by {@code student_id} / {@code user_id}
-     * ownership predicates at the service layer — NOT by the Hibernate tenant filter.
-     *
-     * <p>This test verifies the inverse: that when the tenant filter is active for a
-     * building-owner tenant, a PLATFORM-sentinel record (simulating a student's resource)
-     * is correctly excluded from that tenant's scoped view.  This ensures that setting
-     * tenant_id=0 on student records does not accidentally expose them inside a
-     * building-owner's filtered session.
-     */
     @Test
     @DisplayName("student_cannotSee_anotherStudentsDocuments")
     void student_cannotSee_anotherStudentsDocuments() {
-        // Arrange: one record owned by a building-owner tenant, one "owned" by PLATFORM
+        // Arrange: one record for a tenant, one for PLATFORM
         saveYearForTenant("2025 Owner-A Record", TENANT_1_ID);
         saveYearForTenant("2025 Student Record", TenantContext.PLATFORM_TENANT_ID);
         entityManager.flush();
         entityManager.clear();
 
-        // Act: building-owner tenant filter active — scoped to TENANT_1 only
+        // Act: tenant filter active — scoped to TENANT_1 only
         enableTenantFilter(TENANT_1_ID);
         List<AcademicYear> results = academicYearRepository.findAll();
 
         // Assert: the PLATFORM-sentinel record (tenantId=0) is NOT visible inside
-        // a building-owner's scoped view; only the owner's own record appears.
+        // a tenant-scoped view; only the tenant's own record appears.
         assertThat(results).hasSize(1);
         assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_1_ID);
     }
 
-    /**
-     * Building-owner tenant isolation must remain intact after the PLATFORM sentinel
-     * bypass is introduced.  A building owner can only see their own buildings —
-     * records belonging to a different building owner must not be visible.
-     */
     @Test
-    @DisplayName("buildingOwner_cannotSee_anotherOwnersBuildings")
-    void buildingOwner_cannotSee_anotherOwnersBuildings() {
+    @DisplayName("tenant_cannotSee_anotherTenantsBuildings")
+    void tenant_cannotSee_anotherTenantsBuildings() {
         // Arrange: two records for tenant 1, two records for tenant 2
-        // Names capped at 20 chars (VARCHAR(20) constraint on academic_year.name)
         saveYearForTenant("2025 OA Bldg 1", TENANT_1_ID);
         saveYearForTenant("2025 OA Bldg 2", TENANT_1_ID);
         saveYearForTenant("2025 OB Bldg 1", TENANT_2_ID);
@@ -293,105 +241,20 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
         entityManager.flush();
         entityManager.clear();
 
-        // Act: filter scoped to tenant 1 (building owner A)
+        // Act: filter scoped to tenant 1
         enableTenantFilter(TENANT_1_ID);
         List<AcademicYear> results = academicYearRepository.findAll();
 
-        // Assert: owner A sees only their own buildings; owner B's buildings are hidden
+        // Assert: tenant 1 sees only their own records
         assertThat(results).hasSize(2);
         assertThat(results).extracting(AcademicYear::getTenantId)
                 .containsOnly(TENANT_1_ID);
     }
 
     // ────────────────────────────────────────────────────────────
-    // TASK-2.13: BuildingOwner — tenant isolation (H2-compatible)
+    // IntakePeriod — tenant isolation
     // ────────────────────────────────────────────────────────────
 
-    /**
-     * Verifies that a {@link BuildingOwner} record created by Tenant A is visible only
-     * when the Hibernate filter is enabled for Tenant A, and is hidden under Tenant B's filter.
-     *
-     * <p>{@link BuildingOwner} only requires an {@link AppUser} parent — no jsonb columns
-     * are involved, so this test is fully H2-compatible once the pre-existing context issue
-     * (missing {@code academic_year} table) is resolved.
-     */
-    @Test
-    @DisplayName("buildingOwnerRecord_notVisibleToCrossTenantQuery")
-    void buildingOwnerRecord_notVisibleToCrossTenantQuery() {
-        // Arrange: two building owners, one per tenant
-        AppUser user1 = saveUser("owner1@test.com");
-        AppUser user2 = saveUser("owner2@test.com");
-        saveBuildingOwner(user1, "Owner Corp A", TENANT_1_ID);
-        saveBuildingOwner(user2, "Owner Corp B", TENANT_2_ID);
-        entityManager.flush();
-        entityManager.clear();
-
-        // Act: filter scoped to tenant 1
-        enableTenantFilter(TENANT_1_ID);
-        List<BuildingOwner> results = buildingOwnerRepository.findAll();
-
-        // Assert: only tenant 1's building owner is visible
-        assertThat(results).hasSize(1);
-        assertThat(results.get(0).getBusinessName()).isEqualTo("Owner Corp A");
-        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_1_ID);
-    }
-
-    // ────────────────────────────────────────────────────────────
-    // TASK-2.13: BuildingStaff — tenant isolation (H2-compatible)
-    // ────────────────────────────────────────────────────────────
-
-    /**
-     * Verifies that a {@link BuildingStaff} record belonging to Tenant A is not visible
-     * when the Hibernate filter is enabled for Tenant B.
-     *
-     * <p>{@link BuildingStaff} requires an {@link AppUser} and a {@link BuildingOwner} parent.
-     * Both are H2-compatible (no jsonb columns), so this test exercises the full tenant
-     * isolation chain for staff records.
-     */
-    @Test
-    @DisplayName("buildingStaffRecord_notVisibleToCrossTenantQuery")
-    void buildingStaffRecord_notVisibleToCrossTenantQuery() {
-        // Arrange: two staff members, each associated with a different tenant's owner
-        AppUser ownerUser1 = saveUser("staff-owner1@test.com");
-        AppUser ownerUser2 = saveUser("staff-owner2@test.com");
-        AppUser staffUser1 = saveUser("staff1@test.com");
-        AppUser staffUser2 = saveUser("staff2@test.com");
-
-        BuildingOwner owner1 = saveBuildingOwner(ownerUser1, "Owner Corp A", TENANT_1_ID);
-        BuildingOwner owner2 = saveBuildingOwner(ownerUser2, "Owner Corp B", TENANT_2_ID);
-        saveBuildingStaff(staffUser1, owner1, TENANT_1_ID);
-        saveBuildingStaff(staffUser2, owner2, TENANT_2_ID);
-        entityManager.flush();
-        entityManager.clear();
-
-        // Act: filter scoped to tenant 2
-        enableTenantFilter(TENANT_2_ID);
-        List<BuildingStaff> results = buildingStaffRepository.findAll();
-
-        // Assert: only tenant 2's staff record is visible
-        assertThat(results).hasSize(1);
-        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_2_ID);
-    }
-
-    // ────────────────────────────────────────────────────────────
-    // TASK-2.13: IntakePeriod — tenant isolation
-    // NOTE: Blocked by pre-existing H2 schema issue (Building has
-    // jsonb column; H2 cannot create the building table).
-    // Tests are present to specify the requirement and will pass
-    // once the pre-existing context-load failure is resolved.
-    // ────────────────────────────────────────────────────────────
-
-    /**
-     * Verifies that an {@link IntakePeriod} record belonging to Tenant A is not visible
-     * when the Hibernate filter is scoped to Tenant B.
-     *
-     * <p><b>Pre-existing blocker:</b> The {@code @DataJpaTest} context fails to load due to
-     * the {@code academic_year} table missing in H2 (schema-validation failure unrelated to
-     * TASK-2.13). Additionally, {@code IntakePeriod} requires a {@link Building} parent,
-     * and {@code Building} contains a {@code jsonb} column ({@code address_components})
-     * that H2 cannot parse in {@code create-drop} mode.  Both issues must be resolved
-     * before this test can run.
-     */
     @Test
     @DisplayName("intakePeriodRecord_notVisibleToCrossTenantQuery")
     void intakePeriodRecord_notVisibleToCrossTenantQuery() {
@@ -414,16 +277,9 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
     }
 
     // ────────────────────────────────────────────────────────────
-    // TASK-2.13: CustomApplicationField — tenant isolation
-    // NOTE: Same pre-existing H2 blocker as IntakePeriod.
+    // CustomApplicationField — tenant isolation
     // ────────────────────────────────────────────────────────────
 
-    /**
-     * Verifies that a {@link CustomApplicationField} record belonging to Tenant A is not
-     * visible when the Hibernate filter is scoped to Tenant B.
-     *
-     * <p><b>Pre-existing blocker:</b> same as {@link #intakePeriodRecord_notVisibleToCrossTenantQuery()}.
-     */
     @Test
     @DisplayName("customApplicationFieldRecord_notVisibleToCrossTenantQuery")
     void customApplicationFieldRecord_notVisibleToCrossTenantQuery() {
@@ -446,16 +302,9 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
     }
 
     // ────────────────────────────────────────────────────────────
-    // TASK-2.13: RequiredDocumentType — tenant isolation
-    // NOTE: Same pre-existing H2 blocker as IntakePeriod.
+    // RequiredDocumentType — tenant isolation
     // ────────────────────────────────────────────────────────────
 
-    /**
-     * Verifies that a {@link RequiredDocumentType} record belonging to Tenant A is not
-     * visible when the Hibernate filter is scoped to Tenant B.
-     *
-     * <p><b>Pre-existing blocker:</b> same as {@link #intakePeriodRecord_notVisibleToCrossTenantQuery()}.
-     */
     @Test
     @DisplayName("requiredDocumentTypeRecord_notVisibleToCrossTenantQuery")
     void requiredDocumentTypeRecord_notVisibleToCrossTenantQuery() {
@@ -515,58 +364,8 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
         }
     }
 
-    /** Counter to generate unique email addresses across tests within the same session. */
-    private static final AtomicInteger USER_SEQ = new AtomicInteger(0);
-
-    /**
-     * Persists a minimal valid {@link AppUser} row. All {@code nullable=false} fields are
-     * supplied; {@code @PrePersist} handles {@code createdAt}/{@code updatedAt} automatically.
-     */
-    private AppUser saveUser(String email) {
-        AppUser user = AppUser.builder()
-                .email(email + "." + USER_SEQ.incrementAndGet())
-                .userPassword("hashed-password")
-                .userRole(UserRole.BUILDING_OWNER)
-                .firstName("Test")
-                .lastName("User")
-                .tenantId(TENANT_1_ID)
-                .build();
-        return appUserRepository.save(user);
-    }
-
-    /**
-     * Persists a {@link BuildingOwner} for the given user and tenant.
-     * {@code approvedBy} is intentionally left {@code null} (nullable FK).
-     */
-    private BuildingOwner saveBuildingOwner(AppUser user, String businessName, Long tenantId) {
-        BuildingOwner owner = BuildingOwner.builder()
-                .user(user)
-                .businessName(businessName)
-                .tenantId(tenantId)
-                .build();
-        return buildingOwnerRepository.save(owner);
-    }
-
-    /**
-     * Persists a {@link BuildingStaff} for the given user, owner, and tenant.
-     */
-    private BuildingStaff saveBuildingStaff(AppUser user, BuildingOwner owner, Long tenantId) {
-        BuildingStaff staff = BuildingStaff.builder()
-                .user(user)
-                .owner(owner)
-                .permissionSet("FULL")
-                .tenantId(tenantId)
-                .build();
-        return buildingStaffRepository.save(staff);
-    }
-
     /**
      * Persists a minimal {@link Building} row.
-     *
-     * <p><b>Note:</b> {@code Building} contains a {@code jsonb} column
-     * ({@code address_components}) which H2 cannot parse in {@code create-drop} mode.
-     * Tests using this helper are blocked by the pre-existing H2 context-load failure
-     * and will only run once that issue is resolved.
      */
     private Building saveBuilding(String name, Long tenantId) {
         Building building = new Building();

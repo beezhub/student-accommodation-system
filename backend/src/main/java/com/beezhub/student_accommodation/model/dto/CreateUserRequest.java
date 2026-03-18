@@ -20,7 +20,7 @@ public class CreateUserRequest {
     private String password;
 
     @NotBlank(message = "Role is required")
-    private String userRole; // Will be validated to only allow PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF
+    private String userRole; // Will be validated to only allow PLATFORM_ADMIN or BUILDING_STAFF
 
     private Long tenantId; // Optional tenant assignment
 }

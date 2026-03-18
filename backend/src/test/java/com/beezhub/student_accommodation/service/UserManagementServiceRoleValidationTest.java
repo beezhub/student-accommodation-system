@@ -83,22 +83,6 @@ class UserManagementServiceRoleValidationTest {
     }
 
     @Test
-    @DisplayName("Creating a BUILDING_OWNER user succeeds")
-    void createUser_buildingOwner_succeeds() {
-        stubPasswordEncoder();
-        AppUser savedUser = AppUser.builder()
-                .email("test@example.com")
-                .userRole(UserRole.BUILDING_OWNER)
-                .build();
-        when(appUserMapper.toEntityFromAdminRequest(any(), anyString())).thenReturn(savedUser);
-        when(userRepository.save(any())).thenReturn(savedUser);
-        when(appUserMapper.toUserData(any())).thenReturn(new UserData());
-
-        UserData result = userManagementService.createUser(buildRequest("Building_Owner"));
-        assertThat(result).isNotNull();
-    }
-
-    @Test
     @DisplayName("Creating a BUILDING_STAFF user succeeds")
     void createUser_buildingStaff_succeeds() {
         stubPasswordEncoder();

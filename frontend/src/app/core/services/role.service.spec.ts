@@ -57,13 +57,6 @@ describe('RoleService', () => {
     expect(service.isStudent()).toBeFalse();
   });
 
-  it('isBuildingOwner_whenUserIsBuildingOwner_returnsTrue', () => {
-    (
-      Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
-    ).and.returnValue({ userRole: ROLE.BUILDING_OWNER });
-    expect(service.isBuildingOwner()).toBeTrue();
-  });
-
   it('isBuildingStaff_whenUserIsBuildingStaff_returnsTrue', () => {
     (
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
@@ -75,13 +68,6 @@ describe('RoleService', () => {
     (
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
     ).and.returnValue({ userRole: ROLE.PLATFORM_ADMIN });
-    expect(service.isAdmin()).toBeTrue();
-  });
-
-  it('isAdmin_whenUserIsBuildingOwner_returnsTrue', () => {
-    (
-      Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
-    ).and.returnValue({ userRole: ROLE.BUILDING_OWNER });
     expect(service.isAdmin()).toBeTrue();
   });
 
@@ -105,7 +91,6 @@ describe('RoleService', () => {
     ).and.returnValue({ userRole: 'UNKNOWN_ROLE' });
     expect(service.isPlatformAdmin()).toBeFalse();
     expect(service.isStudent()).toBeFalse();
-    expect(service.isBuildingOwner()).toBeFalse();
     expect(service.isBuildingStaff()).toBeFalse();
   });
 
@@ -115,7 +100,6 @@ describe('RoleService', () => {
     ).and.returnValue(null);
     expect(service.isPlatformAdmin()).toBeFalse();
     expect(service.isStudent()).toBeFalse();
-    expect(service.isBuildingOwner()).toBeFalse();
     expect(service.isBuildingStaff()).toBeFalse();
     expect(service.isAdmin()).toBeFalse();
   });

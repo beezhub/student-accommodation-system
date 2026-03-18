@@ -26,10 +26,4 @@ public final class EmailSubjects {
     public static final String OFFER_EXPIRY_REMINDER = "Action Required: Room Offer Expiring Soon";
     public static final String CHECK_IN_REMINDER = "Reminder: Check-In Deadline Approaching";
     public static final String CHECK_IN_EXPIRED = "Check-In Deadline Expired - Application Cancelled";
-
-    // Building owner onboarding
-    public static final String OWNER_REGISTRATION_CONFIRM = "Registration received — please verify your email";
-    public static final String OWNER_VERIFICATION_REMINDER = "Reminder: Please verify your email to continue";
-    public static final String OWNER_REGISTRATION_APPROVED = "Your building owner account has been approved";
-    public static final String OWNER_REGISTRATION_REJECTED = "Update on your building owner registration";
 }

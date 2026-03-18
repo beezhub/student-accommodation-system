@@ -168,7 +168,7 @@ describe('ApplicationService', () => {
   describe('getApplicationByStatus', () => {
     it('getApplicationByStatus_statusParam_getsFromStatusEndpoint', () => {
       service.getApplicationByStatus('PENDING').subscribe();
-      const req = httpMock.expectOne(`${apiUrl}/PENDING`);
+      const req = httpMock.expectOne(`${apiUrl}/status/PENDING`);
       expect(req.request.method).toBe('GET');
       req.flush([mockApplication]);
     });

@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>7/7</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>9/9</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
@@ -108,12 +108,7 @@
 <a name='L43'></a><a href='#L43'>43</a>
 <a name='L44'></a><a href='#L44'>44</a>
 <a name='L45'></a><a href='#L45'>45</a>
-<a name='L46'></a><a href='#L46'>46</a>
-<a name='L47'></a><a href='#L47'>47</a>
-<a name='L48'></a><a href='#L48'>48</a>
-<a name='L49'></a><a href='#L49'>49</a>
-<a name='L50'></a><a href='#L50'>50</a>
-<a name='L51'></a><a href='#L51'>51</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L46'></a><a href='#L46'>46</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -125,26 +120,24 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">20x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">26x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -157,13 +150,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Injectable } from '@angular/core';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Injectable, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 import { ROLE } from '../models/role.model';
 &nbsp;
@@ -175,7 +165,7 @@ import { ROLE } from '../models/role.model';
   providedIn: 'root',
 })
 export class RoleService {
-  constructor(private authService: AuthService) {}
+  private authService = inject(AuthService);
 &nbsp;
   /** Returns the current user's role string, or null if not logged in. */
   get currentRole(): string | null {
@@ -184,33 +174,28 @@ export class RoleService {
 &nbsp;
   /** True if the current user is a PLATFORM_ADMIN. */
   isPlatformAdmin(): boolean {
-    return this.currentRole === ROLE.PLATFORM_ADMIN;
-  }
-&nbsp;
-  /** True if the current user is a BUILDING_OWNER. */
-  isBuildingOwner(): boolean {
-    return this.currentRole === ROLE.BUILDING_OWNER;
+    return (
+      this.currentRole?.toUpperCase() === ROLE.PLATFORM_ADMIN.toUpperCase() ||
+      this.currentRole?.toUpperCase() === ROLE.ADMIN.toUpperCase()
+    );
   }
 &nbsp;
   /** True if the current user is a BUILDING_STAFF. */
   isBuildingStaff(): boolean {
-    return this.currentRole === ROLE.BUILDING_STAFF;
+    return this.currentRole?.toUpperCase() === ROLE.BUILDING_STAFF.toUpperCase();
   }
 &nbsp;
   /** True if the current user is a STUDENT. */
   isStudent(): boolean {
-    return this.currentRole === ROLE.STUDENT;
+    return this.currentRole?.toUpperCase() === ROLE.STUDENT.toUpperCase();
   }
 &nbsp;
   /**
    * True if the current user has any administrative role
-   * (PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF).
+   * (PLATFORM_ADMIN or BUILDING_STAFF).
    */
   isAdmin(): boolean {
-    const role = this.currentRole;
-    return (
-      role === ROLE.PLATFORM_ADMIN || role === ROLE.BUILDING_OWNER || role === ROLE.BUILDING_STAFF
-    );
+    return this.isPlatformAdmin() || this.isBuildingStaff();
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -220,7 +205,7 @@ export class RoleService {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-25T14:35:48.098Z
+                at 2026-03-18T18:17:39.718Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
