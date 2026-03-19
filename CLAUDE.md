@@ -101,6 +101,26 @@ docker-compose down        # Stop all services
 - `NotificationService` - Email notifications with retry logic
 - `DocumentService` - Document upload/verification with MinIO integration
 - `GoogleMapsService` - Geocoding for building addresses
+- `SystemSettingService` - Cascade-model settings (platform defaults + tenant overrides)
+
+**Multi-Tenancy Architecture:**
+- Every request runs in a tenant context set by `TenantContext` (thread-local `Long tenantId`)
+- `TenantListener` (`@PrePersist`) auto-stamps `tenant_id` on new entities from `TenantContext`
+- Hibernate filter `tenantFilter` scopes all queries to the current tenant automatically
+- **PLATFORM tenant** (`tenant_id = 0`) is seeded by Flyway; used for platform-wide defaults
+- `TenantFilterAspect` (AOP) activates/deactivates the Hibernate filter around service methods
+- Entities with a tenant FK have dual mapping: `@Column tenantId` (writable) + `@ManyToOne tenant` (read-only, `insertable=false`)
+- Tests must set both `TenantContext.setTenantId(...)` and seed the Tenant row (id=0 always exists)
+
+**System Settings (cascade model):**
+- `system_setting` has composite PK `(tenant_id, setting_key)`
+- Platform defaults live at `tenant_id = 0`; tenant admins can create override rows
+- `getSetting(key)`: checks current tenant row first, falls back to platform row
+- `getAllSettings()`: merges platform map, overlaid by current tenant's rows
+- **API split:**
+  - `GET/PUT /api/platform/system-settings` — PLATFORM_ADMIN only, manages `tenant_id=0` rows
+  - `GET/PUT/DELETE /api/admin/system-settings` — ADMIN + PLATFORM_ADMIN, tenant-scoped view with cascade values
+- `auto_allocation_enabled` is a platform-only setting (ADMIN sees it read-only in the UI)
 
 **Allocation System:**
 - Applications are submitted by students with preferences
@@ -148,7 +168,7 @@ docker-compose down        # Stop all services
 - `waiting_list_entry` - Waitlist management
 - `academic_year`, `institution`, `year_of_study` - Reference data
 - `activity_log` - Audit trail
-- `system_setting` - Configuration key-value pairs
+- `system_setting` - Configuration key-value pairs; composite PK `(tenant_id, setting_key)`; cascade model (platform defaults at `tenant_id=0`, tenant overrides at their own `tenant_id`)
 
 **Important Notes:**
 - Flyway manages schema versions - never manually edit production DB
@@ -235,6 +255,23 @@ Configured in: `backend/src/main/resources/application.yml`
 - Used for entity-DTO mapping
 - Mappers are in `mapper/` package
 - Regenerate mappers after entity/DTO changes: `./gradlew build`
+
+## OpenSpec Workflow
+
+Changes are tracked in `openspec/changes/` using a spec-driven workflow.
+
+**Directory layout:**
+- `openspec/changes/<slug>/` — in-progress change (proposal, design, specs, tasks)
+- `openspec/changes/archive/` — completed/archived changes
+- `openspec/specs/` — canonical spec snapshots (updated after archiving)
+
+**Skills:** `/openspec-propose` → `/openspec-apply-change` → `/openspec-archive-change`
+
+Each change contains:
+- `proposal.md` — why/what/impact
+- `design.md` — technical design
+- `specs/<capability>/spec.md` — detailed capability spec
+- `tasks.md` — checked-off implementation tasks
 
 ## Branch Strategy
 

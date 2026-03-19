@@ -19,6 +19,10 @@ export class SystemSettingsService {
     return this.http.put<void>(`${this.apiUrl}/${key}`, { value });
   }
 
+  deleteSetting(key: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${key}`);
+  }
+
   isAutoAllocationEnabled(): Observable<boolean> {
     return this.getSettings().pipe(
       map((settings) => settings['auto_allocation_enabled'] === 'true')
