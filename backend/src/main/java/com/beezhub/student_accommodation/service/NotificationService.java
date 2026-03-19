@@ -92,6 +92,7 @@ public class NotificationService {
                 .type(type)
                 .status(NotificationStatus.PENDING)
                 .user(user)
+                .tenantId(user.getTenantId())
                 .referenceId(referenceId)
                 .referenceType(referenceType)
                 .retryCount(0)

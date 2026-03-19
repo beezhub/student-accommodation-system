@@ -17,6 +17,7 @@ spring:
       leak-detection-threshold: 60000
       connection-test-query: SELECT 1
   jpa:
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true

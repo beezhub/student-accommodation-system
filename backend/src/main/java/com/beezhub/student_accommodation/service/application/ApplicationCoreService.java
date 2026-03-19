@@ -32,9 +32,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import com.beezhub.student_accommodation.model.enums.UserRole;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.PENDING;
@@ -72,10 +76,51 @@ public class ApplicationCoreService {
                         throw new UnauthorizedAccessException("You can only submit applications for yourself");
                 }
 
-                // Check for existing pending application
-                if (applicationRepository.existsByStudent_IdAndStatus(studentId, PENDING)) {
-                        throw new DuplicateApplicationException("Student already has a pending application");
+                // Validate at least one building preference is provided (required to identify the tenant)
+                List<Long> preferredBuildingIds = request.getPreferredBuildingIds();
+                boolean hasMultiPrefs = preferredBuildingIds != null && !preferredBuildingIds.isEmpty();
+                boolean hasLegacyPref = request.getPreferredBuildingId() != null;
+                if (!hasMultiPrefs && !hasLegacyPref) {
+                        throw new IllegalArgumentException(
+                                        "At least one building preference is required to identify the property company");
                 }
+
+                // Validate max 3 preferences
+                if (hasMultiPrefs && preferredBuildingIds.size() > 3) {
+                        throw new IllegalArgumentException("You can select at most 3 preferred buildings");
+                }
+
+                // Resolve all buildings upfront to derive and validate the tenant
+                List<Building> resolvedPreferenceBuildings = new ArrayList<>();
+                if (hasMultiPrefs) {
+                        for (Long buildingId : preferredBuildingIds) {
+                                resolvedPreferenceBuildings.add(
+                                        buildingRepository.findById(buildingId)
+                                                .orElseThrow(() -> new RuntimeException(
+                                                        "Building not found with ID: " + buildingId)));
+                        }
+                }
+
+                Building legacyBuilding = null;
+                if (hasLegacyPref) {
+                        legacyBuilding = buildingRepository.findById(request.getPreferredBuildingId())
+                                        .orElseThrow(() -> new RuntimeException(
+                                                        "Building not found with ID: " + request.getPreferredBuildingId()));
+                        // Only add to validation list if not already covered by multi-prefs
+                        if (!hasMultiPrefs) {
+                                resolvedPreferenceBuildings.add(legacyBuilding);
+                        }
+                }
+
+                // All buildings must belong to the same property company (tenant)
+                Set<Long> distinctTenantIds = resolvedPreferenceBuildings.stream()
+                                .map(Building::getTenantId)
+                                .collect(Collectors.toSet());
+                if (distinctTenantIds.size() > 1) {
+                        throw new IllegalArgumentException(
+                                        "All preferred buildings must belong to the same property company");
+                }
+                Long applicationTenantId = resolvedPreferenceBuildings.get(0).getTenantId();
 
                 // Validate application window is open
                 com.beezhub.student_accommodation.model.entity.AcademicYear currentYear = academicYearService
@@ -87,28 +132,25 @@ public class ApplicationCoreService {
                                                         currentYear.getApplicationCloseDate());
                 }
 
-                // Validate and get preferred building if provided (legacy single field)
-                Building preferredBuilding = null;
-                if (request.getPreferredBuildingId() != null) {
-                        preferredBuilding = buildingRepository.findById(request.getPreferredBuildingId())
-                                        .orElseThrow(() -> new RuntimeException(
-                                                        "Building not found with ID: "
-                                                                        + request.getPreferredBuildingId()));
-                        log.info("Setting preferred building {} for application", preferredBuilding.getName());
+                // Check for existing pending application per student per tenant (one per property company)
+                if (applicationRepository.existsByStudent_IdAndTenantIdAndStatus(studentId, applicationTenantId, PENDING)) {
+                        throw new DuplicateApplicationException(
+                                        "Student already has a pending application with this property company");
                 }
 
-                // Validate multi-preference building IDs
-                List<Long> preferredBuildingIds = request.getPreferredBuildingIds();
-                if (preferredBuildingIds != null && preferredBuildingIds.size() > 3) {
-                        throw new RuntimeException("You can select at most 3 preferred buildings");
-                }
+                // Determine legacy preferred building for the application entity
+                Building preferredBuilding = hasLegacyPref ? legacyBuilding
+                                : resolvedPreferenceBuildings.get(0);
+                log.info("Derived tenant_id={} from building '{}' for application",
+                                applicationTenantId, preferredBuilding.getName());
 
-                // Create and save application
+                // Create and save application — tenantId explicitly set, bypassing TenantListener
                 Application application = Application.builder()
                                 .applicationCode(generateApplicationCode())
                                 .applicationDate(LocalDate.now())
                                 .status(PENDING)
                                 .student(student)
+                                .tenantId(applicationTenantId)
                                 .requiresAccessibility(
                                                 request.getRequiresAccessibility() != null
                                                                 ? request.getRequiresAccessibility()
@@ -122,17 +164,13 @@ public class ApplicationCoreService {
 
                 Application savedApplication = applicationRepository.save(application);
 
-                // Persist ordered building preferences
-                if (preferredBuildingIds != null && !preferredBuildingIds.isEmpty()) {
+                // Persist ordered building preferences (buildings already resolved)
+                if (hasMultiPrefs) {
                         List<ApplicationBuildingPreference> preferences = new ArrayList<>();
-                        for (int i = 0; i < preferredBuildingIds.size(); i++) {
-                                Long buildingId = preferredBuildingIds.get(i);
-                                Building building = buildingRepository.findById(buildingId)
-                                                .orElseThrow(() -> new RuntimeException(
-                                                                "Building not found with ID: " + buildingId));
+                        for (int i = 0; i < resolvedPreferenceBuildings.size(); i++) {
                                 preferences.add(ApplicationBuildingPreference.builder()
                                                 .application(savedApplication)
-                                                .building(building)
+                                                .building(resolvedPreferenceBuildings.get(i))
                                                 .preferenceOrder(i + 1)
                                                 .build());
                         }
@@ -168,8 +206,16 @@ public class ApplicationCoreService {
                 // Verify authorization
                 AppUser currentUser = authService.getCurrentUser();
 
-                if (!application.getStudent().getAppUser().getId().equals(currentUser.getId()) &&
-                                !currentUser.getUserRole().isAdmin()) {
+                if (currentUser.getUserRole() == UserRole.TENANT_ADMIN) {
+                        // TENANT_ADMIN can only see applications belonging to their own tenant.
+                        // findById bypasses the Hibernate filter, so we check explicitly.
+                        Long callerTenantId = TenantContext.getTenantId();
+                        if (callerTenantId == null || !callerTenantId.equals(application.getTenantId())) {
+                                throw new ApplicationNotFoundException(
+                                                "Application not found with ID: " + applicationId);
+                        }
+                } else if (!currentUser.getUserRole().isAdmin()
+                                && !application.getStudent().getAppUser().getId().equals(currentUser.getId())) {
                         throw new UnauthorizedAccessException("You are not authorized to view this application");
                 }
 
