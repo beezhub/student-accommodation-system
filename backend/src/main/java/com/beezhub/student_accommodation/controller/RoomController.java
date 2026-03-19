@@ -69,7 +69,7 @@ public class RoomController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Create room", description = "Creates a new accommodation room. Admin only.")
     public ResponseEntity<RoomResponse> createRoom(@Valid @RequestBody RoomRequest request) {
         log.info("Creating new room: {}", request.getRoomNumber());
@@ -78,7 +78,7 @@ public class RoomController {
     }
 
     @PostMapping("/bulk")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Create multiple rooms", description = "Creates multiple accommodation rooms at once. Admin only.")
     public ResponseEntity<List<RoomResponse>> createBulkRooms(@Valid @RequestBody List<RoomRequest> requests) {
         log.info("Bulk creating {} rooms", requests.size());
@@ -87,7 +87,7 @@ public class RoomController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Update room", description = "Updates an existing room. Admin only.")
     public ResponseEntity<RoomResponse> updateRoom(@PathVariable Long id,
             @Valid @RequestBody RoomRequest request) {
@@ -96,7 +96,7 @@ public class RoomController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete room", description = "Deletes a room. Admin only.")
     public ResponseEntity<Void> deleteRoom(@PathVariable Long id) {
         log.info("Deleting room with id: {}", id);

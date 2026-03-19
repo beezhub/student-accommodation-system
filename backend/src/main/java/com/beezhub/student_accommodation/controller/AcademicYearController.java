@@ -24,14 +24,14 @@ public class AcademicYearController {
     private final AcademicYearService academicYearService;
 
     @GetMapping
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Get all academic years", description = "Returns a list of all academic years")
     public ResponseEntity<List<AcademicYearResponse>> getAllAcademicYears() {
         return ResponseEntity.ok(academicYearService.getAllAcademicYears());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Get academic year by ID", description = "Returns a single academic year")
     public ResponseEntity<AcademicYearResponse> getAcademicYearById(
             @Parameter(description = "ID of the academic year", required = true) @PathVariable Long id) {
@@ -45,7 +45,7 @@ public class AcademicYearController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Create academic year", description = "Creates a new academic year")
     public ResponseEntity<AcademicYearResponse> createAcademicYear(
             @Valid @RequestBody AcademicYearRequest request) {
@@ -54,7 +54,7 @@ public class AcademicYearController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Update academic year", description = "Updates an existing academic year")
     public ResponseEntity<AcademicYearResponse> updateAcademicYear(
             @Parameter(description = "ID of the academic year", required = true) @PathVariable Long id,
@@ -63,7 +63,7 @@ public class AcademicYearController {
     }
 
     @PostMapping("/{id}/set-current")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Set academic year as current", description = "Marks an academic year as the current active year")
     public ResponseEntity<AcademicYearResponse> setCurrentAcademicYear(
             @Parameter(description = "ID of the academic year", required = true) @PathVariable Long id) {
@@ -71,7 +71,7 @@ public class AcademicYearController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete academic year", description = "Deletes an academic year if no applications are linked")
     public ResponseEntity<Void> deleteAcademicYear(
             @Parameter(description = "ID of the academic year", required = true) @PathVariable Long id) {

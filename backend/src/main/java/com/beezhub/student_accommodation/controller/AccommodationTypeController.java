@@ -32,7 +32,7 @@ public class AccommodationTypeController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Get all accommodation types", description = "Returns paginated list of all accommodation types. Admin only.")
     public ResponseEntity<PageResponse<AccommodationTypeResponse>> getAllTypes(
             @PageableDefault(size = 20, sort = "name") Pageable pageable) {
@@ -40,14 +40,14 @@ public class AccommodationTypeController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Get accommodation type by ID", description = "Returns a single accommodation type. Admin only.")
     public ResponseEntity<AccommodationTypeResponse> getTypeById(@PathVariable Long id) {
         return ResponseEntity.ok(accommodationTypeService.getById(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Create accommodation type", description = "Creates a new accommodation type. Admin only.")
     public ResponseEntity<AccommodationTypeResponse> createType(@Valid @RequestBody AccommodationTypeRequest request) {
         AccommodationTypeResponse response = accommodationTypeService.create(request);
@@ -55,7 +55,7 @@ public class AccommodationTypeController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Update accommodation type", description = "Updates an existing accommodation type. Admin only.")
     public ResponseEntity<AccommodationTypeResponse> updateType(
             @PathVariable Long id,
@@ -64,7 +64,7 @@ public class AccommodationTypeController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete accommodation type", description = "Deletes an accommodation type. Admin only.")
     public ResponseEntity<Void> deleteType(@PathVariable Long id) {
         accommodationTypeService.delete(id);

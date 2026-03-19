@@ -6,6 +6,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -40,6 +41,16 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                                 ex.getMessage(),
                                 request.getDescription(false));
                 return new ResponseEntity<>(errorResponse, new HttpHeaders(), HttpStatus.CONFLICT);
+        }
+
+        @ExceptionHandler(AccessDeniedException.class)
+        public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.FORBIDDEN.value(),
+                                "Access denied: you do not have permission to perform this action",
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
         }
 
         @ExceptionHandler(RuntimeException.class)

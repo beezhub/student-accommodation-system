@@ -80,7 +80,7 @@ public class RoomAllocationController {
         }
 
         @PostMapping
-        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Create room allocation", description = "Creates a new room allocation (assigns a student to a room). Admin only.")
         public ResponseEntity<RoomAllocationResponse> createRoomAllocation(
                         @Valid @RequestBody RoomAllocationRequest request) {
@@ -91,7 +91,7 @@ public class RoomAllocationController {
         }
 
         @PutMapping("/{id}")
-        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Update room allocation", description = "Updates an existing room allocation. Admin only.")
         public ResponseEntity<RoomAllocationResponse> updateRoomAllocation(@PathVariable Long id,
                         @Valid @RequestBody RoomAllocationRequest request) {
@@ -118,7 +118,7 @@ public class RoomAllocationController {
         }
 
         @PostMapping("/{id}/check-in")
-        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(
                 summary = "Check in student", 
                 description = "Confirms student physical arrival and activates the allocation. " +
@@ -131,7 +131,7 @@ public class RoomAllocationController {
         }
 
         @PostMapping("/{id}/check-out")
-        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Check out student", description = "Confirms student departure and completes the allocation. Admin only.")
         public ResponseEntity<RoomAllocationResponse> checkOut(@PathVariable Long id) {
                 log.info("Checking out allocation with id: {}", id);
@@ -139,7 +139,7 @@ public class RoomAllocationController {
         }
 
         @DeleteMapping("/{id}")
-        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Delete room allocation", description = "Deletes a room allocation (removes student from room). Admin only.")
         public ResponseEntity<Void> deleteRoomAllocation(@PathVariable Long id) {
                 log.info("Deleting room allocation with id: {}", id);
@@ -148,7 +148,7 @@ public class RoomAllocationController {
         }
 
         @PatchMapping("/{id}/end")
-        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "End room allocation", description = "Ends an active room allocation by setting status to COMPLETED. Admin only.")
         public ResponseEntity<RoomAllocationResponse> endRoomAllocation(@PathVariable Long id) {
                 log.info("Ending room allocation with id: {}", id);
@@ -165,7 +165,7 @@ public class RoomAllocationController {
         }
 
         @PostMapping("/allocate-by-application")
-        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Allocate room by application", description = "Allocates a room to a student based on an approved application. Validates business rules automatically. Admin only.")
         public ResponseEntity<RoomAllocationResponse> allocateRoomByApplication(
                         @Valid @RequestBody AllocateByApplicationRequest request) {
@@ -212,7 +212,7 @@ public class RoomAllocationController {
         }
 
         @GetMapping("/admin/student/{studentId}/eligible-rooms")
-        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Get eligible rooms for student", description = "Returns rooms that meet all hard constraints for a student (gender, accessibility, year of study, institution)")
         @ApiResponses(value = {
                         @ApiResponse(responseCode = "200", description = "Eligible rooms retrieved successfully"),
@@ -230,7 +230,7 @@ public class RoomAllocationController {
         // ==================== Audit History ====================
 
         @GetMapping("/{id}/history")
-        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Get allocation status history",
                 description = "Returns the full audit history for a room allocation, ordered by most recent first")
         @ApiResponse(responseCode = "200", description = "Audit history retrieved successfully")

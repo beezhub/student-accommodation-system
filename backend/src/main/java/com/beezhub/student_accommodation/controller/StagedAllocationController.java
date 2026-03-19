@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Staged Allocation Management", description = "Batch allocation proposal and confirmation workflows")
-@PreAuthorize("hasRole('PLATFORM_ADMIN')")
+@PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
 public class StagedAllocationController {
 
         private final RoomAllocationService roomAllocationService;

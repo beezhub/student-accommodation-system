@@ -74,7 +74,7 @@ public class StudentController {
 
     @GetMapping
     @Operation(summary = "List all students (admin)", description = "Returns list of students. Supports pagination with query params: page, size, sort")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     public ResponseEntity<PageResponse<StudentResponse>> listStudents(
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
 
@@ -84,7 +84,7 @@ public class StudentController {
 
     @GetMapping("/search")
     @Operation(summary = "Search students (admin)", description = "Search and filter students by name, student number, email, institution, or year of study")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     public ResponseEntity<PageResponse<StudentResponse>> searchStudents(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String studentNumber,
@@ -98,7 +98,7 @@ public class StudentController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete student (admin)")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
         studentService.deleteStudentByUserId(id);
         return ResponseEntity.noContent().build();

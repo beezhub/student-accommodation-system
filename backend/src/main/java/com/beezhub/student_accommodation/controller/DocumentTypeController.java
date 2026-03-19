@@ -62,7 +62,7 @@ public class DocumentTypeController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Create document type", description = "Creates a new document type. Admin only.")
     public ResponseEntity<DocumentTypeResponse> createDocumentType(@Valid @RequestBody DocumentTypeRequest request) {
         DocumentTypeResponse response = documentTypeService.createDocumentType(request);
@@ -70,7 +70,7 @@ public class DocumentTypeController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Update document type", description = "Updates an existing document type. Admin only.")
     public ResponseEntity<DocumentTypeResponse> updateDocumentType(@PathVariable Long id,
                                                                    @Valid @RequestBody DocumentTypeRequest request) {
@@ -78,7 +78,7 @@ public class DocumentTypeController {
     }
 
     @PatchMapping("/{id}/required")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Update required flag", description = "Updates the required flag for a document type. Admin only.")
     public ResponseEntity<DocumentTypeResponse> updateRequiredFlag(@PathVariable Long id,
                                                                    @RequestParam("required") boolean required) {
@@ -86,7 +86,7 @@ public class DocumentTypeController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete document type", description = "Deletes a document type. Admin only.")
     public ResponseEntity<Void> deleteDocumentType(@PathVariable Long id) {
         documentTypeService.deleteDocumentType(id);

@@ -86,7 +86,7 @@ public class BuildingController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Create building", description = "Creates a new accommodation building. Admin only.")
     public ResponseEntity<BuildingResponse> createBuilding(@Valid @RequestBody BuildingRequest request) {
         log.info("Creating new building: {}", request.getName());
@@ -95,7 +95,7 @@ public class BuildingController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Update building", description = "Updates an existing building. Admin only.")
     public ResponseEntity<BuildingResponse> updateBuilding(@PathVariable Long id,
             @Valid @RequestBody BuildingRequest request) {
@@ -104,7 +104,7 @@ public class BuildingController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete building", description = "Deletes a building. Admin only.")
     public ResponseEntity<Void> deleteBuilding(@PathVariable Long id) {
         log.info("Deleting building with id: {}", id);
@@ -115,7 +115,7 @@ public class BuildingController {
     // Building Image Endpoints
 
     @PostMapping("/{buildingId}/images")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Upload building images", description = "Upload one or more images for a building. Admin only.")
     public ResponseEntity<List<BuildingImageResponse>> uploadBuildingImages(
             @PathVariable Long buildingId,
@@ -134,7 +134,7 @@ public class BuildingController {
     }
 
     @DeleteMapping("/{buildingId}/images/{imageId}")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete building image", description = "Deletes a building image. Admin only.")
     public ResponseEntity<Void> deleteBuildingImage(
             @PathVariable Long buildingId,
@@ -145,7 +145,7 @@ public class BuildingController {
     }
 
     @PutMapping("/{buildingId}/images/{imageId}/primary")
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Set primary image", description = "Sets an image as the primary image for a building. Admin only.")
     public ResponseEntity<BuildingImageResponse> setPrimaryImage(
             @PathVariable Long buildingId,
