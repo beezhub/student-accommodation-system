@@ -34,4 +34,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      @Query("SELECT MAX(a.applicationCode) FROM Application a WHERE a.applicationCode LIKE :prefix%")
      Optional<String> findMaxApplicationCodeByPrefix(@Param("prefix") String prefix);
+
+     @Query("SELECT COUNT(DISTINCT a.student.id) FROM Application a")
+     long countDistinctStudents();
 }

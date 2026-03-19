@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,6 +77,7 @@ public class BuildingImageService {
         return responses;
     }
 
+    @Transactional(readOnly = true)
     public List<BuildingImageResponse> getImages(Long buildingId) {
         List<BuildingImage> images = buildingImageRepository.findByBuilding_IdOrderByDisplayOrderAsc(buildingId);
         return images.stream()
@@ -142,6 +143,7 @@ public class BuildingImageService {
         return toResponse(savedImage);
     }
 
+    @Transactional(readOnly = true)
     public String getPrimaryImageUrl(Long buildingId) {
         return buildingImageRepository.findByBuilding_IdAndPrimaryTrue(buildingId)
                 .map(image -> getPresignedUrl(image.getObjectPath()))
