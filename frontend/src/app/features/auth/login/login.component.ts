@@ -87,7 +87,7 @@ export class LoginComponent {
               panelClass: ['success-snackbar'],
             });
             // Redirect based on user role
-            if (this.roleService.isPlatformAdmin()) {
+            if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
               this.router.navigate(['/admin']);
             } else {
               this.router.navigate(['/dashboard']);

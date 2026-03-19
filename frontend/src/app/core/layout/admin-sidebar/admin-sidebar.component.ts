@@ -91,17 +91,17 @@ export class AdminSidebarComponent {
         { path: '/admin/year-of-study', icon: 'timeline', label: 'Years of Study' },
         { path: '/admin/academic-years', icon: 'date_range', label: 'Academic Years' },
         { path: '/admin/document-types', icon: 'folder', label: 'Doc Types' },
-        { path: '/admin/settings', icon: 'settings', label: 'System Settings' },
-        { path: '/admin/feature-flags', icon: 'toggle_on', label: 'Feature Flags' },
+        { path: '/admin/settings', icon: 'settings', label: 'System Settings', platformAdminOnly: true },
+        { path: '/admin/feature-flags', icon: 'toggle_on', label: 'Feature Flags', platformAdminOnly: true },
       ],
     },
     {
       label: 'Administration',
       items: [
-        { path: '/admin/users', icon: 'people', label: 'Users' },
+        { path: '/admin/users', icon: 'people', label: 'Users', platformAdminOnly: true },
         { path: '/admin/tenants', icon: 'corporate_fare', label: 'Tenants', platformAdminOnly: true },
         { path: '/admin/documents', icon: 'description', label: 'Documents' },
-        { path: '/admin/activity-logs', icon: 'history', label: 'Activity Logs' },
+        { path: '/admin/activity-logs', icon: 'history', label: 'Activity Logs', platformAdminOnly: true },
       ],
     },
   ];

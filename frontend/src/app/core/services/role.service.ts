@@ -25,6 +25,11 @@ export class RoleService {
     );
   }
 
+  /** True if the current user is a TENANT_ADMIN. */
+  isTenantAdmin(): boolean {
+    return this.currentRole?.toUpperCase() === ROLE.TENANT_ADMIN.toUpperCase();
+  }
+
   /** True if the current user is a BUILDING_STAFF. */
   isBuildingStaff(): boolean {
     return this.currentRole?.toUpperCase() === ROLE.BUILDING_STAFF.toUpperCase();
@@ -40,6 +45,6 @@ export class RoleService {
    * (PLATFORM_ADMIN or BUILDING_STAFF).
    */
   isAdmin(): boolean {
-    return this.isPlatformAdmin() || this.isBuildingStaff();
+    return this.isPlatformAdmin() || this.isTenantAdmin() || this.isBuildingStaff();
   }
 }

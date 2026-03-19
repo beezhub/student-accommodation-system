@@ -114,6 +114,15 @@
                 <div class="actions-cell">
                   <button
                     mat-icon-button
+                    class="action-btn manage-admins"
+                    (click)="openAdminDialog(tenant)"
+                    [disabled]="isPlatformTenant(tenant)"
+                    [matTooltip]="isPlatformTenant(tenant) ? 'Platform tenant has no admins' : 'Manage admin users'"
+                    [attr.aria-label]="'Manage admins for ' + tenant.name">
+                    <mat-icon>manage_accounts</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
                     class="action-btn edit"
                     (click)="openEditDialog(tenant)"
                     [disabled]="isPlatformTenant(tenant)"

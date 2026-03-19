@@ -5,7 +5,6 @@ import com.beezhub.student_accommodation.repository.AppUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -20,7 +19,6 @@ public class SseService {
     private final AppUserRepository appUserRepository;
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
 
-    @Transactional(readOnly = true)
     public SseEmitter subscribeByEmail(String email) {
         Long userId = appUserRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"))

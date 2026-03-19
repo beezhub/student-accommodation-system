@@ -82,7 +82,7 @@ public class SecurityConfig {
                                 "/api/building/by-institution/{institutionId}",
                                 "/api/building/{buildingId}/images")
                         .permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("PLATFORM_ADMIN")
+                        .requestMatchers("/api/admin/**").hasAnyRole("PLATFORM_ADMIN", "TENANT_ADMIN")
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/v3/api-docs/**").hasRole("PLATFORM_ADMIN")
@@ -105,7 +105,7 @@ public class SecurityConfig {
     @Bean
     public RoleHierarchy roleHierarchy() {
         return RoleHierarchyImpl.fromHierarchy(
-                "ROLE_PLATFORM_ADMIN > ROLE_BUILDING_STAFF");
+                "ROLE_PLATFORM_ADMIN > ROLE_TENANT_ADMIN\nROLE_PLATFORM_ADMIN > ROLE_BUILDING_STAFF");
     }
 
     /**

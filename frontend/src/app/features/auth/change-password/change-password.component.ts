@@ -94,7 +94,7 @@ export class ChangePasswordComponent implements OnInit {
           });
 
           // Navigate based on user role after successful password change
-          if (this.roleService.isPlatformAdmin()) {
+          if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
             this.router.navigate(['/admin']);
           } else {
             this.router.navigate(['/dashboard']);
@@ -135,7 +135,7 @@ export class ChangePasswordComponent implements OnInit {
 
   onCancel(): void {
     if (!this.isForced) {
-      if (this.roleService.isPlatformAdmin()) {
+      if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
         this.router.navigate(['/admin']);
       } else {
         this.router.navigate(['/dashboard']);

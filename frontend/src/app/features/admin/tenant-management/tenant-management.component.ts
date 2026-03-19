@@ -74,6 +74,17 @@ export class TenantManagementComponent implements OnInit {
     });
   }
 
+  openAdminDialog(tenant: Tenant): void {
+    import('./tenant-admin-management/tenant-admin-management.component').then((m) => {
+      this.dialog.open(m.TenantAdminManagementComponent, {
+        width: '860px',
+        maxWidth: '95vw',
+        data: { tenantId: tenant.id, tenantName: tenant.name },
+        panelClass: 'tenant-admin-dialog',
+      });
+    });
+  }
+
   openEditDialog(tenant: Tenant): void {
     import('./tenant-form-dialog/tenant-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.TenantFormDialogComponent, {

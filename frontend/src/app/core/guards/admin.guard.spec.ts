@@ -18,7 +18,10 @@ describe('AdminGuard', () => {
     authServiceSpy = jasmine.createSpyObj<AuthService>('AuthService', [], {
       currentUserValue: null,
     });
-    roleServiceSpy = jasmine.createSpyObj<RoleService>('RoleService', ['isPlatformAdmin']);
+    roleServiceSpy = jasmine.createSpyObj<RoleService>('RoleService', [
+      'isPlatformAdmin',
+      'isTenantAdmin',
+    ]);
     routerSpy = jasmine.createSpyObj<Router>('Router', ['navigate']);
 
     TestBed.configureTestingModule({
@@ -41,6 +44,20 @@ describe('AdminGuard', () => {
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
     ).and.returnValue({ userRole: ROLE.PLATFORM_ADMIN });
     roleServiceSpy.isPlatformAdmin.and.returnValue(true);
+    roleServiceSpy.isTenantAdmin.and.returnValue(false);
+
+    const result = guard.canActivate(mockRoute, mockState);
+
+    expect(result).toBeTrue();
+    expect(routerSpy.navigate).not.toHaveBeenCalled();
+  });
+
+  it('canActivate_tenantAdminUser_returnsTrue', () => {
+    (
+      Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
+    ).and.returnValue({ userRole: ROLE.TENANT_ADMIN });
+    roleServiceSpy.isPlatformAdmin.and.returnValue(false);
+    roleServiceSpy.isTenantAdmin.and.returnValue(true);
 
     const result = guard.canActivate(mockRoute, mockState);
 
@@ -53,6 +70,7 @@ describe('AdminGuard', () => {
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
     ).and.returnValue({ userRole: ROLE.STUDENT });
     roleServiceSpy.isPlatformAdmin.and.returnValue(false);
+    roleServiceSpy.isTenantAdmin.and.returnValue(false);
 
     const result = guard.canActivate(mockRoute, mockState);
 
@@ -65,6 +83,7 @@ describe('AdminGuard', () => {
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
     ).and.returnValue(null);
     roleServiceSpy.isPlatformAdmin.and.returnValue(false);
+    roleServiceSpy.isTenantAdmin.and.returnValue(false);
 
     const result = guard.canActivate(mockRoute, mockState);
 

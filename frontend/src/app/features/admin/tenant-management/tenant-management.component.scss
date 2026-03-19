@@ -363,6 +363,11 @@
 .action-btn {
   transition: all vars.$motion-fast ease !important;
 
+  &.manage-admins:hover:not([disabled]) {
+    background: rgba(vars.$accent-purple-light, 0.1);
+    color: vars.$accent-purple-dark;
+  }
+
   &.edit:hover:not([disabled]) {
     background: rgba(vars.$accent-purple-light, 0.1);
     color: vars.$accent-purple-dark;

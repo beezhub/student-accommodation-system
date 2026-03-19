@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { AdminGuard } from './core/guards/admin.guard';
+import { PlatformAdminGuard } from './core/guards/platform-admin.guard';
 import { StudentGuard } from './core/guards/student.guard';
 import { EmailVerifiedGuard } from './core/guards/email-verified.guard';
 
@@ -182,6 +183,7 @@ export const routes: Routes = [
       },
       {
         path: 'users',
+        canActivate: [PlatformAdminGuard],
         loadComponent: () =>
           import('./features/admin/user-management/user-management.component').then(
             (m) => m.UserManagementComponent
@@ -210,6 +212,7 @@ export const routes: Routes = [
       },
       {
         path: 'activity-logs',
+        canActivate: [PlatformAdminGuard],
         loadComponent: () =>
           import('./features/admin/activity-logs/activity-logs.component').then(
             (m) => m.ActivityLogsComponent
@@ -245,6 +248,7 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
+        canActivate: [PlatformAdminGuard],
         loadComponent: () =>
           import('./features/admin/system-settings/system-settings.component').then(
             (m) => m.SystemSettingsComponent
@@ -273,6 +277,7 @@ export const routes: Routes = [
       },
       {
         path: 'feature-flags',
+        canActivate: [PlatformAdminGuard],
         loadComponent: () =>
           import('./features/admin/feature-flag-management/feature-flag-management.component').then(
             (m) => m.FeatureFlagManagementComponent
@@ -280,6 +285,7 @@ export const routes: Routes = [
       },
       {
         path: 'tenants',
+        canActivate: [PlatformAdminGuard],
         loadComponent: () =>
           import('./features/admin/tenant-management/tenant-management.component').then(
             (m) => m.TenantManagementComponent

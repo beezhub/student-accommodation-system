@@ -10,6 +10,7 @@ import java.util.Arrays;
 public enum UserRole {
     STUDENT("Student"),
     PLATFORM_ADMIN("Platform_Admin"),
+    TENANT_ADMIN("Tenant_Admin"),
     BUILDING_STAFF("Building_Staff"),
     @Deprecated ADMIN("Admin");
 
@@ -41,6 +42,6 @@ public enum UserRole {
      * Covers both {@code PLATFORM_ADMIN} and the deprecated {@code ADMIN} during the migration window.
      */
     public boolean isAdmin() {
-        return this == PLATFORM_ADMIN || this == ADMIN;
+        return this == PLATFORM_ADMIN || this == TENANT_ADMIN || this == ADMIN;
     }
 }
