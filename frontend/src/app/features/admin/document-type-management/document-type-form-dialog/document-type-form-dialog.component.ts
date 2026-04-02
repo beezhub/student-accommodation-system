@@ -66,7 +66,14 @@ export class DocumentTypeFormDialogComponent implements OnInit {
         description: this.documentType.description,
         isRequired: this.documentType.isRequired,
       });
+    } else if (this.mode === 'create' && this.data.prefillName) {
+      this.documentTypeForm.patchValue({ name: this.data.prefillName });
     }
+  }
+
+  getTitle(): string {
+    if (this.data.shadow) return 'Override Platform Default';
+    return this.mode === 'create' ? 'Add New Document Type' : 'Edit Document Type';
   }
 
   onSubmit(): void {
@@ -102,11 +109,8 @@ export class DocumentTypeFormDialogComponent implements OnInit {
     this.dialogRef.close(false);
   }
 
-  getTitle(): string {
-    return this.mode === 'create' ? 'Add New Document Type' : 'Edit Document Type';
-  }
-
   getSubmitButtonText(): string {
+    if (this.data.shadow) return 'Create Override';
     return this.mode === 'create' ? 'Create' : 'Update';
   }
 }

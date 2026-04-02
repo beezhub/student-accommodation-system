@@ -13,6 +13,7 @@ public interface DocumentTypeMapper {
 
     @Mapping(source = "typeName", target = "name")
     @Mapping(source = "isRequired", target = "isRequired")
+    @Mapping(expression = "java(documentType.getTenantId() != null && documentType.getTenantId() == 0L)", target = "isPlatformDefault")
     DocumentTypeResponse toDto(DocumentType documentType);
 
     List<DocumentTypeResponse> toDtoList(List<DocumentType> documentTypes);

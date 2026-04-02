@@ -163,6 +163,8 @@ class DocumentLifecycleServiceTest {
 
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
+        when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
+        when(documentRepository.findByStudentIdAndDocumentTypeId(student.getId(), docType.getId())).thenReturn(Optional.empty());
 
         when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.invalid("Malware detected"));
 

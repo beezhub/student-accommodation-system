@@ -319,10 +319,38 @@
   }
 }
 
+.type-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .type-name {
   font-weight: 600;
   color: vars.$slate-900;
   font-size: 0.875rem;
+}
+
+.platform-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: vars.$radius-pill;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: #4338ca;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 0.7rem;
+    width: 0.7rem;
+    height: 0.7rem;
+  }
 }
 
 .description-text {
@@ -413,6 +441,11 @@
   &.delete:hover {
     background: rgba(vars.$error, 0.1);
     color: vars.$error;
+  }
+
+  &.override:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4338ca;
   }
 }
 

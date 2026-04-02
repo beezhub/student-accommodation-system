@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -142,7 +142,9 @@ export class RoomAllocationService {
   }
 
   getActiveAllocationByStudentId(studentId: number): Observable<RoomAllocationResponse> {
-    return this.http.get<RoomAllocationResponse>(`${this.apiUrl}/student/${studentId}/active`);
+    return this.http.get<RoomAllocationResponse>(`${this.apiUrl}/student/${studentId}/active`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   createAllocation(allocation: RoomAllocationRequest): Observable<RoomAllocationResponse> {

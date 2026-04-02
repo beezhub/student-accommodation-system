@@ -15,6 +15,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface DocumentMapper {
 
+    @Mapping(source = "documentType.id", target = "documentTypeId")
     @Mapping(source = "documentType.typeName", target = "documentTypeName")
     @Mapping(source = "createdAt", target = "uploadDate", qualifiedByName = "mapLocalDateTimeToLocalDate")
     @Mapping(source = "student.id", target = "studentId")

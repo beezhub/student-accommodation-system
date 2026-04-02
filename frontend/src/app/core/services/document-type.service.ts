@@ -9,6 +9,7 @@ export interface DocumentTypeResponse {
   typeName: string;
   description?: string;
   isRequired: boolean;
+  isPlatformDefault?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,8 +43,12 @@ export class DocumentTypeService {
     return this.http.get<DocumentType[]>(this.apiUrl);
   }
 
-  getRequiredDocumentTypes(): Observable<DocumentType[]> {
-    return this.http.get<DocumentType[]>(`${this.apiUrl}/required`);
+  getRequiredDocumentTypes(tenantId?: number): Observable<DocumentType[]> {
+    let params = new HttpParams();
+    if (tenantId != null) {
+      params = params.set('tenantId', tenantId.toString());
+    }
+    return this.http.get<DocumentType[]>(`${this.apiUrl}/required`, { params });
   }
 
   getAllDocumentTypesPaginated(filters: any): Observable<PageResponse<DocumentTypeResponse>> {

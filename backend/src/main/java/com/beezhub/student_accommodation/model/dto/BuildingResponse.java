@@ -10,6 +10,7 @@ import java.util.Map;
 @Data
 public class BuildingResponse {
     private Long id;
+    private Long tenantId;
     private String name;
     private String address;
     private BigDecimal latitude;

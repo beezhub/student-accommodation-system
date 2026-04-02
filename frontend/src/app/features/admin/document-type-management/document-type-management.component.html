@@ -130,7 +130,15 @@
                   <div class="type-avatar" aria-hidden="true">
                     <mat-icon>description</mat-icon>
                   </div>
-                  <span class="type-name">{{ docType.typeName }}</span>
+                  <div class="type-name-wrap">
+                    <span class="type-name">{{ docType.typeName }}</span>
+                    @if (docType.isPlatformDefault) {
+                      <span class="platform-badge" title="Defined at platform level — applies to all tenants by default">
+                        <mat-icon>verified</mat-icon>
+                        Platform default
+                      </span>
+                    }
+                  </div>
                 </div>
               </td>
             </ng-container>
@@ -170,30 +178,43 @@
               <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let docType">
                 <div class="actions-cell">
-                  <button
-                    mat-icon-button
-                    class="action-btn edit"
-                    (click)="openEditDialog(docType)"
-                    matTooltip="Edit"
-                    aria-label="Edit document type">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    class="action-btn toggle"
-                    (click)="toggleRequiredFlag(docType)"
-                    [matTooltip]="docType.isRequired ? 'Mark as Optional' : 'Mark as Required'"
-                    [attr.aria-label]="docType.isRequired ? 'Mark as Optional' : 'Mark as Required'">
-                    <mat-icon>{{ docType.isRequired ? 'toggle_off' : 'toggle_on' }}</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    class="action-btn delete"
-                    (click)="deleteDocumentType(docType)"
-                    matTooltip="Delete"
-                    aria-label="Delete document type">
-                    <mat-icon>delete_outline</mat-icon>
-                  </button>
+                  @if (isTenantAdmin && docType.isPlatformDefault) {
+                    <!-- TENANT_ADMIN on a platform-default type: show Override action only -->
+                    <button
+                      mat-icon-button
+                      class="action-btn override"
+                      (click)="openShadowDialog(docType)"
+                      matTooltip="Override / Shadow this platform default for your tenant"
+                      aria-label="Override platform default document type">
+                      <mat-icon>edit_note</mat-icon>
+                    </button>
+                  } @else {
+                    <!-- Normal admin actions (enabled for own types, and for PLATFORM_ADMIN on any type) -->
+                    <button
+                      mat-icon-button
+                      class="action-btn edit"
+                      (click)="openEditDialog(docType)"
+                      matTooltip="Edit"
+                      aria-label="Edit document type">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      class="action-btn toggle"
+                      (click)="toggleRequiredFlag(docType)"
+                      [matTooltip]="docType.isRequired ? 'Mark as Optional' : 'Mark as Required'"
+                      [attr.aria-label]="docType.isRequired ? 'Mark as Optional' : 'Mark as Required'">
+                      <mat-icon>{{ docType.isRequired ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      class="action-btn delete"
+                      (click)="deleteDocumentType(docType)"
+                      matTooltip="Delete"
+                      aria-label="Delete document type">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  }
                 </div>
               </td>
             </ng-container>

@@ -31,6 +31,7 @@ export interface BuildingImageResponse {
 
 export interface BuildingResponse {
   id: number;
+  tenantId?: number;
   name: string;
   address?: string;
   latitude?: number;

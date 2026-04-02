@@ -7,6 +7,7 @@ import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Building;
+import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.UserRole;
@@ -14,10 +15,13 @@ import com.beezhub.student_accommodation.repository.AcademicYearRepository;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.repository.DocumentRepository;
+import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.TenantRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
+import com.beezhub.student_accommodation.service.DocumentLifecycleService;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +34,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -49,6 +54,9 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
     @Autowired private AppUserRepository appUserRepository;
     @Autowired private BuildingRepository buildingRepository;
     @Autowired private TenantRepository tenantRepository;
+    @Autowired private DocumentTypeRepository documentTypeRepository;
+    @Autowired private DocumentRepository documentRepository;
+    @Autowired private DocumentLifecycleService documentLifecycleService;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private TestRestTemplate rest;
 
@@ -64,6 +72,8 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         applicationRepository.deleteAll();
+        documentRepository.deleteAll();
+        documentTypeRepository.deleteAll();
         academicYearRepository.deleteAll();
         studentRepository.deleteAll();
         appUserRepository.deleteAll();
@@ -123,6 +133,8 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
     @AfterEach
     void tearDown() {
         applicationRepository.deleteAll();
+        documentRepository.deleteAll();
+        documentTypeRepository.deleteAll();
         studentRepository.deleteAll();
         appUserRepository.deleteAll();
         buildingRepository.deleteAll();
@@ -323,5 +335,144 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
 
         // Tenant B admin must not see tenant A's application
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    // ── Pre-submission document completeness check ──────────────────────────────
+
+    @Test
+    @DisplayName("submitApplication throws when required document type is missing")
+    void submitApplication_rejectsMissingRequiredDocument() {
+        DocumentType requiredType = new DocumentType();
+        requiredType.setTypeName("National ID_" + System.currentTimeMillis());
+        requiredType.setIsRequired(true);
+        requiredType.setTenantId(tenantA.getId());
+        documentTypeRepository.save(requiredType);
+
+        ApplicationRequest request = new ApplicationRequest();
+        request.setStudentId(student.getId());
+        request.setPreferredBuildingIds(List.of(buildingA.getId()));
+        request.setCourseName("CS");
+        request.setInstitutionName("Test U");
+        request.setRequiresAccessibility(false);
+
+        assertThatThrownBy(() -> applicationService.submitApplication(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Missing required documents");
+    }
+
+    @Test
+    @DisplayName("submitApplication succeeds after required document is uploaded")
+    void submitApplication_succeedsAfterRequiredDocumentUploaded() {
+        DocumentType requiredType = new DocumentType();
+        requiredType.setTypeName("Proof of Enrollment_" + System.currentTimeMillis());
+        requiredType.setIsRequired(true);
+        requiredType.setTenantId(tenantA.getId());
+        requiredType = documentTypeRepository.save(requiredType);
+
+        // Upload the required document for the student
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "enrollment.pdf", "application/pdf", "enrollment proof content".getBytes());
+        documentLifecycleService.uploadSingleDocument(file, student.getAppUser().getEmail(), requiredType.getId());
+
+        ApplicationRequest request = new ApplicationRequest();
+        request.setStudentId(student.getId());
+        request.setPreferredBuildingIds(List.of(buildingA.getId()));
+        request.setCourseName("CS");
+        request.setInstitutionName("Test U");
+        request.setRequiresAccessibility(false);
+
+        ApplicationResponse response = applicationService.submitApplication(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getApplicationCode()).isNotBlank();
+    }
+
+    // ── Task 7.7: platform-type document satisfies tenant shadow (name-based match) ──
+
+    @Test
+    @DisplayName("Document uploaded against platform type satisfies tenant shadow of same name")
+    void submitApplication_platformDocumentSatisfiesTenantShadow() {
+        long ts = System.currentTimeMillis();
+
+        // Platform type "Passport_<ts>" — required at platform level
+        DocumentType platformType = new DocumentType();
+        platformType.setTypeName("Passport_" + ts);
+        platformType.setIsRequired(true);
+        platformType.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+        platformType = documentTypeRepository.save(platformType);
+
+        // Tenant A shadow of the same type name — also required (shadow wins by name)
+        DocumentType tenantShadow = new DocumentType();
+        tenantShadow.setTypeName("Passport_" + ts);  // same name
+        tenantShadow.setIsRequired(true);
+        tenantShadow.setTenantId(tenantA.getId());
+        documentTypeRepository.save(tenantShadow);
+
+        // Student uploads document using the PLATFORM type id
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "passport.pdf", "application/pdf", "passport content".getBytes());
+        documentLifecycleService.uploadSingleDocument(file, student.getAppUser().getEmail(), platformType.getId());
+
+        // Application to Tenant A — name-based check must find the document via the platform type name
+        ApplicationRequest request = new ApplicationRequest();
+        request.setStudentId(student.getId());
+        request.setPreferredBuildingIds(List.of(buildingA.getId()));
+
+        ApplicationResponse response = applicationService.submitApplication(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getApplicationCode()).isNotBlank();
+    }
+
+    // ── Task 7.8: student not blocked by another tenant's custom required type ──
+
+    @Test
+    @DisplayName("Student applying to Tenant A is not blocked by Tenant B's custom required type")
+    void submitApplication_notBlockedByOtherTenantRequiredType() {
+        Tenant tenantB = tenantRepository.save(Tenant.builder()
+                .name("Property Co B7_" + System.currentTimeMillis())
+                .isActive(true)
+                .build());
+        createdTenantIds.add(tenantB.getId());
+
+        // Tenant B has a custom required type
+        DocumentType tenantBType = new DocumentType();
+        tenantBType.setTypeName("TenantB_Lease_" + System.currentTimeMillis());
+        tenantBType.setIsRequired(true);
+        tenantBType.setTenantId(tenantB.getId());
+        documentTypeRepository.save(tenantBType);
+
+        // No documents uploaded for the student — Tenant A has no required types
+        ApplicationRequest request = new ApplicationRequest();
+        request.setStudentId(student.getId());
+        request.setPreferredBuildingIds(List.of(buildingA.getId()));
+
+        // Should succeed: Tenant A has no required types, so Tenant B's types are irrelevant
+        ApplicationResponse response = applicationService.submitApplication(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getApplicationCode()).isNotBlank();
+    }
+
+    // ── Task 7.9: student blocked by tenant's own custom required type not uploaded ──
+
+    @Test
+    @DisplayName("Student applying to Tenant A is blocked by Tenant A custom required type not uploaded")
+    void submitApplication_blockedByTenantCustomRequiredType() {
+        // Tenant A has a custom required type that only applies to Tenant A
+        DocumentType tenantAOnlyType = new DocumentType();
+        tenantAOnlyType.setTypeName("TenantA_Lease_" + System.currentTimeMillis());
+        tenantAOnlyType.setIsRequired(true);
+        tenantAOnlyType.setTenantId(tenantA.getId());
+        documentTypeRepository.save(tenantAOnlyType);
+
+        // Student has NOT uploaded the document
+        ApplicationRequest request = new ApplicationRequest();
+        request.setStudentId(student.getId());
+        request.setPreferredBuildingIds(List.of(buildingA.getId()));
+
+        assertThatThrownBy(() -> applicationService.submitApplication(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Missing required documents");
     }
 }

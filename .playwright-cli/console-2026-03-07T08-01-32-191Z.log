@@ -1,3 +1,0 @@
-[    1632ms] [WARNING] Detected a matBadge on an "aria-hidden" "<mat-icon>". Consider setting aria-hidden="false" in order to surface the information assistive technology.
-<mat-icon _ngcontent-ng-c3827272391="" role="img" matbadgecolor="warn" matbadgesize="small" class="mat-icon notranslate mat-badge" aria-hidden="true"></mat-icon> @ http://localhost:4200/@fs/C:/Users/dev_t/Documents/practice/Projects/student-accommodation-system/frontend/.angular/cache/21.1.4/demo/vite/deps/@angular_material_badge.js?v=0a28630c:135
-[    1935ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:4200/favicon.ico:0

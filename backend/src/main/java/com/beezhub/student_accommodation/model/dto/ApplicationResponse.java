@@ -55,4 +55,6 @@ public class ApplicationResponse {
     private Integer totalRequiredDocuments;
 
     private String allocationStatus;
+
+    private Long tenantId;
 }

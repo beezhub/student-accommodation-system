@@ -8,4 +8,5 @@ public class DocumentTypeResponse {
     private String name;
     private String description;
     private Boolean isRequired;
+    private Boolean isPlatformDefault;
 }

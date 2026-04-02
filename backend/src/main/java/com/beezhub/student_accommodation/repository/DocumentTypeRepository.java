@@ -12,4 +12,8 @@ public interface DocumentTypeRepository extends JpaRepository<DocumentType, Long
 
     List<DocumentType> findByIsRequiredTrue();
 
+    List<DocumentType> findAllByTenantIdIn(List<Long> tenantIds);
+
+    List<DocumentType> findByIsRequiredTrueAndTenantIdIn(List<Long> tenantIds);
+
 }

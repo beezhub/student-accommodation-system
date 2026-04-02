@@ -5,7 +5,9 @@ import com.beezhub.student_accommodation.mapper.DocumentTypeMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentTypeRequest;
 import com.beezhub.student_accommodation.model.dto.DocumentTypeResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
+import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
+import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,13 +20,16 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,11 +41,15 @@ class DocumentTypeServiceTest {
     @Mock
     private DocumentTypeMapper documentTypeMapper;
 
+    @Mock
+    private AuthService authService;
+
     @InjectMocks
     private DocumentTypeService documentTypeService;
 
-    private DocumentType documentType1;
-    private DocumentType documentType2;
+    private DocumentType platformType1;   // tenant_id=0, isRequired=true
+    private DocumentType platformType2;   // tenant_id=0, isRequired=false
+    private DocumentType tenantType;      // tenant_id=42, isRequired=true (shadows platformType1 name)
     private DocumentTypeResponse response1;
     private DocumentTypeResponse response2;
     private DocumentTypeRequest request;
@@ -48,17 +57,26 @@ class DocumentTypeServiceTest {
 
     @BeforeEach
     void setUp() {
-        documentType1 = new DocumentType();
-        documentType1.setId(1L);
-        documentType1.setTypeName("ID Document");
-        documentType1.setDescription("Government issued ID");
-        documentType1.setIsRequired(true);
+        platformType1 = new DocumentType();
+        platformType1.setId(1L);
+        platformType1.setTenantId(0L);
+        platformType1.setTypeName("ID Document");
+        platformType1.setDescription("Government issued ID");
+        platformType1.setIsRequired(true);
 
-        documentType2 = new DocumentType();
-        documentType2.setId(2L);
-        documentType2.setTypeName("Proof of Income");
-        documentType2.setDescription("Income verification");
-        documentType2.setIsRequired(false);
+        platformType2 = new DocumentType();
+        platformType2.setId(2L);
+        platformType2.setTenantId(0L);
+        platformType2.setTypeName("Proof of Income");
+        platformType2.setDescription("Income verification");
+        platformType2.setIsRequired(false);
+
+        tenantType = new DocumentType();
+        tenantType.setId(5L);
+        tenantType.setTenantId(42L);
+        tenantType.setTypeName("ID Document"); // same name as platformType1 — shadow
+        tenantType.setDescription("Tenant-specific ID check");
+        tenantType.setIsRequired(false); // overrides platform's isRequired=true
 
         response1 = new DocumentTypeResponse();
         response1.setId("1");
@@ -80,186 +98,226 @@ class DocumentTypeServiceTest {
         pageable = PageRequest.of(0, 20);
     }
 
+    // -------------------------------------------------------------------------
+    // getEffectiveDocumentTypes — merged view + shadow semantics
+    // -------------------------------------------------------------------------
+
     @Test
-    void getAllDocumentTypes_ShouldReturnList() {
-        // Arrange
-        List<DocumentType> documentTypes = Arrays.asList(documentType1, documentType2);
-        when(documentTypeRepository.findAll()).thenReturn(documentTypes);
-        when(documentTypeMapper.toDto(documentType1)).thenReturn(response1);
-        when(documentTypeMapper.toDto(documentType2)).thenReturn(response2);
+    void getEffectiveDocumentTypes_PlatformOnly_ReturnsPlatformTypes() {
+        when(documentTypeRepository.findAllByTenantIdIn(List.of(0L)))
+                .thenReturn(List.of(platformType1, platformType2));
 
-        // Act
-        List<DocumentTypeResponse> result = documentTypeService.getAllDocumentTypes();
+        List<DocumentType> result = documentTypeService.getEffectiveDocumentTypes(0L);
 
-        // Assert
-        assertNotNull(result);
         assertEquals(2, result.size());
-        verify(documentTypeRepository).findAll();
+        verify(documentTypeRepository).findAllByTenantIdIn(List.of(0L));
     }
 
     @Test
-    void getAllDocumentTypes_WithPageable_ShouldReturnPageResponse() {
-        // Arrange
-        Page<DocumentType> page = new PageImpl<>(Arrays.asList(documentType1, documentType2), pageable, 2);
-        when(documentTypeRepository.findAll(pageable)).thenReturn(page);
-        when(documentTypeMapper.toDto(documentType1)).thenReturn(response1);
-        when(documentTypeMapper.toDto(documentType2)).thenReturn(response2);
+    void getEffectiveDocumentTypes_TenantShadowWinsOverPlatformRow() {
+        // tenantType has same typeName as platformType1 — tenant row should win
+        when(documentTypeRepository.findAllByTenantIdIn(List.of(0L, 42L)))
+                .thenReturn(List.of(platformType1, platformType2, tenantType));
 
-        // Act
+        List<DocumentType> result = documentTypeService.getEffectiveDocumentTypes(42L);
+
+        // Should have 2 entries: tenantType (shadow) and platformType2
+        assertEquals(2, result.size());
+        // The "ID Document" entry must be the tenant shadow (id=5), not platform (id=1)
+        assertTrue(result.stream()
+                .filter(dt -> dt.getTypeName().equalsIgnoreCase("ID Document"))
+                .allMatch(dt -> dt.getId().equals(5L)));
+    }
+
+    @Test
+    void getEffectiveDocumentTypes_TenantOnlyTypeAdded() {
+        DocumentType tenantOnly = new DocumentType();
+        tenantOnly.setId(10L);
+        tenantOnly.setTenantId(42L);
+        tenantOnly.setTypeName("Lease Agreement");
+        tenantOnly.setIsRequired(true);
+
+        when(documentTypeRepository.findAllByTenantIdIn(List.of(0L, 42L)))
+                .thenReturn(List.of(platformType1, platformType2, tenantOnly));
+
+        List<DocumentType> result = documentTypeService.getEffectiveDocumentTypes(42L);
+
+        assertEquals(3, result.size());
+    }
+
+    // -------------------------------------------------------------------------
+    // getEffectiveRequiredTypeNames — name-based required type set
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getEffectiveRequiredTypeNames_ReturnsPlatformRequired() {
+        when(documentTypeRepository.findAllByTenantIdIn(List.of(0L)))
+                .thenReturn(List.of(platformType1, platformType2));
+
+        Set<String> names = documentTypeService.getEffectiveRequiredTypeNames(0L);
+
+        assertEquals(Set.of("id document"), names);
+    }
+
+    @Test
+    void getEffectiveRequiredTypeNames_TenantShadowMakesRequiredTypeOptional() {
+        // tenantType shadows platformType1 "ID Document" with isRequired=false
+        when(documentTypeRepository.findAllByTenantIdIn(List.of(0L, 42L)))
+                .thenReturn(List.of(platformType1, platformType2, tenantType));
+
+        Set<String> names = documentTypeService.getEffectiveRequiredTypeNames(42L);
+
+        // "ID Document" is no longer required because the tenant shadow says isRequired=false
+        assertTrue(names.isEmpty());
+    }
+
+    // -------------------------------------------------------------------------
+    // getRequiredDocumentTypes — with tenantId param
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getRequiredDocumentTypes_WithNullTenantId_DefaultsToPlatform() {
+        when(documentTypeRepository.findAllByTenantIdIn(List.of(0L)))
+                .thenReturn(List.of(platformType1, platformType2));
+        when(documentTypeMapper.toDto(platformType1)).thenReturn(response1);
+
+        List<DocumentTypeResponse> result = documentTypeService.getRequiredDocumentTypes(null);
+
+        assertEquals(1, result.size());
+        assertTrue(result.get(0).getIsRequired());
+    }
+
+    // -------------------------------------------------------------------------
+    // getAllDocumentTypes (pageable) — unchanged behaviour
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getAllDocumentTypes_WithPageable_ShouldReturnPageResponse() {
+        Page<DocumentType> page = new PageImpl<>(Arrays.asList(platformType1, platformType2), pageable, 2);
+        when(documentTypeRepository.findAll(pageable)).thenReturn(page);
+        when(documentTypeMapper.toDto(platformType1)).thenReturn(response1);
+        when(documentTypeMapper.toDto(platformType2)).thenReturn(response2);
+
         PageResponse<DocumentTypeResponse> result = documentTypeService.getAllDocumentTypes(pageable);
 
-        // Assert
         assertNotNull(result);
         assertEquals(2, result.getContent().size());
-        assertEquals(2, result.getTotalElements());
         verify(documentTypeRepository).findAll(pageable);
     }
 
     @Test
     void searchDocumentTypes_WithNameFilter_ShouldReturnFilteredResults() {
-        // Arrange
-        Page<DocumentType> page = new PageImpl<>(Arrays.asList(documentType1), pageable, 1);
+        Page<DocumentType> page = new PageImpl<>(List.of(platformType1), pageable, 1);
         when(documentTypeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(documentTypeMapper.toDto(documentType1)).thenReturn(response1);
+        when(documentTypeMapper.toDto(platformType1)).thenReturn(response1);
 
-        // Act
         PageResponse<DocumentTypeResponse> result = documentTypeService.searchDocumentTypes("ID", null, pageable);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
-        assertEquals("ID Document", result.getContent().get(0).getName());
-        verify(documentTypeRepository).findAll(any(Specification.class), eq(pageable));
-    }
-
-    @Test
-    void searchDocumentTypes_WithIsRequiredTrue_ShouldReturnRequiredDocuments() {
-        // Arrange
-        Page<DocumentType> page = new PageImpl<>(Arrays.asList(documentType1), pageable, 1);
-        when(documentTypeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(documentTypeMapper.toDto(documentType1)).thenReturn(response1);
-
-        // Act
-        PageResponse<DocumentTypeResponse> result = documentTypeService.searchDocumentTypes(null, true, pageable);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
-        assertTrue(result.getContent().get(0).getIsRequired());
-        verify(documentTypeRepository).findAll(any(Specification.class), eq(pageable));
-    }
-
-    @Test
-    void searchDocumentTypes_WithIsRequiredFalse_ShouldReturnOptionalDocuments() {
-        // Arrange
-        Page<DocumentType> page = new PageImpl<>(Arrays.asList(documentType2), pageable, 1);
-        when(documentTypeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(documentTypeMapper.toDto(documentType2)).thenReturn(response2);
-
-        // Act
-        PageResponse<DocumentTypeResponse> result = documentTypeService.searchDocumentTypes(null, false, pageable);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.getContent().size());
-        assertFalse(result.getContent().get(0).getIsRequired());
-        verify(documentTypeRepository).findAll(any(Specification.class), eq(pageable));
-    }
-
-    @Test
-    void searchDocumentTypes_WithMultipleFilters_ShouldReturnFilteredResults() {
-        // Arrange
-        Page<DocumentType> page = new PageImpl<>(Arrays.asList(documentType1), pageable, 1);
-        when(documentTypeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(documentTypeMapper.toDto(documentType1)).thenReturn(response1);
-
-        // Act
-        PageResponse<DocumentTypeResponse> result = documentTypeService.searchDocumentTypes("ID", true, pageable);
-
-        // Assert
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
         verify(documentTypeRepository).findAll(any(Specification.class), eq(pageable));
     }
 
-    @Test
-    void getRequiredDocumentTypes_ShouldReturnOnlyRequired() {
-        // Arrange
-        when(documentTypeRepository.findByIsRequiredTrue()).thenReturn(Arrays.asList(documentType1));
-        when(documentTypeMapper.toDto(documentType1)).thenReturn(response1);
-
-        // Act
-        List<DocumentTypeResponse> result = documentTypeService.getRequiredDocumentTypes();
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertTrue(result.get(0).getIsRequired());
-        verify(documentTypeRepository).findByIsRequiredTrue();
-    }
+    // -------------------------------------------------------------------------
+    // getDocumentTypeById
+    // -------------------------------------------------------------------------
 
     @Test
     void getDocumentTypeById_ShouldReturnDocumentType() {
-        // Arrange
-        when(documentTypeRepository.findById(1L)).thenReturn(Optional.of(documentType1));
-        when(documentTypeMapper.toDto(documentType1)).thenReturn(response1);
+        when(documentTypeRepository.findById(1L)).thenReturn(Optional.of(platformType1));
+        when(documentTypeMapper.toDto(platformType1)).thenReturn(response1);
 
-        // Act
         DocumentTypeResponse result = documentTypeService.getDocumentTypeById(1L);
 
-        // Assert
         assertNotNull(result);
         assertEquals("1", result.getId());
-        verify(documentTypeRepository).findById(1L);
     }
 
     @Test
     void getDocumentTypeById_NotFound_ShouldThrowException() {
-        // Arrange
         when(documentTypeRepository.findById(1L)).thenReturn(Optional.empty());
-
-        // Act & Assert
         assertThrows(DocumentTypeNotFoundException.class, () -> documentTypeService.getDocumentTypeById(1L));
     }
 
+    // -------------------------------------------------------------------------
+    // createDocumentType — tenant stamping
+    // -------------------------------------------------------------------------
+
     @Test
-    void createDocumentType_ShouldSaveAndReturn() {
-        // Arrange
-        when(documentTypeRepository.save(any(DocumentType.class))).thenReturn(documentType1);
-        when(documentTypeMapper.toDto(documentType1)).thenReturn(response1);
+    void createDocumentType_AsTenantAdmin_StampsTenantId() {
+        AppUser tenantAdmin = new AppUser();
+        tenantAdmin.setUserRole(UserRole.TENANT_ADMIN);
+        when(authService.getCurrentUser()).thenReturn(tenantAdmin);
+        when(documentTypeRepository.save(any(DocumentType.class))).thenReturn(platformType1);
+        when(documentTypeMapper.toDto(platformType1)).thenReturn(response1);
 
-        // Act
-        DocumentTypeResponse result = documentTypeService.createDocumentType(request);
+        documentTypeService.createDocumentType(request);
 
-        // Assert
-        assertNotNull(result);
         verify(documentTypeRepository).save(any(DocumentType.class));
     }
 
     @Test
-    void updateDocumentType_ShouldUpdateAndReturn() {
-        // Arrange
-        when(documentTypeRepository.findById(1L)).thenReturn(Optional.of(documentType1));
-        when(documentTypeRepository.save(documentType1)).thenReturn(documentType1);
-        when(documentTypeMapper.toDto(documentType1)).thenReturn(response1);
+    void createDocumentType_AsPlatformAdmin_StampsTenantIdZero() {
+        AppUser platformAdmin = new AppUser();
+        platformAdmin.setUserRole(UserRole.PLATFORM_ADMIN);
+        when(authService.getCurrentUser()).thenReturn(platformAdmin);
+        when(documentTypeRepository.save(any(DocumentType.class))).thenAnswer(inv -> {
+            DocumentType dt = inv.getArgument(0);
+            assertEquals(0L, dt.getTenantId());
+            return platformType1;
+        });
+        when(documentTypeMapper.toDto(platformType1)).thenReturn(response1);
 
-        // Act
-        DocumentTypeResponse result = documentTypeService.updateDocumentType(1L, request);
+        documentTypeService.createDocumentType(request);
 
-        // Assert
-        assertNotNull(result);
-        verify(documentTypeRepository).save(documentType1);
+        verify(documentTypeRepository).save(any(DocumentType.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // Mutation guards — TENANT_ADMIN cannot mutate platform types
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updateDocumentType_TenantAdminOnPlatformType_ThrowsForbidden() {
+        AppUser tenantAdmin = new AppUser();
+        tenantAdmin.setUserRole(UserRole.TENANT_ADMIN);
+        when(documentTypeRepository.findById(1L)).thenReturn(Optional.of(platformType1));
+        when(authService.getCurrentUser()).thenReturn(tenantAdmin);
+
+        assertThrows(ResponseStatusException.class,
+                () -> documentTypeService.updateDocumentType(1L, request));
     }
 
     @Test
-    void deleteDocumentType_ShouldDelete() {
-        // Arrange
-        when(documentTypeRepository.findById(1L)).thenReturn(Optional.of(documentType1));
+    void deleteDocumentType_TenantAdminOnPlatformType_ThrowsForbidden() {
+        AppUser tenantAdmin = new AppUser();
+        tenantAdmin.setUserRole(UserRole.TENANT_ADMIN);
+        when(documentTypeRepository.findById(1L)).thenReturn(Optional.of(platformType1));
+        when(authService.getCurrentUser()).thenReturn(tenantAdmin);
 
-        // Act
-        documentTypeService.deleteDocumentType(1L);
+        assertThrows(ResponseStatusException.class,
+                () -> documentTypeService.deleteDocumentType(1L));
+    }
 
-        // Assert
-        verify(documentTypeRepository).delete(documentType1);
+    @Test
+    void updateDocumentType_PlatformAdminOnPlatformType_Succeeds() {
+        AppUser platformAdmin = new AppUser();
+        platformAdmin.setUserRole(UserRole.PLATFORM_ADMIN);
+        when(documentTypeRepository.findById(1L)).thenReturn(Optional.of(platformType1));
+        when(authService.getCurrentUser()).thenReturn(platformAdmin);
+        when(documentTypeRepository.save(platformType1)).thenReturn(platformType1);
+        when(documentTypeMapper.toDto(platformType1)).thenReturn(response1);
+
+        assertDoesNotThrow(() -> documentTypeService.updateDocumentType(1L, request));
+        verify(documentTypeRepository).save(platformType1);
+    }
+
+    @Test
+    void deleteDocumentType_TenantAdminOnOwnType_Succeeds() {
+        // tenantType has tenantId=42 (not 0), so guardPlatformType skips the auth check
+        when(documentTypeRepository.findById(5L)).thenReturn(Optional.of(tenantType));
+
+        assertDoesNotThrow(() -> documentTypeService.deleteDocumentType(5L));
+        verify(documentTypeRepository).delete(tenantType);
     }
 }

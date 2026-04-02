@@ -6,6 +6,7 @@ import {
   DocumentTypeResponse,
   PageResponse,
 } from '../../../core/services/document-type.service';
+import { RoleService } from '../../../core/services/role.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -61,9 +62,20 @@ import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loa
 })
 export class DocumentTypeManagementComponent implements OnInit {
   private documentTypeService = inject(DocumentTypeService);
+  private roleService = inject(RoleService);
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+
+  get isTenantAdmin(): boolean {
+    return this.roleService.isTenantAdmin();
+  }
+
+  /** Returns false for platform-default types when the user is TENANT_ADMIN. */
+  canMutate(docType: DocumentTypeResponse): boolean {
+    if (this.isTenantAdmin && docType.isPlatformDefault) return false;
+    return true;
+  }
 
   documentTypes: DocumentTypeResponse[] = [];
   displayedColumns: string[] = ['typeName', 'description', 'isRequired', 'createdAt', 'actions'];
@@ -157,6 +169,22 @@ export class DocumentTypeManagementComponent implements OnInit {
       const dialogRef = this.dialog.open(m.DocumentTypeFormDialogComponent, {
         width: '600px',
         data: { mode: 'edit', documentType },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          this.loadDocumentTypes();
+        }
+      });
+    });
+  }
+
+  /** Opens the create dialog pre-filled with the platform type's name so TENANT_ADMIN can create a shadow. */
+  openShadowDialog(docType: DocumentTypeResponse): void {
+    import('./document-type-form-dialog/document-type-form-dialog.component').then((m) => {
+      const dialogRef = this.dialog.open(m.DocumentTypeFormDialogComponent, {
+        width: '600px',
+        data: { mode: 'create', prefillName: docType.typeName, shadow: true },
       });
 
       dialogRef.afterClosed().subscribe((result) => {

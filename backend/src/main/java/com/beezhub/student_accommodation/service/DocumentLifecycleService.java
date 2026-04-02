@@ -14,12 +14,7 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
-import com.beezhub.student_accommodation.model.entity.Application;
-import com.beezhub.student_accommodation.model.entity.ApplicationDocument;
-import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
-import com.beezhub.student_accommodation.repository.ApplicationDocumentRepository;
-import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
@@ -37,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.beezhub.student_accommodation.model.enums.DocumentStatus.PENDING;
@@ -52,8 +48,6 @@ public class DocumentLifecycleService {
     private final DocumentTypeRepository documentTypeRepository;
     private final StudentRepository studentRepository;
     private final AppUserRepository appUserRepository;
-    private final ApplicationRepository applicationRepository;
-    private final ApplicationDocumentRepository applicationDocumentRepository;
     private final DocumentMapper documentMapper;
 
     @Transactional
@@ -72,10 +66,37 @@ public class DocumentLifecycleService {
         return documentResponses;
     }
 
+    /**
+     * Uploads a single document for the authenticated student, replacing any existing
+     * document of the same type (upsert semantics — one slot per document type per student).
+     */
     @Transactional
     public void uploadSingleDocument(MultipartFile file, String username, Long documentTypeId) {
         var user = getUserByEmail(username);
         DocumentType docType = getDocumentTypeById(documentTypeId);
+
+        // Upsert: if the student already has a document of this type, delete it first
+        Student student = studentRepository.findByAppUser(user)
+                .orElseThrow(() -> new StudentNotFoundException("Student not found for user ID: " + user.getId()));
+
+        Optional<Document> existing = documentRepository.findByStudentIdAndDocumentTypeId(
+                student.getId(), documentTypeId);
+
+        if (existing.isPresent()) {
+            Document old = existing.get();
+            String oldPath = old.getDocumentPath();
+            documentRepository.delete(old);
+            documentRepository.flush();
+            // Best-effort MinIO deletion of the old file
+            try {
+                fileStorageService.delete(oldPath);
+                log.info("Deleted previous document file at {} during replace", oldPath);
+            } catch (RuntimeException e) {
+                log.error("Failed to delete previous MinIO object {} during replace — cleanup job will handle orphan",
+                        oldPath, e);
+            }
+        }
+
         validateAndUploadFile(file, user, docType);
     }
 
@@ -100,8 +121,6 @@ public class DocumentLifecycleService {
             fileStorageService.delete(objectPath);
         } catch (RuntimeException e) {
             log.error("DB record deleted but MinIO file deletion failed for key {}: {}", objectPath, e.getMessage());
-            // Do not rethrow — the DB record is gone; the cleanup job will remove the
-            // orphan
         }
     }
 
@@ -135,7 +154,7 @@ public class DocumentLifecycleService {
             } catch (RuntimeException deleteEx) {
                 log.error("Failed to delete orphaned file {} after DB save failure", objectPath, deleteEx);
             }
-            throw e; // Rethrow original exception
+            throw e;
         }
     }
 
@@ -162,7 +181,6 @@ public class DocumentLifecycleService {
         if (filename == null || !filename.contains("."))
             return "";
         String ext = filename.substring(filename.lastIndexOf('.'));
-        // Allow only known safe extensions
         return ext.matches("\\.[a-zA-Z0-9]{1,10}") ? ext : "";
     }
 
@@ -178,36 +196,6 @@ public class DocumentLifecycleService {
                 .student(student)
                 .documentStatus(PENDING)
                 .build();
-        Document savedDocument = documentRepository.save(document);
-
-        linkDocumentToActiveApplication(student, savedDocument);
-
-        return savedDocument;
-    }
-
-    private static final List<ApplicationStatus> ACTIVE_STATUSES = List.of(
-            ApplicationStatus.PENDING,
-            ApplicationStatus.UNDER_REVIEW,
-            ApplicationStatus.CHANGES_REQUESTED,
-            ApplicationStatus.APPROVED,
-            ApplicationStatus.AWAITING_ALLOCATION
-    );
-
-    private void linkDocumentToActiveApplication(Student student, Document document) {
-        applicationRepository.findByStudent_Id(student.getId())
-                .stream()
-                .filter(app -> ACTIVE_STATUSES.contains(app.getStatus()))
-                .findFirst()
-                .ifPresent(application -> {
-                    if (!applicationDocumentRepository.existsByApplication_IdAndDocument_Id(
-                            application.getId(), document.getId())) {
-                        ApplicationDocument junction = ApplicationDocument.builder()
-                                .application(application)
-                                .document(document)
-                                .build();
-                        applicationDocumentRepository.save(junction);
-                        log.info("Linked document {} to application {}", document.getId(), application.getId());
-                    }
-                });
+        return documentRepository.save(document);
     }
 }

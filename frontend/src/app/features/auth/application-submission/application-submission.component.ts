@@ -1,12 +1,17 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { ApplicationService } from '../../../core/services/application.service';
 import { StudentService } from '../../../core/services/student.service';
 import { InstitutionService } from '../../../core/services/institution.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
+import { DocumentService } from '../../../core/services/document.service';
+import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
+import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -26,6 +31,8 @@ import { BuildingGalleryComponent } from '../../dashboard/applications/building-
   templateUrl: './application-submission.component.html',
   styleUrls: ['./application-submission.component.css'],
   imports: [
+    CommonModule,
+    RouterModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -51,6 +58,8 @@ export class ApplicationSubmissionComponent implements OnInit {
   private readonly studentService = inject(StudentService);
   private readonly institutionService = inject(InstitutionService);
   private readonly buildingService = inject(BuildingService);
+  private readonly documentService = inject(DocumentService);
+  private readonly documentTypeService = inject(DocumentTypeService);
   private readonly errorService = inject(ErrorHandlingService);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -65,6 +74,24 @@ export class ApplicationSubmissionComponent implements OnInit {
   submitError: ParsedError | null = null;
   loadError: ParsedError | null = null;
   isRetrying = false;
+
+  /** Document readiness checklist */
+  requiredDocTypes: { id: number; name: string }[] = [];
+  /** Uploaded document type names (lowercase) — used for name-based matching */
+  uploadedDocTypeNames: Set<string> = new Set();
+  /** Derived from the first selected building — used to fetch tenant-specific required types */
+  selectedTenantId: number | null = null;
+  isLoadingDocReadiness = false;
+
+  get missingRequiredDocs(): { id: number; name: string }[] {
+    return this.requiredDocTypes.filter(
+      dt => !this.uploadedDocTypeNames.has(dt.name.toLowerCase())
+    );
+  }
+
+  get hasAllRequiredDocs(): boolean {
+    return this.missingRequiredDocs.length === 0;
+  }
 
   constructor() {
     this.applicationForm = this.fb.group({
@@ -82,7 +109,45 @@ export class ApplicationSubmissionComponent implements OnInit {
       return;
     }
 
-    this.loadStudentProfile();
+    this.applicationService.hasActiveApplication().subscribe((hasActive) => {
+      if (hasActive) {
+        this.errorService.showWarning('You already have an active application. You can track it in your dashboard.');
+        this.router.navigate(['/dashboard']);
+        return;
+      }
+      this.loadStudentProfile();
+    });
+
+    this.loadDocumentReadiness();
+  }
+
+  private loadDocumentReadiness(tenantId?: number): void {
+    this.isLoadingDocReadiness = true;
+    forkJoin({
+      requiredTypes: this.documentTypeService.getRequiredDocumentTypes(tenantId),
+      uploadedDocs: this.documentService.getUploadedDocuments(),
+    }).subscribe({
+      next: ({ requiredTypes, uploadedDocs }) => {
+        this.requiredDocTypes = (requiredTypes as any[]).map((t: any) => ({
+          id: Number(t.id),
+          name: t.name ?? t.typeName,
+        }));
+        // Name-based matching: compare type names case-insensitively.
+        // Student's uploaded docs reference platform type names; tenant shadows
+        // may have different IDs but the same name — so ID-based matching would fail.
+        const anyDocs = uploadedDocs as any[];
+        this.uploadedDocTypeNames = new Set(
+          anyDocs.map((d: any) => String(d.typeName ?? d.documentTypeName ?? d.name ?? '').toLowerCase())
+        );
+        this.isLoadingDocReadiness = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        // Non-blocking: if we can't load, show checklist as unchecked
+        this.isLoadingDocReadiness = false;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   private readonly BUILDINGS_PAGE_SIZE = 5;
@@ -223,7 +288,7 @@ export class ApplicationSubmissionComponent implements OnInit {
         next: () => {
           this.isSubmitting = false;
           this.errorService.showSuccess('Application submitted successfully!');
-          this.router.navigate(['/document-upload']);
+          this.router.navigate(['/dashboard']);
         },
         error: (error) => {
           this.isSubmitting = false;
@@ -244,6 +309,20 @@ export class ApplicationSubmissionComponent implements OnInit {
 
   onBuildingSelectionChanged(buildingIds: number[]): void {
     this.applicationForm.patchValue({ preferredBuildingIds: buildingIds });
+
+    // Derive the target tenant from the first selected building and reload
+    // document readiness with that tenant's effective required types.
+    if (buildingIds.length > 0) {
+      const firstBuilding = this.buildings.find(b => b.id === buildingIds[0]);
+      const tenantId = firstBuilding?.tenantId ?? null;
+      if (tenantId !== this.selectedTenantId) {
+        this.selectedTenantId = tenantId;
+        this.loadDocumentReadiness(tenantId ?? undefined);
+      }
+    } else {
+      this.selectedTenantId = null;
+      this.loadDocumentReadiness();
+    }
   }
 
   dismissError(): void {
@@ -254,13 +333,4 @@ export class ApplicationSubmissionComponent implements OnInit {
     this.onSubmit();
   }
 
-  /**
-   * Skip application is no longer allowed since documents must be linked to an application.
-   * This method shows a warning to the user.
-   */
-  skipApplication() {
-    this.errorService.showWarning(
-      'An application is required before you can upload documents. Please complete your application.'
-    );
-  }
 }

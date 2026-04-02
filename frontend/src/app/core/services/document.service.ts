@@ -207,6 +207,10 @@ export class DocumentService {
       responseType: 'blob',
     });
   }
+
+  deleteDocument(documentId: string | number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/delete/${documentId}`);
+  }
 }
 
 export function isNoActiveApplicationError(error: any): boolean {

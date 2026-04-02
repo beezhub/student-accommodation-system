@@ -12,6 +12,7 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.DocumentTypeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +26,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,29 +36,40 @@ class ApplicationDocumentServiceTest {
     @Mock
     private DocumentRepository documentRepository;
     @Mock
-    private ApplicationDocumentRepository applicationDocumentRepository;
-    @Mock
     private DocumentTypeRepository documentTypeRepository;
     @Mock
     private DocumentCommentRepository documentCommentRepository;
     @Mock
     private AppUserRepository appUserRepository;
+    @Mock
+    private DocumentTypeService documentTypeService;
 
     @InjectMocks
     private ApplicationDocumentService service;
 
     private Application application;
+    private Student student;
     private AppUser adminUser;
     private AppUser studentUser;
     private DocumentType docType1;
     private DocumentType docType2;
     private Document document1;
-    private ApplicationDocument appDoc1;
 
     @BeforeEach
     void setUp() {
+        studentUser = new AppUser();
+        studentUser.setId(20L);
+        studentUser.setEmail("student@test.com");
+        studentUser.setUserRole(UserRole.STUDENT);
+
+        student = new Student();
+        student.setId(5L);
+        student.setAppUser(studentUser);
+
         application = new Application();
         application.setId(1L);
+        application.setTenantId(42L);
+        application.setStudent(student);
 
         adminUser = new AppUser();
         adminUser.setId(10L);
@@ -67,18 +78,15 @@ class ApplicationDocumentServiceTest {
         adminUser.setFirstName("Admin");
         adminUser.setLastName("User");
 
-        studentUser = new AppUser();
-        studentUser.setId(20L);
-        studentUser.setEmail("student@test.com");
-        studentUser.setUserRole(UserRole.STUDENT);
-
         docType1 = new DocumentType();
         docType1.setId(100L);
+        docType1.setTenantId(0L);
         docType1.setTypeName("ID");
         docType1.setIsRequired(true);
 
         docType2 = new DocumentType();
         docType2.setId(200L);
+        docType2.setTenantId(0L);
         docType2.setTypeName("PROOF_OF_RESIDENCE");
         docType2.setIsRequired(true);
 
@@ -86,17 +94,14 @@ class ApplicationDocumentServiceTest {
         document1.setId(1000L);
         document1.setDocumentType(docType1);
         document1.setDocumentStatus(DocumentStatus.APPROVED);
-
-        appDoc1 = new ApplicationDocument();
-        appDoc1.setApplication(application);
-        appDoc1.setDocument(document1);
+        document1.setStudent(student);
     }
 
     @Test
     void getRequiredDocumentsChecklist_ApplicationExists_ReturnsChecklist() {
-        when(applicationRepository.existsById(1L)).thenReturn(true);
-        when(documentTypeRepository.findByIsRequiredTrue()).thenReturn(List.of(docType1, docType2));
-        when(applicationDocumentRepository.findByApplication_Id(1L)).thenReturn(List.of(appDoc1));
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(documentTypeService.getEffectiveDocumentTypes(42L)).thenReturn(List.of(docType1, docType2));
+        when(documentRepository.findAllByStudent_Id(5L)).thenReturn(List.of(document1));
 
         RequiredDocumentsChecklistResponse response = service.getRequiredDocumentsChecklist(1L);
 
@@ -109,16 +114,16 @@ class ApplicationDocumentServiceTest {
 
     @Test
     void getRequiredDocumentsChecklist_ApplicationNotFound_ThrowsException() {
-        when(applicationRepository.existsById(1L)).thenReturn(false);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(ApplicationNotFoundException.class, () -> service.getRequiredDocumentsChecklist(1L));
     }
 
     @Test
     void saveReviewProgress_ValidRequest_UpdatesDocumentAndAddsComment() {
-        when(applicationRepository.existsById(1L)).thenReturn(true);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
         when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
-        
+
         DocumentUpdate update = new DocumentUpdate();
         update.setDocumentId(1000L);
         update.setNewStatus("REJECTED");
@@ -127,7 +132,6 @@ class ApplicationDocumentServiceTest {
         request.setDocumentUpdates(List.of(update));
 
         when(documentRepository.findById(1000L)).thenReturn(Optional.of(document1));
-        when(applicationDocumentRepository.existsByApplication_IdAndDocument_Id(1L, 1000L)).thenReturn(true);
 
         ReviewProgressResponse response = service.saveReviewProgress(1L, request, "admin@test.com");
 
@@ -141,9 +145,9 @@ class ApplicationDocumentServiceTest {
 
     @Test
     void saveReviewProgress_InvalidStatus_ThrowsException() {
-        when(applicationRepository.existsById(1L)).thenReturn(true);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
         when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
-        
+
         DocumentUpdate update = new DocumentUpdate();
         update.setDocumentId(1000L);
         update.setNewStatus("INVALID");
@@ -151,42 +155,47 @@ class ApplicationDocumentServiceTest {
         request.setDocumentUpdates(List.of(update));
 
         when(documentRepository.findById(1000L)).thenReturn(Optional.of(document1));
-        when(applicationDocumentRepository.existsByApplication_IdAndDocument_Id(1L, 1000L)).thenReturn(true);
 
         assertThrows(InvalidStatusException.class, () -> service.saveReviewProgress(1L, request, "admin@test.com"));
     }
 
     @Test
     void saveReviewProgress_NotAdmin_ThrowsException() {
-        when(applicationRepository.existsById(1L)).thenReturn(true);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
         when(appUserRepository.findByEmail("student@test.com")).thenReturn(Optional.of(studentUser));
-        
+
         ReviewProgressRequest request = new ReviewProgressRequest();
 
         assertThrows(UnauthorizedAccessException.class, () -> service.saveReviewProgress(1L, request, "student@test.com"));
     }
 
     @Test
-    void saveReviewProgress_DocumentNotBelongingToApp_ThrowsException() {
-        when(applicationRepository.existsById(1L)).thenReturn(true);
+    void saveReviewProgress_DocumentNotBelongingToStudent_ThrowsException() {
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
         when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
-        
+
+        // Document belongs to a different student
+        Student otherStudent = new Student();
+        otherStudent.setId(99L);
+        Document otherDoc = new Document();
+        otherDoc.setId(1000L);
+        otherDoc.setStudent(otherStudent);
+
         DocumentUpdate update = new DocumentUpdate();
         update.setDocumentId(1000L);
         ReviewProgressRequest request = new ReviewProgressRequest();
         request.setDocumentUpdates(List.of(update));
 
-        when(documentRepository.findById(1000L)).thenReturn(Optional.of(document1));
-        when(applicationDocumentRepository.existsByApplication_IdAndDocument_Id(1L, 1000L)).thenReturn(false);
+        when(documentRepository.findById(1000L)).thenReturn(Optional.of(otherDoc));
 
         assertThrows(UnauthorizedAccessException.class, () -> service.saveReviewProgress(1L, request, "admin@test.com"));
     }
 
     @Test
     void areAllRequiredDocumentsApproved_AllApproved_ReturnsTrue() {
-        when(applicationRepository.existsById(1L)).thenReturn(true);
-        when(documentTypeRepository.findByIsRequiredTrue()).thenReturn(List.of(docType1));
-        when(applicationDocumentRepository.findByApplication_Id(1L)).thenReturn(List.of(appDoc1));
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(documentTypeService.getEffectiveDocumentTypes(42L)).thenReturn(List.of(docType1));
+        when(documentRepository.findAllByStudent_Id(5L)).thenReturn(List.of(document1));
 
         boolean result = service.areAllRequiredDocumentsApproved(1L);
 
@@ -196,9 +205,9 @@ class ApplicationDocumentServiceTest {
     @Test
     void areAllRequiredDocumentsApproved_NotAllApproved_ReturnsFalse() {
         document1.setDocumentStatus(DocumentStatus.PENDING);
-        when(applicationRepository.existsById(1L)).thenReturn(true);
-        when(documentTypeRepository.findByIsRequiredTrue()).thenReturn(List.of(docType1));
-        when(applicationDocumentRepository.findByApplication_Id(1L)).thenReturn(List.of(appDoc1));
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(documentTypeService.getEffectiveDocumentTypes(42L)).thenReturn(List.of(docType1));
+        when(documentRepository.findAllByStudent_Id(5L)).thenReturn(List.of(document1));
 
         boolean result = service.areAllRequiredDocumentsApproved(1L);
 
@@ -211,8 +220,9 @@ class ApplicationDocumentServiceTest {
         comment.setId(50L);
         comment.setAdmin(adminUser);
         comment.setCommentText("Test comment");
-        
-        when(applicationDocumentRepository.findByApplication_Id(1L)).thenReturn(List.of(appDoc1));
+
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(documentRepository.findAllByStudent_Id(5L)).thenReturn(List.of(document1));
         when(documentCommentRepository.findByDocument_IdOrderByCreatedAtDesc(1000L)).thenReturn(List.of(comment));
 
         List<DocumentWithCommentsResponse> responses = service.getDocumentsWithComments(1L);

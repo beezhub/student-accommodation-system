@@ -7,7 +7,7 @@ import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
-import com.beezhub.student_accommodation.repository.ApplicationDocumentRepository;
+import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,10 +27,11 @@ import com.beezhub.student_accommodation.repository.ApplicationRepository;
 @Slf4j
 public class ApplicationDocumentCoordinator {
 
-    private final ApplicationDocumentRepository applicationDocumentRepository;
+    private final DocumentRepository documentRepository;
     private final RoomAllocationService roomAllocationService;
     private final RoomAllocationRepository roomAllocationRepository;
     private final ApplicationRepository applicationRepository;
+    private final DocumentTypeService documentTypeService;
 
     public Application findApprovedApplication(Long studentId) {
         return applicationRepository.findByStudent_Id(studentId)
@@ -43,23 +44,22 @@ public class ApplicationDocumentCoordinator {
 
     @Transactional
     public void tryAllocateOrQueue(Student student, Application application) {
-        // Fetch documents for this application via junction table
-        List<Document> documents = applicationDocumentRepository.findByApplication_Id(application.getId())
-                .stream()
-                .map(ad -> ad.getDocument())
-                .toList();
+        // Fetch documents from the student's document pack (documents live at student level)
+        List<Document> documents = documentRepository.findAllByStudent_Id(student.getId());
+
+        // Use the application's tenant effective required type names (name-based, not platform flag).
+        // This ensures tenant shadows of the isRequired flag are respected at the allocation gate.
+        java.util.Set<String> requiredTypeNames = documentTypeService
+                .getEffectiveRequiredTypeNames(application.getTenantId());
+
         long requiredApproved = documents.stream()
                 .filter(doc -> doc.getDocumentStatus() == APPROVED)
-                .map(Document::getDocumentType)
-                .filter(DocumentType::getIsRequired)
-                .count();
-        long requiredTotal = documents.stream()
-                .map(Document::getDocumentType)
-                .filter(DocumentType::getIsRequired)
+                .filter(doc -> requiredTypeNames.contains(doc.getDocumentType().getTypeName().toLowerCase()))
                 .count();
 
-        if (requiredApproved < requiredTotal) {
-            log.info("Student {} does not have all required documents approved yet", student.getId());
+        if (requiredApproved < requiredTypeNames.size()) {
+            log.info("Student {} does not have all required documents approved yet ({}/{} approved)",
+                    student.getId(), requiredApproved, requiredTypeNames.size());
             return;
         }
 

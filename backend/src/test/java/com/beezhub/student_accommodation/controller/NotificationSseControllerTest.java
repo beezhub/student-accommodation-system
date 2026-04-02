@@ -70,7 +70,7 @@ class NotificationSseControllerTest {
         @Test
         @SuppressWarnings("unchecked")
         void pushNotification_subscribedUser_receivesEvent() throws Exception {
-            SseService service = new SseService();
+            SseService service = new SseService(Mockito.mock(com.beezhub.student_accommodation.repository.AppUserRepository.class));
 
             // Mock the emitter — avoids the HTTP response writer requirement
             SseEmitter mockEmitter = Mockito.mock(SseEmitter.class);

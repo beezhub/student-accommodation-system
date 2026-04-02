@@ -27,6 +27,7 @@ public interface ApplicationMapper {
     @Mapping(target = "allocationMethod", expression = "java(application.getAllocationMethod() != null ? application.getAllocationMethod().name() : null)")
     @Mapping(target = "remarks", source = "remarks")
     @Mapping(target = "preferredBuildings", expression = "java(mapBuildingPreferences(application.getBuildingPreferences()))")
+    @Mapping(target = "tenantId", source = "tenantId")
     ApplicationResponse toResponse(Application application);
 
     default List<BuildingPreferenceResponse> mapBuildingPreferences(

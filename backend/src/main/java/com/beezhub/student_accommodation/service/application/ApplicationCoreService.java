@@ -23,6 +23,9 @@ import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ApplicationBuildingPreferenceRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.repository.DocumentRepository;
+import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
+import com.beezhub.student_accommodation.model.entity.DocumentType;
 
 import com.beezhub.student_accommodation.repository.StudentRepository;
 
@@ -41,7 +44,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.PENDING;
+import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.*;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -52,6 +56,9 @@ public class ApplicationCoreService {
         private final StudentRepository studentRepository;
         private final BuildingRepository buildingRepository;
         private final ApplicationBuildingPreferenceRepository buildingPreferenceRepository;
+        private final DocumentRepository documentRepository;
+        private final DocumentTypeRepository documentTypeRepository;
+        private final com.beezhub.student_accommodation.service.DocumentTypeService documentTypeService;
 
         private final ApplicationMapper applicationMapper;
         private final AuthService authService;
@@ -132,10 +139,26 @@ public class ApplicationCoreService {
                                                         currentYear.getApplicationCloseDate());
                 }
 
-                // Check for existing pending application per student per tenant (one per property company)
-                if (applicationRepository.existsByStudent_IdAndTenantIdAndStatus(studentId, applicationTenantId, PENDING)) {
+                // Check that all required document types are present in the student's pack.
+                // Uses name-based matching: student docs may reference platform type IDs while
+                // the tenant may have shadow types with different IDs but the same name.
+                Set<String> uploadedTypeNames = documentRepository.findDocumentTypeNamesByStudentId(studentId)
+                                .stream().map(String::toLowerCase).collect(Collectors.toSet());
+                Set<String> requiredTypeNames = documentTypeService.getEffectiveRequiredTypeNames(applicationTenantId);
+                List<String> missingTypeNames = requiredTypeNames.stream()
+                                .filter(name -> !uploadedTypeNames.contains(name))
+                                .collect(Collectors.toList());
+                if (!missingTypeNames.isEmpty()) {
+                        throw new IllegalArgumentException(
+                                        "Missing required documents: " + String.join(", ", missingTypeNames));
+                }
+
+                // Check for existing active application per student per tenant (one per property company)
+                List<ApplicationStatus> activeStatuses = List.of(
+                                PENDING, UNDER_REVIEW, CHANGES_REQUESTED, APPROVED, AWAITING_ALLOCATION, ALLOCATED);
+                if (applicationRepository.existsByStudent_IdAndTenantIdAndStatusIn(studentId, applicationTenantId, activeStatuses)) {
                         throw new DuplicateApplicationException(
-                                        "Student already has a pending application with this property company");
+                                        "You already have an active application with this property company");
                 }
 
                 // Determine legacy preferred building for the application entity
@@ -269,6 +292,7 @@ public class ApplicationCoreService {
                 log.info("Application {} canceled successfully", applicationId);
         }
 
+        @Transactional(readOnly = true)
         public List<ApplicationResponse> getMyApplications() {
                 log.info("Retrieving applications for current user");
 
