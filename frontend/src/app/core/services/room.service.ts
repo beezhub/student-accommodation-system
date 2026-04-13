@@ -8,6 +8,7 @@ export interface RoomRequest {
   capacity: number;
   currentOccupancy?: number;
   status: string;
+  monthlyRate?: number | null;
   buildingId: number;
 }
 
@@ -17,6 +18,7 @@ export interface RoomResponse {
   capacity: number;
   currentOccupancy: number;
   status: string;
+  monthlyRate?: number | null;
   buildingId: number;
   buildingName: string;
   accessibilityCompliant?: boolean;

@@ -212,6 +212,18 @@
               </td>
             </ng-container>
 
+            <!-- Monthly Rate Column -->
+            <ng-container matColumnDef="monthlyRate">
+              <th mat-header-cell *matHeaderCellDef>Monthly Rate</th>
+              <td mat-cell *matCellDef="let room">
+                @if (room.monthlyRate != null) {
+                  <span class="rate-value">R{{ room.monthlyRate | number:'1.2-2' }}</span>
+                } @else {
+                  <span class="attr-none">—</span>
+                }
+              </td>
+            </ng-container>
+
             <!-- Occupancy Column -->
             <ng-container matColumnDef="currentOccupancy">
               <th mat-header-cell *matHeaderCellDef>Occupancy</th>

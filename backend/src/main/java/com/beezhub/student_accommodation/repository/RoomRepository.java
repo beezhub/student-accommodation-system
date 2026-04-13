@@ -60,4 +60,16 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
     @Query("SELECT r FROM Room r WHERE r.capacity > " +
            "(SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room.id = r.id AND ra.status IN ('ACTIVE', 'ACCEPTED', 'OFFERED'))")
     List<Room> findRoomsWithAvailableCapacity();
+
+    // Pricing summary per building: [buildingId, minMonthlyRate, maxMonthlyRate]
+    @Query("SELECT r.building.id, MIN(r.monthlyRate), MAX(r.monthlyRate) " +
+           "FROM Room r WHERE r.building IS NOT NULL AND r.monthlyRate IS NOT NULL " +
+           "GROUP BY r.building.id")
+    List<Object[]> findPricingSummaryByBuilding();
+
+    // Available room count per building: [buildingId, availableCount]
+    @Query("SELECT r.building.id, COUNT(r) FROM Room r " +
+           "WHERE r.building IS NOT NULL AND r.status = 'AVAILABLE' " +
+           "GROUP BY r.building.id")
+    List<Object[]> findAvailableRoomCountByBuilding();
 }

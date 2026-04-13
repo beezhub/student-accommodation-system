@@ -157,6 +157,164 @@
 }
 
 // ─────────────────────────────────────────────────────────────
+// Filter bar
+// ─────────────────────────────────────────────────────────────
+.filter-bar {
+  background: white;
+  border-bottom: 1px solid vars.$slate-200;
+  padding: vars.$space-2 vars.$space-6;
+}
+
+.filter-bar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: vars.$space-3;
+}
+
+.filter-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-1;
+  border: 1px solid vars.$slate-300;
+  background: white;
+  border-radius: vars.$radius-md;
+  padding: 6px vars.$space-3;
+  font-size: vars.$font-size-small;
+  font-weight: 500;
+  color: vars.$slate-700;
+  cursor: pointer;
+  transition:
+    border-color vars.$motion-fast ease,
+    background vars.$motion-fast ease;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover,
+  &.active {
+    border-color: vars.$slate-500;
+    background: vars.$slate-50;
+  }
+}
+
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: vars.$accent-orange-dark;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  border-radius: vars.$radius-pill;
+  padding: 0 5px;
+}
+
+.clear-filters-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: vars.$font-size-small;
+  color: vars.$slate-500;
+  padding: 4px vars.$space-2;
+  border-radius: vars.$radius-sm;
+  transition: color vars.$motion-fast ease;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    color: vars.$slate-800;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Filter panel (collapsible)
+// ─────────────────────────────────────────────────────────────
+.filter-panel {
+  background: white;
+  border-bottom: 1px solid vars.$slate-200;
+  padding: vars.$space-4 vars.$space-6;
+}
+
+.filter-panel-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: vars.$space-4;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.filter-group-toggle {
+  min-width: auto;
+  justify-content: flex-end;
+}
+
+.filter-label {
+  font-size: vars.$font-size-tiny;
+  font-weight: 600;
+  color: vars.$slate-600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-input,
+.filter-select {
+  border: 1px solid vars.$slate-300;
+  border-radius: vars.$radius-sm;
+  padding: 8px vars.$space-3;
+  font-size: vars.$font-size-small;
+  color: vars.$slate-800;
+  background: white;
+  outline: none;
+  font-family: vars.$font-sans;
+  transition: border-color vars.$motion-fast ease;
+
+  &:focus {
+    border-color: vars.$accent-orange-dark;
+  }
+
+  &::placeholder {
+    color: vars.$slate-400;
+  }
+}
+
+.filter-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  min-width: 180px;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 1px;
+}
+
+// ─────────────────────────────────────────────────────────────
 // Loading / Error / Empty
 // ─────────────────────────────────────────────────────────────
 .loading-wrap {
@@ -335,10 +493,13 @@
 
 .card-body {
   padding: vars.$space-4 vars.$space-5;
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-2;
 }
 
 .card-title {
-  margin: 0 0 vars.$space-2;
+  margin: 0;
   font-size: vars.$font-size-card-title;
   font-weight: vars.$font-weight-card-title;
   color: vars.$slate-900;
@@ -365,6 +526,92 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Card – Price display
+// ─────────────────────────────────────────────────────────────
+.card-price {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-1;
+  font-size: vars.$font-size-small;
+  font-weight: 600;
+  color: vars.$slate-800;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: vars.$slate-500;
+    flex-shrink: 0;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Card – Availability indicator
+// ─────────────────────────────────────────────────────────────
+.card-availability {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: vars.$font-size-tiny;
+  font-weight: 500;
+}
+
+.avail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.availability-good {
+  color: vars.$success;
+  .avail-dot { background: vars.$success; }
+}
+
+.availability-limited {
+  color: vars.$warning;
+  .avail-dot { background: vars.$warning; }
+}
+
+.availability-none {
+  color: vars.$slate-400;
+  .avail-dot { background: vars.$slate-400; }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Card – Capacity chips
+// ─────────────────────────────────────────────────────────────
+.card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.capacity-chip {
+  background: vars.$slate-100;
+  color: vars.$slate-600;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: vars.$radius-pill;
+  white-space: nowrap;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Load more
+// ─────────────────────────────────────────────────────────────
+.load-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding: vars.$space-8 0 vars.$space-4;
+}
+
+.load-more-btn {
+  padding: 8px 32px;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -398,5 +645,22 @@
 
   .grid-section {
     padding: vars.$space-6 vars.$space-4;
+  }
+
+  .filter-bar {
+    padding: vars.$space-2 vars.$space-4;
+  }
+
+  .filter-panel {
+    padding: vars.$space-4;
+  }
+
+  .filter-panel-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    min-width: 0;
   }
 }

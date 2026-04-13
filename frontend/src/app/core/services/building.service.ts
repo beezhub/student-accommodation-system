@@ -46,6 +46,26 @@ export interface BuildingResponse {
   images?: BuildingImageResponse[];
   createdAt: string;
   updatedAt: string;
+
+  // Pricing and availability summary (computed from rooms)
+  minMonthlyRate?: number | null;
+  maxMonthlyRate?: number | null;
+  availableRoomCount?: number;
+
+  // Room summaries (included in detail endpoint)
+  rooms?: RoomSummary[];
+
+  // Building attributes (included in detail endpoint)
+  accessibilityFeatures?: string | null;
+}
+
+export interface RoomSummary {
+  id: number;
+  roomNumber: string;
+  capacity: number;
+  currentOccupancy: number;
+  monthlyRate?: number | null;
+  status: string;
 }
 
 export interface PageResponse<T> {
@@ -80,6 +100,29 @@ export class BuildingService {
 
   getAllBuildingsNoPagination(): Observable<BuildingResponse[]> {
     return this.http.get<BuildingResponse[]>(`${this.apiUrl}/all`);
+  }
+
+  browseBuildingsPaginated(filters: {
+    minPrice?: number;
+    maxPrice?: number;
+    available?: boolean;
+    institutionId?: number;
+    search?: string;
+    page?: number;
+    size?: number;
+  }): Observable<PageResponse<BuildingResponse>> {
+    let params = new HttpParams()
+      .set('page', (filters.page || 0).toString())
+      .set('size', (filters.size || 12).toString());
+
+    if (filters.minPrice != null) params = params.set('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice != null) params = params.set('maxPrice', filters.maxPrice.toString());
+    if (filters.available != null) params = params.set('available', filters.available.toString());
+    if (filters.institutionId != null)
+      params = params.set('institutionId', filters.institutionId.toString());
+    if (filters.search) params = params.set('search', filters.search);
+
+    return this.http.get<PageResponse<BuildingResponse>>(`${this.apiUrl}/browse`, { params });
   }
 
   searchBuildings(filters: {

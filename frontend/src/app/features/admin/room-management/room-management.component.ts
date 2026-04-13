@@ -72,6 +72,7 @@ export class RoomManagementComponent implements OnInit {
     'roomNumber',
     'buildingName',
     'capacity',
+    'monthlyRate',
     'currentOccupancy',
     'attributes',
     'status',
