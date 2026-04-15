@@ -19,6 +19,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -75,6 +76,23 @@ public class BuildingController {
             @PageableDefault(size = 20, sort = "name") Pageable pageable) {
         log.info("Searching buildings with filters - name: {}, address: {}", name, address);
         PageResponse<BuildingResponse> page = buildingService.searchBuildings(name, address, pageable);
+        return ResponseEntity.ok(page);
+    }
+
+    @GetMapping("/browse")
+    @Operation(summary = "Browse buildings with filters",
+            description = "Public paginated building browse with optional filters for price range, availability, institution, and text search")
+    public ResponseEntity<PageResponse<BuildingResponse>> browseBuildings(
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Boolean available,
+            @RequestParam(required = false) Long institutionId,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 12, sort = "name") Pageable pageable) {
+        log.info("Browsing buildings - minPrice: {}, maxPrice: {}, available: {}, institutionId: {}, search: {}",
+                minPrice, maxPrice, available, institutionId, search);
+        PageResponse<BuildingResponse> page = buildingService.browseBuildings(
+                minPrice, maxPrice, available, institutionId, search, pageable);
         return ResponseEntity.ok(page);
     }
 

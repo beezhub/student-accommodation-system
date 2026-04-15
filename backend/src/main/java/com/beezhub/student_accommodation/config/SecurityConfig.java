@@ -77,10 +77,12 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/api/building",
                                 "/api/building/all",
+                                "/api/building/browse",
                                 "/api/building/search",
                                 "/api/building/{id}",
                                 "/api/building/by-institution/{institutionId}",
-                                "/api/building/{buildingId}/images")
+                                "/api/building/{buildingId}/images",
+                                "/api/institution/all")
                         .permitAll()
                         .requestMatchers("/api/admin/**").hasAnyRole("PLATFORM_ADMIN", "TENANT_ADMIN")
                         .requestMatchers("/actuator/health").permitAll()

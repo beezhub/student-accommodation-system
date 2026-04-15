@@ -1,8 +1,10 @@
 package com.beezhub.student_accommodation.model.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -36,6 +38,10 @@ public class Room implements TenantAware {
 
     @Column(name = "status", length = 20)
     private String status; // AVAILABLE, OCCUPIED, FULL, MAINTENANCE
+
+    @Min(0)
+    @Column(name = "monthly_rate", precision = 10, scale = 2)
+    private BigDecimal monthlyRate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "building_id")
