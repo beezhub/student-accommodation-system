@@ -3,6 +3,7 @@ package com.beezhub.student_accommodation.model.dto;
 import com.beezhub.student_accommodation.model.enums.GenderRestriction;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -12,6 +13,7 @@ public class RoomResponse {
     private Integer capacity;
     private Integer currentOccupancy;
     private String status;
+    private BigDecimal monthlyRate;
     private Long buildingId;
     private String buildingName;
     private BuildingResponse building;

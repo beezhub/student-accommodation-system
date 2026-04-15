@@ -95,6 +95,23 @@ import { BuildingResponse } from '../../../../core/services/building.service';
           </div>
 
           <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Monthly Rate (R)</mat-label>
+            <mat-icon matPrefix>payments</mat-icon>
+            <input
+              matInput
+              type="number"
+              formControlName="monthlyRate"
+              placeholder="e.g., 2500.00"
+              min="0"
+              step="0.01"
+            />
+            <mat-hint>Leave empty if pricing is not yet determined</mat-hint>
+            @if (roomForm.get('monthlyRate')?.hasError('min')) {
+            <mat-error>Monthly rate cannot be negative</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
             <mat-label>Status</mat-label>
             <mat-icon matPrefix>info_outline</mat-icon>
             <mat-select formControlName="status" required>
@@ -380,6 +397,7 @@ export class RoomFormDialogComponent implements OnInit {
       buildingId: ['', Validators.required],
       capacity: [1, [Validators.required, Validators.min(1)]],
       currentOccupancy: [0, Validators.min(0)],
+      monthlyRate: [null, Validators.min(0)],
       status: ['AVAILABLE', Validators.required],
     });
   }
@@ -391,6 +409,7 @@ export class RoomFormDialogComponent implements OnInit {
         buildingId: this.data.room.buildingId,
         capacity: this.data.room.capacity,
         currentOccupancy: this.data.room.currentOccupancy,
+        monthlyRate: this.data.room.monthlyRate,
         status: this.data.room.status,
       });
     }

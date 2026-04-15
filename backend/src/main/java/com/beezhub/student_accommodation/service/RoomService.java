@@ -98,6 +98,7 @@ public class RoomService {
         room.setCapacity(request.getCapacity());
         room.setCurrentOccupancy(0);
         room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+        room.setMonthlyRate(request.getMonthlyRate());
 
         if (request.getBuildingId() != null) {
             Building building = buildingRepository.findById(request.getBuildingId())
@@ -144,6 +145,7 @@ public class RoomService {
             room.setCapacity(request.getCapacity());
             room.setCurrentOccupancy(0);
             room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+            room.setMonthlyRate(request.getMonthlyRate());
 
             if (request.getBuildingId() != null) {
                 Building building = buildingCache.computeIfAbsent(request.getBuildingId(),
@@ -177,6 +179,7 @@ public class RoomService {
         room.setRoomNumber(request.getRoomNumber());
         room.setCapacity(request.getCapacity());
         room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+        room.setMonthlyRate(request.getMonthlyRate());
 
         // Handle building relationship
         if (request.getBuildingId() != null) {

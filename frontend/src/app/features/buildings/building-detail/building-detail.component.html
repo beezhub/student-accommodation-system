@@ -100,12 +100,76 @@
             }
           </div>
         }
+
+        <!-- ── Rooms & Pricing (below gallery) ───────────── -->
+        <div class="rooms-section">
+          <h2 class="section-heading">Rooms & Pricing</h2>
+
+          @if (capacityGroups.length === 0) {
+            <div class="rooms-empty">
+              <mat-icon>info_outline</mat-icon>
+              <p>Room information not yet available</p>
+            </div>
+          } @else {
+            <table class="rooms-table" aria-label="Rooms and pricing by capacity">
+              <thead>
+                <tr>
+                  <th>Room Type</th>
+                  <th>Price</th>
+                  <th>Availability</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (group of capacityGroups; track group.capacity) {
+                  <tr>
+                    <td class="type-cell">
+                      <span class="type-label">{{ group.label }}</span>
+                    </td>
+                    <td class="price-cell">{{ getGroupPriceDisplay(group) }}</td>
+                    <td class="avail-cell">
+                      <span
+                        class="avail-badge"
+                        [class.avail-badge--good]="group.available > 2"
+                        [class.avail-badge--limited]="group.available > 0 && group.available <= 2"
+                        [class.avail-badge--none]="group.available === 0">
+                        {{ group.available }} of {{ group.total }} available
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+
+        <!-- ── Accessibility ─────────────────────────────── -->
+        @if (accessibilityFeatures.length > 0) {
+          <div class="accessibility-section">
+            <h2 class="section-heading">Accessibility</h2>
+            <div class="accessibility-chips">
+              @for (feature of accessibilityFeatures; track feature) {
+                <span class="accessibility-chip">
+                  <mat-icon>accessible</mat-icon>
+                  {{ feature }}
+                </span>
+              }
+            </div>
+          </div>
+        }
       </div>
 
       <!-- ── Info ────────────────────────────────────────── -->
       <div class="info-col">
 
         <h1 class="building-name">{{ building.name }}</h1>
+
+        <!-- Availability summary -->
+        @if (availabilitySummary) {
+          <div class="availability-summary" [class.fully-occupied]="availableRooms === 0">
+            <mat-icon>{{ availableRooms > 0 ? 'check_circle' : 'cancel' }}</mat-icon>
+            <span>{{ availabilitySummary }}</span>
+          </div>
+        }
 
         @if (building.institutions && building.institutions.length > 0) {
           <div class="institutions">
@@ -133,6 +197,12 @@
             <div class="meta-row">
               <mat-icon class="meta-icon">photo_library</mat-icon>
               <span>{{ images.length }} photo{{ images.length !== 1 ? 's' : '' }}</span>
+            </div>
+          }
+          @if (totalRooms > 0) {
+            <div class="meta-row">
+              <mat-icon class="meta-icon">bed</mat-icon>
+              <span>{{ totalRooms }} room{{ totalRooms !== 1 ? 's' : '' }}</span>
             </div>
           }
         </div>
