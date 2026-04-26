@@ -1,12 +1,18 @@
 ## ADDED Requirements
 
-### Requirement: Admin pages use EmptyStateComponent
-All admin page components with empty-data states SHALL use `<app-empty-state>` instead of inline `.no-data` div blocks.
+### Requirement: Student dashboard document section uses empty state on API failure
+The student dashboard documents section SHALL display an `EmptyStateComponent` (or equivalent empty state pattern) when the document list API call fails or returns an empty result. The component SHALL NOT fall back to hardcoded mock document data. The `uploadedDocuments` array SHALL be initialised as an empty array (`[]`), not with placeholder objects.
 
-#### Scenario: No-data state renders consistently
-- **WHEN** an admin page has zero items to display
-- **THEN** the `EmptyStateComponent` SHALL be rendered with the appropriate icon, title, and description inputs
+#### Scenario: Document API failure shows empty state
+- **WHEN** a student's dashboard loads and the document list API call fails
+- **THEN** the documents section SHALL display an empty state with an appropriate icon and message (e.g., "Unable to load documents. Please try again later.")
+- **AND** no mock or hardcoded document entries SHALL be displayed
 
-#### Scenario: EmptyStateComponent replaces all inline no-data blocks
-- **WHEN** the admin section is audited
-- **THEN** no standalone `.no-data` div blocks SHALL remain in page-level components (application-review, building-management, room-management, room-allocation, document-verification, activity-logs, waiting-list-dashboard, academic-year-management, accommodation-type-management, document-type-management, institution-management)
+#### Scenario: No documents uploaded shows empty state
+- **WHEN** a student's dashboard loads and the document list API returns an empty array
+- **THEN** the documents section SHALL display an empty state with a message (e.g., "No documents uploaded yet") and a call-to-action to upload documents
+
+#### Scenario: Mock document data is removed from component initialisation
+- **WHEN** the dashboard component initialises
+- **THEN** the `uploadedDocuments` property SHALL be initialised as `[]`
+- **AND** no hardcoded document objects with fabricated statuses (e.g., `{ name: "ID Document", status: "Verified" }`) SHALL exist in the component source code

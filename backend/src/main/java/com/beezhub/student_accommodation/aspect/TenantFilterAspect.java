@@ -48,7 +48,9 @@ public class TenantFilterAspect {
     @Before("@annotation(org.springframework.transaction.annotation.Transactional) || " +
             "@within(org.springframework.transaction.annotation.Transactional)  || " +
             "@annotation(jakarta.transaction.Transactional)                     || " +
-            "@within(jakarta.transaction.Transactional)")
+            "@within(jakarta.transaction.Transactional)                         || " +
+            "execution(* com.beezhub.student_accommodation.service..*(..))      || " +
+            "execution(* com.beezhub.student_accommodation.controller..*(..))")
     public void enableTenantFilter() {
         Long tenantId = TenantContext.getTenantId();
         if (tenantId == null || TenantContext.PLATFORM_TENANT_ID.equals(tenantId)) {

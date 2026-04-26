@@ -39,14 +39,21 @@ export class NotificationService {
       return;
     }
 
-    this.connectToSse(token);
+    this.connectToSse();
   }
 
   /**
-   * Connect to Server-Sent Events endpoint
+   * Connect to Server-Sent Events endpoint.
+   * Note: SSE does not support custom headers, so we pass the token as a query param.
+   * For production, consider a ticket-based approach (exchange JWT for short-lived opaque ticket).
    */
-  private connectToSse(token: string): void {
-    const url = `${this.apiUrl}/stream?token=${token}`;
+  private connectToSse(_token?: string): void {
+    const freshToken = this.tokenStorage.getToken();
+    if (!freshToken) {
+      console.warn('Cannot connect SSE: no valid token');
+      return;
+    }
+    const url = `${this.apiUrl}/stream?token=${freshToken}`;
 
     this.eventSource = new EventSource(url);
 
@@ -82,7 +89,7 @@ export class NotificationService {
           console.log(
             `Retrying SSE connection in 5s (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
           );
-          setTimeout(() => this.connectToSse(token), 5000);
+          setTimeout(() => this.connectToSse(), 5000);
         } else {
           console.warn('Max SSE reconnect attempts reached. Falling back to polling.');
           this.startPolling();

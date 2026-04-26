@@ -87,9 +87,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasAnyRole("PLATFORM_ADMIN", "TENANT_ADMIN")
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")
-                        .requestMatchers("/v3/api-docs/**").hasRole("PLATFORM_ADMIN")
-                        .requestMatchers("/swagger-ui/**").hasRole("PLATFORM_ADMIN")
-                        .requestMatchers("/swagger-ui.html").hasRole("PLATFORM_ADMIN")
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

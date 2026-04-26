@@ -3,6 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { BuildingPreferenceResponse } from './application.service';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 export interface CreateUserRequest {
   firstName: string;
@@ -62,14 +64,6 @@ export interface DocumentResponse {
   applicationId?: number;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
 }
 
 export interface DashboardStats {

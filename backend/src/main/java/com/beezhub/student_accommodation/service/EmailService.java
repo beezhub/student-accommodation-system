@@ -79,6 +79,12 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(text);
+
+            java.io.File attachmentFile = new java.io.File(attachmentPath);
+            helper.addAttachment(attachmentFile.getName(),
+                    new org.springframework.core.io.FileSystemResource(attachmentFile));
+
+            mailSender.send(message);
             log.info("Email with attachment sent successfully to: {}", to);
         } catch (MessagingException e) {
             log.error("Failed to send email with attachment to: {}", to, e);

@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
@@ -85,7 +91,7 @@ export class ApplicationSubmissionComponent implements OnInit {
 
   get missingRequiredDocs(): { id: number; name: string }[] {
     return this.requiredDocTypes.filter(
-      dt => !this.uploadedDocTypeNames.has(dt.name.toLowerCase())
+      (dt) => !this.uploadedDocTypeNames.has(dt.name.toLowerCase())
     );
   }
 
@@ -111,8 +117,10 @@ export class ApplicationSubmissionComponent implements OnInit {
 
     this.applicationService.hasActiveApplication().subscribe((hasActive) => {
       if (hasActive) {
-        this.errorService.showWarning('You already have an active application. You can track it in your dashboard.');
-        this.router.navigate(['/dashboard']);
+        this.errorService.showWarning(
+          'You already have an active application. Redirecting to review.'
+        );
+        this.router.navigate(['/application-review']);
         return;
       }
       this.loadStudentProfile();
@@ -137,7 +145,9 @@ export class ApplicationSubmissionComponent implements OnInit {
         // may have different IDs but the same name — so ID-based matching would fail.
         const anyDocs = uploadedDocs as any[];
         this.uploadedDocTypeNames = new Set(
-          anyDocs.map((d: any) => String(d.typeName ?? d.documentTypeName ?? d.name ?? '').toLowerCase())
+          anyDocs.map((d: any) =>
+            String(d.typeName ?? d.documentTypeName ?? d.name ?? '').toLowerCase()
+          )
         );
         this.isLoadingDocReadiness = false;
         this.cdr.markForCheck();
@@ -156,8 +166,12 @@ export class ApplicationSubmissionComponent implements OnInit {
     if (this.studentInstitutionId) {
       this.buildingService.getBuildingsByInstitution(this.studentInstitutionId).subscribe({
         next: (buildings) => {
-          this.buildings = buildings.slice(0, this.BUILDINGS_PAGE_SIZE);
-          this.cdr.markForCheck();
+          if (buildings && buildings.length > 0) {
+            this.buildings = buildings.slice(0, this.BUILDINGS_PAGE_SIZE);
+            this.cdr.markForCheck();
+          } else {
+            this.loadAllBuildings();
+          }
         },
         error: (error) => {
           console.error('Failed to load buildings for institution', error);
@@ -172,7 +186,7 @@ export class ApplicationSubmissionComponent implements OnInit {
   private loadAllBuildings(): void {
     this.buildingService.getAllBuildings(0, this.BUILDINGS_PAGE_SIZE).subscribe({
       next: (response) => {
-        this.buildings = response.content;
+        this.buildings = response?.content ?? [];
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -188,7 +202,7 @@ export class ApplicationSubmissionComponent implements OnInit {
     }
     this.buildingService.searchBuildings({ name: query, size: 10 }).subscribe({
       next: (response) => {
-        this.buildings = response.content;
+        this.buildings = response?.content ?? [];
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -228,6 +242,7 @@ export class ApplicationSubmissionComponent implements OnInit {
               if (institution) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 this.institutionName = institution.name;
+                this.cdr.markForCheck();
               }
               // Load buildings after we know the institution
               this.loadBuildings();
@@ -250,6 +265,7 @@ export class ApplicationSubmissionComponent implements OnInit {
           this.errorService.showWarning('Please complete your profile first.');
           this.router.navigate(['/profile-setup']);
         }
+        this.cdr.markForCheck();
       },
     });
   }
@@ -278,7 +294,9 @@ export class ApplicationSubmissionComponent implements OnInit {
       const applicationData = {
         studentId: this.studentId,
         requiresAccessibility: formValue.requiresAccessibility || false,
-        preferredBuildingIds: formValue.preferredBuildingIds?.length ? formValue.preferredBuildingIds : null,
+        preferredBuildingIds: formValue.preferredBuildingIds?.length
+          ? formValue.preferredBuildingIds
+          : null,
         specialRequirements: formValue.specialRequirements || null,
         institutionName: this.institutionName || 'Not specified',
         courseName: formValue.courseName,
@@ -288,7 +306,8 @@ export class ApplicationSubmissionComponent implements OnInit {
         next: () => {
           this.isSubmitting = false;
           this.errorService.showSuccess('Application submitted successfully!');
-          this.router.navigate(['/dashboard']);
+          this.cdr.markForCheck();
+          this.router.navigate(['/application-review']);
         },
         error: (error) => {
           this.isSubmitting = false;
@@ -299,6 +318,7 @@ export class ApplicationSubmissionComponent implements OnInit {
           if (this.submitError.type !== 'validation') {
             this.errorService.showErrorSnackbar(this.submitError);
           }
+          this.cdr.markForCheck();
         },
       });
     } else {
@@ -313,7 +333,7 @@ export class ApplicationSubmissionComponent implements OnInit {
     // Derive the target tenant from the first selected building and reload
     // document readiness with that tenant's effective required types.
     if (buildingIds.length > 0) {
-      const firstBuilding = this.buildings.find(b => b.id === buildingIds[0]);
+      const firstBuilding = this.buildings.find((b) => b.id === buildingIds[0]);
       const tenantId = firstBuilding?.tenantId ?? null;
       if (tenantId !== this.selectedTenantId) {
         this.selectedTenantId = tenantId;
@@ -332,5 +352,4 @@ export class ApplicationSubmissionComponent implements OnInit {
   retrySubmit(): void {
     this.onSubmit();
   }
-
 }

@@ -24,7 +24,11 @@ public class SystemSettingController {
     @PutMapping("/{key}")
     @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     public ResponseEntity<Void> updateSetting(@PathVariable String key, @RequestBody Map<String, String> payload) {
-        systemSettingService.updateSetting(key, payload.get("value"));
+        String value = payload.get("value");
+        if (value == null || value.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        systemSettingService.updateSetting(key, value);
         return ResponseEntity.ok().build();
     }
 

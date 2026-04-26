@@ -36,6 +36,7 @@ public class RoomAllocationController {
         private final AppUserRepository appUserRepository;
 
         @GetMapping
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Get all room allocations", description = "Returns a paginated list of all room allocations. Supports pagination with query params: page, size, sort")
         public ResponseEntity<PageResponse<RoomAllocationResponse>> getAllRoomAllocations(
                         @PageableDefault(size = 20, sort = "allocationDate") Pageable pageable) {
@@ -45,6 +46,7 @@ public class RoomAllocationController {
         }
 
         @GetMapping("/all")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Get all room allocations without pagination", description = "Returns a list of all room allocations without pagination")
         public ResponseEntity<List<RoomAllocationResponse>> getAllRoomAllocationsNoPagination() {
                 log.info("Fetching all room allocations without pagination");
@@ -53,6 +55,7 @@ public class RoomAllocationController {
         }
 
         @GetMapping("/search")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Search room allocations", description = "Search and filter room allocations by student name, room number, building, status, or date range")
         public ResponseEntity<PageResponse<RoomAllocationResponse>> searchRoomAllocations(
                         @RequestParam(required = false) Long studentId,
@@ -73,6 +76,7 @@ public class RoomAllocationController {
         }
 
         @GetMapping("/{id}")
+        @PreAuthorize("isAuthenticated()")
         @Operation(summary = "Get room allocation by ID", description = "Returns a single room allocation by its ID")
         public ResponseEntity<RoomAllocationResponse> getRoomAllocationById(@PathVariable Long id) {
                 log.info("Fetching room allocation with id: {}", id);
@@ -157,6 +161,7 @@ public class RoomAllocationController {
         }
 
         @GetMapping("/student/{studentId}/active")
+        @PreAuthorize("isAuthenticated()")
         @Operation(summary = "Get active allocation by student ID", description = "Returns the active room allocation for a specific student")
         public ResponseEntity<RoomAllocationResponse> getActiveAllocationByStudentId(@PathVariable Long studentId) {
                 log.info("Fetching active allocation for student: {}", studentId);
@@ -177,6 +182,7 @@ public class RoomAllocationController {
         }
 
         @GetMapping("/status/{status}")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Get allocations by status", description = "Returns paginated room allocations filtered by status (ACTIVE, COMPLETED, CANCELLED)")
         public ResponseEntity<PageResponse<RoomAllocationResponse>> getAllocationsByStatus(
                         @PathVariable String status,
@@ -188,6 +194,7 @@ public class RoomAllocationController {
         }
 
         @GetMapping("/room/{roomId}/availability")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Check room availability", description = "Returns detailed availability information for a specific room")
         public ResponseEntity<RoomAvailabilityResponse> getRoomAvailability(@PathVariable Long roomId) {
                 log.info("Checking availability for room: {}", roomId);
@@ -196,6 +203,7 @@ public class RoomAllocationController {
         }
 
         @GetMapping("/room/{roomId}/is-available")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Simple room availability check", description = "Returns true if room has available capacity, false otherwise")
         public ResponseEntity<Boolean> isRoomAvailable(@PathVariable Long roomId) {
                 log.info("Simple availability check for room: {}", roomId);
@@ -204,6 +212,7 @@ public class RoomAllocationController {
         }
 
         @GetMapping("/student/{studentId}/eligibility")
+        @PreAuthorize("isAuthenticated()")
         @Operation(summary = "Check student allocation eligibility", description = "Validates if a student is eligible for room allocation and returns the reason")
         public ResponseEntity<AllocationEligibilityResponse> checkStudentEligibility(@PathVariable Long studentId) {
                 log.info("Checking eligibility for student: {}", studentId);

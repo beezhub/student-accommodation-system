@@ -4,7 +4,7 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.model.event.*;
 import com.beezhub.student_accommodation.repository.NotificationRepository;
-import com.beezhub.student_accommodation.service.NotificationService;
+import com.beezhub.student_accommodation.service.notification.NotificationPersistenceService;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ import java.util.Map;
 @Slf4j
 public class NotificationEventListener {
 
-    private final NotificationService notificationService;
+    private final NotificationPersistenceService notificationService;
     private final EmailDispatchService emailDispatchService;
 
     /** Creates a templateData map with {@code templateName} pre-populated. */

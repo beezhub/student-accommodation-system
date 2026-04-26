@@ -141,6 +141,14 @@ public class AllocationScoringOrchestrator {
         return responses;
     }
 
+    /**
+     * Rescores all waiting list entries using the latest allocation rules.
+     * <p>
+     * NOTE: The computed scores are transient (not persisted on WaitingListEntry)
+     * because the entity has no score/priority column. Scores are recalculated
+     * on-the-fly via {@link #getWaitingListWithScores}. This method validates
+     * that scoring succeeds for all entries but does not persist results.
+     */
     public RescoreResult rescoreWaitingList() {
         log.info("Rescoring all waiting list entries using latest rules");
 

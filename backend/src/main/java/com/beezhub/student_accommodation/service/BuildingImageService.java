@@ -7,7 +7,7 @@ import com.beezhub.student_accommodation.model.entity.BuildingImage;
 import com.beezhub.student_accommodation.repository.BuildingImageRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import io.minio.*;
-import io.minio.http.Method;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -178,7 +178,7 @@ public class BuildingImageService {
                     PutObjectArgs.builder()
                             .bucket(bucketName)
                             .object(objectPath)
-                            .stream(is, file.getSize(), -1)
+                            .stream(is, file.getSize(), -1L)
                             .contentType(file.getContentType())
                             .build());
         } catch (Exception e) {
@@ -207,7 +207,7 @@ public class BuildingImageService {
                     GetPresignedObjectUrlArgs.builder()
                             .bucket(bucketName)
                             .object(objectPath)
-                            .method(Method.GET)
+                            .method(Http.Method.GET)
                             .build());
         } catch (Exception e) {
             log.error("Error generating presigned URL for: {}", objectPath, e);

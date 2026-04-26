@@ -186,8 +186,15 @@ export class ApplicationService {
   getActiveApplication(): Observable<Application | null> {
     return this.getMyApplications().pipe(
       map((applications) => {
-        const activeStatuses = ['PENDING', 'APPROVED', 'AWAITING_ALLOCATION'];
-        return applications.find((app) => activeStatuses.includes(app.status)) || null;
+        const activeStatuses = [
+          ApplicationStatus.PENDING,
+          ApplicationStatus.APPROVED,
+          ApplicationStatus.AWAITING_ALLOCATION,
+          ApplicationStatus.UNDER_REVIEW,
+          ApplicationStatus.CHANGES_REQUESTED,
+          ApplicationStatus.ALLOCATED,
+        ];
+        return applications.find((app) => activeStatuses.includes(app.status as ApplicationStatus)) || null;
       }),
       catchError(() => of(null))
     );

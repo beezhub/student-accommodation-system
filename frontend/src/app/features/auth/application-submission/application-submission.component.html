@@ -30,7 +30,7 @@
     <div class="step-card">
 
       <div class="step-card-header">
-        <span class="step-eyebrow">Step 3 of 4</span>
+        <span class="step-eyebrow">Step 4 of 4</span>
         <h2 class="step-title">Submit Your Accommodation Application</h2>
         <p class="step-subtitle">Provide your accommodation preferences to help us find the best match for you</p>
       </div>
@@ -121,44 +121,11 @@
 
         </div>
 
-        <!-- Document Readiness Checklist -->
-        @if (!isLoadingDocReadiness && requiredDocTypes.length > 0) {
-          <div class="doc-readiness">
-            <div class="doc-readiness__header">
-              <mat-icon [class.doc-readiness__icon--ok]="hasAllRequiredDocs"
-                        [class.doc-readiness__icon--warn]="!hasAllRequiredDocs">
-                {{ hasAllRequiredDocs ? 'check_circle' : 'warning' }}
-              </mat-icon>
-              <span class="doc-readiness__title">
-                {{ hasAllRequiredDocs ? 'Documents ready' : 'Required documents missing' }}
-              </span>
-            </div>
-            <ul class="doc-readiness__list">
-              @for (dt of requiredDocTypes; track dt.id) {
-                <li class="doc-readiness__item"
-                    [class.doc-readiness__item--ok]="uploadedDocTypeNames.has(dt.name.toLowerCase())"
-                    [class.doc-readiness__item--missing]="!uploadedDocTypeNames.has(dt.name.toLowerCase())">
-                  <mat-icon>{{ uploadedDocTypeNames.has(dt.name.toLowerCase()) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                  <span>{{ dt.name }}</span>
-                  @if (!uploadedDocTypeNames.has(dt.name.toLowerCase())) {
-                    <a class="doc-readiness__link" routerLink="/documents">Upload now</a>
-                  }
-                </li>
-              }
-            </ul>
-            @if (!hasAllRequiredDocs) {
-              <p class="doc-readiness__hint">
-                Upload missing documents in your
-                <a routerLink="/documents">Documents</a> section before submitting.
-              </p>
-            }
-          </div>
-        }
 
         <div class="step-card-footer">
           <div></div>
           <button mat-flat-button type="submit"
-            [disabled]="isSubmitting || !applicationForm.valid || !hasAllRequiredDocs" class="submit-btn">
+            [disabled]="isSubmitting || !applicationForm.valid" class="submit-btn">
             @if (isSubmitting) {
               <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
               <span>Submitting...</span>

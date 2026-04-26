@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -36,6 +42,7 @@ import { ErrorDisplayComponent } from '../../../shared/error-display/error-displ
 export class DocumentUploadComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly authService = inject(AuthService);
   private readonly documentTypeService = inject(DocumentTypeService);
   private readonly documentService = inject(DocumentService);
@@ -74,6 +81,7 @@ export class DocumentUploadComponent implements OnInit {
   loadDocumentTypes(): void {
     this.isLoadingTypes = true;
     this.loadError = null;
+    this.cdr.markForCheck();
 
     this.documentTypeService.getRequiredDocumentTypes().subscribe({
       next: (documentTypes: any[]) => {
@@ -84,11 +92,13 @@ export class DocumentUploadComponent implements OnInit {
             this.uploadForm.addControl(doc.id, this.fb.control(null, Validators.required));
           }
         });
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.isLoadingTypes = false;
         console.error('Failed to load required document types', err);
         this.loadError = this.errorService.parseError(err);
+        this.cdr.markForCheck();
       },
     });
   }
@@ -109,6 +119,7 @@ export class DocumentUploadComponent implements OnInit {
         // Clear the file from form if validation fails
         this.uploadForm.patchValue({ [documentId]: null });
         delete this.uploadedFiles[documentId];
+        this.cdr.markForCheck();
         return;
       }
 
@@ -116,6 +127,7 @@ export class DocumentUploadComponent implements OnInit {
       delete this.fileValidationErrors[documentId];
       this.uploadedFiles[documentId] = file;
       this.uploadForm.patchValue({ [documentId]: file });
+      this.cdr.markForCheck();
     }
   }
 
@@ -162,12 +174,14 @@ export class DocumentUploadComponent implements OnInit {
             this.isSubmitting = false;
             this.uploadStatus = 'complete';
             this.errorService.showSuccess('All documents uploaded successfully!');
+            this.cdr.markForCheck();
 
             // Navigate after a brief delay to show completion
             setTimeout(() => {
-              this.router.navigate(['/application-review']);
+              this.router.navigate(['/application-submission']);
             }, 500);
           }
+          this.cdr.markForCheck();
         },
         error: (err) => {
           console.error('Upload error', err);
@@ -176,6 +190,7 @@ export class DocumentUploadComponent implements OnInit {
           this.uploadProgress = 0;
 
           this.submitError = this.errorService.parseError(err);
+          this.cdr.markForCheck();
         },
       });
     } else {
@@ -186,9 +201,22 @@ export class DocumentUploadComponent implements OnInit {
 
   dismissError(): void {
     this.submitError = null;
+    this.cdr.markForCheck();
   }
 
   retrySubmit(): void {
     this.onSubmit();
+  }
+
+  skipUpload(): void {
+    this.errorService.showWarning(
+      'You can upload documents later from your dashboard before submitting your application.'
+    );
+    this.router.navigate(['/dashboard']);
+  }
+
+  get uploadedCount(): number {
+    return Object.keys(this.uploadedFiles).filter((key) => !this.hasFileValidationError(key))
+      .length;
   }
 }

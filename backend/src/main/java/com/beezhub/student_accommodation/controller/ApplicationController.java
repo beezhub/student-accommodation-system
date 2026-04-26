@@ -124,9 +124,20 @@ public class ApplicationController {
                         @RequestParam(required = false) @Parameter(description = "Start date in format YYYY-MM-DD") String startDate,
                         @RequestParam(required = false) @Parameter(description = "End date in format YYYY-MM-DD") String endDate,
                         @PageableDefault(size = 20, sort = "applicationDate") Pageable pageable) {
-                LocalDate start = startDate != null ? LocalDate.parse(startDate) : null;
-                LocalDate end = endDate != null ? LocalDate.parse(endDate) : null;
-                ApplicationStatus statusEnum = status != null ? valueOf(status) : null;
+                LocalDate start;
+                LocalDate end;
+                ApplicationStatus statusEnum;
+                try {
+                        start = startDate != null ? LocalDate.parse(startDate) : null;
+                        end = endDate != null ? LocalDate.parse(endDate) : null;
+                } catch (java.time.format.DateTimeParseException e) {
+                        return ResponseEntity.badRequest().build();
+                }
+                try {
+                        statusEnum = status != null ? valueOf(status) : null;
+                } catch (IllegalArgumentException e) {
+                        return ResponseEntity.badRequest().build();
+                }
                 PageResponse<ApplicationResponse> page = applicationSearchService.searchApplications(
                                 applicationCode, studentName, statusEnum, allocationStatus, preferredBuilding, start,
                                 end, pageable);
