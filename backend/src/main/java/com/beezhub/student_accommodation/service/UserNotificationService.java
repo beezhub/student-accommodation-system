@@ -125,6 +125,7 @@ public class UserNotificationService {
 
         UserNotification notification = UserNotification.builder()
                 .user(user)
+                .tenantId(user.getTenantId())
                 .type(type)
                 .title(title)
                 .message(message)

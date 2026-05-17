@@ -16,11 +16,16 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
 import { WaitingListEntry } from '../../../core/models/allocation.models';
 import { AdminService } from '../../../core/services/admin.service';
 import { Router } from '@angular/router';
+import {
+  AllocationChoiceDialogComponent,
+  AllocationChoiceDialogData,
+} from '../application-review/allocation-choice-dialog/allocation-choice-dialog.component';
 
 @Component({
   selector: 'app-waiting-list-dashboard',
@@ -40,6 +45,7 @@ import { Router } from '@angular/router';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
+    MatDialogModule,
     SkeletonLoaderComponent,
     EmptyStateComponent,
   ],
@@ -53,6 +59,7 @@ export class WaitingListDashboardComponent implements OnInit, AfterViewInit {
   private adminService = inject(AdminService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
+  private dialog = inject(MatDialog);
 
   filterForm: FormGroup;
   buildings: BuildingResponse[] = [];
@@ -158,15 +165,18 @@ export class WaitingListDashboardComponent implements OnInit, AfterViewInit {
     return { '--score-pct': `${pct}`, '--ring-color': color };
   }
 
-  // Helper for "Review"
   openAllocation(entry: WaitingListEntry): void {
-    // Navigate to a detail view or open dialog?
-    // For now, let's just show a not implemented or navigate to application review
-    // Ideally, we would open the AllocationChoiceDialog here directly if we had the full ApplicationResponse.
-    // But WaitingListEntry is a summary.
-    // So let's navigate to application review with a filter.
-    this.router.navigate(['/admin/applications'], {
-      queryParams: { applicationCode: entry.applicationCode },
+    const dialogRef = this.dialog.open(AllocationChoiceDialogComponent, {
+      width: '900px',
+      data: {
+        applicationId: entry.applicationId,
+        studentId: entry.studentId,
+      } as AllocationChoiceDialogData,
+    });
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.action === 'allocated' || result?.action === 'waitlisted') {
+        this.loadWaitingList();
+      }
     });
   }
 }
