@@ -10,6 +10,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { map, shareReplay } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
+import { ROLE } from '../../models/role.model';
 import { BrandLogoComponent } from '../../../shared/components/brand-logo/brand-logo.component';
 
 interface NavItem {
@@ -48,7 +49,7 @@ export class AdminSidebarComponent {
   currentUser$ = this.authService.currentUser;
 
   isPlatformAdmin$ = this.authService.currentUser.pipe(
-    map((user) => user?.userRole === 'PLATFORM_ADMIN')
+    map((user) => user?.userRole?.toUpperCase() === ROLE.PLATFORM_ADMIN.toUpperCase())
   );
 
   logout(): void {
@@ -86,22 +87,42 @@ export class AdminSidebarComponent {
     {
       label: 'Configuration',
       items: [
-{ path: '/admin/accommodation-types', icon: 'category', label: 'Accomm. Types' },
+        { path: '/admin/accommodation-types', icon: 'category', label: 'Accomm. Types' },
         { path: '/admin/institutions', icon: 'school', label: 'Institutions' },
         { path: '/admin/year-of-study', icon: 'timeline', label: 'Years of Study' },
         { path: '/admin/academic-years', icon: 'date_range', label: 'Academic Years' },
         { path: '/admin/document-types', icon: 'folder', label: 'Doc Types' },
-        { path: '/admin/settings', icon: 'settings', label: 'System Settings', platformAdminOnly: true },
-        { path: '/admin/feature-flags', icon: 'toggle_on', label: 'Feature Flags', platformAdminOnly: true },
+        {
+          path: '/admin/settings',
+          icon: 'settings',
+          label: 'System Settings',
+          platformAdminOnly: true,
+        },
+        {
+          path: '/admin/feature-flags',
+          icon: 'toggle_on',
+          label: 'Feature Flags',
+          platformAdminOnly: true,
+        },
       ],
     },
     {
       label: 'Administration',
       items: [
         { path: '/admin/users', icon: 'people', label: 'Users', platformAdminOnly: true },
-        { path: '/admin/tenants', icon: 'corporate_fare', label: 'Tenants', platformAdminOnly: true },
+        {
+          path: '/admin/tenants',
+          icon: 'corporate_fare',
+          label: 'Tenants',
+          platformAdminOnly: true,
+        },
         { path: '/admin/documents', icon: 'description', label: 'Documents' },
-        { path: '/admin/activity-logs', icon: 'history', label: 'Activity Logs', platformAdminOnly: true },
+        {
+          path: '/admin/activity-logs',
+          icon: 'history',
+          label: 'Activity Logs',
+          platformAdminOnly: true,
+        },
       ],
     },
   ];

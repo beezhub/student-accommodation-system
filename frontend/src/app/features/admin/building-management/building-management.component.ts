@@ -32,7 +32,7 @@ import { MatDividerModule } from '@angular/material/divider';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-MatCardModule,
+    MatCardModule,
     MatTableModule,
     MatPaginatorModule,
     MatButtonModule,
@@ -54,7 +54,7 @@ export class BuildingManagementComponent implements OnInit {
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
-buildings: BuildingResponse[] = [];
+  buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
     'name',
     'address',
@@ -176,7 +176,7 @@ buildings: BuildingResponse[] = [];
     }
   }
 
-// ── UI helpers ──────────────────────────────────────────────
+  // ── UI helpers ──────────────────────────────────────────────
 
   get activeFilterCount(): number {
     const v = this.filterForm.value;

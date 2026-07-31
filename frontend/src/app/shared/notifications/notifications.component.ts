@@ -45,23 +45,26 @@ export class NotificationsComponent implements OnDestroy {
   markAsRead(notification: Notification, event: Event): void {
     event.stopPropagation();
     if (!notification.isRead) {
-      this.notificationService.markAsRead(notification.id).pipe(
-        catchError(() => EMPTY)
-      ).subscribe();
+      this.notificationService
+        .markAsRead(notification.id)
+        .pipe(catchError(() => EMPTY))
+        .subscribe();
     }
   }
 
   markAllAsRead(): void {
-    this.notificationService.markAllAsRead().pipe(
-      catchError(() => EMPTY)
-    ).subscribe();
+    this.notificationService
+      .markAllAsRead()
+      .pipe(catchError(() => EMPTY))
+      .subscribe();
   }
 
   deleteNotification(notificationId: number, event: Event): void {
     event.stopPropagation();
-    this.notificationService.deleteNotification(notificationId).pipe(
-      catchError(() => EMPTY)
-    ).subscribe();
+    this.notificationService
+      .deleteNotification(notificationId)
+      .pipe(catchError(() => EMPTY))
+      .subscribe();
   }
 
   getIcon(type: string): string {

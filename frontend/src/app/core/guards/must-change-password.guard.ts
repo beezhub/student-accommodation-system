@@ -9,7 +9,7 @@ export class MustChangePasswordGuard implements CanActivate {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
+  canActivate(_route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): boolean {
     const currentUser = this.authService.currentUserValue;
 
     if (currentUser?.mustChangePassword) {

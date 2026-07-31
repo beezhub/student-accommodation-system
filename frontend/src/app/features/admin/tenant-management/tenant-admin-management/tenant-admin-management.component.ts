@@ -43,7 +43,9 @@ export class TenantAdminManagementComponent implements OnInit {
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
   @Optional() private dialogData = inject(MAT_DIALOG_DATA, { optional: true } as any);
-  @Optional() dialogRef = inject(MatDialogRef<TenantAdminManagementComponent>, { optional: true } as any);
+  @Optional() dialogRef = inject(MatDialogRef<TenantAdminManagementComponent>, {
+    optional: true,
+  } as any);
 
   ngOnInit(): void {
     // When opened as a dialog, data comes via MAT_DIALOG_DATA
@@ -55,7 +57,14 @@ export class TenantAdminManagementComponent implements OnInit {
   }
 
   admins: TenantAdminUser[] = [];
-  displayedColumns: string[] = ['name', 'email', 'createdAt', 'mustChangePassword', 'status', 'actions'];
+  displayedColumns: string[] = [
+    'name',
+    'email',
+    'createdAt',
+    'mustChangePassword',
+    'status',
+    'actions',
+  ];
   isLoading = false;
 
   loadAdmins(): void {
