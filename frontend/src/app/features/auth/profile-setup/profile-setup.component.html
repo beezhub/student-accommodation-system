@@ -32,61 +32,11 @@
       <div class="step-card-header">
         <span class="step-eyebrow">Step 2 of 4</span>
         <h2 class="step-title">Complete Your Profile</h2>
-        <p class="step-subtitle">Welcome, {{currentUser?.firstName}}! Let's set up your student profile</p>
+        <p class="step-subtitle">Welcome, {{currentUser?.firstName}}! Tell us about your studies to get started.</p>
       </div>
 
       <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="step-card-form">
         <div class="step-card-body">
-
-          <!-- Personal Information Section -->
-          <div class="form-section">
-            <span class="section-label">Personal Information</span>
-
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Student Number</mat-label>
-                <input matInput formControlName="studentNumber" placeholder="e.g., STU123456">
-                @if (profileForm.get('studentNumber')?.hasError('required')) {
-                  <mat-error>Student number is required</mat-error>
-                }
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Phone Number</mat-label>
-                <input matInput type="tel" formControlName="phoneNumber" placeholder="e.g., 0123456789">
-                @if (profileForm.get('phoneNumber')?.hasError('required')) {
-                  <mat-error>Phone number is required</mat-error>
-                }
-                @if (profileForm.get('phoneNumber')?.hasError('pattern')) {
-                  <mat-error>Please enter a valid 10-digit phone number</mat-error>
-                }
-              </mat-form-field>
-            </div>
-
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Date of Birth</mat-label>
-                <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth" placeholder="Select your date of birth">
-                <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
-                <mat-datepicker #dobPicker></mat-datepicker>
-                @if (profileForm.get('dateOfBirth')?.hasError('required')) {
-                  <mat-error>Date of birth is required</mat-error>
-                }
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="half-width">
-                <mat-label>Gender</mat-label>
-                <mat-select formControlName="gender">
-                  @for (gender of genderOptions; track gender) {
-                    <mat-option [value]="gender.value">{{gender.viewValue}}</mat-option>
-                  }
-                </mat-select>
-                @if (profileForm.get('gender')?.hasError('required')) {
-                  <mat-error>Gender is required</mat-error>
-                }
-              </mat-form-field>
-            </div>
-          </div>
 
           <!-- Academic Information Section -->
           <div class="form-section">

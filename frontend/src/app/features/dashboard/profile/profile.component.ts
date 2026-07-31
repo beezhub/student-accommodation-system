@@ -147,6 +147,9 @@ export class ProfileComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading institutions:', error);
+        this.errorService.showWarning(
+          'Could not load institutions. Some options may be unavailable.'
+        );
         this.institutions = [];
         this.cdr.markForCheck();
       },
@@ -172,6 +175,9 @@ export class ProfileComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading years of study:', error);
+        this.errorService.showWarning(
+          'Could not load years of study. Some options may be unavailable.'
+        );
         this.yearsOfStudy = [];
         this.cdr.markForCheck();
       },

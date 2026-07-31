@@ -109,6 +109,9 @@ export class NewApplicationComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to load buildings for institution', error);
+          this.errorService.showWarning(
+            'Could not filter buildings by your institution. Showing all buildings instead.'
+          );
           // Fall back to all buildings
           this.loadAllBuildings();
         },
@@ -126,6 +129,9 @@ export class NewApplicationComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load buildings', error);
+        this.errorService.showWarning(
+          'Could not load available buildings. Please refresh the page.'
+        );
       },
     });
   }
@@ -168,6 +174,9 @@ export class NewApplicationComponent implements OnInit {
             },
             error: (error) => {
               console.error('Error fetching institution:', error);
+              this.errorService.showWarning(
+                'Could not load your institution details. Building suggestions may be less relevant.'
+              );
               this.loadBuildings();
               this.cdr.markForCheck();
             },
@@ -258,6 +267,7 @@ export class NewApplicationComponent implements OnInit {
       },
       error: (error) => {
         console.error('Building search failed', error);
+        this.errorService.showWarning('Building search failed. Please try again.');
       },
     });
   }

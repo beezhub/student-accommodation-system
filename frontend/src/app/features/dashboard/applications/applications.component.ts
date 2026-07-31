@@ -16,6 +16,7 @@ import { DocumentService } from '../../../core/services/document.service';
 import { DocumentData } from '../../../core/models/document.model';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { DocumentType } from '../../../core/models/document-type.model';
+import { ErrorHandlingService } from '../../../core/services/error-handling.service';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -64,6 +65,7 @@ export class ApplicationsComponent implements OnInit {
   private readonly applicationService = inject(ApplicationService);
   private readonly documentService = inject(DocumentService);
   private readonly documentTypeService = inject(DocumentTypeService);
+  private readonly errorService = inject(ErrorHandlingService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   currentUser: any;
@@ -114,6 +116,7 @@ export class ApplicationsComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to fetch applications:', err);
+        this.errorService.showWarning('Could not load your applications. Please refresh the page.');
         this.applications = [];
         this.dataSource.data = [];
         this.isLoading = false;
@@ -124,19 +127,21 @@ export class ApplicationsComponent implements OnInit {
 
   /** Loads required doc types per tenant and student's uploaded doc names, then builds the requirements map. */
   private loadDocumentRequirements(applications: Application[]): void {
-    const uniqueTenantIds = [...new Set(applications.map((a) => a.tenantId).filter((id): id is number => id != null))];
+    const uniqueTenantIds = [
+      ...new Set(applications.map((a) => a.tenantId).filter((id): id is number => id != null)),
+    ];
     if (uniqueTenantIds.length === 0) return;
 
     const requiredByTenant$ = uniqueTenantIds.reduce((acc, tenantId) => {
-      acc[tenantId] = this.documentTypeService.getRequiredDocumentTypes(tenantId).pipe(
-        catchError(() => of([] as DocumentType[]))
-      );
+      acc[tenantId] = this.documentTypeService
+        .getRequiredDocumentTypes(tenantId)
+        .pipe(catchError(() => of([] as DocumentType[])));
       return acc;
     }, {} as Record<number, any>);
 
-    const myDocs$ = this.documentService.getUploadedDocuments().pipe(
-      catchError(() => of([] as DocumentData[]))
-    );
+    const myDocs$ = this.documentService
+      .getUploadedDocuments()
+      .pipe(catchError(() => of([] as DocumentData[])));
 
     forkJoin({ requiredByTenant: forkJoin(requiredByTenant$), myDocs: myDocs$ })
       .pipe(

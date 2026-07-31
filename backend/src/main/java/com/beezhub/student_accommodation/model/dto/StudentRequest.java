@@ -9,13 +9,11 @@ import java.util.Date;
 public class StudentRequest {
     private Long userId;
 
-    @NotBlank(message = "Student number is required")
     private String studentNumber;
 
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits")
     private String phoneNumber;
 
-    @NotNull(message = "Date of birth is required")
     private Date dateOfBirth;
 
     @NotNull(message = "Institution is required")

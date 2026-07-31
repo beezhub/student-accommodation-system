@@ -82,6 +82,10 @@ export class RoomBrowserComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load buildings:', error);
+        this.snackBar.open('Could not load buildings for filtering.', 'Close', {
+          duration: 3000,
+          panelClass: ['error-snackbar'],
+        });
       },
     });
   }

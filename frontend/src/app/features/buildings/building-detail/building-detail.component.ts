@@ -18,6 +18,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
+import { SecurityAssuranceComponent } from '../../../shared/components/security-assurance/security-assurance.component';
 
 export interface CapacityGroup {
   label: string;
@@ -41,6 +42,7 @@ export interface CapacityGroup {
     MatIconModule,
     MatProgressSpinnerModule,
     MatChipsModule,
+    SecurityAssuranceComponent,
   ],
 })
 export class BuildingDetailComponent implements OnInit {

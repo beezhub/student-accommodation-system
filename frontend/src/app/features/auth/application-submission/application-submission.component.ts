@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
@@ -11,6 +17,7 @@ import { BuildingService, BuildingResponse } from '../../../core/services/buildi
 import { DocumentService } from '../../../core/services/document.service';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
+import { ApplicationDraftService } from '../../../core/services/application-draft.service';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -61,6 +68,7 @@ export class ApplicationSubmissionComponent implements OnInit {
   private readonly documentService = inject(DocumentService);
   private readonly documentTypeService = inject(DocumentTypeService);
   private readonly errorService = inject(ErrorHandlingService);
+  private readonly draftService = inject(ApplicationDraftService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   applicationForm: FormGroup;
@@ -85,7 +93,7 @@ export class ApplicationSubmissionComponent implements OnInit {
 
   get missingRequiredDocs(): { id: number; name: string }[] {
     return this.requiredDocTypes.filter(
-      dt => !this.uploadedDocTypeNames.has(dt.name.toLowerCase())
+      (dt) => !this.uploadedDocTypeNames.has(dt.name.toLowerCase())
     );
   }
 
@@ -93,8 +101,24 @@ export class ApplicationSubmissionComponent implements OnInit {
     return this.missingRequiredDocs.length === 0;
   }
 
+  /** Student profile data — used for pre-populating deferred fields */
+  studentProfile: any = null;
+
+  readonly genderOptions = [
+    { value: 'male', viewValue: 'Male' },
+    { value: 'female', viewValue: 'Female' },
+    { value: 'other', viewValue: 'Other' },
+    { value: 'prefer-not-to-say', viewValue: 'Prefer not to say' },
+  ] as const;
+
   constructor() {
     this.applicationForm = this.fb.group({
+      // Deferred profile fields
+      studentNumber: ['', Validators.required],
+      phoneNumber: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
+      dateOfBirth: ['', Validators.required],
+      gender: ['', Validators.required],
+      // Application fields
       requiresAccessibility: [false],
       preferredBuildingIds: [[]],
       specialRequirements: [''],
@@ -111,7 +135,9 @@ export class ApplicationSubmissionComponent implements OnInit {
 
     this.applicationService.hasActiveApplication().subscribe((hasActive) => {
       if (hasActive) {
-        this.errorService.showWarning('You already have an active application. You can track it in your dashboard.');
+        this.errorService.showWarning(
+          'You already have an active application. You can track it in your dashboard.'
+        );
         this.router.navigate(['/dashboard']);
         return;
       }
@@ -137,7 +163,9 @@ export class ApplicationSubmissionComponent implements OnInit {
         // may have different IDs but the same name — so ID-based matching would fail.
         const anyDocs = uploadedDocs as any[];
         this.uploadedDocTypeNames = new Set(
-          anyDocs.map((d: any) => String(d.typeName ?? d.documentTypeName ?? d.name ?? '').toLowerCase())
+          anyDocs.map((d: any) =>
+            String(d.typeName ?? d.documentTypeName ?? d.name ?? '').toLowerCase()
+          )
         );
         this.isLoadingDocReadiness = false;
         this.cdr.markForCheck();
@@ -161,6 +189,9 @@ export class ApplicationSubmissionComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to load buildings for institution', error);
+          this.errorService.showWarning(
+            'Could not filter buildings by your institution. Showing all buildings instead.'
+          );
           this.loadAllBuildings();
         },
       });
@@ -177,6 +208,9 @@ export class ApplicationSubmissionComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load buildings', error);
+        this.errorService.showWarning(
+          'Could not load available buildings. Please refresh the page.'
+        );
       },
     });
   }
@@ -193,6 +227,7 @@ export class ApplicationSubmissionComponent implements OnInit {
       },
       error: (error) => {
         console.error('Building search failed', error);
+        this.errorService.showWarning('Building search failed. Please try again.');
       },
     });
   }
@@ -206,6 +241,24 @@ export class ApplicationSubmissionComponent implements OnInit {
         this.isRetrying = false;
         this.studentId = profile.id;
         this.studentInstitutionId = profile.institutionId || null;
+        this.studentProfile = profile;
+
+        // Pre-populate deferred profile fields if the student already has them
+        if (profile.studentNumber) {
+          this.applicationForm.patchValue({ studentNumber: profile.studentNumber });
+        }
+        if (profile.phoneNumber) {
+          this.applicationForm.patchValue({ phoneNumber: profile.phoneNumber });
+        }
+        if (profile.dateOfBirth) {
+          this.applicationForm.patchValue({ dateOfBirth: new Date(profile.dateOfBirth) });
+        }
+        if (profile.gender) {
+          this.applicationForm.patchValue({ gender: profile.gender });
+        }
+        if (profile.specialRequirements) {
+          this.applicationForm.patchValue({ specialRequirements: profile.specialRequirements });
+        }
 
         // Get institution name and load buildings after we know the institution
         if (profile.institutionId) {
@@ -234,6 +287,9 @@ export class ApplicationSubmissionComponent implements OnInit {
             },
             error: (error) => {
               console.error('Error fetching institution:', error);
+              this.errorService.showWarning(
+                'Could not load your institution details. Building suggestions may be less relevant.'
+              );
               this.loadBuildings();
             },
           });
@@ -271,36 +327,26 @@ export class ApplicationSubmissionComponent implements OnInit {
     }
 
     if (this.applicationForm.valid) {
-      this.isSubmitting = true;
-
       const formValue = this.applicationForm.value;
 
-      const applicationData = {
+      // Save draft to localStorage and navigate to review step
+      const draft: import('../../../core/services/application-draft.service').ApplicationDraft = {
         studentId: this.studentId,
         requiresAccessibility: formValue.requiresAccessibility || false,
-        preferredBuildingIds: formValue.preferredBuildingIds?.length ? formValue.preferredBuildingIds : null,
+        preferredBuildingIds: formValue.preferredBuildingIds?.length
+          ? formValue.preferredBuildingIds
+          : [],
         specialRequirements: formValue.specialRequirements || null,
         institutionName: this.institutionName || 'Not specified',
         courseName: formValue.courseName,
+        studentNumber: formValue.studentNumber,
+        phoneNumber: formValue.phoneNumber,
+        dateOfBirth: formValue.dateOfBirth,
+        gender: formValue.gender,
       };
 
-      this.applicationService.createApplication(applicationData).subscribe({
-        next: () => {
-          this.isSubmitting = false;
-          this.errorService.showSuccess('Application submitted successfully!');
-          this.router.navigate(['/dashboard']);
-        },
-        error: (error) => {
-          this.isSubmitting = false;
-          console.error('Error submitting application:', error);
-          this.submitError = this.errorService.parseError(error);
-
-          // Don't show snackbar for validation errors - they'll see the inline error
-          if (this.submitError.type !== 'validation') {
-            this.errorService.showErrorSnackbar(this.submitError);
-          }
-        },
-      });
+      this.draftService.saveDraft(draft);
+      this.router.navigate(['/application-review']);
     } else {
       this.applicationForm.markAllAsTouched();
       this.errorService.showWarning('Please fill in all required fields correctly');
@@ -313,7 +359,7 @@ export class ApplicationSubmissionComponent implements OnInit {
     // Derive the target tenant from the first selected building and reload
     // document readiness with that tenant's effective required types.
     if (buildingIds.length > 0) {
-      const firstBuilding = this.buildings.find(b => b.id === buildingIds[0]);
+      const firstBuilding = this.buildings.find((b) => b.id === buildingIds[0]);
       const tenantId = firstBuilding?.tenantId ?? null;
       if (tenantId !== this.selectedTenantId) {
         this.selectedTenantId = tenantId;
@@ -332,5 +378,4 @@ export class ApplicationSubmissionComponent implements OnInit {
   retrySubmit(): void {
     this.onSubmit();
   }
-
 }

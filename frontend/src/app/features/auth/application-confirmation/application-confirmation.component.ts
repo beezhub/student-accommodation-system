@@ -9,19 +9,28 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
 // Material imports
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-application-confirmation',
   templateUrl: './application-confirmation.component.html',
   styleUrls: ['./application-confirmation.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterModule, MatButtonModule, MatIconModule, ModernStatusBadgeComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSnackBarModule,
+    ModernStatusBadgeComponent,
+  ],
 })
 export class ApplicationConfirmationComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private applicationService = inject(ApplicationService);
+  private snackBar = inject(MatSnackBar);
 
   currentUser: any;
   application: Application | null = null;
@@ -42,11 +51,23 @@ export class ApplicationConfirmationComponent implements OnInit {
         },
         error: (err) => {
           console.error('Failed to load application', err);
+          this.snackBar.open('Could not load application details.', 'Close', {
+            duration: 3000,
+            panelClass: ['error-snackbar'],
+          });
           this.router.navigate(['/dashboard']);
         },
       });
     } else {
       console.error('No valid application ID found in route');
+      this.snackBar.open(
+        'We could not find that application. Redirecting to your dashboard.',
+        'Close',
+        {
+          duration: 4000,
+          panelClass: ['error-snackbar'],
+        }
+      );
       this.router.navigate(['/dashboard']);
     }
   }
