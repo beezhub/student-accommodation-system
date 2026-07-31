@@ -31,6 +31,7 @@
 - [x] 4.4 Add "Submit Application" button to `application-review.component.html` that triggers the API call
 - [x] 4.5 Disable submit button when required data is incomplete; show message indicating what is missing
 - [x] 4.6 On successful submission from review step, navigate to `/document-upload` with success snackbar
+  - Amended during merge with develop's wizard reorder (docs-first flow): review success now navigates to `/application-confirmation/:id`; documents are uploaded at step 3, before the application step
 
 ## 5. Silent Error Audit
 
@@ -43,12 +44,12 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Run backend tests (`./gradlew test`) and fix any failures from validation changes
-- [ ] 6.2 Run frontend lint (`npm run lint`) and fix any errors
-- [ ] 6.3 Run frontend tests (`npm test`) and fix any failures
-- [ ] 6.4 Verify trust signals appear on home page (How it Works, Testimonials, Support contact)
-- [ ] 6.5 Verify security assurance appears on building detail pages
-- [ ] 6.6 Verify profile setup completes with only institution + year of study
-- [ ] 6.7 Verify application form includes deferred profile fields and submits from review step
-- [ ] 6.8 Verify response time message appears on dashboard for SUBMITTED status
-- [ ] 6.9 Verify no student-facing `console.error` exists without user-facing feedback
+- [x] 6.1 Run backend tests (`./gradlew test`) and fix any failures from validation changes
+- [x] 6.2 Run frontend lint (`npm run lint`) and fix any errors
+- [x] 6.3 Run frontend tests (`npm test`) and fix any failures
+- [x] 6.4 Verify trust signals appear on home page (How it Works, Testimonials, Support contact)
+- [x] 6.5 Verify security assurance appears on building detail pages
+- [x] 6.6 Verify profile setup completes with only institution + year of study
+- [x] 6.7 Verify application form includes deferred profile fields and submits from review step
+- [x] 6.8 Verify response time message appears on dashboard for SUBMITTED status
+- [x] 6.9 Verify no student-facing `console.error` exists without user-facing feedback

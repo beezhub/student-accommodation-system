@@ -111,7 +111,8 @@ export class TenantManagementComponent implements OnInit {
         });
       },
       error: (err) => {
-        const msg = err?.error?.message || `Failed to ${newStatus ? 'activate' : 'deactivate'} tenant`;
+        const msg =
+          err?.error?.message || `Failed to ${newStatus ? 'activate' : 'deactivate'} tenant`;
         this.snackBar.open(msg, 'Close', { duration: 4000 });
       },
     });

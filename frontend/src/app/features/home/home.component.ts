@@ -3,12 +3,21 @@ import { RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { BrandLogoComponent } from '../../shared/components/brand-logo/brand-logo.component';
+import { HowItWorksComponent } from '../../shared/components/how-it-works/how-it-works.component';
+import { TestimonialsComponent } from '../../shared/components/testimonials/testimonials.component';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
-  imports: [RouterModule, MatButtonModule, MatIconModule, BrandLogoComponent],
+  imports: [
+    RouterModule,
+    MatButtonModule,
+    MatIconModule,
+    BrandLogoComponent,
+    HowItWorksComponent,
+    TestimonialsComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {

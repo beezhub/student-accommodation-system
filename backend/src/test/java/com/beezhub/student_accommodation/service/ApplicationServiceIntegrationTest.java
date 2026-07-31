@@ -123,6 +123,9 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         student = new Student();
         student.setAppUser(user);
         student.setStudentNumber("S-" + System.currentTimeMillis());
+        student.setPhoneNumber("0123456789");
+        student.setDateOfBirth(new java.util.Date());
+        student.setGender("Female");
         student = studentRepository.save(student);
 
         SecurityContextHolder.getContext().setAuthentication(

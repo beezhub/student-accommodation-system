@@ -31,7 +31,7 @@
 
       <div class="step-card-header">
         <span class="step-eyebrow">Step 4 of 4</span>
-        <h2 class="step-title">Submit Your Accommodation Application</h2>
+        <h2 class="step-title">Your Accommodation Application</h2>
         <p class="step-subtitle">Provide your accommodation preferences to help us find the best match for you</p>
       </div>
 
@@ -63,6 +63,56 @@
               (dismiss)="dismissError()">
             </app-error-display>
           }
+
+          <!-- Personal Information (deferred from profile setup) -->
+          <div class="form-section">
+            <span class="section-label">Personal Information</span>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Student Number</mat-label>
+                <input matInput formControlName="studentNumber" placeholder="e.g., STU123456">
+                @if (applicationForm.get('studentNumber')?.hasError('required')) {
+                  <mat-error>Student number is required</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Phone Number</mat-label>
+                <input matInput type="tel" formControlName="phoneNumber" placeholder="e.g., 0123456789">
+                @if (applicationForm.get('phoneNumber')?.hasError('required')) {
+                  <mat-error>Phone number is required</mat-error>
+                }
+                @if (applicationForm.get('phoneNumber')?.hasError('pattern')) {
+                  <mat-error>Please enter a valid 10-digit phone number</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Date of Birth</mat-label>
+                <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth" placeholder="Select your date of birth">
+                <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
+                <mat-datepicker #dobPicker></mat-datepicker>
+                @if (applicationForm.get('dateOfBirth')?.hasError('required')) {
+                  <mat-error>Date of birth is required</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Gender</mat-label>
+                <mat-select formControlName="gender">
+                  @for (gender of genderOptions; track gender) {
+                    <mat-option [value]="gender.value">{{gender.viewValue}}</mat-option>
+                  }
+                </mat-select>
+                @if (applicationForm.get('gender')?.hasError('required')) {
+                  <mat-error>Gender is required</mat-error>
+                }
+              </mat-form-field>
+            </div>
+          </div>
 
           <!-- Course Information -->
           <div class="form-section">
@@ -121,18 +171,46 @@
 
         </div>
 
+        <!-- Document Readiness Checklist -->
+        @if (!isLoadingDocReadiness && requiredDocTypes.length > 0) {
+          <div class="doc-readiness">
+            <div class="doc-readiness__header">
+              <mat-icon [class.doc-readiness__icon--ok]="hasAllRequiredDocs"
+                        [class.doc-readiness__icon--warn]="!hasAllRequiredDocs">
+                {{ hasAllRequiredDocs ? 'check_circle' : 'warning' }}
+              </mat-icon>
+              <span class="doc-readiness__title">
+                {{ hasAllRequiredDocs ? 'Documents ready' : 'Required documents missing' }}
+              </span>
+            </div>
+            <ul class="doc-readiness__list">
+              @for (dt of requiredDocTypes; track dt.id) {
+                <li class="doc-readiness__item"
+                    [class.doc-readiness__item--ok]="uploadedDocTypeNames.has(dt.name.toLowerCase())"
+                    [class.doc-readiness__item--missing]="!uploadedDocTypeNames.has(dt.name.toLowerCase())">
+                  <mat-icon>{{ uploadedDocTypeNames.has(dt.name.toLowerCase()) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                  <span>{{ dt.name }}</span>
+                  @if (!uploadedDocTypeNames.has(dt.name.toLowerCase())) {
+                    <a class="doc-readiness__link" routerLink="/documents">Upload now</a>
+                  }
+                </li>
+              }
+            </ul>
+            @if (!hasAllRequiredDocs) {
+              <p class="doc-readiness__hint">
+                Upload missing documents in your
+                <a routerLink="/documents">Documents</a> section before submitting.
+              </p>
+            }
+          </div>
+        }
 
         <div class="step-card-footer">
           <div></div>
           <button mat-flat-button type="submit"
-            [disabled]="isSubmitting || !applicationForm.valid" class="submit-btn">
-            @if (isSubmitting) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-              <span>Submitting...</span>
-            } @else {
-              <span>Submit Application</span>
-              <mat-icon>send</mat-icon>
-            }
+            [disabled]="!applicationForm.valid || !hasAllRequiredDocs" class="submit-btn">
+              <span>Continue to Review</span>
+              <mat-icon>arrow_forward</mat-icon>
           </button>
         </div>
       </form>

@@ -1,24 +1,22 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
-import { By } from '@angular/platform-browser';
 
 import { AdminSidebarComponent } from './admin-sidebar.component';
 import { AuthService } from '../../services/auth.service';
 import { ROLE } from '../../models/role.model';
+import { User } from '../../models/user.model';
 
 describe('AdminSidebarComponent', () => {
   let component: AdminSidebarComponent;
   let fixture: ComponentFixture<AdminSidebarComponent>;
-  let currentUserSubject: BehaviorSubject<{ userRole: string } | null>;
+  let currentUserSubject: BehaviorSubject<User | null>;
 
   function createAuthServiceSpy(userRole: string | null) {
-    currentUserSubject = new BehaviorSubject<{ userRole: string } | null>(
-      userRole ? { userRole } : null
-    );
+    currentUserSubject = new BehaviorSubject<User | null>(userRole ? ({ userRole } as User) : null);
     return jasmine.createSpyObj<AuthService>('AuthService', ['logout'], {
       currentUser: currentUserSubject.asObservable(),
-      currentUserValue: userRole ? ({ userRole } as any) : null,
+      currentUserValue: userRole ? ({ userRole } as User) : null,
     });
   }
 
@@ -26,10 +24,7 @@ describe('AdminSidebarComponent', () => {
     const authServiceSpy = createAuthServiceSpy(userRole);
     await TestBed.configureTestingModule({
       imports: [AdminSidebarComponent],
-      providers: [
-        provideRouter([]),
-        { provide: AuthService, useValue: authServiceSpy },
-      ],
+      providers: [provideRouter([]), { provide: AuthService, useValue: authServiceSpy }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(AdminSidebarComponent);

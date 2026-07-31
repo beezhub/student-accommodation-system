@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface Tenant {
@@ -38,9 +38,8 @@ export interface TenantAdminRequest {
   providedIn: 'root',
 })
 export class TenantService {
+  private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/admin/tenants`;
-
-  constructor(private http: HttpClient) {}
 
   getAllTenants(): Observable<Tenant[]> {
     return this.http.get<Tenant[]>(this.apiUrl);

@@ -35,13 +35,10 @@ describe('InstitutionService', () => {
 
   const mockPage: PageResponse<InstitutionResponse> = {
     content: [mockResponse],
-    pageNumber: 0,
-    pageSize: 20,
     totalElements: 1,
     totalPages: 1,
-    first: true,
-    last: true,
-    empty: false,
+    size: 20,
+    number: 0,
   };
 
   const mockRequest: InstitutionRequest = {

@@ -11,26 +11,32 @@ import { NotificationsComponent } from './notifications/notifications.component'
 @Component({
   selector: 'app-nav-menu',
   standalone: true,
-  imports: [MatMenuModule, MatIconModule, MatButtonModule, MatDividerModule, RouterModule, NotificationsComponent],
+  imports: [
+    MatMenuModule,
+    MatIconModule,
+    MatButtonModule,
+    MatDividerModule,
+    RouterModule,
+    NotificationsComponent,
+  ],
   template: `
     <nav class="student-nav">
-
       <!-- Desktop nav links -->
       @if (isStudent()) {
-        <div class="nav-links">
-          <a class="nav-link" routerLink="/dashboard" routerLinkActive="nav-link--active">
-            <mat-icon>grid_view</mat-icon>
-            <span>Dashboard</span>
-          </a>
-          <a class="nav-link" routerLink="/applications" routerLinkActive="nav-link--active">
-            <mat-icon>description</mat-icon>
-            <span>Applications</span>
-          </a>
-          <a class="nav-link" routerLink="/documents" routerLinkActive="nav-link--active">
-            <mat-icon>folder_open</mat-icon>
-            <span>Documents</span>
-          </a>
-        </div>
+      <div class="nav-links">
+        <a class="nav-link" routerLink="/dashboard" routerLinkActive="nav-link--active">
+          <mat-icon>grid_view</mat-icon>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-link" routerLink="/applications" routerLinkActive="nav-link--active">
+          <mat-icon>description</mat-icon>
+          <span>Applications</span>
+        </a>
+        <a class="nav-link" routerLink="/documents" routerLinkActive="nav-link--active">
+          <mat-icon>folder_open</mat-icon>
+          <span>Documents</span>
+        </a>
+      </div>
       }
 
       <!-- Right actions -->
@@ -38,29 +44,36 @@ import { NotificationsComponent } from './notifications/notifications.component'
         <app-notifications></app-notifications>
 
         <!-- User avatar — desktop -->
-        <button class="nav-avatar desktop-only" [matMenuTriggerFor]="profileMenu" aria-label="Open profile menu">
-          {{initials}}
+        <button
+          class="nav-avatar desktop-only"
+          [matMenuTriggerFor]="profileMenu"
+          aria-label="Open profile menu"
+        >
+          {{ initials }}
         </button>
 
         <!-- Hamburger — mobile -->
-        <button class="nav-hamburger mobile-only" [matMenuTriggerFor]="mobileMenu" aria-label="Open navigation menu">
+        <button
+          class="nav-hamburger mobile-only"
+          [matMenuTriggerFor]="mobileMenu"
+          aria-label="Open navigation menu"
+        >
           <mat-icon>menu</mat-icon>
         </button>
       </div>
-
     </nav>
 
     <!-- ── Profile dropdown ─────────────────────────────────────────────── -->
     <mat-menu #profileMenu="matMenu" xPosition="before">
       <div class="nav-menu-user" (click)="$event.stopPropagation()">
-        <span class="nav-menu-name">{{currentUserName}}</span>
-        <span class="nav-menu-email">{{currentUserEmail}}</span>
+        <span class="nav-menu-name">{{ currentUserName }}</span>
+        <span class="nav-menu-email">{{ currentUserEmail }}</span>
       </div>
       @if (isStudent()) {
-        <button mat-menu-item routerLink="/profile">
-          <mat-icon>person_outline</mat-icon>
-          My Profile
-        </button>
+      <button mat-menu-item routerLink="/profile">
+        <mat-icon>person_outline</mat-icon>
+        My Profile
+      </button>
       }
       <button mat-menu-item routerLink="/change-password">
         <mat-icon>lock_outline</mat-icon>
@@ -76,23 +89,23 @@ import { NotificationsComponent } from './notifications/notifications.component'
     <!-- ── Mobile menu ──────────────────────────────────────────────────── -->
     <mat-menu #mobileMenu="matMenu" xPosition="before">
       @if (isStudent()) {
-        <button mat-menu-item routerLink="/dashboard">
-          <mat-icon>grid_view</mat-icon>
-          Dashboard
-        </button>
-        <button mat-menu-item routerLink="/applications">
-          <mat-icon>description</mat-icon>
-          Applications
-        </button>
-        <button mat-menu-item routerLink="/documents">
-          <mat-icon>folder_open</mat-icon>
-          Documents
-        </button>
-        <mat-divider></mat-divider>
-        <button mat-menu-item routerLink="/profile">
-          <mat-icon>person_outline</mat-icon>
-          My Profile
-        </button>
+      <button mat-menu-item routerLink="/dashboard">
+        <mat-icon>grid_view</mat-icon>
+        Dashboard
+      </button>
+      <button mat-menu-item routerLink="/applications">
+        <mat-icon>description</mat-icon>
+        Applications
+      </button>
+      <button mat-menu-item routerLink="/documents">
+        <mat-icon>folder_open</mat-icon>
+        Documents
+      </button>
+      <mat-divider></mat-divider>
+      <button mat-menu-item routerLink="/profile">
+        <mat-icon>person_outline</mat-icon>
+        My Profile
+      </button>
       }
       <button mat-menu-item routerLink="/change-password">
         <mat-icon>lock_outline</mat-icon>

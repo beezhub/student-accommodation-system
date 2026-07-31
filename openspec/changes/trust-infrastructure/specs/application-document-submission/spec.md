@@ -55,7 +55,9 @@ The application review wizard step SHALL display a read-only summary of all appl
 #### Scenario: Submit button on review step creates the application
 - **WHEN** a student clicks "Submit Application" on the review step
 - **THEN** the `POST /api/application` endpoint is called with the application data
-- **AND** on success, the student is navigated to the document upload step with a success snackbar
+- **AND** on success, the student is navigated to the application confirmation page with a success snackbar
+
+> Amendment (merge with develop wizard reorder): the wizard order is Account → Profile → Documents → Application → Review. Documents are uploaded before the application step, so review success navigates to `/application-confirmation/:id` instead of the document upload step.
 
 #### Scenario: Review step submit button is disabled when data is incomplete
 - **WHEN** the application data is missing required fields or required documents

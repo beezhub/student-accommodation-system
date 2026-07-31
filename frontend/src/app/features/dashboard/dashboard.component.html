@@ -171,6 +171,13 @@
                 }
               </div>
 
+              @if (showResponseTimeMessage) {
+                <div class="response-time-hint">
+                  <mat-icon>schedule</mat-icon>
+                  <span>{{ responseTimeMessage }}</span>
+                </div>
+              }
+
               <div class="info-block">
                 <div class="info-row">
                   <span class="info-label">Reference</span>

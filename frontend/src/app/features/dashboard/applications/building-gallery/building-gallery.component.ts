@@ -12,7 +12,14 @@ import { BuildingResponse } from '../../../../core/services/building.service';
   templateUrl: './building-gallery.component.html',
   styleUrls: ['./building-gallery.component.scss'],
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule],
+  imports: [
+    CommonModule,
+    MatCardModule,
+    MatIconModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+  ],
 })
 export class BuildingGalleryComponent implements OnDestroy {
   @Input() buildings: BuildingResponse[] = [];

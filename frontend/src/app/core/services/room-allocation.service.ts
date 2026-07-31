@@ -72,7 +72,6 @@ export interface AllocateByApplicationRequest {
   roomId: number;
 }
 
-
 @Injectable({
   providedIn: 'root',
 })

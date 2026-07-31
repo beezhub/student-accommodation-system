@@ -363,3 +363,68 @@
     flex-shrink: 0;
 }
 
+// ── SUPPORT SECTION ──────────────────────────────────────────────────────────
+
+.support-section {
+    background: vars.$slate-100;
+    border-top: 1px solid vars.$slate-200;
+    border-bottom: 1px solid vars.$slate-200;
+}
+
+.support-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+
+    @media (max-width: vars.$breakpoint-tablet) {
+        flex-direction: column;
+        text-align: center;
+        padding: 2.5rem 1.25rem;
+        gap: 1rem;
+    }
+}
+
+.support-icon {
+    font-size: 32px !important;
+    width: 32px !important;
+    height: 32px !important;
+    color: vars.$slate-400;
+    flex-shrink: 0;
+}
+
+.support-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.support-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: vars.$slate-900;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.support-detail {
+    font-size: 0.875rem;
+    color: vars.$slate-500;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.support-email {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: vars.$slate-700;
+    text-decoration: none;
+    transition: color 0.15s ease;
+
+    &:hover {
+        color: vars.$slate-900;
+    }
+}
+

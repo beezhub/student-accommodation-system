@@ -83,6 +83,26 @@ public class ApplicationCoreService {
                         throw new UnauthorizedAccessException("You can only submit applications for yourself");
                 }
 
+                // Validate that all required student profile fields are complete
+                List<String> missingFields = new java.util.ArrayList<>();
+                if (student.getStudentNumber() == null || student.getStudentNumber().isBlank()) {
+                        missingFields.add("student number");
+                }
+                if (student.getPhoneNumber() == null || student.getPhoneNumber().isBlank()) {
+                        missingFields.add("phone number");
+                }
+                if (student.getDateOfBirth() == null) {
+                        missingFields.add("date of birth");
+                }
+                if (student.getGender() == null || student.getGender().isBlank()) {
+                        missingFields.add("gender");
+                }
+                if (!missingFields.isEmpty()) {
+                        throw new IllegalArgumentException(
+                                        "Student profile is incomplete. Missing: " + String.join(", ", missingFields)
+                                                        + ". Please update your profile before submitting an application.");
+                }
+
                 // Validate at least one building preference is provided (required to identify the tenant)
                 List<Long> preferredBuildingIds = request.getPreferredBuildingIds();
                 boolean hasMultiPrefs = preferredBuildingIds != null && !preferredBuildingIds.isEmpty();

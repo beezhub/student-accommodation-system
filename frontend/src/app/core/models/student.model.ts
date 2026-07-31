@@ -1,8 +1,9 @@
 export interface StudentRequest {
   userId?: number;
-  studentNumber: string;
-  phoneNumber: string;
-  dateOfBirth: string;
+  /** Optional at profile setup; collected later during application submission */
+  studentNumber?: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
   institutionId: number;
   yearOfStudyId: number;
   gender?: string;

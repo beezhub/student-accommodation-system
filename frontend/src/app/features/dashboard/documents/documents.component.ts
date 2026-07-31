@@ -255,27 +255,29 @@ export class DocumentsComponent implements OnInit {
 
     const selectedTypeId: number = this.uploadForm.get('documentType')?.value;
 
-    this.documentService.uploadSingleDocumentWithProgress(this.selectedFile, selectedTypeId).subscribe({
-      next: (progress) => {
-        this.uploadProgress = progress.progress;
-        if (progress.status === 'complete') {
+    this.documentService
+      .uploadSingleDocumentWithProgress(this.selectedFile, selectedTypeId)
+      .subscribe({
+        next: (progress) => {
+          this.uploadProgress = progress.progress;
+          if (progress.status === 'complete') {
+            this.isUploading = false;
+            this.uploadStatus = 'complete';
+            this.errorService.showSuccess('Document uploaded successfully!');
+            setTimeout(() => {
+              this.closeUploadModal();
+              this.loadPack();
+            }, 500);
+          }
+        },
+        error: (error) => {
           this.isUploading = false;
-          this.uploadStatus = 'complete';
-          this.errorService.showSuccess('Document uploaded successfully!');
-          setTimeout(() => {
-            this.closeUploadModal();
-            this.loadPack();
-          }, 500);
-        }
-      },
-      error: (error) => {
-        this.isUploading = false;
-        this.uploadStatus = 'error';
-        this.uploadProgress = 0;
-        this.uploadError = this.errorService.parseError(error);
-        this.cdr.markForCheck();
-      },
-    });
+          this.uploadStatus = 'error';
+          this.uploadProgress = 0;
+          this.uploadError = this.errorService.parseError(error);
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   retryUpload(): void {

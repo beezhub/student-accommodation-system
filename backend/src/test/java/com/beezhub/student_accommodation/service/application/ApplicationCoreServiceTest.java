@@ -72,6 +72,9 @@ class ApplicationCoreServiceTest {
                 student = new Student();
                 student.setId(1L);
                 student.setStudentNumber("STU001");
+                student.setPhoneNumber("0123456789");
+                student.setDateOfBirth(new java.util.Date());
+                student.setGender("Female");
                 student.setAppUser(studentUser);
 
                 application = Application.builder()
@@ -254,6 +257,22 @@ class ApplicationCoreServiceTest {
                 assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
                                 .isInstanceOf(IllegalArgumentException.class)
                                 .hasMessageContaining("building preference is required");
+        }
+
+        @Test
+        void submitApplication_incompleteProfile_throwsExceptionListingMissingFields() {
+                student.setPhoneNumber(null);
+                student.setDateOfBirth(null);
+                student.setGender(null);
+                when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("profile is incomplete")
+                                .hasMessageContaining("phone number")
+                                .hasMessageContaining("date of birth")
+                                .hasMessageContaining("gender");
         }
 
 }

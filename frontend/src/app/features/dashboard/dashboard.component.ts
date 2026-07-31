@@ -19,6 +19,8 @@ import {
 import { ApplicationService } from '../../core/services/application.service';
 import { Application } from '../../core/models/application.model';
 import { AllocationStatus } from '../../core/models/status.model';
+import { SystemSettingsService } from '../../core/services/system-settings.service';
+import { ErrorHandlingService } from '../../core/services/error-handling.service';
 
 // Material imports
 import { MatButtonModule } from '@angular/material/button';
@@ -62,6 +64,8 @@ export class DashboardComponent implements OnInit {
   private readonly applicationService = inject(ApplicationService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
+  private readonly systemSettingsService = inject(SystemSettingsService);
+  private readonly errorService = inject(ErrorHandlingService);
 
   currentUser: any;
   selectedDocument: any = null;
@@ -86,6 +90,9 @@ export class DashboardComponent implements OnInit {
   roomAllocation: RoomAllocationResponse | null = null;
   isLoadingRoom = false;
 
+  /** Response time message for SUBMITTED / UNDER_REVIEW status */
+  responseTimeMessage: string | null = null;
+
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
     if (!this.currentUser) {
@@ -96,6 +103,7 @@ export class DashboardComponent implements OnInit {
     this.loadDocuments();
     this.loadRoomAllocation();
     this.loadApplicationHistory();
+    this.loadResponseTimeSetting();
   }
 
   loadDocuments(): void {
@@ -110,6 +118,7 @@ export class DashboardComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to fetch documents:', err);
+        this.errorService.showWarning('Could not load your documents. Please refresh the page.');
       },
     });
   }
@@ -136,7 +145,11 @@ export class DashboardComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to fetch student profile:', err);
+        this.errorService.showWarning(
+          'Could not load room allocation info. Please refresh the page.'
+        );
         this.isLoadingRoom = false;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -162,6 +175,7 @@ export class DashboardComponent implements OnInit {
             },
             error: (err) => {
               console.error('Failed to accept offer', err);
+              this.errorService.showErrorSnackbar(this.errorService.parseError(err));
               this.processing = false;
               this.cdr.markForCheck();
             },
@@ -282,10 +296,25 @@ export class DashboardComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to fetch application history:', err);
+        this.errorService.showWarning('Could not load your applications. Please refresh the page.');
         this.applicationHistory = [];
         this.currentApplication = null;
         this.isLoadingApplications = false;
         this.isLoadingCurrentApplication = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  loadResponseTimeSetting(): void {
+    this.systemSettingsService.getPublicSetting('application_review_response_days').subscribe({
+      next: (value) => {
+        if (value) {
+          this.responseTimeMessage = `Your application is now being reviewed. You\u2019ll receive an update within ${value} business days.`;
+        } else {
+          this.responseTimeMessage =
+            'Your application is being reviewed. We\u2019ll notify you as soon as there\u2019s an update.';
+        }
         this.cdr.markForCheck();
       },
     });
@@ -325,6 +354,11 @@ export class DashboardComponent implements OnInit {
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
+  }
+
+  get showResponseTimeMessage(): boolean {
+    const status = this.currentApplication?.status?.toUpperCase();
+    return (status === 'SUBMITTED' || status === 'UNDER_REVIEW') && !!this.responseTimeMessage;
   }
 
   get journeySteps(): { label: string; done: boolean; active: boolean }[] {
