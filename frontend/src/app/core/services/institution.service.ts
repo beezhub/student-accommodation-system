@@ -3,6 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Institution } from '../models/institution.model';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 export interface InstitutionResponse {
   id: number;
@@ -19,17 +21,6 @@ export interface InstitutionRequest {
   address: string;
   phoneNumber: string;
   emailAddress: string;
-}
-
-export interface PageResponse<T> {
-  content: T[];
-  pageNumber: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
 }
 
 @Injectable({

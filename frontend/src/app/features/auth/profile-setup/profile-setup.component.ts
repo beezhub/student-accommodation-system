@@ -126,7 +126,7 @@ export class ProfileSetupComponent implements OnInit {
       this.studentService.createStudentProfile(studentData).subscribe({
         next: () => {
           this.isSubmitting = false;
-          this.router.navigate(['/application-submission']);
+          this.router.navigate(['/document-upload']);
         },
         error: (error) => {
           this.isSubmitting = false;

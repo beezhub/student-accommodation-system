@@ -8,8 +8,8 @@ import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.NotificationStatus;
 import com.beezhub.student_accommodation.model.enums.NotificationType;
 import com.beezhub.student_accommodation.model.enums.UserRole;
-import com.beezhub.student_accommodation.repository.NotificationRepository;
 import com.beezhub.student_accommodation.service.notification.EmailDispatchService;
+import com.beezhub.student_accommodation.service.notification.NotificationPersistenceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class NotificationServiceTest {
 
-    @Mock private NotificationRepository notificationRepository;
+    @Mock private NotificationPersistenceService notificationPersistence;
     @Mock private EmailDispatchService emailDispatchService;
 
     @InjectMocks
@@ -59,64 +59,9 @@ class NotificationServiceTest {
                 .maxRetries(3)
                 .build();
 
-        when(notificationRepository.save(any(Notification.class))).thenReturn(savedNotification);
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // createNotification
-    // ─────────────────────────────────────────────────────────────
-
-    @Test
-    void createNotification_buildsAndSavesNotification() {
-        Notification result = notificationService.createNotification(
-                "student@test.com",
-                "Welcome",
-                NotificationType.WELCOME_EMAIL,
-                user,
-                user.getId(),
-                "AppUser"
-        );
-
-        assertThat(result).isNotNull();
-        verify(notificationRepository).save(any(Notification.class));
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // markNotificationAsSent
-    // ─────────────────────────────────────────────────────────────
-
-    @Test
-    void markNotificationAsSent_setsStatusAndSaves() {
-        notificationService.markNotificationAsSent(savedNotification);
-
-        assertThat(savedNotification.getStatus()).isEqualTo(NotificationStatus.SENT);
-        verify(notificationRepository).save(savedNotification);
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // handleNotificationFailure
-    // ─────────────────────────────────────────────────────────────
-
-    @Test
-    void handleNotificationFailure_setsFailedStatusAndSaves() {
-        RuntimeException ex = new RuntimeException("SMTP error");
-
-        notificationService.handleNotificationFailure(savedNotification, ex);
-
-        assertThat(savedNotification.getStatus()).isEqualTo(NotificationStatus.FAILED);
-        assertThat(savedNotification.getErrorMessage()).isEqualTo("SMTP error");
-        verify(notificationRepository).save(savedNotification);
-    }
-
-    @Test
-    void handleNotificationFailure_nullExceptionMessage_usesSimpleClassName() {
-        // NullPointerException() default constructor leaves getMessage() == null
-        NullPointerException ex = new NullPointerException();
-
-        notificationService.handleNotificationFailure(savedNotification, ex);
-
-        assertThat(savedNotification.getErrorMessage()).isEqualTo("NullPointerException");
-        verify(notificationRepository).save(savedNotification);
+        when(notificationPersistence.createNotification(
+                anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString()))
+                .thenReturn(savedNotification);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -130,8 +75,9 @@ class NotificationServiceTest {
         notificationService.sendWelcomeEmail(user);
 
         verify(emailDispatchService).sendWelcomeEmail(eq(user), eq("Alice Smith"), eq("student@test.com"));
-        // notification saved twice: once on create, once on mark-as-sent
-        verify(notificationRepository, times(2)).save(any(Notification.class));
+        verify(notificationPersistence).createNotification(
+                anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString());
+        verify(notificationPersistence).markNotificationAsSent(savedNotification);
     }
 
     @Test
@@ -141,9 +87,7 @@ class NotificationServiceTest {
 
         notificationService.sendWelcomeEmail(user);
 
-        // Still saved on failure (handleNotificationFailure saves)
-        verify(notificationRepository, times(2)).save(any(Notification.class));
-        assertThat(savedNotification.getStatus()).isEqualTo(NotificationStatus.FAILED);
+        verify(notificationPersistence).handleNotificationFailure(eq(savedNotification), any(Exception.class));
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -158,7 +102,7 @@ class NotificationServiceTest {
 
         verify(emailDispatchService).sendPasswordResetEmail(
                 eq("Alice Smith"), eq("student@test.com"), eq("reset-token-123"), any());
-        verify(notificationRepository, times(2)).save(any(Notification.class));
+        verify(notificationPersistence).markNotificationAsSent(savedNotification);
     }
 
     @Test
@@ -168,8 +112,7 @@ class NotificationServiceTest {
 
         notificationService.sendPasswordResetEmail(user, "token");
 
-        verify(notificationRepository, times(2)).save(any(Notification.class));
-        assertThat(savedNotification.getStatus()).isEqualTo(NotificationStatus.FAILED);
+        verify(notificationPersistence).handleNotificationFailure(eq(savedNotification), any(Exception.class));
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -194,7 +137,7 @@ class NotificationServiceTest {
         notificationService.sendApplicationStatusNotification(app, ApplicationStatus.APPROVED);
 
         verify(emailDispatchService).sendApplicationApprovedEmail(eq(app), eq("Alice Smith"), eq("student@test.com"));
-        verify(notificationRepository, times(2)).save(any(Notification.class));
+        verify(notificationPersistence).markNotificationAsSent(savedNotification);
     }
 
     @Test
@@ -204,7 +147,7 @@ class NotificationServiceTest {
         notificationService.sendApplicationStatusNotification(app, ApplicationStatus.REJECTED);
 
         verify(emailDispatchService).sendApplicationRejectedEmail(eq(app), eq("Alice Smith"), eq("student@test.com"));
-        verify(notificationRepository, times(2)).save(any(Notification.class));
+        verify(notificationPersistence).markNotificationAsSent(savedNotification);
     }
 
     @Test
@@ -214,7 +157,7 @@ class NotificationServiceTest {
         notificationService.sendApplicationStatusNotification(app, ApplicationStatus.PENDING);
 
         verifyNoInteractions(emailDispatchService);
-        verifyNoInteractions(notificationRepository);
+        verifyNoInteractions(notificationPersistence);
     }
 
     @Test
@@ -226,7 +169,7 @@ class NotificationServiceTest {
         notificationService.sendApplicationStatusNotification(app, ApplicationStatus.APPROVED);
 
         verifyNoInteractions(emailDispatchService);
-        verifyNoInteractions(notificationRepository);
+        verifyNoInteractions(notificationPersistence);
     }
 
     @Test
@@ -242,7 +185,7 @@ class NotificationServiceTest {
         notificationService.sendApplicationStatusNotification(app, ApplicationStatus.APPROVED);
 
         verifyNoInteractions(emailDispatchService);
-        verifyNoInteractions(notificationRepository);
+        verifyNoInteractions(notificationPersistence);
     }
 
     @Test
@@ -253,7 +196,6 @@ class NotificationServiceTest {
 
         notificationService.sendApplicationStatusNotification(app, ApplicationStatus.APPROVED);
 
-        verify(notificationRepository, times(2)).save(any(Notification.class));
-        assertThat(savedNotification.getStatus()).isEqualTo(NotificationStatus.FAILED);
+        verify(notificationPersistence).handleNotificationFailure(eq(savedNotification), any(Exception.class));
     }
 }

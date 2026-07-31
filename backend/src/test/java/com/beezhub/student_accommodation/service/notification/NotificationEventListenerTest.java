@@ -3,7 +3,7 @@ package com.beezhub.student_accommodation.service.notification;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.model.event.*;
-import com.beezhub.student_accommodation.service.NotificationService;
+import com.beezhub.student_accommodation.service.notification.NotificationPersistenceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 class NotificationEventListenerTest {
 
     @Mock
-    private NotificationService notificationService;
+    private NotificationPersistenceService notificationService;
 
     @Mock
     private EmailDispatchService emailDispatchService;

@@ -8,14 +8,8 @@ import {
   WaitingListEntry,
 } from '../models/allocation.models';
 import { RoomAllocationResponse } from './room-allocation.service';
-
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-}
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 @Injectable({
   providedIn: 'root',

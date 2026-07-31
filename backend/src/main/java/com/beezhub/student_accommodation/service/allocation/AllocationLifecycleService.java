@@ -135,10 +135,11 @@ public class AllocationLifecycleService {
 
         long previousDeclineCount = getPreviousDeclineCount(allocation);
 
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
-
         AllocationStatus previousStatus = allocation.getStatus();
         AllocationStatusValidator.validate(allocation, AllocationStatus.DECLINED);
+
+        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
+
         allocation.setStatus(AllocationStatus.DECLINED);
         allocation.setEndDate(LocalDateTime.now());
         allocation.setDeclineReason(request.getDeclineReason());
@@ -346,10 +347,10 @@ public class AllocationLifecycleService {
 
     private void validateOfferAcceptance(RoomAllocation allocation, AcceptOfferRequest request) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime maxDate = now.plusDays(7);
+        LocalDateTime maxDate = now.plusDays(checkInExpiryDays);
         if (request.getExpectedCheckInDate().isBefore(now.minusHours(1))
                 || request.getExpectedCheckInDate().isAfter(maxDate)) {
-            throw new IllegalArgumentException("Expected check-in date must be within 7 days from now");
+            throw new IllegalArgumentException("Expected check-in date must be within " + checkInExpiryDays + " days from now");
         }
         if (allocation.getStatus() != AllocationStatus.OFFERED) {
             throw new IllegalStateException(

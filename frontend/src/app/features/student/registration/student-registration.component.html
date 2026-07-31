@@ -52,8 +52,6 @@
                   <mat-select id="gender" formControlName="gender">
                     <mat-option value="male">Male</mat-option>
                     <mat-option value="female">Female</mat-option>
-                    <mat-option value="other">Other</mat-option>
-                    <mat-option value="prefer-not-to-say">Prefer not to say</mat-option>
                   </mat-select>
                   <mat-error *ngIf="registrationForm.get('gender')?.errors?.['required'] && registrationForm.get('gender')?.touched">Please select your gender</mat-error>
                 </mat-form-field>

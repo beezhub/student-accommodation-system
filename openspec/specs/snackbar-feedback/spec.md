@@ -1,31 +1,36 @@
 ## ADDED Requirements
 
-### Requirement: Snackbars use semantic colour coding
-The system SHALL apply distinct background and foreground colours to snackbar notifications based on their type (success, error, warning, info) via global CSS panel classes.
+### Requirement: No student-facing flow uses raw browser alert() for feedback
+All student-facing components SHALL use `MatSnackBar` with the appropriate semantic panel class (`success-snackbar`, `error-snackbar`, `warning-snackbar`, `info-snackbar`) for user notifications. No student-facing component SHALL call `window.alert()`, `alert()`, or `window.confirm()` for feedback messages. Specifically, the following existing `alert()` calls SHALL be replaced:
+- Dashboard component: application cancellation confirmation and result messages
+- Applications component: cancel application stub message
+- Notifications component: "View all" placeholder message
 
-#### Scenario: Success snackbar is green
-- **WHEN** a snackbar is opened with panelClass `snack-success` or `success-snackbar`
-- **THEN** the snackbar surface SHALL display a dark green background (`#065f46`) with light green text (`#d1fae5`)
+#### Scenario: Application cancellation uses snackbar instead of alert
+- **WHEN** a student cancels an application from the dashboard
+- **THEN** the result (success or failure) SHALL be communicated via a MatSnackBar with the appropriate panel class
+- **AND** no `alert()` dialog SHALL appear
 
-#### Scenario: Error snackbar is red
-- **WHEN** a snackbar is opened with panelClass `snack-error` or `error-snackbar`
-- **THEN** the snackbar surface SHALL display a dark red background (`#7f1d1d`) with light red text (`#fee2e2`)
+#### Scenario: Cancel application stub uses snackbar
+- **WHEN** a student triggers the cancel action in the applications list component
+- **THEN** the feedback SHALL be delivered via a MatSnackBar (not an `alert()` dialog)
 
-#### Scenario: Warning snackbar is amber
-- **WHEN** a snackbar is opened with panelClass `snack-warning` or `warning-snackbar`
-- **THEN** the snackbar surface SHALL display a dark amber background (`#78350f`) with light amber text (`#fef3c7`)
+#### Scenario: Notifications "View all" action is functional or removed
+- **WHEN** a student clicks the "View all notifications" button
+- **THEN** the button SHALL either navigate to a notifications list page or be removed from the UI
+- **AND** no `alert()` dialog SHALL appear
 
-#### Scenario: Info snackbar is blue
-- **WHEN** a snackbar is opened with panelClass `snack-info` or `info-snackbar`
-- **THEN** the snackbar surface SHALL display a dark blue background (`#0c4a6e`) with light blue text (`#e0f2fe`)
+---
 
-### Requirement: Snackbars use correct ARIA politeness
-The centralised notification service SHALL set the `politeness` property on all snackbar configurations to ensure correct screen reader announcement timing.
+### Requirement: Token expiry message is user-friendly
+The token expiry interceptor SHALL display a human-readable message when a JWT token expires, rather than a technical error string. The message SHALL inform the user their session has expired and prompt them to sign in again. The interceptor SHALL preserve the user's intended destination URL so they can be redirected back after re-authentication.
 
-#### Scenario: Error snackbars are assertive
-- **WHEN** `ErrorHandlingService.showErrorSnackbar()` or `ErrorInterceptor` triggers a snackbar
-- **THEN** the snackbar SHALL be configured with `politeness: 'assertive'` so screen readers interrupt immediately
+#### Scenario: Expired token shows friendly message
+- **WHEN** a student's JWT token expires during a session
+- **THEN** a MatSnackBar SHALL display the message "Your session has expired. Please sign in again." (or equivalent user-friendly wording)
+- **AND** the snackbar SHALL use panelClass `warning-snackbar`
 
-#### Scenario: Non-error snackbars are polite
-- **WHEN** `ErrorHandlingService.showSuccess()`, `showWarning()`, or `showInfo()` triggers a snackbar
-- **THEN** the snackbar SHALL be configured with `politeness: 'polite'` so screen readers announce at next opportunity
+#### Scenario: Return URL is preserved on token expiry
+- **WHEN** a student's token expires while they are on route `/dashboard/documents`
+- **THEN** the interceptor SHALL redirect to the login page with a `returnUrl` query parameter set to `/dashboard/documents`
+- **AND** after successful re-authentication, the student SHALL be navigated back to `/dashboard/documents`

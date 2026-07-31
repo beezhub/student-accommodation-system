@@ -105,6 +105,7 @@ public class AuthService {
         return new LoginResponse(token, userData);
     }
 
+    @Transactional
     @Timed(value = "service.auth.login", percentiles = {0.5, 0.95, 0.99})
     public LoginResponse validateLogin(String username, String password) {
         // 1. Check if user exists first to check lock status
@@ -340,8 +341,14 @@ public class AuthService {
     public MessageResponse requestPasswordReset(String email) {
         log.info("Password reset requested for email: {}", email);
 
-        AppUser user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+        var userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            // Return the same message to prevent user enumeration
+            log.warn("Password reset requested for non-existent email: {}", email);
+            return new MessageResponse("Password reset instructions have been sent to your email");
+        }
+
+        AppUser user = userOpt.get();
 
         passwordResetTokenRepository.deleteByUserId(user.getId());
 

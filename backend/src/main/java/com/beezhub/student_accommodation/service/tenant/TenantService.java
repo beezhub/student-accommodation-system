@@ -36,8 +36,10 @@ public class TenantService {
      * {@code tenantFilter} Hibernate filter is not applied to the {@code tenant} table.
      */
     @Transactional(readOnly = true)
-    public List<Tenant> getAllTenants() {
-        return tenantRepository.findAll();
+    public List<TenantResponseDto> getAllTenants() {
+        return tenantRepository.findAll().stream()
+                .map(this::toResponseDto)
+                .toList();
     }
 
     /**
@@ -58,9 +60,10 @@ public class TenantService {
      * @throws TenantNotFoundException if no tenant with that ID exists
      */
     @Transactional(readOnly = true)
-    public Tenant getTenantById(Long id) {
-        return tenantRepository.findById(id)
+    public TenantResponseDto getTenantById(Long id) {
+        Tenant tenant = tenantRepository.findById(id)
                 .orElseThrow(() -> new TenantNotFoundException("Tenant not found: " + id));
+        return toResponseDto(tenant);
     }
 
     /**

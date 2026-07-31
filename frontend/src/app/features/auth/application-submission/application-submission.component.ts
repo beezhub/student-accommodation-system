@@ -184,8 +184,12 @@ export class ApplicationSubmissionComponent implements OnInit {
     if (this.studentInstitutionId) {
       this.buildingService.getBuildingsByInstitution(this.studentInstitutionId).subscribe({
         next: (buildings) => {
-          this.buildings = buildings.slice(0, this.BUILDINGS_PAGE_SIZE);
-          this.cdr.markForCheck();
+          if (buildings && buildings.length > 0) {
+            this.buildings = buildings.slice(0, this.BUILDINGS_PAGE_SIZE);
+            this.cdr.markForCheck();
+          } else {
+            this.loadAllBuildings();
+          }
         },
         error: (error) => {
           console.error('Failed to load buildings for institution', error);
@@ -203,7 +207,7 @@ export class ApplicationSubmissionComponent implements OnInit {
   private loadAllBuildings(): void {
     this.buildingService.getAllBuildings(0, this.BUILDINGS_PAGE_SIZE).subscribe({
       next: (response) => {
-        this.buildings = response.content;
+        this.buildings = response?.content ?? [];
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -222,7 +226,7 @@ export class ApplicationSubmissionComponent implements OnInit {
     }
     this.buildingService.searchBuildings({ name: query, size: 10 }).subscribe({
       next: (response) => {
-        this.buildings = response.content;
+        this.buildings = response?.content ?? [];
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -281,6 +285,7 @@ export class ApplicationSubmissionComponent implements OnInit {
               if (institution) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 this.institutionName = institution.name;
+                this.cdr.markForCheck();
               }
               // Load buildings after we know the institution
               this.loadBuildings();
@@ -306,6 +311,7 @@ export class ApplicationSubmissionComponent implements OnInit {
           this.errorService.showWarning('Please complete your profile first.');
           this.router.navigate(['/profile-setup']);
         }
+        this.cdr.markForCheck();
       },
     });
   }

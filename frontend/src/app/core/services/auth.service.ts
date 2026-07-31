@@ -36,7 +36,9 @@ export class AuthService {
       try {
         this.currentUserSubject.next(JSON.parse(storedUser));
         // Re-initialize notification stream on page refresh if user is already logged in
-        this.notificationService.initializeNotifications();
+        if (this.isLoggedIn()) {
+          this.notificationService.initializeNotifications();
+        }
       } catch {
         localStorage.removeItem('currentUser');
       }
@@ -44,7 +46,12 @@ export class AuthService {
 
     window.addEventListener('storage', (event) => {
       if (event.key === 'currentUser') {
-        const updatedUser = event.newValue ? JSON.parse(event.newValue) : null;
+        let updatedUser = null;
+        try {
+          updatedUser = event.newValue ? JSON.parse(event.newValue) : null;
+        } catch {
+          // Ignore malformed JSON from other tabs
+        }
         this.currentUserSubject.next(updatedUser);
       }
     });
@@ -147,9 +154,9 @@ export class AuthService {
           // Update the user in localStorage to clear mustChangePassword flag
           const currentUser = this.currentUserValue;
           if (currentUser) {
-            currentUser.mustChangePassword = false;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            this.currentUserSubject.next(currentUser);
+            const updated = { ...currentUser, mustChangePassword: false };
+            localStorage.setItem('currentUser', JSON.stringify(updated));
+            this.currentUserSubject.next(updated);
           }
           return response;
         })
@@ -178,9 +185,9 @@ export class AuthService {
   updateEmailVerificationStatus(verified: boolean): void {
     const currentUser = this.currentUserValue;
     if (currentUser) {
-      currentUser.emailVerified = verified;
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      this.currentUserSubject.next(currentUser);
+      const updated = { ...currentUser, emailVerified: verified };
+      localStorage.setItem('currentUser', JSON.stringify(updated));
+      this.currentUserSubject.next(updated);
     }
   }
 

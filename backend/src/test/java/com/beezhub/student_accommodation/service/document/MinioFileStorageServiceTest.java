@@ -4,7 +4,6 @@ import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
-import io.minio.http.Method;
 import io.minio.messages.ErrorResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

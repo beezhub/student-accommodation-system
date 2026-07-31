@@ -4,7 +4,6 @@ import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
-import io.minio.http.Method;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +30,7 @@ public class MinioFileStorageService implements FileStorageService {
                     PutObjectArgs.builder()
                             .bucket(bucketName)
                             .object(key)
-                            .stream(content, size, -1)
+                            .stream(content, size, -1L)
                             .contentType(contentType)
                             .build());
             return key;
@@ -111,7 +110,7 @@ public class MinioFileStorageService implements FileStorageService {
                     GetPresignedObjectUrlArgs.builder()
                             .bucket(bucketName)
                             .object(key)
-                            .method(Method.GET)
+                            .method(Http.Method.GET)
                             .expiry((int) expiry.toSeconds())
                             .build());
         } catch (Exception e) {

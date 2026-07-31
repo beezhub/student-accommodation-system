@@ -151,6 +151,12 @@ docker-compose down        # Stop all services
 4. Token included in requests via AuthInterceptor
 5. Role-based routing with guards (admin.guard.ts, student.guard.ts)
 
+**Frontend conventions:**
+- Routing: flat routes in `app-routing.module.ts` — no `.routes.ts` files
+- Admin sidebar nav groups defined in `admin-sidebar.component.ts` `navGroups` array
+- Snackbar panel classes: both `snack-*` (UISpec) and `*-snackbar` (legacy) are valid — both defined in `styles.scss`
+- **Always invoke the `ui-ux-pro-max` skill before implementing any frontend code** (components, templates, SCSS, Angular modules)
+
 ### Database Schema
 
 **Core Entities:**
@@ -226,7 +232,31 @@ Configured in: `backend/src/main/resources/application.yml`
 - JUnit tests in `backend/src/test/java/`
 - Jacoco for coverage reporting
 - Target coverage: Configurable per class in build.gradle
-- Run specific test: `./gradlew test --tests "ClassName.methodName"`
+- Run specific test: `./gradlew test --tests "com.beezhub.student_accommodation.ClassName.methodName"`
+
+**Test base classes** (always extend these — never configure containers directly):
+- `AbstractIntegrationTest` — `@SpringBootTest(RANDOM_PORT)` with 4 Testcontainers: PostgreSQL 16.2, MailHog, Redis 7, MinIO. Flyway runs on startup (`ddl-auto=none`). `mailServer` field is `protected` for subclass assertion.
+- `AbstractJpaTest` — `@DataJpaTest` with PostgreSQL Testcontainer only. Uses `ddl-auto=create-drop` (Flyway disabled). Use this for repository/filter/entity-lifecycle tests; use `AbstractIntegrationTest` when you need Flyway migrations or commit semantics.
+
+**Critical DDL property path:** `application.yml` uses `spring.jpa.properties.hibernate.hbm2ddl.auto` (NOT the shortcut `spring.jpa.hibernate.ddl-auto`). The `properties.*` path takes precedence. `@DynamicPropertySource` must override **both**:
+```java
+registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
+registry.add("spring.jpa.properties.hibernate.hbm2ddl.auto", () -> "none");
+```
+
+**Integration test setup patterns** (full-stack tests without `@Transactional`):
+1. Delete in FK-safe order in `@AfterEach` (applications → academic_years → students → app_users)
+2. Set security context: `SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(email, null, List.of()))` for `authService.getCurrentUser()`
+3. Set `TenantContext.setTenantId(...)` for `TenantListener.@PrePersist` to stamp `tenant_id`
+4. Clear both in `@AfterEach`: `SecurityContextHolder.clearContext(); TenantContext.clear()`
+
+**Tenant FK in tests:** PostgreSQL enforces the `tenant_id` FK (unlike H2 which silently ignored it). Tests using specific tenant IDs must seed Tenant rows first via native SQL in `@BeforeEach`. `tenant(id=0)` always exists (seeded by Flyway `V2026_02_25_0013__platform_tenant_seed.sql`).
+
+**Schema constraint:** `academic_year.name` is `VARCHAR(20)` — test data must be ≤ 20 characters.
+
+**Pre-existing test failures (not our concern):**
+- `RoomServiceTest`: 3 failures — `UnnecessaryStubbingException` + mock assertion bug in bulk room creation
+- `ScheduledJobRunnerTest`: 2 failures — `NullPointerException` for `checkInReminderService` (injection issue)
 
 **Frontend:**
 - Jasmine/Karma for unit tests

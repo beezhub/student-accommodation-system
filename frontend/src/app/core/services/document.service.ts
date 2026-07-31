@@ -170,8 +170,6 @@ export class DocumentService {
       params = params.append('documentTypes', type.toString());
     });
 
-    console.log('Parameters:', params.toString());
-
     return this.http.post(`${this.apiUrl}/upload-multiple`, formData, {
       params,
     });
@@ -191,7 +189,9 @@ export class DocumentService {
 
   getUploadedDocuments(): Observable<DocumentData[]> {
     const userId = this.authService.currentUserValue?.id;
-    console.log('Fetching documents for user ID:', userId);
+    if (!userId) {
+      throw new Error('Cannot fetch documents: user is not authenticated');
+    }
 
     return this.http.get<DocumentData[]>(`${this.apiUrl}/info/all/${userId}`);
   }

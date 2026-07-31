@@ -3,7 +3,6 @@ package com.beezhub.student_accommodation.controller;
 import com.beezhub.student_accommodation.model.dto.TenantRequestDto;
 import com.beezhub.student_accommodation.model.dto.TenantResponseDto;
 import com.beezhub.student_accommodation.model.dto.TenantStatusDto;
-import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -28,7 +27,7 @@ public class TenantController {
     @Operation(summary = "List all tenants")
     @ApiResponse(responseCode = "200", description = "Tenant list returned")
     @GetMapping
-    public ResponseEntity<List<Tenant>> getAllTenants() {
+    public ResponseEntity<List<TenantResponseDto>> getAllTenants() {
         return ResponseEntity.ok(tenantService.getAllTenants());
     }
 
@@ -36,7 +35,7 @@ public class TenantController {
     @ApiResponse(responseCode = "200", description = "Tenant found")
     @ApiResponse(responseCode = "404", description = "Tenant not found")
     @GetMapping("/{id}")
-    public ResponseEntity<Tenant> getTenantById(@PathVariable Long id) {
+    public ResponseEntity<TenantResponseDto> getTenantById(@PathVariable Long id) {
         return ResponseEntity.ok(tenantService.getTenantById(id));
     }
 

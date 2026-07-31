@@ -1,16 +1,23 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
-### Requirement: Students may decline offers without limit
-A student SHALL be able to decline any number of room allocation offers without their application being cancelled or penalised. On every decline the student's application MUST be returned to the `AWAITING_ALLOCATION` status and re-added to the waiting list. There MUST be no constant, configuration value, or code path that cancels an application due to exceeding a decline count threshold.
+### Requirement: Dashboard journey stepper handles all application statuses
+The dashboard journey stepper SHALL display a visual treatment for every `ApplicationStatus` value, including unhappy-path states. The stepper SHALL use a status-to-visual-state mapping that covers: SUBMITTED, UNDER_REVIEW, APPROVED, AWAITING_ALLOCATION, ALLOCATED, CHANGES_REQUESTED, REJECTED, and CANCELLED. Statuses not in the happy path SHALL use distinct visual treatments to communicate their meaning.
 
-#### Scenario: First decline re-queues student
-- **WHEN** a student declines a room offer for the first time
-- **THEN** the allocation is set to `DECLINED`, the application status returns to `AWAITING_ALLOCATION`, and the student is placed back on the waiting list
+#### Scenario: CHANGES_REQUESTED status shows amber action-required treatment
+- **WHEN** a student's application has status `CHANGES_REQUESTED`
+- **THEN** the journey stepper SHALL highlight the relevant step with an amber/warning colour
+- **AND** the step SHALL display an action badge or label indicating the student needs to take action (e.g., "Action Required")
 
-#### Scenario: Repeated declines continue to re-queue student
-- **WHEN** a student has already declined two or more previous offers and declines another
-- **THEN** the allocation is set to `DECLINED`, the application status returns to `AWAITING_ALLOCATION`, and the student is placed back on the waiting list — no cancellation occurs
+#### Scenario: REJECTED status shows red terminal treatment
+- **WHEN** a student's application has status `REJECTED`
+- **THEN** the journey stepper SHALL display the relevant step with a red/error colour
+- **AND** the stepper SHALL indicate this is a terminal state (no further steps are active)
 
-#### Scenario: No application cancellation on decline
-- **WHEN** any number of offers have been declined by a student
-- **THEN** the student's application status is NEVER set to `CANCELLED` as a result of the decline action alone
+#### Scenario: CANCELLED status shows grey terminal treatment
+- **WHEN** a student's application has status `CANCELLED`
+- **THEN** the journey stepper SHALL display the relevant step with a grey/muted colour
+- **AND** the stepper SHALL indicate this is a terminal state (no further steps are active)
+
+#### Scenario: Happy-path statuses continue to render correctly
+- **WHEN** a student's application has a happy-path status (SUBMITTED, UNDER_REVIEW, APPROVED, AWAITING_ALLOCATION, ALLOCATED)
+- **THEN** the journey stepper SHALL render the step progression as it does currently, with completed steps, the active step, and remaining steps clearly distinguished

@@ -3,6 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DocumentType } from '../models/document-type.model';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 export interface DocumentTypeResponse {
   id: number;
@@ -18,17 +20,6 @@ export interface DocumentTypeRequest {
   name: string;
   description?: string;
   isRequired: boolean;
-}
-
-export interface PageResponse<T> {
-  content: T[];
-  pageNumber: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
 }
 
 @Injectable({

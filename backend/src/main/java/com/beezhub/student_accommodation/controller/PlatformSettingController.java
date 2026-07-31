@@ -25,7 +25,11 @@ public class PlatformSettingController {
     public ResponseEntity<Void> updatePlatformSetting(
             @PathVariable String key,
             @RequestBody Map<String, String> payload) {
-        systemSettingService.updatePlatformSetting(key, payload.get("value"));
+        String value = payload.get("value");
+        if (value == null || value.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        systemSettingService.updatePlatformSetting(key, value);
         return ResponseEntity.ok().build();
     }
 }

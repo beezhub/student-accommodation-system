@@ -193,11 +193,11 @@ export class ApplicationReviewComponent implements OnInit {
     };
 
     this.applicationService.createApplication(applicationData).subscribe({
-      next: () => {
+      next: (created) => {
         this.isSubmitting = false;
         this.draftService.clearDraft();
         this.errorService.showSuccess('Application submitted successfully!');
-        this.router.navigate(['/document-upload']);
+        this.router.navigate(['/application-confirmation', created.id]);
       },
       error: (error) => {
         this.isSubmitting = false;

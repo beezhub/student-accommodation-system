@@ -48,18 +48,6 @@ export class LoginComponent {
       password: ['', [Validators.required, Validators.minLength(8)]],
     });
   }
-
-  passwordMatchValidator(g: FormGroup) {
-    const password = g.get('password')?.value;
-    const confirmPassword = g.get('confirmPassword')?.value;
-
-    if (password === confirmPassword) {
-      return null;
-    }
-
-    g.get('confirmPassword')?.setErrors({ mismatch: true });
-    return { mismatch: true };
-  }
   onSubmit(): void {
     if (this.loginForm.valid) {
       this.isSubmitting = true;
