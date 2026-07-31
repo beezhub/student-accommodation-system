@@ -23,7 +23,6 @@ class AdminStatsServiceTest {
 
     @Mock private ApplicationRepository applicationRepository;
     @Mock private DocumentRepository documentRepository;
-    @Mock private StudentRepository studentRepository;
     @Mock private AppUserRepository appUserRepository;
     @Mock private RoomRepository roomRepository;
     @Mock private BuildingRepository buildingRepository;
@@ -50,8 +49,8 @@ class AdminStatsServiceTest {
         when(documentRepository.countByDocumentStatus(DocumentStatus.PENDING)).thenReturn(20L);
         when(documentRepository.countByDocumentStatus(DocumentStatus.APPROVED)).thenReturn(450L);
         when(documentRepository.countByDocumentStatus(DocumentStatus.REJECTED)).thenReturn(30L);
-        when(studentRepository.count()).thenReturn(180L);
-        when(appUserRepository.countByUserRole(UserRole.PLATFORM_ADMIN)).thenReturn(5L);
+        when(applicationRepository.countDistinctStudents()).thenReturn(180L);
+        when(appUserRepository.countByUserRole(UserRole.TENANT_ADMIN)).thenReturn(5L);
         when(buildingRepository.count()).thenReturn(10L);
 
         DashboardStatsResponse stats = service.getDashboardStats();
@@ -81,7 +80,7 @@ class AdminStatsServiceTest {
         when(applicationRepository.countByStatus(any())).thenReturn(0L);
         when(documentRepository.count()).thenReturn(0L);
         when(documentRepository.countByDocumentStatus(any())).thenReturn(0L);
-        when(studentRepository.count()).thenReturn(0L);
+        when(applicationRepository.countDistinctStudents()).thenReturn(0L);
         when(appUserRepository.countByUserRole(any())).thenReturn(0L);
         when(buildingRepository.count()).thenReturn(0L);
 

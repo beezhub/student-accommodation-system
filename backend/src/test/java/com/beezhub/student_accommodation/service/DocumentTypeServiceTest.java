@@ -193,8 +193,10 @@ class DocumentTypeServiceTest {
 
     @Test
     void getAllDocumentTypes_WithPageable_ShouldReturnPageResponse() {
-        Page<DocumentType> page = new PageImpl<>(Arrays.asList(platformType1, platformType2), pageable, 2);
-        when(documentTypeRepository.findAll(pageable)).thenReturn(page);
+        // Paged listing is backed by the tenant-aware merged view (no TenantContext
+        // in unit tests -> resolves to the platform tenant 0).
+        when(documentTypeRepository.findAllByTenantIdIn(List.of(0L)))
+                .thenReturn(List.of(platformType1, platformType2));
         when(documentTypeMapper.toDto(platformType1)).thenReturn(response1);
         when(documentTypeMapper.toDto(platformType2)).thenReturn(response2);
 
@@ -202,20 +204,21 @@ class DocumentTypeServiceTest {
 
         assertNotNull(result);
         assertEquals(2, result.getContent().size());
-        verify(documentTypeRepository).findAll(pageable);
+        verify(documentTypeRepository).findAllByTenantIdIn(List.of(0L));
     }
 
     @Test
     void searchDocumentTypes_WithNameFilter_ShouldReturnFilteredResults() {
-        Page<DocumentType> page = new PageImpl<>(List.of(platformType1), pageable, 1);
-        when(documentTypeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+        // Search filters the tenant-aware merged view in memory.
+        when(documentTypeRepository.findAllByTenantIdIn(List.of(0L)))
+                .thenReturn(List.of(platformType1, platformType2));
         when(documentTypeMapper.toDto(platformType1)).thenReturn(response1);
 
         PageResponse<DocumentTypeResponse> result = documentTypeService.searchDocumentTypes("ID", null, pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
-        verify(documentTypeRepository).findAll(any(Specification.class), eq(pageable));
+        verify(documentTypeRepository).findAllByTenantIdIn(List.of(0L));
     }
 
     // -------------------------------------------------------------------------

@@ -202,11 +202,15 @@ class AuthServiceExtendedTest {
     // ─────────────────────────────────────────────────────────────
 
     @Test
-    void requestPasswordReset_userNotFound_throwsUserNotFoundException() {
+    void requestPasswordReset_userNotFound_returnsGenericMessageWithoutToken() {
         when(userRepository.findByEmail("unknown@test.com")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.requestPasswordReset("unknown@test.com"))
-                .isInstanceOf(UserNotFoundException.class);
+        // Anti user-enumeration: unknown emails get the same success message
+        // as known ones, and no reset token is created.
+        var response = authService.requestPasswordReset("unknown@test.com");
+
+        assertThat(response.getMessage())
+                .isEqualTo("Password reset instructions have been sent to your email");
         verifyNoInteractions(passwordResetTokenRepository);
     }
 

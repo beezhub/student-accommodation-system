@@ -2,13 +2,16 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.mapper.BuildingMapper;
+import com.beezhub.student_accommodation.mapper.RoomMapper;
 import com.beezhub.student_accommodation.model.dto.BuildingRequest;
 import com.beezhub.student_accommodation.model.dto.BuildingResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Institution;
+import com.beezhub.student_accommodation.repository.BuildingAttributesRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.InstitutionRepository;
+import com.beezhub.student_accommodation.repository.RoomRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,9 +44,15 @@ class BuildingServiceTest {
     @Mock
     private BuildingRepository buildingRepository;
     @Mock
+    private BuildingAttributesRepository buildingAttributesRepository;
+    @Mock
     private InstitutionRepository institutionRepository;
     @Mock
+    private RoomRepository roomRepository;
+    @Mock
     private BuildingMapper buildingMapper;
+    @Mock
+    private RoomMapper roomMapper;
     @Mock
     private BuildingImageService buildingImageService;
 

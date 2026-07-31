@@ -150,7 +150,8 @@ class StagedAllocationServiceTest {
                 verify(roomAllocationRepository).save(any(RoomAllocation.class));
                 verify(stagedAllocationRepository).save(stagedAllocation);
                 verify(roomOccupancyManager).updateOccupancy(room, 1);
-                verify(allocationAuditService).logAuditAction(any(), eq(AllocationAuditActionType.FORCE_ALLOCATE),
+                verify(allocationAuditService).logAuditActionInCurrentTransaction(any(),
+                                eq(AllocationAuditActionType.FORCE_ALLOCATE),
                                 eq(admin),
                                 anyString(), isNull(), eq(room));
                 verify(eventPublisher).publishEvent(any(AllocationCreatedEvent.class));

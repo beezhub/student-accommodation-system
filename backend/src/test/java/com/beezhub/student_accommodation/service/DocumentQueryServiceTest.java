@@ -261,6 +261,8 @@ class DocumentQueryServiceTest {
         when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document1));
         when(fileStorageService.download(document1.getDocumentPath())).thenReturn(stream);
+        when(fileStorageService.getContentType(document1.getDocumentPath()))
+                .thenReturn("application/octet-stream");
 
         var result = documentQueryService.downloadDocument(1L, "user@test.com");
 
