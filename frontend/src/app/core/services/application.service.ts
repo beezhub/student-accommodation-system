@@ -194,7 +194,10 @@ export class ApplicationService {
           ApplicationStatus.CHANGES_REQUESTED,
           ApplicationStatus.ALLOCATED,
         ];
-        return applications.find((app) => activeStatuses.includes(app.status as ApplicationStatus)) || null;
+        return (
+          applications.find((app) => activeStatuses.includes(app.status as ApplicationStatus)) ||
+          null
+        );
       }),
       catchError(() => of(null))
     );

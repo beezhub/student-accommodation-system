@@ -21,6 +21,7 @@ describe('StudentGuard', () => {
     roleServiceSpy = jasmine.createSpyObj<RoleService>('RoleService', [
       'isStudent',
       'isPlatformAdmin',
+      'isTenantAdmin',
     ]);
     routerSpy = jasmine.createSpyObj<Router>('Router', ['navigate']);
 
@@ -71,6 +72,7 @@ describe('StudentGuard', () => {
     ).and.returnValue({ userRole: ROLE.BUILDING_STAFF });
     roleServiceSpy.isStudent.and.returnValue(false);
     roleServiceSpy.isPlatformAdmin.and.returnValue(false);
+    roleServiceSpy.isTenantAdmin.and.returnValue(false);
 
     const result = guard.canActivate(mockRoute, mockState);
 
@@ -84,6 +86,7 @@ describe('StudentGuard', () => {
     ).and.returnValue(null);
     roleServiceSpy.isStudent.and.returnValue(false);
     roleServiceSpy.isPlatformAdmin.and.returnValue(false);
+    roleServiceSpy.isTenantAdmin.and.returnValue(false);
 
     const result = guard.canActivate(mockRoute, mockState);
 
