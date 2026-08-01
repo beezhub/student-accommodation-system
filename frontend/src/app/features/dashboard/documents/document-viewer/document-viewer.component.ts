@@ -14,6 +14,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DocumentService } from '../../../../core/services/document.service';
 import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-badge/modern-status-badge.component';
 
@@ -29,12 +30,14 @@ import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-bad
     MatDividerModule,
     MatDialogModule,
     MatProgressSpinnerModule,
+    MatSnackBarModule,
     ModernStatusBadgeComponent,
   ],
 })
 export class DocumentViewerComponent implements OnInit {
   private documentService = inject(DocumentService);
   private sanitizer = inject(DomSanitizer);
+  private snackBar = inject(MatSnackBar);
 
   @Input() document: any;
   @Output() viewerClosed = new EventEmitter<void>();
@@ -56,6 +59,10 @@ export class DocumentViewerComponent implements OnInit {
     if (!this.document?.id) {
       console.error('No document ID provided');
       this.previewError = true;
+      this.snackBar.open('This document could not be found.', 'Close', {
+        duration: 4000,
+        panelClass: ['error-snackbar'],
+      });
       return;
     }
 
@@ -97,6 +104,10 @@ export class DocumentViewerComponent implements OnInit {
         });
         this.isLoadingPreview = false;
         this.previewError = true;
+        this.snackBar.open('Failed to load document preview. Please try again.', 'Close', {
+          duration: 4000,
+          panelClass: ['error-snackbar'],
+        });
         this.cdr.markForCheck();
       },
     });
@@ -116,7 +127,10 @@ export class DocumentViewerComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to download document:', error);
-        alert('Failed to download document. Please try again.');
+        this.snackBar.open('Failed to download document. Please try again.', 'Close', {
+          duration: 4000,
+          panelClass: ['error-snackbar'],
+        });
       },
     });
   }
