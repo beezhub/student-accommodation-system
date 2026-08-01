@@ -21,6 +21,7 @@ import { Application } from '../../core/models/application.model';
 import { AllocationStatus } from '../../core/models/status.model';
 import { SystemSettingsService } from '../../core/services/system-settings.service';
 import { ErrorHandlingService } from '../../core/services/error-handling.service';
+import { WaitlistService, WaitlistPosition } from '../../core/services/waitlist.service';
 
 // Material imports
 import { MatButtonModule } from '@angular/material/button';
@@ -36,6 +37,7 @@ import {
 import { DeclineOfferRequest } from '../../core/services/room-allocation.service';
 import { OfferExpiryComponent } from '../../shared/components/offer-expiry/offer-expiry.component';
 import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader/skeleton-loader.component';
+import { WaitlistStatusComponent } from '../../shared/components/waitlist-status/waitlist-status.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -53,6 +55,7 @@ import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader
     ModernStatusBadgeComponent,
     OfferExpiryComponent,
     SkeletonLoaderComponent,
+    WaitlistStatusComponent,
   ],
 })
 export class DashboardComponent implements OnInit {
@@ -66,6 +69,7 @@ export class DashboardComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly systemSettingsService = inject(SystemSettingsService);
   private readonly errorService = inject(ErrorHandlingService);
+  private readonly waitlistService = inject(WaitlistService);
 
   currentUser: any;
   selectedDocument: any = null;
@@ -92,6 +96,9 @@ export class DashboardComponent implements OnInit {
 
   /** Response time message for SUBMITTED / UNDER_REVIEW status */
   responseTimeMessage: string | null = null;
+
+  /** Null when the student has no active waiting-list entry (card is hidden). */
+  waitlistPosition: WaitlistPosition | null = null;
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
@@ -294,6 +301,7 @@ export class DashboardComponent implements OnInit {
 
         this.isLoadingApplications = false;
         this.isLoadingCurrentApplication = false;
+        this.loadWaitlistPosition();
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -301,10 +309,29 @@ export class DashboardComponent implements OnInit {
         this.errorService.showWarning('Could not load your applications. Please refresh the page.');
         this.applicationHistory = [];
         this.currentApplication = null;
+        this.waitlistPosition = null;
         this.isLoadingApplications = false;
         this.isLoadingCurrentApplication = false;
         this.cdr.markForCheck();
       },
+    });
+  }
+
+  /**
+   * Fetches waitlist position only when the current application is
+   * AWAITING_ALLOCATION (the only status under which a waiting-list entry can
+   * exist). A 404 from the backend resolves to `null` and simply hides the
+   * card — see WaitlistService.getMyPosition().
+   */
+  loadWaitlistPosition(): void {
+    if (this.currentApplication?.status?.toUpperCase() !== 'AWAITING_ALLOCATION') {
+      this.waitlistPosition = null;
+      return;
+    }
+
+    this.waitlistService.getMyPosition().subscribe((position) => {
+      this.waitlistPosition = position;
+      this.cdr.markForCheck();
     });
   }
 

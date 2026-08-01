@@ -178,6 +178,10 @@
                 </div>
               }
 
+              @if (waitlistPosition) {
+                <app-waitlist-status [position]="waitlistPosition"></app-waitlist-status>
+              }
+
               <div class="info-block">
                 <div class="info-row">
                   <span class="info-label">Reference</span>
