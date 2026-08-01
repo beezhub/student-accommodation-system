@@ -1,7 +1,9 @@
 package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.model.dto.MessageResponse;
+import com.beezhub.student_accommodation.model.dto.WaitlistPositionDto;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
@@ -9,6 +11,8 @@ import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
+import com.beezhub.student_accommodation.service.AcademicYearService;
+import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +33,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -47,6 +52,10 @@ class WaitingListServiceTest {
     private RoomAllocationRepository roomAllocationRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private AuthService authService;
+    @Mock
+    private AcademicYearService academicYearService;
 
     @Captor
     private ArgumentCaptor<AllocationDeclinedEvent> eventCaptor;
@@ -55,10 +64,12 @@ class WaitingListServiceTest {
     private WaitingListService waitingListService;
 
     private Student student;
+    private AppUser appUser;
     private Application application;
     private Room room;
     private RoomAllocation allocation;
     private WaitingListEntry waitingEntry;
+    private AcademicYear academicYear;
 
     @BeforeEach
     void setUp() {
@@ -66,11 +77,13 @@ class WaitingListServiceTest {
         student = new Student();
         student.setId(1L);
         student.setStudentNumber("STU001");
-        AppUser appUser = new AppUser();
+        appUser = new AppUser();
         appUser.setId(1L);
         appUser.setFirstName("John");
         appUser.setLastName("Doe");
         student.setAppUser(appUser);
+
+        academicYear = AcademicYear.builder().id(9L).name("2026/2027").isCurrent(true).build();
 
         // Setup application
         application = new Application();
@@ -78,6 +91,7 @@ class WaitingListServiceTest {
         application.setStudent(student);
         application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
         application.setApplicationCode("APP-001");
+        application.setAcademicYear(academicYear);
 
         // Setup room
         room = new Room();
@@ -243,5 +257,71 @@ class WaitingListServiceTest {
         // Assert
         verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
         verify(applicationRepository, never()).save(any(Application.class));
+    }
+
+    // ── getMyWaitlistPosition ────────────────────────────────────────────────
+
+    @Test
+    void getMyWaitlistPosition_studentOnWaitlist_returnsPositionAndQueueDepth() {
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
+                .thenReturn(Optional.of(waitingEntry));
+        when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+        // 2 entries strictly before this student's createdAt -> position 3
+        when(waitingListRepository.countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
+                eq("WAITING"), eq(9L), eq(waitingEntry.getCreatedAt()))).thenReturn(2L);
+        when(waitingListRepository.countByStatusAndApplication_AcademicYear_Id("WAITING", 9L)).thenReturn(12L);
+        // Fewer than 5 recent allocations -> estimate unavailable
+        when(roomAllocationRepository.countByAcademicYear_IdAndCreatedAtAfter(eq(9L), any(LocalDateTime.class)))
+                .thenReturn(2L);
+
+        WaitlistPositionDto result = waitingListService.getMyWaitlistPosition();
+
+        assertThat(result.getPosition()).isEqualTo(3);
+        assertThat(result.getTotalInQueue()).isEqualTo(12);
+        assertThat(result.getEstimatedWaitDays()).isNull();
+    }
+
+    @Test
+    void getMyWaitlistPosition_sufficientRecentAllocations_returnsEstimatedWaitDays() {
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
+                .thenReturn(Optional.of(waitingEntry));
+        when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+        // Position 1 (no one ahead)
+        when(waitingListRepository.countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
+                eq("WAITING"), eq(9L), any(LocalDateTime.class))).thenReturn(0L);
+        when(waitingListRepository.countByStatusAndApplication_AcademicYear_Id("WAITING", 9L)).thenReturn(1L);
+        // 10 allocations in the last 30 days -> avg interval = 3 days -> position(1) * 3 = 3
+        when(roomAllocationRepository.countByAcademicYear_IdAndCreatedAtAfter(eq(9L), any(LocalDateTime.class)))
+                .thenReturn(10L);
+
+        WaitlistPositionDto result = waitingListService.getMyWaitlistPosition();
+
+        assertThat(result.getPosition()).isEqualTo(1);
+        assertThat(result.getEstimatedWaitDays()).isEqualTo(3);
+    }
+
+    @Test
+    void getMyWaitlistPosition_studentNotOnWaitlist_throwsResourceNotFoundException() {
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> waitingListService.getMyWaitlistPosition())
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(academicYearService, never()).getCurrentAcademicYearEntity();
+    }
+
+    @Test
+    void getMyWaitlistPosition_studentProfileMissing_throwsStudentNotFoundException() {
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> waitingListService.getMyWaitlistPosition())
+                .isInstanceOf(StudentNotFoundException.class);
     }
 }
