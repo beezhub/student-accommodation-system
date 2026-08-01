@@ -133,14 +133,14 @@
   align-items: center;
   gap: 0.125rem;
   padding: 0.625rem 1rem;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 10%);
   border-radius: vars.$radius-md;
   min-width: 72px;
   transition: background vars.$motion-fast ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.11);
+    background: rgb(255 255 255 / 11%);
   }
 
   &.metric-admin {
@@ -165,9 +165,17 @@
   color: white;
   line-height: 1;
 
-  .metric-admin & { color: vars.$accent-purple-light; }
-  .metric-landlord & { color: vars.$accent-cyan-light; }
-  .metric-student & { color: vars.$accent-green-light; }
+  .metric-admin & {
+    color: vars.$accent-purple-light;
+  }
+
+  .metric-landlord & {
+    color: vars.$accent-cyan-light;
+  }
+
+  .metric-student & {
+    color: vars.$accent-green-light;
+  }
 }
 
 .metric-label {
@@ -242,7 +250,11 @@
   font-size: 0.875rem;
   padding: 0 1rem !important;
 
-  mat-icon { font-size: 1.125rem; width: 1.125rem; height: 1.125rem; }
+  mat-icon {
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
 }
 
 .filter-active-badge {
@@ -265,7 +277,9 @@
   width: 1.125rem !important;
   height: 1.125rem !important;
 
-  &.rotated { transform: rotate(180deg); }
+  &.rotated {
+    transform: rotate(180deg);
+  }
 }
 
 .clear-all-btn {
@@ -276,7 +290,11 @@
   align-items: center;
   gap: 0.25rem;
 
-  mat-icon { font-size: 1rem; width: 1rem; height: 1rem; }
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
 }
 
 .result-summary {
@@ -291,6 +309,7 @@
 // ─────────────────────────────────────────────────────────────
 .filter-card {
   @include mixins.filter-card-base;
+
   overflow: visible !important;
   margin: 0 1.5rem 1.25rem;
   max-width: calc(1600px - 3rem);
@@ -307,7 +326,9 @@
     max-width: calc(1600px - 6rem);
   }
 
-  mat-card-content { padding: 1.25rem !important; }
+  mat-card-content {
+    padding: 1.25rem !important;
+  }
 }
 
 .filter-form {
@@ -320,7 +341,10 @@
     align-items: flex-start;
   }
 
-  mat-form-field { flex: 1; min-width: 200px; }
+  mat-form-field {
+    flex: 1;
+    min-width: 200px;
+  }
 }
 
 .role-option {
@@ -333,9 +357,17 @@
     width: 1.125rem;
     height: 1.125rem;
 
-    &.admin { color: vars.$accent-purple-dark; }
-    &.landlord { color: vars.$accent-cyan-dark; }
-    &.student { color: vars.$success; }
+    &.admin {
+      color: vars.$accent-purple-dark;
+    }
+
+    &.landlord {
+      color: vars.$accent-cyan-dark;
+    }
+
+    &.student {
+      color: vars.$success;
+    }
   }
 }
 
@@ -344,6 +376,7 @@
 // ─────────────────────────────────────────────────────────────
 .table-card {
   @include mixins.card-base;
+
   margin: 0 1.5rem 2rem;
   max-width: calc(1600px - 3rem);
   margin-left: auto;
@@ -359,7 +392,9 @@
     max-width: calc(1600px - 6rem);
   }
 
-  mat-card-content { padding: 0 !important; }
+  mat-card-content {
+    padding: 0 !important;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -381,11 +416,17 @@
   user-select: none;
 
   &.admin {
-    background: linear-gradient(135deg, vars.$accent-purple-light 0%, vars.$accent-purple-dark 100%);
+    background: linear-gradient(
+      135deg,
+      vars.$accent-purple-light 0%,
+      vars.$accent-purple-dark 100%
+    );
   }
+
   &.landlord {
     background: linear-gradient(135deg, vars.$accent-cyan-light 0%, vars.$accent-cyan-dark 100%);
   }
+
   &.student {
     background: linear-gradient(135deg, vars.$accent-green-light 0%, vars.$accent-green-dark 100%);
   }
@@ -505,11 +546,13 @@
     color: vars.$accent-purple-dark;
     border-color: rgba(vars.$accent-purple-dark, 0.2);
   }
+
   &.landlord {
     background: rgba(vars.$accent-cyan-dark, 0.1);
     color: vars.$accent-cyan-dark;
     border-color: rgba(vars.$accent-cyan-dark, 0.2);
   }
+
   &.student {
     background: rgba(vars.$success, 0.1);
     color: vars.$success;
@@ -528,13 +571,18 @@
   font-weight: 600;
   border: 1px solid transparent;
 
-  mat-icon { font-size: 0.875rem; width: 0.875rem; height: 0.875rem; }
+  mat-icon {
+    font-size: 0.875rem;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
 
   &.warning {
     background: rgba(vars.$warning, 0.1);
     color: vars.$warning;
     border-color: rgba(vars.$warning, 0.25);
   }
+
   &.ok {
     background: rgba(vars.$success, 0.1);
     color: vars.$success;
@@ -577,7 +625,9 @@
   border-bottom: 1px solid vars.$slate-100;
   background: white;
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .mobile-card-header {
@@ -629,7 +679,9 @@
   flex-direction: column;
   gap: 0.25rem;
 
-  &.wide { grid-column: 1 / -1; }
+  &.wide {
+    grid-column: 1 / -1;
+  }
 }
 
 .mi-label {

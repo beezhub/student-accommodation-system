@@ -42,7 +42,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border: 1.5px solid rgb(255 255 255 / 40%);
   color: white;
   display: flex;
   align-items: center;
@@ -58,8 +58,8 @@
 }
 
 .sp-step.completed .sp-bubble {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgb(255 255 255 / 15%);
+  border-color: rgb(255 255 255 / 40%);
 }
 
 .sp-step.completed .sp-bubble mat-icon {
@@ -70,7 +70,7 @@
 
 .sp-label {
   font-size: 0.6875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgb(255 255 255 / 70%);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -83,7 +83,7 @@
 .sp-line {
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgb(255 255 255 / 12%);
   margin: 0 1rem;
   margin-bottom: 1.125rem;
 }
@@ -103,7 +103,7 @@
   background: white;
   border: 1px solid #f1f5f9;
   border-radius: 16px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 4%);
   overflow: hidden;
   width: 100%;
   max-width: 760px;
@@ -189,7 +189,7 @@
 }
 
 .info-item:last-child,
-.info-grid > .info-item:nth-last-child(-n+2):not(.full-span) {
+.info-grid > .info-item:nth-last-child(-n + 2):not(.full-span) {
   border-bottom: none;
 }
 
@@ -367,7 +367,7 @@
     column-gap: 0;
   }
 
-  .info-item:nth-last-child(-n+2):not(.full-span) {
+  .info-item:nth-last-child(-n + 2):not(.full-span) {
     border-bottom: 1px solid #f1f5f9;
   }
 

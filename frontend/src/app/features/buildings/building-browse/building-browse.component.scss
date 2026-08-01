@@ -60,7 +60,7 @@
   padding: 0 vars.$space-3;
   height: 52px;
   gap: vars.$space-2;
-  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 28px rgb(0 0 0 / 30%);
 }
 
 .search-icon {
@@ -97,9 +97,7 @@
   border-radius: 50%;
   width: 28px;
   height: 28px;
-  transition:
-    background vars.$motion-fast ease,
-    color vars.$motion-fast ease;
+  transition: background vars.$motion-fast ease, color vars.$motion-fast ease;
 
   &:hover {
     background: vars.$slate-100;
@@ -185,9 +183,7 @@
   font-weight: 500;
   color: vars.$slate-700;
   cursor: pointer;
-  transition:
-    border-color vars.$motion-fast ease,
-    background vars.$motion-fast ease;
+  transition: border-color vars.$motion-fast ease, background vars.$motion-fast ease;
 
   mat-icon {
     font-size: 18px;
@@ -403,9 +399,7 @@
   border-radius: vars.$radius-lg;
   overflow: hidden;
   box-shadow: vars.$shadow-subtle;
-  transition:
-    transform vars.$motion-fast ease,
-    box-shadow vars.$motion-fast ease;
+  transition: transform vars.$motion-fast ease, box-shadow vars.$motion-fast ease;
 
   &:hover {
     transform: translateY(-4px);
@@ -454,7 +448,7 @@
   position: absolute;
   top: vars.$space-2;
   right: vars.$space-2;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgb(0 0 0 / 55%);
   color: white;
   border-radius: vars.$radius-pill;
   padding: 3px vars.$space-2;
@@ -481,7 +475,7 @@
 }
 
 .inst-chip {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgb(0 0 0 / 60%);
   color: white;
   font-size: vars.$font-size-tiny;
   font-weight: 600;
@@ -568,17 +562,26 @@
 
 .availability-good {
   color: vars.$success;
-  .avail-dot { background: vars.$success; }
+
+  .avail-dot {
+    background: vars.$success;
+  }
 }
 
 .availability-limited {
   color: vars.$warning;
-  .avail-dot { background: vars.$warning; }
+
+  .avail-dot {
+    background: vars.$warning;
+  }
 }
 
 .availability-none {
   color: vars.$slate-400;
-  .avail-dot { background: vars.$slate-400; }
+
+  .avail-dot {
+    background: vars.$slate-400;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

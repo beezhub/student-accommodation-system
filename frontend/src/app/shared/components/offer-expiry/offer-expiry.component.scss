@@ -27,14 +27,18 @@
     background-color: color-mix(in srgb, vars.$accent-blue-dark 10%, transparent);
     color: vars.$accent-blue-dark;
 
-    mat-icon { color: vars.$accent-blue-dark; }
+    mat-icon {
+      color: vars.$accent-blue-dark;
+    }
   }
 
   &.warning {
     background-color: color-mix(in srgb, vars.$warning 12%, transparent);
     color: vars.$warning;
 
-    mat-icon { color: vars.$warning; }
+    mat-icon {
+      color: vars.$warning;
+    }
   }
 
   &.critical {
@@ -42,14 +46,18 @@
     color: vars.$error;
     animation: pulse 1.5s ease-in-out infinite;
 
-    mat-icon { color: vars.$error; }
+    mat-icon {
+      color: vars.$error;
+    }
   }
 
   &.expired {
     background-color: color-mix(in srgb, vars.$error 10%, transparent);
     color: vars.$error;
 
-    mat-icon { color: vars.$error; }
+    mat-icon {
+      color: vars.$error;
+    }
   }
 }
 
@@ -78,8 +86,14 @@
 
 // ── Pulse animation ───────────────────────────────────────────────────────────
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.55; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

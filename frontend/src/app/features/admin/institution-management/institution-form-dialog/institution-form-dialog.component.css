@@ -13,7 +13,9 @@
 .dialog-header::after {
   content: '';
   position: absolute;
-  bottom: 0; left: 0; right: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 3px;
   background: linear-gradient(90deg, #7c3aed 0%, #8b5cf6 100%);
 }
@@ -109,7 +111,7 @@ mat-dialog-content {
 
 /* ── Dialog actions ───────────────────────────────── */
 mat-dialog-actions {
-  padding: 16px 24px 24px 24px !important;
+  padding: 16px 24px 24px !important;
   gap: 12px;
   justify-content: flex-end;
 }
@@ -151,14 +153,21 @@ mat-dialog-actions {
 
 /* ── Responsive ───────────────────────────────────── */
 @media (max-width: 600px) {
-  .dialog-container { min-width: 100%; }
-  .form-row { grid-template-columns: 1fr; }
+  .dialog-container {
+    min-width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 
   mat-dialog-actions {
-    padding: 16px 20px 20px 20px !important;
+    padding: 16px 20px 20px !important;
     flex-direction: column-reverse;
   }
 
   .cancel-btn,
-  .submit-btn { width: 100%; }
+  .submit-btn {
+    width: 100%;
+  }
 }

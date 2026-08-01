@@ -95,8 +95,7 @@ class EmailServiceTest {
 
         emailService.sendEmailWithAttachment("test@example.com", "Subject", "Body", "path/to/attachment");
 
-        // Assuming no actual file is needed for the helper creation to succeed in tests
-        verify(mailSender, never()).send(mimeMessage); // wait, sendEmailWithAttachment does not call send() in the source code! It just logs.
+        verify(mailSender).send(mimeMessage);
     }
     
     @Test

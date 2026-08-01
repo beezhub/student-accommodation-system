@@ -13,7 +13,9 @@
 .dialog-header::after {
   content: '';
   position: absolute;
-  bottom: 0; left: 0; right: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 3px;
   background: linear-gradient(90deg, #7c3aed 0%, #8b5cf6 100%);
 }
@@ -118,8 +120,8 @@ mat-dialog-content {
   gap: 8px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: rgba(99, 102, 241, 0.07);
-  border: 1px solid rgba(99, 102, 241, 0.15);
+  background: rgb(99 102 241 / 7%);
+  border: 1px solid rgb(99 102 241 / 15%);
   color: #4338ca;
   font-size: 0.8125rem;
 
@@ -139,8 +141,8 @@ mat-dialog-content {
   gap: 8px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: rgba(220, 38, 38, 0.07);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  background: rgb(220 38 38 / 7%);
+  border: 1px solid rgb(220 38 38 / 20%);
   color: #b91c1c;
   font-size: 0.875rem;
   font-weight: 500;
@@ -155,7 +157,7 @@ mat-dialog-content {
 
 /* ── Dialog actions ───────────────────────────────── */
 mat-dialog-actions {
-  padding: 16px 24px 24px 24px !important;
+  padding: 16px 24px 24px !important;
   gap: 12px;
   justify-content: flex-end;
 }
@@ -196,15 +198,22 @@ mat-dialog-actions {
 }
 
 /* ── Responsive ───────────────────────────────────── */
-@media (max-width: 600px) {
-  .dialog-container { min-width: 100%; }
-  .form-row { grid-template-columns: 1fr; }
+@media (width <= 600px) {
+  .dialog-container {
+    min-width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 
   mat-dialog-actions {
-    padding: 16px 20px 20px 20px !important;
+    padding: 16px 20px 20px !important;
     flex-direction: column-reverse;
   }
 
   .cancel-btn,
-  .submit-btn { width: 100%; }
+  .submit-btn {
+    width: 100%;
+  }
 }

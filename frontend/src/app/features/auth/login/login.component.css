@@ -23,7 +23,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 20% 80%, rgba(124, 58, 237, 0.07) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 20% 80%, rgb(124 58 237 / 7%) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -76,7 +76,7 @@
 
 .brand-subline {
   font-size: 0.9375rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgb(255 255 255 / 50%);
   line-height: 1.7;
   margin: 0;
   max-width: 320px;
@@ -86,7 +86,7 @@
 .brand-stats {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgb(255 255 255 / 8%);
   padding-top: 2rem;
 }
 
@@ -95,7 +95,7 @@
   align-items: baseline;
   gap: 0.875rem;
   padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgb(255 255 255 / 6%);
 }
 
 .stat-row:last-child {
@@ -112,7 +112,7 @@
 
 .stat-lbl {
   font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgb(255 255 255 / 40%);
   font-weight: 500;
 }
 

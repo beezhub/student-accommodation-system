@@ -6,6 +6,7 @@ import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
 import com.beezhub.student_accommodation.service.NotificationService;
@@ -42,6 +43,8 @@ class WaitingListServiceTest {
     private ApplicationRepository applicationRepository;
     @Mock
     private StudentRepository studentRepository;
+    @Mock
+    private RoomAllocationRepository roomAllocationRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
 

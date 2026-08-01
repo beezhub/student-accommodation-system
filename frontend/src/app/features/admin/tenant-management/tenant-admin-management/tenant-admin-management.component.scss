@@ -209,8 +209,13 @@
   height: 5px;
   border-radius: 50%;
 
-  .status-chip.active & { background: vars.$success; }
-  .status-chip.locked & { background: vars.$error; }
+  .status-chip.active & {
+    background: vars.$success;
+  }
+
+  .status-chip.locked & {
+    background: vars.$error;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

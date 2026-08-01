@@ -219,12 +219,14 @@ export class DashboardComponent implements OnInit {
 
                 // Handle max decline error (403)
                 if (err.status === 403) {
-                  alert(
+                  this.errorService.showErrorSnackbar(
                     'Your application has been closed due to reaching the maximum number of declines.'
                   );
                   this.loadApplicationHistory();
                 } else {
-                  alert('Failed to decline offer. Please try again or contact support.');
+                  this.errorService.showErrorSnackbar(
+                    'Failed to decline offer. Please try again or contact support.'
+                  );
                 }
 
                 this.cdr.markForCheck();
@@ -235,7 +237,7 @@ export class DashboardComponent implements OnInit {
       },
       error: (err: any) => {
         console.error('Failed to get decline count', err);
-        alert('Unable to process decline request. Please try again.');
+        this.errorService.showErrorSnackbar('Unable to process decline request. Please try again.');
       },
     });
   }

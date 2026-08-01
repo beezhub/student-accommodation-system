@@ -121,13 +121,15 @@
   align-items: center;
   gap: 0.125rem;
   padding: 0.625rem 1rem;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 10%);
   border-radius: vars.$radius-md;
   min-width: 72px;
   transition: background vars.$motion-fast ease;
 
-  &:hover { background: rgba(255, 255, 255, 0.11); }
+  &:hover {
+    background: rgb(255 255 255 / 11%);
+  }
 }
 
 .metric-value {
@@ -153,9 +155,15 @@
   font-weight: 600;
   height: 40px;
 
-  &:hover { background: vars.$accent-green-light !important; }
+  &:hover {
+    background: vars.$accent-green-light !important;
+  }
 
-  mat-icon { font-size: 1.125rem; width: 1.125rem; height: 1.125rem; }
+  mat-icon {
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -171,8 +179,13 @@
   width: 100%;
   box-sizing: border-box;
 
-  @media (min-width: vars.$breakpoint-tablet) { padding: 1.25rem 2.5rem; }
-  @media (min-width: vars.$breakpoint-large) { padding: 1.25rem 3rem; }
+  @media (min-width: vars.$breakpoint-tablet) {
+    padding: 1.25rem 2.5rem;
+  }
+
+  @media (min-width: vars.$breakpoint-large) {
+    padding: 1.25rem 3rem;
+  }
 }
 
 .filter-toggle-btn {
@@ -187,7 +200,11 @@
   font-size: 0.875rem;
   padding: 0 1rem !important;
 
-  mat-icon { font-size: 1.125rem; width: 1.125rem; height: 1.125rem; }
+  mat-icon {
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
 }
 
 .filter-active-badge {
@@ -210,7 +227,9 @@
   width: 1.125rem !important;
   height: 1.125rem !important;
 
-  &.rotated { transform: rotate(180deg); }
+  &.rotated {
+    transform: rotate(180deg);
+  }
 }
 
 .clear-all-btn {
@@ -221,7 +240,11 @@
   align-items: center;
   gap: 0.25rem;
 
-  mat-icon { font-size: 1rem; width: 1rem; height: 1rem; }
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
 }
 
 .result-summary {
@@ -236,6 +259,7 @@
 // ─────────────────────────────────────────────────────────────
 .filter-card {
   @include mixins.filter-card-base;
+
   overflow: visible !important;
   margin: 0 auto 1.25rem;
   padding: 0 1.5rem;
@@ -245,6 +269,7 @@
     padding: 0 2.5rem;
     max-width: calc(1600px - 5rem);
   }
+
   @media (min-width: vars.$breakpoint-large) {
     padding: 0 3rem;
     max-width: calc(1600px - 6rem);
@@ -261,7 +286,9 @@
     align-items: flex-start;
   }
 
-  mat-form-field { flex: 1; }
+  mat-form-field {
+    flex: 1;
+  }
 }
 
 .filter-actions {
@@ -269,7 +296,10 @@
   gap: 0.75rem;
   padding-top: 0.25rem;
 
-  button { height: 48px; border-radius: vars.$radius-md !important; }
+  button {
+    height: 48px;
+    border-radius: vars.$radius-md !important;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -277,6 +307,7 @@
 // ─────────────────────────────────────────────────────────────
 .table-card {
   @include mixins.card-base;
+
   margin: 0 1.5rem 2rem;
   max-width: calc(1600px - 3rem);
   margin-left: auto;
@@ -286,17 +317,24 @@
     margin: 0 2.5rem 2rem;
     max-width: calc(1600px - 5rem);
   }
+
   @media (min-width: vars.$breakpoint-large) {
     margin: 0 3rem 2rem;
     max-width: calc(1600px - 6rem);
   }
 
-  mat-card-content { padding: 0 !important; }
+  mat-card-content {
+    padding: 0 !important;
+  }
 }
 
-.loading-container { padding: 2rem 1.25rem; }
+.loading-container {
+  padding: 2rem 1.25rem;
+}
 
-.table-container { overflow-x: auto; }
+.table-container {
+  overflow-x: auto;
+}
 
 .types-table {
   width: 100%;
@@ -324,8 +362,13 @@
   tr.data-row {
     transition: background vars.$motion-fast ease;
 
-    &:hover td.mat-cell { background: #f0fdf4; }
-    &:last-child td.mat-cell { border-bottom: none; }
+    &:hover td.mat-cell {
+      background: #f0fdf4;
+    }
+
+    &:last-child td.mat-cell {
+      border-bottom: none;
+    }
   }
 }
 
@@ -382,7 +425,11 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 
-  mat-icon { font-size: 0.875rem; width: 0.875rem; height: 0.875rem; }
+  mat-icon {
+    font-size: 0.875rem;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
 
   &.active {
     background: rgba(vars.$success, 0.1);
@@ -421,4 +468,6 @@
   }
 }
 
-.table-paginator { border-top: 1px solid vars.$slate-100; }
+.table-paginator {
+  border-top: 1px solid vars.$slate-100;
+}

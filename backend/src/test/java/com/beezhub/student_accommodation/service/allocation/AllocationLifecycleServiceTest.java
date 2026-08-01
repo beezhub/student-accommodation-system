@@ -81,6 +81,13 @@ class AllocationLifecycleServiceTest {
 
     @BeforeEach
     void setUp() {
+        // @Value fields are not populated in plain Mockito tests; mirror the
+        // application.yml defaults so check-in window validation behaves as in prod.
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                allocationLifecycleService, "offerExpiryDays", 7);
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                allocationLifecycleService, "checkInExpiryDays", 7);
+
         student = new Student();
         student.setId(1L);
         AppUser appUser = new AppUser();

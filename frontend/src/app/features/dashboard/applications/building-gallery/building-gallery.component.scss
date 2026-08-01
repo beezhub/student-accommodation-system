@@ -261,9 +261,7 @@
   overflow: hidden;
   border: 2px solid vars.$slate-200;
   cursor: pointer;
-  transition:
-    border-color vars.$motion-fast ease,
-    box-shadow vars.$motion-fast ease,
+  transition: border-color vars.$motion-fast ease, box-shadow vars.$motion-fast ease,
     opacity vars.$motion-fast ease;
   box-shadow: vars.$shadow-subtle;
 
@@ -409,7 +407,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgb(0 0 0 / 45%);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -46,26 +46,20 @@ $info: #0284c7;
 // 2. Typography
 // -----------------------------------------------------------------------------
 
-$font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-
+$font-sans: 'Inter', -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial,
+  sans-serif;
 $font-size-h1: 32px;
 $font-weight-h1: 700;
-
 $font-size-h2: 22px;
 $font-weight-h2: 700;
-
 $font-size-title: 20px;
 $font-weight-title: 700;
-
 $font-size-card-title: 18px;
 $font-weight-card-title: 600;
-
 $font-size-body: 14px;
 $font-weight-body: 400;
-
 $font-size-small: 13px;
 $font-size-tiny: 12px;
-
 $font-size-badge: 11px;
 $font-weight-badge: 600;
 
@@ -97,9 +91,9 @@ $radius-pill: 9999px; // Badges
 // 4. Shadows
 // -----------------------------------------------------------------------------
 
-$shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.04);
-$shadow-medium: 0 8px 32px rgba(0, 0, 0, 0.06);
-$shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.1);
+$shadow-subtle: 0 4px 20px rgb(0 0 0 / 4%);
+$shadow-medium: 0 8px 32px rgb(0 0 0 / 6%);
+$shadow-elevated: 0 12px 40px rgb(0 0 0 / 10%);
 
 // -----------------------------------------------------------------------------
 // 5. Breakpoints
@@ -118,64 +112,70 @@ $motion-fast: 150ms;
 $motion-medium: 300ms;
 $motion-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275); // Bouncier spring
 
-$glass-bg: rgba(255, 255, 255, 0.65);
-$glass-border: rgba(255, 255, 255, 0.5);
+$glass-bg: rgb(255 255 255 / 65%);
+$glass-border: rgb(255 255 255 / 50%);
 $glass-blur: blur(20px);
-$glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+$glass-shadow: 0 8px 32px rgb(31 38 135 / 5%);
 
 // -----------------------------------------------------------------------------
 // 8. CSS Custom Properties Export (Root Variables)
 // -----------------------------------------------------------------------------
 :root {
-    // Colors
-    --color-slate-50: #{$slate-50};
-    --color-slate-100: #{$slate-100};
-    --color-slate-200: #{$slate-200};
-    --color-slate-300: #{$slate-300};
-    --color-slate-400: #{$slate-400};
-    --color-slate-500: #{$slate-500};
-    --color-slate-600: #{$slate-600};
-    --color-slate-700: #{$slate-700};
-    --color-slate-800: #{$slate-800};
-    --color-slate-900: #{$slate-900};
+  // Colors
+  --color-slate-50: #{$slate-50};
+  --color-slate-100: #{$slate-100};
+  --color-slate-200: #{$slate-200};
+  --color-slate-300: #{$slate-300};
+  --color-slate-400: #{$slate-400};
+  --color-slate-500: #{$slate-500};
+  --color-slate-600: #{$slate-600};
+  --color-slate-700: #{$slate-700};
+  --color-slate-800: #{$slate-800};
+  --color-slate-900: #{$slate-900};
+  --color-primary: #{$accent-purple-dark}; // Default primary
+  --color-accent: #{$accent-purple-light};
+  --gradient-dashboard: linear-gradient(
+    135deg,
+    #{$accent-purple-light} 0%,
+    #{$accent-purple-dark} 100%
+  );
+  --gradient-applications: linear-gradient(
+    135deg,
+    #{$accent-blue-light} 0%,
+    #{$accent-blue-dark} 100%
+  );
 
-    --color-primary: #{$accent-purple-dark}; // Default primary
-    --color-accent: #{$accent-purple-light};
+  // Other module gradients can be defined here or locally using vars
 
-    --gradient-dashboard: linear-gradient(135deg, #{$accent-purple-light} 0%, #{$accent-purple-dark} 100%);
-    --gradient-applications: linear-gradient(135deg, #{$accent-blue-light} 0%, #{$accent-blue-dark} 100%);
-    // Other module gradients can be defined here or locally using vars
+  // Grid & Spacing
+  --grid-unit: 8px;
+  --space-0: 0px;
+  --space-1: #{$space-1};
+  --space-2: #{$space-2};
+  --space-3: #{$space-3};
+  --space-4: #{$space-4};
+  --space-6: #{$space-6};
 
-    // Grid & Spacing
-    --grid-unit: 8px;
-    --space-0: 0px;
-    --space-1: #{$space-1};
-    --space-2: #{$space-2};
-    --space-3: #{$space-3};
-    --space-4: #{$space-4};
-    --space-6: #{$space-6};
+  // Typography Scale
+  --type-base: 16px;
+  --type-scale-ratio: 1.125;
 
-    // Typography Scale
-    --type-base: 16px;
-    --type-scale-ratio: 1.125;
+  // Radii
+  --radius-sm: #{$radius-sm};
+  --radius-md: #{$radius-md};
+  --radius-lg: #{$radius-lg};
+  --radius-xl: #{$radius-xl};
+  --radius-pill: #{$radius-pill};
 
-    // Radii
-    --radius-sm: #{$radius-sm};
-    --radius-md: #{$radius-md};
-    --radius-lg: #{$radius-lg};
-    --radius-xl: #{$radius-xl};
-    --radius-pill: #{$radius-pill};
+  // Shadows & Glass
+  --shadow-subtle: #{$shadow-subtle};
+  --shadow-medium: #{$shadow-medium};
+  --shadow-elevated: #{$shadow-elevated};
+  --glass-bg: #{$glass-bg};
+  --glass-border: #{$glass-border};
+  --glass-blur: #{$glass-blur};
+  --glass-shadow: #{$glass-shadow};
 
-    // Shadows & Glass
-    --shadow-subtle: #{$shadow-subtle};
-    --shadow-medium: #{$shadow-medium};
-    --shadow-elevated: #{$shadow-elevated};
-
-    --glass-bg: #{$glass-bg};
-    --glass-border: #{$glass-border};
-    --glass-blur: #{$glass-blur};
-    --glass-shadow: #{$glass-shadow};
-
-    // Typography
-    --font-sans: #{$font-sans};
+  // Typography
+  --font-sans: #{$font-sans};
 }

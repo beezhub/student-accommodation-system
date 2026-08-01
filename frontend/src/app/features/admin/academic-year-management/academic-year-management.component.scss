@@ -20,13 +20,20 @@ $accent-light: vars.$accent-green-light;
   &::after {
     content: '';
     position: absolute;
-    bottom: 0; left: 0; right: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
     height: 3px;
     background: linear-gradient(90deg, $accent 0%, $accent-light 100%);
   }
 
-  @media (min-width: vars.$breakpoint-tablet) { padding: 2.5rem 2.5rem 2.25rem; }
-  @media (min-width: vars.$breakpoint-large) { padding: 2.5rem 3rem 2.25rem; }
+  @media (min-width: vars.$breakpoint-tablet) {
+    padding: 2.5rem 2.5rem 2.25rem;
+  }
+
+  @media (min-width: vars.$breakpoint-large) {
+    padding: 2.5rem 3rem 2.25rem;
+  }
 }
 
 .hero-inner {
@@ -44,7 +51,11 @@ $accent-light: vars.$accent-green-light;
   }
 }
 
-.hero-left { display: flex; align-items: center; gap: 1rem; }
+.hero-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 
 .hero-icon-wrap {
   width: 48px;
@@ -56,10 +67,19 @@ $accent-light: vars.$accent-green-light;
   justify-content: center;
   flex-shrink: 0;
 
-  mat-icon { color: white; font-size: 1.5rem; width: 1.5rem; height: 1.5rem; }
+  mat-icon {
+    color: white;
+    font-size: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
 }
 
-.hero-text { display: flex; flex-direction: column; gap: 0.25rem; }
+.hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
 
 .hero-title {
   margin: 0;
@@ -68,7 +88,9 @@ $accent-light: vars.$accent-green-light;
   color: white;
   letter-spacing: -0.01em;
 
-  @media (min-width: vars.$breakpoint-tablet) { font-size: 1.875rem; }
+  @media (min-width: vars.$breakpoint-tablet) {
+    font-size: 1.875rem;
+  }
 }
 
 .hero-subtitle {
@@ -76,12 +98,22 @@ $accent-light: vars.$accent-green-light;
   font-size: 0.875rem;
   color: vars.$slate-400;
 
-  @media (min-width: vars.$breakpoint-tablet) { font-size: 0.9375rem; }
+  @media (min-width: vars.$breakpoint-tablet) {
+    font-size: 0.9375rem;
+  }
 }
 
-.hero-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.hero-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
 
-.hero-metrics { display: flex; gap: 0.75rem; }
+.hero-metrics {
+  display: flex;
+  gap: 0.75rem;
+}
 
 .metric-chip {
   display: flex;
@@ -89,16 +121,23 @@ $accent-light: vars.$accent-green-light;
   align-items: center;
   gap: 0.125rem;
   padding: 0.625rem 1rem;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 10%);
   border-radius: vars.$radius-md;
   min-width: 72px;
   transition: background vars.$motion-fast ease;
 
-  &:hover { background: rgba(255, 255, 255, 0.11); }
+  &:hover {
+    background: rgb(255 255 255 / 11%);
+  }
 }
 
-.metric-value { font-size: 1.375rem; font-weight: 700; color: white; line-height: 1; }
+.metric-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+}
 
 .metric-label {
   font-size: 0.6875rem;
@@ -116,8 +155,15 @@ $accent-light: vars.$accent-green-light;
   font-weight: 600;
   height: 40px;
 
-  &:hover { background: $accent-light !important; }
-  mat-icon { font-size: 1.125rem; width: 1.125rem; height: 1.125rem; }
+  &:hover {
+    background: $accent-light !important;
+  }
+
+  mat-icon {
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -125,6 +171,7 @@ $accent-light: vars.$accent-green-light;
 // ─────────────────────────────────────────────────────────────
 .table-card {
   @include mixins.card-base;
+
   margin: 1.5rem 1.5rem 2rem;
   max-width: calc(1600px - 3rem);
   margin-left: auto;
@@ -134,17 +181,24 @@ $accent-light: vars.$accent-green-light;
     margin: 1.5rem 2.5rem 2rem;
     max-width: calc(1600px - 5rem);
   }
+
   @media (min-width: vars.$breakpoint-large) {
     margin: 1.5rem 3rem 2rem;
     max-width: calc(1600px - 6rem);
   }
 
-  mat-card-content { padding: 0 !important; }
+  mat-card-content {
+    padding: 0 !important;
+  }
 }
 
-.loading-container { padding: 2rem 1.25rem; }
+.loading-container {
+  padding: 2rem 1.25rem;
+}
 
-.table-container { overflow-x: auto; }
+.table-container {
+  overflow-x: auto;
+}
 
 .years-table {
   width: 100%;
@@ -172,8 +226,13 @@ $accent-light: vars.$accent-green-light;
   tr.data-row {
     transition: background vars.$motion-fast ease;
 
-    &:hover td.mat-cell { background: #f0fdf4; }
-    &:last-child td.mat-cell { border-bottom: none; }
+    &:hover td.mat-cell {
+      background: #f0fdf4;
+    }
+
+    &:last-child td.mat-cell {
+      border-bottom: none;
+    }
   }
 }
 
@@ -251,7 +310,11 @@ $accent-light: vars.$accent-green-light;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 
-  mat-icon { font-size: 0.75rem; width: 0.75rem; height: 0.75rem; }
+  mat-icon {
+    font-size: 0.75rem;
+    width: 0.75rem;
+    height: 0.75rem;
+  }
 
   &.current-badge {
     background: rgba(vars.$success, 0.1);
@@ -298,7 +361,9 @@ $accent-light: vars.$accent-green-light;
       color: $accent;
     }
 
-    &[disabled] { opacity: 0.35; }
+    &[disabled] {
+      opacity: 0.35;
+    }
   }
 
   &.delete:hover {

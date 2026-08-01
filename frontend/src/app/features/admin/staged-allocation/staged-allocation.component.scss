@@ -121,14 +121,14 @@
   align-items: center;
   gap: 0.125rem;
   padding: 0.625rem 1rem;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 10%);
   border-radius: vars.$radius-md;
   min-width: 72px;
   transition: background vars.$motion-fast ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.11);
+    background: rgb(255 255 255 / 11%);
   }
 
   &.metric-selected {
@@ -153,9 +153,17 @@
   color: white;
   line-height: 1;
 
-  .metric-selected & { color: vars.$accent-purple-light; }
-  .metric-proposed  & { color: vars.$accent-blue-light; }
-  .metric-confirmed & { color: vars.$accent-green-light; }
+  .metric-selected & {
+    color: vars.$accent-purple-light;
+  }
+
+  .metric-proposed & {
+    color: vars.$accent-blue-light;
+  }
+
+  .metric-confirmed & {
+    color: vars.$accent-green-light;
+  }
 }
 
 .metric-label {
@@ -232,6 +240,7 @@
 // ─────────────────────────────────────────────────────────────
 .table-container {
   @include mixins.card-base;
+
   overflow-x: auto;
 }
 
@@ -512,6 +521,7 @@
 // ─────────────────────────────────────────────────────────────
 .loading-container {
   @include mixins.card-base;
+
   padding: 1.5rem;
 }
 

@@ -122,14 +122,14 @@
   align-items: center;
   gap: 0.125rem;
   padding: 0.625rem 1rem;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 10%);
   border-radius: vars.$radius-md;
   min-width: 72px;
   transition: background vars.$motion-fast ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.11);
+    background: rgb(255 255 255 / 11%);
   }
 }
 
@@ -176,14 +176,20 @@
 // ── Skeleton while loading ─────────────────────────────────────
 .toggle-card-skeleton {
   @include mixins.card-base;
+
   display: flex;
   align-items: center;
   gap: 1.25rem;
   padding: 1.5rem;
 
   @keyframes shimmer {
-    0%   { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
+    0% {
+      background-position: -400px 0;
+    }
+
+    100% {
+      background-position: 400px 0;
+    }
   }
 
   %shimmer {
@@ -200,6 +206,7 @@
 
   .skeleton-icon {
     @extend %shimmer;
+
     width: 52px;
     height: 52px;
     border-radius: vars.$radius-md;
@@ -215,14 +222,22 @@
 
   .skeleton-line {
     @extend %shimmer;
+
     height: 14px;
 
-    &--title { width: 160px; height: 18px; }
-    &--sub   { width: 320px; }
+    &--title {
+      width: 160px;
+      height: 18px;
+    }
+
+    &--sub {
+      width: 320px;
+    }
   }
 
   .skeleton-toggle {
     @extend %shimmer;
+
     width: 52px;
     height: 28px;
     border-radius: vars.$radius-pill;
@@ -233,6 +248,7 @@
 // ── Toggle card ───────────────────────────────────────────────
 .toggle-card {
   @include mixins.card-base;
+
   display: flex;
   align-items: center;
   gap: 1.25rem;
@@ -358,15 +374,14 @@
 // ── Settings card (base) ──────────────────────────────────────
 .settings-card {
   @include mixins.card-base;
+
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 1.25rem;
   cursor: pointer;
   text-decoration: none;
-  transition:
-    transform vars.$motion-fast ease,
-    box-shadow vars.$motion-fast ease,
+  transition: transform vars.$motion-fast ease, box-shadow vars.$motion-fast ease,
     background vars.$motion-fast ease;
 
   &:hover {
@@ -375,6 +390,7 @@
 
     .card-arrow mat-icon {
       transform: translateX(3px);
+      color: vars.$slate-500;
     }
   }
 
@@ -437,48 +453,80 @@
   }
 }
 
-.settings-card:hover .card-arrow mat-icon {
-  color: vars.$slate-500;
-}
 
 // ── Per-category icon gradients ───────────────────────────────
 .settings-card.accommodation-types {
   .card-icon-wrap {
-    background: linear-gradient(135deg, vars.$accent-purple-light 0%, vars.$accent-purple-dark 100%);
+    background: linear-gradient(
+      135deg,
+      vars.$accent-purple-light 0%,
+      vars.$accent-purple-dark 100%
+    );
   }
-  &:hover { background: rgba(vars.$accent-purple-dark, 0.015); }
-  &:focus-visible { outline-color: vars.$accent-purple-dark; }
+
+  &:hover {
+    background: rgba(vars.$accent-purple-dark, 0.015);
+  }
+
+  &:focus-visible {
+    outline-color: vars.$accent-purple-dark;
+  }
 }
 
 .settings-card.documents {
   .card-icon-wrap {
     background: linear-gradient(135deg, vars.$accent-blue-light 0%, vars.$accent-blue-dark 100%);
   }
-  &:hover { background: rgba(vars.$accent-blue-dark, 0.015); }
-  &:focus-visible { outline-color: vars.$accent-blue-dark; }
+
+  &:hover {
+    background: rgba(vars.$accent-blue-dark, 0.015);
+  }
+
+  &:focus-visible {
+    outline-color: vars.$accent-blue-dark;
+  }
 }
 
 .settings-card.institutions {
   .card-icon-wrap {
-    background: linear-gradient(135deg, vars.$accent-orange-light 0%, vars.$accent-orange-dark 100%);
+    background: linear-gradient(
+      135deg,
+      vars.$accent-orange-light 0%,
+      vars.$accent-orange-dark 100%
+    );
   }
-  &:hover { background: rgba(vars.$accent-orange-dark, 0.015); }
-  &:focus-visible { outline-color: vars.$accent-orange-dark; }
+
+  &:hover {
+    background: rgba(vars.$accent-orange-dark, 0.015);
+  }
+
+  &:focus-visible {
+    outline-color: vars.$accent-orange-dark;
+  }
 }
 
 .settings-card.years {
   .card-icon-wrap {
     background: linear-gradient(135deg, vars.$accent-green-light 0%, vars.$accent-green-dark 100%);
   }
-  &:hover { background: rgba(vars.$accent-green-dark, 0.015); }
-  &:focus-visible { outline-color: vars.$accent-green-dark; }
+
+  &:hover {
+    background: rgba(vars.$accent-green-dark, 0.015);
+  }
+
+  &:focus-visible {
+    outline-color: vars.$accent-green-dark;
+  }
 }
 
 .settings-card.feature-flags {
   .card-icon-wrap {
     background: linear-gradient(135deg, vars.$slate-500 0%, vars.$slate-700 100%);
   }
-  &:hover { background: rgba(vars.$slate-600, 0.02); }
+
+  &:hover {
+    background: rgba(vars.$slate-600, 0.02);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

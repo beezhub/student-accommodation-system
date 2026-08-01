@@ -6,6 +6,10 @@ import com.beezhub.student_accommodation.model.dto.TenantAdminResponseDto;
 import com.beezhub.student_accommodation.security.RateLimitingFilter;
 import com.beezhub.student_accommodation.service.TenantAdminService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +26,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -42,6 +47,31 @@ class TenantAdminControllerTest {
     @MockitoBean RateLimitingFilter rateLimitingFilter;
 
     private static final Long TENANT_ID = 1L;
+
+    /**
+     * The servlet filters are @MockitoBean'd so the security chain can be built
+     * without their real dependencies. A bare mock swallows the request (it never
+     * calls chain.doFilter), which bypasses authorization entirely and returns
+     * 200 for everything. Stub both mocks as pass-through so Spring Security's
+     * URL rules and @PreAuthorize checks actually run.
+     */
+    @BeforeEach
+    void passThroughMockedFilters() throws Exception {
+        doAnswer(invocation -> {
+            ServletRequest request = invocation.getArgument(0);
+            ServletResponse response = invocation.getArgument(1);
+            FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(request, response);
+            return null;
+        }).when(jwtAuthenticationFilter).doFilter(any(), any(), any());
+        doAnswer(invocation -> {
+            ServletRequest request = invocation.getArgument(0);
+            ServletResponse response = invocation.getArgument(1);
+            FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(request, response);
+            return null;
+        }).when(rateLimitingFilter).doFilter(any(), any(), any());
+    }
 
     private TenantAdminResponseDto sampleResponse() {
         return new TenantAdminResponseDto(
@@ -71,10 +101,13 @@ class TenantAdminControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/admin/tenants/{id}/admins — 401 for unauthenticated")
-    void listAdmins_unauthenticated_returns401() throws Exception {
+    @DisplayName("GET /api/admin/tenants/{id}/admins — 403 for unauthenticated (no 401 entry point configured)")
+    void listAdmins_unauthenticated_returns403() throws Exception {
+        // No custom AuthenticationEntryPoint is configured and the JWT filter is
+        // pass-through for missing tokens, so Spring Security's default
+        // Http403ForbiddenEntryPoint answers anonymous requests with 403.
         mockMvc.perform(get("/api/admin/tenants/{id}/admins", TENANT_ID))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     // ── Create admin ─────────────────────────────────────────────────────────
