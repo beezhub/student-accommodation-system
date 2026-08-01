@@ -33,9 +33,10 @@
   transition: width 0.5s ease-in-out;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+  box-shadow: 0 0 0 0.25rem rgb(67 97 238 / 25%);
 }
 
 /* Animation for step transitions */
@@ -44,10 +45,11 @@
 }
 
 @keyframes slideUp {
-  from { 
+  from {
     transform: translateY(10px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -67,7 +69,7 @@
   .card-body {
     padding: 1.5rem;
   }
-  
+
   .step-indicator {
     font-size: 0.8rem;
   }
@@ -80,24 +82,64 @@
   box-shadow: var(--elevation-2);
 }
 
-.text-center { text-align: center; }
+.text-center {
+  text-align: center;
+}
 
-.steps-row { display: flex; gap: 16px; justify-content: center; margin-top: 8px; }
+.steps-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 8px;
+}
 
-.step-badge { background: var(--neutral-100); color: var(--neutral-700); padding: 6px 10px; border-radius: 999px; box-shadow: var(--elevation-1); }
+.step-badge {
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+  padding: 6px 10px;
+  border-radius: 999px;
+  box-shadow: var(--elevation-1);
+}
 
-.step-label { display: none; }
+.step-label {
+  display: none;
+}
 
-@media(min-width: 768px) { .step-label { display: inline-block; } }
+@media (min-width: 768px) {
+  .step-label {
+    display: inline-block;
+  }
+}
 
-.grid.two-cols { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.grid.two-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
 
-@media(min-width: 768px) { .grid.two-cols { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 768px) {
+  .grid.two-cols {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 
-.full-width { width: 100%; }
+.full-width {
+  width: 100%;
+}
 
-.actions-row { display: flex; gap: 12px; align-items: center; margin-top: 24px; }
+.actions-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 24px;
+}
 
-.ms-auto { margin-left: auto; }
+.ms-auto {
+  margin-left: auto;
+}
 
-.registration-form { display: flex; flex-direction: column; gap: 12px; }
+.registration-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

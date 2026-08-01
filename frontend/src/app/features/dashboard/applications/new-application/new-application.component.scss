@@ -110,6 +110,7 @@
 // ─────────────────────────────────────────────────────────────
 .form-card {
   @include mixins.card-base;
+
   overflow: visible !important;
 
   mat-card-content {

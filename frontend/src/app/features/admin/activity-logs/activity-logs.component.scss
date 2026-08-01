@@ -132,13 +132,15 @@
   align-items: center;
   gap: 0.125rem;
   padding: 0.625rem 1rem;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 10%);
   border-radius: vars.$radius-md;
   min-width: 72px;
   transition: background vars.$motion-fast ease;
 
-  &:hover { background: rgba(255, 255, 255, 0.11); }
+  &:hover {
+    background: rgb(255 255 255 / 11%);
+  }
 }
 
 .metric-value {
@@ -158,12 +160,15 @@
 }
 
 // ── Hero actions ──────────────────────────────────────────────
-.hero-actions { display: flex; gap: 0.75rem; }
+.hero-actions {
+  display: flex;
+  gap: 0.75rem;
+}
 
 .export-btn {
   height: 40px;
   border-radius: vars.$radius-md !important;
-  border-color: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgb(255 255 255 / 30%) !important;
   color: white !important;
   font-weight: 600;
   font-size: 0.875rem;
@@ -172,11 +177,15 @@
   align-items: center;
   gap: 0.375rem;
 
-  mat-icon { font-size: 1.125rem; width: 1.125rem; height: 1.125rem; }
+  mat-icon {
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-    border-color: rgba(255, 255, 255, 0.5) !important;
+    background: rgb(255 255 255 / 10%) !important;
+    border-color: rgb(255 255 255 / 50%) !important;
   }
 }
 
@@ -193,8 +202,13 @@
   width: 100%;
   box-sizing: border-box;
 
-  @media (min-width: vars.$breakpoint-tablet) { padding: 1.25rem 2.5rem; }
-  @media (min-width: vars.$breakpoint-large) { padding: 1.25rem 3rem; }
+  @media (min-width: vars.$breakpoint-tablet) {
+    padding: 1.25rem 2.5rem;
+  }
+
+  @media (min-width: vars.$breakpoint-large) {
+    padding: 1.25rem 3rem;
+  }
 }
 
 .filter-toggle-btn {
@@ -209,7 +223,11 @@
   font-size: 0.875rem;
   padding: 0 1rem !important;
 
-  mat-icon { font-size: 1.125rem; width: 1.125rem; height: 1.125rem; }
+  mat-icon {
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
 }
 
 .filter-active-badge {
@@ -232,7 +250,9 @@
   width: 1.125rem !important;
   height: 1.125rem !important;
 
-  &.rotated { transform: rotate(180deg); }
+  &.rotated {
+    transform: rotate(180deg);
+  }
 }
 
 .clear-all-btn {
@@ -243,7 +263,11 @@
   align-items: center;
   gap: 0.25rem;
 
-  mat-icon { font-size: 1rem; width: 1rem; height: 1rem; }
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
 }
 
 .result-summary {
@@ -258,6 +282,7 @@
 // ─────────────────────────────────────────────────────────────
 .filter-card {
   @include mixins.filter-card-base;
+
   overflow: visible !important;
   margin: 0 1.5rem 1.25rem;
   max-width: calc(1600px - 3rem);
@@ -316,10 +341,18 @@
     width: 1.125rem;
     height: 1.125rem;
 
-    &.platform_admin { color: vars.$accent-purple-dark; }
-    &.student { color: vars.$success; }
+    &.platform_admin {
+      color: vars.$accent-purple-dark;
+    }
+
+    &.student {
+      color: vars.$success;
+    }
+
     &.building_owner,
-    &.building_staff { color: vars.$accent-cyan-dark; }
+    &.building_staff {
+      color: vars.$accent-cyan-dark;
+    }
   }
 }
 
@@ -328,6 +361,7 @@
 // ─────────────────────────────────────────────────────────────
 .table-card {
   @include mixins.card-base;
+
   margin: 0 1.5rem 2rem;
   max-width: calc(1600px - 3rem);
   margin-left: auto;
@@ -343,7 +377,9 @@
     max-width: calc(1600px - 6rem);
   }
 
-  mat-card-content { padding: 0 !important; }
+  mat-card-content {
+    padding: 0 !important;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -366,9 +402,11 @@
   &.platform_admin {
     background: linear-gradient(135deg, vars.$accent-purple-light, vars.$accent-purple-dark);
   }
+
   &.student {
     background: linear-gradient(135deg, vars.$accent-green-light, vars.$accent-green-dark);
   }
+
   &.building_owner,
   &.building_staff {
     background: linear-gradient(135deg, vars.$accent-cyan-light, vars.$accent-cyan-dark);
@@ -413,8 +451,13 @@
   tr.data-row {
     transition: background vars.$motion-fast ease;
 
-    &:hover td.mat-cell { background: vars.$slate-50; }
-    &:last-child td.mat-cell { border-bottom: none; }
+    &:hover td.mat-cell {
+      background: vars.$slate-50;
+    }
+
+    &:last-child td.mat-cell {
+      border-bottom: none;
+    }
   }
 }
 
@@ -471,11 +514,13 @@
     color: vars.$accent-purple-dark;
     border: 1px solid rgba(vars.$accent-purple-light, 0.25);
   }
+
   &.student {
     background: rgba(vars.$success, 0.1);
     color: vars.$success;
     border: 1px solid rgba(vars.$success, 0.2);
   }
+
   &.building_owner,
   &.building_staff {
     background: rgba(vars.$accent-cyan-light, 0.1);
@@ -495,23 +540,30 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
 
-  mat-icon { font-size: 0.875rem; width: 0.875rem; height: 0.875rem; }
+  mat-icon {
+    font-size: 0.875rem;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
 
   &.action-success {
     background: rgba(vars.$success, 0.1);
     color: vars.$success;
     border: 1px solid rgba(vars.$success, 0.2);
   }
+
   &.action-primary {
     background: rgba(vars.$accent-blue-dark, 0.1);
     color: vars.$accent-blue-dark;
     border: 1px solid rgba(vars.$accent-blue-dark, 0.2);
   }
+
   &.action-warn {
     background: rgba(vars.$error, 0.1);
     color: vars.$error;
     border: 1px solid rgba(vars.$error, 0.2);
   }
+
   &.action-neutral {
     background: vars.$slate-100;
     color: vars.$slate-600;
@@ -562,7 +614,11 @@
   color: vars.$slate-500;
   border: 1px solid vars.$slate-200;
 
-  mat-icon { font-size: 0.875rem; width: 0.875rem; height: 0.875rem; }
+  mat-icon {
+    font-size: 0.875rem;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
 }
 
 .no-value {
@@ -578,7 +634,9 @@
   flex-direction: column;
   gap: 0;
 
-  @media (min-width: vars.$breakpoint-desktop) { display: none; }
+  @media (min-width: vars.$breakpoint-desktop) {
+    display: none;
+  }
 }
 
 .mobile-card {
@@ -586,7 +644,9 @@
   border-bottom: 1px solid vars.$slate-100;
   background: white;
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .mobile-card-header {
@@ -637,7 +697,9 @@
   flex-direction: column;
   gap: 0.25rem;
 
-  &.wide { grid-column: 1 / -1; }
+  &.wide {
+    grid-column: 1 / -1;
+  }
 }
 
 .mi-label {
@@ -653,7 +715,10 @@
   color: vars.$slate-700;
   font-weight: 500;
 
-  &.description { line-height: 1.5; font-weight: 400; }
+  &.description {
+    line-height: 1.5;
+    font-weight: 400;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

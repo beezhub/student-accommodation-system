@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 16px 0;
+  margin: 0 0 16px;
   font-size: 1.1rem;
   font-weight: 500;
   color: #333;
@@ -81,7 +81,7 @@
 }
 
 .comment:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 8%);
 }
 
 .comment-header {

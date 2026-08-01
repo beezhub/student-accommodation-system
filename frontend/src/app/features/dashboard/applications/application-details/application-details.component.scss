@@ -33,7 +33,7 @@
 }
 
 .back-button {
-  color: rgba(255, 255, 255, 0.8) !important;
+  color: rgb(255 255 255 / 80%) !important;
   font-weight: 500;
   border-radius: vars.$radius-md !important;
   padding: 0.375rem 0.875rem !important;
@@ -44,7 +44,7 @@
   gap: 0.375rem;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: rgb(255 255 255 / 10%) !important;
     color: white !important;
   }
 }
@@ -74,6 +74,7 @@
 // ─────────────────────────────────────────────────────────────
 .mat-mdc-card {
   @include mixins.card-base;
+
   padding: 0 !important;
   overflow: hidden;
 }
@@ -84,12 +85,13 @@
 
 .section-title {
   @include mixins.section-title;
+
   color: vars.$slate-900;
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
 }
 
 .mat-divider {
-  margin: 0 0 1.25rem 0 !important;
+  margin: 0 0 1.25rem !important;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -249,7 +251,7 @@
 .dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgb(15 23 42 / 60%);
   backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
@@ -283,6 +285,7 @@
 
 .skeleton-card {
   @include mixins.card-base;
+
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -295,14 +298,28 @@
   border-radius: vars.$radius-sm;
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 
-  &.short { width: 40%; }
-  &.medium { width: 65%; }
-  &.full { width: 100%; }
+  &.short {
+    width: 40%;
+  }
+
+  &.medium {
+    width: 65%;
+  }
+
+  &.full {
+    width: 100%;
+  }
 }
 
 @keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

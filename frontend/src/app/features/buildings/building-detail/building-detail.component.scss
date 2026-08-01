@@ -132,7 +132,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.45) !important;
+  background: rgb(0 0 0 / 45%) !important;
   color: white !important;
   border-radius: 50% !important;
   width: 44px !important;
@@ -140,7 +140,7 @@
   transition: background vars.$motion-fast ease;
 
   &:hover:not([disabled]) {
-    background: rgba(0, 0, 0, 0.7) !important;
+    background: rgb(0 0 0 / 70%) !important;
   }
 
   &[disabled] {
@@ -162,7 +162,7 @@
   bottom: vars.$space-3;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.5);
+  background: rgb(0 0 0 / 50%);
   color: white;
   font-size: vars.$font-size-tiny;
   font-weight: 600;
@@ -186,9 +186,7 @@
   overflow: hidden;
   cursor: pointer;
   background: none;
-  transition:
-    border-color vars.$motion-fast ease,
-    opacity vars.$motion-fast ease;
+  transition: border-color vars.$motion-fast ease, opacity vars.$motion-fast ease;
   opacity: 0.55;
 
   img {

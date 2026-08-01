@@ -4,8 +4,8 @@
 // Application module colors
 $blue: #3b82f6;
 $blue-dark: #1d4ed8;
-$blue-bg: rgba(59, 130, 246, 0.08);
-$blue-border: rgba(59, 130, 246, 0.2);
+$blue-bg: rgb(59 130 246 / 8%);
+$blue-border: rgb(59 130 246 / 20%);
 
 // ─── Host ────────────────────────────────────────────────────────────────────
 
@@ -179,21 +179,21 @@ $blue-border: rgba(59, 130, 246, 0.2);
   }
 
   &.checklist-chip {
-    background: rgba(217, 119, 6, 0.1);
+    background: rgb(217 119 6 / 10%);
     color: vars.$warning;
-    border-color: rgba(217, 119, 6, 0.2);
+    border-color: rgb(217 119 6 / 20%);
 
     &.complete {
-      background: rgba(5, 150, 105, 0.1);
+      background: rgb(5 150 105 / 10%);
       color: vars.$success;
-      border-color: rgba(5, 150, 105, 0.2);
+      border-color: rgb(5 150 105 / 20%);
     }
   }
 
   &.unsaved-chip {
-    background: rgba(220, 38, 38, 0.08);
+    background: rgb(220 38 38 / 8%);
     color: vars.$error;
-    border-color: rgba(220, 38, 38, 0.2);
+    border-color: rgb(220 38 38 / 20%);
   }
 }
 
@@ -202,7 +202,7 @@ $blue-border: rgba(59, 130, 246, 0.2);
 
   &:hover {
     color: vars.$error !important;
-    background: rgba(220, 38, 38, 0.07) !important;
+    background: rgb(220 38 38 / 7%) !important;
   }
 }
 
@@ -215,8 +215,14 @@ mat-dialog-content {
   max-height: none !important;
   background: vars.$slate-50;
 
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
   &::-webkit-scrollbar-thumb {
     background: vars.$slate-200;
     border-radius: 2px;
@@ -248,7 +254,7 @@ mat-dialog-content {
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    background: rgba(220, 38, 38, 0.1);
+    background: rgb(220 38 38 / 10%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -386,14 +392,14 @@ mat-dialog-content {
   height: 1.125rem;
   padding: 0 0.3125rem;
   border-radius: vars.$radius-pill;
-  background: rgba(217, 119, 6, 0.12);
+  background: rgb(217 119 6 / 12%);
   color: vars.$warning;
   font-size: 0.5625rem;
   font-weight: 800;
   margin-left: 0.25rem;
 
   &.complete {
-    background: rgba(5, 150, 105, 0.12);
+    background: rgb(5 150 105 / 12%);
     color: vars.$success;
   }
 }
@@ -436,9 +442,17 @@ mat-dialog-content {
   border-radius: 50%;
   flex-shrink: 0;
 
-  &.blue   { background: $blue; }
-  &.purple { background: vars.$accent-purple-light; }
-  &.green  { background: vars.$success; }
+  &.blue {
+    background: $blue;
+  }
+
+  &.purple {
+    background: vars.$accent-purple-light;
+  }
+
+  &.green {
+    background: vars.$success;
+  }
 }
 
 .section-meta {
@@ -501,11 +515,11 @@ mat-dialog-content {
 }
 
 .special-req {
-  background: rgba(220, 38, 38, 0.05);
+  background: rgb(220 38 38 / 5%);
   color: #b91c1c;
   padding: 0.4375rem 0.75rem;
   border-radius: vars.$radius-sm;
-  border: 1px solid rgba(220, 38, 38, 0.15);
+  border: 1px solid rgb(220 38 38 / 15%);
   font-size: 0.8125rem;
   line-height: 1.5;
 }
@@ -527,7 +541,9 @@ mat-dialog-content {
     color: $blue-dark;
     font-weight: 600;
 
-    mat-icon { color: $blue; }
+    mat-icon {
+      color: $blue;
+    }
   }
 }
 
@@ -577,11 +593,16 @@ mat-dialog-content {
   }
 
   &.complete {
-    border-color: rgba(5, 150, 105, 0.3);
-    background: rgba(5, 150, 105, 0.03);
+    border-color: rgb(5 150 105 / 30%);
+    background: rgb(5 150 105 / 3%);
 
-    .progress-title  { color: vars.$success; }
-    .progress-percent { color: vars.$success; }
+    .progress-title {
+      color: vars.$success;
+    }
+
+    .progress-percent {
+      color: vars.$success;
+    }
   }
 }
 
@@ -609,7 +630,7 @@ mat-dialog-content {
   }
 
   .pill-req {
-    background: rgba(0, 0, 0, 0.12);
+    background: rgb(0 0 0 / 12%);
     border-radius: 3px;
     padding: 0 3px;
     font-size: 0.5rem;
@@ -617,10 +638,29 @@ mat-dialog-content {
     letter-spacing: 0.02em;
   }
 
-  &.status-approved   { background: rgba(5, 150, 105, 0.1);  color: vars.$success; border-color: rgba(5, 150, 105, 0.25); }
-  &.status-pending    { background: rgba(217, 119, 6, 0.1);  color: vars.$warning; border-color: rgba(217, 119, 6, 0.2); }
-  &.status-rejected   { background: rgba(220, 38, 38, 0.1);  color: vars.$error;   border-color: rgba(220, 38, 38, 0.2); }
-  &.status-not-uploaded { background: vars.$slate-100; color: vars.$slate-500; border-color: vars.$slate-200; }
+  &.status-approved {
+    background: rgb(5 150 105 / 10%);
+    color: vars.$success;
+    border-color: rgb(5 150 105 / 25%);
+  }
+
+  &.status-pending {
+    background: rgb(217 119 6 / 10%);
+    color: vars.$warning;
+    border-color: rgb(217 119 6 / 20%);
+  }
+
+  &.status-rejected {
+    background: rgb(220 38 38 / 10%);
+    color: vars.$error;
+    border-color: rgb(220 38 38 / 20%);
+  }
+
+  &.status-not-uploaded {
+    background: vars.$slate-100;
+    color: vars.$slate-500;
+    border-color: vars.$slate-200;
+  }
 }
 
 // Document Accordion
@@ -636,9 +676,17 @@ mat-dialog-content {
   border: 1px solid vars.$slate-200 !important;
   overflow: hidden;
 
-  &.doc-status-approved { border-left: 3px solid vars.$success !important; }
-  &.doc-status-pending  { border-left: 3px solid vars.$warning !important; }
-  &.doc-status-rejected { border-left: 3px solid vars.$error   !important; }
+  &.doc-status-approved {
+    border-left: 3px solid vars.$success !important;
+  }
+
+  &.doc-status-pending {
+    border-left: 3px solid vars.$warning !important;
+  }
+
+  &.doc-status-rejected {
+    border-left: 3px solid vars.$error !important;
+  }
 }
 
 .doc-panel-header {
@@ -662,9 +710,17 @@ mat-dialog-content {
   border-radius: 50%;
   flex-shrink: 0;
 
-  &.dot-approved { background: vars.$success; }
-  &.dot-pending  { background: vars.$warning; }
-  &.dot-rejected { background: vars.$error;   }
+  &.dot-approved {
+    background: vars.$success;
+  }
+
+  &.dot-pending {
+    background: vars.$warning;
+  }
+
+  &.dot-rejected {
+    background: vars.$error;
+  }
 }
 
 .doc-file-icon {
@@ -735,9 +791,8 @@ mat-dialog-content {
   gap: 0.625rem;
 
   @media (min-width: vars.$breakpoint-tablet) {
-    flex-direction: row;
+    flex-flow: row wrap;
     align-items: flex-end;
-    flex-wrap: wrap;
   }
 }
 
@@ -789,26 +844,47 @@ mat-dialog-content {
 
   &.approved {
     color: vars.$success !important;
-    border-color: rgba(5, 150, 105, 0.3) !important;
+    border-color: rgb(5 150 105 / 30%) !important;
 
-    &.active        { background: vars.$success !important; color: white !important; border-color: vars.$success !important; }
-    &:not(.active):hover { background: rgba(5, 150, 105, 0.08) !important; }
+    &.active {
+      background: vars.$success !important;
+      color: white !important;
+      border-color: vars.$success !important;
+    }
+
+    &:not(.active):hover {
+      background: rgb(5 150 105 / 8%) !important;
+    }
   }
 
   &.pending {
     color: vars.$warning !important;
-    border-color: rgba(217, 119, 6, 0.3) !important;
+    border-color: rgb(217 119 6 / 30%) !important;
 
-    &.active        { background: vars.$warning !important; color: white !important; border-color: vars.$warning !important; }
-    &:not(.active):hover { background: rgba(217, 119, 6, 0.08) !important; }
+    &.active {
+      background: vars.$warning !important;
+      color: white !important;
+      border-color: vars.$warning !important;
+    }
+
+    &:not(.active):hover {
+      background: rgb(217 119 6 / 8%) !important;
+    }
   }
 
   &.rejected {
     color: vars.$error !important;
-    border-color: rgba(220, 38, 38, 0.3) !important;
+    border-color: rgb(220 38 38 / 30%) !important;
 
-    &.active        { background: vars.$error !important; color: white !important; border-color: vars.$error !important; }
-    &:not(.active):hover { background: rgba(220, 38, 38, 0.08) !important; }
+    &.active {
+      background: vars.$error !important;
+      color: white !important;
+      border-color: vars.$error !important;
+    }
+
+    &:not(.active):hover {
+      background: rgb(220 38 38 / 8%) !important;
+    }
   }
 }
 
@@ -836,8 +912,8 @@ mat-dialog-content {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5625rem 0.875rem;
-  background: rgba(220, 38, 38, 0.06);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  background: rgb(220 38 38 / 6%);
+  border: 1px solid rgb(220 38 38 / 20%);
   border-radius: vars.$radius-md;
   font-size: 0.8125rem;
   color: vars.$error;
@@ -879,7 +955,11 @@ mat-dialog-content {
   color: vars.$error;
   text-align: center;
 
-  mat-icon { font-size: 1.5rem; width: 1.5rem; height: 1.5rem; }
+  mat-icon {
+    font-size: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
 }
 
 .preview-container {
@@ -912,9 +992,16 @@ mat-dialog-content {
   color: vars.$slate-300;
   text-align: center;
 
-  mat-icon { font-size: 2rem; width: 2rem; height: 2rem; }
+  mat-icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+  }
 
-  .hint { font-size: 0.75rem; color: vars.$slate-400; }
+  .hint {
+    font-size: 0.75rem;
+    color: vars.$slate-400;
+  }
 }
 
 // ─── Comments ─────────────────────────────────────────────────────────────────
@@ -957,17 +1044,17 @@ mat-dialog-actions {
   color: vars.$error !important;
 
   &:not([disabled]):hover {
-    background: rgba(220, 38, 38, 0.07) !important;
+    background: rgb(220 38 38 / 7%) !important;
   }
 }
 
 .approve-btn {
   background: linear-gradient(135deg, $blue 0%, $blue-dark 100%) !important;
   color: white !important;
-  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3) !important;
+  box-shadow: 0 2px 8px rgb(29 78 216 / 30%) !important;
 
   &:not([disabled]):hover {
-    box-shadow: 0 4px 14px rgba(29, 78, 216, 0.4) !important;
+    box-shadow: 0 4px 14px rgb(29 78 216 / 40%) !important;
   }
 
   &[disabled] {

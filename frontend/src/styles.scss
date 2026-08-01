@@ -18,24 +18,24 @@
 
 html,
 body {
-    height: 100%;
-    margin: 0;
-    font-family: vars.$font-sans;
-    background-color: #f8fafc;
-    color: vars.$slate-800;
+  height: 100%;
+  margin: 0;
+  font-family: vars.$font-sans;
+  background-color: #f8fafc;
+  color: vars.$slate-800;
 }
 
 // Global Typography Overrides
 h1,
 .mat-headline-1 {
-    @include mixins.page-title;
+  @include mixins.page-title;
 }
 
 h2,
 .mat-headline-2 {
-    font-size: vars.$font-size-h2;
-    font-weight: vars.$font-weight-h2;
-    color: vars.$slate-800;
+  font-size: vars.$font-size-h2;
+  font-weight: vars.$font-weight-h2;
+  color: vars.$slate-800;
 }
 
 // Global Button Overrides
@@ -43,152 +43,151 @@ h2,
 .mat-mdc-raised-button,
 .mat-mdc-unelevated-button,
 .mat-mdc-outlined-button {
-    border-radius: vars.$radius-pill !important; // Pill shaped for modern aesthetics
-    letter-spacing: 0.03em;
-    font-weight: 600;
-    transition: all 0.3s vars.$motion-spring !important;
+  border-radius: vars.$radius-pill !important; // Pill shaped for modern aesthetics
+  letter-spacing: 0.03em;
+  font-weight: 600;
+  transition: all 0.3s vars.$motion-spring !important;
 }
 
 .mat-mdc-raised-button:hover,
 .mat-mdc-unelevated-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgb(0 0 0 / 10%) !important;
 }
 
 // Global Status Badges (Backward Compatibility)
 .status-badge {
-    // Styles handled by component, but if used as class:
-    @include mixins.status-badge(vars.$slate-100, vars.$slate-700, vars.$slate-200);
+  // Styles handled by component, but if used as class:
+  @include mixins.status-badge(vars.$slate-100, vars.$slate-700, vars.$slate-200);
 }
 
 // New UI Spec Statuses
 .status-info {
-    background: var(--color-info-bg, #e0f2fe);
-    color: var(--color-info, #0284c7);
-    border: 1px solid var(--color-info-border, #bae6fd);
+  background: var(--color-info-bg, #e0f2fe);
+  color: var(--color-info, #0284c7);
+  border: 1px solid var(--color-info-border, #bae6fd);
 }
 
 .status-neutral {
-    background: var(--color-neutral-bg, #f1f5f9);
-    color: var(--color-neutral, #475569);
-    border: 1px solid var(--color-slate-200, #e2e8f0);
+  background: var(--color-neutral-bg, #f1f5f9);
+  color: var(--color-neutral, #475569);
+  border: 1px solid var(--color-slate-200, #e2e8f0);
 }
 
 .status-changes {
-    background: #fff7ed;
-    color: #c2410c;
-    border: 1px solid #fb923c;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fb923c;
 }
 
 @media (prefers-reduced-motion: reduce) {
-
-    *,
-    *::before,
-    *::after {
-        animation-duration: 1ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 1ms !important;
-    }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }
 
 // Global Table Styles
 .table-container {
-    @include mixins.card-base;
+  @include mixins.card-base;
 }
 
 th.mat-header-cell {
-    background: vars.$slate-50;
-    color: vars.$slate-600;
-    font-weight: 600;
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 16px;
-    border-bottom: 1px solid vars.$slate-200;
+  background: vars.$slate-50;
+  color: vars.$slate-600;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 16px;
+  border-bottom: 1px solid vars.$slate-200;
 }
 
 td.mat-cell {
-    color: vars.$slate-700;
-    font-size: 14px;
-    padding: 16px;
-    border-bottom: 1px solid vars.$slate-100;
+  color: vars.$slate-700;
+  font-size: 14px;
+  padding: 16px;
+  border-bottom: 1px solid vars.$slate-100;
 }
 
 tr.mat-row:hover {
-    background-color: vars.$slate-50;
+  background-color: vars.$slate-50;
 }
 
 // Google Places Autocomplete global styling
 gmp-place-autocomplete {
-    // CSS custom properties that Google Maps components respect
-    --gmpx-color-surface: #ffffff !important;
-    --gmpx-color-on-surface: #{vars.$slate-800} !important;
-    --gmpx-color-on-surface-variant: #{vars.$slate-400} !important;
-    --gmpx-color-primary: #{vars.$accent-orange-dark} !important;
-    --gmpx-font-family-base: #{vars.$font-sans} !important;
-    --gmpx-font-size-base: 14px !important;
+  // CSS custom properties that Google Maps components respect
+  --gmpx-color-surface: #fff !important;
+  --gmpx-color-on-surface: #{vars.$slate-800} !important;
+  --gmpx-color-on-surface-variant: #{vars.$slate-400} !important;
+  --gmpx-color-primary: #{vars.$accent-orange-dark} !important;
+  --gmpx-font-family-base: #{vars.$font-sans} !important;
+  --gmpx-font-size-base: 14px !important;
 }
 
 // New Google Places API dropdown overlay (shadow DOM)
 gmp-internal-place-autocomplete-overlay,
 gmp-internal-place-autocomplete-overlay * {
-    z-index: 10000 !important;
-    background-color: #ffffff !important;
-    color: #{vars.$slate-800} !important;
-    font-family: #{vars.$font-sans} !important;
+  z-index: 10000 !important;
+  background-color: #fff !important;
+  color: #{vars.$slate-800} !important;
+  font-family: #{vars.$font-sans} !important;
 }
 
 // Force white background on the overlay container
 gmp-internal-place-autocomplete-overlay::part(container),
 gmp-internal-place-autocomplete-overlay::part(list),
 gmp-internal-place-autocomplete-overlay::part(item) {
-    background-color: #ffffff !important;
-    color: #{vars.$slate-800} !important;
+  background-color: #fff !important;
+  color: #{vars.$slate-800} !important;
 }
 
 // Legacy pac-container (fallback for older API)
 .pac-container,
 .pac-container * {
-    z-index: 10000 !important;
-    font-family: #{vars.$font-sans} !important;
-    background-color: #ffffff !important;
-    color: #{vars.$slate-700} !important;
+  z-index: 10000 !important;
+  font-family: #{vars.$font-sans} !important;
+  background-color: #fff !important;
+  color: #{vars.$slate-700} !important;
 }
 
 .pac-container {
-    border-radius: vars.$radius-md !important;
-    border: 1px solid vars.$slate-200 !important;
-    box-shadow: vars.$shadow-medium !important;
-    margin-top: 4px !important;
+  border-radius: vars.$radius-md !important;
+  border: 1px solid vars.$slate-200 !important;
+  box-shadow: vars.$shadow-medium !important;
+  margin-top: 4px !important;
 }
 
 .pac-item {
-    font-family: #{vars.$font-sans} !important;
-    font-size: vars.$font-size-body !important;
-    color: #{vars.$slate-700} !important;
-    padding: 10px 14px !important;
-    border-bottom: 1px solid vars.$slate-100 !important;
-    cursor: pointer !important;
-    background-color: #ffffff !important;
+  font-family: #{vars.$font-sans} !important;
+  font-size: vars.$font-size-body !important;
+  color: #{vars.$slate-700} !important;
+  padding: 10px 14px !important;
+  border-bottom: 1px solid vars.$slate-100 !important;
+  cursor: pointer !important;
+  background-color: #fff !important;
 
-    &:hover {
-        background-color: #{vars.$slate-50} !important;
-    }
+  &:hover {
+    background-color: #{vars.$slate-50} !important;
+  }
 }
 
 .pac-item-query {
-    color: #{vars.$slate-800} !important;
-    font-weight: 500 !important;
+  color: #{vars.$slate-800} !important;
+  font-weight: 500 !important;
 }
 
 .pac-icon {
-    margin-right: 10px !important;
-    filter: none !important;
+  margin-right: 10px !important;
+  filter: none !important;
 }
 
 .pac-matched {
-    color: #{vars.$accent-orange-dark} !important;
-    font-weight: 600 !important;
+  color: #{vars.$accent-orange-dark} !important;
+  font-weight: 600 !important;
 }
 
 // Global Snackbar Colour Classes
@@ -221,57 +220,60 @@ gmp-internal-place-autocomplete-overlay::part(item) {
 // Material MDC list items override text color aggressively; must patch globally.
 
 app-admin-sidebar {
-    // All nav items: default muted white text
-    .sidenav mat-nav-list a.mat-mdc-list-item {
-        .mdc-list-item__primary-text {
-            color: rgba(255, 255, 255, 0.6) !important;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        // Icon colour
-        .mat-mdc-list-item-icon {
-            color: rgba(255, 255, 255, 0.38) !important;
-        }
-
-        // Hover: brighter text
-        &:hover:not(.active) {
-            .mdc-list-item__primary-text {
-                color: rgba(255, 255, 255, 0.88) !important;
-            }
-            .mat-mdc-list-item-icon {
-                color: rgba(255, 255, 255, 0.65) !important;
-            }
-        }
-
-        // Active: purple tint
-        &.active {
-            .mdc-list-item__primary-text {
-                color: #c4b5fd !important;
-                font-weight: 600;
-            }
-            .mat-mdc-list-item-icon {
-                color: #a78bfa !important;
-            }
-        }
+  // All nav items: default muted white text
+  .sidenav mat-nav-list a.mat-mdc-list-item {
+    .mdc-list-item__primary-text {
+      color: rgb(255 255 255 / 60%) !important;
+      font-size: 0.875rem;
+      font-weight: 500;
     }
 
-    // Ripple on dark background
-    .sidenav mat-nav-list a.mat-mdc-list-item .mat-mdc-list-item-ripple {
-        background: rgba(255, 255, 255, 0.06);
+    // Icon colour
+    .mat-mdc-list-item-icon {
+      color: rgb(255 255 255 / 38%) !important;
     }
+
+    // Hover: brighter text
+    &:hover:not(.active) {
+      .mdc-list-item__primary-text {
+        color: rgb(255 255 255 / 88%) !important;
+      }
+
+      .mat-mdc-list-item-icon {
+        color: rgb(255 255 255 / 65%) !important;
+      }
+    }
+
+    // Active: purple tint
+    &.active {
+      .mdc-list-item__primary-text {
+        color: #c4b5fd !important;
+        font-weight: 600;
+      }
+
+      .mat-mdc-list-item-icon {
+        color: #a78bfa !important;
+      }
+    }
+  }
+
+  // Ripple on dark background
+  .sidenav mat-nav-list a.mat-mdc-list-item .mat-mdc-list-item-ripple {
+    background: rgb(255 255 255 / 6%);
+  }
 }
 
 // Global Dialog Overrides
 .mat-mdc-dialog-container {
-    --mdc-dialog-container-shape: #{vars.$radius-xl} !important;
+  --mdc-dialog-container-shape: #{vars.$radius-xl} !important;
 }
 
 .mat-mdc-dialog-title {
-    @include mixins.section-title;
-    margin-bottom: 20px;
+  @include mixins.section-title;
 
-    &::before {
-        display: none !important; // Remove material design default styling if any
-    }
+  margin-bottom: 20px;
+
+  &::before {
+    display: none !important; // Remove material design default styling if any
+  }
 }
