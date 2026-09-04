@@ -145,6 +145,11 @@ applied migration. Enums are stored as strings; no soft deletes.
 - Failures recorded by the team as pre-existing (re-verify before assuming they are yours): `RoomServiceTest` (3,
   `UnnecessaryStubbingException` and a bulk-create mock assertion) and `ScheduledJobRunnerTest` (2, NPE on
   `checkInReminderService` injection).
+- CI state as of 2026-09-04: the backend job on `develop` reports 32 failures out of 1116 tests, all in
+  `@SpringBootTest` integration classes whose context fails to load in CI (`TenantAdminAccessIntegrationTest`,
+  `ApplicationServiceIntegrationTest`, `DocumentLifecycleServiceIntegrationTest`, the notification async tests).
+  The gitleaks job fails because the `GITLEAKS_LICENSE` repository secret is not set. Compare a branch's failure
+  count against `develop` before treating a red build as caused by your change.
 
 ## Frontend architecture
 
