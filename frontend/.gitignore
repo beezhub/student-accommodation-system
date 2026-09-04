@@ -18,3 +18,4 @@ package-lock.json
 playwright-report/
 test-results/
 *.log
+coverage/
