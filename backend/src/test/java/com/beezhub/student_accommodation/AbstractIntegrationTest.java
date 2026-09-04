@@ -33,6 +33,10 @@ import org.testcontainers.containers.wait.strategy.Wait;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class AbstractIntegrationTest {
 
+    /** Test-only signing key; long enough to satisfy {@code JwtConfig} and HS512. Not a real secret. */
+    private static final String TEST_JWT_SECRET =
+            "test-only-jwt-secret-not-for-production-use-0123456789abcdefghijklmnopqrstuvwxyz";
+
     // ── Containers ────────────────────────────────────────────────────────────
 
     private static final PostgreSQLContainer<?> database =
@@ -99,5 +103,9 @@ public abstract class AbstractIntegrationTest {
         // takes precedence over the spring.jpa.hibernate.ddl-auto shortcut.
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         registry.add("spring.jpa.properties.hibernate.hbm2ddl.auto", () -> "none");
+
+        // JWT — application.yml has no default for jwt.secret (fail-fast startup check requires
+        // >= 64 chars), so the suite must supply one rather than depend on a JWT_SECRET env var.
+        registry.add("jwt.secret", () -> TEST_JWT_SECRET);
     }
 }

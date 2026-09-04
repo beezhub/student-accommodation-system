@@ -43,12 +43,12 @@ jobs:
 
       - name: Build (skip tests)
         env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-only-dummy-secret-that-is-64-chars-long-for-startup-check' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-only-dummy-jwt-secret-not-for-production-0123456789abcdefghijklmnopqrstuvwxyz' }}
         run: ./gradlew build -x test
 
       - name: Run tests
         env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-only-dummy-secret-that-is-64-chars-long-for-startup-check' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-only-dummy-jwt-secret-not-for-production-0123456789abcdefghijklmnopqrstuvwxyz' }}
         run: ./gradlew test
 
       - name: Generate Jacoco coverage report
