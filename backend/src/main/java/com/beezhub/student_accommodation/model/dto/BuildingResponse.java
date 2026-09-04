@@ -10,6 +10,7 @@ import java.util.Map;
 @Data
 public class BuildingResponse {
     private Long id;
+    private Long tenantId;
     private String name;
     private String address;
     private BigDecimal latitude;
@@ -24,4 +25,15 @@ public class BuildingResponse {
     private List<BuildingImageResponse> images;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Pricing and availability summary (computed from rooms)
+    private BigDecimal minMonthlyRate;
+    private BigDecimal maxMonthlyRate;
+    private Integer availableRoomCount;
+
+    // Room summaries for detail endpoint
+    private List<RoomResponse> rooms;
+
+    // Building attributes for detail endpoint
+    private String accessibilityFeatures;
 }

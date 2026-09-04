@@ -1,10 +1,16 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, catchError, of, forkJoin } from 'rxjs';
+import { Observable, map, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 import { Application } from '../models/application.model';
 import { ApplicationStatus } from '../models/status.model';
+
+export interface BuildingPreferenceResponse {
+  buildingId: number;
+  buildingName: string;
+  preferenceOrder: number;
+}
 
 export interface StudentProfile {
   id: number;
@@ -57,6 +63,7 @@ export interface ApplicationFullDetails {
   courseName?: string;
   preferredBuildingId?: number;
   preferredBuildingName?: string;
+  preferredBuildings?: BuildingPreferenceResponse[];
   allocationMethod?: string;
   // Nested objects
   studentProfile: StudentProfile;
@@ -120,20 +127,30 @@ export interface ReviewProgressRequest {
   providedIn: 'root',
 })
 export class ApplicationService {
+  private http = inject(HttpClient);
+
   private apiUrl = `${environment.apiUrl}/applications`;
 
-  constructor(private http: HttpClient) {}
-
   createApplication(applicationData: any): Observable<Application> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return this.http.post<Application>(`${this.apiUrl}/submit`, applicationData);
   }
 
   getApplicationByStatus(status: string): Observable<Application[]> {
-    return this.http.get<Application[]>(`${this.apiUrl}/${status}`);
+    return this.http.get<Application[]>(`${this.apiUrl}/status/${status}`);
   }
 
   getApplicationById(applicationId: number): Observable<Application> {
     return this.http.get<Application>(`${this.apiUrl}/${applicationId}`);
+  }
+
+  getApplicationsByStudentId(studentId: number): Observable<Application[]> {
+    return this.http.get<Application[]>(`${this.apiUrl}/student/${studentId}`);
+  }
+
+  deleteApplication(applicationId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${applicationId}`);
   }
 
   getMyApplications(): Observable<Application[]> {
@@ -154,7 +171,7 @@ export class ApplicationService {
           ApplicationStatus.AWAITING_ALLOCATION,
           ApplicationStatus.UNDER_REVIEW,
           ApplicationStatus.CHANGES_REQUESTED,
-          ApplicationStatus.ALLOCATED
+          ApplicationStatus.ALLOCATED,
         ];
         return applications.some((app) => activeStatuses.includes(app.status as ApplicationStatus));
       }),
@@ -169,8 +186,18 @@ export class ApplicationService {
   getActiveApplication(): Observable<Application | null> {
     return this.getMyApplications().pipe(
       map((applications) => {
-        const activeStatuses = ['PENDING', 'APPROVED', 'AWAITING_ALLOCATION'];
-        return applications.find((app) => activeStatuses.includes(app.status)) || null;
+        const activeStatuses = [
+          ApplicationStatus.PENDING,
+          ApplicationStatus.APPROVED,
+          ApplicationStatus.AWAITING_ALLOCATION,
+          ApplicationStatus.UNDER_REVIEW,
+          ApplicationStatus.CHANGES_REQUESTED,
+          ApplicationStatus.ALLOCATED,
+        ];
+        return (
+          applications.find((app) => activeStatuses.includes(app.status as ApplicationStatus)) ||
+          null
+        );
       }),
       catchError(() => of(null))
     );
@@ -191,7 +218,10 @@ export class ApplicationService {
    * @returns Observable<{ success: boolean }>
    */
   saveReviewProgress(request: ReviewProgressRequest): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/${request.applicationId}/save-review-progress`, request);
+    return this.http.post<{ success: boolean }>(
+      `${this.apiUrl}/${request.applicationId}/save-review-progress`,
+      request
+    );
   }
 
   /**
@@ -205,13 +235,28 @@ export class ApplicationService {
 
   /**
    * Gets documents for a specific application.
+   * Delegates to the full-details endpoint and extracts the documents array,
+   * since no dedicated /documents endpoint exists on the backend.
    * @param applicationId The application ID
    * @returns Observable<ApplicationDocument[]> List of documents
    */
   getApplicationDocuments(applicationId: number): Observable<ApplicationDocument[]> {
-    return this.http.get<ApplicationDocument[]>(`${this.apiUrl}/${applicationId}/documents`);
+    return this.getApplicationFullDetails(applicationId).pipe(
+      map((details) =>
+        details.documents.map((doc) => ({
+          id: doc.id,
+          documentName: doc.fileName,
+          documentPath: '',
+          documentStatus: doc.status,
+          documentTypeId: doc.documentTypeId,
+          documentTypeName: doc.documentTypeName,
+          isRequired: false,
+          createdAt: doc.uploadedAt,
+          updatedAt: doc.uploadedAt,
+        }))
+      )
+    );
   }
-
 
   /**
    * Marks an application as under review.
@@ -227,6 +272,8 @@ export class ApplicationService {
    * @param reason The reason for requesting changes
    */
   requestChanges(applicationId: number, reason: string): Observable<Application> {
-    return this.http.post<Application>(`${this.apiUrl}/${applicationId}/request-changes`, { reason });
+    return this.http.post<Application>(`${this.apiUrl}/${applicationId}/request-changes`, {
+      reason,
+    });
   }
 }

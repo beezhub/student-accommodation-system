@@ -43,7 +43,7 @@ class RoomAllocationServiceBatchTest {
     private ApplicationDocumentService applicationDocumentService;
 
     @Mock
-    private AllocationScoringService allocationScoringService;
+    private LegacyScoringStrategy allocationScoringService;
 
     @Mock
     private SystemSettingService systemSettingService;

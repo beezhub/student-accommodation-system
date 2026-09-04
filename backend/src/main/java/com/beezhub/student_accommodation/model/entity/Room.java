@@ -1,12 +1,16 @@
 package com.beezhub.student_accommodation.model.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "room")
+@Table(name = "room", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_room_number_building", columnNames = {"building_id", "room_number"})
+})
 @Data
 @org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 @EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
@@ -23,7 +27,7 @@ public class Room implements TenantAware {
     @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
     private Long version = 0L;
 
-    @Column(name = "room_number", nullable = false, unique = true, length = 20)
+    @Column(name = "room_number", nullable = false, length = 20)
     private String roomNumber;
 
     @Column(nullable = false)
@@ -34,6 +38,10 @@ public class Room implements TenantAware {
 
     @Column(name = "status", length = 20)
     private String status; // AVAILABLE, OCCUPIED, FULL, MAINTENANCE
+
+    @Min(0)
+    @Column(name = "monthly_rate", precision = 10, scale = 2)
+    private BigDecimal monthlyRate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "building_id")

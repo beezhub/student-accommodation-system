@@ -1,173 +1,153 @@
-<div class="allocation-container">
-  <div class="page-header">
-    <div class="header-content">
-      <h1>
-        <mat-icon>assignment_ind</mat-icon>
-        Room Allocations
-      </h1>
-      <p class="subtitle">Manage student room assignments and allocations</p>
-    </div>
-    <div class="header-actions">
-      <div class="stat-item">
-        <span class="stat-value">{{ totalElements }}</span>
-        <span class="stat-label">Total Allocations</span>
+<div class="room-alloc-page">
+
+  <!-- ══════════════════════════════════════════════════════
+       HERO HEADER BAND
+  ══════════════════════════════════════════════════════ -->
+  <div class="page-hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-icon-wrap" aria-hidden="true">
+          <mat-icon>meeting_room</mat-icon>
+        </div>
+        <div class="hero-text">
+          <h1 class="hero-title">Room Allocations</h1>
+          <p class="hero-subtitle">Manage student room assignments and allocations</p>
+        </div>
       </div>
-      <button mat-raised-button color="primary" (click)="openAllocateDialog()" class="add-btn">
-        <mat-icon>add</mat-icon>
-        Allocate Room
-      </button>
+
+      <div class="hero-right">
+        <div class="hero-metrics" role="list" aria-label="Allocation summary">
+          <div class="metric-chip" role="listitem">
+            <span class="metric-value">{{ totalElements | number }}</span>
+            <span class="metric-label">Total</span>
+          </div>
+        </div>
+
+        <button
+          mat-raised-button
+          class="allocate-btn"
+          (click)="openAllocateDialog()">
+          <mat-icon>add</mat-icon>
+          Allocate Room
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Filter Card -->
-  <mat-card class="filter-card">
-    <mat-card-content>
-      <div class="filter-header">
-        <mat-icon>filter_list</mat-icon>
-        <span>Filter Allocations</span>
-      </div>
-      <form [formGroup]="filterForm" class="filter-form">
-        <mat-form-field appearance="outline">
-          <mat-label>Student Name</mat-label>
-          <mat-icon matPrefix>person</mat-icon>
-          <input matInput type="text" formControlName="studentName" placeholder="Search by student name">
-        </mat-form-field>
+  <!-- ══════════════════════════════════════════════════════
+       FILTER TOGGLE BAR
+  ══════════════════════════════════════════════════════ -->
+  <div class="filter-toggle-bar">
+    <button
+      mat-stroked-button
+      class="filter-toggle-btn"
+      (click)="toggleFilters()"
+      [attr.aria-expanded]="filtersVisible"
+      aria-controls="filter-panel">
+      <mat-icon>tune</mat-icon>
+      Filters
+      @if (activeFilterCount > 0) {
+        <span class="filter-active-badge" [attr.aria-label]="activeFilterCount + ' active filters'">{{ activeFilterCount }}</span>
+      }
+      <mat-icon class="chevron-icon" [class.rotated]="filtersVisible">expand_more</mat-icon>
+    </button>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Room Number</mat-label>
-          <mat-icon matPrefix>meeting_room</mat-icon>
-          <input matInput type="text" formControlName="roomNumber" placeholder="Search by room number">
-        </mat-form-field>
+    @if (activeFilterCount > 0) {
+      <button mat-button class="clear-all-btn" (click)="onClearFilters()">
+        <mat-icon>close</mat-icon>
+        Clear filters
+      </button>
+    }
 
-        <mat-form-field appearance="outline">
-          <mat-label>Building</mat-label>
-          <mat-icon matPrefix>apartment</mat-icon>
-          <mat-select formControlName="buildingId">
-            <mat-option value="">All Buildings</mat-option>
-            @for (building of buildings; track building.id) {
-              <mat-option [value]="building.id">
-                {{ building.name }}
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+    <div class="result-summary" aria-live="polite">
+      @if (!isLoading) {
+        <span>{{ totalElements | number }} result{{ totalElements !== 1 ? 's' : '' }}</span>
+      }
+    </div>
+  </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Status</mat-label>
-          <mat-icon matPrefix>flag</mat-icon>
-          <mat-select formControlName="status">
-            <mat-option value="">All Statuses</mat-option>
-            @for (status of statuses; track status) {
-              <mat-option [value]="status">
-                <div class="status-option">
-                  <mat-icon [class]="status.toLowerCase()">
-                    {{ status === 'ACTIVE' ? 'check_circle' : status === 'COMPLETED' ? 'done_all' : 'cancel' }}
-                  </mat-icon>
-                  {{ status }}
-                </div>
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+  <!-- ══════════════════════════════════════════════════════
+       COLLAPSIBLE FILTER PANEL
+  ══════════════════════════════════════════════════════ -->
+  @if (filtersVisible) {
+    <mat-card class="filter-card" id="filter-panel" role="search" aria-label="Allocation filters">
+      <mat-card-content>
+        <form [formGroup]="filterForm" class="filter-form" (ngSubmit)="onFilter()">
 
-        <div class="filter-actions">
-          <button mat-raised-button color="primary" (click)="onFilter()" class="search-btn">
-            <mat-icon>search</mat-icon>
-            Search
-          </button>
-          <button mat-stroked-button (click)="onClearFilters()" class="clear-btn">
-            <mat-icon>refresh</mat-icon>
-            Reset
-          </button>
-        </div>
-      </form>
-    </mat-card-content>
-  </mat-card>
+          <mat-form-field appearance="outline">
+            <mat-label>Student Name</mat-label>
+            <input matInput formControlName="studentName" placeholder="Search by name">
+            <mat-icon matSuffix>person_search</mat-icon>
+          </mat-form-field>
 
-  <!-- Table Card -->
+          <mat-form-field appearance="outline">
+            <mat-label>Room Number</mat-label>
+            <input matInput formControlName="roomNumber" placeholder="e.g. 101A">
+            <mat-icon matSuffix>door_front</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Building</mat-label>
+            <mat-select formControlName="buildingId">
+              <mat-option value="">All Buildings</mat-option>
+              @for (building of buildings; track building.id) {
+                <mat-option [value]="building.id">{{ building.name }}</mat-option>
+              }
+            </mat-select>
+            <mat-icon matSuffix>apartment</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status">
+              <mat-option value="">All Statuses</mat-option>
+              @for (status of statuses; track status) {
+                <mat-option [value]="status">
+                  <app-modern-status-badge [status]="status" size="sm"></app-modern-status-badge>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <div class="filter-actions">
+            <button mat-raised-button color="primary" type="submit">
+              <mat-icon>search</mat-icon>
+              Search
+            </button>
+            <button mat-stroked-button type="button" (click)="onClearFilters()">
+              <mat-icon>clear</mat-icon>
+              Clear
+            </button>
+          </div>
+
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       DATA TABLE CARD
+  ══════════════════════════════════════════════════════ -->
   <mat-card class="table-card">
     <mat-card-content>
+
       @if (isLoading) {
         <div class="loading-container">
-          <mat-spinner diameter="48"></mat-spinner>
-          <p>Loading allocations...</p>
+          <app-skeleton-loader [type]="'table-row'" [count]="8"></app-skeleton-loader>
         </div>
       }
 
       @if (!isLoading) {
-        <!-- Mobile Card View -->
-        <div class="mobile-cards-container">
-          @for (allocation of allocations; track allocation.id) {
-            <div class="mobile-card">
-              <div class="mobile-card-header">
-                <div class="mobile-student-info">
-                   <div class="student-avatar">
-                      {{ allocation.studentFirstName?.charAt(0) }}{{ allocation.studentLastName?.charAt(0) }}
-                   </div>
-                   <div class="student-info">
-                      <span class="student-name">{{ allocation.studentFirstName }} {{ allocation.studentLastName }}</span>
-                      <span class="student-email">{{ allocation.studentEmail }}</span>
-                   </div>
-                </div>
-                <app-modern-status-badge [status]="allocation.status" size="sm"></app-modern-status-badge>
-              </div>
 
-              <div class="mobile-details">
-                 <div class="mobile-detail-item">
-                    <span class="label">Room</span>
-                    <div class="value">
-                       <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #7c3aed;">meeting_room</mat-icon>
-                       <span style="font-family: monospace; font-weight: 600;">{{ allocation.roomNumber }}</span>
-                    </div>
-                 </div>
-                 <div class="mobile-detail-item">
-                    <span class="label">Building</span>
-                    <div class="value">
-                        <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #94a3b8;">apartment</mat-icon>
-                        {{ allocation.buildingName }}
-                    </div>
-                 </div>
-                 <div class="mobile-detail-item">
-                    <span class="label">Allocated</span>
-                    <div class="value">
-                        <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #94a3b8;">calendar_today</mat-icon>
-                        {{ allocation.allocationDate | date: 'shortDate' }}
-                    </div>
-                 </div>
-              </div>
-              
-              <div class="mobile-actions">
-                 <button mat-stroked-button color="primary"
-                         (click)="moveStudent(allocation)"
-                         [disabled]="allocation.status !== 'ACTIVE'">
-                    <mat-icon>transfer_within_a_station</mat-icon>
-                    Move
-                 </button>
-                 <button mat-stroked-button color="warn"
-                         (click)="endAllocation(allocation)"
-                          [disabled]="allocation.status !== 'ACTIVE'">
-                    <mat-icon>event_busy</mat-icon>
-                    End
-                 </button>
-                 <button mat-icon-button color="warn" (click)="deleteAllocation(allocation)">
-                    <mat-icon>delete</mat-icon>
-                 </button>
-              </div>
-            </div>
-          }
-        </div>
-
-        <!-- Desktop Table View -->
         <div class="table-container">
-          <table mat-table [dataSource]="allocations" class="allocations-table">
-            <!-- Student Name Column -->
+          <table mat-table [dataSource]="allocations" class="alloc-table" aria-label="Room allocations list">
+
+            <!-- Student Column -->
             <ng-container matColumnDef="studentName">
               <th mat-header-cell *matHeaderCellDef>Student</th>
               <td mat-cell *matCellDef="let allocation">
                 <div class="student-cell">
-                  <div class="student-avatar">
-                    {{ allocation.studentFirstName?.charAt(0) }}{{ allocation.studentLastName?.charAt(0) }}
-                  </div>
+                  <div class="avatar-circle" aria-hidden="true">{{ getInitials(allocation) }}</div>
                   <div class="student-info">
                     <span class="student-name">{{ allocation.studentFirstName }} {{ allocation.studentLastName }}</span>
                     <span class="student-email">{{ allocation.studentEmail }}</span>
@@ -176,46 +156,27 @@
               </td>
             </ng-container>
 
-            <!-- Student Email Column (hidden - merged into studentName) -->
-            <ng-container matColumnDef="studentEmail">
-              <th mat-header-cell *matHeaderCellDef>Email</th>
-              <td mat-cell *matCellDef="let allocation">
-                {{ allocation.studentEmail }}
-              </td>
-            </ng-container>
-
             <!-- Room Number Column -->
             <ng-container matColumnDef="roomNumber">
               <th mat-header-cell *matHeaderCellDef>Room</th>
               <td mat-cell *matCellDef="let allocation">
-                <div class="room-cell">
-                  <div class="room-icon">
-                    <mat-icon>meeting_room</mat-icon>
-                  </div>
-                  <span class="room-number">{{ allocation.roomNumber }}</span>
-                </div>
+                <span class="room-pill">{{ allocation.roomNumber }}</span>
               </td>
             </ng-container>
 
-            <!-- Building Name Column -->
+            <!-- Building Column -->
             <ng-container matColumnDef="buildingName">
               <th mat-header-cell *matHeaderCellDef>Building</th>
               <td mat-cell *matCellDef="let allocation">
-                <div class="building-cell">
-                  <mat-icon>apartment</mat-icon>
-                  <span>{{ allocation.buildingName }}</span>
-                </div>
+                <span class="building-value">{{ allocation.buildingName }}</span>
               </td>
             </ng-container>
 
-            <!-- Allocation Date Column -->
+            <!-- Allocated Date Column -->
             <ng-container matColumnDef="allocationDate">
               <th mat-header-cell *matHeaderCellDef>Allocated</th>
               <td mat-cell *matCellDef="let allocation">
-                <div class="date-cell">
-                  <mat-icon>calendar_today</mat-icon>
-                  <span>{{ allocation.allocationDate | date: 'MMM d, y' }}</span>
-                </div>
+                <span class="date-value">{{ allocation.allocationDate | date:'MMM d, y' }}</span>
               </td>
             </ng-container>
 
@@ -223,81 +184,94 @@
             <ng-container matColumnDef="status">
               <th mat-header-cell *matHeaderCellDef>Status</th>
               <td mat-cell *matCellDef="let allocation">
-                <span class="status-badge" [class]="getStatusClass(allocation.status)">
-                  <mat-icon>{{ getStatusIcon(allocation.status) }}</mat-icon>
-                  {{ allocation.status }}
-                </span>
+                <app-modern-status-badge [status]="allocation.status" size="sm"></app-modern-status-badge>
               </td>
             </ng-container>
 
             <!-- Actions Column -->
             <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let allocation">
-                  <div class="actions-cell">
-                  <button mat-icon-button
-                          (click)="checkIn(allocation)"
-                          [disabled]="allocation.status !== 'ACCEPTED'"
-                          matTooltip="Confirm Check-In"
-                          class="action-btn check-in"
-                          *ngIf="allocation.status === 'ACCEPTED'">
-                    <mat-icon>login</mat-icon>
+                <div class="actions-cell">
+
+                  @if (allocation.status === 'ACCEPTED') {
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      class="action-btn"
+                      (click)="checkIn(allocation)"
+                      matTooltip="Confirm check-in">
+                      <mat-icon>login</mat-icon>
+                      Check-In
+                    </button>
+                  }
+
+                  @if (allocation.status === 'ACTIVE') {
+                    <button
+                      mat-stroked-button
+                      class="action-btn action-btn-checkout"
+                      (click)="checkOut(allocation)"
+                      matTooltip="Confirm check-out">
+                      <mat-icon>logout</mat-icon>
+                      Check-Out
+                    </button>
+                  }
+
+                  <button
+                    mat-icon-button
+                    [matMenuTriggerFor]="actionMenu"
+                    matTooltip="More actions"
+                    aria-label="More actions">
+                    <mat-icon>more_vert</mat-icon>
                   </button>
-                  <button mat-icon-button
-                          (click)="checkOut(allocation)"
-                          [disabled]="allocation.status !== 'ACTIVE'"
-                          matTooltip="Confirm Check-Out"
-                          class="action-btn check-out"
-                          *ngIf="allocation.status === 'ACTIVE'">
-                    <mat-icon>logout</mat-icon>
-                  </button>
-                  <button mat-icon-button
-                          (click)="moveStudent(allocation)"
-                          [disabled]="allocation.status !== 'ACTIVE' && allocation.status !== 'ACCEPTED'"
-                          matTooltip="Move Student"
-                          class="action-btn move"
-                          *ngIf="allocation.status === 'ACTIVE' || allocation.status === 'ACCEPTED'">
-                    <mat-icon>transfer_within_a_station</mat-icon>
-                  </button>
-                  <button mat-icon-button
-                          (click)="deleteAllocation(allocation)"
-                          matTooltip="Delete Allocation"
-                          class="action-btn delete">
-                    <mat-icon>delete</mat-icon>
-                  </button>
+
+                  <mat-menu #actionMenu="matMenu">
+                    <button
+                      mat-menu-item
+                      (click)="moveStudent(allocation)"
+                      [disabled]="allocation.status !== 'ACTIVE' && allocation.status !== 'ACCEPTED'">
+                      <mat-icon>swap_horiz</mat-icon>
+                      <span>Move Student</span>
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item class="delete-menu-item" (click)="deleteAllocation(allocation)">
+                      <mat-icon>delete_outline</mat-icon>
+                      <span>Delete</span>
+                    </button>
+                  </mat-menu>
+
                 </div>
               </td>
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
           </table>
-
-          @if (allocations.length === 0) {
-            <div class="no-data">
-              <div class="no-data-icon">
-                <mat-icon>assignment_late</mat-icon>
-              </div>
-              <h3>No Allocations Found</h3>
-              <p>Start by allocating a room to a student.</p>
-              <button mat-raised-button color="primary" (click)="openAllocateDialog()">
-                <mat-icon>add</mat-icon>
-                Allocate First Room
-              </button>
-            </div>
-          }
         </div>
+
+        @if (allocations.length === 0) {
+          <app-empty-state
+            icon="meeting_room"
+            title="No Allocations Found"
+            description="No allocations match your current filters. Try adjusting the search or allocate a new room.">
+          </app-empty-state>
+        }
 
         @if (allocations.length > 0) {
           <mat-paginator
+            class="table-paginator"
             [length]="totalElements"
             [pageSize]="pageSize"
             [pageSizeOptions]="[10, 20, 50, 100]"
             (page)="onPageChange($event)"
-            showFirstLastButtons>
+            showFirstLastButtons
+            aria-label="Allocations pagination">
           </mat-paginator>
         }
+
       }
+
     </mat-card-content>
   </mat-card>
+
 </div>

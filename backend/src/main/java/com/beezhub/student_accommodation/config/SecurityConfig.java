@@ -37,7 +37,7 @@ public class SecurityConfig {
     private final RateLimitingFilter rateLimitingFilter;
 
     public SecurityConfig(
-            AppUserDetailsService userDetailsService, 
+            AppUserDetailsService userDetailsService,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             RateLimitingFilter rateLimitingFilter) {
         this.userDetailsService = userDetailsService;
@@ -52,10 +52,19 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp
-                                .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'")
-                        )
-                )
+                                .policyDirectives(
+                                        "default-src 'self'; " +
+                                                "script-src 'self' 'unsafe-inline'; " +
+                                                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                                                "font-src 'self' https://fonts.gstatic.com; " +
+                                                "img-src 'self' data: blob: https://tile.openstreetmap.org http://localhost:9000; "
+                                                +
+                                                "connect-src 'self' https://nominatim.openstreetmap.org http://localhost:9000; "
+                                                +
+                                                "frame-src 'none'; " +
+                                                "object-src 'none'")))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/signup",
@@ -63,10 +72,21 @@ public class SecurityConfig {
                                 "/api/auth/verify-reset-token",
                                 "/api/auth/reset-password",
                                 "/api/auth/verify-email",
-                                "/api/auth/resend-verification",
-                                "/api/building/maps-config")
+                                "/api/auth/resend-verification")
                         .permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/building",
+                                "/api/building/all",
+                                "/api/building/browse",
+                                "/api/building/search",
+                                "/api/building/{id}",
+                                "/api/building/by-institution/{institutionId}",
+                                "/api/building/{buildingId}/images",
+                                "/api/institution/all")
+                        .permitAll()
+                        .requestMatchers("/api/admin/**").hasAnyRole("PLATFORM_ADMIN", "TENANT_ADMIN")
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/swagger-ui.html").permitAll()
@@ -80,13 +100,14 @@ public class SecurityConfig {
 
     /**
      * Configure role hierarchy for the application.
-     * ADMIN has all privileges of LANDLORD and STUDENT
-     * LANDLORD has all privileges of STUDENT
+     * PLATFORM_ADMIN has all privileges of BUILDING_STAFF.
+     * STUDENT is an independent role and is NOT part of the management hierarchy.
+     * Endpoints accessible to both students and platform admins must use hasAnyRole('STUDENT', 'PLATFORM_ADMIN').
      */
     @Bean
     public RoleHierarchy roleHierarchy() {
-        // Use the static factory method instead of deprecated constructor
-        return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_LANDLORD \n ROLE_LANDLORD > ROLE_STUDENT");
+        return RoleHierarchyImpl.fromHierarchy(
+                "ROLE_PLATFORM_ADMIN > ROLE_TENANT_ADMIN\nROLE_PLATFORM_ADMIN > ROLE_BUILDING_STAFF");
     }
 
     /**
@@ -127,8 +148,15 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
-        // Allow all headers
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        // Explicitly list allowed headers — wildcard (*) is forbidden with allowCredentials=true per CORS spec
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "X-Silent-Error"
+        ));
 
         // Allow credentials (cookies, authorization headers)
         configuration.setAllowCredentials(true);

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -28,12 +28,12 @@ export interface RoomAttributesRequest {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class RoomAttributesService {
-  private apiUrl = `${environment.apiUrl}/admin/room-attributes`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/admin/room-attributes`;
 
   getAttributesByRoomId(roomId: number): Observable<RoomAttributesResponse> {
     return this.http.get<RoomAttributesResponse>(`${this.apiUrl}/room/${roomId}`);

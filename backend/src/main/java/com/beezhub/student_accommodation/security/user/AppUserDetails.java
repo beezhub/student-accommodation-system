@@ -14,12 +14,15 @@ public class AppUserDetails implements UserDetails {
     private final String role;
     private final Long tenantId;
 
-
     public AppUserDetails(String username, String password, String role, Long tenantId) {
         this.username = username;
         this.password = password;
         this.role = role;
         this.tenantId = tenantId;
+    }
+
+    public AppUserDetails(String username, String password, String role, Long tenantId, Long ignoredOwnerProfileId) {
+        this(username, password, role, tenantId);
     }
 
     public Long getTenantId() {

@@ -7,8 +7,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificationExecutor<Room> {
@@ -43,4 +45,31 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
     // Room counts by building
     @Query("SELECT COUNT(r) FROM Room r WHERE r.building.id = :buildingId")
     long countByBuildingId(@Param("buildingId") Long buildingId);
+
+    // Check for duplicate room number within a building (per-building uniqueness)
+    boolean existsByRoomNumberAndBuilding_Id(String roomNumber, Long buildingId);
+
+    // Batch check: return the subset of roomNumbers that already exist in a building (for bulk operations)
+    @Query("SELECT r.roomNumber FROM Room r WHERE r.building.id = :buildingId AND r.roomNumber IN :roomNumbers")
+    Set<String> findRoomNumbersByBuildingIdAndRoomNumberIn(@Param("buildingId") Long buildingId, @Param("roomNumbers") Collection<String> roomNumbers);
+
+    // Check for duplicate room number within a building, excluding a specific room (for updates)
+    boolean existsByRoomNumberAndBuilding_IdAndIdNot(String roomNumber, Long buildingId, Long excludeId);
+
+    // Find rooms that still have available capacity (capacity > active allocation count)
+    @Query("SELECT r FROM Room r WHERE r.capacity > " +
+           "(SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room.id = r.id AND ra.status IN ('ACTIVE', 'ACCEPTED', 'OFFERED'))")
+    List<Room> findRoomsWithAvailableCapacity();
+
+    // Pricing summary per building: [buildingId, minMonthlyRate, maxMonthlyRate]
+    @Query("SELECT r.building.id, MIN(r.monthlyRate), MAX(r.monthlyRate) " +
+           "FROM Room r WHERE r.building IS NOT NULL AND r.monthlyRate IS NOT NULL " +
+           "GROUP BY r.building.id")
+    List<Object[]> findPricingSummaryByBuilding();
+
+    // Available room count per building: [buildingId, availableCount]
+    @Query("SELECT r.building.id, COUNT(r) FROM Room r " +
+           "WHERE r.building IS NOT NULL AND r.status = 'AVAILABLE' " +
+           "GROUP BY r.building.id")
+    List<Object[]> findAvailableRoomCountByBuilding();
 }

@@ -19,11 +19,13 @@ export const tokenExpiryInterceptor: HttpInterceptorFn = (req, next) => {
     '/api/auth/reset-password',
     '/api/auth/verify-email',
     '/api/auth/resend-verification',
+    '/api/public/owner/',
   ];
 
   const isPublicEndpoint = publicEndpoints.some((endpoint) => req.url.includes(endpoint));
 
-  if (!isPublicEndpoint && !tokenStorage.isTokenValid()) {
+  const token = tokenStorage.getToken();
+  if (!isPublicEndpoint && token && !tokenStorage.isTokenValid()) {
     authService.logout();
     router.navigate(['/login']);
     return throwError(() => new Error('Token expired'));

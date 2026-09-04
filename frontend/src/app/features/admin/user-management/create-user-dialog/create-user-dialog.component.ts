@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -12,6 +12,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { AuthService } from '../../../../core/services/auth.service';
+import { TenantService, Tenant } from '../../../../core/services/tenant.service';
 
 @Component({
   selector: 'app-create-user-dialog',
@@ -31,23 +33,53 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class CreateUserDialogComponent {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<CreateUserDialogComponent>>(MatDialogRef);
+  private adminService = inject(AdminService);
+  private snackBar = inject(MatSnackBar);
+
   createUserForm: FormGroup;
   isSubmitting = false;
   hidePassword = true;
+  isPlatformAdmin = false;
+  tenants: Tenant[] = [];
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<CreateUserDialogComponent>,
-    private adminService: AdminService,
-    private snackBar: MatSnackBar
-  ) {
+  readonly availableRoles: string[] = ['PLATFORM_ADMIN', 'ADMIN', 'BUILDING_STAFF'];
+
+  private authService = inject(AuthService);
+  private tenantService = inject(TenantService);
+
+  constructor() {
+    this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
     this.createUserForm = this.fb.group({
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
-      userRole: ['LANDLORD', [Validators.required]],
+      userRole: ['BUILDING_OWNER', [Validators.required]],
     });
+
+    if (this.isPlatformAdmin) {
+      this.createUserForm.addControl('tenantId', this.fb.control(null, [Validators.required]));
+      this.tenantService.getAllTenants().subscribe({
+        next: (tenants) => (this.tenants = tenants),
+        error: () => this.snackBar.open('Failed to load tenants', 'Close', { duration: 3000 }),
+      });
+    }
+  }
+
+  get availableTenantsForRole(): Tenant[] {
+    const role = this.createUserForm.get('userRole')?.value;
+    if (role === 'ADMIN') {
+      return this.tenants.filter((t) => t.id !== 0);
+    }
+    return this.tenants;
+  }
+
+  get showTenantScopeWarning(): boolean {
+    const role = this.createUserForm.get('userRole')?.value;
+    const tenantId = this.createUserForm.get('tenantId')?.value;
+    return role === 'ADMIN' && tenantId === 0;
   }
 
   onSubmit(): void {
@@ -55,7 +87,7 @@ export class CreateUserDialogComponent {
       this.isSubmitting = true;
 
       this.adminService.createUser(this.createUserForm.value).subscribe({
-        next: (user) => {
+        next: () => {
           this.isSubmitting = false;
           this.snackBar.open('User created successfully!', 'Close', {
             duration: 3000,

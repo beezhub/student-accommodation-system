@@ -2,26 +2,30 @@
 @use '@angular/material' as mat;
 @use 'styles/variables' as vars;
 @use 'styles/mixins' as mixins;
+@include mat.elevation-classes;
+@include mat.app-background;
 
-@include mat.elevation-classes();
-@include mat.app-background();
-
-$app-theme: mat.define-theme((color: (theme-type: light,
-        primary: mat.$azure-palette,
-        tertiary: mat.$orange-palette,
-      ),
-      typography: (brand-family: vars.$font-sans,
-        plain-family: vars.$font-sans,
-      ),
-      density: (scale: 0,
-      )));
+$app-theme: mat.define-theme(
+  (
+    color: (
+      theme-type: light,
+      primary: mat.$azure-palette,
+      tertiary: mat.$orange-palette,
+    ),
+    typography: (
+      brand-family: vars.$font-sans,
+      plain-family: vars.$font-sans,
+    ),
+    density: (
+      scale: 0,
+    ),
+  )
+);
 
 html {
   @include mat.all-component-themes($app-theme);
-}
 
-// Customizations
-html {
+  // Customizations
   --mat-button-filled-label-text-font: #{vars.$font-sans};
   --mat-button-outlined-label-text-font: #{vars.$font-sans};
   --mat-button-text-label-text-font: #{vars.$font-sans};
@@ -30,26 +34,30 @@ html {
 // Custom Material component styles
 .mat-mdc-card {
   @include mixins.card-base;
-  border: 1px solid rgba(vars.$slate-200, 0.6);
-  backdrop-filter: blur(10px);
-  transition: all 0.5s vars.$motion-spring !important;
+
+  border: 1px solid var(--glass-border) !important;
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  box-shadow: var(--glass-shadow) !important;
+  transition: all 0.4s vars.$motion-spring !important;
 }
 
 .mat-mdc-card:hover {
-  transform: translateY(-4px);
-  box-shadow: vars.$shadow-elevated !important;
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px rgb(31 38 135 / 12%) !important;
+  border-color: rgb(255 255 255 / 100%) !important;
 }
 
 .mat-mdc-button,
 .mat-mdc-raised-button,
 .mat-mdc-outlined-button,
 .mat-mdc-unelevated-button {
-  border-radius: vars.$radius-md !important;
+  border-radius: vars.$radius-pill !important;
   font-weight: 600 !important;
   letter-spacing: 0.02em !important;
   text-transform: none !important;
   min-height: 48px !important;
-  padding: 0 20px !important;
+  padding: 0 24px !important;
 }
 
 .mat-mdc-raised-button {

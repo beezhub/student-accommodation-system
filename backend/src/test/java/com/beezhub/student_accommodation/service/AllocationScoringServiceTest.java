@@ -40,7 +40,7 @@ class AllocationScoringServiceTest {
     private RoomAllocationRepository roomAllocationRepository;
 
     @InjectMocks
-    private AllocationScoringService allocationScoringService;
+    private LegacyScoringStrategy allocationScoringService;
 
     private Student student;
     private Application application;
@@ -63,6 +63,7 @@ class AllocationScoringServiceTest {
         room.setRoomNumber("101");
         room.setCapacity(2);
         room.setBuilding(building);
+        room.setStatus("AVAILABLE");
 
         application = new Application();
         application.setId(1L);
@@ -79,8 +80,9 @@ class AllocationScoringServiceTest {
         when(roomRepository.findAll()).thenReturn(Collections.singletonList(room));
         when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
         when(allocationRuleRepository.findByBuilding_IdAndActiveTrue(1L)).thenReturn(Collections.singletonList(allocationRule));
-        when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
-        when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
+        when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
+        when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
+        when(roomAllocationRepository.hasStudentDeclinedRoom(anyLong(), anyLong())).thenReturn(false);
 
         List<ScoredRoom> scores = allocationScoringService.scoreAvailableRooms(student, application, null);
 
@@ -147,8 +149,8 @@ class AllocationScoringServiceTest {
         // Given: Student has declined this room
         when(roomRepository.findAll()).thenReturn(Collections.singletonList(room));
         when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
-        when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
-        when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
+        when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
+        when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(true);
 
         // When: Scoring available rooms
@@ -470,6 +472,7 @@ class AllocationScoringServiceTest {
         room2.setRoomNumber("102");
         room2.setCapacity(2);
         room2.setBuilding(building);
+        room2.setStatus("AVAILABLE");
 
         Application earlierApp = new Application();
         earlierApp.setId(1L);
@@ -480,8 +483,8 @@ class AllocationScoringServiceTest {
         when(roomAllocationRepository.countActiveAllocationsByRoomId(anyLong())).thenReturn(0L);
         when(allocationRuleRepository.findByBuilding_IdAndActiveTrue(1L))
                 .thenReturn(Collections.singletonList(allocationRule));
-        when(roomAttributesRepository.findByRoom_Id(anyLong())).thenReturn(Optional.empty());
-        when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
+        when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
+        when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
         when(roomAllocationRepository.hasStudentDeclinedRoom(anyLong(), anyLong())).thenReturn(false);
 
         // When: Scoring available rooms
@@ -780,6 +783,7 @@ class AllocationScoringServiceTest {
         eligibleRoom.setRoomNumber("102");
         eligibleRoom.setCapacity(2);
         eligibleRoom.setBuilding(building);
+        eligibleRoom.setStatus("AVAILABLE");
 
         RoomAttributes room1Attrs = new RoomAttributes();
         room1Attrs.setGenderRestriction(GenderRestriction.FEMALE_ONLY);

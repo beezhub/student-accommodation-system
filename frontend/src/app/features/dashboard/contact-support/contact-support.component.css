@@ -8,17 +8,17 @@
 
 .contact-support-container {
   max-width: 480px;
-  margin: 48px auto 0 auto;
+  margin: 48px auto 0;
   padding: 0 16px;
 }
 
 .contact-support-card {
   border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.10), 0 6px 20px rgba(0,0,0,0.08);
-  background: rgba(255,255,255,0.98);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 10%), 0 6px 20px rgb(0 0 0 / 8%);
+  background: rgb(255 255 255 / 98%);
   backdrop-filter: blur(8px);
   overflow: hidden;
-  animation: slideUp 0.6s cubic-bezier(0.4,0,0.2,1);
+  animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 mat-card-title {
@@ -62,13 +62,13 @@ mat-card-title {
   font-size: 1rem;
   background: linear-gradient(90deg, #2563eb 0%, #1e40af 100%);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.10);
+  box-shadow: 0 2px 8px rgb(37 99 235 / 10%);
   transition: background 0.2s, box-shadow 0.2s;
 }
 
 .send-button:hover {
   background: linear-gradient(90deg, #1e40af 0%, #2563eb 100%);
-  box-shadow: 0 4px 16px rgba(37,99,235,0.15);
+  box-shadow: 0 4px 16px rgb(37 99 235 / 15%);
 }
 
 .success-message {
@@ -83,7 +83,7 @@ mat-card-title {
   padding: 18px 20px;
   margin-top: 24px;
   justify-content: center;
-  animation: fadeIn 0.5s cubic-bezier(0.4,0,0.2,1);
+  animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .snackbar-success {
@@ -94,13 +94,25 @@ mat-card-title {
 }
 
 @keyframes slideUp {
-  from { transform: translateY(40px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 600px) {
@@ -108,9 +120,11 @@ mat-card-title {
     max-width: 100%;
     padding: 0 4px;
   }
+
   .contact-support-card {
     border-radius: 12px;
   }
+
   mat-card-title {
     font-size: 1.2rem;
   }

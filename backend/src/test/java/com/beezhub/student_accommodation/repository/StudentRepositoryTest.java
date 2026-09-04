@@ -5,16 +5,12 @@ import com.beezhub.student_accommodation.model.entity.Institution;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.entity.YearOfStudy;
 import com.beezhub.student_accommodation.model.enums.UserRole;
+import com.beezhub.student_accommodation.AbstractJpaTest;
 import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,10 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for StudentRepository EntityGraph methods.
  * Verifies that lazy loading is configured correctly and entity graphs work as expected.
  */
-@DataJpaTest
-@ActiveProfiles("test")
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class StudentRepositoryTest {
+class StudentRepositoryTest extends AbstractJpaTest {
 
     @Autowired
     private StudentRepository studentRepository;
@@ -283,7 +276,7 @@ class StudentRepositoryTest {
         AppUser user = entityManager.find(AppUser.class, testUser.getId());
 
         // When
-        Optional<Student> result = studentRepository.findStudentByAppUser(user);
+        Optional<Student> result = studentRepository.findByAppUser(user);
 
         // Then
         assertTrue(result.isPresent(), "Student should be found by AppUser");

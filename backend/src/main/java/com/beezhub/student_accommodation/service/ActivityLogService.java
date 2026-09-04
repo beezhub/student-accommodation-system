@@ -75,6 +75,19 @@ public class ActivityLogService {
     }
 
     /**
+     * Get a specific activity log by ID
+     */
+    @Transactional(readOnly = true)
+    public ActivityLogResponse getActivityLogById(Long id) {
+        log.debug("Fetching activity log with ID: {}", id);
+
+        ActivityLog logEntry = activityLogRepository.findById(id)
+                .orElseThrow(() -> new com.beezhub.student_accommodation.exceptions.ResourceNotFoundException("ActivityLog not found with id: " + id));
+
+        return mapToResponse(logEntry);
+    }
+
+    /**
      * Export activity logs to CSV
      */
     @Transactional(readOnly = true)

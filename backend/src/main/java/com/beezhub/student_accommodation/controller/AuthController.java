@@ -143,4 +143,18 @@ public class AuthController {
                 authService.deleteAccount(request, authentication);
                 return ResponseEntity.noContent().build();
         }
+
+        @Operation(
+                summary = "Anonymise a user account (admin)",
+                description = "Replaces all PII for the specified user with placeholder values. "
+                        + "The account is retained for referential integrity but the user can no longer log in. "
+                        + "Use this instead of delete when GDPR erasure is required while preserving audit trails."
+        )
+        @ApiResponse(responseCode = "204", description = "Account anonymised successfully")
+        @PostMapping("/admin/anonymize/{userId}")
+        @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+        public ResponseEntity<Void> anonymizeAccount(@PathVariable Long userId) {
+                authService.anonymizeAccount(userId);
+                return ResponseEntity.noContent().build();
+        }
 }

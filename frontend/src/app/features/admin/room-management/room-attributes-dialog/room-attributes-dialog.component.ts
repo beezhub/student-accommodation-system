@@ -1,11 +1,7 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import {
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-  MatDialogModule,
-} from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -20,7 +16,7 @@ import {
   RoomAttributesService,
   RoomAttributesResponse,
   RoomAttributesRequest,
-  GenderRestriction
+  GenderRestriction,
 } from '../../../../core/services/room-attributes.service';
 import { YearOfStudyService } from '../../../../core/services/year-of-study.service';
 
@@ -45,12 +41,19 @@ export interface RoomAttributesDialogData {
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatSliderModule
+    MatSliderModule,
   ],
   templateUrl: './room-attributes-dialog.component.html',
-  styleUrls: ['./room-attributes-dialog.component.css']
+  styleUrls: ['./room-attributes-dialog.component.css'],
 })
 export class RoomAttributesDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<RoomAttributesDialogComponent>>(MatDialogRef);
+  data = inject<RoomAttributesDialogData>(MAT_DIALOG_DATA);
+  private roomAttributesService = inject(RoomAttributesService);
+  private yearOfStudyService = inject(YearOfStudyService);
+  private snackBar = inject(MatSnackBar);
+
   attributesForm: FormGroup;
   isLoading = true;
   isSaving = false;
@@ -59,26 +62,19 @@ export class RoomAttributesDialogComponent implements OnInit {
   genderOptions: { value: GenderRestriction; label: string; icon: string }[] = [
     { value: 'ANY', label: 'No Restriction (Any Gender)', icon: 'people' },
     { value: 'FEMALE_ONLY', label: 'Female Only', icon: 'female' },
-    { value: 'MALE_ONLY', label: 'Male Only', icon: 'male' }
+    { value: 'MALE_ONLY', label: 'Male Only', icon: 'male' },
   ];
 
   yearOptions: { value: number; label: string }[] = [];
   isLoadingYears = false;
   unparseableYears: string[] = []; // Years that couldn't be converted to numbers
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<RoomAttributesDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: RoomAttributesDialogData,
-    private roomAttributesService: RoomAttributesService,
-    private yearOfStudyService: YearOfStudyService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.attributesForm = this.fb.group({
       accessibilityCompliant: [false],
       genderRestriction: ['ANY'],
       minYearOfStudy: [null],
-      maxYearOfStudy: [null]
+      maxYearOfStudy: [null],
     });
   }
 
@@ -95,7 +91,7 @@ export class RoomAttributesDialogComponent implements OnInit {
         const parsedYears: { value: number; label: string }[] = [];
 
         // Parse year strings to numbers (handles both numeric and word formats)
-        years.forEach(y => {
+        years.forEach((y) => {
           const parsed = this.parseYearOfStudy(y.yearOfStudy);
           if (parsed !== null && parsed > 0) {
             parsedYears.push({ value: parsed, label: y.yearOfStudy });
@@ -107,7 +103,7 @@ export class RoomAttributesDialogComponent implements OnInit {
 
         // Remove duplicates by value and sort
         const uniqueMap = new Map<number, { value: number; label: string }>();
-        parsedYears.forEach(y => {
+        parsedYears.forEach((y) => {
           if (!uniqueMap.has(y.value)) {
             uniqueMap.set(y.value, y);
           }
@@ -125,10 +121,10 @@ export class RoomAttributesDialogComponent implements OnInit {
           { value: 4, label: '4th Year' },
           { value: 5, label: '5th Year' },
           { value: 6, label: '6th Year' },
-          { value: 7, label: '7th Year' }
+          { value: 7, label: '7th Year' },
         ];
         this.isLoadingYears = false;
-      }
+      },
     });
   }
 
@@ -147,16 +143,36 @@ export class RoomAttributesDialogComponent implements OnInit {
 
     // Word to number mapping
     const wordMap: { [key: string]: number } = {
-      'first': 1, 'one': 1, '1st': 1,
-      'second': 2, 'two': 2, '2nd': 2,
-      'third': 3, 'three': 3, '3rd': 3,
-      'fourth': 4, 'four': 4, '4th': 4,
-      'fifth': 5, 'five': 5, '5th': 5,
-      'sixth': 6, 'six': 6, '6th': 6,
-      'seventh': 7, 'seven': 7, '7th': 7,
-      'eighth': 8, 'eight': 8, '8th': 8,
-      'ninth': 9, 'nine': 9, '9th': 9,
-      'tenth': 10, 'ten': 10, '10th': 10
+      first: 1,
+      one: 1,
+      '1st': 1,
+      second: 2,
+      two: 2,
+      '2nd': 2,
+      third: 3,
+      three: 3,
+      '3rd': 3,
+      fourth: 4,
+      four: 4,
+      '4th': 4,
+      fifth: 5,
+      five: 5,
+      '5th': 5,
+      sixth: 6,
+      six: 6,
+      '6th': 6,
+      seventh: 7,
+      seven: 7,
+      '7th': 7,
+      eighth: 8,
+      eight: 8,
+      '8th': 8,
+      ninth: 9,
+      nine: 9,
+      '9th': 9,
+      tenth: 10,
+      ten: 10,
+      '10th': 10,
     };
 
     // Check each word in the string against the map
@@ -184,7 +200,7 @@ export class RoomAttributesDialogComponent implements OnInit {
           accessibilityCompliant: attributes.accessibilityCompliant || false,
           genderRestriction: attributes.genderRestriction || 'ANY',
           minYearOfStudy: attributes.minYearOfStudy || null,
-          maxYearOfStudy: attributes.maxYearOfStudy || null
+          maxYearOfStudy: attributes.maxYearOfStudy || null,
         });
         this.isLoading = false;
       },
@@ -196,9 +212,9 @@ export class RoomAttributesDialogComponent implements OnInit {
           accessibilityCompliant: false,
           genderRestriction: 'ANY',
           minYearOfStudy: null,
-          maxYearOfStudy: null
+          maxYearOfStudy: null,
         });
-      }
+      },
     });
   }
 
@@ -207,9 +223,14 @@ export class RoomAttributesDialogComponent implements OnInit {
 
     // Validate year range
     const formValue = this.attributesForm.value;
-    if (formValue.minYearOfStudy && formValue.maxYearOfStudy &&
-        formValue.minYearOfStudy > formValue.maxYearOfStudy) {
-      this.snackBar.open('Minimum year cannot be greater than maximum year', 'Close', { duration: 3000 });
+    if (
+      formValue.minYearOfStudy &&
+      formValue.maxYearOfStudy &&
+      formValue.minYearOfStudy > formValue.maxYearOfStudy
+    ) {
+      this.snackBar.open('Minimum year cannot be greater than maximum year', 'Close', {
+        duration: 3000,
+      });
       return;
     }
 
@@ -220,7 +241,7 @@ export class RoomAttributesDialogComponent implements OnInit {
       accessibilityCompliant: formValue.accessibilityCompliant,
       genderRestriction: formValue.genderRestriction,
       minYearOfStudy: formValue.minYearOfStudy || null,
-      maxYearOfStudy: formValue.maxYearOfStudy || null
+      maxYearOfStudy: formValue.maxYearOfStudy || null,
     };
 
     this.roomAttributesService.saveAttributes(request).subscribe({
@@ -233,7 +254,7 @@ export class RoomAttributesDialogComponent implements OnInit {
         console.error('Failed to save attributes', err);
         this.snackBar.open('Failed to save attributes', 'Close', { duration: 3000 });
         this.isSaving = false;
-      }
+      },
     });
   }
 
@@ -243,7 +264,7 @@ export class RoomAttributesDialogComponent implements OnInit {
 
   getYearLabel(value: number | null): string {
     if (value === null) return '';
-    const year = this.yearOptions.find(y => y.value === value);
+    const year = this.yearOptions.find((y) => y.value === value);
     return year ? year.label : `Year ${value}`;
   }
 }

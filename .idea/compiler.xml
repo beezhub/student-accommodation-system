@@ -14,9 +14,9 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="student-accommodation" options="-parameters" />
-      <module name="student-accommodation.main" options="-parameters" />
-      <module name="student-accommodation.test" options="-parameters" />
+      <module name="student-accommodation" options="-parameters --enable-preview" />
+      <module name="student-accommodation.main" options="-parameters --enable-preview" />
+      <module name="student-accommodation.test" options="-parameters --enable-preview" />
     </option>
   </component>
 </project>

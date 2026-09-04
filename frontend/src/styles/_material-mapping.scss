@@ -1,13 +1,17 @@
-$theme: mat.define-light-theme((color: (primary: $primary-palette,
-        accent: $accent-palette,
-        warn: $warn-palette,
-      ),
-      typography: mat.define-typography-config(),
-    ));
+$theme: mat.define-light-theme(
+  (
+    color: (
+      primary: $primary-palette,
+      accent: $accent-palette,
+      warn: $warn-palette,
+    ),
+    typography: mat.define-typography-config(),
+  )
+);
 
 // Export a mixin to include in the app
 @mixin app-material-theme() {
-  @include mat.elevation-classes();
-  @include mat.app-background();
+  @include mat.elevation-classes;
+  @include mat.app-background;
   @include mat.all-component-themes($theme);
 }

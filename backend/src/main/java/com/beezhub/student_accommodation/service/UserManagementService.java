@@ -8,6 +8,7 @@ import com.beezhub.student_accommodation.model.dto.UserData;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,17 +36,22 @@ public class UserManagementService {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
 
-        // Validate role is ADMIN or LANDLORD (also validated in mapper)
+        // Validate role is admin-creatable
         UserRole role = UserRole.enumRoleOf(request.getUserRole());
-        if (role != UserRole.ADMIN && role != UserRole.LANDLORD) {
-            throw new IllegalArgumentException("Can only create ADMIN or LANDLORD users");
-        }
+        validateAdminCreatableRole(role, request.getTenantId());
 
         // Create user entity
         AppUser user = appUserMapper.toEntityFromAdminRequest(
             request,
             passwordEncoder.encode(request.getPassword())
         );
+
+        // Assign tenant
+        if (request.getTenantId() != null) {
+            user.setTenantId(request.getTenantId());
+        } else if (TenantContext.getTenantId() != null) {
+            user.setTenantId(TenantContext.getTenantId());
+        }
 
         // Save and return
         AppUser savedUser = userRepository.save(user);
@@ -74,8 +80,8 @@ public class UserManagementService {
             .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         // Prevent deleting the last admin
-        if (user.getUserRole() == UserRole.ADMIN) {
-            long adminCount = userRepository.countByUserRole(UserRole.ADMIN);
+        if (user.getUserRole().isAdmin()) {
+            long adminCount = userRepository.countByUserRole(UserRole.PLATFORM_ADMIN);
             if (adminCount <= 1) {
                 throw new IllegalStateException("Cannot delete the last admin user");
             }
@@ -83,5 +89,27 @@ public class UserManagementService {
 
         userRepository.deleteById(userId);
         log.info("User deleted: {}", userId);
+    }
+
+    /**
+     * Validates that the given role is admin-creatable and that tenant scoping rules are met.
+     *
+     * <ul>
+     *   <li>{@code STUDENT} — never admin-creatable</li>
+     *   <li>{@code ADMIN} — allowed, but must be scoped to a non-platform tenant (tenantId != 0)</li>
+     *   <li>{@code PLATFORM_ADMIN}, {@code BUILDING_STAFF} — no tenant restriction</li>
+     * </ul>
+     */
+    private void validateAdminCreatableRole(UserRole role, Long tenantId) {
+        if (role == UserRole.STUDENT) {
+            throw new IllegalArgumentException(
+                    "Invalid role for admin creation. Allowed: PLATFORM_ADMIN, ADMIN, BUILDING_STAFF");
+        }
+        if (role == UserRole.ADMIN) {
+            if (tenantId == null || tenantId == 0L) {
+                throw new IllegalArgumentException(
+                        "Tenant admins must be scoped to a specific institution tenant");
+            }
+        }
     }
 }

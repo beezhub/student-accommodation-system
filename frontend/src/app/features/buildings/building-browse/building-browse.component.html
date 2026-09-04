@@ -1,0 +1,256 @@
+<div class="browse-page">
+
+  <!-- ══════════════════════════════════════════════════════
+       PAGE HERO (with embedded search)
+  ══════════════════════════════════════════════════════ -->
+  <div class="page-hero">
+    <div class="hero-inner">
+      <h1 class="hero-title">Find Your Accommodation</h1>
+      <p class="hero-subtitle">
+        Browse available student buildings — no account needed
+      </p>
+
+      <div class="hero-search">
+        <div class="search-box">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input
+            type="text"
+            class="search-input"
+            [(ngModel)]="filters.search"
+            (ngModelChange)="onSearchInput()"
+            placeholder="Search by name or location…"
+            aria-label="Search buildings"
+          />
+          @if (filters.search) {
+            <button class="clear-btn" (click)="clearSearch()" aria-label="Clear search">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="hero-meta">
+        @if (!isLoading) {
+          <span class="result-count">
+            {{ totalElements }} building{{ totalElements !== 1 ? 's' : '' }}
+          </span>
+        }
+        <a routerLink="/login" class="signin-link">
+          Sign in to apply
+          <mat-icon>arrow_forward</mat-icon>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       FILTER BAR
+  ══════════════════════════════════════════════════════ -->
+  <div class="filter-bar">
+    <div class="filter-bar-inner">
+      <button
+        class="filter-toggle-btn"
+        (click)="toggleFilters()"
+        [class.active]="filtersVisible"
+        [attr.aria-expanded]="filtersVisible"
+        aria-controls="filter-panel">
+        <mat-icon>tune</mat-icon>
+        Filters
+        @if (activeFilterCount > 0) {
+          <span class="filter-badge" [attr.aria-label]="activeFilterCount + ' active filters'">{{ activeFilterCount }}</span>
+        }
+      </button>
+
+      @if (activeFilterCount > 0) {
+        <button class="clear-filters-btn" (click)="clearFilters()">
+          <mat-icon>close</mat-icon>
+          Clear filters
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       COLLAPSIBLE FILTER PANEL
+  ══════════════════════════════════════════════════════ -->
+  @if (filtersVisible) {
+    <div class="filter-panel" id="filter-panel" role="search" aria-label="Building filters">
+      <div class="filter-panel-inner">
+
+        <div class="filter-group">
+          <label class="filter-label" for="minPrice">Min Price (R)</label>
+          <input
+            id="minPrice"
+            type="number"
+            class="filter-input"
+            [(ngModel)]="filters.minPrice"
+            placeholder="e.g. 1500"
+            min="0"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="maxPrice">Max Price (R)</label>
+          <input
+            id="maxPrice"
+            type="number"
+            class="filter-input"
+            [(ngModel)]="filters.maxPrice"
+            placeholder="e.g. 5000"
+            min="0"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="institution">Institution</label>
+          <select
+            id="institution"
+            class="filter-select"
+            [(ngModel)]="filters.institutionId"
+          >
+            <option [ngValue]="null">All institutions</option>
+            @for (inst of institutions; track inst.id) {
+              <option [ngValue]="inst.id">{{ inst.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filter-group filter-group-toggle">
+          <label class="filter-label">Availability</label>
+          <mat-slide-toggle
+            [(ngModel)]="filters.available"
+            (change)="applyFilters()"
+            aria-label="Show only available buildings">
+            Available only
+          </mat-slide-toggle>
+        </div>
+
+        <div class="filter-actions">
+          <button mat-raised-button color="primary" (click)="applyFilters()">
+            <mat-icon>search</mat-icon>
+            Apply
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       LOADING (initial)
+  ══════════════════════════════════════════════════════ -->
+  @if (isLoading) {
+    <div class="loading-wrap">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading buildings…</p>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       ERROR
+  ══════════════════════════════════════════════════════ -->
+  @if (error) {
+    <div class="error-wrap">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error }}</p>
+      <button mat-stroked-button (click)="loadBuildings(false)">
+        <mat-icon>refresh</mat-icon>
+        Retry
+      </button>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       BUILDINGS GRID
+  ══════════════════════════════════════════════════════ -->
+  @if (!isLoading && !error) {
+    <div class="grid-section">
+      @if (buildings.length === 0) {
+        <div class="empty-state">
+          <mat-icon>search_off</mat-icon>
+          <h3>No buildings found</h3>
+          <p>Try adjusting your search or filters.</p>
+          @if (filters.search || activeFilterCount > 0) {
+            <button mat-stroked-button (click)="clearFilters(); clearSearch()">Clear all</button>
+          }
+        </div>
+      } @else {
+        <div class="buildings-grid">
+          @for (building of buildings; track building.id) {
+            <a class="building-card" [routerLink]="['/buildings', building.id]">
+              <!-- Image -->
+              <div class="card-image">
+                @if (building.primaryImageUrl) {
+                  <img [src]="building.primaryImageUrl" [alt]="building.name" loading="lazy" />
+                } @else {
+                  <div class="placeholder-img">
+                    <mat-icon>apartment</mat-icon>
+                  </div>
+                }
+                @if (building.images && building.images.length > 1) {
+                  <span class="image-count">
+                    <mat-icon>photo_library</mat-icon>
+                    {{ building.images.length }}
+                  </span>
+                }
+                @if (building.institutions && building.institutions.length > 0) {
+                  <div class="card-institutions">
+                    @for (inst of building.institutions; track inst.id) {
+                      <span class="inst-chip">{{ inst.name }}</span>
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- Info -->
+              <div class="card-body">
+                <h2 class="card-title">{{ building.name }}</h2>
+                @if (building.address) {
+                  <div class="card-location">
+                    <mat-icon>location_on</mat-icon>
+                    <span>{{ building.address }}</span>
+                  </div>
+                }
+
+                <!-- Pricing -->
+                <div class="card-price">
+                  <mat-icon>payments</mat-icon>
+                  <span>{{ getPriceDisplay(building) }}</span>
+                </div>
+
+                <!-- Availability -->
+                <div class="card-availability" [class]="getAvailabilityClass(building)">
+                  <span class="avail-dot"></span>
+                  <span>{{ getAvailabilityText(building) }}</span>
+                </div>
+
+                <!-- Capacity type chips -->
+                @if (getCapacityTypes(building).length > 0) {
+                  <div class="card-chips">
+                    @for (type of getCapacityTypes(building); track type) {
+                      <span class="capacity-chip">{{ type }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            </a>
+          }
+        </div>
+
+        <!-- Load More -->
+        @if (hasMore) {
+          <div class="load-more-wrap">
+            @if (isLoadingMore) {
+              <mat-spinner diameter="32"></mat-spinner>
+            } @else {
+              <button mat-stroked-button class="load-more-btn" (click)="loadMore()">
+                Load more buildings
+              </button>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+
+</div>

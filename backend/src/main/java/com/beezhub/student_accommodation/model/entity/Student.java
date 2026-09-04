@@ -14,12 +14,15 @@ public class Student {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "student_number", unique = true, nullable = false)
+    @Column(name = "student_number", unique = true, nullable = true)
     private String studentNumber;
     @Column(name = "phone_number")
     private String phoneNumber;
+    @Temporal(TemporalType.DATE)
     @Column(name="date_of_birth")
     private Date dateOfBirth;
+    
+    @Temporal(TemporalType.DATE)
     @Column(name = "registration_date")
     private Date registrationDate;
     @Column(name = "gender")

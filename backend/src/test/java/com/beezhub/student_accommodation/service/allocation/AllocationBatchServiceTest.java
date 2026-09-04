@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.config.FF4jConfig;
+import com.beezhub.student_accommodation.service.FeatureFlagService;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationResult;
 import com.beezhub.student_accommodation.model.dto.ScoredRoom;
@@ -8,12 +9,13 @@ import com.beezhub.student_accommodation.model.dto.WaitingListEntryResponse;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.ff4j.FF4j;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
+import org.mockito.Answers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -54,7 +56,7 @@ class AllocationBatchServiceTest {
     @Mock
     private BuildingRepository buildingRepository;
     @Mock
-    private AllocationScoringService allocationScoringService;
+    private LegacyScoringStrategy allocationScoringService;
     @Mock
     private AllocationLifecycleService allocationLifecycleService;
     @Mock
@@ -70,13 +72,15 @@ class AllocationBatchServiceTest {
     @Mock
     private AllocationScoringOrchestrator allocationScoringOrchestrator;
     @Mock
-    private FF4j ff4j;
+    private FeatureFlagService featureFlagService;
     @Mock
     private TransactionTemplate transactionTemplate;
     @Mock
     private Environment environment;
     @Mock
     private ObjectMapper objectMapper;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private MeterRegistry meterRegistry;
 
     @InjectMocks
     private AllocationBatchService allocationBatchService;
@@ -89,7 +93,7 @@ class AllocationBatchServiceTest {
             return callback.doInTransaction(mock(TransactionStatus.class));
         });
         
-        lenient().when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
+        lenient().when(featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
         lenient().when(allocationLifecycleService.createRoomAllocation(any())).thenReturn(new com.beezhub.student_accommodation.model.dto.RoomAllocationResponse());
     }
 
@@ -219,7 +223,7 @@ class AllocationBatchServiceTest {
     @Test
     void allocateNextFromWaitingList_shouldSkipWhenFeatureDisabled() {
         // Given
-        when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(false);
+        when(featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(false);
 
         // Act
         allocationBatchService.allocateNextFromWaitingList();
@@ -231,8 +235,8 @@ class AllocationBatchServiceTest {
 
     @Test
     void allocateNextFromWaitingList_shouldSkipDeclinedRooms() {
-        // Given: FF4j auto-allocation is enabled
-        when(ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
+        // Given: auto-allocation is enabled
+        when(featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
 
         // And: Student on waiting list
         Student student = new Student();
@@ -255,5 +259,45 @@ class AllocationBatchServiceTest {
         // Then
         verify(allocationLifecycleService, never()).createRoomAllocation(any());
         verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
+    }
+
+    @Test
+    void batchAllocate_nullPreferredBuilding_stillAllocates() {
+        // Application has no preferred building — allocation should proceed normally
+        Student student = new Student();
+        student.setId(1L);
+        Application application = new Application();
+        application.setId(10L);
+        application.setStudent(student);
+        application.setStatus(ApplicationStatus.APPROVED);
+        application.setPreferredBuilding(null); // explicitly no preference
+
+        WaitingListEntry entry = new WaitingListEntry();
+        entry.setStudent(student);
+        entry.setApplication(application);
+        entry.setStatus("WAITING");
+
+        Room room = new Room();
+        room.setId(100L);
+        room.setCapacity(1);
+        room.setCurrentOccupancy(0);
+
+        ScoredRoom scoredRoom = ScoredRoom.builder()
+                .roomId(100L)
+                .totalScore(new BigDecimal("100.0"))
+                .build();
+
+        when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
+        when(allocationScoringOrchestrator.buildScoringMatrix(any()))
+                .thenReturn(java.util.Map.of(1L, List.of(scoredRoom)));
+        when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(room));
+        when(allocationScoringOrchestrator.buildRoomCapacityMap(any()))
+                .thenReturn(new java.util.HashMap<>(java.util.Map.of(100L, 1)));
+
+        BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(10);
+
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(0, result.getFailureCount());
+        verify(allocationLifecycleService).createRoomAllocation(any());
     }
 }

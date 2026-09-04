@@ -1,12 +1,8 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
-import {
-  MatDialogRef,
-  MAT_DIALOG_DATA,
-  MatDialogModule,
-} from '@angular/material/dialog';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -45,16 +41,16 @@ export interface AccommodationTypeFormDialogData {
   ],
 })
 export class AccommodationTypeFormDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private accommodationTypeService = inject(AccommodationTypeService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<AccommodationTypeFormDialogComponent>>(MatDialogRef);
+  data = inject<AccommodationTypeFormDialogData>(MAT_DIALOG_DATA);
+
   form: FormGroup;
   isLoading = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private accommodationTypeService: AccommodationTypeService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<AccommodationTypeFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: AccommodationTypeFormDialogData
-  ) {
+  constructor() {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(100)]],
       description: ['', [Validators.maxLength(500)]],

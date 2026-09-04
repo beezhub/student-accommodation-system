@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { throwError } from 'rxjs';
+import { throwError, Observable } from 'rxjs';
 import { catchError, retry } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -92,14 +92,23 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
       horizontalPosition: 'right',
       verticalPosition: 'top',
       panelClass: ['error-snackbar'],
+      politeness: 'assertive',
     });
   };
 
   return next(request).pipe(
-    // Retry failed requests once (except for POST, PUT, DELETE)
+    // Retry failed GET requests once, but only for server errors (5xx) and network errors
     retry({
       count: request.method === 'GET' ? 1 : 0,
-      delay: 1000,
+      delay: (error: HttpErrorResponse) => {
+        // Only retry on 5xx or network errors (status 0), not on 4xx client errors
+        if (error.status === 0 || error.status >= 500) {
+          return new Observable((subscriber) => {
+            setTimeout(() => subscriber.next(undefined as any), 1000);
+          });
+        }
+        throw error;
+      },
     }),
     catchError((error: HttpErrorResponse) => {
       let errorMessage = 'An error occurred';

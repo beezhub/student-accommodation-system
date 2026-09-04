@@ -18,8 +18,10 @@ import com.beezhub.student_accommodation.repository.UserNotificationRepository;
 import com.beezhub.student_accommodation.repository.ActivityLogRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,6 +62,7 @@ public class AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final LoginAttemptService loginAttemptService;
     private final TenantService tenantService;
+    private final UserAnonymizationService userAnonymizationService;
     private final MeterRegistry meterRegistry;
 
     @Value("${app.base-url:http://localhost:3000}")
@@ -72,16 +75,18 @@ public class AuthService {
     private int emailVerificationExpiryHours;
 
     @Transactional
+    @Timed(value = "service.auth.signup", percentiles = {0.5, 0.95, 0.99})
     public LoginResponse signup(SignupRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
         var user = appUserMapper.toEntity(request, passwordEncoder.encode(request.getPassword()));
-        // Assign the default tenant so the NOT NULL constraint on tenant_id is
-        // satisfied.
-        // During public sign-up there is no JWT, so TenantContext is empty and
-        // TenantListener cannot auto-populate the field.
-        user.setTenantId(tenantService.getDefaultTenant().getId());
+        // Public signup always creates STUDENT accounts (see AppUserMapper.toEntity).
+        // Students are platform-level entities (ADR-001) and must not be scoped to any
+        // building-owner tenant.  Assign the PLATFORM sentinel (id=0) so the Hibernate
+        // tenant filter is bypassed for this user — student data access is enforced by
+        // student_id / user_id ownership instead.
+        user.setTenantId(TenantContext.PLATFORM_TENANT_ID);
         var save = userRepository.save(user);
 
         try {
@@ -100,6 +105,8 @@ public class AuthService {
         return new LoginResponse(token, userData);
     }
 
+    @Transactional
+    @Timed(value = "service.auth.login", percentiles = {0.5, 0.95, 0.99})
     public LoginResponse validateLogin(String username, String password) {
         // 1. Check if user exists first to check lock status
         var userOpt = userRepository.findByEmail(username);
@@ -285,6 +292,21 @@ public class AuthService {
         log.info("Account deleted successfully for user: {}", authentication.getName());
     }
 
+    /**
+     * Anonymises a user account identified by userId (admin-only operation).
+     * Replaces all PII with placeholder values and invalidates the user's credentials.
+     * The account record is retained for referential integrity; the user cannot log in
+     * after anonymisation.
+     *
+     * @param userId the ID of the user to anonymise
+     */
+    @Transactional
+    public void anonymizeAccount(Long userId) {
+        log.info("Admin-initiated anonymisation for userId: {}", userId);
+        userAnonymizationService.anonymizeUser(userId);
+        log.info("Account anonymised successfully for userId: {}", userId);
+    }
+
     private void blacklistCurrentToken(Authentication authentication) {
         Object credentials = authentication.getCredentials();
         if (credentials instanceof String) {
@@ -319,8 +341,14 @@ public class AuthService {
     public MessageResponse requestPasswordReset(String email) {
         log.info("Password reset requested for email: {}", email);
 
-        AppUser user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+        var userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            // Return the same message to prevent user enumeration
+            log.warn("Password reset requested for non-existent email: {}", email);
+            return new MessageResponse("Password reset instructions have been sent to your email");
+        }
+
+        AppUser user = userOpt.get();
 
         passwordResetTokenRepository.deleteByUserId(user.getId());
 

@@ -9,6 +9,7 @@ public enum NotificationType {
     DOCUMENT_VERIFIED("Document Verified"),
     DOCUMENT_REJECTED("Document Rejected"),
     ROOM_ALLOCATED("Room Allocated"),
+    OFFER_EXPIRY_REMINDER("Offer Expiry Reminder"),
     WELCOME_EMAIL("Welcome Email"),
     PASSWORD_RESET("Password Reset"),
     GENERAL("General Notification");

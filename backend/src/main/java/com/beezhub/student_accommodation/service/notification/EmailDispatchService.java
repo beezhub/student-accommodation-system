@@ -10,9 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -29,18 +27,22 @@ public class EmailDispatchService {
         @Value("${app.support-email:accommodation@university.edu}")
         private String supportEmail;
 
+        @Value("${app.contact-phone:+27 (0) 11 000 0000}")
+        private String contactPhone;
+
         public void sendApplicationApprovedEmail(Application application, String studentName, String email) {
                 String applicationDate = contentBuilder.formatDate(application.getApplicationDate());
                 String portalUrl = baseUrl + "/portal/applications/" + application.getId();
 
-                monitorEmail(() -> emailService.sendApplicationApprovedEmail(
-                                email,
+                var ctx = new ApplicationApprovedContext(
                                 studentName,
                                 application.getId(),
                                 applicationDate,
                                 contentBuilder.getCurrentAcademicYear(),
                                 contentBuilder.getCurrentSemester(),
-                                portalUrl));
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.APPLICATION_APPROVED, "application-approved", ctx));
                 log.info("Application approved email sent to {}", email);
         }
 
@@ -52,15 +54,16 @@ public class EmailDispatchService {
                                 : "Your application did not meet the current eligibility criteria.";
                 String portalUrl = baseUrl + "/portal/applications/" + application.getId();
 
-                monitorEmail(() -> emailService.sendApplicationRejectedEmail(
-                                email,
+                var ctx = new ApplicationRejectedContext(
                                 studentName,
                                 application.getId(),
                                 rejectionReason,
                                 applicationDate,
                                 reviewDate,
                                 contentBuilder.getNextApplicationPeriod(),
-                                portalUrl));
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.APPLICATION_REJECTED, "application-rejected", ctx));
                 log.info("Application rejected email sent to {}", email);
         }
 
@@ -70,14 +73,15 @@ public class EmailDispatchService {
                 String verificationDate = contentBuilder.formatDate(document.getUpdatedAt());
                 String portalUrl = baseUrl + "/portal/documents";
 
-                monitorEmail(() -> emailService.sendDocumentVerifiedEmail(
-                                email,
+                var ctx = new DocumentVerifiedContext(
                                 studentName,
                                 documentType,
                                 documentReference,
                                 verificationDate,
                                 "Accommodation Office",
-                                portalUrl));
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.DOCUMENT_VERIFIED, "document-verified", ctx));
                 log.info("Document verified email sent to {}", email);
         }
 
@@ -91,17 +95,11 @@ public class EmailDispatchService {
                                 : "The document does not meet our verification requirements.";
                 String resubmissionDeadline = contentBuilder.formatDate(LocalDateTime.now().plusDays(7));
                 String uploadUrl = baseUrl + "/portal/documents/upload";
+                List<String> feedbackPoints = (comment != null && !comment.isEmpty())
+                                ? contentBuilder.parseFeedbackPoints(comment)
+                                : List.of();
 
-                Map<String, Object> additionalVariables = new HashMap<>();
-                if (comment != null && !comment.isEmpty()) {
-                        List<String> feedbackPoints = contentBuilder.parseFeedbackPoints(comment);
-                        if (!feedbackPoints.isEmpty()) {
-                                additionalVariables.put("feedbackPoints", feedbackPoints);
-                        }
-                }
-
-                monitorEmail(() -> emailService.sendDocumentRejectedEmail(
-                                email,
+                var ctx = new DocumentRejectedContext(
                                 studentName,
                                 documentType,
                                 documentReference,
@@ -110,53 +108,42 @@ public class EmailDispatchService {
                                 rejectionReason,
                                 resubmissionDeadline,
                                 uploadUrl,
-                                additionalVariables));
+                                feedbackPoints);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.DOCUMENT_REJECTED, "document-rejected", ctx));
                 log.info("Document rejected email sent to {}", email);
         }
 
         public void sendDocumentCommentEmail(Document document, String commentText, String studentName, String email,
                         String documentName, String documentType, String subject) {
-                String documentReference = "DOC-" + document.getId();
-                String portalUrl = baseUrl + "/portal/documents";
-
-                String htmlContent = contentBuilder.buildDocumentCommentEmailContent(
-                                studentName,
-                                documentName,
-                                documentType,
-                                documentReference,
-                                commentText,
-                                portalUrl);
-
-                monitorEmail(() -> emailService.sendHtmlEmail(email, subject, htmlContent));
-                log.info("Document comment email sent to {}", email);
+                // Merged into sendDocumentCommentEmailWithTemplate — delegates to typed context path
+                sendDocumentCommentEmailWithTemplate(document, commentText, "Accommodation Office",
+                                studentName, email, documentName, documentType);
         }
 
         public void sendDocumentCommentEmailWithTemplate(Document document, String commentText, String reviewerName,
                         String studentName, String email, String documentName, String documentType) {
-                String applicationId = document.getApplication() != null
-                                ? "APP-" + document.getApplication().getId()
-                                : "N/A";
+                String documentReference = "DOC-" + document.getId();
                 String uploadDate = contentBuilder.formatDate(document.getCreatedAt());
                 String documentStatus = document.getDocumentStatus() != null ? document.getDocumentStatus().name()
                                 : "PENDING_REVIEW";
                 String commentDate = contentBuilder.formatDate(LocalDateTime.now());
                 String portalUrl = baseUrl + "/portal/documents";
 
-                monitorEmail(() -> emailService.sendDocumentCommentEmail(
-                                email,
+                var ctx = new DocumentCommentContext(
                                 studentName,
                                 documentType,
                                 documentName,
-                                applicationId,
+                                documentReference,
                                 uploadDate,
                                 documentStatus,
                                 commentText,
                                 reviewerName,
                                 commentDate,
-                                portalUrl,
-                                supportEmail,
-                                null));
-                log.info("Document comment email (template) sent to {}", email);
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.DOCUMENT_COMMENT, "document-comment", ctx));
+                log.info("Document comment email sent to {}", email);
         }
 
         public void sendRoomAllocatedEmail(RoomAllocation allocation, Room room, Building building,
@@ -177,8 +164,7 @@ public class EmailDispatchService {
                 String officeLocation = "Main Administration Building, Ground Floor";
                 String portalUrl = baseUrl + "/portal/allocations/" + allocation.getId();
 
-                monitorEmail(() -> emailService.sendRoomAllocatedEmail(
-                                email,
+                var ctx = new RoomAllocatedContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
@@ -191,7 +177,9 @@ public class EmailDispatchService {
                                 duration,
                                 officeLocation,
                                 buildingAddress,
-                                portalUrl));
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ROOM_ALLOCATED, "room-allocated", ctx));
                 log.info("Room allocation email sent to {}", email);
         }
 
@@ -207,8 +195,7 @@ public class EmailDispatchService {
                 String moveInDate = null;
                 String portalUrl = baseUrl + "/portal/allocations/proposal/" + stagedAllocation.getId();
 
-                monitorEmail(() -> emailService.sendAllocationProposalEmail(
-                                email,
+                var ctx = new AllocationProposalContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
@@ -218,8 +205,9 @@ public class EmailDispatchService {
                                 score,
                                 warnings,
                                 moveInDate,
-                                portalUrl,
-                                supportEmail));
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_PROPOSAL, "allocation-proposal", ctx));
                 log.info("Allocation proposal email sent to {}", email);
         }
 
@@ -237,8 +225,7 @@ public class EmailDispatchService {
                                 : contentBuilder.formatDate(allocation.getAllocationDate().plusMonths(10));
                 String portalUrl = baseUrl + "/portal/allocations/" + allocation.getId();
 
-                monitorEmail(() -> emailService.sendAllocationConfirmedEmail(
-                                email,
+                var ctx = new AllocationConfirmedContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
@@ -248,9 +235,9 @@ public class EmailDispatchService {
                                 moveInDate,
                                 startDate,
                                 endDate,
-                                portalUrl,
-                                supportEmail,
-                                null));
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_CONFIRMED, "allocation-confirmed", ctx));
                 log.info("Allocation confirmed email sent to {}", email);
         }
 
@@ -261,17 +248,16 @@ public class EmailDispatchService {
                 String proposalId = "PROP-" + stagedAllocation.getId();
                 String portalUrl = baseUrl + "/portal/applications";
 
-                monitorEmail(() -> emailService.sendAllocationRejectedEmail(
-                                email,
+                var ctx = new AllocationRejectedContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
                                 proposalId,
                                 reason,
                                 waitingListPosition,
-                                portalUrl,
-                                supportEmail,
-                                null));
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_REJECTED, "allocation-rejected", ctx));
                 log.info("Allocation rejected email sent to {}", email);
         }
 
@@ -289,8 +275,7 @@ public class EmailDispatchService {
                 String effectiveDateStr = contentBuilder.formatDate(effectiveDate);
                 String portalUrl = baseUrl + "/portal/allocations/" + newAllocation.getId();
 
-                monitorEmail(() -> emailService.sendAllocationMovedEmail(
-                                email,
+                var ctx = new AllocationMovedContext(
                                 studentName,
                                 oldRoomNumber,
                                 oldBuildingName,
@@ -301,33 +286,32 @@ public class EmailDispatchService {
                                 newRoomType,
                                 effectiveDateStr,
                                 reason,
-                                portalUrl,
-                                supportEmail,
-                                null));
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_MOVED, "allocation-moved", ctx));
                 log.info("Allocation moved email sent to {}", email);
         }
 
         public void sendOfferDeclinedRequeueEmail(RoomAllocation allocation, Room room, String studentName,
                         String email,
-                        int totalDeclineCount, int maxDeclineCount, String subject) {
+                        int totalDeclineCount, String subject) {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "";
-                int declinesRemaining = maxDeclineCount - totalDeclineCount;
                 String declineReason = allocation.getDeclineReason() != null
                                 ? allocation.getDeclineReason().getDisplayName()
                                 : "Not specified";
                 String portalUrl = baseUrl + "/portal/applications";
 
-                String htmlContent = contentBuilder.buildOfferDeclinedRequeueEmailContent(
+                var ctx = new OfferDeclinedRequeueContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
                                 totalDeclineCount,
-                                declinesRemaining,
+                                0,
                                 declineReason,
                                 portalUrl);
 
-                monitorEmail(() -> emailService.sendHtmlEmail(email, subject, htmlContent));
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OFFER_DECLINED_REQUEUE, "offer-declined-requeue", ctx));
                 log.info("Offer declined re-queue email sent to {}", email);
         }
 
@@ -336,13 +320,13 @@ public class EmailDispatchService {
                 String applicationCode = application != null ? application.getApplicationCode() : "N/A";
                 String portalUrl = baseUrl + "/portal/applications";
 
-                String htmlContent = contentBuilder.buildOfferDeclinedMaxReachedEmailContent(
+                var ctx = new OfferDeclinedMaxReachedContext(
                                 studentName,
                                 totalDeclineCount,
                                 applicationCode,
                                 portalUrl);
 
-                monitorEmail(() -> emailService.sendHtmlEmail(email, subject, htmlContent));
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OFFER_DECLINED_MAX_REACHED, "offer-declined-max-reached", ctx));
                 log.info("Offer declined max reached email sent to {}", email);
         }
 
@@ -352,22 +336,24 @@ public class EmailDispatchService {
                 String loginUrl = baseUrl + "/login";
                 String guideUrl = baseUrl + "/guide";
 
-                monitorEmail(() -> emailService.sendWelcomeEmail(
-                                email,
+                var ctx = new WelcomeContext(
                                 studentName,
                                 email,
                                 studentId,
                                 registrationDate,
                                 loginUrl,
-                                guideUrl));
+                                guideUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.WELCOME, "welcome", ctx));
                 log.info("Welcome email sent to {}", email);
         }
 
         public void sendPasswordResetEmail(String studentName, String email, String resetToken, String subject) {
                 String resetUrl = baseUrl + "/reset-password?token=" + resetToken;
-                String htmlContent = contentBuilder.buildPasswordResetEmailContent(studentName, resetUrl);
 
-                monitorEmail(() -> emailService.sendHtmlEmail(email, subject, htmlContent));
+                var ctx = new PasswordResetContext(studentName, resetUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.PASSWORD_RESET, "password-reset", ctx));
                 log.info("Password reset email sent to {}", email);
         }
 
@@ -378,14 +364,14 @@ public class EmailDispatchService {
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
                 String portalUrl = baseUrl + "/portal/applications";
 
-                String htmlContent = contentBuilder.buildOfferExpiredEmailContent(
+                var ctx = new OfferExpiredContext(
                                 studentName,
                                 applicationCode,
                                 roomNumber,
                                 buildingName,
                                 portalUrl);
 
-                monitorEmail(() -> emailService.sendHtmlEmail(email, subject, htmlContent));
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OFFER_EXPIRED, "offer-expired", ctx));
                 log.info("Offer expired email sent to {}", email);
         }
 
@@ -396,15 +382,55 @@ public class EmailDispatchService {
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
                 String portalUrl = baseUrl + "/portal/applications";
 
-                String htmlContent = contentBuilder.buildCheckInExpiredEmailContent(
+                var ctx = new CheckInExpiredContext(
                                 studentName,
                                 applicationCode,
                                 roomNumber,
                                 buildingName,
                                 portalUrl);
 
-                monitorEmail(() -> emailService.sendHtmlEmail(email, subject, htmlContent));
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.CHECK_IN_EXPIRED, "check-in-expired", ctx));
                 log.info("Check-in expired email sent to {}", email);
+        }
+
+        public void sendOfferExpiryReminderEmail(RoomAllocation allocation, Room room,
+                        String studentName, String email, String subject) {
+                String roomNumber = room.getRoomNumber();
+                String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
+                String expiryDate = allocation.getOfferExpiryDate() != null
+                                ? contentBuilder.formatDate(allocation.getOfferExpiryDate())
+                                : "soon";
+                String portalUrl = baseUrl + "/portal/allocations/" + allocation.getId();
+
+                var ctx = new OfferExpiryReminderContext(
+                                studentName,
+                                roomNumber,
+                                buildingName,
+                                expiryDate,
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OFFER_EXPIRY_REMINDER, "offer-expiry-reminder", ctx));
+                log.info("Offer expiry reminder email sent to {}", email);
+        }
+
+        public void sendCheckInReminderEmail(RoomAllocation allocation, Room room,
+                        String studentName, String email, String subject) {
+                String roomNumber = room.getRoomNumber();
+                String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
+                String deadlineDate = allocation.getCheckInExpiryDate() != null
+                                ? contentBuilder.formatDate(allocation.getCheckInExpiryDate())
+                                : "soon";
+                String portalUrl = baseUrl + "/portal/allocations/" + allocation.getId();
+
+                var ctx = new CheckInReminderContext(
+                                studentName,
+                                roomNumber,
+                                buildingName,
+                                deadlineDate,
+                                portalUrl);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.CHECK_IN_REMINDER, "check-in-reminder", ctx));
+                log.info("Check-in reminder email sent to {}", email);
         }
 
         private void monitorEmail(Runnable action) {

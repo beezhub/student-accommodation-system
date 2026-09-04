@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.service.notification.*;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -25,6 +27,19 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @Value("${app.support-email:accommodation@university.edu}")
+    private String supportEmail;
+
+    @Value("${app.university-name:University}")
+    private String universityName;
+
+    @Value("${app.contact-phone:+27 (0) 11 000 0000}")
+    private String contactPhone;
+
+    // ──────────────────────────────────────────────────────────────────────────────
+    // Low-level senders (for internal/utility use only)
+    // ──────────────────────────────────────────────────────────────────────────────
+
     public void sendSimpleEmail(String to, String subject, String text) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -32,7 +47,6 @@ public class EmailService {
             message.setTo(to);
             message.setSubject(subject);
             message.setText(text);
-
             mailSender.send(message);
             log.info("Simple email sent successfully to: {}", to);
         } catch (Exception e) {
@@ -45,12 +59,10 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
             helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlContent, true);
-
             mailSender.send(message);
             log.info("HTML email sent successfully to: {}", to);
         } catch (MessagingException e) {
@@ -63,12 +75,16 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
             helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(text);
 
+            java.io.File attachmentFile = new java.io.File(attachmentPath);
+            helper.addAttachment(attachmentFile.getName(),
+                    new org.springframework.core.io.FileSystemResource(attachmentFile));
+
+            mailSender.send(message);
             log.info("Email with attachment sent successfully to: {}", to);
         } catch (MessagingException e) {
             log.error("Failed to send email with attachment to: {}", to, e);
@@ -76,16 +92,30 @@ public class EmailService {
         }
     }
 
+    // ──────────────────────────────────────────────────────────────────────────────
+    // Primary template API — all email dispatching goes through here
+    // ──────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Sends a Thymeleaf template email.
+     * Automatically injects layout variables (universityName, supportEmail,
+     * contactPhone, currentYear) so every template has them available via _layout.html.
+     */
     public void sendTemplateEmail(String to, String subject, String templateName, Map<String, Object> variables) {
         try {
+            Map<String, Object> allVars = new HashMap<>(variables);
+            allVars.put("universityName", universityName);
+            allVars.put("supportEmail", supportEmail);
+            allVars.put("contactPhone", contactPhone);
+            allVars.put("currentYear", java.time.Year.now().getValue());
+
             Context context = new Context();
-            context.setVariables(variables);
+            context.setVariables(allVars);
 
             String htmlContent = templateEngine.process("email/" + templateName, context);
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
             helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject(subject);
@@ -102,216 +132,186 @@ public class EmailService {
         }
     }
 
-    public void sendApplicationApprovedEmail(String to, String studentName, Long applicationId,
-                                            String applicationDate, String academicYear,
-                                            String semester, String portalUrl) {
-        Map<String, Object> variables = Map.of(
-            "studentName", studentName,
-            "applicationId", applicationId,
-            "applicationDate", applicationDate,
-            "academicYear", academicYear,
-            "semester", semester,
-            "portalUrl", portalUrl
-        );
-        sendTemplateEmail(to, "Application Approved - Student Accommodation",
-                         "application-approved", variables);
+    /**
+     * Sends a template email using a typed {@link EmailContext} record.
+     * Layout variables are injected automatically — do not include them in the context.
+     */
+    public void sendTemplateEmail(String to, String subject, String templateName, EmailContext ctx) {
+        sendTemplateEmail(to, subject, templateName, toVariableMap(ctx));
     }
 
-    public void sendApplicationRejectedEmail(String to, String studentName, Long applicationId,
-                                            String rejectionReason, String applicationDate,
-                                            String reviewDate, String nextApplicationPeriod,
-                                            String portalUrl) {
-        Map<String, Object> variables = Map.of(
-            "studentName", studentName,
-            "applicationId", applicationId,
-            "rejectionReason", rejectionReason,
-            "applicationDate", applicationDate,
-            "reviewDate", reviewDate,
-            "nextApplicationPeriod", nextApplicationPeriod,
-            "portalUrl", portalUrl
-        );
-        sendTemplateEmail(to, "Application Status Update - Student Accommodation",
-                         "application-rejected", variables);
-    }
+    // ──────────────────────────────────────────────────────────────────────────────
+    // Context mapping — sealed switch exhausts all 22 EmailContext subtypes
+    // ──────────────────────────────────────────────────────────────────────────────
 
-    public void sendDocumentVerifiedEmail(String to, String studentName, String documentType,
-                                         String documentReference, String verificationDate,
-                                         String verifiedBy, String portalUrl) {
-        Map<String, Object> variables = Map.of(
-            "studentName", studentName,
-            "documentType", documentType,
-            "documentReference", documentReference,
-            "verificationDate", verificationDate,
-            "verifiedBy", verifiedBy,
-            "portalUrl", portalUrl
-        );
-        sendTemplateEmail(to, "Document Verified - Student Accommodation",
-                         "document-verified", variables);
-    }
-
-    public void sendDocumentRejectedEmail(String to, String studentName, String documentType,
-                                         String documentReference, String submissionDate,
-                                         String reviewDate, String rejectionReason,
-                                         String resubmissionDeadline, String uploadUrl,
-                                         Map<String, Object> additionalVariables) {
-        Map<String, Object> variables = new java.util.HashMap<>(Map.of(
-            "studentName", studentName,
-            "documentType", documentType,
-            "documentReference", documentReference,
-            "submissionDate", submissionDate,
-            "reviewDate", reviewDate,
-            "rejectionReason", rejectionReason,
-            "resubmissionDeadline", resubmissionDeadline,
-            "uploadUrl", uploadUrl
-        ));
-        if (additionalVariables != null) {
-            variables.putAll(additionalVariables);
+    private Map<String, Object> toVariableMap(EmailContext ctx) {
+        Map<String, Object> vars = new HashMap<>();
+        switch (ctx) {
+            case WelcomeContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("email", c.email());
+                vars.put("studentId", c.studentId());
+                vars.put("registrationDate", c.registrationDate());
+                vars.put("loginUrl", c.loginUrl());
+                vars.put("guideUrl", c.guideUrl());
+            }
+            case PasswordResetContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("resetUrl", c.resetUrl());
+            }
+            case ApplicationApprovedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("applicationId", c.applicationId());
+                vars.put("applicationDate", c.applicationDate());
+                vars.put("academicYear", c.academicYear());
+                vars.put("semester", c.semester());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case ApplicationRejectedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("applicationId", c.applicationId());
+                vars.put("rejectionReason", c.rejectionReason());
+                vars.put("applicationDate", c.applicationDate());
+                vars.put("reviewDate", c.reviewDate());
+                vars.put("nextApplicationPeriod", c.nextApplicationPeriod());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case DocumentVerifiedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("documentType", c.documentType());
+                vars.put("documentReference", c.documentReference());
+                vars.put("verificationDate", c.verificationDate());
+                vars.put("verifiedBy", c.verifiedBy());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case DocumentRejectedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("documentType", c.documentType());
+                vars.put("documentReference", c.documentReference());
+                vars.put("submissionDate", c.submissionDate());
+                vars.put("reviewDate", c.reviewDate());
+                vars.put("rejectionReason", c.rejectionReason());
+                vars.put("resubmissionDeadline", c.resubmissionDeadline());
+                vars.put("uploadUrl", c.uploadUrl());
+                vars.put("feedbackPoints", c.feedbackPoints());
+            }
+            case DocumentCommentContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("documentType", c.documentType());
+                vars.put("documentName", c.documentName());
+                vars.put("documentReference", c.documentReference());
+                vars.put("uploadDate", c.uploadDate());
+                vars.put("documentStatus", c.documentStatus());
+                vars.put("comment", c.comment());
+                vars.put("reviewerName", c.reviewerName());
+                vars.put("commentDate", c.commentDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case RoomAllocatedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("floorNumber", c.floorNumber());
+                vars.put("roomType", c.roomType());
+                vars.put("bedNumber", c.bedNumber());
+                vars.put("allocationId", c.allocationId());
+                vars.put("startDate", c.startDate());
+                vars.put("endDate", c.endDate());
+                vars.put("duration", c.duration());
+                vars.put("officeLocation", c.officeLocation());
+                vars.put("buildingAddress", c.buildingAddress());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case AllocationProposalContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("floorNumber", c.floorNumber());
+                vars.put("roomCapacity", c.roomCapacity());
+                vars.put("proposalId", c.proposalId());
+                vars.put("score", c.score());
+                vars.put("warnings", c.warnings());
+                vars.put("moveInDate", c.moveInDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case AllocationConfirmedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("floorNumber", c.floorNumber());
+                vars.put("roomType", c.roomType());
+                vars.put("allocationId", c.allocationId());
+                vars.put("moveInDate", c.moveInDate());
+                vars.put("startDate", c.startDate());
+                vars.put("endDate", c.endDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case AllocationRejectedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("proposalId", c.proposalId());
+                vars.put("reason", c.reason());
+                vars.put("waitingListPosition", c.waitingListPosition());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case AllocationMovedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("oldRoomNumber", c.oldRoomNumber());
+                vars.put("oldBuildingName", c.oldBuildingName());
+                vars.put("oldFloorNumber", c.oldFloorNumber());
+                vars.put("newRoomNumber", c.newRoomNumber());
+                vars.put("newBuildingName", c.newBuildingName());
+                vars.put("newFloorNumber", c.newFloorNumber());
+                vars.put("newRoomType", c.newRoomType());
+                vars.put("effectiveDate", c.effectiveDate());
+                vars.put("reason", c.reason());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case OfferDeclinedRequeueContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("totalDeclineCount", c.totalDeclineCount());
+                vars.put("declinesRemaining", c.declinesRemaining());
+                vars.put("declineReason", c.declineReason());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case OfferDeclinedMaxReachedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("totalDeclineCount", c.totalDeclineCount());
+                vars.put("applicationCode", c.applicationCode());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case OfferExpiredContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("applicationCode", c.applicationCode());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case OfferExpiryReminderContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("expiryDate", c.expiryDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case CheckInReminderContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("deadlineDate", c.deadlineDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case CheckInExpiredContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("applicationCode", c.applicationCode());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("portalUrl", c.portalUrl());
+            }
         }
-        sendTemplateEmail(to, "Document Review Required - Student Accommodation",
-                         "document-rejected", variables);
-    }
-
-    public void sendRoomAllocatedEmail(String to, String studentName, String roomNumber,
-                                      String buildingName, Integer floorNumber, String roomType,
-                                      String bedNumber, String allocationId, String startDate,
-                                      String endDate, String duration, String officeLocation,
-                                      String buildingAddress, String portalUrl) {
-        Map<String, Object> variables = Map.ofEntries(
-            Map.entry("studentName", studentName),
-            Map.entry("roomNumber", roomNumber),
-            Map.entry("buildingName", buildingName),
-            Map.entry("floorNumber", floorNumber),
-            Map.entry("roomType", roomType),
-            Map.entry("bedNumber", bedNumber),
-            Map.entry("allocationId", allocationId),
-            Map.entry("startDate", startDate),
-            Map.entry("endDate", endDate),
-            Map.entry("duration", duration),
-            Map.entry("officeLocation", officeLocation),
-            Map.entry("buildingAddress", buildingAddress),
-            Map.entry("portalUrl", portalUrl)
-        );
-        sendTemplateEmail(to, "Room Allocation Confirmation - Student Accommodation",
-                         "room-allocated", variables);
-    }
-
-    public void sendWelcomeEmail(String to, String studentName, String email, String studentId,
-                                String registrationDate, String loginUrl, String guideUrl) {
-        Map<String, Object> variables = Map.of(
-            "studentName", studentName,
-            "email", email,
-            "studentId", studentId,
-            "registrationDate", registrationDate,
-            "loginUrl", loginUrl,
-            "guideUrl", guideUrl
-        );
-        sendTemplateEmail(to, "Welcome to Student Accommodation System",
-                         "welcome", variables);
-    }
-
-    public void sendAllocationProposalEmail(String to, String studentName, String roomNumber,
-                                            String buildingName, Integer floorNumber, Integer roomCapacity,
-                                            String proposalId, java.math.BigDecimal score, java.util.List<String> warnings,
-                                            String moveInDate, String portalUrl, String supportEmail) {
-        java.util.Map<String, Object> variables = new java.util.HashMap<>();
-        variables.put("studentName", studentName);
-        variables.put("roomNumber", roomNumber);
-        variables.put("buildingName", buildingName);
-        variables.put("floorNumber", floorNumber);
-        variables.put("roomCapacity", roomCapacity);
-        variables.put("proposalId", proposalId);
-        variables.put("score", score);
-        variables.put("warnings", warnings);
-        variables.put("moveInDate", moveInDate);
-        variables.put("portalUrl", portalUrl);
-        variables.put("supportEmail", supportEmail);
-        sendTemplateEmail(to, "Room Allocation Proposal - Student Accommodation",
-                         "allocation-proposal", variables);
-    }
-
-    public void sendAllocationConfirmedEmail(String to, String studentName, String roomNumber,
-                                             String buildingName, Integer floorNumber, String roomType,
-                                             String allocationId, String moveInDate, String startDate,
-                                             String endDate, String portalUrl, String supportEmail,
-                                             String contactPhone) {
-        java.util.Map<String, Object> variables = new java.util.HashMap<>();
-        variables.put("studentName", studentName);
-        variables.put("roomNumber", roomNumber);
-        variables.put("buildingName", buildingName);
-        variables.put("floorNumber", floorNumber);
-        variables.put("roomType", roomType);
-        variables.put("allocationId", allocationId);
-        variables.put("moveInDate", moveInDate);
-        variables.put("startDate", startDate);
-        variables.put("endDate", endDate);
-        variables.put("portalUrl", portalUrl);
-        variables.put("supportEmail", supportEmail);
-        variables.put("contactPhone", contactPhone);
-        sendTemplateEmail(to, "Room Allocation Confirmed - Student Accommodation",
-                         "allocation-confirmed", variables);
-    }
-
-    public void sendAllocationRejectedEmail(String to, String studentName, String roomNumber,
-                                            String buildingName, String proposalId, String reason,
-                                            Integer waitingListPosition, String portalUrl,
-                                            String supportEmail, String contactPhone) {
-        java.util.Map<String, Object> variables = new java.util.HashMap<>();
-        variables.put("studentName", studentName);
-        variables.put("roomNumber", roomNumber);
-        variables.put("buildingName", buildingName);
-        variables.put("proposalId", proposalId);
-        variables.put("reason", reason);
-        variables.put("waitingListPosition", waitingListPosition);
-        variables.put("portalUrl", portalUrl);
-        variables.put("supportEmail", supportEmail);
-        variables.put("contactPhone", contactPhone);
-        sendTemplateEmail(to, "Room Allocation Update - Student Accommodation",
-                         "allocation-rejected", variables);
-    }
-
-    public void sendAllocationMovedEmail(String to, String studentName, String oldRoomNumber,
-                                         String oldBuildingName, Integer oldFloorNumber,
-                                         String newRoomNumber, String newBuildingName,
-                                         Integer newFloorNumber, String newRoomType,
-                                         String effectiveDate, String reason, String portalUrl,
-                                         String supportEmail, String contactPhone) {
-        java.util.Map<String, Object> variables = new java.util.HashMap<>();
-        variables.put("studentName", studentName);
-        variables.put("oldRoomNumber", oldRoomNumber);
-        variables.put("oldBuildingName", oldBuildingName);
-        variables.put("oldFloorNumber", oldFloorNumber);
-        variables.put("newRoomNumber", newRoomNumber);
-        variables.put("newBuildingName", newBuildingName);
-        variables.put("newFloorNumber", newFloorNumber);
-        variables.put("newRoomType", newRoomType);
-        variables.put("effectiveDate", effectiveDate);
-        variables.put("reason", reason);
-        variables.put("portalUrl", portalUrl);
-        variables.put("supportEmail", supportEmail);
-        variables.put("contactPhone", contactPhone);
-        sendTemplateEmail(to, "Room Change Notification - Student Accommodation",
-                         "allocation-moved", variables);
-    }
-
-    public void sendDocumentCommentEmail(String to, String studentName, String documentType,
-                                         String documentName, String applicationId, String uploadDate,
-                                         String documentStatus, String comment, String reviewerName,
-                                         String commentDate, String portalUrl, String supportEmail,
-                                         String contactPhone) {
-        java.util.Map<String, Object> variables = new java.util.HashMap<>();
-        variables.put("studentName", studentName);
-        variables.put("documentType", documentType);
-        variables.put("documentName", documentName);
-        variables.put("applicationId", applicationId);
-        variables.put("uploadDate", uploadDate);
-        variables.put("documentStatus", documentStatus);
-        variables.put("comment", comment);
-        variables.put("reviewerName", reviewerName);
-        variables.put("commentDate", commentDate);
-        variables.put("portalUrl", portalUrl);
-        variables.put("supportEmail", supportEmail);
-        variables.put("contactPhone", contactPhone);
-        sendTemplateEmail(to, "Document Review: Action Required - Student Accommodation",
-                         "document-comment", variables);
+        return vars;
     }
 }

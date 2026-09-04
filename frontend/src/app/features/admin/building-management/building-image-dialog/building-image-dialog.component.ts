@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -28,17 +28,27 @@ import {
   ],
 })
 export class BuildingImageDialogComponent implements OnInit {
+  private buildingService = inject(BuildingService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<BuildingImageDialogComponent>>(MatDialogRef);
+  data = inject<{
+    building: BuildingResponse;
+  }>(MAT_DIALOG_DATA);
+
+  static readonly MAX_IMAGES = 10;
+
   images: BuildingImageResponse[] = [];
   isLoading = false;
   isUploading = false;
   selectedFiles: File[] = [];
 
-  constructor(
-    private buildingService: BuildingService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<BuildingImageDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { building: BuildingResponse }
-  ) {}
+  get imageCount(): number {
+    return this.images.length;
+  }
+
+  get atImageCap(): boolean {
+    return this.images.length >= BuildingImageDialogComponent.MAX_IMAGES;
+  }
 
   ngOnInit(): void {
     this.loadImages();
@@ -73,11 +83,9 @@ export class BuildingImageDialogComponent implements OnInit {
     this.isUploading = true;
     this.buildingService.uploadBuildingImages(this.data.building.id, this.selectedFiles).subscribe({
       next: (newImages) => {
-        this.snackBar.open(
-          `${newImages.length} image(s) uploaded successfully`,
-          'Close',
-          { duration: 3000 }
-        );
+        this.snackBar.open(`${newImages.length} image(s) uploaded successfully`, 'Close', {
+          duration: 3000,
+        });
         this.selectedFiles = [];
         this.loadImages();
         this.isUploading = false;

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -36,6 +37,9 @@ public class ApplicationResponse {
     private Long preferredBuildingId;
     private String preferredBuildingName;
 
+    // Ordered building preferences (new multi-preference)
+    private List<BuildingPreferenceResponse> preferredBuildings;
+
     // Allocation method
     private String allocationMethod;
 
@@ -51,4 +55,6 @@ public class ApplicationResponse {
     private Integer totalRequiredDocuments;
 
     private String allocationStatus;
+
+    private Long tenantId;
 }

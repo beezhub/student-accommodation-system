@@ -7,7 +7,7 @@ import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -53,7 +53,7 @@ class StagedAllocationServiceTest {
         @Mock
         private BuildingRepository buildingRepository;
         @Mock
-        private AllocationScoringService allocationScoringService;
+        private LegacyScoringStrategy allocationScoringService;
         @Mock
         private AllocationAuditService allocationAuditService;
 
@@ -150,7 +150,8 @@ class StagedAllocationServiceTest {
                 verify(roomAllocationRepository).save(any(RoomAllocation.class));
                 verify(stagedAllocationRepository).save(stagedAllocation);
                 verify(roomOccupancyManager).updateOccupancy(room, 1);
-                verify(allocationAuditService).logAuditAction(any(), eq(AllocationAuditActionType.FORCE_ALLOCATE),
+                verify(allocationAuditService).logAuditActionInCurrentTransaction(any(),
+                                eq(AllocationAuditActionType.FORCE_ALLOCATE),
                                 eq(admin),
                                 anyString(), isNull(), eq(room));
                 verify(eventPublisher).publishEvent(any(AllocationCreatedEvent.class));
@@ -418,7 +419,95 @@ class StagedAllocationServiceTest {
                 // Act
                 stagedAllocationService.confirmBatchAllocations("BATCH-001", 2L);
 
-                // Assert - should process first, fail on second, but continue
+        // Assert - should process first, fail on second, but continue
                 verify(roomAllocationRepository, times(1)).save(any(RoomAllocation.class));
+        }
+
+        @Test
+        void confirmBatchAllocationsWithResult_allSuccess_returnsSuccessResult() {
+                // Arrange
+                StagedAllocation staged1 = StagedAllocation.builder()
+                                .id(1L).student(student).room(room).application(application)
+                                .status(StagedAllocationStatus.PROPOSED).batchId("BATCH-001").build();
+                StagedAllocation staged2 = StagedAllocation.builder()
+                                .id(2L).student(student).room(room).application(application)
+                                .status(StagedAllocationStatus.PROPOSED).batchId("BATCH-001").build();
+
+                RoomAllocationResponse resp1 = new RoomAllocationResponse();
+                resp1.setId(10L);
+                RoomAllocationResponse resp2 = new RoomAllocationResponse();
+                resp2.setId(11L);
+
+                when(stagedAllocationRepository.findByBatchIdAndStatus("BATCH-001", StagedAllocationStatus.PROPOSED))
+                                .thenReturn(Arrays.asList(staged1, staged2));
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(staged1));
+                when(stagedAllocationRepository.findById(2L)).thenReturn(Optional.of(staged2));
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(resp1, resp2);
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+
+                // Act
+                BatchConfirmationResult result = stagedAllocationService.confirmBatchAllocationsWithResult("BATCH-001", 2L);
+
+                // Assert
+                assertThat(result.getSuccess()).isTrue();
+                assertThat(result.getTotalAttempted()).isEqualTo(2);
+                assertThat(result.getSuccessCount()).isEqualTo(2);
+                assertThat(result.getFailureCount()).isEqualTo(0);
+                assertThat(result.getErrors()).isNull();
+                assertThat(result.getConfirmedAllocationIds()).containsExactly(10L, 11L);
+                assertThat(result.getProcessedAt()).isNotNull();
+        }
+
+        @Test
+        void confirmBatchAllocationsWithResult_partialFailure_returnsPartialResult() {
+                // Arrange
+                StagedAllocation staged1 = StagedAllocation.builder()
+                                .id(1L).student(student).room(room).application(application)
+                                .status(StagedAllocationStatus.PROPOSED).batchId("BATCH-001").build();
+                StagedAllocation staged2 = StagedAllocation.builder()
+                                .id(2L).student(student).room(room).application(application)
+                                .status(StagedAllocationStatus.PROPOSED).batchId("BATCH-001").build();
+
+                RoomAllocationResponse resp1 = new RoomAllocationResponse();
+                resp1.setId(10L);
+
+                when(stagedAllocationRepository.findByBatchIdAndStatus("BATCH-001", StagedAllocationStatus.PROPOSED))
+                                .thenReturn(Arrays.asList(staged1, staged2));
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(staged1));
+                when(stagedAllocationRepository.findById(2L)).thenThrow(new RuntimeException("Room full"));
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(resp1);
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+
+                // Act
+                BatchConfirmationResult result = stagedAllocationService.confirmBatchAllocationsWithResult("BATCH-001", 2L);
+
+                // Assert
+                assertThat(result.getSuccess()).isFalse();
+                assertThat(result.getTotalAttempted()).isEqualTo(2);
+                assertThat(result.getSuccessCount()).isEqualTo(1);
+                assertThat(result.getFailureCount()).isEqualTo(1);
+                assertThat(result.getErrors()).hasSize(1);
+                assertThat(result.getErrors().get(0)).contains("2");
+        }
+
+        @Test
+        void confirmBatchAllocationsWithResult_emptyBatch_returnsEmptyResult() {
+                // Arrange
+                when(stagedAllocationRepository.findByBatchIdAndStatus("BATCH-EMPTY", StagedAllocationStatus.PROPOSED))
+                                .thenReturn(new ArrayList<>());
+
+                // Act
+                BatchConfirmationResult result = stagedAllocationService.confirmBatchAllocationsWithResult("BATCH-EMPTY", 2L);
+
+                // Assert
+                assertThat(result.getSuccess()).isTrue();
+                assertThat(result.getTotalAttempted()).isEqualTo(0);
+                assertThat(result.getSuccessCount()).isEqualTo(0);
+                assertThat(result.getFailureCount()).isEqualTo(0);
+                assertThat(result.getConfirmedAllocationIds()).isNull();
         }
 }

@@ -1,6 +1,5 @@
 package com.beezhub.student_accommodation.controller;
 
-import com.beezhub.student_accommodation.config.GoogleMapsConfig;
 import com.beezhub.student_accommodation.model.dto.BuildingImageResponse;
 import com.beezhub.student_accommodation.model.dto.BuildingRequest;
 import com.beezhub.student_accommodation.model.dto.BuildingResponse;
@@ -20,9 +19,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
+import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/building")
@@ -33,15 +31,15 @@ public class BuildingController {
 
     private final BuildingService buildingService;
     private final BuildingImageService buildingImageService;
-    private final GoogleMapsConfig googleMapsConfig;
 
     @GetMapping("/maps-config")
-    @Operation(summary = "Get Google Maps configuration", description = "Returns Google Maps API configuration for frontend use")
-    public ResponseEntity<Map<String, Object>> getMapsConfig() {
-        log.info("Fetching Google Maps configuration");
-        Map<String, Object> config = new HashMap<>();
-        config.put("enabled", googleMapsConfig.isGeocodingEnabled());
-        config.put("apiKey", googleMapsConfig.getFrontendApiKey());
+    @Operation(summary = "Get maps configuration", description = "Returns the configuration for maps in the frontend")
+    public ResponseEntity<java.util.Map<String, Object>> getMapsConfig() {
+        log.info("Fetching maps config");
+        // Returning a basic config for maps. 
+        java.util.Map<String, Object> config = new java.util.HashMap<>();
+        config.put("enabled", true);
+        config.put("apiKey", "dummy-api-key-for-development"); // In a real app, this should come from application properties
         return ResponseEntity.ok(config);
     }
 
@@ -81,6 +79,23 @@ public class BuildingController {
         return ResponseEntity.ok(page);
     }
 
+    @GetMapping("/browse")
+    @Operation(summary = "Browse buildings with filters",
+            description = "Public paginated building browse with optional filters for price range, availability, institution, and text search")
+    public ResponseEntity<PageResponse<BuildingResponse>> browseBuildings(
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Boolean available,
+            @RequestParam(required = false) Long institutionId,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 12, sort = "name") Pageable pageable) {
+        log.info("Browsing buildings - minPrice: {}, maxPrice: {}, available: {}, institutionId: {}, search: {}",
+                minPrice, maxPrice, available, institutionId, search);
+        PageResponse<BuildingResponse> page = buildingService.browseBuildings(
+                minPrice, maxPrice, available, institutionId, search, pageable);
+        return ResponseEntity.ok(page);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get building by ID", description = "Returns a single building by its ID")
     public ResponseEntity<BuildingResponse> getBuildingById(@PathVariable Long id) {
@@ -89,7 +104,7 @@ public class BuildingController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Create building", description = "Creates a new accommodation building. Admin only.")
     public ResponseEntity<BuildingResponse> createBuilding(@Valid @RequestBody BuildingRequest request) {
         log.info("Creating new building: {}", request.getName());
@@ -98,16 +113,16 @@ public class BuildingController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Update building", description = "Updates an existing building. Admin only.")
     public ResponseEntity<BuildingResponse> updateBuilding(@PathVariable Long id,
-                                                            @Valid @RequestBody BuildingRequest request) {
+            @Valid @RequestBody BuildingRequest request) {
         log.info("Updating building with id: {}", id);
         return ResponseEntity.ok(buildingService.updateBuilding(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete building", description = "Deletes a building. Admin only.")
     public ResponseEntity<Void> deleteBuilding(@PathVariable Long id) {
         log.info("Deleting building with id: {}", id);
@@ -118,7 +133,7 @@ public class BuildingController {
     // Building Image Endpoints
 
     @PostMapping("/{buildingId}/images")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Upload building images", description = "Upload one or more images for a building. Admin only.")
     public ResponseEntity<List<BuildingImageResponse>> uploadBuildingImages(
             @PathVariable Long buildingId,
@@ -137,7 +152,7 @@ public class BuildingController {
     }
 
     @DeleteMapping("/{buildingId}/images/{imageId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete building image", description = "Deletes a building image. Admin only.")
     public ResponseEntity<Void> deleteBuildingImage(
             @PathVariable Long buildingId,
@@ -148,7 +163,7 @@ public class BuildingController {
     }
 
     @PutMapping("/{buildingId}/images/{imageId}/primary")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Set primary image", description = "Sets an image as the primary image for a building. Admin only.")
     public ResponseEntity<BuildingImageResponse> setPrimaryImage(
             @PathVariable Long buildingId,

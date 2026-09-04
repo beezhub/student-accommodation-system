@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -39,6 +45,7 @@ export class ProfileComponent implements OnInit {
 
   currentUser: any;
   profileForm: FormGroup;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isEditing = false;
   isSaving = false;
   institutions: readonly Institution[] = [];
@@ -132,12 +139,17 @@ export class ProfileComponent implements OnInit {
           this.institutions = response;
         } else {
           this.institutions = [];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         console.log('Loaded institutions:', this.institutions);
         this.cdr.markForCheck();
       },
       error: (error) => {
         console.error('Error loading institutions:', error);
+        this.errorService.showWarning(
+          'Could not load institutions. Some options may be unavailable.'
+        );
         this.institutions = [];
         this.cdr.markForCheck();
       },
@@ -156,11 +168,16 @@ export class ProfileComponent implements OnInit {
         } else {
           this.yearsOfStudy = [];
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         console.log('Loaded years of study:', this.yearsOfStudy);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.cdr.markForCheck();
       },
       error: (error) => {
         console.error('Error loading years of study:', error);
+        this.errorService.showWarning(
+          'Could not load years of study. Some options may be unavailable.'
+        );
         this.yearsOfStudy = [];
         this.cdr.markForCheck();
       },
@@ -204,7 +221,9 @@ export class ProfileComponent implements OnInit {
     this.isEditing = !this.isEditing;
     if (!this.isEditing && this.studentProfile) {
       // Reset form to original values
-      const dateOfBirth = this.studentProfile.dateOfBirth ? new Date(this.studentProfile.dateOfBirth) : null;
+      const dateOfBirth = this.studentProfile.dateOfBirth
+        ? new Date(this.studentProfile.dateOfBirth)
+        : null;
       this.profileForm.patchValue({
         firstName: this.studentProfile.firstName,
         lastName: this.studentProfile.lastName,
@@ -229,9 +248,10 @@ export class ProfileComponent implements OnInit {
 
       const formValue = this.profileForm.value;
       // Format date as YYYY-MM-DD for the API
-      const dateOfBirth = formValue.dateOfBirth instanceof Date
-        ? formValue.dateOfBirth.toISOString().split('T')[0]
-        : formValue.dateOfBirth;
+      const dateOfBirth =
+        formValue.dateOfBirth instanceof Date
+          ? formValue.dateOfBirth.toISOString().split('T')[0]
+          : formValue.dateOfBirth;
       const updateRequest: StudentRequest = {
         firstName: formValue.firstName,
         lastName: formValue.lastName,

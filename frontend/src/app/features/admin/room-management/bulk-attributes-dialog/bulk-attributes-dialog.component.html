@@ -1,6 +1,6 @@
 <div class="dialog-container">
   <div class="dialog-header">
-    <div class="header-icon">
+    <div class="header-icon-wrap" aria-hidden="true">
       <mat-icon>edit_note</mat-icon>
     </div>
     <div class="header-content">
@@ -10,7 +10,7 @@
         <span>{{ getSelectedCount() }} rooms selected</span>
       </p>
     </div>
-    <button mat-icon-button mat-dialog-close class="close-btn">
+    <button mat-icon-button mat-dialog-close class="close-btn" aria-label="Close dialog">
       <mat-icon>close</mat-icon>
     </button>
   </div>
@@ -18,7 +18,7 @@
   <mat-dialog-content>
     <!-- Selected Rooms Preview -->
     <div class="selected-rooms-preview">
-      <div class="preview-label">Selected Rooms:</div>
+      <div class="preview-label">Selected Rooms</div>
       <div class="room-chips">
         @for (room of data.rooms.slice(0, 8); track room.id) {
           <span class="room-chip">
@@ -34,7 +34,7 @@
 
     <div class="info-banner">
       <mat-icon>info</mat-icon>
-      <span>Select which attributes to update. Only checked attributes will be modified.</span>
+      <span>Only checked attributes will be modified. Unchecked sections are left unchanged.</span>
     </div>
 
     <form [formGroup]="attributesForm" class="attributes-form">
@@ -80,7 +80,7 @@
         @if (updateAccessibility) {
           <div class="section-content">
             <div class="accessibility-toggle">
-              <mat-checkbox formControlName="accessibilityCompliant" color="accent">
+              <mat-checkbox formControlName="accessibilityCompliant" color="primary">
                 <span class="checkbox-label">
                   <strong>Mark as Accessibility Compliant</strong>
                   <span class="checkbox-hint">These rooms meet accessibility standards</span>
@@ -135,7 +135,6 @@
               }
             </div>
 
-            <!-- Warning for unparseable years -->
             @if (unparseableYears.length > 0) {
               <div class="unparseable-warning">
                 <mat-icon>warning</mat-icon>
@@ -153,10 +152,11 @@
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close [disabled]="isSaving">Cancel</button>
-    <button mat-raised-button color="primary"
+    <button mat-stroked-button mat-dialog-close [disabled]="isSaving" class="cancel-btn">Cancel</button>
+    <button mat-raised-button
             (click)="onSubmit()"
-            [disabled]="isSaving || (!updateGender && !updateAccessibility && !updateYearRange)">
+            [disabled]="isSaving || (!updateGender && !updateAccessibility && !updateYearRange)"
+            class="submit-btn">
       @if (isSaving) {
         <mat-spinner diameter="18"></mat-spinner>
         Updating...

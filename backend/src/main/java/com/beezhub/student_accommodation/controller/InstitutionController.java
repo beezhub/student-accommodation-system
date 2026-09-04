@@ -58,7 +58,7 @@ public class InstitutionController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Create institution", description = "Creates a new institution. Admin only.")
     public ResponseEntity<InstitutionResponse> createInstitution(@Valid @RequestBody InstitutionRequest request) {
         InstitutionResponse response = institutionService.createInstitution(request);
@@ -66,7 +66,7 @@ public class InstitutionController {
     }
 
     @PutMapping("/{id:[0-9]+}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Update institution", description = "Updates an existing institution. Admin only.")
     public ResponseEntity<InstitutionResponse> updateInstitution(@PathVariable Long id,
                                                                  @Valid @RequestBody InstitutionRequest request) {
@@ -74,7 +74,7 @@ public class InstitutionController {
     }
 
     @DeleteMapping("/{id:[0-9]+}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete institution", description = "Deletes an institution. Admin only.")
     public ResponseEntity<Void> deleteInstitution(@PathVariable Long id) {
         institutionService.deleteInstitution(id);

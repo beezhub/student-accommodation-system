@@ -1,13 +1,18 @@
 package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.model.dto.MessageResponse;
+import com.beezhub.student_accommodation.model.dto.WaitlistPositionDto;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
+import com.beezhub.student_accommodation.service.AcademicYearService;
+import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +33,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -43,7 +49,13 @@ class WaitingListServiceTest {
     @Mock
     private StudentRepository studentRepository;
     @Mock
+    private RoomAllocationRepository roomAllocationRepository;
+    @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private AuthService authService;
+    @Mock
+    private AcademicYearService academicYearService;
 
     @Captor
     private ArgumentCaptor<AllocationDeclinedEvent> eventCaptor;
@@ -52,10 +64,12 @@ class WaitingListServiceTest {
     private WaitingListService waitingListService;
 
     private Student student;
+    private AppUser appUser;
     private Application application;
     private Room room;
     private RoomAllocation allocation;
     private WaitingListEntry waitingEntry;
+    private AcademicYear academicYear;
 
     @BeforeEach
     void setUp() {
@@ -63,11 +77,13 @@ class WaitingListServiceTest {
         student = new Student();
         student.setId(1L);
         student.setStudentNumber("STU001");
-        AppUser appUser = new AppUser();
+        appUser = new AppUser();
         appUser.setId(1L);
         appUser.setFirstName("John");
         appUser.setLastName("Doe");
         student.setAppUser(appUser);
+
+        academicYear = AcademicYear.builder().id(9L).name("2026/2027").isCurrent(true).build();
 
         // Setup application
         application = new Application();
@@ -75,6 +91,7 @@ class WaitingListServiceTest {
         application.setStudent(student);
         application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
         application.setApplicationCode("APP-001");
+        application.setAcademicYear(academicYear);
 
         // Setup room
         room = new Room();
@@ -202,17 +219,16 @@ class WaitingListServiceTest {
         when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
-        waitingListService.reQueueStudent(allocation, 1, 2);
+        waitingListService.reQueueStudent(allocation, 1);
 
         // Assert
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
-        assertThat(application.getRemarks()).contains("Declined offer 1 of 2");
-        verify(waitingListRepository).save(any(WaitingListEntry.class));
+        assertThat(application.getRemarks()).contains("Declined offer 1");
+        assertThat(application.getRemarks()).doesNotContain("1 of ");
         verify(waitingListRepository).save(any(WaitingListEntry.class));
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         AllocationDeclinedEvent event = eventCaptor.getValue();
         assertThat(event.totalDeclineCount()).isEqualTo(1);
-        assertThat(event.maxDeclineCount()).isEqualTo(2);
     }
 
     @Test
@@ -223,7 +239,7 @@ class WaitingListServiceTest {
         when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
-        waitingListService.reQueueStudent(allocation, 2, 2);
+        waitingListService.reQueueStudent(allocation, 2);
 
         // Assert
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
@@ -236,62 +252,76 @@ class WaitingListServiceTest {
         allocation.setApplication(null);
 
         // Act
-        waitingListService.reQueueStudent(allocation, 1, 2);
+        waitingListService.reQueueStudent(allocation, 1);
 
         // Assert
         verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
         verify(applicationRepository, never()).save(any(Application.class));
     }
 
+    // ── getMyWaitlistPosition ────────────────────────────────────────────────
+
     @Test
-    void cancelApplicationAfterMaxDeclines_cancelsApplication() {
-        // Arrange
-        when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
+    void getMyWaitlistPosition_studentOnWaitlist_returnsPositionAndQueueDepth() {
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
         when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
                 .thenReturn(Optional.of(waitingEntry));
-        when(waitingListRepository.save(any(WaitingListEntry.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+        // 2 entries strictly before this student's createdAt -> position 3
+        when(waitingListRepository.countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
+                eq("WAITING"), eq(9L), eq(waitingEntry.getCreatedAt()))).thenReturn(2L);
+        when(waitingListRepository.countByStatusAndApplication_AcademicYear_Id("WAITING", 9L)).thenReturn(12L);
+        // Fewer than 5 recent allocations -> estimate unavailable
+        when(roomAllocationRepository.countByAcademicYear_IdAndCreatedAtAfter(eq(9L), any(LocalDateTime.class)))
+                .thenReturn(2L);
 
-        // Act
-        waitingListService.cancelApplicationAfterMaxDeclines(allocation, 2);
+        WaitlistPositionDto result = waitingListService.getMyWaitlistPosition();
 
-        // Assert
-        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.CANCELLED);
-        assertThat(application.getRemarks()).contains("Maximum decline limit reached");
-        assertThat(application.getRemarks()).contains("3 declines");
-        verify(applicationRepository).save(application);
+        assertThat(result.getPosition()).isEqualTo(3);
+        assertThat(result.getTotalInQueue()).isEqualTo(12);
+        assertThat(result.getEstimatedWaitDays()).isNull();
     }
 
     @Test
-    void cancelApplicationAfterMaxDeclines_removesFromWaitingList() {
-        // Arrange
-        when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
+    void getMyWaitlistPosition_sufficientRecentAllocations_returnsEstimatedWaitDays() {
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
         when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
                 .thenReturn(Optional.of(waitingEntry));
-        when(waitingListRepository.save(any(WaitingListEntry.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+        // Position 1 (no one ahead)
+        when(waitingListRepository.countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
+                eq("WAITING"), eq(9L), any(LocalDateTime.class))).thenReturn(0L);
+        when(waitingListRepository.countByStatusAndApplication_AcademicYear_Id("WAITING", 9L)).thenReturn(1L);
+        // 10 allocations in the last 30 days -> avg interval = 3 days -> position(1) * 3 = 3
+        when(roomAllocationRepository.countByAcademicYear_IdAndCreatedAtAfter(eq(9L), any(LocalDateTime.class)))
+                .thenReturn(10L);
 
-        // Act
-        waitingListService.cancelApplicationAfterMaxDeclines(allocation, 2);
+        WaitlistPositionDto result = waitingListService.getMyWaitlistPosition();
 
-        // Assert
-        assertThat(waitingEntry.getStatus()).isEqualTo("CANCELLED");
-        verify(waitingListRepository).save(waitingEntry);
-        verify(waitingListRepository).save(waitingEntry);
-        verify(eventPublisher).publishEvent(eventCaptor.capture());
-        AllocationDeclinedEvent event = eventCaptor.getValue();
-        assertThat(event.totalDeclineCount()).isEqualTo(3);
-        assertThat(event.maxDeclineCount()).isEqualTo(2);
+        assertThat(result.getPosition()).isEqualTo(1);
+        assertThat(result.getEstimatedWaitDays()).isEqualTo(3);
     }
 
     @Test
-    void cancelApplicationAfterMaxDeclines_noApplication_logsWarning() {
-        // Arrange
-        allocation.setApplication(null);
+    void getMyWaitlistPosition_studentNotOnWaitlist_throwsResourceNotFoundException() {
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING")).thenReturn(Optional.empty());
 
-        // Act
-        waitingListService.cancelApplicationAfterMaxDeclines(allocation, 2);
+        assertThatThrownBy(() -> waitingListService.getMyWaitlistPosition())
+                .isInstanceOf(ResourceNotFoundException.class);
 
-        // Assert
-        verify(applicationRepository, never()).save(any(Application.class));
-        verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
+        verify(academicYearService, never()).getCurrentAcademicYearEntity();
+    }
+
+    @Test
+    void getMyWaitlistPosition_studentProfileMissing_throwsStudentNotFoundException() {
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> waitingListService.getMyWaitlistPosition())
+                .isInstanceOf(StudentNotFoundException.class);
     }
 }

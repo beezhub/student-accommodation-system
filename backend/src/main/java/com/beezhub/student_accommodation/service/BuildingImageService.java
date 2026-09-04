@@ -7,13 +7,13 @@ import com.beezhub.student_accommodation.model.entity.BuildingImage;
 import com.beezhub.student_accommodation.repository.BuildingImageRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import io.minio.*;
-import io.minio.http.Method;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +33,7 @@ public class BuildingImageService {
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     private static final List<String> ALLOWED_CONTENT_TYPES = List.of(
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp");
+    static final int MAX_IMAGES_PER_BUILDING = 10;
 
     @Transactional
     public List<BuildingImageResponse> uploadImages(Long buildingId, List<MultipartFile> files) {
@@ -44,6 +45,14 @@ public class BuildingImageService {
                 .findByBuilding_IdOrderByDisplayOrderAsc(buildingId);
         boolean isFirstImage = existingImages.isEmpty();
 
+        int existingCount = existingImages.size();
+        int incomingCount = files.size();
+        if (existingCount + incomingCount > MAX_IMAGES_PER_BUILDING) {
+            throw new RuntimeException(String.format(
+                    "Building cannot have more than %d images (current: %d, requested: %d)",
+                    MAX_IMAGES_PER_BUILDING, existingCount, incomingCount));
+        }
+
         for (MultipartFile file : files) {
             validateImage(file);
 
@@ -52,6 +61,7 @@ public class BuildingImageService {
 
             BuildingImage image = new BuildingImage();
             image.setBuilding(building);
+            image.setTenant(building.getTenant());
             image.setFileName(file.getOriginalFilename());
             image.setObjectPath(objectPath);
             image.setContentType(file.getContentType());
@@ -67,6 +77,7 @@ public class BuildingImageService {
         return responses;
     }
 
+    @Transactional(readOnly = true)
     public List<BuildingImageResponse> getImages(Long buildingId) {
         List<BuildingImage> images = buildingImageRepository.findByBuilding_IdOrderByDisplayOrderAsc(buildingId);
         return images.stream()
@@ -132,6 +143,7 @@ public class BuildingImageService {
         return toResponse(savedImage);
     }
 
+    @Transactional(readOnly = true)
     public String getPrimaryImageUrl(Long buildingId) {
         return buildingImageRepository.findByBuilding_IdAndPrimaryTrue(buildingId)
                 .map(image -> getPresignedUrl(image.getObjectPath()))
@@ -166,7 +178,7 @@ public class BuildingImageService {
                     PutObjectArgs.builder()
                             .bucket(bucketName)
                             .object(objectPath)
-                            .stream(is, file.getSize(), -1)
+                            .stream(is, file.getSize(), -1L)
                             .contentType(file.getContentType())
                             .build());
         } catch (Exception e) {
@@ -195,7 +207,7 @@ public class BuildingImageService {
                     GetPresignedObjectUrlArgs.builder()
                             .bucket(bucketName)
                             .object(objectPath)
-                            .method(Method.GET)
+                            .method(Http.Method.GET)
                             .build());
         } catch (Exception e) {
             log.error("Error generating presigned URL for: {}", objectPath, e);

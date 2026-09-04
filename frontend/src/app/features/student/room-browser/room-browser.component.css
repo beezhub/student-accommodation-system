@@ -57,12 +57,18 @@
 
 .room-card {
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  background: var(--glass-bg, rgb(255 255 255 / 65%)) !important;
+  backdrop-filter: var(--glass-blur, blur(20px));
+  border: 1px solid var(--glass-border, rgb(255 255 255 / 50%)) !important;
+  border-radius: var(--radius-xl, 24px) !important;
+  box-shadow: var(--shadow-medium, 0 8px 32px rgb(31 38 135 / 5%)) !important;
+  transition: all 0.4s var(--motion-spring, cubic-bezier(0.175, 0.885, 0.32, 1.275)) !important;
 }
 
 .room-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px rgb(31 38 135 / 12%) !important;
+  border-color: rgb(255 255 255 / 100%) !important;
 }
 
 .room-avatar {
@@ -189,7 +195,7 @@ mat-card-actions button {
 }
 
 .no-data p {
-  margin: 0 0 20px 0;
+  margin: 0 0 20px;
   font-size: 16px;
 }
 

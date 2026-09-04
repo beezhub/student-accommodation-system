@@ -46,7 +46,7 @@ public class YearOfStudyController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Create year of study", description = "Creates a new year of study. Admin only.")
     public ResponseEntity<YearOfStudyResponse> createYearOfStudy(@Valid @RequestBody YearOfStudyRequest request) {
         YearOfStudyResponse response = yearOfStudyService.createYearOfStudy(request);
@@ -54,7 +54,7 @@ public class YearOfStudyController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Update year of study", description = "Updates an existing year of study. Admin only.")
     public ResponseEntity<YearOfStudyResponse> updateYearOfStudy(@PathVariable Long id,
                                                                  @Valid @RequestBody YearOfStudyRequest request) {
@@ -62,7 +62,7 @@ public class YearOfStudyController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete year of study", description = "Deletes a year of study. Admin only.")
     public ResponseEntity<Void> deleteYearOfStudy(@PathVariable Long id) {
         yearOfStudyService.deleteYearOfStudy(id);

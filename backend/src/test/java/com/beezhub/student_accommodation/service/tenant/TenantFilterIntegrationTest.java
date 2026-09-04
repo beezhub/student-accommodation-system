@@ -1,7 +1,16 @@
 package com.beezhub.student_accommodation.service.tenant;
 
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
+import com.beezhub.student_accommodation.model.entity.Building;
+import com.beezhub.student_accommodation.model.entity.CustomApplicationField;
+import com.beezhub.student_accommodation.model.entity.IntakePeriod;
+import com.beezhub.student_accommodation.model.entity.RequiredDocumentType;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
+import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.repository.CustomApplicationFieldRepository;
+import com.beezhub.student_accommodation.repository.IntakePeriodRepository;
+import com.beezhub.student_accommodation.repository.RequiredDocumentTypeRepository;
+import com.beezhub.student_accommodation.AbstractJpaTest;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.hibernate.Session;
@@ -9,8 +18,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,20 +33,18 @@ import static org.assertj.core.api.Assertions.assertThat;
  * (a Spring MVC HandlerInterceptor). These tests activate the filter directly via the
  * {@link Session} API to replicate that behaviour without the full Spring MVC stack.
  *
- * <p>Uses {@link DataJpaTest} with an H2 in-memory database (Flyway disabled, schema from JPA
- * {@code create-drop}). {@link AcademicYear} is chosen as the test entity because it has no
- * {@code jsonb} columns — which H2 cannot reliably create — while still implementing
- * {@link TenantAware} and carrying the {@code @Filter} annotation.
+ * <p>Extends {@link AbstractJpaTest} which starts a real PostgreSQL Testcontainer — resolving
+ * the previous H2 incompatibility with {@code jsonb} columns. {@link AcademicYear} remains
+ * the primary test entity because it implements {@link TenantAware} and carries the
+ * {@code @Filter} annotation without complex FK dependencies.
  *
  * <p>Because the {@code tenant_id} column on tenant-scoped entities is mapped as a plain
- * {@code @Column} (no JPA {@code @ManyToOne}), there is no foreign-key constraint in the H2
- * schema and raw {@code Long} values are used as tenant IDs.
+ * {@code @Column} (no JPA {@code @ManyToOne}), raw {@code Long} values are used as tenant IDs.
  *
- * <p>Each test runs in a transaction that is rolled back after the method returns.
+ * <p>Each test runs in a transaction that is rolled back after the method returns
+ * (inherited from {@code @DataJpaTest} via {@link AbstractJpaTest}).
  */
-@DataJpaTest
-@ActiveProfiles("test")
-class TenantFilterIntegrationTest {
+class TenantFilterIntegrationTest extends AbstractJpaTest {
 
     private static final String TENANT_FILTER_NAME = "tenantFilter";
     private static final String TENANT_ID_PARAM = "tenantId";
@@ -56,6 +61,29 @@ class TenantFilterIntegrationTest {
 
     @Autowired
     private AcademicYearRepository academicYearRepository;
+
+    @Autowired
+    private BuildingRepository buildingRepository;
+
+    @Autowired
+    private IntakePeriodRepository intakePeriodRepository;
+
+    @Autowired
+    private CustomApplicationFieldRepository customApplicationFieldRepository;
+
+    @Autowired
+    private RequiredDocumentTypeRepository requiredDocumentTypeRepository;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUpTenants() {
+        entityManager.createNativeQuery(
+                "INSERT INTO tenant (id, name, config, is_active, created_at, updated_at) VALUES " +
+                "(0,   'Platform', '{}', true, current_timestamp, current_timestamp), " +
+                "(101, 'Tenant A', '{}', true, current_timestamp, current_timestamp), " +
+                "(202, 'Tenant B', '{}', true, current_timestamp, current_timestamp)"
+        ).executeUpdate();
+        entityManager.flush();
+    }
 
     @AfterEach
     void tearDown() {
@@ -161,6 +189,144 @@ class TenantFilterIntegrationTest {
     }
 
     // ────────────────────────────────────────────────────────────
+    // PLATFORM sentinel compliance
+    // ────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("student_canSeeBuildings_fromTwoDifferentTenants")
+    void student_canSeeBuildings_fromTwoDifferentTenants() {
+        // Arrange: one academic year per tenant
+        saveYearForTenant("2025 Owner-A", TENANT_1_ID);
+        saveYearForTenant("2025 Owner-B", TENANT_2_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: student request — filter is NOT enabled (PLATFORM sentinel bypass).
+        TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+        List<AcademicYear> results = academicYearRepository.findAll();
+
+        // Assert: student sees records from both tenants
+        assertThat(results).hasSize(2);
+        assertThat(results).extracting(AcademicYear::getTenantId)
+                .containsExactlyInAnyOrder(TENANT_1_ID, TENANT_2_ID);
+    }
+
+    @Test
+    @DisplayName("student_cannotSee_anotherStudentsDocuments")
+    void student_cannotSee_anotherStudentsDocuments() {
+        // Arrange: one record for a tenant, one for PLATFORM
+        saveYearForTenant("2025 Owner-A Record", TENANT_1_ID);
+        saveYearForTenant("2025 Student Record", TenantContext.PLATFORM_TENANT_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: tenant filter active — scoped to TENANT_1 only
+        enableTenantFilter(TENANT_1_ID);
+        List<AcademicYear> results = academicYearRepository.findAll();
+
+        // Assert: the PLATFORM-sentinel record (tenantId=0) is NOT visible inside
+        // a tenant-scoped view; only the tenant's own record appears.
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_1_ID);
+    }
+
+    @Test
+    @DisplayName("tenant_cannotSee_anotherTenantsBuildings")
+    void tenant_cannotSee_anotherTenantsBuildings() {
+        // Arrange: two records for tenant 1, two records for tenant 2
+        saveYearForTenant("2025 OA Bldg 1", TENANT_1_ID);
+        saveYearForTenant("2025 OA Bldg 2", TENANT_1_ID);
+        saveYearForTenant("2025 OB Bldg 1", TENANT_2_ID);
+        saveYearForTenant("2025 OB Bldg 2", TENANT_2_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: filter scoped to tenant 1
+        enableTenantFilter(TENANT_1_ID);
+        List<AcademicYear> results = academicYearRepository.findAll();
+
+        // Assert: tenant 1 sees only their own records
+        assertThat(results).hasSize(2);
+        assertThat(results).extracting(AcademicYear::getTenantId)
+                .containsOnly(TENANT_1_ID);
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // IntakePeriod — tenant isolation
+    // ────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("intakePeriodRecord_notVisibleToCrossTenantQuery")
+    void intakePeriodRecord_notVisibleToCrossTenantQuery() {
+        // Arrange: two buildings (one per tenant) and one intake period each
+        Building building1 = saveBuilding("Building A", TENANT_1_ID);
+        Building building2 = saveBuilding("Building B", TENANT_2_ID);
+        saveIntakePeriod("Spring 2025", building1, TENANT_1_ID);
+        saveIntakePeriod("Autumn 2025", building2, TENANT_2_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: filter scoped to tenant 1
+        enableTenantFilter(TENANT_1_ID);
+        List<IntakePeriod> results = intakePeriodRepository.findAll();
+
+        // Assert: only tenant 1's intake period is visible
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getName()).isEqualTo("Spring 2025");
+        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_1_ID);
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // CustomApplicationField — tenant isolation
+    // ────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("customApplicationFieldRecord_notVisibleToCrossTenantQuery")
+    void customApplicationFieldRecord_notVisibleToCrossTenantQuery() {
+        // Arrange: one custom field per tenant's building
+        Building building1 = saveBuilding("Building A Fields", TENANT_1_ID);
+        Building building2 = saveBuilding("Building B Fields", TENANT_2_ID);
+        saveCustomApplicationField("ID Number", building1, TENANT_1_ID);
+        saveCustomApplicationField("Proof of Income", building2, TENANT_2_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: filter scoped to tenant 2
+        enableTenantFilter(TENANT_2_ID);
+        List<CustomApplicationField> results = customApplicationFieldRepository.findAll();
+
+        // Assert: only tenant 2's custom field is visible
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getFieldLabel()).isEqualTo("Proof of Income");
+        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_2_ID);
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // RequiredDocumentType — tenant isolation
+    // ────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("requiredDocumentTypeRecord_notVisibleToCrossTenantQuery")
+    void requiredDocumentTypeRecord_notVisibleToCrossTenantQuery() {
+        // Arrange: one required document type per tenant's building
+        Building building1 = saveBuilding("Building A Docs", TENANT_1_ID);
+        Building building2 = saveBuilding("Building B Docs", TENANT_2_ID);
+        saveRequiredDocumentType("Student ID", building1, TENANT_1_ID);
+        saveRequiredDocumentType("Lease Agreement", building2, TENANT_2_ID);
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act: filter scoped to tenant 1
+        enableTenantFilter(TENANT_1_ID);
+        List<RequiredDocumentType> results = requiredDocumentTypeRepository.findAll();
+
+        // Assert: only tenant 1's document type is visible
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getDocumentName()).isEqualTo("Student ID");
+        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_1_ID);
+    }
+
+    // ────────────────────────────────────────────────────────────
     // Helpers
     // ────────────────────────────────────────────────────────────
 
@@ -196,5 +362,53 @@ class TenantFilterIntegrationTest {
         } catch (Exception ignored) {
             // Session may already be closed during teardown — safe to ignore
         }
+    }
+
+    /**
+     * Persists a minimal {@link Building} row.
+     */
+    private Building saveBuilding(String name, Long tenantId) {
+        Building building = new Building();
+        building.setName(name);
+        building.setTenantId(tenantId);
+        return buildingRepository.save(building);
+    }
+
+    /**
+     * Persists an {@link IntakePeriod} for the given building and tenant.
+     */
+    private IntakePeriod saveIntakePeriod(String name, Building building, Long tenantId) {
+        IntakePeriod period = IntakePeriod.builder()
+                .name(name)
+                .building(building)
+                .mode("ROLLING")
+                .tenantId(tenantId)
+                .build();
+        return intakePeriodRepository.save(period);
+    }
+
+    /**
+     * Persists a {@link CustomApplicationField} for the given building and tenant.
+     */
+    private CustomApplicationField saveCustomApplicationField(String label, Building building, Long tenantId) {
+        CustomApplicationField field = CustomApplicationField.builder()
+                .fieldLabel(label)
+                .fieldType("TEXT")
+                .building(building)
+                .tenantId(tenantId)
+                .build();
+        return customApplicationFieldRepository.save(field);
+    }
+
+    /**
+     * Persists a {@link RequiredDocumentType} for the given building and tenant.
+     */
+    private RequiredDocumentType saveRequiredDocumentType(String documentName, Building building, Long tenantId) {
+        RequiredDocumentType docType = RequiredDocumentType.builder()
+                .documentName(documentName)
+                .building(building)
+                .tenantId(tenantId)
+                .build();
+        return requiredDocumentTypeRepository.save(docType);
     }
 }

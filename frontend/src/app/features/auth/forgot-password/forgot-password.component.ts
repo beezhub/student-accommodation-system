@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -30,16 +30,16 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class ForgotPasswordComponent {
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private snackBar = inject(MatSnackBar);
+
   forgotPasswordForm: FormGroup;
   isSubmitting = false;
   emailSent = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.forgotPasswordForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
     });
@@ -55,14 +55,22 @@ export class ForgotPasswordComponent {
         next: (response) => {
           this.isSubmitting = false;
           this.emailSent = true;
-          this.snackBar.open(response.message || 'Password reset link sent to your email!', 'Close', {
-            duration: 5000,
-            panelClass: ['success-snackbar'],
-          });
+          this.snackBar.open(
+            response.message || 'Password reset link sent to your email!',
+            'Close',
+            {
+              duration: 5000,
+              panelClass: ['success-snackbar'],
+            }
+          );
         },
         error: (error: any) => {
           this.isSubmitting = false;
-          const errorMessage = error?.error?.message || error?.message || 'Failed to send reset link. Please try again.';
+          const errorMessage =
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            error?.error?.message ||
+            error?.message ||
+            'Failed to send reset link. Please try again.';
           this.snackBar.open(errorMessage, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar'],

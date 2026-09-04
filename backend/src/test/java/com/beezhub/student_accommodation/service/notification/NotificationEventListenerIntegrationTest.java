@@ -1,20 +1,17 @@
 package com.beezhub.student_accommodation.service.notification;
 
-import com.beezhub.student_accommodation.config.AsyncConfiguration;
+import com.beezhub.student_accommodation.AbstractIntegrationTest;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import com.beezhub.student_accommodation.model.event.ApplicationStatusChangedEvent;
 import com.beezhub.student_accommodation.repository.NotificationRepository;
-import com.beezhub.student_accommodation.service.NotificationService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import com.beezhub.student_accommodation.model.event.ApplicationStatusChangedEvent;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -24,15 +21,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = { NotificationEventListener.class, NotificationService.class,
-        AsyncConfiguration.class })
 @TestPropertySource(properties = {
         "async.core-pool-size=2",
         "async.max-pool-size=4",
         "async.queue-capacity=10"
 })
-class NotificationEventListenerIntegrationTest {
+class NotificationEventListenerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private NotificationEventListener notificationEventListener;
@@ -44,8 +38,9 @@ class NotificationEventListenerIntegrationTest {
     private NotificationRepository notificationRepository;
 
     @Test
+    @DisplayName("Application status change event is handled on the notification async thread pool")
     void handleApplicationStatusChanged_runsAsync() throws InterruptedException {
-        // Setup data
+        // Arrange
         AppUser user = new AppUser();
         user.setFirstName("Test");
         user.setLastName("User");
@@ -59,10 +54,8 @@ class NotificationEventListenerIntegrationTest {
         application.setId(1L);
         application.setStudent(student);
 
-        // Stub repository
         doAnswer(invocation -> invocation.getArgument(0)).when(notificationRepository).save(any());
 
-        // Capture thread name
         AtomicReference<String> threadName = new AtomicReference<>();
         CountDownLatch latch = new CountDownLatch(1);
 
@@ -72,19 +65,15 @@ class NotificationEventListenerIntegrationTest {
             return null;
         }).when(emailDispatchService).sendApplicationApprovedEmail(any(), any(), any());
 
-        // Execute
+        // Act
         notificationEventListener.handleApplicationStatusChanged(
-                new com.beezhub.student_accommodation.model.event.ApplicationStatusChangedEvent(application,
+                new ApplicationStatusChangedEvent(application,
                         ApplicationStatus.PENDING, ApplicationStatus.APPROVED));
 
-        // Wait
+        // Assert
         boolean completed = latch.await(5, TimeUnit.SECONDS);
         assertTrue(completed, "Async task did not complete in time");
-
-        // Verify
-        String name = threadName.get();
-        // The executor prefix is "notification-async-"
-        assertTrue(name.startsWith("notification-async-"),
-                "Expected thread name to start with 'notification-async-', but was '" + name + "'");
+        assertTrue(threadName.get().startsWith("notification-async-"),
+                "Expected thread name to start with 'notification-async-', but was '" + threadName.get() + "'");
     }
 }

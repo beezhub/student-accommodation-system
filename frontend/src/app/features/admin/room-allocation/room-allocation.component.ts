@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -22,8 +22,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-room-allocation',
@@ -46,16 +49,24 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatSnackBarModule,
     MatTooltipModule,
     MatMenuModule,
+    MatDividerModule,
     MatChipsModule,
-    ModernStatusBadgeComponent
+    ModernStatusBadgeComponent,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class RoomAllocationComponent implements OnInit {
+  private allocationService = inject(RoomAllocationService);
+  private buildingService = inject(BuildingService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   allocations: RoomAllocationResponse[] = [];
   buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
     'studentName',
-    'studentEmail',
     'roomNumber',
     'buildingName',
     'allocationDate',
@@ -68,17 +79,23 @@ export class RoomAllocationComponent implements OnInit {
   pageSize = 20;
   currentPage = 0;
 
+  // Filter panel state
+  filtersVisible = false;
+
   filterForm: FormGroup;
 
-  statuses = ['OFFERED', 'ACCEPTED', 'DECLINED', 'EXPIRED', 'CHECK_IN_EXPIRED', 'ACTIVE', 'COMPLETED', 'CANCELLED'];
+  statuses = [
+    'OFFERED',
+    'ACCEPTED',
+    'DECLINED',
+    'EXPIRED',
+    'CHECK_IN_EXPIRED',
+    'ACTIVE',
+    'COMPLETED',
+    'CANCELLED',
+  ];
 
-  constructor(
-    private allocationService: RoomAllocationService,
-    private buildingService: BuildingService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       studentName: [''],
       roomNumber: [''],
@@ -161,14 +178,14 @@ export class RoomAllocationComponent implements OnInit {
     import('../allocation-move-dialog/allocation-move-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.AllocationMoveDialogComponent, {
         width: '600px',
-        data: { 
+        data: {
           allocationId: allocation.id,
           studentId: allocation.studentId,
           studentName: `${allocation.studentFirstName} ${allocation.studentLastName}`,
           currentRoom: {
             buildingName: allocation.buildingName,
-            roomNumber: allocation.roomNumber
-          }
+            roomNumber: allocation.roomNumber,
+          },
         },
       });
 
@@ -215,7 +232,9 @@ export class RoomAllocationComponent implements OnInit {
   }
 
   checkIn(allocation: RoomAllocationResponse): void {
-    if (confirm(`Confirm check-in for ${allocation.studentFirstName} ${allocation.studentLastName}?`)) {
+    if (
+      confirm(`Confirm check-in for ${allocation.studentFirstName} ${allocation.studentLastName}?`)
+    ) {
       this.allocationService.checkIn(allocation.id).subscribe({
         next: () => {
           this.snackBar.open('Check-in confirmed successfully', 'Close', { duration: 3000 });
@@ -230,7 +249,9 @@ export class RoomAllocationComponent implements OnInit {
   }
 
   checkOut(allocation: RoomAllocationResponse): void {
-    if (confirm(`Confirm check-out for ${allocation.studentFirstName} ${allocation.studentLastName}?`)) {
+    if (
+      confirm(`Confirm check-out for ${allocation.studentFirstName} ${allocation.studentLastName}?`)
+    ) {
       this.allocationService.checkOut(allocation.id).subscribe({
         next: () => {
           this.snackBar.open('Check-out confirmed successfully', 'Close', { duration: 3000 });
@@ -242,6 +263,25 @@ export class RoomAllocationComponent implements OnInit {
         },
       });
     }
+  }
+
+  // ── UI helpers ──────────────────────────────────────────────
+
+  get activeFilterCount(): number {
+    const v = this.filterForm.value;
+    return [v.studentName, v.roomNumber, v.buildingId, v.status].filter(
+      (x) => x !== null && x !== '' && x !== undefined
+    ).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
+
+  getInitials(allocation: RoomAllocationResponse): string {
+    const f = allocation.studentFirstName?.[0] ?? '';
+    const l = allocation.studentLastName?.[0] ?? '';
+    return (f + l).toUpperCase();
   }
 
   getStatusClass(status: string): string {

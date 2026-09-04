@@ -78,6 +78,10 @@ public interface RoomAllocationRepository
        @Query("SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.application.id = :applicationId AND ra.status = com.beezhub.student_accommodation.model.enums.AllocationStatus.DECLINED")
        long countDeclinedAllocationsByApplicationId(@Param("applicationId") Long applicationId);
 
+       // Count allocations created within a recent window for a given academic year —
+       // used as an "allocation velocity" signal to estimate waitlist wait time.
+       long countByAcademicYear_IdAndCreatedAtAfter(Long academicYearId, LocalDateTime createdAt);
+
        // Check if a student has previously declined a specific room
        @Query("SELECT COUNT(ra) > 0 FROM RoomAllocation ra WHERE ra.student.id = :studentId AND ra.room.id = :roomId AND ra.status = com.beezhub.student_accommodation.model.enums.AllocationStatus.DECLINED")
        boolean hasStudentDeclinedRoom(@Param("studentId") Long studentId, @Param("roomId") Long roomId);
@@ -94,15 +98,45 @@ public interface RoomAllocationRepository
            @Param("status") AllocationStatus status,
            @Param("cutoffDate") LocalDateTime cutoffDate);
 
-       // Find expired check-ins
-       @Query("SELECT ra FROM RoomAllocation ra " +
-              "LEFT JOIN FETCH ra.student s " +
-              "LEFT JOIN FETCH s.appUser " +
-              "LEFT JOIN FETCH ra.room r " +
-              "LEFT JOIN FETCH r.building " +
-              "LEFT JOIN FETCH ra.application a " +
-              "WHERE ra.status = :status AND ra.checkInExpiryDate < :cutoffDate")
-       List<RoomAllocation> findByStatusAndCheckInExpiryDateBefore(
-           @Param("status") AllocationStatus status,
-           @Param("cutoffDate") LocalDateTime cutoffDate);
+        // Find expired check-ins
+        @Query("SELECT ra FROM RoomAllocation ra " +
+               "LEFT JOIN FETCH ra.student s " +
+               "LEFT JOIN FETCH s.appUser " +
+               "LEFT JOIN FETCH ra.room r " +
+               "LEFT JOIN FETCH r.building " +
+               "LEFT JOIN FETCH ra.application a " +
+               "WHERE ra.status = :status AND ra.checkInExpiryDate < :cutoffDate")
+        List<RoomAllocation> findByStatusAndCheckInExpiryDateBefore(
+            @Param("status") AllocationStatus status,
+            @Param("cutoffDate") LocalDateTime cutoffDate);
+
+        // Find OFFERED allocations expiring within a window that have not yet had a reminder sent
+        @Query("SELECT ra FROM RoomAllocation ra " +
+               "LEFT JOIN FETCH ra.student s " +
+               "LEFT JOIN FETCH s.appUser " +
+               "LEFT JOIN FETCH ra.room r " +
+               "LEFT JOIN FETCH r.building " +
+               "LEFT JOIN FETCH ra.application a " +
+               "WHERE ra.status = com.beezhub.student_accommodation.model.enums.AllocationStatus.OFFERED " +
+               "AND ra.offerExpiryDate >= :windowStart " +
+               "AND ra.offerExpiryDate < :windowEnd " +
+               "AND ra.reminder24hSent = false")
+        List<RoomAllocation> findOffersExpiringSoonWithoutReminder(
+            @Param("windowStart") LocalDateTime windowStart,
+            @Param("windowEnd") LocalDateTime windowEnd);
+
+        // Find ACCEPTED allocations whose check-in deadline falls within the window and have not had a reminder sent
+        @Query("SELECT ra FROM RoomAllocation ra " +
+               "LEFT JOIN FETCH ra.student s " +
+               "LEFT JOIN FETCH s.appUser " +
+               "LEFT JOIN FETCH ra.room r " +
+               "LEFT JOIN FETCH r.building " +
+               "LEFT JOIN FETCH ra.application a " +
+               "WHERE ra.status = com.beezhub.student_accommodation.model.enums.AllocationStatus.ACCEPTED " +
+               "AND ra.checkInExpiryDate >= :windowStart " +
+               "AND ra.checkInExpiryDate < :windowEnd " +
+               "AND ra.checkInReminder24hSent = false")
+        List<RoomAllocation> findCheckInsExpiringSoonWithoutReminder(
+            @Param("windowStart") LocalDateTime windowStart,
+            @Param("windowEnd") LocalDateTime windowEnd);
 }

@@ -1,9 +1,16 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  inject,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
-import { ApplicationService, ApplicationFullDetails } from '../../../../core/services/application.service';
+import { ApplicationService } from '../../../../core/services/application.service';
 import { AdminService, ApplicationResponse } from '../../../../core/services/admin.service';
+import { RoleService } from '../../../../core/services/role.service';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -56,6 +63,7 @@ export class ApplicationDetailsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly roleService = inject(RoleService);
   private readonly applicationService = inject(ApplicationService);
   private readonly adminService = inject(AdminService);
   private readonly breakpointObserver = inject(BreakpointObserver);
@@ -93,7 +101,7 @@ export class ApplicationDetailsComponent implements OnInit {
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
-    this.isAdmin = this.currentUser?.userRole === 'ADMIN';
+    this.isAdmin = this.roleService.isPlatformAdmin();
 
     this.route.params.subscribe((params) => {
       this.applicationId = +params['id'];
@@ -130,6 +138,7 @@ export class ApplicationDetailsComponent implements OnInit {
           studentEmail: fullDetails.studentProfile.email,
           // Optional fields
           preferredBuildingName: fullDetails.preferredBuildingName,
+          preferredBuildings: fullDetails.preferredBuildings,
           requiresAccessibility: fullDetails.requiresAccessibility,
           specialRequirements: fullDetails.specialRequirements,
           courseName: fullDetails.courseName,
@@ -187,10 +196,12 @@ export class ApplicationDetailsComponent implements OnInit {
         icon: 'hourglass_empty',
       });
     } else if (this.application.status === 'ALLOCATED') {
-       this.timeline.push({
+      this.timeline.push({
         date: this.application.updatedAt || this.application.applicationDate,
         status: 'Room Allocated',
-        description: `Room allocation complete. Building: ${this.application.preferredBuildingName || 'Assigned Building'}`,
+        description: `Room allocation complete. Building: ${
+          this.application.preferredBuildingName || 'Assigned Building'
+        }`,
         icon: 'home',
       });
     }

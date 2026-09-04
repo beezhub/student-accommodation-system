@@ -44,7 +44,7 @@ public class StudentService {
     public StudentResponse getStudentByUserId(Long userId) {
         var current = authService.getCurrentUser();
         // Allow access if admin or requesting own profile
-        if (!current.getId().equals(userId) && current.getUserRole() != UserRole.ADMIN) {
+        if (!current.getId().equals(userId) && !current.getUserRole().isAdmin()) {
             throw new RuntimeException("Unauthorized to access this student");
         }
         Student student = studentRepository.findStudentWithDetailsByUserId(userId)
@@ -63,7 +63,7 @@ public class StudentService {
     @Transactional
     public StudentResponse updateStudent(Long userId, StudentRequest request) {
         var current = authService.getCurrentUser();
-        if (!current.getId().equals(userId) && current.getUserRole() != UserRole.ADMIN) {
+        if (!current.getId().equals(userId) && !current.getUserRole().isAdmin()) {
             throw new RuntimeException("Unauthorized to update this student");
         }
         Student student = studentRepository.findStudentWithDetailsByUserId(userId)

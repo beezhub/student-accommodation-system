@@ -10,12 +10,14 @@ import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DeclineReason;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
@@ -30,7 +32,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -55,7 +59,7 @@ class AllocationLifecycleServiceTest {
     @Mock
     private AllocationAuditService allocationAuditService;
     @Mock
-    private AllocationScoringService allocationScoringService;
+    private LegacyScoringStrategy allocationScoringService;
     @Mock
     private AppUserRepository appUserRepository;
     @Mock
@@ -64,6 +68,8 @@ class AllocationLifecycleServiceTest {
     private ApplicationEventPublisher eventPublisher;
     @Mock
     private RoomOccupancyManager roomOccupancyManager;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private MeterRegistry meterRegistry;
 
     @InjectMocks
     private AllocationLifecycleService allocationLifecycleService;
@@ -75,6 +81,13 @@ class AllocationLifecycleServiceTest {
 
     @BeforeEach
     void setUp() {
+        // @Value fields are not populated in plain Mockito tests; mirror the
+        // application.yml defaults so check-in window validation behaves as in prod.
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                allocationLifecycleService, "offerExpiryDays", 7);
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                allocationLifecycleService, "checkInExpiryDays", 7);
+
         student = new Student();
         student.setId(1L);
         AppUser appUser = new AppUser();
@@ -209,7 +222,7 @@ class AllocationLifecycleServiceTest {
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.DECLINED);
         verify(roomOccupancyManager).updateOccupancy(room, -1);
         verify(roomAllocationRepository).save(allocation);
-        verify(waitingListService).reQueueStudent(any(), eq(1), eq(2));
+        verify(waitingListService).reQueueStudent(any(), eq(1));
     }
 
     @Test
@@ -233,11 +246,11 @@ class AllocationLifecycleServiceTest {
 
         // Check delegation
         verify(roomOccupancyManager).updateOccupancy(room, -1);
-        verify(waitingListService).reQueueStudent(any(), eq(2), eq(2));
+        verify(waitingListService).reQueueStudent(any(), eq(2));
     }
 
     @Test
-    void declineOffer_thirdDecline_shouldCancel() {
+    void declineOffer_thirdDecline_shouldReQueueUnlimited() {
         RoomAllocation allocation = new RoomAllocation();
         allocation.setId(1L);
         allocation.setStatus(AllocationStatus.OFFERED);
@@ -256,8 +269,9 @@ class AllocationLifecycleServiceTest {
 
         allocationLifecycleService.declineOffer(1L, request);
 
+        // Verify no cancellation — student is re-queued regardless of decline count
         verify(roomOccupancyManager).updateOccupancy(room, -1);
-        verify(waitingListService).cancelApplicationAfterMaxDeclines(any(), eq(2));
+        verify(waitingListService).reQueueStudent(any(), eq(3));
     }
 
     @Test

@@ -4,11 +4,14 @@ import com.beezhub.student_accommodation.model.enums.NotificationStatus;
 import com.beezhub.student_accommodation.model.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity
 @Table(name = "notification")
@@ -71,6 +74,17 @@ public class Notification implements TenantAware {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    /**
+     * Stores the email template variables (key-value pairs) as JSONB so that
+     * {@link com.beezhub.student_accommodation.service.notification.NotificationRetryService}
+     * can reconstruct and re-dispatch the email without re-fetching related entities.
+     * May be {@code null} for notifications created before this column was added or
+     * for notification types that do not use templateData-based retry.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "template_data", columnDefinition = "jsonb")
+    private Map<String, Object> templateData;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)

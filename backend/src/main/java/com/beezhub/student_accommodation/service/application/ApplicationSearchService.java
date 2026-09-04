@@ -11,6 +11,7 @@ import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
+import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.specification.ApplicationSpecification;
@@ -45,6 +46,8 @@ public class ApplicationSearchService {
     private final DocumentRepository documentRepository;
     private final StagedAllocationRepository stagedAllocationRepository;
     private final ApplicationMapper applicationMapper;
+    private final DocumentTypeRepository documentTypeRepository;
+    private final com.beezhub.student_accommodation.service.DocumentTypeService documentTypeService;
 
     /**
      * Retrieves all applications with pagination.
@@ -58,7 +61,6 @@ public class ApplicationSearchService {
         log.info("Retrieving paginated applications");
         Page<Application> page = applicationRepository.findAll(pageable);
 
-        // Enrich responses with extra data
         List<ApplicationResponse> responses = enrichApplicationDetails(page.getContent());
 
         Page<ApplicationResponse> responsePage = new org.springframework.data.domain.PageImpl<>(responses,
@@ -70,16 +72,6 @@ public class ApplicationSearchService {
     /**
      * Searches applications by filters with pagination.
      * Admin only.
-     *
-     * @param applicationCode   Application code (partial match)
-     * @param studentName       Student name (partial match)
-     * @param status            Application status
-     * @param allocationStatus  Allocation status
-     * @param preferredBuilding Preferred building name
-     * @param startDate         Application date from
-     * @param endDate           Application date to
-     * @param pageable          Pagination parameters
-     * @return PageResponse with filtered applications
      */
     @Transactional(readOnly = true)
     public PageResponse<ApplicationResponse> searchApplications(String applicationCode, String studentName,
@@ -96,7 +88,6 @@ public class ApplicationSearchService {
                 allocationStatus, preferredBuilding, startDate, endDate);
         Page<Application> page = applicationRepository.findAll(spec, pageable);
 
-        // Enrich responses with extra data not in Application entity
         List<ApplicationResponse> responses = enrichApplicationDetails(page.getContent());
 
         Page<ApplicationResponse> responsePage = new org.springframework.data.domain.PageImpl<>(responses,
@@ -110,9 +101,6 @@ public class ApplicationSearchService {
     /**
      * Retrieves all applications by status.
      * Admin only.
-     *
-     * @param status Application status string
-     * @return List of applications with the given status
      */
     @Transactional(readOnly = true)
     public List<ApplicationResponse> getApplicationsByStatus(String status) {
@@ -127,42 +115,54 @@ public class ApplicationSearchService {
     /**
      * Enriches application responses with document and allocation details.
      * Fetches related data in batch to avoid N+1 queries.
-     *
-     * @param applications List of applications to enrich
-     * @return List of enriched application responses
+     * Documents are queried directly from the student's document pack (student_id).
      */
     private List<ApplicationResponse> enrichApplicationDetails(List<Application> applications) {
         if (applications.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<Long> appIds = applications.stream().map(Application::getId).collect(Collectors.toList());
+        // Fetch required doc count for the current tenant's effective view.
+        // Admin requests are always tenant-scoped (Hibernate filter active), so all
+        // applications in this batch belong to the same tenant as TenantContext.
+        int requiredDocCount = documentTypeService
+                .getEffectiveRequiredTypeNames(com.beezhub.student_accommodation.service.tenant.TenantContext.getTenantId() != null
+                        ? com.beezhub.student_accommodation.service.tenant.TenantContext.getTenantId()
+                        : 0L)
+                .size();
 
-        // Fetch documents in batch
-        List<Document> allDocs = documentRepository.findByApplicationIdIn(appIds);
-        Map<Long, List<Document>> docsByApp = allDocs.stream()
-                .collect(Collectors.groupingBy(d -> d.getApplication().getId()));
+        // Collect student IDs from applications
+        List<Long> studentIds = applications.stream()
+                .map(app -> app.getStudent().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        // Batch fetch all documents for those students; group by student_id
+        List<Document> allDocuments = documentRepository.findAllByStudent_IdIn(studentIds);
+        Map<Long, List<Document>> documentsByStudent = allDocuments.stream()
+                .collect(Collectors.groupingBy(doc -> doc.getStudent().getId()));
 
         // Fetch staged allocations in batch
+        List<Long> appIds = applications.stream().map(Application::getId).collect(Collectors.toList());
         List<StagedAllocation> allStaged = stagedAllocationRepository.findByApplication_IdIn(appIds);
         Map<Long, StagedAllocation> stagedByApp = allStaged.stream()
                 .collect(Collectors.toMap(
                         s -> s.getApplication().getId(),
                         s -> s,
-                        (existing, replacement) -> existing // Keep first if multiple (rare)
+                        (existing, replacement) -> existing
                 ));
 
         return applications.stream().map(app -> {
             ApplicationResponse response = applicationMapper.toResponse(app);
 
-            // Handle Documents
-            List<Document> docs = docsByApp.getOrDefault(app.getId(), new ArrayList<>());
-            long approvedCount = docs.stream().filter(d -> d.getDocumentStatus() == DocumentStatus.APPROVED)
+            // Count approved documents from the student's pack
+            List<Document> studentDocs = documentsByStudent.getOrDefault(app.getStudent().getId(), new ArrayList<>());
+            long approvedCount = studentDocs.stream()
+                    .filter(doc -> doc.getDocumentStatus() == DocumentStatus.APPROVED)
                     .count();
             response.setApprovedDocuments((int) approvedCount);
-            // Assuming 5 required documents for student accommodation
-            response.setTotalRequiredDocuments(5);
-            response.setDocumentCompletionPercent(docs.isEmpty() ? 0 : (int) ((approvedCount * 100) / 5));
+            response.setTotalRequiredDocuments(requiredDocCount);
+            response.setDocumentCompletionPercent(requiredDocCount == 0 ? 0 : (int) ((approvedCount * 100) / requiredDocCount));
 
             // Handle Allocation
             if (app.getStatus() == ApplicationStatus.ALLOCATED) {
@@ -172,10 +172,9 @@ public class ApplicationSearchService {
             StagedAllocation staged = stagedByApp.get(app.getId());
             if (staged != null) {
                 response.setAllocationScore(staged.getScore());
-                // If application is AWAITING_ALLOCATION, staged status is meaningful
                 response.setAllocationStatus(staged.getStatus().name());
             } else {
-                response.setAllocationStatus(app.getStatus().name()); // Default to app status
+                response.setAllocationStatus(app.getStatus().name());
             }
 
             return response;

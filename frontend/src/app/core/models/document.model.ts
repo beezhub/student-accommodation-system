@@ -1,6 +1,7 @@
 export interface DocumentData {
   id: number;
   documentName: string;
+  documentTypeId?: number;
   documentTypeName: string;
   fileUrl?: string;
   fileSize?: number; // File size in bytes

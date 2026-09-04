@@ -24,6 +24,10 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      boolean existsByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
 
+     boolean existsByStudent_IdAndTenantIdAndStatus(Long studentId, Long tenantId, ApplicationStatus status);
+
+     boolean existsByStudent_IdAndTenantIdAndStatusIn(Long studentId, Long tenantId, java.util.Collection<ApplicationStatus> statuses);
+
      List<Application> findByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
 
      void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
@@ -32,4 +36,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      @Query("SELECT MAX(a.applicationCode) FROM Application a WHERE a.applicationCode LIKE :prefix%")
      Optional<String> findMaxApplicationCodeByPrefix(@Param("prefix") String prefix);
+
+     @Query("SELECT COUNT(DISTINCT a.student.id) FROM Application a")
+     long countDistinctStudents();
 }

@@ -1,10 +1,14 @@
 <div class="dialog-container">
   <div class="dialog-header">
-    <div class="header-icon">
-      <mat-icon>{{ isEditMode ? 'edit' : 'add_circle' }}</mat-icon>
+    <div class="dialog-header-inner">
+      <div class="header-icon-wrap">
+        <mat-icon>{{ isEditMode ? 'edit' : 'add_circle' }}</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">{{ dialogTitle }}</h2>
+        <p class="dialog-subtitle">{{ isEditMode ? 'Update accommodation type details' : 'Create a new accommodation type for students' }}</p>
+      </div>
     </div>
-    <h2>{{ dialogTitle }}</h2>
-    <p>{{ isEditMode ? 'Update accommodation type details' : 'Create a new accommodation type for students' }}</p>
   </div>
 
   <mat-dialog-content>
@@ -68,7 +72,6 @@
     </button>
     <button
       mat-raised-button
-      color="primary"
       type="submit"
       (click)="onSubmit()"
       [disabled]="isLoading || form.invalid"
@@ -78,10 +81,8 @@
         <mat-spinner diameter="18"></mat-spinner>
         <span>{{ isEditMode ? 'Updating...' : 'Creating...' }}</span>
       } @else {
-        <ng-container>
-          <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
-          <span>{{ isEditMode ? 'Update' : 'Create' }}</span>
-        </ng-container>
+        <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
+        <span>{{ isEditMode ? 'Update' : 'Create' }}</span>
       }
     </button>
   </mat-dialog-actions>

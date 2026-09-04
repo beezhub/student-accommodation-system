@@ -62,12 +62,13 @@ public class DocumentQueryService {
 
         String objectPath = document.getDocumentPath();
 
+        String contentType = fileStorageService.getContentType(objectPath);
         InputStream response = fileStorageService.download(objectPath);
         var inputStreamResource = new InputStreamResource(response);
         return DocumentDownloadResponse.builder()
                 .filename(document.getDocumentName())
                 .resource(inputStreamResource)
-                .contentType("application/octet-stream")
+                .contentType(contentType)
                 .build();
     }
 

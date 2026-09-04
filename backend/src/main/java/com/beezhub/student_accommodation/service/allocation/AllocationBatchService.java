@@ -6,15 +6,15 @@ import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.FeatureFlagService;
 import com.beezhub.student_accommodation.util.PageMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
-import org.ff4j.FF4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -28,7 +28,7 @@ public class AllocationBatchService {
 
     private final WaitingListRepository waitingListRepository;
     private final AllocationLifecycleService allocationLifecycleService;
-    private final FF4j ff4j;
+    private final FeatureFlagService featureFlagService;
     private final TransactionTemplate transactionTemplate;
     private final Environment environment;
     private final AllocationScoringOrchestrator allocationScoringOrchestrator;
@@ -39,7 +39,7 @@ public class AllocationBatchService {
     public AllocationBatchService(
             WaitingListRepository waitingListRepository,
             @Lazy AllocationLifecycleService allocationLifecycleService,
-            FF4j ff4j,
+            FeatureFlagService featureFlagService,
             TransactionTemplate transactionTemplate,
             Environment environment,
             AllocationScoringOrchestrator allocationScoringOrchestrator,
@@ -48,7 +48,7 @@ public class AllocationBatchService {
             MeterRegistry meterRegistry) {
         this.waitingListRepository = waitingListRepository;
         this.allocationLifecycleService = allocationLifecycleService;
-        this.ff4j = ff4j;
+        this.featureFlagService = featureFlagService;
         this.transactionTemplate = transactionTemplate;
         this.environment = environment;
         this.allocationScoringOrchestrator = allocationScoringOrchestrator;
@@ -58,37 +58,32 @@ public class AllocationBatchService {
     }
 
     /**
-     * Periodic batch allocation job.
+     * Batch allocation job body — called by ScheduledJobRunner.
      * Processes waiting list students when rooms are available.
-     * Runs every 6 hours (configurable via app.allocation.batch-interval-ms).
      */
-    @Scheduled(fixedDelayString = "${app.allocation.batch-interval-ms:21600000}")
-    public void scheduledBatchAllocation() {
+    public int scheduledBatchAllocation() {
         // Check if batch job is enabled
         boolean batchEnabled = environment.getProperty("app.allocation.batch-enabled", Boolean.class, true);
         if (!batchEnabled) {
-            return;
+            return 0;
         }
 
-        log.info("Starting scheduled batch allocation job");
+        log.info("Starting batch allocation job");
 
-        try {
-            long waitingCount = waitingListRepository.countByStatus("WAITING");
+        long waitingCount = waitingListRepository.countByStatus("WAITING");
 
-            if (waitingCount == 0) {
-                log.info("No students on waiting list, skipping batch allocation");
-                return;
-            }
-
-            int batchSize = environment.getProperty("app.allocation.batch-size", Integer.class, 50);
-            BatchAllocationResult result = batchAllocateFromWaitingList(batchSize);
-
-            log.info("Scheduled batch allocation completed: {} succeeded, {} failed out of {} waiting",
-                    result.getSuccessCount(), result.getFailureCount(), waitingCount);
-
-        } catch (Exception e) {
-            log.error("Scheduled batch allocation failed", e);
+        if (waitingCount == 0) {
+            log.info("No students on waiting list, skipping batch allocation");
+            return 0;
         }
+
+        int batchSize = environment.getProperty("app.allocation.batch-size", Integer.class, 50);
+        BatchAllocationResult result = batchAllocateFromWaitingList(batchSize);
+
+        log.info("Batch allocation completed: {} succeeded, {} failed out of {} waiting",
+                result.getSuccessCount(), result.getFailureCount(), waitingCount);
+
+        return result.getSuccessCount();
     }
 
     /**
@@ -113,13 +108,14 @@ public class AllocationBatchService {
      * @return BatchAllocationResult with success/failure statistics
      */
     @Transactional
+    @Timed(value = "service.allocation.batchRun", percentiles = {0.5, 0.95, 0.99})
     public BatchAllocationResult batchAllocateFromWaitingList(int maxAllocations) {
         long startTime = System.currentTimeMillis();
         Timer.Sample sample = Timer.start(meterRegistry);
 
         // Feature flag check
         try {
-            if (!ff4j.check(FF4jConfig.FEATURE_AUTO_ALLOCATION)) {
+            if (!featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)) {
                 log.info("Auto-allocation is disabled via Feature Toggle. Skipping batch allocation.");
                 return BatchAllocationResult.builder()
                         .processedAt(LocalDateTime.now())
@@ -277,45 +273,7 @@ public class AllocationBatchService {
 
     @Transactional
     public BatchConfirmationResult confirmBatchAllocationsWithResult(String batchId, Long adminId) {
-        // This was duplicate logic, reusing confirmBatchAllocations logic but returning
-        // result
-        // For now, delegate to stagedAllocationService.confirmBatchAllocations, but we
-        // need result stats.
-        // StagedAllocationService.confirmBatchAllocations is void.
-        // I should update StagedAllocationService to return result or implement logic
-        // here calling single confirm.
-
-        // Implementing logic here to return stats, calling
-        // stagedAllocationService.confirmAllocation per item
-        // Or update StagedAllocationService to return stats.
-        // Let's implement here for now using single confirm
-
-        // Wait, I can't access stagedAllocationRepository directly if I want to keep
-        // this thin.
-        // But StagedAllocationService has getStagedAllocations.
-        // I will use StagedAllocationService to fetch and confirm.
-
-        // However, StagedAllocationService already has confirmBatchAllocations(void).
-        // I'll keep the logic here for now, but I need StagedAllocationRepository
-        // access or use StagedAllocationService query.
-
-        // Actually, looking at the previous implementation,
-        // confirmBatchAllocationsWithResult was very similar to
-        // confirmBatchAllocations.
-        // I will assume StagedAllocationService can handle it or I should move this
-        // method there too.
-        // The reviewer said "AllocationBatchService (< 300 lines)".
-        // Moving confirmBatchAllocationsWithResult to StagedAllocationService is
-        // better.
-
-        // I'll leave it here but using StagedAllocationService methods if possible,
-        // but I can't iterate without repository.
-        // I will return empty result for now and TODO: move to StagedAllocationService
-
-        // Or better, let's look at StagedAllocationService again.
-        // It has confirmBatchAllocations (void).
-        // I'll add confirmBatchAllocationsWithResult to StagedAllocationService.
-        return null; // Placeholder, I will update StagedAllocationService next.
+        return stagedAllocationService.confirmBatchAllocationsWithResult(batchId, adminId);
     }
 
     public PageResponse<StagedAllocationResponse> getStagedAllocations(String batchId, StagedAllocationStatus status,

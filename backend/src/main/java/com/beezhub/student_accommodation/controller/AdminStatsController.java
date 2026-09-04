@@ -24,7 +24,7 @@ public class AdminStatsController {
     @Operation(summary = "Get dashboard statistics", description = "Retrieves comprehensive statistics for the admin dashboard including applications, documents, users, rooms, and buildings")
     @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     public ResponseEntity<DashboardStatsResponse> getDashboardStats() {
         return ResponseEntity.ok(adminStatsService.getDashboardStats());
     }
@@ -32,7 +32,7 @@ public class AdminStatsController {
     @Operation(summary = "Get room occupancy statistics", description = "Retrieves detailed room occupancy statistics with building-level breakdown")
     @ApiResponse(responseCode = "200", description = "Occupancy statistics retrieved successfully")
     @GetMapping("/occupancy")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     public ResponseEntity<OccupancyStatsResponse> getOccupancyStats() {
         return ResponseEntity.ok(adminStatsService.getOccupancyStats());
     }

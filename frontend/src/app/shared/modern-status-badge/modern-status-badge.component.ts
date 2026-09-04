@@ -27,6 +27,26 @@ export type StatusType =
   | 'ALLOCATED'
   | 'awaiting_allocation'
   | 'AWAITING_ALLOCATION'
+  | 'under_review'
+  | 'UNDER_REVIEW'
+  | 'changes_requested'
+  | 'CHANGES_REQUESTED'
+  | 'withdrawn'
+  | 'WITHDRAWN'
+  | 'checked_in'
+  | 'CHECKED_IN'
+  | 'offered'
+  | 'OFFERED'
+  | 'accepted'
+  | 'ACCEPTED'
+  | 'declined'
+  | 'DECLINED'
+  | 'completed'
+  | 'COMPLETED'
+  | 'terminated'
+  | 'TERMINATED'
+  | 'submitted'
+  | 'SUBMITTED'
   | string;
 
 interface StatusConfig {
@@ -46,6 +66,8 @@ interface StatusConfig {
       [class]="'modern-badge ' + config().colorClass"
       [class.badge-sm]="size() === 'sm'"
       [class.badge-lg]="size() === 'lg'"
+      role="status"
+      [attr.aria-label]="'Status: ' + config().label"
     >
       @if (showEmoji() && config().emoji) {
       <span class="badge-emoji">{{ config().emoji }}</span>
@@ -94,7 +116,6 @@ interface StatusConfig {
       }
 
       .badge-label {
-        text-transform: capitalize;
       }
 
       .badge-pulse {
@@ -151,14 +172,20 @@ interface StatusConfig {
       /* Status Colors - Mapped to Functional Palette */
 
       /* Success/Approved */
-      .status-approved, .status-verified, .status-allocated, .status-active {
+      .status-approved,
+      .status-verified,
+      .status-allocated,
+      .status-active {
         background: var(--color-success-bg, linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%));
         color: var(--color-success, #047857);
         border: 1px solid var(--color-success-border, #6ee7b7);
       }
 
       /* Warning/Pending/Full */
-      .status-pending, .status-full, .status-awaiting_allocation {
+      .status-pending,
+      .status-full,
+      .status-awaiting_allocation,
+      .status-warning {
         background: var(--color-warning-bg, linear-gradient(135deg, #fef3c7 0%, #fde68a 100%));
         color: var(--color-warning, #b45309);
         border: 1px solid var(--color-warning-border, #fcd34d);
@@ -185,18 +212,29 @@ interface StatusConfig {
         border: 1px solid #f87171;
       }
 
-      /* Info/Available */
-      .status-available {
+      /* Info/Available/Offered/Submitted */
+      .status-available,
+      .status-info {
         background: var(--color-info-bg, linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%));
         color: var(--color-info, #0369a1);
         border: 1px solid var(--color-info-border, #7dd3fc);
       }
 
-      /* Neutral/Maintenance/Inactive */
-      .status-maintenance, .status-inactive, .status-occupied {
+      /* Neutral/Maintenance/Inactive/Withdrawn/Declined/Completed */
+      .status-maintenance,
+      .status-inactive,
+      .status-occupied,
+      .status-neutral {
         background: var(--color-slate-100, #f1f5f9);
         color: var(--color-slate-600, #475569);
         border: 1px solid var(--color-slate-200, #cbd5e1);
+      }
+
+      /* Changes Requested */
+      .status-changes {
+        background: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #fb923c;
       }
 
       .status-default {
@@ -301,6 +339,66 @@ export class ModernStatusBadgeComponent {
         label: 'Check-In Expired',
         colorClass: 'status-check-in-expired',
         emoji: '🚫',
+      },
+      under_review: {
+        icon: 'rate_review',
+        label: 'Under Review',
+        colorClass: 'status-warning',
+        emoji: '👀',
+      },
+      changes_requested: {
+        icon: 'edit_note',
+        label: 'Changes Requested',
+        colorClass: 'status-changes',
+        emoji: '⚠️',
+      },
+      withdrawn: {
+        icon: 'undo',
+        label: 'Withdrawn',
+        colorClass: 'status-neutral',
+        emoji: '↩️',
+      },
+      checked_in: {
+        icon: 'meeting_room',
+        label: 'Checked In',
+        colorClass: 'status-approved',
+        emoji: '🔑',
+      },
+      offered: {
+        icon: 'local_offer',
+        label: 'Offer Sent',
+        colorClass: 'status-info',
+        emoji: '📩',
+      },
+      accepted: {
+        icon: 'check_circle',
+        label: 'Accepted',
+        colorClass: 'status-approved',
+        emoji: '✅',
+      },
+      declined: {
+        icon: 'thumb_down',
+        label: 'Declined',
+        colorClass: 'status-neutral',
+        emoji: '👎',
+      },
+      completed: {
+        icon: 'task_alt',
+        label: 'Completed',
+        colorClass: 'status-neutral',
+        emoji: '🏁',
+      },
+      terminated: {
+        icon: 'block',
+        label: 'Terminated',
+        colorClass: 'status-rejected',
+        emoji: '🛑',
+      },
+      submitted: {
+        icon: 'send',
+        label: 'Submitted',
+        colorClass: 'status-info',
+        emoji: '📤',
       },
     };
 

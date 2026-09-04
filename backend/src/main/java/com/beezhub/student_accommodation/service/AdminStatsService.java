@@ -8,6 +8,7 @@ import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,11 +19,11 @@ public class AdminStatsService {
 
     private final ApplicationRepository applicationRepository;
     private final DocumentRepository documentRepository;
-    private final StudentRepository studentRepository;
     private final AppUserRepository appUserRepository;
     private final RoomRepository roomRepository;
     private final BuildingRepository buildingRepository;
 
+    @Transactional(readOnly = true)
     public DashboardStatsResponse getDashboardStats() {
         // Room stats
         Long totalRooms = roomRepository.count();
@@ -49,9 +50,10 @@ public class AdminStatsService {
                 .pendingDocuments(documentRepository.countByDocumentStatus(DocumentStatus.PENDING))
                 .approvedDocuments(documentRepository.countByDocumentStatus(DocumentStatus.APPROVED))
                 .rejectedDocuments(documentRepository.countByDocumentStatus(DocumentStatus.REJECTED))
-                // User stats
-                .totalStudents(studentRepository.count())
-                .totalAdmins(appUserRepository.countByUserRole(UserRole.ADMIN))
+                // User stats — students are counted via tenant-scoped applications;
+                // admins are TENANT_ADMIN users visible through the tenant filter.
+                .totalStudents(applicationRepository.countDistinctStudents())
+                .totalAdmins(appUserRepository.countByUserRole(UserRole.TENANT_ADMIN))
                 // Room stats
                 .totalRooms(totalRooms)
                 .availableRooms(availableRooms)
@@ -67,6 +69,7 @@ public class AdminStatsService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public OccupancyStatsResponse getOccupancyStats() {
         List<Object[]> buildingStats = roomRepository.getBuildingOccupancyStats();
 

@@ -1,7 +1,9 @@
 package com.beezhub.student_accommodation.controller;
 
 import com.beezhub.student_accommodation.model.dto.*;
+import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
+import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.service.RoomAllocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,10 +27,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Staged Allocation Management", description = "Batch allocation proposal and confirmation workflows")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
 public class StagedAllocationController {
 
         private final RoomAllocationService roomAllocationService;
+        private final AppUserRepository appUserRepository;
 
         /**
          * Proposes allocation for a batch of students.
@@ -230,9 +233,9 @@ public class StagedAllocationController {
          * Extracts admin user ID from authentication context.
          */
         private Long extractAdminId(Authentication auth) {
-                // Extract from UserDetails or custom authentication object
-                // This is a placeholder - adjust based on your security implementation
-                return 1L; // TODO: Extract actual admin ID from authentication
+                AppUser user = appUserRepository.findByEmail(auth.getName())
+                        .orElseThrow(() -> new RuntimeException("Admin user not found: " + auth.getName()));
+                return user.getId();
         }
 
         /**

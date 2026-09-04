@@ -16,6 +16,7 @@ import java.time.LocalDate;
 public class DocumentResponse {
     private Long id;
     private String documentName;
+    private Long documentTypeId;
     private String documentTypeName;
     private String fileUrl;
     private Long fileSize; // File size in bytes

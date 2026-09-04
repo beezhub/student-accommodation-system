@@ -1,0 +1,167 @@
+<div class="tenant-mgmt-page">
+
+  <!-- ══════════════════════════════════════════════════════
+       HERO HEADER BAND
+  ══════════════════════════════════════════════════════ -->
+  <div class="page-hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-icon-wrap" aria-hidden="true">
+          <mat-icon>corporate_fare</mat-icon>
+        </div>
+        <div class="hero-text">
+          <h1 class="hero-title">Tenants</h1>
+          <p class="hero-subtitle">Manage institution tenants on the platform</p>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="hero-metrics" role="list" aria-label="Tenant summary">
+          <div class="metric-chip" role="listitem">
+            <span class="metric-value">{{ tenants.length | number }}</span>
+            <span class="metric-label">Total</span>
+          </div>
+          <div class="metric-chip" role="listitem">
+            <span class="metric-value">{{ activeTenantCount | number }}</span>
+            <span class="metric-label">Active</span>
+          </div>
+        </div>
+
+        <button
+          mat-raised-button
+          class="add-btn"
+          (click)="openCreateDialog()">
+          <mat-icon>add</mat-icon>
+          New Tenant
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       DATA TABLE CARD
+  ══════════════════════════════════════════════════════ -->
+  <mat-card class="table-card">
+    <mat-card-content>
+
+      @if (isLoading) {
+        <div class="loading-container">
+          <app-skeleton-loader [type]="'table-row'" [count]="6"></app-skeleton-loader>
+        </div>
+      }
+
+      @if (!isLoading) {
+
+        <div class="table-container">
+          <table mat-table [dataSource]="tenants" class="tenants-table" aria-label="Tenants list">
+
+            <!-- Name Column -->
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Tenant</th>
+              <td mat-cell *matCellDef="let tenant">
+                <div class="tenant-cell">
+                  <div class="tenant-avatar" aria-hidden="true">
+                    {{ tenant.name?.charAt(0)?.toUpperCase() || 'T' }}
+                  </div>
+                  <div class="tenant-info">
+                    <span class="tenant-name">{{ tenant.name }}</span>
+                    @if (isPlatformTenant(tenant)) {
+                      <span class="platform-badge">Platform</span>
+                    }
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Domain Column -->
+            <ng-container matColumnDef="domain">
+              <th mat-header-cell *matHeaderCellDef>Domain</th>
+              <td mat-cell *matCellDef="let tenant">
+                <div class="domain-cell">
+                  @if (tenant.domain) {
+                    <mat-icon class="cell-icon" aria-hidden="true">language</mat-icon>
+                    <span class="cell-text">{{ tenant.domain }}</span>
+                  } @else {
+                    <span class="cell-empty">—</span>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let tenant">
+                <span class="status-chip" [class.active]="tenant.isActive !== false" [class.inactive]="tenant.isActive === false">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  {{ tenant.isActive !== false ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Created At Column -->
+            <ng-container matColumnDef="createdAt">
+              <th mat-header-cell *matHeaderCellDef>Created</th>
+              <td mat-cell *matCellDef="let tenant">
+                <span class="cell-text">{{ tenant.createdAt ? (tenant.createdAt | date:'mediumDate') : '—' }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let tenant">
+                <div class="actions-cell">
+                  <button
+                    mat-icon-button
+                    class="action-btn manage-admins"
+                    (click)="openAdminDialog(tenant)"
+                    [disabled]="isPlatformTenant(tenant)"
+                    [matTooltip]="isPlatformTenant(tenant) ? 'Platform tenant has no admins' : 'Manage admin users'"
+                    [attr.aria-label]="'Manage admins for ' + tenant.name">
+                    <mat-icon>manage_accounts</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    class="action-btn edit"
+                    (click)="openEditDialog(tenant)"
+                    [disabled]="isPlatformTenant(tenant)"
+                    [matTooltip]="isPlatformTenant(tenant) ? 'Platform tenant cannot be edited' : 'Edit tenant'"
+                    [attr.aria-label]="'Edit tenant ' + tenant.name">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    class="action-btn"
+                    [class.deactivate]="tenant.isActive !== false"
+                    [class.activate]="tenant.isActive === false"
+                    (click)="toggleStatus(tenant)"
+                    [disabled]="isPlatformTenant(tenant)"
+                    [matTooltip]="isPlatformTenant(tenant) ? 'Platform tenant cannot be deactivated' : (tenant.isActive !== false ? 'Deactivate tenant' : 'Activate tenant')"
+                    [attr.aria-label]="(tenant.isActive !== false ? 'Deactivate' : 'Activate') + ' tenant ' + tenant.name">
+                    <mat-icon>{{ tenant.isActive !== false ? 'block' : 'check_circle_outline' }}</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
+          </table>
+        </div>
+
+        @if (tenants.length === 0) {
+          <app-empty-state
+            icon="corporate_fare"
+            title="No Tenants Found"
+            description="No institution tenants have been created yet. Add your first tenant to get started."
+            ctaLabel="New Tenant">
+          </app-empty-state>
+        }
+
+      }
+
+    </mat-card-content>
+  </mat-card>
+
+</div>

@@ -8,7 +8,7 @@
     [matBadgeHidden]="(unreadCount$ | async) === 0"
     matBadgeColor="warn"
     matBadgeSize="small"
-    [attr.aria-hidden]="(unreadCount$ | async) === 0">
+    aria-hidden="false">
     notifications
   </mat-icon>
 </button>
@@ -37,7 +37,7 @@
           <p>No notifications</p>
         </div>
       }
-      @for (notification of notifications; track notification) {
+      @for (notification of notifications; track notification.id) {
         <div
           class="notification-item"
           [class.unread]="!notification.isRead"

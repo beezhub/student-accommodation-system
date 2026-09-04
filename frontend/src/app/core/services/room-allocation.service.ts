@@ -1,7 +1,9 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 export enum DeclineReason {
   WRONG_LOCATION = 'WRONG_LOCATION',
@@ -9,7 +11,7 @@ export enum DeclineReason {
   FOUND_ALTERNATIVE = 'FOUND_ALTERNATIVE',
   ACCESSIBILITY_ISSUES = 'ACCESSIBILITY_ISSUES',
   PERSONAL_REASONS = 'PERSONAL_REASONS',
-  OTHER = 'OTHER'
+  OTHER = 'OTHER',
 }
 
 export interface DeclineOfferRequest {
@@ -70,21 +72,13 @@ export interface AllocateByApplicationRequest {
   roomId: number;
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-}
-
 @Injectable({
   providedIn: 'root',
 })
 export class RoomAllocationService {
-  private apiUrl = `${environment.apiUrl}/room-allocation`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/room-allocation`;
 
   getAllAllocations(
     page: number = 0,
@@ -142,7 +136,9 @@ export class RoomAllocationService {
   }
 
   getActiveAllocationByStudentId(studentId: number): Observable<RoomAllocationResponse> {
-    return this.http.get<RoomAllocationResponse>(`${this.apiUrl}/student/${studentId}/active`);
+    return this.http.get<RoomAllocationResponse>(`${this.apiUrl}/student/${studentId}/active`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   createAllocation(allocation: RoomAllocationRequest): Observable<RoomAllocationResponse> {
@@ -185,9 +181,10 @@ export class RoomAllocationService {
     );
   }
 
-
   acceptOffer(id: number, expectedCheckInDate: string): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/accept`, { expectedCheckInDate });
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/accept`, {
+      expectedCheckInDate,
+    });
   }
 
   declineOffer(id: number, request: DeclineOfferRequest): Observable<RoomAllocationResponse> {

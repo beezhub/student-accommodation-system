@@ -12,7 +12,7 @@ import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.allocation.ScoringStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class AllocationScoringOrchestrator {
 
-    private final AllocationScoringService allocationScoringService;
+    private final ScoringStrategy allocationScoringService;
     private final RoomAllocationRepository roomAllocationRepository;
     private final RoomRepository roomRepository;
     private final WaitingListRepository waitingListRepository;
@@ -72,18 +72,9 @@ public class AllocationScoringOrchestrator {
     }
 
     public List<Room> getAvailableRoomsForBatch() {
-        List<Room> allRooms = roomRepository.findAll();
-        List<Room> availableRooms = new ArrayList<>();
-
-        for (Room room : allRooms) {
-            long activeCount = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-            if (activeCount < room.getCapacity()) {
-                availableRooms.add(room);
-            }
-        }
-
-        return availableRooms;
+        return roomRepository.findRoomsWithAvailableCapacity();
     }
+
 
     public List<WaitingListEntryResponse> getWaitingListWithScores(Long buildingId) {
         log.info("Getting waiting list with scores for building {}", buildingId);
@@ -150,6 +141,14 @@ public class AllocationScoringOrchestrator {
         return responses;
     }
 
+    /**
+     * Rescores all waiting list entries using the latest allocation rules.
+     * <p>
+     * NOTE: The computed scores are transient (not persisted on WaitingListEntry)
+     * because the entity has no score/priority column. Scores are recalculated
+     * on-the-fly via {@link #getWaitingListWithScores}. This method validates
+     * that scoring succeeds for all entries but does not persist results.
+     */
     public RescoreResult rescoreWaitingList() {
         log.info("Rescoring all waiting list entries using latest rules");
 

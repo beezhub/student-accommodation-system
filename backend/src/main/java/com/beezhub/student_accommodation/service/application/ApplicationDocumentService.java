@@ -15,7 +15,6 @@ import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentComment;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
-import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.DocumentCommentRepository;
@@ -34,7 +33,8 @@ import java.util.List;
 
 /**
  * Service handling document-related operations for applications.
- * Extracted from ApplicationAdminService.
+ * Documents are owned at the student level (one per document type).
+ * Checklist and review operations query documents directly via student_id.
  */
 @Service
 @Slf4j
@@ -46,10 +46,11 @@ public class ApplicationDocumentService {
         private final DocumentTypeRepository documentTypeRepository;
         private final DocumentCommentRepository documentCommentRepository;
         private final AppUserRepository appUserRepository;
+        private final com.beezhub.student_accommodation.service.DocumentTypeService documentTypeService;
 
         /**
          * Gets the required documents checklist for an application.
-         * Cross-checks required document types against student's uploaded documents.
+         * Cross-checks required document types against the student's document pack.
          *
          * @param applicationId The application ID
          * @return RequiredDocumentsChecklistResponse with document status breakdown
@@ -57,18 +58,19 @@ public class ApplicationDocumentService {
         public RequiredDocumentsChecklistResponse getRequiredDocumentsChecklist(Long applicationId) {
                 log.info("Getting required documents checklist for application {}", applicationId);
 
-                if (!applicationRepository.existsById(applicationId)) {
-                        throw new ApplicationNotFoundException(
-                                        "Application not found with ID: " + applicationId);
-                }
+                Application application = applicationRepository.findById(applicationId)
+                                .orElseThrow(() -> new ApplicationNotFoundException(
+                                                "Application not found with ID: " + applicationId));
 
-                // Get all required document types
-                List<DocumentType> requiredTypes = documentTypeRepository.findByIsRequiredTrue();
+                // Get required document types from the application's tenant effective view (name-based)
+                List<DocumentType> requiredTypes = documentTypeService.getEffectiveDocumentTypes(application.getTenantId())
+                                .stream().filter(DocumentType::getIsRequired).collect(java.util.stream.Collectors.toList());
 
-                // Get all documents for this application
-                List<Document> applicationDocuments = documentRepository.findByApplicationId(applicationId);
+                // Get all documents for this student's pack (documents live at student level)
+                Long studentId = application.getStudent().getId();
+                List<Document> studentDocuments = documentRepository.findAllByStudent_Id(studentId);
 
-                // Build checklist items
+                // Build checklist items using name-based matching
                 List<DocumentChecklistItem> checklistItems = new java.util.ArrayList<>();
                 int approved = 0;
                 int pending = 0;
@@ -76,10 +78,12 @@ public class ApplicationDocumentService {
                 int notUploaded = 0;
 
                 for (DocumentType docType : requiredTypes) {
-                        // Find the latest document for this type (in case of resubmission)
-                        Document matchingDoc = applicationDocuments.stream()
-                                        .filter(doc -> doc.getDocumentType().getId().equals(docType.getId()))
-                                        .reduce((first, second) -> second) // Get the latest (last) one
+                        // Match by type name (case-insensitive) — student's doc may reference a platform type ID
+                        // while the effective required type may be a tenant shadow with a different ID
+                        Document matchingDoc = studentDocuments.stream()
+                                        .filter(doc -> doc.getDocumentType().getTypeName()
+                                                .equalsIgnoreCase(docType.getTypeName()))
+                                        .findFirst()
                                         .orElse(null);
 
                         DocumentChecklistItem item;
@@ -143,37 +147,33 @@ public class ApplicationDocumentService {
                         String username) {
                 log.info("Saving review progress for application {} by {}", applicationId, username);
 
-                // Verify application exists
-                if (!applicationRepository.existsById(applicationId)) {
-                        throw new ApplicationNotFoundException(
-                                        "Application not found with ID: " + applicationId);
-                }
+                Application application = applicationRepository.findById(applicationId)
+                                .orElseThrow(() -> new ApplicationNotFoundException(
+                                                "Application not found with ID: " + applicationId));
 
-                // Verify admin access
                 AppUser admin = appUserRepository.findByEmail(username)
                                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-                if (!admin.getUserRole().equals(UserRole.ADMIN)) {
+                if (!admin.getUserRole().isAdmin()) {
                         throw new UnauthorizedAccessException("Only admins can save review progress");
                 }
 
+                Long studentId = application.getStudent().getId();
                 int documentsUpdated = 0;
                 int commentsAdded = 0;
 
                 for (DocumentUpdate update : request.getDocumentUpdates()) {
-                        // Find the document
                         Document document = documentRepository.findById(update.getDocumentId())
                                         .orElseThrow(() -> new RuntimeException(
                                                         "Document not found with ID: " + update.getDocumentId()));
 
-                        // Verify document belongs to this application
-                        if (!document.getApplication().getId().equals(applicationId)) {
+                        // Verify document belongs to this application's student
+                        if (!document.getStudent().getId().equals(studentId)) {
                                 throw new UnauthorizedAccessException(
                                                 "Document " + update.getDocumentId()
-                                                                + " does not belong to this application");
+                                                                + " does not belong to this application's student");
                         }
 
-                        // Update document status if provided
                         if (update.getNewStatus() != null && !update.getNewStatus().trim().isEmpty()) {
                                 try {
                                         DocumentStatus newStatus = DocumentStatus
@@ -188,7 +188,6 @@ public class ApplicationDocumentService {
                                 }
                         }
 
-                        // Add comment if provided
                         if (update.getComment() != null && !update.getComment().trim().isEmpty()) {
                                 DocumentComment comment = DocumentComment.builder()
                                                 .document(document)
@@ -213,7 +212,7 @@ public class ApplicationDocumentService {
         }
 
         /**
-         * Checks if all required documents for an application are approved.
+         * Checks if all required documents for an application's student are approved.
          *
          * @param applicationId The application ID
          * @return true if all required documents are approved
@@ -224,22 +223,24 @@ public class ApplicationDocumentService {
         }
 
         /**
-         * Gets all documents for an application with their comments.
+         * Gets all documents for an application's student with their comments.
          *
          * @param applicationId The application ID
          * @return List of DocumentWithCommentsResponse
          */
         public List<DocumentWithCommentsResponse> getDocumentsWithComments(Long applicationId) {
-                List<Document> applicationDocuments = documentRepository.findByApplicationId(applicationId);
-                return applicationDocuments.stream()
+                Application application = applicationRepository.findById(applicationId)
+                                .orElseThrow(() -> new ApplicationNotFoundException(
+                                                "Application not found with ID: " + applicationId));
+
+                Long studentId = application.getStudent().getId();
+                List<Document> studentDocuments = documentRepository.findAllByStudent_Id(studentId);
+
+                return studentDocuments.stream()
                                 .map(this::mapDocumentWithComments)
                                 .collect(Collectors.toList());
         }
 
-        /**
-         * Maps a Document entity to DocumentWithCommentsResponse including nested
-         * comments.
-         */
         private DocumentWithCommentsResponse mapDocumentWithComments(Document document) {
                 List<DocumentComment> comments = documentCommentRepository
                                 .findByDocument_IdOrderByCreatedAtDesc(document.getId());

@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.model.enums.GenderRestriction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +13,8 @@ import java.util.Optional;
 public interface RoomAttributesRepository extends JpaRepository<RoomAttributes, Long> {
 
     Optional<RoomAttributes> findByRoom_Id(Long roomId);
+
+    List<RoomAttributes> findByRoom_IdIn(Collection<Long> roomIds);
 
     List<RoomAttributes> findByAccessibilityCompliantTrue();
 

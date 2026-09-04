@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -6,7 +12,10 @@ import { ApplicationService } from '../../../../core/services/application.servic
 import { StudentService } from '../../../../core/services/student.service';
 import { InstitutionService } from '../../../../core/services/institution.service';
 import { BuildingService, BuildingResponse } from '../../../../core/services/building.service';
-import { ErrorHandlingService, ParsedError } from '../../../../core/services/error-handling.service';
+import {
+  ErrorHandlingService,
+  ParsedError,
+} from '../../../../core/services/error-handling.service';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -64,6 +73,7 @@ export class NewApplicationComponent implements OnInit {
   currentUser: any;
   studentId: number | null = null;
   studentInstitutionId: number | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   institutionName = '';
   buildings: BuildingResponse[] = [];
   submitError: ParsedError | null = null;
@@ -73,7 +83,7 @@ export class NewApplicationComponent implements OnInit {
   constructor() {
     this.applicationForm = this.fb.group({
       requiresAccessibility: [false],
-      preferredBuildingId: [''],
+      preferredBuildingIds: [[] as number[]],
       specialRequirements: [''],
       courseName: ['', Validators.required],
     });
@@ -99,6 +109,9 @@ export class NewApplicationComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to load buildings for institution', error);
+          this.errorService.showWarning(
+            'Could not filter buildings by your institution. Showing all buildings instead.'
+          );
           // Fall back to all buildings
           this.loadAllBuildings();
         },
@@ -116,6 +129,9 @@ export class NewApplicationComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load buildings', error);
+        this.errorService.showWarning(
+          'Could not load available buildings. Please refresh the page.'
+        );
       },
     });
   }
@@ -140,19 +156,27 @@ export class NewApplicationComponent implements OnInit {
                 ? response
                 : [];
 
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const institution = institutions.find(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (inst: any) => String(inst.id) === String(profile.institutionId)
               );
 
               if (institution) {
                 this.institutionName = institution.name;
               }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               // Load buildings after we know the institution
               this.loadBuildings();
               this.cdr.markForCheck();
             },
             error: (error) => {
               console.error('Error fetching institution:', error);
+              this.errorService.showWarning(
+                'Could not load your institution details. Building suggestions may be less relevant.'
+              );
               this.loadBuildings();
               this.cdr.markForCheck();
             },
@@ -185,7 +209,9 @@ export class NewApplicationComponent implements OnInit {
     this.submitError = null;
 
     if (!this.studentId) {
-      this.errorService.showWarning('Student profile not found. Please complete your profile first.');
+      this.errorService.showWarning(
+        'Student profile not found. Please complete your profile first.'
+      );
       this.router.navigate(['/profile']);
       return;
     }
@@ -198,7 +224,7 @@ export class NewApplicationComponent implements OnInit {
       const applicationData = {
         studentId: this.studentId,
         requiresAccessibility: formValue.requiresAccessibility || false,
-        preferredBuildingId: formValue.preferredBuildingId || null,
+        preferredBuildingIds: (formValue.preferredBuildingIds as number[]) || [],
         specialRequirements: formValue.specialRequirements || null,
         institutionName: this.institutionName || 'Not specified',
         courseName: formValue.courseName,
@@ -229,8 +255,25 @@ export class NewApplicationComponent implements OnInit {
     }
   }
 
-  onBuildingSelected(buildingId: number | null): void {
-    this.applicationForm.patchValue({ preferredBuildingId: buildingId });
+  onBuildingSearch(query: string): void {
+    if (!query) {
+      this.loadBuildings();
+      return;
+    }
+    this.buildingService.searchBuildings({ name: query, size: 10 }).subscribe({
+      next: (response) => {
+        this.buildings = response.content;
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.error('Building search failed', error);
+        this.errorService.showWarning('Building search failed. Please try again.');
+      },
+    });
+  }
+
+  onBuildingSelectionChanged(buildingIds: number[]): void {
+    this.applicationForm.patchValue({ preferredBuildingIds: buildingIds });
     this.cdr.markForCheck();
   }
 

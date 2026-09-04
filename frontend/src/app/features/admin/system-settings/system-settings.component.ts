@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -6,7 +12,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { SystemSettingsService } from '../../../core/services/system-settings.service';
+import { RoleService } from '../../../core/services/role.service';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -23,16 +31,23 @@ import { FormsModule } from '@angular/forms';
     MatButtonModule,
     MatIconModule,
     MatSlideToggleModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatTooltipModule,
   ],
 })
 export class SystemSettingsComponent implements OnInit {
   private readonly systemSettingsService = inject(SystemSettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly cdr = inject(ChangeDetectorRef);
+  protected readonly roleService = inject(RoleService);
 
   autoAllocationEnabled = false;
   loading = false;
+
+  /** Auto-allocation is a platform-level setting; tenant admins can only view it. */
+  get autoAllocationReadOnly(): boolean {
+    return this.roleService.isTenantAdmin();
+  }
 
   settingsCategories = [
     {
@@ -63,6 +78,13 @@ export class SystemSettingsComponent implements OnInit {
       route: '/admin/year-of-study',
       class: 'years',
     },
+    {
+      title: 'Feature Flags',
+      description: 'Toggle FF4J feature flags for the system',
+      icon: 'toggle_on',
+      route: '/admin/feature-flags',
+      class: 'feature-flags',
+    },
   ];
 
   ngOnInit(): void {
@@ -83,7 +105,7 @@ export class SystemSettingsComponent implements OnInit {
         this.loading = false;
         this.cdr.markForCheck();
         this.snackBar.open('Failed to load system settings', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
@@ -103,7 +125,7 @@ export class SystemSettingsComponent implements OnInit {
         this.autoAllocationEnabled = !this.autoAllocationEnabled;
         this.cdr.markForCheck();
         this.snackBar.open('Failed to update setting', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 }

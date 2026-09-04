@@ -15,6 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -27,6 +28,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     private static final int MAX_REQUESTS_PER_MINUTE = 10;
     private static final String RATE_LIMIT_PREFIX = "rate_limit:ip:";
+
+    @Value("${app.security.trusted-proxies:}")
+    private List<String> trustedProxies;
 
     @Override
     protected void doFilterInternal(
@@ -67,9 +71,13 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
+        // Only trust X-Forwarded-For when the request comes from a known reverse proxy
+        if (trustedProxies != null && !trustedProxies.isEmpty()
+                && trustedProxies.contains(request.getRemoteAddr())) {
+            String xForwardedFor = request.getHeader("X-Forwarded-For");
+            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                return xForwardedFor.split(",")[0].trim();
+            }
         }
         return request.getRemoteAddr();
     }

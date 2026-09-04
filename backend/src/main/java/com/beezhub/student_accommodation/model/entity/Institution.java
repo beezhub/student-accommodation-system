@@ -21,7 +21,7 @@ public class Institution {
     private String address;
     @Column(name = "phone_number")
     private String phoneNumber;
-    @Column(name = "email_address")
+    @Column(name = "email")
     private String emailAddress;
     @Column(name = "created_at")
     private LocalDateTime createdAt;

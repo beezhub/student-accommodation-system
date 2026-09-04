@@ -13,4 +13,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     List<AppUser> findByUserRole(UserRole role);
 
     long countByUserRole(UserRole role);
+
+    List<AppUser> findByTenantIdAndUserRole(Long tenantId, UserRole role);
+
+    boolean existsByEmail(String email);
 }

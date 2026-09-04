@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { RoleService } from '../../../core/services/role.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -31,6 +32,13 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class ChangePasswordComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
+  private roleService = inject(RoleService);
+  private snackBar = inject(MatSnackBar);
+
   changePasswordForm: FormGroup;
   isSubmitting = false;
   isForced = false;
@@ -38,13 +46,7 @@ export class ChangePasswordComponent implements OnInit {
   hideNewPassword = true;
   hideConfirmPassword = true;
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private route: ActivatedRoute,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.changePasswordForm = this.fb.group(
       {
         currentPassword: ['', [Validators.required]],
@@ -92,8 +94,7 @@ export class ChangePasswordComponent implements OnInit {
           });
 
           // Navigate based on user role after successful password change
-          const currentUser = this.authService.currentUserValue;
-          if (currentUser?.userRole === 'ADMIN') {
+          if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
             this.router.navigate(['/admin']);
           } else {
             this.router.navigate(['/dashboard']);
@@ -134,8 +135,7 @@ export class ChangePasswordComponent implements OnInit {
 
   onCancel(): void {
     if (!this.isForced) {
-      const currentUser = this.authService.currentUserValue;
-      if (currentUser?.userRole === 'ADMIN') {
+      if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
         this.router.navigate(['/admin']);
       } else {
         this.router.navigate(['/dashboard']);

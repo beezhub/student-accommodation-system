@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -8,10 +8,10 @@ import { AcademicYear, AcademicYearRequest } from '../models/academic-year.model
   providedIn: 'root',
 })
 export class AcademicYearService {
+  private http = inject(HttpClient);
+
   private apiUrl = `${environment.apiUrl}/academic-years`;
   private currentYearCache: AcademicYear | null = null;
-
-  constructor(private http: HttpClient) {}
 
   /**
    * Get all academic years
@@ -34,18 +34,16 @@ export class AcademicYearService {
     if (this.currentYearCache) {
       return of(this.currentYearCache);
     }
-    return this.http.get<AcademicYear>(`${this.apiUrl}/current`).pipe(
-      tap((year) => (this.currentYearCache = year))
-    );
+    return this.http
+      .get<AcademicYear>(`${this.apiUrl}/current`)
+      .pipe(tap((year) => (this.currentYearCache = year)));
   }
 
   /**
    * Create a new academic year (admin only)
    */
   createAcademicYear(request: AcademicYearRequest): Observable<AcademicYear> {
-    return this.http
-      .post<AcademicYear>(this.apiUrl, request)
-      .pipe(tap(() => this.clearCache()));
+    return this.http.post<AcademicYear>(this.apiUrl, request).pipe(tap(() => this.clearCache()));
   }
 
   /**

@@ -3,121 +3,25 @@ package com.beezhub.student_accommodation.service.notification;
 import com.beezhub.student_accommodation.model.entity.Room;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+/**
+ * Utility class for building common email content fragments.
+ * Note: HTML-building methods have been removed. This class now only contains
+ * date formatting and domain-specific utility methods used by EmailDispatchService.
+ */
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class EmailContentBuilder {
 
-    private final SpringTemplateEngine templateEngine;
-
-    @Value("${app.support-email:accommodation@university.edu}")
-    private String supportEmail;
-
-    @Value("${app.university-name:University}")
-    private String universityName;
-
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
-
-    public String buildDocumentCommentEmailContent(String studentName, String documentName,
-                                                     String documentType, String documentReference,
-                                                     String commentText, String portalUrl) {
-        Context context = new Context();
-        context.setVariables(Map.of(
-            "studentName", studentName,
-            "documentName", documentName,
-            "documentType", documentType,
-            "documentReference", documentReference,
-            "commentText", commentText,
-            "portalUrl", portalUrl,
-            "supportEmail", supportEmail,
-            "universityName", universityName
-        ));
-        return templateEngine.process("email/document-comment", context);
-    }
-
-    public String buildPasswordResetEmailContent(String studentName, String resetUrl) {
-        Context context = new Context();
-        context.setVariables(Map.of(
-            "studentName", studentName,
-            "resetUrl", resetUrl
-        ));
-        return templateEngine.process("email/password-reset", context);
-    }
-
-    public String buildOfferDeclinedRequeueEmailContent(String studentName, String roomNumber,
-                                                          String buildingName, int totalDeclineCount,
-                                                          int declinesRemaining, String declineReason,
-                                                          String portalUrl) {
-        Context context = new Context();
-        context.setVariables(Map.of(
-            "studentName", studentName,
-            "roomNumber", roomNumber,
-            "buildingName", buildingName,
-            "totalDeclineCount", totalDeclineCount,
-            "declinesRemaining", declinesRemaining,
-            "declineReason", declineReason,
-            "portalUrl", portalUrl,
-            "supportEmail", supportEmail,
-            "universityName", universityName
-        ));
-        return templateEngine.process("email/offer-declined-requeue", context);
-    }
-
-    public String buildOfferDeclinedMaxReachedEmailContent(String studentName, int totalDeclineCount,
-                                                             String applicationCode, String portalUrl) {
-        Context context = new Context();
-        context.setVariables(Map.of(
-            "studentName", studentName,
-            "totalDeclineCount", totalDeclineCount,
-            "applicationCode", applicationCode,
-            "portalUrl", portalUrl,
-            "supportEmail", supportEmail,
-            "universityName", universityName
-        ));
-        return templateEngine.process("email/offer-declined-max-reached", context);
-    }
-
-    public String buildOfferExpiredEmailContent(String studentName, String applicationCode,
-                                                  String roomNumber, String buildingName, String portalUrl) {
-        Context context = new Context();
-        context.setVariables(Map.of(
-            "studentName", studentName,
-            "applicationCode", applicationCode,
-            "roomNumber", roomNumber,
-            "buildingName", buildingName,
-            "portalUrl", portalUrl,
-            "supportEmail", supportEmail,
-            "universityName", universityName
-        ));
-        return templateEngine.process("email/offer-expired", context);
-    }
-
-    public String buildCheckInExpiredEmailContent(String studentName, String applicationCode,
-                                                    String roomNumber, String buildingName, String portalUrl) {
-        Context context = new Context();
-        context.setVariables(Map.of(
-            "studentName", studentName,
-            "applicationCode", applicationCode,
-            "roomNumber", roomNumber,
-            "buildingName", buildingName,
-            "portalUrl", portalUrl,
-            "supportEmail", supportEmail,
-            "universityName", universityName
-        ));
-        return templateEngine.process("email/check-in-expired", context);
-    }
 
     public String formatDate(LocalDateTime dateTime) {
         if (dateTime == null) return "N/A";

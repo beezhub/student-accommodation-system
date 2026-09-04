@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -24,102 +24,179 @@ export interface DeclineOfferDialogData {
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatSelectModule
+    MatSelectModule,
   ],
   template: `
-    <h2 mat-dialog-title>Decline Room Offer</h2>
-    <mat-dialog-content>
-      <p><strong>Room:</strong> {{ data.roomNumber }} - {{ data.buildingName }}</p>
-
-      <div class="warning-banner" [class.final-warning]="declinesRemaining === 0">
-        <p><strong>⚠️ Decline Status:</strong></p>
-        <p>You have declined <strong>{{ data.previousDeclineCount }} of 2</strong> offers.</p>
-        <p><strong>{{ declinesRemaining }} decline(s) remaining.</strong></p>
-        <p *ngIf="declinesRemaining > 0" class="info-text">
-          You will be re-queued and notified when another room becomes available.
-        </p>
-        <p *ngIf="declinesRemaining === 0" class="final-warning-text">
-          ⛔ <strong>This is your last decline. Your application will be closed and you will be removed from the waiting list.</strong>
+    <div class="dialog-container">
+      <div class="dialog-header">
+        <h2 mat-dialog-title>Decline Offer</h2>
+        <p class="subtitle">
+          <span class="room-info">{{ data.roomNumber }} • {{ data.buildingName }}</span>
         </p>
       </div>
+      <mat-dialog-content>
+        <div class="status-card" [class.is-final]="declinesRemaining === 0">
+          <div class="status-content">
+            <div class="status-title">
+              {{ declinesRemaining === 0 ? 'Final Decline Warning' : 'Decline Status' }}
+            </div>
+            <p class="status-desc">
+              You have declined {{ data.previousDeclineCount }} of 2 offers.
+              <strong
+                >{{ declinesRemaining }} decline{{
+                  declinesRemaining === 1 ? '' : 's'
+                }}
+                remaining.</strong
+              >
+            </p>
+            @if (declinesRemaining > 0) {
+            <p class="status-note">
+              You will be re-queued and notified when another room becomes available.
+            </p>
+            } @if (declinesRemaining === 0) {
+            <p class="status-alert">
+              This is your final decline. Your application will be closed and removed from the
+              waiting list.
+            </p>
+            }
+          </div>
+        </div>
 
-      <form [formGroup]="form">
-        <mat-form-field appearance="fill" class="full-width">
-          <mat-label>Reason for Declining *</mat-label>
-          <mat-select formControlName="declineReason" required>
-            <mat-option *ngFor="let reason of declineReasons" [value]="reason.value">
-              {{ reason.label }}
-            </mat-option>
-          </mat-select>
-          <mat-error *ngIf="form.get('declineReason')?.hasError('required')">
-            Please select a reason
-          </mat-error>
-        </mat-form-field>
+        <form [formGroup]="form" class="decline-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Reason for Declining *</mat-label>
+            <mat-select formControlName="declineReason" required>
+              @for (reason of declineReasons; track reason.value) {
+              <mat-option [value]="reason.value">
+                {{ reason.label }}
+              </mat-option>
+              }
+            </mat-select>
+            @if (form.get('declineReason')?.hasError('required')) {
+            <mat-error>Please select a reason</mat-error>
+            }
+          </mat-form-field>
 
-        <mat-form-field appearance="fill" class="full-width">
-          <mat-label>Additional Details (Optional)</mat-label>
-          <textarea
-            matInput
-            formControlName="declineReasonText"
-            rows="3"
-            maxlength="500"
-            placeholder="Please provide any additional information...">
-          </textarea>
-          <mat-hint align="end">{{ form.get('declineReasonText')?.value?.length || 0 }}/500</mat-hint>
-        </mat-form-field>
-      </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Cancel</button>
-      <button
-        mat-raised-button
-        color="warn"
-        [disabled]="form.invalid"
-        (click)="submit()">
-        {{ declinesRemaining === 0 ? 'Decline (Final)' : 'Decline Offer' }}
-      </button>
-    </mat-dialog-actions>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Additional Details (Optional)</mat-label>
+            <textarea
+              matInput
+              formControlName="declineReasonText"
+              rows="4"
+              maxlength="500"
+              placeholder="Provide any additional context..."
+            ></textarea>
+            <mat-hint align="end"
+              >{{ form.get('declineReasonText')?.value?.length || 0 }}/500</mat-hint
+            >
+          </mat-form-field>
+        </form>
+      </mat-dialog-content>
+      <mat-dialog-actions align="end" class="dialog-actions">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-flat-button color="warn" [disabled]="form.invalid" (click)="submit()">
+          {{ declinesRemaining === 0 ? 'Decline & Close Application' : 'Decline Offer' }}
+        </button>
+      </mat-dialog-actions>
+    </div>
   `,
-  styles: [`
-    .full-width {
-      width: 100%;
-      margin-bottom: 16px;
-    }
-    mat-dialog-content {
-      padding-top: 10px;
-      min-width: 400px;
-      max-width: 500px;
-    }
-    .warning-banner {
-      background: #fff3cd;
-      border-left: 4px solid #ffc107;
-      padding: 12px;
-      margin: 16px 0;
-      border-radius: 4px;
-    }
-    .warning-banner.final-warning {
-      background: #f8d7da;
-      border-left: 4px solid #dc3545;
-    }
-    .warning-banner p {
-      margin: 4px 0;
-    }
-    .info-text {
-      color: #856404;
-      font-size: 0.9em;
-      margin-top: 8px;
-    }
-    .final-warning-text {
-      color: #721c24;
-      font-weight: 500;
-      margin-top: 8px;
-    }
-    textarea {
-      resize: vertical;
-    }
-  `]
+  styles: [
+    `
+      .dialog-container {
+        padding: 16px 8px;
+      }
+      .dialog-header {
+        padding: 0 24px;
+        margin-bottom: 24px;
+      }
+      .dialog-header h2 {
+        margin: 0 0 8px 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: #0f172a;
+      }
+      .subtitle {
+        margin: 0;
+        color: #64748b;
+        font-size: 15px;
+      }
+      .room-info {
+        display: inline-block;
+        background: #f1f5f9;
+        color: #475569;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-weight: 500;
+        font-size: 14px;
+        margin-top: 4px;
+      }
+      mat-dialog-content {
+        min-width: 420px;
+        max-width: 500px;
+        padding-top: 8px !important;
+      }
+
+      /* Restrained, premium status card instead of generic yellow/red banner */
+      .status-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+      }
+      .status-card.is-final {
+        background: #fef2f2;
+        border-color: #fecaca;
+      }
+      .status-title {
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 8px;
+        font-size: 15px;
+      }
+      .status-card.is-final .status-title {
+        color: #991b1b;
+      }
+      .status-desc {
+        margin: 0 0 4px 0;
+        color: #475569;
+        font-size: 14px;
+      }
+      .status-note {
+        margin: 8px 0 0 0;
+        color: #64748b;
+        font-size: 14px;
+      }
+      .status-alert {
+        margin: 8px 0 0 0;
+        color: #991b1b;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .full-width {
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      textarea {
+        resize: none;
+      }
+      .dialog-actions {
+        padding: 16px 24px 0 24px;
+        margin-bottom: -8px;
+      }
+      button {
+        padding: 8px 24px;
+        letter-spacing: 0.02em;
+      }
+    `,
+  ],
 })
 export class DeclineOfferDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<DeclineOfferDialogComponent>>(MatDialogRef);
+  data = inject<DeclineOfferDialogData>(MAT_DIALOG_DATA);
+
   form: FormGroup;
   declinesRemaining: number;
 
@@ -129,18 +206,14 @@ export class DeclineOfferDialogComponent implements OnInit {
     { value: DeclineReason.FOUND_ALTERNATIVE, label: 'Found Alternative Accommodation' },
     { value: DeclineReason.ACCESSIBILITY_ISSUES, label: 'Accessibility Issues' },
     { value: DeclineReason.PERSONAL_REASONS, label: 'Personal Reasons' },
-    { value: DeclineReason.OTHER, label: 'Other' }
+    { value: DeclineReason.OTHER, label: 'Other' },
   ];
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<DeclineOfferDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: DeclineOfferDialogData
-  ) {
+  constructor() {
     this.declinesRemaining = 2 - this.data.previousDeclineCount;
     this.form = this.fb.group({
       declineReason: [null, Validators.required],
-      declineReasonText: ['', Validators.maxLength(500)]
+      declineReasonText: ['', Validators.maxLength(500)],
     });
   }
 
@@ -158,7 +231,7 @@ export class DeclineOfferDialogComponent implements OnInit {
     if (this.form.valid) {
       const request: DeclineOfferRequest = {
         declineReason: this.form.value.declineReason,
-        declineReasonText: this.form.value.declineReasonText || undefined
+        declineReasonText: this.form.value.declineReasonText || undefined,
       };
       this.dialogRef.close(request);
     }

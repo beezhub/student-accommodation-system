@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams, HttpEvent, HttpEventType, HttpErrorResponse } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Observable, map, filter } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DocumentData } from '../models/document.model';
@@ -14,37 +14,19 @@ export interface FileValidationResult {
   errors: string[];
 }
 
-/**
- * Error message constant for no active application scenario.
- * Used to detect when document upload fails because user has no active application.
- */
-export const NO_ACTIVE_APPLICATION_ERROR = 'No active application found';
-
-/**
- * Checks if an HTTP error is a "no active application" error.
- * @param error The HTTP error response
- * @returns true if the error is due to no active application
- */
-export function isNoActiveApplicationError(error: HttpErrorResponse | any): boolean {
-  if (!error) return false;
-
-  // Check error message from backend
-  const errorMessage = error?.error?.message || error?.message || '';
-  return errorMessage.toLowerCase().includes('no active application');
-}
-
 @Injectable({
   providedIn: 'root',
 })
 export class DocumentService {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+
   private apiUrl = `${environment.apiUrl}/documents`;
 
   // File validation constants
   private readonly MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   private readonly ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
   private readonly ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
-
-  constructor(private http: HttpClient, private authService: AuthService) {}
 
   /**
    * Validates a file before upload
@@ -61,13 +43,19 @@ export class DocumentService {
 
     // Check file type
     if (!this.ALLOWED_TYPES.includes(file.type)) {
-      errors.push(`File type "${file.type || 'unknown'}" is not allowed. Accepted types: PDF, JPG, PNG`);
+      errors.push(
+        `File type "${file.type || 'unknown'}" is not allowed. Accepted types: PDF, JPG, PNG`
+      );
     }
 
     // Check file extension as backup
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!this.ALLOWED_EXTENSIONS.includes(extension)) {
-      errors.push(`File extension "${extension}" is not allowed. Accepted extensions: ${this.ALLOWED_EXTENSIONS.join(', ')}`);
+      errors.push(
+        `File extension "${extension}" is not allowed. Accepted extensions: ${this.ALLOWED_EXTENSIONS.join(
+          ', '
+        )}`
+      );
     }
 
     // Check if file is empty
@@ -101,29 +89,30 @@ export class DocumentService {
 
     const params = new HttpParams().set('documentType', documentTypeId.toString());
 
-    return this.http.post(`${this.apiUrl}/upload-single`, formData, {
-      params,
-      reportProgress: true,
-      observe: 'events',
-      responseType: 'text',
-    }).pipe(
-      map((event: HttpEvent<string>) => {
-        switch (event.type) {
-          case HttpEventType.UploadProgress:
-            const progress = event.total
-              ? Math.round((100 * event.loaded) / event.total)
-              : 0;
-            return { status: 'progress' as const, progress };
-          case HttpEventType.Response:
-            return { status: 'complete' as const, progress: 100, message: 'Upload complete' };
-          default:
-            return { status: 'progress' as const, progress: 0 };
-        }
-      }),
-      filter((result): result is UploadProgress =>
-        result.status === 'progress' || result.status === 'complete'
-      )
-    );
+    return this.http
+      .post(`${this.apiUrl}/upload-single`, formData, {
+        params,
+        reportProgress: true,
+        observe: 'events',
+        responseType: 'text',
+      })
+      .pipe(
+        map((event: HttpEvent<string>) => {
+          switch (event.type) {
+            case HttpEventType.UploadProgress:
+              const progress = event.total ? Math.round((100 * event.loaded) / event.total) : 0;
+              return { status: 'progress' as const, progress };
+            case HttpEventType.Response:
+              return { status: 'complete' as const, progress: 100, message: 'Upload complete' };
+            default:
+              return { status: 'progress' as const, progress: 0 };
+          }
+        }),
+        filter(
+          (result): result is UploadProgress =>
+            result.status === 'progress' || result.status === 'complete'
+        )
+      );
   }
 
   /**
@@ -141,28 +130,34 @@ export class DocumentService {
       params = params.append('documentTypes', type.toString());
     });
 
-    return this.http.post(`${this.apiUrl}/upload-multiple`, formData, {
-      params,
-      reportProgress: true,
-      observe: 'events',
-    }).pipe(
-      map((event: HttpEvent<any>) => {
-        switch (event.type) {
-          case HttpEventType.UploadProgress:
-            const progress = event.total
-              ? Math.round((100 * event.loaded) / event.total)
-              : 0;
-            return { status: 'progress' as const, progress };
-          case HttpEventType.Response:
-            return { status: 'complete' as const, progress: 100, message: 'All documents uploaded' };
-          default:
-            return { status: 'progress' as const, progress: 0 };
-        }
-      }),
-      filter((result): result is UploadProgress =>
-        result.status === 'progress' || result.status === 'complete'
-      )
-    );
+    return this.http
+      .post(`${this.apiUrl}/upload-multiple`, formData, {
+        params,
+        reportProgress: true,
+        observe: 'events',
+      })
+      .pipe(
+        map((event: HttpEvent<any>) => {
+          switch (event.type) {
+            case HttpEventType.UploadProgress:
+              const progress = event.total ? Math.round((100 * event.loaded) / event.total) : 0;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              return { status: 'progress' as const, progress };
+            case HttpEventType.Response:
+              return {
+                status: 'complete' as const,
+                progress: 100,
+                message: 'All documents uploaded',
+              };
+            default:
+              return { status: 'progress' as const, progress: 0 };
+          }
+        }),
+        filter(
+          (result): result is UploadProgress =>
+            result.status === 'progress' || result.status === 'complete'
+        )
+      );
   }
 
   uploadMultipleDocuments(files: File[], documentTypes: (string | number)[]): Observable<any> {
@@ -170,11 +165,10 @@ export class DocumentService {
     files.forEach((file) => formData.append('files', file));
 
     let params = new HttpParams();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     documentTypes.forEach((type) => {
       params = params.append('documentTypes', type.toString());
     });
-
-    console.log('Parameters:', params.toString());
 
     return this.http.post(`${this.apiUrl}/upload-multiple`, formData, {
       params,
@@ -195,7 +189,9 @@ export class DocumentService {
 
   getUploadedDocuments(): Observable<DocumentData[]> {
     const userId = this.authService.currentUserValue?.id;
-    console.log('Fetching documents for user ID:', userId);
+    if (!userId) {
+      throw new Error('Cannot fetch documents: user is not authenticated');
+    }
 
     return this.http.get<DocumentData[]>(`${this.apiUrl}/info/all/${userId}`);
   }
@@ -211,4 +207,12 @@ export class DocumentService {
       responseType: 'blob',
     });
   }
+
+  deleteDocument(documentId: string | number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/delete/${documentId}`);
+  }
+}
+
+export function isNoActiveApplicationError(error: any): boolean {
+  return error?.error?.message?.includes('No active application found') || false;
 }

@@ -1,10 +1,14 @@
 <div class="dialog-container">
   <div class="dialog-header">
-    <div class="header-icon">
-      <mat-icon>{{ mode === 'create' ? 'add_circle' : 'edit' }}</mat-icon>
+    <div class="dialog-header-inner">
+      <div class="header-icon-wrap">
+        <mat-icon>{{ mode === 'create' ? 'add_circle' : 'edit' }}</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">{{ getTitle() }}</h2>
+        <p class="dialog-subtitle">{{ mode === 'create' ? 'Create a new document type for student applications' : 'Update document type details' }}</p>
+      </div>
     </div>
-    <h2>{{ getTitle() }}</h2>
-    <p>{{ mode === 'create' ? 'Create a new document type for student applications' : 'Update document type details' }}</p>
   </div>
 
   <mat-dialog-content>
@@ -61,7 +65,7 @@
     <button mat-stroked-button (click)="onCancel()" [disabled]="isLoading" class="cancel-btn">
       Cancel
     </button>
-    <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isLoading || documentTypeForm.invalid" class="submit-btn">
+    <button mat-raised-button (click)="onSubmit()" [disabled]="isLoading || documentTypeForm.invalid" class="submit-btn">
       @if (isLoading) {
         <mat-spinner diameter="18"></mat-spinner>
         <span>{{ mode === 'create' ? 'Creating...' : 'Updating...' }}</span>

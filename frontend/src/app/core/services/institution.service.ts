@@ -1,8 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Institution } from '../models/institution.model';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 export interface InstitutionResponse {
   id: number;
@@ -21,25 +23,14 @@ export interface InstitutionRequest {
   emailAddress: string;
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  pageNumber: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
-}
-
 @Injectable({
   providedIn: 'root',
 })
 export class InstitutionService {
+  private http = inject(HttpClient);
+
   private apiUrl = `${environment.apiUrl}/institution`;
   private institutions: Institution[] | null = null;
-
-  constructor(private http: HttpClient) {}
 
   getInstitutions(): Observable<Institution[]> {
     if (this.institutions) {
@@ -52,6 +43,7 @@ export class InstitutionService {
   }
 
   getAllInstitutions(filters: any): Observable<PageResponse<InstitutionResponse>> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
@@ -60,6 +52,7 @@ export class InstitutionService {
   }
 
   searchInstitutions(filters: any): Observable<PageResponse<InstitutionResponse>> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');

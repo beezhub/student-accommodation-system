@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -6,6 +6,7 @@ import {
   DocumentTypeResponse,
   PageResponse,
 } from '../../../core/services/document-type.service';
+import { RoleService } from '../../../core/services/role.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -26,6 +27,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 // Modern UI Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { DecimalPipe } from '@angular/common';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 
 @Component({
   selector: 'app-document-type-management',
@@ -51,9 +55,28 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatChipsModule,
     MatSlideToggleModule,
     ModernStatusBadgeComponent,
+    EmptyStateComponent,
+    SkeletonLoaderComponent,
+    DecimalPipe,
   ],
 })
 export class DocumentTypeManagementComponent implements OnInit {
+  private documentTypeService = inject(DocumentTypeService);
+  private roleService = inject(RoleService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
+  get isTenantAdmin(): boolean {
+    return this.roleService.isTenantAdmin();
+  }
+
+  /** Returns false for platform-default types when the user is TENANT_ADMIN. */
+  canMutate(docType: DocumentTypeResponse): boolean {
+    if (this.isTenantAdmin && docType.isPlatformDefault) return false;
+    return true;
+  }
+
   documentTypes: DocumentTypeResponse[] = [];
   displayedColumns: string[] = ['typeName', 'description', 'isRequired', 'createdAt', 'actions'];
 
@@ -61,15 +84,22 @@ export class DocumentTypeManagementComponent implements OnInit {
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
+  filtersVisible = false;
 
   filterForm: FormGroup;
 
-  constructor(
-    private documentTypeService: DocumentTypeService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  get activeFilterCount(): number {
+    const v = this.filterForm.value;
+    return [v.name, v.isRequired !== '' ? v.isRequired : null].filter(
+      (x: unknown) => x !== null && x !== '' && x !== undefined
+    ).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
+
+  constructor() {
     this.filterForm = this.fb.group({
       name: [''],
       isRequired: [''],
@@ -139,6 +169,22 @@ export class DocumentTypeManagementComponent implements OnInit {
       const dialogRef = this.dialog.open(m.DocumentTypeFormDialogComponent, {
         width: '600px',
         data: { mode: 'edit', documentType },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          this.loadDocumentTypes();
+        }
+      });
+    });
+  }
+
+  /** Opens the create dialog pre-filled with the platform type's name so TENANT_ADMIN can create a shadow. */
+  openShadowDialog(docType: DocumentTypeResponse): void {
+    import('./document-type-form-dialog/document-type-form-dialog.component').then((m) => {
+      const dialogRef = this.dialog.open(m.DocumentTypeFormDialogComponent, {
+        width: '600px',
+        data: { mode: 'create', prefillName: docType.typeName, shadow: true },
       });
 
       dialogRef.afterClosed().subscribe((result) => {

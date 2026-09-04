@@ -15,10 +15,20 @@
       }
     </div>
 
-    <!-- Loading Spinner -->
+    <!-- Loading skeleton -->
     @if (isLoading) {
       <div class="loading-container">
-        <mat-spinner></mat-spinner>
+        <div class="skeleton-card">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line medium"></div>
+          <div class="skeleton-line full"></div>
+          <div class="skeleton-line medium"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton-line short"></div>
+          <div class="skeleton-line full"></div>
+          <div class="skeleton-line medium"></div>
+        </div>
       </div>
     }
 
@@ -73,6 +83,50 @@
             </div>
           </mat-card-content>
         </mat-card>
+        <!-- Accommodation Preferences -->
+        @if (application.requiresAccessibility || application.specialRequirements || application.courseName || (application.preferredBuildings && application.preferredBuildings.length > 0)) {
+          <mat-card appearance="outlined">
+            <mat-card-content>
+              <h3 class="section-title">Accommodation Preferences</h3>
+              <mat-divider></mat-divider>
+              <div class="info-grid">
+                @if (application.courseName) {
+                  <div class="info-item">
+                    <div class="label">Course</div>
+                    <div class="value">{{ application.courseName }}</div>
+                  </div>
+                }
+                @if (application.requiresAccessibility) {
+                  <div class="info-item">
+                    <div class="label">Accessibility</div>
+                    <div class="value">Accessible room required</div>
+                  </div>
+                }
+                @if (application.specialRequirements) {
+                  <div class="info-item full-width">
+                    <div class="label">Special Requirements</div>
+                    <div class="value">{{ application.specialRequirements }}</div>
+                  </div>
+                }
+              </div>
+              @if (application.preferredBuildings && application.preferredBuildings.length > 0) {
+                <div class="preferred-buildings-section">
+                  <div class="label preferred-buildings-label">Preferred Buildings</div>
+                  <div class="preferred-buildings-list">
+                    @for (pref of application.preferredBuildings; track pref.buildingId) {
+                      <div class="preferred-building-item">
+                        <span class="pref-rank-badge pref-rank-badge--{{ pref.preferenceOrder }}">
+                          {{ pref.preferenceOrder === 1 ? '1st' : pref.preferenceOrder === 2 ? '2nd' : '3rd' }}
+                        </span>
+                        <span class="pref-building-name">{{ pref.buildingName }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+        }
         <!-- Student Information (for admin view) -->
         @if (isAdmin && application.studentFirstName) {
           <mat-card appearance="outlined">

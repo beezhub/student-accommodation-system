@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AdminService, DocumentResponse, PageResponse } from '../../../core/services/admin.service';
-import { DocumentTypeService, DocumentTypeResponse } from '../../../core/services/document-type.service';
+import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { DocumentViewerComponent } from '../../dashboard/documents/document-viewer/document-viewer.component';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -40,36 +42,42 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatTooltipModule,
     DocumentViewerComponent,
     ModernStatusBadgeComponent,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class DocumentVerificationComponent implements OnInit {
+  private adminService = inject(AdminService);
+  private documentTypeService = inject(DocumentTypeService);
+  private fb = inject(FormBuilder);
+  private snackBar = inject(MatSnackBar);
+
   documents: DocumentResponse[] = [];
-  displayedColumns: string[] = [
-    'documentName',
-    'studentName',
-    'uploadDate',
-    'status',
-    'actions',
-  ];
+  displayedColumns: string[] = ['documentName', 'studentName', 'uploadDate', 'status', 'actions'];
 
   isLoading = false;
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
+  filtersVisible = false;
 
   filterForm: FormGroup;
+
+  get activeFilterCount(): number {
+    const v = this.filterForm?.value ?? {};
+    return [v.studentName, v.documentTypeId, v.status].filter(Boolean).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
 
   statuses = ['PENDING', 'APPROVED', 'REJECTED'];
   documentTypes: any[] = [];
 
   selectedDocument: any = null;
 
-  constructor(
-    private adminService: AdminService,
-    private documentTypeService: DocumentTypeService,
-    private fb: FormBuilder,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       studentName: [''],
       documentTypeId: [''],
@@ -89,7 +97,7 @@ export class DocumentVerificationComponent implements OnInit {
       },
       error: (err) => {
         console.error('Failed to load document types:', err);
-      }
+      },
     });
   }
 

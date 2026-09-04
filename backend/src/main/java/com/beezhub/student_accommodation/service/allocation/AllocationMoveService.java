@@ -13,7 +13,7 @@ import com.beezhub.student_accommodation.model.enums.AllocationAuditActionType;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.model.event.AllocationMovedEvent;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import org.springframework.context.ApplicationEventPublisher;
@@ -31,7 +31,7 @@ public class AllocationMoveService {
     private final RoomAllocationRepository roomAllocationRepository;
     private final RoomRepository roomRepository;
     private final RoomAllocationMapper roomAllocationMapper;
-    private final AllocationScoringService allocationScoringService;
+    private final LegacyScoringStrategy allocationScoringService;
     private final AppUserRepository appUserRepository;
     private final AllocationAuditService allocationAuditService;
     private final ApplicationEventPublisher eventPublisher;

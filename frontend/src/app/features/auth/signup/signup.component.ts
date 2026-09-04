@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -36,6 +36,7 @@ export class SignupComponent {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   signupForm: FormGroup;
   isSubmitting = false;
@@ -85,6 +86,7 @@ export class SignupComponent {
       this.authService.signup(signupData).subscribe({
         next: () => {
           this.isSubmitting = false;
+          this.cdr.markForCheck();
           this.snackBar.open(
             'Account created! Please check your email to verify your account before submitting applications.',
             'Close',
@@ -100,6 +102,7 @@ export class SignupComponent {
         error: (error: { error: { message: string } }) => {
           this.isSubmitting = false;
           this.errorMessage = error.error.message || 'An error occurred during signup';
+          this.cdr.markForCheck();
           this.snackBar.open(this.errorMessage, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar'],

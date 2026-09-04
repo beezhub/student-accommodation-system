@@ -2,28 +2,21 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
-import com.beezhub.student_accommodation.model.enums.DocumentStatus;
-import com.beezhub.student_accommodation.model.enums.NotificationStatus;
 import com.beezhub.student_accommodation.model.enums.NotificationType;
-import com.beezhub.student_accommodation.repository.NotificationRepository;
 import com.beezhub.student_accommodation.service.notification.EmailDispatchService;
+import com.beezhub.student_accommodation.service.notification.EmailSubjects;
+import com.beezhub.student_accommodation.service.notification.NotificationPersistenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
-import com.beezhub.student_accommodation.model.event.*;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationService {
 
-    private final NotificationRepository notificationRepository;
+    private final NotificationPersistenceService notificationPersistence;
     private final EmailDispatchService emailDispatchService;
 
     @Async("notificationExecutor")
@@ -33,9 +26,9 @@ public class NotificationService {
 
         log.info("Sending welcome email to {}", email);
 
-        Notification notification = createNotification(
+        Notification notification = notificationPersistence.createNotification(
                 email,
-                "Welcome to Student Accommodation System",
+                EmailSubjects.WELCOME,
                 NotificationType.WELCOME_EMAIL,
                 user,
                 user.getId(),
@@ -43,9 +36,9 @@ public class NotificationService {
 
         try {
             emailDispatchService.sendWelcomeEmail(user, studentName, email);
-            markNotificationAsSent(notification);
+            notificationPersistence.markNotificationAsSent(notification);
         } catch (Exception e) {
-            handleNotificationFailure(notification, e);
+            notificationPersistence.handleNotificationFailure(notification, e);
         }
     }
 
@@ -56,9 +49,9 @@ public class NotificationService {
 
         log.info("Sending password reset email to {}", email);
 
-        Notification notification = createNotification(
+        Notification notification = notificationPersistence.createNotification(
                 email,
-                "Password Reset Request - Student Accommodation System",
+                EmailSubjects.PASSWORD_RESET,
                 NotificationType.PASSWORD_RESET,
                 user,
                 user.getId(),
@@ -66,46 +59,10 @@ public class NotificationService {
 
         try {
             emailDispatchService.sendPasswordResetEmail(studentName, email, resetToken, notification.getSubject());
-            markNotificationAsSent(notification);
+            notificationPersistence.markNotificationAsSent(notification);
         } catch (Exception e) {
-            handleNotificationFailure(notification, e);
+            notificationPersistence.handleNotificationFailure(notification, e);
         }
-    }
-
-    @Transactional
-    public Notification createNotification(String recipient, String subject,
-            NotificationType type, AppUser user,
-            Long referenceId, String referenceType) {
-        Notification notification = Notification.builder()
-                .recipient(recipient)
-                .subject(subject)
-                .type(type)
-                .status(NotificationStatus.PENDING)
-                .user(user)
-                .referenceId(referenceId)
-                .referenceType(referenceType)
-                .retryCount(0)
-                .maxRetries(3) // Assuming MAX_RETRIES was 3, hardcoding it here as per removal instruction
-                .build();
-
-        return notificationRepository.save(notification);
-    }
-
-    @Transactional
-    public void markNotificationAsSent(Notification notification) {
-        notification.markAsSent();
-        notificationRepository.save(notification);
-        log.debug("Notification {} marked as sent", notification.getId());
-    }
-
-    @Transactional
-    public void handleNotificationFailure(Notification notification, Exception e) {
-        String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-        notification.markAsFailed(errorMessage);
-        notificationRepository.save(notification);
-
-        log.error("Failed to send notification {} (type: {}) to {}. Error: {}. Will retry if under max attempts.",
-                notification.getId(), notification.getType(), notification.getRecipient(), errorMessage, e);
     }
 
     @Async("notificationExecutor")
@@ -121,32 +78,32 @@ public class NotificationService {
         String email = user.getEmail();
 
         if (status == ApplicationStatus.APPROVED) {
-            Notification notification = createNotification(
+            Notification notification = notificationPersistence.createNotification(
                     email,
-                    "Application Approved - Student Accommodation System",
+                    EmailSubjects.APPLICATION_APPROVED,
                     NotificationType.APPLICATION_APPROVED,
                     user,
                     application.getId(),
                     "Application");
             try {
                 emailDispatchService.sendApplicationApprovedEmail(application, studentName, email);
-                markNotificationAsSent(notification);
+                notificationPersistence.markNotificationAsSent(notification);
             } catch (Exception e) {
-                handleNotificationFailure(notification, e);
+                notificationPersistence.handleNotificationFailure(notification, e);
             }
         } else if (status == ApplicationStatus.REJECTED) {
-            Notification notification = createNotification(
+            Notification notification = notificationPersistence.createNotification(
                     email,
-                    "Application Rejected - Student Accommodation System",
+                    EmailSubjects.APPLICATION_REJECTED,
                     NotificationType.APPLICATION_REJECTED,
                     user,
                     application.getId(),
                     "Application");
             try {
                 emailDispatchService.sendApplicationRejectedEmail(application, studentName, email);
-                markNotificationAsSent(notification);
+                notificationPersistence.markNotificationAsSent(notification);
             } catch (Exception e) {
-                handleNotificationFailure(notification, e);
+                notificationPersistence.handleNotificationFailure(notification, e);
             }
         } else {
             log.warn("Notification not implemented for application status: {}", status);

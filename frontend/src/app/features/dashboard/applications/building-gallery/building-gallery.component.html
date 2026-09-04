@@ -1,34 +1,97 @@
 <div class="building-gallery">
-  <h3 class="gallery-title">Select Your Preferred Building</h3>
-  <p class="gallery-subtitle">Choose a building based on your preference or select "No Preference"</p>
+  <h3 class="gallery-title">Select Your Preferred Buildings</h3>
+  <p class="gallery-subtitle">
+    Add up to {{ MAX_SELECTIONS }} buildings in order of preference.
+    Showing the first 5 buildings — search to find others.
+  </p>
 
-  <div class="gallery-grid">
-    <!-- No Preference Card -->
-    <div
-      class="building-card"
-      [class.selected]="isSelected(null)"
-      (click)="selectBuilding(null)"
-    >
-      <div class="card-image no-preference">
-        <mat-icon>clear_all</mat-icon>
+  <!-- ── Selected preferences list ────────────────────────── -->
+  @if (selectedBuildingIds.length > 0) {
+    <div class="selected-section">
+      <div class="selected-header">
+        <span class="selected-label">Your preferences</span>
+        <button mat-button class="clear-all-btn" (click)="clearAll()">
+          <mat-icon>clear_all</mat-icon>
+          Clear all
+        </button>
       </div>
-      <div class="card-content">
-        <h4 class="building-name">No Preference</h4>
-        <p class="building-description">Let the system assign a building based on availability</p>
+      <div class="selected-list">
+        @for (id of selectedBuildingIds; track id; let i = $index) {
+          <div class="selected-item">
+            <span class="rank-badge" [ngClass]="'rank-badge--' + (i + 1)">{{ RANK_LABELS[i] }}</span>
+            <div class="selected-item-info">
+              @if (getBuildingById(id)?.primaryImageUrl) {
+                <img
+                  class="selected-item-thumb"
+                  [src]="getBuildingById(id)!.primaryImageUrl"
+                  [alt]="getBuildingById(id)!.name"
+                />
+              } @else {
+                <div class="selected-item-placeholder">
+                  <mat-icon>apartment</mat-icon>
+                </div>
+              }
+              <span class="selected-item-name">{{ getBuildingById(id)?.name }}</span>
+            </div>
+            <button
+              mat-icon-button
+              class="remove-btn"
+              (click)="removeBuilding(id)"
+              [attr.aria-label]="'Remove ' + getBuildingById(id)?.name"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        }
       </div>
-      @if (isSelected(null)) {
-        <div class="selected-indicator">
-          <mat-icon>check_circle</mat-icon>
-        </div>
+    </div>
+  }
+
+  <!-- ── Search ────────────────────────────────────────────── -->
+  <div class="gallery-search">
+    <div class="search-field-wrap">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search buildings</mat-label>
+        <input matInput [value]="searchQuery" (input)="onSearch($event)" placeholder="Name, address…" autocomplete="off" />
+      </mat-form-field>
+      @if (searchQuery) {
+        <button mat-icon-button class="search-clear-btn" aria-label="Clear search" (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
       }
     </div>
+  </div>
 
-    <!-- Building Cards -->
+  <!-- ── Cap message ────────────────────────────────────────── -->
+  @if (isAtMax) {
+    <div class="cap-message">
+      <mat-icon>info_outline</mat-icon>
+      <span>Maximum of {{ MAX_SELECTIONS }} buildings reached. Remove one to add another.</span>
+    </div>
+  }
+
+  <!-- ── Empty search result ───────────────────────────────── -->
+  @if (buildings.length === 0 && searchQuery.trim()) {
+    <div class="no-results">
+      <mat-icon>search_off</mat-icon>
+      <span>No buildings match "<strong>{{ searchQuery }}</strong>"</span>
+    </div>
+  }
+
+  <!-- ── Building cards grid ───────────────────────────────── -->
+  <div class="gallery-grid">
+
     @for (building of buildings; track building.id) {
       <div
         class="building-card"
         [class.selected]="isSelected(building.id)"
-        (click)="selectBuilding(building.id)"
+        [class.disabled]="isAtMax && !isSelected(building.id)"
+        (click)="isSelected(building.id) ? removeBuilding(building.id) : addBuilding(building.id)"
+        [attr.aria-label]="isSelected(building.id) ? 'Remove ' + building.name : 'Add ' + building.name"
+        role="button"
+        [attr.tabindex]="(isAtMax && !isSelected(building.id)) ? -1 : 0"
+        (keydown.enter)="isSelected(building.id) ? removeBuilding(building.id) : addBuilding(building.id)"
+        (keydown.space)="isSelected(building.id) ? removeBuilding(building.id) : addBuilding(building.id)"
       >
         <div class="card-image">
           @if (building.primaryImageUrl) {
@@ -37,6 +100,12 @@
             <div class="placeholder-image">
               <mat-icon>apartment</mat-icon>
             </div>
+          }
+          <!-- Rank overlay badge -->
+          @if (getRank(building.id)) {
+            <span class="card-rank-badge" [ngClass]="'card-rank-badge--' + getRank(building.id)">
+              {{ RANK_LABELS[getRank(building.id)! - 1] }}
+            </span>
           }
         </div>
         <div class="card-content">
@@ -59,12 +128,17 @@
             <p class="building-description">{{ building.description }}</p>
           }
         </div>
-        @if (isSelected(building.id)) {
-          <div class="selected-indicator">
+
+        <!-- Add / remove icon -->
+        <div class="card-action-icon" [class.card-action-icon--selected]="isSelected(building.id)">
+          @if (isSelected(building.id)) {
             <mat-icon>check_circle</mat-icon>
-          </div>
-        }
+          } @else {
+            <mat-icon>add_circle_outline</mat-icon>
+          }
+        </div>
       </div>
     }
+
   </div>
 </div>

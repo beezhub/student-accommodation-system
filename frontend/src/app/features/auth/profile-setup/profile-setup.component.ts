@@ -5,6 +5,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { InstitutionService } from '../../../core/services/institution.service';
 import { YearOfStudyService } from '../../../core/services/year-of-study.service';
 import { StudentService } from '../../../core/services/student.service';
+import { ErrorHandlingService } from '../../../core/services/error-handling.service';
 import { Institution } from '../../../core/models/institution.model';
 import { YearOfStudy } from '../../../core/models/year-of-study.model';
 import { MatCardModule } from '@angular/material/card';
@@ -16,8 +17,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { MatDividerModule } from '@angular/material/divider';
 
 @Component({
@@ -35,8 +34,6 @@ import { MatDividerModule } from '@angular/material/divider';
     MatProgressSpinnerModule,
     MatStepperModule,
     MatIconModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
     MatDividerModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,28 +45,19 @@ export class ProfileSetupComponent implements OnInit {
   private readonly institutionService = inject(InstitutionService);
   private readonly yearOfStudyService = inject(YearOfStudyService);
   private readonly studentService = inject(StudentService);
+  private readonly errorService = inject(ErrorHandlingService);
 
   profileForm: FormGroup;
   isSubmitting = false;
   currentUser: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   institutions: Institution[] = [];
   yearsOfStudy: YearOfStudy[] = [];
 
-  readonly genderOptions = [
-    { value: 'male', viewValue: 'Male' },
-    { value: 'female', viewValue: 'Female' },
-    { value: 'other', viewValue: 'Other' },
-    { value: 'prefer-not-to-say', viewValue: 'Prefer not to say' },
-  ] as const;
-
   constructor() {
     this.profileForm = this.fb.group({
-      studentNumber: ['', [Validators.required]],
-      phoneNumber: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
-      dateOfBirth: ['', [Validators.required]],
       institution: ['', [Validators.required]],
       yearOfStudy: ['', [Validators.required]],
-      gender: ['', [Validators.required]],
       specialRequirements: [''],
     });
   }
@@ -85,7 +73,9 @@ export class ProfileSetupComponent implements OnInit {
         console.log('Institutions API response:', institutions);
         if (institutions && Array.isArray((institutions as any).content)) {
           this.institutions = (institutions as any).content;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } else if (Array.isArray(institutions)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.institutions = institutions;
         } else {
           this.institutions = [];
@@ -93,6 +83,7 @@ export class ProfileSetupComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error fetching institutions:', error);
+        this.errorService.showWarning('Could not load institutions. Please refresh the page.');
         this.institutions = [];
       },
     });
@@ -103,13 +94,16 @@ export class ProfileSetupComponent implements OnInit {
         if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
           this.yearsOfStudy = (yearOfStudy as any).content;
         } else if (Array.isArray(yearOfStudy)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.yearsOfStudy = yearOfStudy;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } else {
           this.yearsOfStudy = [];
         }
       },
       error: (error) => {
         console.error('Error fetching years of study:', error);
+        this.errorService.showWarning('Could not load years of study. Please refresh the page.');
         this.yearsOfStudy = [];
       },
     });
@@ -123,12 +117,8 @@ export class ProfileSetupComponent implements OnInit {
         firstName: this.currentUser.firstName,
         lastName: this.currentUser.lastName,
         email: this.currentUser.email,
-        studentNumber: this.profileForm.get('studentNumber')?.value,
-        phoneNumber: this.profileForm.get('phoneNumber')?.value,
-        dateOfBirth: this.profileForm.get('dateOfBirth')?.value,
         institutionId: this.profileForm.get('institution')?.value,
         yearOfStudyId: this.profileForm.get('yearOfStudy')?.value,
-        gender: this.profileForm.get('gender')?.value,
         specialRequirements: this.profileForm.get('specialRequirements')?.value,
         userId: this.currentUser.id,
       };
@@ -136,11 +126,12 @@ export class ProfileSetupComponent implements OnInit {
       this.studentService.createStudentProfile(studentData).subscribe({
         next: () => {
           this.isSubmitting = false;
-          this.router.navigate(['/application-submission']);
+          this.router.navigate(['/document-upload']);
         },
         error: (error) => {
           this.isSubmitting = false;
           console.error('Error updating profile:', error);
+          this.errorService.showErrorSnackbar(this.errorService.parseError(error));
         },
       });
     } else {

@@ -1,14 +1,17 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DocumentType } from '../models/document-type.model';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 export interface DocumentTypeResponse {
   id: number;
   typeName: string;
   description?: string;
   isRequired: boolean;
+  isPlatformDefault?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,34 +22,29 @@ export interface DocumentTypeRequest {
   isRequired: boolean;
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  pageNumber: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
-}
-
 @Injectable({
   providedIn: 'root',
 })
 export class DocumentTypeService {
-  private apiUrl = `${environment.apiUrl}/document-type`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/document-type`;
 
   getAllDocumentTypes(): Observable<DocumentType[]> {
     return this.http.get<DocumentType[]>(this.apiUrl);
   }
 
-  getRequiredDocumentTypes(): Observable<DocumentType[]> {
-    return this.http.get<DocumentType[]>(`${this.apiUrl}/required`);
+  getRequiredDocumentTypes(tenantId?: number): Observable<DocumentType[]> {
+    let params = new HttpParams();
+    if (tenantId != null) {
+      params = params.set('tenantId', tenantId.toString());
+    }
+    return this.http.get<DocumentType[]>(`${this.apiUrl}/required`, { params });
   }
 
   getAllDocumentTypesPaginated(filters: any): Observable<PageResponse<DocumentTypeResponse>> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
@@ -54,7 +52,9 @@ export class DocumentTypeService {
     return this.http.get<PageResponse<DocumentTypeResponse>>(this.apiUrl, { params });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   searchDocumentTypes(filters: any): Observable<PageResponse<DocumentTypeResponse>> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');

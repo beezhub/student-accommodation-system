@@ -404,7 +404,6 @@ class AuthControllerTest {
         verify(authService).verifyEmail(eq("email-verification-token-123"));
     }
 
-    @Disabled("Validation test failing with 200 OK. Investigating.")
     @Test
     @DisplayName("POST /api/auth/verify-email - Should return 400 for empty token")
     void verifyEmail_WithEmptyToken_ShouldReturnBadRequest() throws Exception {
@@ -417,6 +416,7 @@ class AuthControllerTest {
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 

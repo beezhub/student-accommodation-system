@@ -2,9 +2,11 @@ package com.beezhub.student_accommodation.exceptions;
 
 import com.beezhub.student_accommodation.model.dto.ErrorResponse;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -20,6 +22,17 @@ import java.util.stream.Collectors;
 @ControllerAdvice(basePackages = "com.beezhub.student_accommodation.controller")
 public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
+        @ExceptionHandler(DataIntegrityViolationException.class)
+        public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+                        DataIntegrityViolationException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                "A record with the same unique value already exists",
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
+
         @ExceptionHandler({ IllegalArgumentException.class, IllegalStateException.class })
         protected ResponseEntity<Object> handleConflict(RuntimeException ex, WebRequest request) {
                 ErrorResponse errorResponse = new ErrorResponse(
@@ -28,6 +41,16 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                                 ex.getMessage(),
                                 request.getDescription(false));
                 return new ResponseEntity<>(errorResponse, new HttpHeaders(), HttpStatus.CONFLICT);
+        }
+
+        @ExceptionHandler(AccessDeniedException.class)
+        public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.FORBIDDEN.value(),
+                                "Access denied: you do not have permission to perform this action",
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
         }
 
         @ExceptionHandler(RuntimeException.class)

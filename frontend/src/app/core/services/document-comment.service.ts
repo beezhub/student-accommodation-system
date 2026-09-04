@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -8,9 +8,9 @@ import { DocumentComment } from '../models/allocation.models';
   providedIn: 'root',
 })
 export class DocumentCommentService {
-  private apiUrl = `${environment.apiUrl}/documents`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/documents`;
 
   addComment(documentId: number, text: string): Observable<DocumentComment> {
     return this.http.post<DocumentComment>(`${this.apiUrl}/${documentId}/comments`, {

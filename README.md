@@ -1,5 +1,7 @@
 # Student Accommodation System
 
+[![CI](https://github.com/your-org/student-accommodation-system/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/student-accommodation-system/actions/workflows/ci.yml)
+
 A web application to help students find, book, and manage accommodation easily. This project consists of a backend (Spring Boot) and a frontend (Angular).
 
 ## Features

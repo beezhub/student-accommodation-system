@@ -1,0 +1,240 @@
+<div class="detail-page">
+
+  <!-- ══════════════════════════════════════════════════════
+       LOADING
+  ══════════════════════════════════════════════════════ -->
+  @if (isLoading) {
+    <div class="loading-wrap">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Loading building details…</p>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       ERROR
+  ══════════════════════════════════════════════════════ -->
+  @if (error) {
+    <div class="error-wrap">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error }}</p>
+      <a mat-stroked-button routerLink="/buildings">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Buildings
+      </a>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       CONTENT
+  ══════════════════════════════════════════════════════ -->
+  @if (!isLoading && !error && building) {
+
+    <!-- Back nav -->
+    <div class="back-bar">
+      <a mat-button routerLink="/buildings" class="back-link">
+        <mat-icon>arrow_back</mat-icon>
+        All Buildings
+      </a>
+    </div>
+
+    <div class="content-wrap">
+
+      <!-- ── Gallery ─────────────────────────────────────── -->
+      <div class="gallery-col">
+
+        <!-- Main image -->
+        <div class="main-image-wrap">
+          @if (activeImage) {
+            <img
+              class="main-image"
+              [src]="activeImage.imageUrl"
+              [alt]="building.name"
+            />
+          } @else {
+            <div class="main-placeholder">
+              <mat-icon>apartment</mat-icon>
+              <p>No images available</p>
+            </div>
+          }
+
+          <!-- Nav arrows (only when > 1 image) -->
+          @if (images.length > 1) {
+            <button
+              mat-icon-button
+              class="gallery-arrow gallery-arrow--prev"
+              (click)="prevImage()"
+              [disabled]="activeImageIndex === 0"
+              aria-label="Previous image"
+            >
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              class="gallery-arrow gallery-arrow--next"
+              (click)="nextImage()"
+              [disabled]="activeImageIndex === images.length - 1"
+              aria-label="Next image"
+            >
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+
+            <!-- Counter -->
+            <span class="image-counter">
+              {{ activeImageIndex + 1 }} / {{ images.length }}
+            </span>
+          }
+        </div>
+
+        <!-- Thumbnail strip -->
+        @if (images.length > 1) {
+          <div class="thumb-strip">
+            @for (img of images; track img.id; let i = $index) {
+              <button
+                class="thumb-btn"
+                [class.thumb-btn--active]="i === activeImageIndex"
+                (click)="selectImage(i)"
+                [attr.aria-label]="'View image ' + (i + 1)"
+              >
+                <img [src]="img.imageUrl" [alt]="building.name + ' image ' + (i + 1)" loading="lazy" />
+              </button>
+            }
+          </div>
+        }
+
+        <!-- ── Rooms & Pricing (below gallery) ───────────── -->
+        <div class="rooms-section">
+          <h2 class="section-heading">Rooms & Pricing</h2>
+
+          @if (capacityGroups.length === 0) {
+            <div class="rooms-empty">
+              <mat-icon>info_outline</mat-icon>
+              <p>Room information not yet available</p>
+            </div>
+          } @else {
+            <table class="rooms-table" aria-label="Rooms and pricing by capacity">
+              <thead>
+                <tr>
+                  <th>Room Type</th>
+                  <th>Price</th>
+                  <th>Availability</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (group of capacityGroups; track group.capacity) {
+                  <tr>
+                    <td class="type-cell">
+                      <span class="type-label">{{ group.label }}</span>
+                    </td>
+                    <td class="price-cell">{{ getGroupPriceDisplay(group) }}</td>
+                    <td class="avail-cell">
+                      <span
+                        class="avail-badge"
+                        [class.avail-badge--good]="group.available > 2"
+                        [class.avail-badge--limited]="group.available > 0 && group.available <= 2"
+                        [class.avail-badge--none]="group.available === 0">
+                        {{ group.available }} of {{ group.total }} available
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+
+        <!-- ── Accessibility ─────────────────────────────── -->
+        @if (accessibilityFeatures.length > 0) {
+          <div class="accessibility-section">
+            <h2 class="section-heading">Accessibility</h2>
+            <div class="accessibility-chips">
+              @for (feature of accessibilityFeatures; track feature) {
+                <span class="accessibility-chip">
+                  <mat-icon>accessible</mat-icon>
+                  {{ feature }}
+                </span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- ── Info ────────────────────────────────────────── -->
+      <div class="info-col">
+
+        <h1 class="building-name">{{ building.name }}</h1>
+
+        <!-- Availability summary -->
+        @if (availabilitySummary) {
+          <div class="availability-summary" [class.fully-occupied]="availableRooms === 0">
+            <mat-icon>{{ availableRooms > 0 ? 'check_circle' : 'cancel' }}</mat-icon>
+            <span>{{ availabilitySummary }}</span>
+          </div>
+        }
+
+        @if (building.institutions && building.institutions.length > 0) {
+          <div class="institutions">
+            @for (inst of building.institutions; track inst.id) {
+              <span class="inst-chip">{{ inst.name }}</span>
+            }
+          </div>
+        }
+
+        <!-- Meta rows -->
+        <div class="meta-list">
+          @if (building.address) {
+            <div class="meta-row">
+              <mat-icon class="meta-icon">location_on</mat-icon>
+              <span>{{ building.address }}</span>
+            </div>
+          }
+          @if (building.totalFloors) {
+            <div class="meta-row">
+              <mat-icon class="meta-icon">layers</mat-icon>
+              <span>{{ building.totalFloors }} floor{{ building.totalFloors !== 1 ? 's' : '' }}</span>
+            </div>
+          }
+          @if (images.length > 0) {
+            <div class="meta-row">
+              <mat-icon class="meta-icon">photo_library</mat-icon>
+              <span>{{ images.length }} photo{{ images.length !== 1 ? 's' : '' }}</span>
+            </div>
+          }
+          @if (totalRooms > 0) {
+            <div class="meta-row">
+              <mat-icon class="meta-icon">bed</mat-icon>
+              <span>{{ totalRooms }} room{{ totalRooms !== 1 ? 's' : '' }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Description -->
+        @if (building.description) {
+          <div class="description-section">
+            <h2 class="section-heading">About this building</h2>
+            <p class="description-text">{{ building.description }}</p>
+          </div>
+        }
+
+        <!-- CTA -->
+        <div class="cta-section">
+          <p class="cta-hint">Create an account or sign in to submit a housing application.</p>
+          <div class="cta-actions">
+            <a mat-flat-button routerLink="/signup" class="cta-primary">
+              <mat-icon>person_add</mat-icon>
+              Get Started
+            </a>
+            <a mat-stroked-button routerLink="/login" class="cta-secondary">
+              <mat-icon>login</mat-icon>
+              Sign In
+            </a>
+          </div>
+        </div>
+
+      </div><!-- /info-col -->
+    </div><!-- /content-wrap -->
+
+    <!-- ── Security Assurance ──────────────────────────── -->
+    <app-security-assurance />
+  }
+
+</div>

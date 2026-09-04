@@ -34,4 +34,5 @@ export interface Application {
   approvedDocuments?: number;
   totalRequiredDocuments?: number;
   allocationStatus?: string;
+  tenantId?: number;
 }

@@ -52,11 +52,11 @@ public class JwtUtil {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
+        return Jwts.parser()
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     public String generateToken(UserDetails userDetails) {
@@ -66,24 +66,24 @@ public class JwtUtil {
 
         // Determine expiration based on role
         long expirationMs;
-        if (roles.contains("ROLE_ADMIN")) {
+        if (roles.contains("ROLE_PLATFORM_ADMIN")) {
             expirationMs = Long.parseLong(jwtConfig.getAdminExpirationTime());
         } else {
             expirationMs = Long.parseLong(jwtConfig.getExpirationTime());
         }
         
         Long tenantId = null;
-        if (userDetails instanceof AppUserDetails) {
-            tenantId = ((AppUserDetails) userDetails).getTenantId();
+        if (userDetails instanceof AppUserDetails appUserDetails) {
+            tenantId = appUserDetails.getTenantId();
         }
 
         return Jwts.builder()
-            .setId(java.util.UUID.randomUUID().toString())
-            .setSubject(userDetails.getUsername())
+            .id(java.util.UUID.randomUUID().toString())
+            .subject(userDetails.getUsername())
             .claim("roles", roles)
             .claim("tenantId", tenantId)
-            .setIssuedAt(new Date())
-            .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + expirationMs))
             .signWith(key)
             .compact();
     }

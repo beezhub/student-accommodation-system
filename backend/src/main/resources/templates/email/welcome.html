@@ -1,83 +1,15 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to Student Accommodation System</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0 0 10px 0;
-            font-size: 32px;
-        }
-        .header p {
-            margin: 0;
-            font-size: 16px;
-            opacity: 0.9;
-        }
-        .content {
-            padding: 30px;
-        }
-        .welcome-icon {
-            text-align: center;
-            font-size: 70px;
-            margin: 20px 0;
-        }
-        .message {
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        .account-box {
-            background-color: #e7f3ff;
-            border-left: 4px solid #2196F3;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-        .account-box h3 {
-            margin-top: 0;
-            color: #1976D2;
-        }
-        .account-info {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-        .account-info p {
-            margin: 8px 0;
-        }
-        .steps-box {
-            background-color: #f8f9fa;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 8px;
-        }
-        .steps-box h3 {
-            margin-top: 0;
-            color: #495057;
-        }
+        .account-info { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px; }
+        .account-info p { margin: 8px 0; }
+        .steps-box { background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .steps-box h3 { margin-top: 0; color: #495057; }
         .step {
             display: flex;
             align-items: flex-start;
@@ -99,22 +31,12 @@
             font-weight: bold;
             margin-right: 15px;
             flex-shrink: 0;
+            text-align: center;
+            line-height: 30px;
         }
-        .step-content h4 {
-            margin: 0 0 5px 0;
-            color: #667eea;
-        }
-        .step-content p {
-            margin: 0;
-            font-size: 14px;
-            color: #666;
-        }
-        .features-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 20px 0;
-        }
+        .step-content h4 { margin: 0 0 5px 0; color: #667eea; }
+        .step-content p { margin: 0; font-size: 14px; color: #666; }
+        .features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
         .feature-card {
             background-color: #f8f9fa;
             padding: 15px;
@@ -122,20 +44,10 @@
             text-align: center;
             border-top: 3px solid #667eea;
         }
-        .feature-card .icon {
-            font-size: 30px;
-            margin-bottom: 10px;
-        }
-        .feature-card h4 {
-            margin: 5px 0;
-            color: #495057;
-        }
-        .feature-card p {
-            margin: 0;
-            font-size: 13px;
-            color: #666;
-        }
-        .cta-section {
+        .feature-card .icon { font-size: 30px; margin-bottom: 10px; }
+        .feature-card h4 { margin: 5px 0; color: #495057; }
+        .feature-card p { margin: 0; font-size: 13px; color: #666; }
+        .cta-gradient {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #ffffff;
             padding: 30px;
@@ -143,10 +55,8 @@
             margin: 30px 0;
             border-radius: 8px;
         }
-        .cta-section h3 {
-            margin: 0 0 15px 0;
-        }
-        .cta-button {
+        .cta-gradient h3 { margin: 0 0 15px 0; }
+        .cta-white {
             display: inline-block;
             background-color: #ffffff;
             color: #667eea;
@@ -156,214 +66,151 @@
             margin: 10px;
             font-weight: bold;
         }
-        .tips-box {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .tips-box h3 {
-            margin-top: 0;
-            color: #856404;
-        }
-        .tips-box ul {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        .tips-box li {
-            margin: 8px 0;
-        }
-        .support-box {
-            background-color: #d4edda;
-            border-left: 4px solid #28a745;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .support-box h3 {
-            margin-top: 0;
-            color: #155724;
-        }
-        .support-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .support-item {
-            background-color: #ffffff;
-            padding: 10px;
-            border-radius: 3px;
-        }
-        .support-item strong {
-            color: #28a745;
-            display: block;
-            margin-bottom: 3px;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-        }
+        .support-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .support-item { background-color: #ffffff; padding: 10px; border-radius: 3px; }
+        .support-item strong { color: #28a745; display: block; margin-bottom: 3px; }
         @media screen and (max-width: 600px) {
-            .features-grid, .support-grid {
-                grid-template-columns: 1fr;
-            }
+            .features-grid, .support-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Welcome!</h1>
-            <p>Your Student Accommodation Journey Begins Here</p>
-        </div>
 
-        <div class="content">
-            <div class="welcome-icon">👋</div>
+<h1 layout:fragment="email-title">Welcome!</h1>
+<span layout:fragment="email-subtitle">Your Student Accommodation Journey Begins Here</span>
 
-            <p class="message">Dear <span th:text="${studentName}">Student</span>,</p>
+<div layout:fragment="email-content">
+    <p style="text-align:center; font-size: 70px; margin: 20px 0;">&#128075;</p>
 
-            <p class="message">
-                Welcome to the Student Accommodation System! We are thrilled to have you join our community.
-                Your account has been successfully created, and you're all set to begin your accommodation
-                application process.
-            </p>
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
-            <div class="account-box">
-                <h3>📋 Your Account Details</h3>
-                <div class="account-info">
-                    <p><strong>Name:</strong> <span th:text="${studentName}">John Doe</span></p>
-                    <p><strong>Email:</strong> <span th:text="${email}">student@university.edu</span></p>
-                    <p><strong>Student ID:</strong> <span th:text="${studentId}">2025001234</span></p>
-                    <p><strong>Registration Date:</strong> <span th:text="${registrationDate}">2025-01-20</span></p>
-                </div>
-            </div>
+    <p>Welcome to the Student Accommodation System! We are thrilled to have you join our community.
+       Your account has been successfully created, and you're all set to begin your accommodation
+       application process.</p>
 
-            <div class="steps-box">
-                <h3>🚀 Getting Started Guide</h3>
-
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h4>Log In to Your Portal</h4>
-                        <p>Use your credentials to access your personalized student portal and dashboard.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h4>Complete Your Profile</h4>
-                        <p>Add your personal information, contact details, and emergency contacts.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h4>Submit Application</h4>
-                        <p>Fill out the accommodation application form with your preferences and requirements.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <div class="step-content">
-                        <h4>Upload Documents</h4>
-                        <p>Provide required documents such as ID, proof of registration, and other supporting files.</p>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">5</div>
-                    <div class="step-content">
-                        <h4>Track Your Application</h4>
-                        <p>Monitor your application status and respond to any requests in real-time.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="icon">🏠</div>
-                    <h4>Browse Rooms</h4>
-                    <p>Explore available accommodation options</p>
-                </div>
-                <div class="feature-card">
-                    <div class="icon">📱</div>
-                    <h4>24/7 Access</h4>
-                    <p>Manage your application anytime, anywhere</p>
-                </div>
-                <div class="feature-card">
-                    <div class="icon">🔔</div>
-                    <h4>Real-Time Updates</h4>
-                    <p>Get instant notifications on your application</p>
-                </div>
-                <div class="feature-card">
-                    <div class="icon">💬</div>
-                    <h4>Support Chat</h4>
-                    <p>Connect with our support team easily</p>
-                </div>
-            </div>
-
-            <div class="cta-section">
-                <h3>Ready to Get Started?</h3>
-                <p>Access your portal and begin your accommodation journey today!</p>
-                <a href="#" th:href="${loginUrl}" class="cta-button">Log In to Portal</a>
-                <a href="#" th:href="${guideUrl}" class="cta-button">View Full Guide</a>
-            </div>
-
-            <div class="tips-box">
-                <h3>💡 Quick Tips</h3>
-                <ul>
-                    <li>Apply early - accommodation is allocated on a first-come, first-served basis</li>
-                    <li>Keep all your documents ready in PDF or image format</li>
-                    <li>Check your email regularly for important updates</li>
-                    <li>Update your preferences before the application deadline</li>
-                    <li>Contact support if you encounter any issues</li>
-                </ul>
-            </div>
-
-            <div class="support-box">
-                <h3>🆘 Need Help? We're Here for You!</h3>
-                <p>Our support team is ready to assist you with any questions or concerns.</p>
-                <div class="support-grid">
-                    <div class="support-item">
-                        <strong>📧 Email Support</strong>
-                        <span>support@university.edu</span>
-                    </div>
-                    <div class="support-item">
-                        <strong>📞 Phone Support</strong>
-                        <span>+27 (0) 11 234 5678</span>
-                    </div>
-                    <div class="support-item">
-                        <strong>💬 Live Chat</strong>
-                        <span>Available in portal</span>
-                    </div>
-                    <div class="support-item">
-                        <strong>⏰ Office Hours</strong>
-                        <span>Mon-Fri, 8 AM - 5 PM</span>
-                    </div>
-                </div>
-            </div>
-
-            <p class="message" style="margin-top: 30px; text-align: center; font-style: italic;">
-                Thank you for choosing our accommodation system. We look forward to helping you
-                find your perfect home away from home!
-            </p>
-        </div>
-
-        <div class="footer">
-            <p>This is an automated message from the Student Accommodation System.</p>
-            <p>&copy; 2025 Student Accommodation System. All rights reserved.</p>
-            <p style="margin-top: 10px;">
-                <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> |
-                <a href="#" style="color: #667eea; text-decoration: none;">Terms of Service</a> |
-                <a href="#" style="color: #667eea; text-decoration: none;">Help Center</a>
-            </p>
+    <div class="info-box">
+        <h3>Your Account Details</h3>
+        <div class="account-info">
+            <p><strong>Name:</strong> <span th:text="${studentName}">John Doe</span></p>
+            <p><strong>Email:</strong> <span th:text="${email}">student@university.edu</span></p>
+            <p><strong>Student ID:</strong> <span th:text="${studentId}">2025001234</span></p>
+            <p><strong>Registration Date:</strong> <span th:text="${registrationDate}">2025-01-20</span></p>
         </div>
     </div>
+
+    <div class="steps-box">
+        <h3>Getting Started Guide</h3>
+
+        <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h4>Log In to Your Portal</h4>
+                <p>Use your credentials to access your personalized student portal and dashboard.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h4>Complete Your Profile</h4>
+                <p>Add your personal information, contact details, and emergency contacts.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h4>Submit Application</h4>
+                <p>Fill out the accommodation application form with your preferences and requirements.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+                <h4>Upload Documents</h4>
+                <p>Provide required documents such as ID, proof of registration, and other supporting files.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">5</div>
+            <div class="step-content">
+                <h4>Track Your Application</h4>
+                <p>Monitor your application status and respond to any requests in real-time.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="icon">&#127968;</div>
+            <h4>Browse Rooms</h4>
+            <p>Explore available accommodation options</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#128241;</div>
+            <h4>24/7 Access</h4>
+            <p>Manage your application anytime, anywhere</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#128276;</div>
+            <h4>Real-Time Updates</h4>
+            <p>Get instant notifications on your application</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#128172;</div>
+            <h4>Support Chat</h4>
+            <p>Connect with our support team easily</p>
+        </div>
+    </div>
+
+    <div class="cta-gradient">
+        <h3>Ready to Get Started?</h3>
+        <p>Access your portal and begin your accommodation journey today!</p>
+        <a th:href="${loginUrl}" class="cta-white">Log In to Portal</a>
+        <a th:href="${guideUrl}" class="cta-white">View Full Guide</a>
+    </div>
+
+    <div class="warning-box">
+        <h3>Quick Tips</h3>
+        <ul>
+            <li>Apply early - accommodation is allocated on a first-come, first-served basis</li>
+            <li>Keep all your documents ready in PDF or image format</li>
+            <li>Check your email regularly for important updates</li>
+            <li>Update your preferences before the application deadline</li>
+            <li>Contact support if you encounter any issues</li>
+        </ul>
+    </div>
+
+    <div class="success-box">
+        <h3>Need Help? We're Here for You!</h3>
+        <p>Our support team is ready to assist you with any questions or concerns.</p>
+        <div class="support-grid">
+            <div class="support-item">
+                <strong>Email Support</strong>
+                <span th:text="${supportEmail}">support@university.edu</span>
+            </div>
+            <div class="support-item">
+                <strong>Phone Support</strong>
+                <span th:text="${contactPhone}">+27 (0) 11 000 0000</span>
+            </div>
+            <div class="support-item">
+                <strong>Live Chat</strong>
+                <span>Available in portal</span>
+            </div>
+            <div class="support-item">
+                <strong>Office Hours</strong>
+                <span>Mon-Fri, 8 AM - 5 PM</span>
+            </div>
+        </div>
+    </div>
+
+    <p style="margin-top: 30px; text-align: center; font-style: italic;">
+        Thank you for choosing our accommodation system. We look forward to helping you
+        find your perfect home away from home!
+    </p>
+</div>
+
 </body>
 </html>

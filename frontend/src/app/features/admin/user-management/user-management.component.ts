@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AdminService, AdminUser, CreateUserRequest } from '../../../core/services/admin.service';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
+import { AdminService, AdminUser } from '../../../core/services/admin.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -17,6 +18,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CreateUserDialogComponent } from './create-user-dialog/create-user-dialog.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { AuthService } from '../../../core/services/auth.service';
+import { TenantService, Tenant } from '../../../core/services/tenant.service';
 
 @Component({
   selector: 'app-user-management',
@@ -24,6 +29,7 @@ import { CreateUserDialogComponent } from './create-user-dialog/create-user-dial
   styleUrls: ['./user-management.component.scss'],
   standalone: true,
   imports: [
+    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
@@ -37,24 +43,59 @@ import { CreateUserDialogComponent } from './create-user-dialog/create-user-dial
     MatProgressSpinnerModule,
     MatChipsModule,
     MatTooltipModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class UserManagementComponent implements OnInit {
+  private adminService = inject(AdminService);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   users: AdminUser[] = [];
   displayedColumns: string[] = ['id', 'name', 'email', 'role', 'mustChangePassword', 'actions'];
   isLoading = false;
   filterRole: string = 'all';
+  isPlatformAdmin = false;
+  tenants: Tenant[] = [];
+  filterTenantId: number | 'all' = 'all';
+  filtersVisible = false;
 
-  constructor(
-    private adminService: AdminService,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {}
-
-  ngOnInit(): void {
-    this.loadUsers();
+  get activeFilterCount(): number {
+    return this.filterRole !== 'all' ? 1 : 0;
   }
 
+  get adminCount(): number {
+    return this.users.filter((u) => u.userRole === 'ADMIN').length;
+  }
+
+  get landlordCount(): number {
+    return this.users.filter((u) => u.userRole === 'LANDLORD').length;
+  }
+
+  get studentCount(): number {
+    return this.users.filter((u) => u.userRole === 'STUDENT').length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
+
+  private authService = inject(AuthService);
+  private tenantService = inject(TenantService);
+
+  constructor() {
+    this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
+  }
+
+  ngOnInit(): void {
+    if (this.isPlatformAdmin) {
+      this.tenantService.getAllTenants().subscribe({
+        next: (tenants) => (this.tenants = tenants),
+      });
+    }
+    this.loadUsers();
+  }
   loadUsers(): void {
     this.isLoading = true;
 
@@ -64,7 +105,7 @@ export class UserManagementComponent implements OnInit {
           this.users = users;
           this.isLoading = false;
         },
-        error: (error) => {
+        error: (_err) => {
           this.isLoading = false;
           this.snackBar.open('Failed to load users', 'Close', {
             duration: 3000,
@@ -78,7 +119,7 @@ export class UserManagementComponent implements OnInit {
           this.users = users;
           this.isLoading = false;
         },
-        error: (error) => {
+        error: (_err) => {
           this.isLoading = false;
           this.snackBar.open('Failed to load users', 'Close', {
             duration: 3000,
@@ -130,9 +171,11 @@ export class UserManagementComponent implements OnInit {
 
   getRoleColor(role: string): string {
     switch (role) {
-      case 'ADMIN':
+      case 'PLATFORM_ADMIN':
         return 'primary';
-      case 'LANDLORD':
+      case 'BUILDING_OWNER':
+        return 'accent';
+      case 'BUILDING_STAFF':
         return 'accent';
       case 'STUDENT':
         return 'warn';

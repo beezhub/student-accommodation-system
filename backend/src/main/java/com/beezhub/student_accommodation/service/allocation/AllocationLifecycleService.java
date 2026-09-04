@@ -22,8 +22,6 @@ import java.time.LocalDateTime;
 @Slf4j
 public class AllocationLifecycleService {
 
-    private static final int MAX_DECLINE_COUNT = 2;
-
     @Value("${app.allocation.offer-expiry-days:7}")
     private int offerExpiryDays;
 
@@ -40,6 +38,7 @@ public class AllocationLifecycleService {
     private final RoomOccupancyManager roomOccupancyManager;
     private final AllocationMoveService allocationMoveService;
     private final AllocationBatchService allocationBatchService;
+    private final AllocationAuditService allocationAuditService;
     private final MeterRegistry meterRegistry;
 
     public AllocationLifecycleService(
@@ -53,6 +52,7 @@ public class AllocationLifecycleService {
             RoomOccupancyManager roomOccupancyManager,
             AllocationMoveService allocationMoveService,
             @Lazy AllocationBatchService allocationBatchService,
+            AllocationAuditService allocationAuditService,
             MeterRegistry meterRegistry) {
         this.roomAllocationRepository = roomAllocationRepository;
         this.studentRepository = studentRepository;
@@ -64,6 +64,7 @@ public class AllocationLifecycleService {
         this.roomOccupancyManager = roomOccupancyManager;
         this.allocationMoveService = allocationMoveService;
         this.allocationBatchService = allocationBatchService;
+        this.allocationAuditService = allocationAuditService;
         this.meterRegistry = meterRegistry;
     }
 
@@ -88,6 +89,8 @@ public class AllocationLifecycleService {
         RoomAllocation allocation = buildNewAllocation(request, student, room, application);
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
+        allocationAuditService.logStatusChange(saved, null, AllocationStatus.OFFERED);
+
         waitingListService.updateStatusToAllocated(student.getId());
         roomOccupancyManager.updateOccupancy(room, 1);
 
@@ -106,12 +109,15 @@ public class AllocationLifecycleService {
 
         validateOfferAcceptance(allocation, request);
 
+        AllocationStatus previousStatus = allocation.getStatus();
         allocation.setStatus(AllocationStatus.ACCEPTED);
         allocation.setExpectedCheckInDate(request.getExpectedCheckInDate());
         allocation.setCheckInExpiryDate(LocalDateTime.now().plusDays(checkInExpiryDays));
 
         updateApplicationStatus(allocation, com.beezhub.student_accommodation.model.enums.ApplicationStatus.ALLOCATED);
         RoomAllocation saved = roomAllocationRepository.save(allocation);
+
+        allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.ACCEPTED);
 
         waitingListService.updateStatusToAllocated(saved.getStudent().getId());
         eventPublisher.publishEvent(new AllocationAcceptedEvent(saved));
@@ -129,15 +135,18 @@ public class AllocationLifecycleService {
 
         long previousDeclineCount = getPreviousDeclineCount(allocation);
 
+        AllocationStatus previousStatus = allocation.getStatus();
+        AllocationStatusValidator.validate(allocation, AllocationStatus.DECLINED);
+
         roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
 
-        AllocationStatusValidator.validate(allocation, AllocationStatus.DECLINED);
         allocation.setStatus(AllocationStatus.DECLINED);
         allocation.setEndDate(LocalDateTime.now());
         allocation.setDeclineReason(request.getDeclineReason());
         allocation.setDeclineReasonText(request.getDeclineReasonText());
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
+        allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.DECLINED);
         log.info("Successfully declined room allocation with id: {}. Previous decline count: {}", id,
                 previousDeclineCount);
 
@@ -159,12 +168,14 @@ public class AllocationLifecycleService {
         log.info("Cancelling (deleting) room allocation with id: {}", id);
         RoomAllocation allocation = getAllocation(id);
 
+        AllocationStatus previousStatus = allocation.getStatus();
         AllocationStatusValidator.validate(allocation, AllocationStatus.CANCELLED);
         allocation.setStatus(AllocationStatus.CANCELLED);
         allocation.setEndDate(LocalDateTime.now());
 
         roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
-        roomAllocationRepository.save(allocation);
+        RoomAllocation saved = roomAllocationRepository.save(allocation);
+        allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.CANCELLED);
         log.info("Successfully cancelled room allocation with id: {}", id);
 
         try {
@@ -292,10 +303,11 @@ public class AllocationLifecycleService {
             throw new IllegalArgumentException("Application does not belong to the specified student");
         }
 
-        if (!"APPROVED".equalsIgnoreCase(String.valueOf(application.getStatus()))) {
+        ApplicationStatus appStatus = application.getStatus();
+        if (appStatus != ApplicationStatus.APPROVED && appStatus != ApplicationStatus.AWAITING_ALLOCATION) {
             throw new ApplicationNotApprovedException(
-                    "Application must be APPROVED before allocating a room. Current status: "
-                            + application.getStatus());
+                    "Application must be APPROVED or AWAITING_ALLOCATION before allocating a room. Current status: "
+                            + appStatus);
         }
 
         if (roomAllocationRepository.existsByApplicationId(applicationId)) {
@@ -311,6 +323,7 @@ public class AllocationLifecycleService {
         allocation.setStudent(student);
         allocation.setRoom(room);
         allocation.setApplication(application);
+        allocation.setTenantId(room.getTenantId());
         allocation.setAllocationDate(
                 request.getAllocationDate() != null ? request.getAllocationDate() : LocalDateTime.now());
         allocation.setEndDate(request.getEndDate());
@@ -334,10 +347,10 @@ public class AllocationLifecycleService {
 
     private void validateOfferAcceptance(RoomAllocation allocation, AcceptOfferRequest request) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime maxDate = now.plusDays(7);
+        LocalDateTime maxDate = now.plusDays(checkInExpiryDays);
         if (request.getExpectedCheckInDate().isBefore(now.minusHours(1))
                 || request.getExpectedCheckInDate().isAfter(maxDate)) {
-            throw new IllegalArgumentException("Expected check-in date must be within 7 days from now");
+            throw new IllegalArgumentException("Expected check-in date must be within " + checkInExpiryDays + " days from now");
         }
         if (allocation.getStatus() != AllocationStatus.OFFERED) {
             throw new IllegalStateException(
@@ -363,10 +376,6 @@ public class AllocationLifecycleService {
     }
 
     private void handleDeclineConsequences(RoomAllocation allocation, long previousDeclineCount) {
-        if (previousDeclineCount < MAX_DECLINE_COUNT) {
-            waitingListService.reQueueStudent(allocation, (int) previousDeclineCount + 1, MAX_DECLINE_COUNT);
-        } else {
-            waitingListService.cancelApplicationAfterMaxDeclines(allocation, MAX_DECLINE_COUNT);
-        }
+        waitingListService.reQueueStudent(allocation, (int) previousDeclineCount + 1);
     }
 }

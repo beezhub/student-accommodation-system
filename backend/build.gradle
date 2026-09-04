@@ -6,12 +6,24 @@ plugins {
 }
 
 group = 'com.beezhub'
-version = '0.0.1-SNAPSHOT'
+version = '1.0.0'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs += ['--enable-preview']
+}
+
+tasks.withType(Test).configureEach {
+	jvmArgs '--enable-preview'
+}
+
+tasks.withType(JavaExec).configureEach {
+	jvmArgs '--enable-preview'
 }
 
 configurations {
@@ -30,14 +42,15 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.security:spring-security-crypto'
-	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:3.4.0'
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
@@ -46,16 +59,22 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testRuntimeOnly 'com.h2database:h2'
 	implementation 'org.mapstruct:mapstruct:1.6.3'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
-	implementation 'io.minio:minio:8.5.17'
-	implementation 'org.ff4j:ff4j-spring-boot-starter:1.9'
+	implementation 'io.minio:minio:9.0.0'
+	implementation('org.ff4j:ff4j-spring-boot-starter:1.9') {
+		exclude group: 'org.springdoc'
+	}
 	implementation 'org.ff4j:ff4j-store-springjdbc:1.9'
 	implementation 'com.google.code.gson:gson:2.10.1'
 	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 	implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
 }
 
 test {
@@ -65,25 +84,56 @@ test {
 		events "passed", "skipped", "failed"
 		exceptionFormat = "full"
 	}
+
 }
 
 jacoco {
 	toolVersion = "0.8.12"
-	reportsDirectory = file("${buildDir}/jacocoHtml")
+	reportsDirectory = layout.buildDirectory.dir("jacocoHtml")
 }
+
+def jacocoExcludes = [
+	// Generated / boilerplate — not meaningful to unit-test
+	'**/model/dto/**',
+	'**/model/entity/**',
+	'**/model/enums/**',
+	'**/mapper/**',
+	// Spring Boot entry-point
+	'**/*Application*',
+]
 
 jacocoTestReport {
 	reports {
-	csv.required = true
-	xml.required = true
+		csv.required = true
+		xml.required = true
 		html.required = true
 	}
 	dependsOn test
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: jacocoExcludes)
+		}))
+	}
 }
 
 jacocoTestCoverageVerification {
 	dependsOn jacocoTestReport
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: jacocoExcludes)
+		}))
+	}
 	violationRules {
+		// Global 70% line coverage across the whole project
+		rule {
+			element = 'BUNDLE'
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.70
+			}
+		}
+
 		// Specific rule for AllocationScoringService (90%)
 		rule {
 			element = 'CLASS'
@@ -95,17 +145,24 @@ jacocoTestCoverageVerification {
 			}
 		}
 
-		// General rule for all Service classes (10% - lowered per user request)
+		// Direct service classes — minimum 70%
+		// Sub-packages (allocation, notification, document, tenant, application) are excluded
+		// because they are covered by integration tests, not unit tests.
 		rule {
 			element = 'CLASS'
 			includes = ['com.beezhub.student_accommodation.service.**']
 			excludes = [
-				'com.beezhub.student_accommodation.service.AllocationScoringService' // Covered by specific rule
+				'com.beezhub.student_accommodation.service.AllocationScoringService',
+				'com.beezhub.student_accommodation.service.allocation.*',
+				'com.beezhub.student_accommodation.service.notification.*',
+				'com.beezhub.student_accommodation.service.document.*',
+				'com.beezhub.student_accommodation.service.tenant.*',
+				'com.beezhub.student_accommodation.service.application.*',
 			]
 			limit {
 				counter = 'LINE'
 				value = 'COVEREDRATIO'
-				minimum = 0.00
+				minimum = 0.70
 			}
 		}
 	}

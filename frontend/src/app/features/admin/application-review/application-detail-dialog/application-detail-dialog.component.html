@@ -1,23 +1,50 @@
 <div class="application-detail-dialog">
+  <!-- Module accent stripe -->
+  <div class="module-stripe"></div>
+
   <!-- Header -->
   <div mat-dialog-title class="dialog-header">
-    <div class="header-content">
-      <div class="header-title-row">
-        <h2>Application Review</h2>
+    <div class="header-main">
+      <div class="student-avatar" *ngIf="student && !isLoading">{{ getInitials() }}</div>
+      <div class="student-avatar-placeholder" *ngIf="!student || isLoading">
+        <mat-icon aria-hidden="true">person</mat-icon>
       </div>
-      <div class="student-subtitle" *ngIf="applicationDetails && student">
-        <span class="application-code">{{ applicationDetails.applicationCode }}</span>
-        <span class="separator">•</span>
-        <span class="student-name">{{ student.firstName }} {{ student.lastName }}</span>
+
+      <div class="header-info">
+        <div class="header-title-row">
+          <h2>Application Review</h2>
+          <app-modern-status-badge
+            *ngIf="applicationDetails"
+            [status]="applicationDetails.status">
+          </app-modern-status-badge>
+        </div>
+        <div class="header-meta" *ngIf="applicationDetails && student">
+          <span class="app-code">{{ applicationDetails.applicationCode }}</span>
+          <span class="sep">·</span>
+          <span class="student-name">{{ student.firstName }} {{ student.lastName }}</span>
+          <span class="sep">·</span>
+          <span class="meta-date">{{ formatDate(applicationDetails.applicationDate) }}</span>
+        </div>
       </div>
     </div>
-    
-    <div class="header-right">
-      <app-modern-status-badge
-        *ngIf="applicationDetails"
-        [status]="applicationDetails.status">
-      </app-modern-status-badge>
-      <button mat-icon-button (click)="closeDialog()" aria-label="Close dialog">
+
+    <div class="header-actions">
+      <div class="stats-chips" *ngIf="applicationDetails && !isLoading">
+        <div class="stat-chip docs-chip">
+          <mat-icon aria-hidden="true">folder_open</mat-icon>
+          <span>{{ documents.length }} docs</span>
+        </div>
+        <div class="stat-chip checklist-chip" [class.complete]="allRequiredApproved">
+          <mat-icon aria-hidden="true">{{ allRequiredApproved ? 'check_circle' : 'pending_actions' }}</mat-icon>
+          <span>{{ requiredApprovedCount }}/{{ requiredTotalCount }}</span>
+        </div>
+        <div class="stat-chip unsaved-chip" *ngIf="hasUnsavedChanges()">
+          <mat-icon aria-hidden="true">edit_note</mat-icon>
+          <span>Unsaved</span>
+        </div>
+      </div>
+
+      <button mat-icon-button (click)="closeDialog()" class="close-btn" aria-label="Close dialog">
         <mat-icon aria-hidden="true">close</mat-icon>
       </button>
     </div>
@@ -26,360 +53,396 @@
   <mat-dialog-content>
     <!-- Loading State -->
     <div *ngIf="isLoading" class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
-      <p>Loading application details...</p>
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading application details…</p>
     </div>
 
     <!-- Error State -->
     <div *ngIf="loadError && !isLoading" class="error-container">
-      <mat-icon>error_outline</mat-icon>
-      <p>{{ loadError }}</p>
-      <button mat-raised-button color="primary" (click)="loadApplicationDetails()">
-        <mat-icon>refresh</mat-icon>
+      <div class="error-icon-wrap">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+      </div>
+      <p class="error-message">{{ loadError }}</p>
+      <button mat-stroked-button (click)="loadApplicationDetails()">
+        <mat-icon aria-hidden="true">refresh</mat-icon>
         Retry
       </button>
     </div>
 
-    <!-- Content -->
-    <div *ngIf="!isLoading && !loadError && applicationDetails" class="dialog-content">
-      <!-- Student Profile Section -->
-      <mat-card class="section-card">
-        <mat-card-header>
-          <mat-icon mat-card-avatar class="section-icon">person</mat-icon>
-          <mat-card-title>Student Profile</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="profile-grid" *ngIf="student">
-            <div class="profile-item">
-              <span class="label">Full Name</span>
-              <span class="value">{{ student.fullName || (student.firstName + ' ' + student.lastName) }}</span>
+    <!-- Main Content -->
+    <div *ngIf="!isLoading && !loadError && applicationDetails" class="dialog-body">
+
+      <!-- Rejection Banner (inline, top of body) -->
+      @if (showRejectionForm) {
+        <div class="rejection-banner">
+          <div class="rejection-banner-header">
+            <div class="rejection-banner-title">
+              <mat-icon aria-hidden="true">block</mat-icon>
+              <span>Reject Application</span>
             </div>
-            <div class="profile-item">
-              <span class="label">Email</span>
-              <span class="value">{{ student.email }}</span>
-            </div>
-            <div class="profile-item">
-              <span class="label">Phone</span>
-              <span class="value">{{ student.phoneNumber || 'N/A' }}</span>
-            </div>
-            <div class="profile-item">
-              <span class="label">Student Number</span>
-              <span class="value">{{ student.studentNumber }}</span>
-            </div>
-            <div class="profile-item">
-              <span class="label">Gender</span>
-              <span class="value">{{ student.gender || 'N/A' }}</span>
-            </div>
-            <div class="profile-item">
-              <span class="label">Institution</span>
-              <span class="value">{{ student.institutionName || 'N/A' }}</span>
-            </div>
-            <div class="profile-item">
-              <span class="label">Year of Study</span>
-              <span class="value">{{ student.yearOfStudy || 'N/A' }}</span>
-            </div>
-            <div class="profile-item full-width" *ngIf="student.specialRequirements">
-              <span class="label">Special Requirements</span>
-              <span class="value special-requirements">{{ student.specialRequirements }}</span>
-            </div>
+            <button mat-icon-button (click)="toggleRejectionForm()" class="rejection-close" aria-label="Cancel rejection">
+              <mat-icon aria-hidden="true">close</mat-icon>
+            </button>
           </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Application Preferences Section -->
-      <mat-card class="section-card">
-        <mat-card-header>
-          <mat-icon mat-card-avatar class="section-icon">tune</mat-icon>
-          <mat-card-title>Application Preferences</mat-card-title>
-          <mat-card-subtitle>Submitted on {{ formatDate(applicationDetails?.applicationDate) }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="preferences-grid" *ngIf="applicationDetails">
-            <div class="preference-item">
-              <span class="label">Preferred Building</span>
-              <span class="value">{{ applicationDetails.preferredBuildingName || 'Any Building' }}</span>
-            </div>
-            <div class="preference-item">
-              <span class="label">Course Name</span>
-              <span class="value">{{ applicationDetails.courseName || 'Not specified' }}</span>
-            </div>
-            <div class="preference-item">
-              <span class="label">Institution</span>
-              <span class="value">{{ applicationDetails.institutionName || 'Not specified' }}</span>
-            </div>
-            <div class="preference-item">
-              <span class="label">Requires Accessibility</span>
-              <span class="value">
-                <span *ngIf="applicationDetails.requiresAccessibility" class="accessibility-badge yes">
-                  <mat-icon>accessible</mat-icon>
-                  Yes
-                </span>
-                <span *ngIf="!applicationDetails.requiresAccessibility" class="accessibility-badge no">
-                  No
-                </span>
-              </span>
-            </div>
-            <div class="preference-item full-width" *ngIf="applicationDetails.specialRequirements">
-              <span class="label">Special Requirements</span>
-              <span class="value special-requirements">{{ applicationDetails.specialRequirements }}</span>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Required Document Checklist Section -->
-      <mat-card class="section-card checklist-card">
-        <mat-card-header>
-          <mat-icon mat-card-avatar class="section-icon">checklist</mat-icon>
-          <mat-card-title>Required Document Checklist</mat-card-title>
-          <mat-card-subtitle>
-            {{ requiredApprovedCount }}/{{ requiredTotalCount }} required documents approved
-          </mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="progress-section">
-            <mat-progress-bar
-              mode="determinate"
-              [value]="checklistProgress"
-              [color]="allRequiredApproved ? 'primary' : 'accent'">
-            </mat-progress-bar>
-            <span class="progress-label">{{ checklistProgress | number:'1.0-0' }}%</span>
-          </div>
-
-          <mat-list class="checklist-list">
-            <mat-list-item *ngFor="let item of documentChecklist" [class]="getChecklistClass(item)">
-              <mat-icon matListItemIcon [class]="getChecklistClass(item)">
-                {{ getChecklistIcon(item) }}
-              </mat-icon>
-              <span matListItemTitle>{{ item.type }}</span>
-              <span matListItemLine class="checklist-status">
-                <span class="required-badge" *ngIf="item.isRequired">Required</span>
-                <span class="optional-badge" *ngIf="!item.isRequired">Optional</span>
-                <span class="status-text">{{ item.status.replace('_', ' ') }}</span>
-              </span>
-            </mat-list-item>
-          </mat-list>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Documents Review Section -->
-      <mat-card class="section-card documents-card">
-        <mat-card-header>
-          <mat-icon mat-card-avatar class="section-icon">folder</mat-icon>
-          <mat-card-title>Documents Review</mat-card-title>
-          <mat-card-subtitle>{{ documents.length }} document(s) uploaded</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <div *ngIf="documents.length === 0" class="no-documents">
-            <mat-icon>cloud_upload</mat-icon>
-            <p>No documents uploaded yet</p>
-          </div>
-
-          <mat-accordion *ngIf="documents.length > 0" class="documents-accordion">
-            <mat-expansion-panel
-              *ngFor="let doc of documents"
-              [expanded]="expandedDocumentId === doc.id"
-              (opened)="toggleDocumentExpanded(doc.id)"
-              (closed)="expandedDocumentId === doc.id && toggleDocumentExpanded(doc.id)">
-              <mat-expansion-panel-header>
-                <mat-panel-title>
-                  <mat-icon class="doc-icon">description</mat-icon>
-                  <span class="doc-name">{{ doc.fileName }}</span>
-                </mat-panel-title>
-                <mat-panel-description>
-                  <span class="doc-type">{{ doc.documentTypeName }}</span>
-                  <app-modern-status-badge
-                    [status]="getDocumentCurrentStatus(doc)"
-                    size="sm">
-                  </app-modern-status-badge>
-                </mat-panel-description>
-              </mat-expansion-panel-header>
-
-              <div class="document-details">
-                <div class="document-info">
-                  <div class="info-row">
-                    <span class="label">Uploaded:</span>
-                    <span class="value">{{ doc.uploadedAt | timeago }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="label">Type:</span>
-                    <span class="value">{{ doc.documentTypeName }}</span>
-                  </div>
-                </div>
-
-                <div class="document-actions">
-                  <button mat-stroked-button color="primary" (click)="viewDocument(doc)">
-                    <mat-icon>visibility</mat-icon>
-                    {{ documentPreviews.has(doc.id) ? 'Hide' : 'View' }}
-                  </button>
-
-                  <button mat-stroked-button (click)="downloadDocument(doc)">
-                    <mat-icon>download</mat-icon>
-                    Download
-                  </button>
-
-                  <mat-form-field appearance="outline" class="status-select">
-                    <mat-label>Status</mat-label>
-                    <mat-select
-                      [value]="getDocumentCurrentStatus(doc)"
-                      (selectionChange)="onDocumentStatusChange(doc, $event.value)">
-                      <mat-option value="PENDING">
-                        <mat-icon class="status-icon pending">hourglass_empty</mat-icon>
-                        Pending
-                      </mat-option>
-                      <mat-option value="APPROVED">
-                        <mat-icon class="status-icon approved">check_circle</mat-icon>
-                        Approved
-                      </mat-option>
-                      <mat-option value="REJECTED">
-                        <mat-icon class="status-icon rejected">cancel</mat-icon>
-                        Rejected
-                      </mat-option>
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-
-                <!-- Document Preview Section -->
-                @if (documentPreviews.has(doc.id)) {
-                  <div class="document-preview-section">
-                    @if (documentLoadingStates.get(doc.id)) {
-                      <div class="preview-loading">
-                        <mat-spinner diameter="40"></mat-spinner>
-                        <span>Loading document preview...</span>
-                      </div>
-                    }
-
-                    @if (documentPreviewErrors.get(doc.id) && !documentLoadingStates.get(doc.id)) {
-                      <div class="preview-error">
-                        <mat-icon>error_outline</mat-icon>
-                        <span>Failed to load preview</span>
-                        <button mat-stroked-button (click)="retryPreview(doc)">
-                          <mat-icon>refresh</mat-icon>
-                          Retry
-                        </button>
-                      </div>
-                    }
-
-                    @if (!documentLoadingStates.get(doc.id) && !documentPreviewErrors.get(doc.id) && documentPreviews.get(doc.id)) {
-                      <div class="preview-container">
-                        @if (documentPreviewTypes.get(doc.id) === 'pdf') {
-                          <iframe [src]="documentPreviews.get(doc.id)" class="pdf-preview"></iframe>
-                        } @else if (documentPreviewTypes.get(doc.id) === 'image') {
-                          <img [src]="documentPreviews.get(doc.id)" alt="Document preview" class="image-preview">
-                        } @else {
-                          <div class="preview-unsupported">
-                            <mat-icon>description</mat-icon>
-                            <span>Preview not available for this file type</span>
-                            <span class="hint">Please download to view</span>
-                          </div>
-                        }
-                      </div>
-                    }
-                  </div>
-                }
-
-                <mat-divider></mat-divider>
-
-                <!-- Document Comments (Optional) -->
-                <div class="comments-toggle">
-                  <button mat-stroked-button (click)="toggleComments(doc.id)">
-                    <mat-icon>{{ expandedCommentsId === doc.id ? 'expand_less' : 'comment' }}</mat-icon>
-                    {{ expandedCommentsId === doc.id ? 'Hide Comments' : 'Add/View Comments' }}
-                  </button>
-                </div>
-
-                @if (expandedCommentsId === doc.id) {
-                  <app-document-comment-section
-                    [documentId]="doc.id"
-                    [prefillRejectionMessage]="getDocumentCurrentStatus(doc) === 'REJECTED'">
-                  </app-document-comment-section>
-                }
-              </div>
-            </mat-expansion-panel>
-          </mat-accordion>
-
-          <!-- Unsaved changes indicator -->
-          <div *ngIf="hasUnsavedChanges()" class="unsaved-changes">
-            <mat-icon>warning</mat-icon>
-            <span>You have unsaved changes</span>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- Rejection Form -->
-      <mat-card *ngIf="showRejectionForm" class="section-card rejection-card">
-        <mat-card-header>
-          <mat-icon mat-card-avatar class="section-icon warn">block</mat-icon>
-          <mat-card-title>Reject Application</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <form [formGroup]="rejectionForm">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Rejection Reason</mat-label>
+          <form [formGroup]="rejectionForm" class="rejection-form">
+            <mat-form-field appearance="outline" class="rejection-field">
+              <mat-label>Reason for rejection</mat-label>
               <textarea
                 matInput
                 formControlName="reason"
-                placeholder="Enter the reason for rejection..."
-                rows="4"
-                maxlength="500"></textarea>
-              <mat-hint align="start">Minimum 10 characters</mat-hint>
+                placeholder="Explain why this application is being rejected…"
+                rows="3"
+                maxlength="500">
+              </textarea>
               <mat-hint align="end">{{ rejectionForm.get('reason')?.value?.length || 0 }}/500</mat-hint>
-              <mat-error *ngIf="rejectionForm.get('reason')?.hasError('required')">
-                Rejection reason is required
-              </mat-error>
-              <mat-error *ngIf="rejectionForm.get('reason')?.hasError('minlength')">
-                Must be at least 10 characters
-              </mat-error>
+              <mat-error *ngIf="rejectionForm.get('reason')?.hasError('required')">Reason is required</mat-error>
+              <mat-error *ngIf="rejectionForm.get('reason')?.hasError('minlength')">Minimum 10 characters</mat-error>
             </mat-form-field>
+            <div class="rejection-submit-row">
+              <button mat-button (click)="toggleRejectionForm()">Cancel</button>
+              <button
+                mat-raised-button
+                color="warn"
+                (click)="rejectApplication()"
+                [disabled]="rejectionForm.invalid || isRejecting">
+                <mat-spinner *ngIf="isRejecting" diameter="18"></mat-spinner>
+                <span *ngIf="!isRejecting">Confirm Rejection</span>
+              </button>
+            </div>
           </form>
-          <div class="rejection-actions">
-            <button mat-button (click)="toggleRejectionForm()">Cancel</button>
-            <button
-              mat-raised-button
-              color="warn"
-              (click)="rejectApplication()"
-              [disabled]="rejectionForm.invalid || isRejecting">
-              <mat-spinner *ngIf="isRejecting" diameter="20"></mat-spinner>
-              <span *ngIf="!isRejecting">Confirm Rejection</span>
-            </button>
+        </div>
+      }
+
+      <!-- Tabs -->
+      <mat-tab-group animationDuration="200ms" class="content-tabs" [selectedIndex]="1">
+
+        <!-- Tab 1: Overview -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon" aria-hidden="true">person_outline</mat-icon>
+            Overview
+          </ng-template>
+          <div class="tab-pane">
+
+            <!-- Student Profile -->
+            <div class="content-section">
+              <div class="section-label">
+                <span class="section-dot blue" aria-hidden="true"></span>
+                Student Profile
+              </div>
+              <div class="info-grid" *ngIf="student">
+                <div class="info-item">
+                  <span class="info-label">Full Name</span>
+                  <span class="info-value">{{ student.fullName || (student.firstName + ' ' + student.lastName) }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Email</span>
+                  <span class="info-value">{{ student.email }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Phone</span>
+                  <span class="info-value">{{ student.phoneNumber || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Student Number</span>
+                  <span class="info-value mono">{{ student.studentNumber }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Gender</span>
+                  <span class="info-value">{{ student.gender || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Institution</span>
+                  <span class="info-value">{{ student.institutionName || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Year of Study</span>
+                  <span class="info-value">{{ student.yearOfStudy || '—' }}</span>
+                </div>
+                <div class="info-item full" *ngIf="student.specialRequirements">
+                  <span class="info-label">Special Requirements</span>
+                  <span class="info-value special-req">{{ student.specialRequirements }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Application Preferences -->
+            <div class="content-section">
+              <div class="section-label">
+                <span class="section-dot purple" aria-hidden="true"></span>
+                Application Preferences
+                <span class="section-meta">Submitted {{ formatDate(applicationDetails?.applicationDate) }}</span>
+              </div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-label">Preferred Building</span>
+                  <span class="info-value">{{ applicationDetails.preferredBuildingName || 'Any Building' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Course</span>
+                  <span class="info-value">{{ applicationDetails.courseName || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Institution</span>
+                  <span class="info-value">{{ applicationDetails.institutionName || '—' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Accessibility</span>
+                  <span class="info-value">
+                    <span class="accessibility-tag" [class.yes]="applicationDetails.requiresAccessibility">
+                      <mat-icon aria-hidden="true">{{ applicationDetails.requiresAccessibility ? 'accessible' : 'accessible_forward' }}</mat-icon>
+                      {{ applicationDetails.requiresAccessibility ? 'Required' : 'Not required' }}
+                    </span>
+                  </span>
+                </div>
+                <div class="info-item full" *ngIf="applicationDetails.specialRequirements">
+                  <span class="info-label">Special Requirements</span>
+                  <span class="info-value special-req">{{ applicationDetails.specialRequirements }}</span>
+                </div>
+              </div>
+            </div>
+
           </div>
-        </mat-card-content>
-      </mat-card>
+        </mat-tab>
+
+        <!-- Tab 2: Documents -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon" aria-hidden="true">folder_open</mat-icon>
+            Documents
+            <span class="tab-count-badge" [class.complete]="allRequiredApproved">
+              {{ requiredApprovedCount }}/{{ requiredTotalCount }}
+            </span>
+          </ng-template>
+          <div class="tab-pane">
+
+            <!-- Progress Banner -->
+            <div class="progress-banner" [class.complete]="allRequiredApproved">
+              <div class="progress-banner-content">
+                <div class="progress-banner-text">
+                  <span class="progress-title">
+                    {{ allRequiredApproved ? 'All required documents approved' : 'Document review in progress' }}
+                  </span>
+                  <span class="progress-sub">
+                    {{ requiredApprovedCount }} of {{ requiredTotalCount }} required documents approved
+                  </span>
+                </div>
+                <span class="progress-percent" aria-label="Progress percentage">{{ checklistProgress | number:'1.0-0' }}%</span>
+              </div>
+              <mat-progress-bar
+                mode="determinate"
+                [value]="checklistProgress"
+                [color]="allRequiredApproved ? 'primary' : 'accent'"
+                aria-label="Document approval progress">
+              </mat-progress-bar>
+            </div>
+
+            <!-- Checklist Pills -->
+            <div class="checklist-chips-row" *ngIf="documentChecklist.length > 0" role="list" aria-label="Document checklist">
+              <div
+                *ngFor="let item of documentChecklist"
+                class="checklist-pill"
+                [class]="'status-' + getChecklistClass(item)"
+                role="listitem"
+                [attr.aria-label]="item.type + ': ' + item.status">
+                <mat-icon aria-hidden="true">{{ getChecklistIcon(item) }}</mat-icon>
+                <span class="pill-label">{{ item.type }}</span>
+                <span class="pill-req" *ngIf="item.isRequired" aria-label="Required">R</span>
+              </div>
+            </div>
+
+            <!-- Documents List -->
+            <div class="section-label" *ngIf="documents.length > 0">
+              <span class="section-dot blue" aria-hidden="true"></span>
+              Uploaded Documents
+              <span class="section-meta">{{ documents.length }} file{{ documents.length !== 1 ? 's' : '' }}</span>
+            </div>
+
+            <div *ngIf="documents.length === 0" class="empty-docs">
+              <mat-icon aria-hidden="true">cloud_upload</mat-icon>
+              <span>No documents uploaded yet</span>
+            </div>
+
+            <mat-accordion *ngIf="documents.length > 0" class="documents-accordion">
+              <mat-expansion-panel
+                *ngFor="let doc of documents"
+                [expanded]="expandedDocumentId === doc.id"
+                (opened)="toggleDocumentExpanded(doc.id)"
+                (closed)="expandedDocumentId === doc.id && toggleDocumentExpanded(doc.id)"
+                class="doc-panel"
+                [class]="'doc-status-' + getDocumentCurrentStatus(doc).toLowerCase()">
+
+                <mat-expansion-panel-header class="doc-panel-header">
+                  <mat-panel-title class="doc-panel-title">
+                    <span class="doc-status-dot" [class]="'dot-' + getDocumentCurrentStatus(doc).toLowerCase()" aria-hidden="true"></span>
+                    <mat-icon class="doc-file-icon" aria-hidden="true">description</mat-icon>
+                    <span class="doc-filename">{{ doc.fileName }}</span>
+                  </mat-panel-title>
+                  <mat-panel-description class="doc-panel-desc">
+                    <span class="doc-type-label">{{ doc.documentTypeName }}</span>
+                    <app-modern-status-badge [status]="getDocumentCurrentStatus(doc)" size="sm" />
+                  </mat-panel-description>
+                </mat-expansion-panel-header>
+
+                <div class="doc-body">
+                  <div class="doc-meta-row">
+                    <div class="doc-meta-item">
+                      <mat-icon aria-hidden="true">schedule</mat-icon>
+                      <span>{{ doc.uploadedAt | timeago }}</span>
+                    </div>
+                    <div class="doc-meta-item">
+                      <mat-icon aria-hidden="true">label_outline</mat-icon>
+                      <span>{{ doc.documentTypeName }}</span>
+                    </div>
+                  </div>
+
+                  <div class="doc-action-row">
+                    <button mat-stroked-button (click)="viewDocument(doc)" class="doc-action-btn">
+                      <mat-icon aria-hidden="true">{{ documentPreviews.has(doc.id) ? 'visibility_off' : 'visibility' }}</mat-icon>
+                      {{ documentPreviews.has(doc.id) ? 'Hide' : 'Preview' }}
+                    </button>
+                    <button mat-stroked-button (click)="downloadDocument(doc)" class="doc-action-btn">
+                      <mat-icon aria-hidden="true">download</mat-icon>
+                      Download
+                    </button>
+
+                    <div class="status-selector">
+                      <span class="status-selector-label">Set Status</span>
+                      <div class="status-buttons" role="group" [attr.aria-label]="'Status for ' + doc.fileName">
+                        <button
+                          mat-stroked-button
+                          class="status-btn approved"
+                          [class.active]="getDocumentCurrentStatus(doc) === 'APPROVED'"
+                          (click)="onDocumentStatusChange(doc, 'APPROVED')"
+                          [attr.aria-pressed]="getDocumentCurrentStatus(doc) === 'APPROVED'">
+                          <mat-icon aria-hidden="true">check_circle</mat-icon>
+                          Approve
+                        </button>
+                        <button
+                          mat-stroked-button
+                          class="status-btn pending"
+                          [class.active]="getDocumentCurrentStatus(doc) === 'PENDING'"
+                          (click)="onDocumentStatusChange(doc, 'PENDING')"
+                          [attr.aria-pressed]="getDocumentCurrentStatus(doc) === 'PENDING'">
+                          <mat-icon aria-hidden="true">hourglass_empty</mat-icon>
+                          Pending
+                        </button>
+                        <button
+                          mat-stroked-button
+                          class="status-btn rejected"
+                          [class.active]="getDocumentCurrentStatus(doc) === 'REJECTED'"
+                          (click)="onDocumentStatusChange(doc, 'REJECTED')"
+                          [attr.aria-pressed]="getDocumentCurrentStatus(doc) === 'REJECTED'">
+                          <mat-icon aria-hidden="true">cancel</mat-icon>
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Document Preview -->
+                  @if (documentPreviews.has(doc.id)) {
+                    <div class="document-preview-section">
+                      @if (documentLoadingStates.get(doc.id)) {
+                        <div class="preview-loading">
+                          <mat-spinner diameter="32"></mat-spinner>
+                          <span>Loading preview…</span>
+                        </div>
+                      }
+                      @if (documentPreviewErrors.get(doc.id) && !documentLoadingStates.get(doc.id)) {
+                        <div class="preview-error">
+                          <mat-icon aria-hidden="true">error_outline</mat-icon>
+                          <span>Failed to load preview</span>
+                          <button mat-stroked-button (click)="retryPreview(doc)">
+                            <mat-icon aria-hidden="true">refresh</mat-icon>
+                            Retry
+                          </button>
+                        </div>
+                      }
+                      @if (!documentLoadingStates.get(doc.id) && !documentPreviewErrors.get(doc.id) && documentPreviews.get(doc.id)) {
+                        <div class="preview-container">
+                          @if (documentPreviewTypes.get(doc.id) === 'pdf') {
+                            <iframe [src]="documentPreviews.get(doc.id)" class="pdf-preview" title="Document PDF preview"></iframe>
+                          } @else if (documentPreviewTypes.get(doc.id) === 'image') {
+                            <img [src]="documentPreviews.get(doc.id)" alt="Document preview" class="image-preview">
+                          } @else {
+                            <div class="preview-unsupported">
+                              <mat-icon aria-hidden="true">description</mat-icon>
+                              <span>Preview not available for this file type</span>
+                              <span class="hint">Please download to view</span>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <mat-divider></mat-divider>
+
+                  <div class="comments-toggle-row">
+                    <button mat-button (click)="toggleComments(doc.id)" class="comments-toggle-btn">
+                      <mat-icon aria-hidden="true">{{ expandedCommentsId === doc.id ? 'expand_less' : 'comment' }}</mat-icon>
+                      {{ expandedCommentsId === doc.id ? 'Hide Comments' : 'Add / View Comments' }}
+                    </button>
+                  </div>
+
+                  @if (expandedCommentsId === doc.id) {
+                    <app-document-comment-section
+                      [documentId]="doc.id"
+                      [prefillRejectionMessage]="getDocumentCurrentStatus(doc) === 'REJECTED'">
+                    </app-document-comment-section>
+                  }
+                </div>
+              </mat-expansion-panel>
+            </mat-accordion>
+
+            <!-- Unsaved changes banner -->
+            <div *ngIf="hasUnsavedChanges()" class="unsaved-banner" role="status">
+              <mat-icon aria-hidden="true">edit_note</mat-icon>
+              <span>You have unsaved document status changes</span>
+            </div>
+
+          </div>
+        </mat-tab>
+
+      </mat-tab-group>
     </div>
   </mat-dialog-content>
 
-  <!-- Actions -->
-  <mat-dialog-actions align="end" *ngIf="!isLoading && !loadError">
-    
+  <!-- Footer Actions -->
+  <mat-dialog-actions *ngIf="!isLoading && !loadError">
     <button
-      mat-stroked-button
-      color="warn"
+      mat-button
       (click)="toggleRejectionForm()"
       [disabled]="isSaving || isMovingToAllocation || isRejecting || isApproving || showRejectionForm"
-      *ngIf="applicationDetails?.status !== 'REJECTED' && applicationDetails?.status !== 'APPROVED' && applicationDetails?.status !== 'AWAITING_ALLOCATION'">
-      <mat-icon>block</mat-icon>
-      Reject Application
+      *ngIf="applicationDetails?.status !== 'REJECTED' && applicationDetails?.status !== 'APPROVED' && applicationDetails?.status !== 'AWAITING_ALLOCATION'"
+      class="footer-btn reject-btn">
+      <mat-icon aria-hidden="true">block</mat-icon>
+      Reject
     </button>
 
-    <button
-      mat-raised-button
-      color="accent"
-      (click)="approveApplication()"
-      [disabled]="!allRequiredApproved || hasUnsavedChanges() || isSaving || isMovingToAllocation || isRejecting || isApproving"
-      [matTooltip]="!allRequiredApproved ? 'All required documents must be approved' : (hasUnsavedChanges() ? 'Save progress first' : '')"
-      *ngIf="applicationDetails?.status === 'PENDING'">
-      <mat-spinner *ngIf="isApproving" diameter="20"></mat-spinner>
-      <mat-icon *ngIf="!isApproving">check_circle</mat-icon>
-      <span>Approve Application</span>
-    </button>
+    <span class="footer-spacer"></span>
 
     <button
       mat-stroked-button
       (click)="saveProgress()"
-      [disabled]="!hasUnsavedChanges() || isSaving || isMovingToAllocation || isRejecting || isApproving">
-      <mat-spinner *ngIf="isSaving" diameter="20"></mat-spinner>
-      <mat-icon *ngIf="!isSaving">save</mat-icon>
-      <span>Save Progress</span>
+      [disabled]="!hasUnsavedChanges() || isSaving || isMovingToAllocation || isRejecting || isApproving"
+      class="footer-btn save-btn">
+      <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+      <mat-icon *ngIf="!isSaving" aria-hidden="true">save</mat-icon>
+      Save Progress
+    </button>
+
+    <button
+      mat-raised-button
+      (click)="approveApplication()"
+      [disabled]="!allRequiredApproved || hasUnsavedChanges() || isSaving || isMovingToAllocation || isRejecting || isApproving"
+      [matTooltip]="!allRequiredApproved ? 'All required documents must be approved first' : (hasUnsavedChanges() ? 'Save your progress first' : '')"
+      *ngIf="applicationDetails?.status === 'PENDING' || applicationDetails?.status === 'UNDER_REVIEW'"
+      class="footer-btn approve-btn">
+      <mat-spinner *ngIf="isApproving" diameter="18"></mat-spinner>
+      <mat-icon *ngIf="!isApproving" aria-hidden="true">check_circle</mat-icon>
+      Approve Application
     </button>
   </mat-dialog-actions>
 </div>

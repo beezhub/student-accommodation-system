@@ -1,5 +1,11 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AbstractControl } from '@angular/forms';
+import { Component, OnInit, inject } from '@angular/core';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+  AbstractControl,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -30,6 +36,12 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class ResetPasswordComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private snackBar = inject(MatSnackBar);
+
   resetPasswordForm: FormGroup;
   isSubmitting = false;
   isVerifying = true;
@@ -39,22 +51,19 @@ export class ResetPasswordComponent implements OnInit {
   hideConfirmPassword = true;
   token: string = '';
 
-  constructor(
-    private fb: FormBuilder,
-    private route: ActivatedRoute,
-    private router: Router,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {
-    this.resetPasswordForm = this.fb.group({
-      newPassword: ['', [Validators.required, Validators.minLength(8)]],
-      confirmPassword: ['', [Validators.required]],
-    }, { validators: this.passwordMatchValidator });
+  constructor() {
+    this.resetPasswordForm = this.fb.group(
+      {
+        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        confirmPassword: ['', [Validators.required]],
+      },
+      { validators: this.passwordMatchValidator }
+    );
   }
 
   ngOnInit(): void {
     // Get token from query parameters
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.token = params['token'] || '';
       if (this.token) {
         this.verifyToken();
@@ -68,7 +77,7 @@ export class ResetPasswordComponent implements OnInit {
   passwordMatchValidator(control: AbstractControl): { [key: string]: boolean } | null {
     const password = control.get('newPassword');
     const confirmPassword = control.get('confirmPassword');
-    
+
     if (password && confirmPassword && password.value !== confirmPassword.value) {
       confirmPassword.setErrors({ passwordMismatch: true });
       return { passwordMismatch: true };
@@ -93,6 +102,7 @@ export class ResetPasswordComponent implements OnInit {
         this.isVerifying = false;
         this.tokenValid = false;
         const errorMessage = error?.error?.message || 'Token verification failed';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.snackBar.open(errorMessage, 'Close', {
           duration: 5000,
           panelClass: ['error-snackbar'],
@@ -118,8 +128,12 @@ export class ResetPasswordComponent implements OnInit {
         },
         error: (error: any) => {
           this.isSubmitting = false;
-          const errorMessage = error?.error?.message || error?.message || 'Failed to reset password. Please try again.';
+          const errorMessage =
+            error?.error?.message ||
+            error?.message ||
+            'Failed to reset password. Please try again.';
           this.snackBar.open(errorMessage, 'Close', {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             duration: 5000,
             panelClass: ['error-snackbar'],
           });

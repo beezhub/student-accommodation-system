@@ -1,13 +1,16 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 export interface RoomRequest {
   roomNumber: string;
   capacity: number;
   currentOccupancy?: number;
   status: string;
+  monthlyRate?: number | null;
   buildingId: number;
 }
 
@@ -17,6 +20,7 @@ export interface RoomResponse {
   capacity: number;
   currentOccupancy: number;
   status: string;
+  monthlyRate?: number | null;
   buildingId: number;
   buildingName: string;
   accessibilityCompliant?: boolean;
@@ -43,21 +47,13 @@ export interface EligibleRoomResponse {
   maxYearOfStudy?: number;
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-}
-
 @Injectable({
   providedIn: 'root',
 })
 export class RoomService {
-  private apiUrl = `${environment.apiUrl}/room`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/room`;
 
   getAllRooms(page: number = 0, size: number = 20): Observable<PageResponse<RoomResponse>> {
     const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
@@ -117,8 +113,11 @@ export class RoomService {
    * @param studentId The student ID to check eligibility for
    * @param buildingId Optional building ID to filter by
    */
-  getEligibleRoomsForStudent(studentId: number, buildingId?: number): Observable<EligibleRoomResponse[]> {
-    let url = `${environment.apiUrl}/room-allocation/admin/student/${studentId}/eligible-rooms`;
+  getEligibleRoomsForStudent(
+    studentId: number,
+    buildingId?: number
+  ): Observable<EligibleRoomResponse[]> {
+    const url = `${environment.apiUrl}/room-allocation/admin/student/${studentId}/eligible-rooms`;
     let params = new HttpParams();
     if (buildingId) {
       params = params.set('buildingId', buildingId.toString());

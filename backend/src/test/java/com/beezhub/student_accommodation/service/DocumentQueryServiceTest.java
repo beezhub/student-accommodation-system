@@ -24,6 +24,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -249,5 +253,75 @@ class DocumentQueryServiceTest {
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> documentQueryService.getAllDocumentsByUserId(999L, "user@test.com"));
         assertTrue(ex.getMessage().contains("Unauthorized"));
+    }
+
+    @Test
+    void downloadDocument_success_returnsResourceWithFilename() {
+        InputStream stream = new ByteArrayInputStream("data".getBytes());
+        when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+        when(documentRepository.findById(1L)).thenReturn(Optional.of(document1));
+        when(fileStorageService.download(document1.getDocumentPath())).thenReturn(stream);
+        when(fileStorageService.getContentType(document1.getDocumentPath()))
+                .thenReturn("application/octet-stream");
+
+        var result = documentQueryService.downloadDocument(1L, "user@test.com");
+
+        assertNotNull(result);
+        assertEquals("passport.pdf", result.getFilename());
+        assertEquals("application/octet-stream", result.getContentType());
+        assertNotNull(result.getResource());
+    }
+
+    @Test
+    void downloadDocument_documentNotFound_throwsDocumentNotFoundException() {
+        when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+        when(documentRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(DocumentNotFoundException.class,
+                () -> documentQueryService.downloadDocument(99L, "user@test.com"));
+    }
+
+    @Test
+    void getAllDocumentsByUserId_ownDocuments_returnsList() {
+        when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+        // regularUser.getId() == 2L — request for own docs
+        when(documentRepository.findAllByStudent_AppUser_Id(2L)).thenReturn(List.of(document1, document2));
+        when(documentMapper.toDocumentResponseList(any())).thenReturn(List.of(response1, response2));
+
+        List<DocumentResponse> result = documentQueryService.getAllDocumentsByUserId(2L, "user@test.com");
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void getAllDocumentsByUserId_adminQueryingAnyUser_returnsList() {
+        when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
+        // adminUser.getId() == 1L, querying userId 2 — allowed because admin
+        when(documentRepository.findAllByStudent_AppUser_Id(2L)).thenReturn(List.of(document1));
+        when(documentMapper.toDocumentResponseList(any())).thenReturn(List.of(response1));
+
+        List<DocumentResponse> result = documentQueryService.getAllDocumentsByUserId(2L, "admin@test.com");
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void searchDocuments_nonAdminUser_addsUserRestriction() {
+        when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
+        Page<Document> documentsPage = new PageImpl<>(List.of(document1));
+        when(documentRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(documentsPage);
+        when(documentMapper.toDocumentResponse(document1)).thenReturn(response1);
+
+        Page<DocumentResponse> result = documentQueryService.searchDocuments(
+                null, null, null, null, null, null, null, null,
+                pageable, "user@test.com"
+        );
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        // spec.and(belongsToUser) is applied — repository was still called
+        verify(documentRepository).findAll(any(Specification.class), eq(pageable));
     }
 }

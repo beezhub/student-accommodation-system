@@ -58,6 +58,7 @@
     "prettier": "^2.8.8",
     "stylelint": "^15.0.0",
     "stylelint-config-standard": "^30.0.0",
+    "stylelint-config-standard-scss": "^11.1.0",
     "stylelint-scss": "^4.4.0",
     "typescript": "^5.9.3"
   }
