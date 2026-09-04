@@ -142,14 +142,13 @@ applied migration. Enums are stored as strings; no soft deletes.
 - PostgreSQL enforces the `tenant_id` FK (H2 did not). Seed `tenant` rows via native SQL before using a tenant id other
   than 0. `academic_year.name` is `VARCHAR(20)`.
 - Test naming: `methodName_scenario_expectedResult`.
-- Failures recorded by the team as pre-existing (re-verify before assuming they are yours): `RoomServiceTest` (3,
-  `UnnecessaryStubbingException` and a bulk-create mock assertion) and `ScheduledJobRunnerTest` (2, NPE on
-  `checkInReminderService` injection).
-- CI state as of 2026-09-04: the backend job on `develop` reports 32 failures out of 1116 tests, all in
-  `@SpringBootTest` integration classes whose context fails to load in CI (`TenantAdminAccessIntegrationTest`,
-  `ApplicationServiceIntegrationTest`, `DocumentLifecycleServiceIntegrationTest`, the notification async tests).
-  The gitleaks job fails because the `GITLEAKS_LICENSE` repository secret is not set. Compare a branch's failure
-  count against `develop` before treating a red build as caused by your change.
+- `AbstractIntegrationTest` supplies its own `jwt.secret`, so the suite does not need a `JWT_SECRET` env var or a
+  `backend/.env`. If every `@SpringBootTest` class fails with "JWT_SECRET environment variable must be set", a
+  subclass is loading a context that bypasses the base class properties.
+- CI baseline as of 2026-09-04 (run on this fix): backend job green, 1116 tests passed, 0 failed, 2 skipped,
+  including `RoomServiceTest` and `ScheduledJobRunnerTest`. The gitleaks job fails independently because the
+  `GITLEAKS_LICENSE` repository secret is not set. Compare a red branch against `develop` before attributing it to
+  your change.
 
 ## Frontend architecture
 
