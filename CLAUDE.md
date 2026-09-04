@@ -2,332 +2,205 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## Overview
 
-This is a Student Accommodation System with a Spring Boot backend and Angular frontend. The system manages student housing applications, room allocations, documents, and notifications for university accommodation services.
+Multi-tenant student-accommodation platform: a Spring Boot 3.5 / Java 17 monolith in `backend/` and an Angular 21 +
+Material standalone-component app in `frontend/`. PostgreSQL 16 (Flyway), Redis (token blacklist, rate limiting),
+MinIO (documents), SMTP via MailHog locally, FF4j feature flags, Prometheus + Grafana metrics, Google Maps geocoding.
 
-**Tech Stack:**
-- Backend: Spring Boot 3.5.7, Java 17, Gradle 8.11.1
-- Frontend: Angular 21 with Material Design
-- Database: PostgreSQL 16.2 with Flyway migrations
-- Storage: MinIO for file uploads
-- Authentication: JWT tokens with Spring Security
-- API Documentation: SpringDoc OpenAPI (Swagger UI)
-- Feature Flags: FF4j
+Where the intent lives:
 
-## Development Commands
+- `openspec/specs/` — canonical capability specs; `openspec/changes/` — in-flight and archived changes (see OpenSpec below).
+- `docs/adr/` — architecture decision records (ADR-007 JWT cookie storage is *deferred*, ADR-008 application partitioning).
+- `test-cases/` — manual UAT plan per domain; `ux-research/` — student and admin research; `tools/k6/` — load tests;
+  `tools/grafana/`, `tools/prometheus/` — dashboards, alerts, scrape config mounted by docker-compose.
+- `tools/*-prompt.md` — role system prompts for AI-assisted planning, not application code.
 
-### Backend (Spring Boot)
+## Commands
 
-**Build and run:**
-```bash
-cd backend
-./gradlew build              # Build the project
-./gradlew bootRun           # Run the application
-./gradlew test              # Run tests
-./gradlew clean build       # Clean build
-```
-
-**Testing and coverage:**
-```bash
-./gradlew test                          # Run tests
-./gradlew jacocoTestReport             # Generate coverage report
-./gradlew jacocoTestCoverageVerification  # Verify coverage thresholds
-```
-
-**Database migrations:**
-- Flyway migrations are in `backend/src/main/resources/db/migration/`
-- Migrations run automatically on application startup
-- Naming: `V{YYYY_MM_DD_HHMM}__{description}.sql`
-
-### Frontend (Angular)
-
-**Development:**
-```bash
-cd frontend
-npm install                 # Install dependencies
-npm start                   # Start dev server (http://localhost:4200)
-npm run build              # Production build
-```
-
-**Code quality:**
-```bash
-npm run lint               # Run ESLint and Stylelint
-npm run lint:fix          # Auto-fix linting issues
-npm run format            # Format code with Prettier
-npm test                  # Run unit tests
-```
-
-### Docker Compose
-
-**Full stack:**
-```bash
-docker-compose up --build  # Start all services (backend, frontend, db, minio, mailhog)
-docker-compose down        # Stop all services
-```
-
-**Services:**
-- Backend: http://localhost:8080
-- Frontend: http://localhost:4200 (when frontend container is running)
-- PostgreSQL: localhost:5432
-- MinIO Console: http://localhost:9001
-- MailHog UI: http://localhost:8025
-- Swagger UI: http://localhost:8080/swagger-ui.html
-
-## Architecture
-
-### Backend Architecture
-
-**Package Structure:** `com.beezhub.student_accommodation`
-- `controller/` - REST endpoints organized by domain entity
-- `service/` - Business logic layer
-- `repository/` - Spring Data JPA repositories
-- `model/entity/` - JPA entities (database tables)
-- `model/dto/` - Data Transfer Objects for API requests/responses
-- `model/enums/` - Enumerations (ApplicationStatus, RoomType, etc.)
-- `mapper/` - MapStruct mappers for entity-DTO conversion
-- `security/` - JWT authentication, user details, filters
-- `config/` - Configuration classes (Security, CORS, Mail, MinIO, etc.)
-- `exceptions/` - Custom exception classes
-- `specification/` - JPA Specifications for dynamic filtering
-- `validation/` - Custom validators
-- `aspect/` - AOP aspects for cross-cutting concerns
-- `util/` - Utility classes
-
-**Key Services:**
-- `ApplicationService` - Manages student applications (submission, review, approval)
-- `RoomAllocationService` - Handles room allocation logic, auto-allocation batches
-- `AllocationScoringService` - Scoring algorithm for allocation decisions
-- `NotificationService` - Email notifications with retry logic
-- `DocumentService` - Document upload/verification with MinIO integration
-- `GoogleMapsService` - Geocoding for building addresses
-- `SystemSettingService` - Cascade-model settings (platform defaults + tenant overrides)
-
-**Multi-Tenancy Architecture:**
-- Every request runs in a tenant context set by `TenantContext` (thread-local `Long tenantId`)
-- `TenantListener` (`@PrePersist`) auto-stamps `tenant_id` on new entities from `TenantContext`
-- Hibernate filter `tenantFilter` scopes all queries to the current tenant automatically
-- **PLATFORM tenant** (`tenant_id = 0`) is seeded by Flyway; used for platform-wide defaults
-- `TenantFilterAspect` (AOP) activates/deactivates the Hibernate filter around service methods
-- Entities with a tenant FK have dual mapping: `@Column tenantId` (writable) + `@ManyToOne tenant` (read-only, `insertable=false`)
-- Tests must set both `TenantContext.setTenantId(...)` and seed the Tenant row (id=0 always exists)
-
-**System Settings (cascade model):**
-- `system_setting` has composite PK `(tenant_id, setting_key)`
-- Platform defaults live at `tenant_id = 0`; tenant admins can create override rows
-- `getSetting(key)`: checks current tenant row first, falls back to platform row
-- `getAllSettings()`: merges platform map, overlaid by current tenant's rows
-- **API split:**
-  - `GET/PUT /api/platform/system-settings` — PLATFORM_ADMIN only, manages `tenant_id=0` rows
-  - `GET/PUT/DELETE /api/admin/system-settings` — ADMIN + PLATFORM_ADMIN, tenant-scoped view with cascade values
-- `auto_allocation_enabled` is a platform-only setting (ADMIN sees it read-only in the UI)
-
-**Allocation System:**
-- Applications are submitted by students with preferences
-- Auto-allocation runs in batches (configurable interval, default 6 hours)
-- Scoring algorithm ranks students based on allocation rules
-- StagedAllocation allows manual review before finalization
-- Offers have expiry dates; declined offers trigger reallocation
-
-### Frontend Architecture
-
-**Module Structure:** `frontend/src/app/`
-- `features/auth/` - Login, signup, password reset, email verification
-- `features/admin/` - Admin dashboard and management modules
-  - Building, room, application, allocation, document management
-  - Activity logs, user management, system settings
-- `features/dashboard/` - Student dashboard (applications, documents, profile)
-- `features/student/` - Student-specific features
-- `core/` - Core services, guards, interceptors, models
-  - Guards: Auth, admin, student, email-verified
-  - Interceptors: Auth token, error handling, token expiry
-- `shared/` - Reusable components across features
-- `model/` - TypeScript interfaces/models
-
-**Authentication Flow:**
-1. User signs up → Email verification token sent
-2. Email verified → Profile setup (student details)
-3. Login → JWT token issued → Stored in localStorage
-4. Token included in requests via AuthInterceptor
-5. Role-based routing with guards (admin.guard.ts, student.guard.ts)
-
-**Frontend conventions:**
-- Routing: flat routes in `app-routing.module.ts` — no `.routes.ts` files
-- Admin sidebar nav groups defined in `admin-sidebar.component.ts` `navGroups` array
-- Snackbar panel classes: both `snack-*` (UISpec) and `*-snackbar` (legacy) are valid — both defined in `styles.scss`
-- **Always invoke the `ui-ux-pro-max` skill before implementing any frontend code** (components, templates, SCSS, Angular modules)
-
-### Database Schema
-
-**Core Entities:**
-- `app_user` - Base user table (admin/student)
-- `student` - Student profile (linked to app_user)
-- `application` - Housing applications with preferences
-- `room_allocation` - Final room assignments
-- `staged_allocation` - Pending allocations for review
-- `building`, `room` - Physical infrastructure
-- `building_image` - Building photos
-- `building_attributes`, `room_attributes` - Metadata
-- `document` - Uploaded documents (stored in MinIO)
-- `notification`, `user_notification` - Email tracking
-- `allocation_rule` - Rules for allocation scoring
-- `waiting_list_entry` - Waitlist management
-- `academic_year`, `institution`, `year_of_study` - Reference data
-- `activity_log` - Audit trail
-- `system_setting` - Configuration key-value pairs; composite PK `(tenant_id, setting_key)`; cascade model (platform defaults at `tenant_id=0`, tenant overrides at their own `tenant_id`)
-
-**Important Notes:**
-- Flyway manages schema versions - never manually edit production DB
-- Enums are stored as strings in the database
-- Soft deletes are not used; records are permanently deleted
-
-## Configuration
-
-**Backend Environment Variables:**
-- Database: `DB_URL`, `USER_DB`, `PASSWORD_DB`
-- JWT: `JWT_SECRET`, `JWT_EXPIRATION`, `JWT_ADMIN_EXPIRATION`
-- MinIO: `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
-- Email: `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`
-- Google Maps: `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_FRONTEND_API_KEY`
-- App: `APP_BASE_URL`, `APP_SUPPORT_EMAIL`, `APP_UNIVERSITY_NAME`
-- Allocation: `BATCH_ENABLED`, `BATCH_INTERVAL_MS`, `OFFER_EXPIRY_DAYS`
-- Feature Flags: `AUTO_ALLOCATION_ENABLED`, `GEOCODING_ENABLED`
-
-Configured in: `backend/src/main/resources/application.yml`
-
-**Frontend Environment:**
-- API endpoints configured in Angular environment files
-- Google Maps API key for building location features
-
-## Key Features and Workflows
-
-**Application Submission (Student):**
-1. Student logs in and navigates to application form
-2. Fills preferences: accommodation type, move-in date, duration, room type, special requirements
-3. Uploads required documents (ID, proof of enrollment, etc.)
-4. Submits application → Status: SUBMITTED
-5. Receives email confirmation
-
-**Application Review (Admin):**
-1. Admin views applications in review queue
-2. Verifies documents → Approves/requests changes
-3. Application moves to APPROVED status
-4. Enters allocation pool
-
-**Room Allocation (Auto or Manual):**
-- **Auto-allocation batch:** Runs periodically, scores applications, assigns rooms
-- **Manual allocation:** Admin assigns specific room to student
-- **Staged allocation:** Admin reviews proposed allocations before finalizing
-- Student receives offer notification → Must accept/decline within expiry period
-
-**Document Management:**
-- Documents uploaded to MinIO bucket
-- Supports multiple file types with validation
-- Admins can add comments and request resubmissions
-- Bulk upload support for building images
-
-## Testing Conventions
-
-**Backend:**
-- JUnit tests in `backend/src/test/java/`
-- Jacoco for coverage reporting
-- Target coverage: Configurable per class in build.gradle
-- Run specific test: `./gradlew test --tests "com.beezhub.student_accommodation.ClassName.methodName"`
-
-**Test base classes** (always extend these — never configure containers directly):
-- `AbstractIntegrationTest` — `@SpringBootTest(RANDOM_PORT)` with 4 Testcontainers: PostgreSQL 16.2, MailHog, Redis 7, MinIO. Flyway runs on startup (`ddl-auto=none`). `mailServer` field is `protected` for subclass assertion.
-- `AbstractJpaTest` — `@DataJpaTest` with PostgreSQL Testcontainer only. Uses `ddl-auto=create-drop` (Flyway disabled). Use this for repository/filter/entity-lifecycle tests; use `AbstractIntegrationTest` when you need Flyway migrations or commit semantics.
-
-**Critical DDL property path:** `application.yml` uses `spring.jpa.properties.hibernate.hbm2ddl.auto` (NOT the shortcut `spring.jpa.hibernate.ddl-auto`). The `properties.*` path takes precedence. `@DynamicPropertySource` must override **both**:
-```java
-registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-registry.add("spring.jpa.properties.hibernate.hbm2ddl.auto", () -> "none");
-```
-
-**Integration test setup patterns** (full-stack tests without `@Transactional`):
-1. Delete in FK-safe order in `@AfterEach` (applications → academic_years → students → app_users)
-2. Set security context: `SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(email, null, List.of()))` for `authService.getCurrentUser()`
-3. Set `TenantContext.setTenantId(...)` for `TenantListener.@PrePersist` to stamp `tenant_id`
-4. Clear both in `@AfterEach`: `SecurityContextHolder.clearContext(); TenantContext.clear()`
-
-**Tenant FK in tests:** PostgreSQL enforces the `tenant_id` FK (unlike H2 which silently ignored it). Tests using specific tenant IDs must seed Tenant rows first via native SQL in `@BeforeEach`. `tenant(id=0)` always exists (seeded by Flyway `V2026_02_25_0013__platform_tenant_seed.sql`).
-
-**Schema constraint:** `academic_year.name` is `VARCHAR(20)` — test data must be ≤ 20 characters.
-
-**Pre-existing test failures (not our concern):**
-- `RoomServiceTest`: 3 failures — `UnnecessaryStubbingException` + mock assertion bug in bulk room creation
-- `ScheduledJobRunnerTest`: 2 failures — `NullPointerException` for `checkInReminderService` (injection issue)
-
-**Frontend:**
-- Jasmine/Karma for unit tests
-- Test files: `*.spec.ts` alongside components
-- Run tests: `npm test`
-
-## Important Patterns
-
-**Security:**
-- JWT tokens are stateless; no server-side session storage
-- Token expiry is enforced client-side and server-side
-- Admin tokens have shorter expiry (4 hours vs 10 hours for students)
-- Role-based access via Spring Security and Angular guards
-
-**Error Handling:**
-- Backend returns standardized error responses
-- Frontend ErrorInterceptor displays user-friendly messages
-- Validation errors mapped from backend to form fields
-
-**Async Processing:**
-- Email sending is asynchronous via `@Async`
-- Batch allocation runs on scheduled intervals
-- Notification retry mechanism for failed emails
-
-**MapStruct:**
-- Used for entity-DTO mapping
-- Mappers are in `mapper/` package
-- Regenerate mappers after entity/DTO changes: `./gradlew build`
-
-## OpenSpec Workflow
-
-Changes are tracked in `openspec/changes/` using a spec-driven workflow.
-
-**Directory layout:**
-- `openspec/changes/<slug>/` — in-progress change (proposal, design, specs, tasks)
-- `openspec/changes/archive/` — completed/archived changes
-- `openspec/specs/` — canonical spec snapshots (updated after archiving)
-
-**Skills:** `/openspec-propose` → `/openspec-apply-change` → `/openspec-archive-change`
-
-Each change contains:
-- `proposal.md` — why/what/impact
-- `design.md` — technical design
-- `specs/<capability>/spec.md` — detailed capability spec
-- `tasks.md` — checked-off implementation tasks
-
-## Branch Strategy
-
-- `main` - Production-ready code
-- `develop` - Integration branch for features
-- Feature branches merge into `develop`, then `develop` merges to `main`
-
-## Local Setup
-
-Before running docker-compose, you **must** create a `.env` file with the required credentials:
+### Backend (`cd backend`)
 
 ```bash
-# 1. Copy the example file
-cp .env.example .env
-
-# 2. Fill in REQUIRED values (the app will not start without these):
-#    - JWT_SECRET   (generate with: openssl rand -base64 64)
-#    - PASSWORD_DB
-#    - MINIO_ACCESS_KEY
-#    - MINIO_SECRET_KEY
-#    - GRAFANA_ADMIN_PASSWORD
-
-# 3. Start all services
-docker-compose up --build
+./gradlew bootRun                                   # :8080, Swagger at /swagger-ui.html, health at /actuator/health
+./gradlew clean build                               # compile + tests + jacoco report + coverage verification
+./gradlew test                                      # JUnit 5; HTML report in build/jacocoHtml
+./gradlew test --tests "com.beezhub.student_accommodation.service.allocation.AllocationBatchServiceTest"
+./gradlew test --tests "*AllocationBatchServiceTest.methodName*"
+./gradlew jacocoTestCoverageVerification            # 70% line coverage overall and per direct service class; 90% on AllocationScoringService
+./gradlew flywayInfo
 ```
 
-**Never commit `.env` to version control.** The `.gitignore` is already configured to exclude it.
+Integration tests (`AbstractIntegrationTest`, `AbstractJpaTest`) start Testcontainers, so Docker must be running for the
+full suite. CI (`.github/workflows/ci.yml`) runs a secrets scan, `./gradlew build -x test` then `test` + jacoco, and
+frontend `lint`, `test`, `build`.
 
-See `.env.example` for all available variables with descriptions, and `CREDENTIAL_ROTATION.md` for security notes on each credential.
+### Frontend (`cd frontend`)
+
+```bash
+npm install
+npm start                      # ng serve -> http://localhost:4200, calls http://localhost:8080/api
+npm run build                  # no defaultConfiguration set; pass --configuration=production for an optimized build
+npm run lint                   # ESLint (--max-warnings 0, so `any` warnings FAIL) + Stylelint
+npm run lint:fix
+npm run format                 # Prettier
+npm test                       # Karma/Jasmine, ChromeHeadless, single run
+npx ng test --watch=false --browsers=ChromeHeadless --include='src/app/core/services/auth.service.spec.ts'
+npx playwright test            # e2e/; needs `npm start` running
+```
+
+### Full stack
+
+```bash
+cp .env.example .env           # required first: JWT_SECRET (no default in application.yml), PASSWORD_DB, MINIO_ACCESS_KEY,
+                               # MINIO_SECRET_KEY, GRAFANA_ADMIN_PASSWORD; generate the JWT secret with `openssl rand -base64 64`
+docker-compose up --build                  # db, backend, minio, mailhog, redis, prometheus, grafana (no frontend service)
+docker-compose up db minio mailhog redis   # backing services only, then run backend/frontend from source
+```
+
+Ports: backend 8080, Postgres 5432, MinIO 9000 (console 9001), MailHog SMTP 1025 (UI 8025), Redis 6379, Prometheus
+9090, Grafana 3000. Backend config is `application.yml` with `${ENV:default}` placeholders; `.env.example` documents
+every variable and `spring-dotenv` loads a `.env` from the backend working directory. See `CREDENTIAL_ROTATION.md`
+before touching any credential.
+
+## Backend architecture
+
+Package root: `com.beezhub.student_accommodation`. Strict layering controller -> service -> repository -> entity; DTOs
+in `model/dto`, MapStruct mappers in `mapper/` (regenerated on build), JPA `Specification`s in `specification/` for
+list filtering, `PageMapper` in `util/` for paged responses. Every custom exception in `exceptions/` is mapped to an
+HTTP status in `RestResponseExceptionHandler`; throw domain exceptions, never generic runtime ones.
+
+**Service decomposition.** Large domains are split into sub-packages with the original class kept as a thin facade:
+`service/allocation/` (batch, lifecycle, expiry, move, check-in, reminders, staged, waiting list, scoring orchestrator
+and the `ScoringStrategy` interface with `LegacyScoringStrategy` / `OwnerConfigurableScoringStrategy`),
+`service/application/`, `service/document/` (`FileStorageService` interface, MinIO implementation, `OrphanFileCleanupJob`),
+`service/notification/` (one `*Context` per email type consumed by `EmailContentBuilder`), `service/tenant/`. Put new
+allocation or application logic in the sub-service, not the facade.
+
+**Scheduling.** `ScheduledJobRunner` owns every `@Scheduled` annotation (offer/check-in expiry and reminders, batch
+allocation, orphan file cleanup, notification retry) and wraps each job with logging and metrics. Do not add
+`@Scheduled` elsewhere; add a method there that delegates to the service.
+
+**Feature flags.** Service code calls the `FeatureFlagService` interface; `FF4JFeatureFlagService` is the only class
+allowed to touch the FF4j bean. Batch auto-allocation is gated by the `auto-allocation` flag
+(`FF4jConfig.FEATURE_AUTO_ALLOCATION`, seeded from `AUTO_ALLOCATION_ENABLED`).
+
+**Multi-tenancy.**
+- `JwtAuthenticationFilter` reads `tenantId` from the JWT into the `TenantContext` ThreadLocal and clears it after the
+  request. `TenantContext.PLATFORM_TENANT_ID = 0` is the platform tenant, seeded by Flyway
+  (`V2026_02_25_0013__platform_tenant_seed.sql`); student accounts are platform-level.
+- The Hibernate filter `tenantFilter` is enabled per request by `TenantFilterConfig` (MVC interceptor) and around
+  service methods by `TenantFilterAspect`. Entities implementing `TenantAware` carry
+  `@Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")` and `TenantListener` stamps `tenant_id` on
+  persist. Tenant FKs use a dual mapping: writable `@Column tenantId` plus read-only `@ManyToOne tenant`.
+- Code that runs outside a request (scheduled jobs, async listeners) sees all tenants unless it sets the context
+  itself. A new tenant-scoped entity needs the interface, the filter annotation, and an isolation test.
+
+**Roles and security.** `UserRole` is `STUDENT`, `PLATFORM_ADMIN`, `TENANT_ADMIN`, `BUILDING_STAFF`, plus deprecated
+`ADMIN` kept for migration. `SecurityConfig` declares the hierarchy `PLATFORM_ADMIN > TENANT_ADMIN` and
+`PLATFORM_ADMIN > BUILDING_STAFF`; `STUDENT` is outside it, so shared endpoints need
+`hasAnyRole('STUDENT', 'PLATFORM_ADMIN')`. Admin endpoints use `@PreAuthorize("hasAnyRole('PLATFORM_ADMIN',
+'TENANT_ADMIN')")`, platform-only ones `hasRole('PLATFORM_ADMIN')`; `/api/admin/**` and `/actuator/**` (except health)
+are also matched in `SecurityConfig`. Filter order: `RateLimitingFilter` (Redis counter per IP on `/api/auth/**`,
+skipped if Redis is down) -> `JwtAuthenticationFilter` (rejects blacklisted `jti` via `TokenBlacklistService`).
+Admin tokens expire in 4h, student tokens in 10h; `LoginAttemptService` locks accounts after repeated failures.
+
+**System settings (cascade).** `system_setting` has composite PK `(tenant_id, setting_key)`. Platform defaults live at
+`tenant_id = 0`; tenants add override rows. `getSetting(key)` checks the current tenant then falls back to platform;
+`getAllSettings()` overlays tenant rows on the platform map. `PlatformSettingController` (`/api/platform/system-settings`,
+PLATFORM_ADMIN) manages tenant 0; `SystemSettingController` (`/api/admin/system-settings`) is the tenant-scoped view.
+`auto_allocation_enabled` is platform-only.
+
+**Events and async.** Services publish `model/event/*Event`; `NotificationEventListener` handles them with
+`@TransactionalEventListener(AFTER_COMMIT)` + `@Async("notificationExecutor")`, so notifications never fire for
+rolled-back transactions and never run inside the caller's transaction.
+
+**Status state machines.** `ApplicationStatus.canTransitionTo()` and `AllocationStatus.canTransitionTo()` define legal
+transitions; `AllocationStatusValidator.validate()` throws `InvalidAllocationStatusTransitionException`. Call these
+before any status change and test both the valid and invalid path.
+
+**Audit trail.** Annotate methods with `@LogActivity(action, entityType, description)`; `ActivityLogAspect` writes an
+`activity_log` row after a successful return.
+
+**Database.** Flyway migrations in `src/main/resources/db/migration/`, named `V{YYYY_MM_DD_HHMM}__{description}.sql`,
+baselined at `2026.02.19.2100` (`init_full_schema`), with `out-of-order: false` and `validate-on-migrate: true`.
+Hibernate runs `hbm2ddl.auto: validate`, so an entity change without a matching migration fails startup. Never edit an
+applied migration. Enums are stored as strings; no soft deletes.
+
+## Backend testing
+
+- Most tests are Mockito unit tests. For anything needing a database, extend a base class rather than configuring
+  containers: `AbstractIntegrationTest` (`@SpringBootTest(RANDOM_PORT)`, Testcontainers PostgreSQL 16.2 + MailHog +
+  Redis + MinIO, Flyway on, `ddl-auto=none`, `protected mailServer` for assertions) or `AbstractJpaTest`
+  (`@DataJpaTest`, PostgreSQL container only, `create-drop`, Flyway off). `application-test.yml` still configures H2
+  for tests that only need a context.
+- DDL property path: `application.yml` sets `spring.jpa.properties.hibernate.hbm2ddl.auto`, which overrides the
+  `spring.jpa.hibernate.ddl-auto` shortcut. A `@DynamicPropertySource` must override both.
+- Full-stack tests without `@Transactional`: delete in FK-safe order in `@AfterEach` (applications -> academic_years ->
+  students -> app_users); set `SecurityContextHolder` with a `UsernamePasswordAuthenticationToken(email, null, List.of())`
+  for `authService.getCurrentUser()`; set `TenantContext.setTenantId(...)` so `TenantListener` stamps `tenant_id`; clear
+  both afterwards.
+- PostgreSQL enforces the `tenant_id` FK (H2 did not). Seed `tenant` rows via native SQL before using a tenant id other
+  than 0. `academic_year.name` is `VARCHAR(20)`.
+- Test naming: `methodName_scenario_expectedResult`.
+- `AbstractIntegrationTest` supplies its own `jwt.secret`, so the suite does not need a `JWT_SECRET` env var or a
+  `backend/.env`. If every `@SpringBootTest` class fails with "JWT_SECRET environment variable must be set", a
+  subclass is loading a context that bypasses the base class properties.
+- CI baseline as of 2026-09-04 (run on this fix): backend job green, 1116 tests passed, 0 failed, 2 skipped,
+  including `RoomServiceTest` and `ScheduledJobRunnerTest`. The gitleaks job fails independently because the
+  `GITLEAKS_LICENSE` repository secret is not set. Compare a red branch against `develop` before attributing it to
+  your change.
+
+## Frontend architecture
+
+- `src/main.ts` bootstraps a standalone `AppComponent` with `provideRouter`, `provideHttpClient(withInterceptors(...))`,
+  animations, and the native date adapter. No `app.config.ts`, no root `NgModule`.
+- Routing is flat in `src/app/app-routing.module.ts` (a plain `routes` array, no `.routes.ts` files), every route lazy
+  via `loadComponent`. `/admin` is guarded by `AuthGuard, AdminGuard, MustChangePasswordGuard`; platform-only children
+  (`tenants`, `feature-flags`, and others) add `PlatformAdminGuard`. `/buildings` and `/buildings/:id` are public.
+- Role checks go through `RoleService` (`isPlatformAdmin`, `isTenantAdmin`, `isBuildingStaff`, `isStudent`,
+  `isAdmin`), never string comparisons in components or guards. `PlatformAdminGuard` sends tenant admins back to
+  `/admin`, everyone else to `/dashboard` or `/login`.
+- Auth: JWT in `localStorage['token']` via `TokenStorageService` (decodes `exp` client-side); the user object in
+  `localStorage['currentUser']` feeds `AuthService.currentUser`. Moving to HttpOnly cookies is ADR-007, deferred.
+- Interceptor order: `authInterceptor` (skips public `/api/auth/*`) -> `tokenExpiryInterceptor` -> `errorInterceptor`
+  (retries only 5xx/network errors, snackbar per status, clears auth and redirects to `/login` on 401, navigates to
+  `/unauthorized` on 403 which has no route and falls through to `/home`). Send header `X-Silent-Error` to suppress the
+  snackbar when you handle the error yourself.
+- `core/services/` has one `providedIn: 'root'` service per backend resource on `environment.apiUrl` (single
+  `environment.ts`, no prod replacement). No NgRx; shared state is `BehaviorSubject`s in services.
+- Admin sidebar groups are the `navGroups` array in `core/layout/admin-sidebar/admin-sidebar.component.ts`.
+- Models are split between `core/models/` and `app/model/` (both contain a `user.model.ts`); check which one a service
+  imports. Reusable components live in both `shared/` and `shared/components/`.
+- Components are standalone, mostly `OnPush`, importing Material modules individually; `shared/material.module.ts` is
+  unused by them. `features/student/room-browser/` is intentionally unrouted.
+- Styling: `styles.scss` -> `styles/_variables`, `_mixins`, `custom-theme.scss`, `_utilities`, then legacy
+  `global_styles.css`. Snackbar panel classes `snack-*` and `*-snackbar` are both defined and valid. Prefer the tokens
+  and mixins over hardcoded values; `frontend/docs/STYLING_AUDIT_REPORT.md` catalogs the existing debt.
+- Team convention: invoke the `ui-ux-pro-max` skill before implementing frontend code, when it is installed.
+
+## OpenSpec workflow
+
+Changes are spec-driven under `openspec/`: `changes/<slug>/` holds `proposal.md`, `design.md`, `specs/<capability>/spec.md`,
+and `tasks.md`; `changes/archive/` holds completed ones; `specs/` is the canonical snapshot updated on archive.
+Commands: `/opsx:propose` -> `/opsx:apply` -> `/opsx:verify` -> `/opsx:archive`. `openspec/config.yaml` carries the
+role rules (BA, solution design, implementation plan, tech review) that reviewers apply.
+
+## Conventions enforced in review
+
+- Constructor injection only; `@Transactional` on methods (readOnly for reads), never class-level; `FetchType.LAZY`
+  everywhere with `@EntityGraph`/`JOIN FETCH` for N+1 hotspots; paginate every list endpoint.
+- Size limits: service < 400 lines, controller < 200, method < 50; Angular component TS < 300 lines.
+- Structured `key=value` logging; never log PII at WARN/ERROR.
+- DB naming: `snake_case`, booleans `is_*`, FKs `{entity}_id`, indexes `idx_{table}_{cols}`, uniques
+  `uq_{table}_{cols}`. Adding NOT NULL is three steps: nullable column -> backfill -> constraint.
+- Conventional Commits; feature branches `feature/TASK-{id}-{slug}` from `develop`; `develop` merges to `main` via PR.
+  Never commit directly to `main` or `develop`.
+
+## Known inconsistencies
+
+- `frontend/Dockerfile` copies `dist/frontend/browser`, but the build outputs `dist/demo`; the image build fails as is.
+- `frontend/README.md` mentions `npm run prepare`; no such script exists and there is no Husky/lint-staged/commitlint
+  config despite the packages being in devDependencies.
+- `frontend/.github/instructions/student-accomodation.instructions.md` is an aspirational Copilot spec (microservices,
+  NgRx, Cypress). Follow the code, not that file, except for strict TypeScript, ESLint + Prettier, Conventional Commits.
+- `dummy.pdf` at the root is a 17-byte placeholder with no references in code.
