@@ -40,6 +40,7 @@ public class RoomAllocationQueryService {
     private final StagedAllocationRepository stagedAllocationRepository;
     private final RoomAllocationMapper roomAllocationMapper;
     private final StagedAllocationMapper stagedAllocationMapper;
+    private final AllocationAccessGuard allocationAccessGuard;
 
     public List<RoomAllocationResponse> getAllRoomAllocations() {
         log.info("Fetching all room allocations");
@@ -82,11 +83,13 @@ public class RoomAllocationQueryService {
         log.info("Fetching room allocation with id: {}", id);
         RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
+        allocationAccessGuard.assertCanAccessAllocation(allocation);
         return roomAllocationMapper.toResponse(allocation);
     }
 
     public RoomAllocationResponse getActiveAllocationByStudentId(Long studentId) {
         log.info("Fetching active allocation for student: {}", studentId);
+        allocationAccessGuard.assertCanAccessStudent(studentId);
         RoomAllocation allocation = roomAllocationRepository.findActiveAllocationByStudentId(studentId)
                 .orElseThrow(() -> new RoomAllocationNotFoundException(
                         "No active allocation found for student with id: " + studentId));

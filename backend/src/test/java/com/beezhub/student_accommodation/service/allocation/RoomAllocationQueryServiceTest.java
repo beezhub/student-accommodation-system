@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
+import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
@@ -36,6 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,6 +55,8 @@ class RoomAllocationQueryServiceTest {
     private RoomAllocationMapper roomAllocationMapper;
     @Mock
     private StagedAllocationMapper stagedAllocationMapper;
+    @Mock
+    private AllocationAccessGuard allocationAccessGuard;
 
     @InjectMocks
     private RoomAllocationQueryService queryService;
@@ -121,6 +126,27 @@ class RoomAllocationQueryServiceTest {
         PageResponse<RoomAllocationResponse> result = queryService.searchRoomAllocations(1L, 1L, 1L, LocalDateTime.now(), LocalDateTime.now(), PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void getRoomAllocationById_callerNotOwner_throwsAndNothingReturned() {
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        doThrow(new UnauthorizedAccessException("not yours"))
+                .when(allocationAccessGuard).assertCanAccessAllocation(allocation);
+
+        assertThrows(UnauthorizedAccessException.class, () -> queryService.getRoomAllocationById(1L));
+
+        verify(roomAllocationMapper, never()).toResponse(any(RoomAllocation.class));
+    }
+
+    @Test
+    void getActiveAllocationByStudentId_callerNotThatStudent_throwsBeforeQuery() {
+        doThrow(new UnauthorizedAccessException("not yours"))
+                .when(allocationAccessGuard).assertCanAccessStudent(42L);
+
+        assertThrows(UnauthorizedAccessException.class, () -> queryService.getActiveAllocationByStudentId(42L));
+
+        verify(roomAllocationRepository, never()).findActiveAllocationByStudentId(any());
     }
 
     @Test

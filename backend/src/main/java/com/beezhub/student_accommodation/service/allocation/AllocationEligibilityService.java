@@ -27,9 +27,11 @@ public class AllocationEligibilityService {
     private final BuildingRepository buildingRepository;
     private final RoomAttributesRepository roomAttributesRepository;
     private final LegacyScoringStrategy allocationScoringService;
+    private final AllocationAccessGuard allocationAccessGuard;
 
     public AllocationEligibilityResponse checkStudentEligibility(Long studentId) {
         log.info("Checking allocation eligibility for student: {}", studentId);
+        allocationAccessGuard.assertCanAccessStudent(studentId);
 
         studentRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found with id: " + studentId));

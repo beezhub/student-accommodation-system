@@ -107,6 +107,9 @@ manage flags through `FeatureController` (`/api/admin/features`).
 are also matched in `SecurityConfig`. Filter order: `RateLimitingFilter` (Redis counter per IP on `/api/auth/**`,
 skipped if Redis is down) -> `JwtAuthenticationFilter` (rejects blacklisted `jti` via `TokenBlacklistService`).
 Admin tokens expire in 4h, student tokens in 10h; `LoginAttemptService` locks accounts after repeated failures.
+Endpoints a STUDENT can reach by id (accept/decline offer, `GET /room-allocation/{id}`, active allocation, eligibility) must
+call `AllocationAccessGuard` in the service: students are tenant 0, so the tenant filter does nothing for them and only an
+explicit ownership check stops one student acting on another student's allocation.
 
 **System settings (cascade).** `system_setting` has composite PK `(tenant_id, setting_key)`. Platform defaults live at
 `tenant_id = 0`; tenants add override rows. `getSetting(key)` checks the current tenant then falls back to platform;
