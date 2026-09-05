@@ -9,6 +9,7 @@ import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationResponse;
 import com.beezhub.student_accommodation.model.dto.RoomAvailabilityResponse;
 import com.beezhub.student_accommodation.model.dto.StagedAllocationResponse;
+import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
@@ -147,6 +148,46 @@ class RoomAllocationQueryServiceTest {
         assertThrows(UnauthorizedAccessException.class, () -> queryService.getActiveAllocationByStudentId(42L));
 
         verify(roomAllocationRepository, never()).findActiveAllocationByStudentId(any());
+    }
+
+    @Test
+    void getActiveAllocationByStudentId_withApplication_populatesPreviousDeclineCount() {
+        // GH-109: students cannot call the admin allocation search, so the count travels on the
+        // allocation itself and the decline dialog can warn before a second or third decline.
+        Application application = new Application();
+        application.setId(7L);
+        allocation.setApplication(application);
+        when(roomAllocationRepository.findActiveAllocationByStudentId(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationMapper.toResponse(allocation)).thenReturn(allocationResponse);
+        when(roomAllocationRepository.countDeclinedAllocationsByApplicationId(7L)).thenReturn(2L);
+
+        RoomAllocationResponse result = queryService.getActiveAllocationByStudentId(1L);
+
+        assertThat(result.getPreviousDeclineCount()).isEqualTo(2L);
+    }
+
+    @Test
+    void getRoomAllocationById_withApplication_populatesPreviousDeclineCount() {
+        Application application = new Application();
+        application.setId(7L);
+        allocation.setApplication(application);
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationMapper.toResponse(allocation)).thenReturn(allocationResponse);
+        when(roomAllocationRepository.countDeclinedAllocationsByApplicationId(7L)).thenReturn(1L);
+
+        assertThat(queryService.getRoomAllocationById(1L).getPreviousDeclineCount()).isEqualTo(1L);
+    }
+
+    @Test
+    void getActiveAllocationByStudentId_withoutApplication_declineCountIsZeroAndNotQueried() {
+        allocation.setApplication(null);
+        when(roomAllocationRepository.findActiveAllocationByStudentId(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationMapper.toResponse(allocation)).thenReturn(allocationResponse);
+
+        RoomAllocationResponse result = queryService.getActiveAllocationByStudentId(1L);
+
+        assertThat(result.getPreviousDeclineCount()).isZero();
+        verify(roomAllocationRepository, never()).countDeclinedAllocationsByApplicationId(any());
     }
 
     @Test

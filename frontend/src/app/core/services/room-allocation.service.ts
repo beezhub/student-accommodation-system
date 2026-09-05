@@ -44,6 +44,11 @@ export interface RoomAllocationResponse {
   checkInExpiryDate?: string;
   declineReason?: DeclineReason;
   declineReasonText?: string;
+  /**
+   * Times this allocation's application has already been declined. Sent on single-allocation
+   * reads so a student can be warned before declining again; absent on list responses.
+   */
+  previousDeclineCount?: number;
   createdAt: string;
   updatedAt: string;
 }
