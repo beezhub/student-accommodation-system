@@ -6,13 +6,13 @@ import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
 import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
+import com.beezhub.student_accommodation.model.event.RoomVacatedEvent;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +37,6 @@ public class AllocationLifecycleService {
     private final WaitingListService waitingListService;
     private final RoomOccupancyManager roomOccupancyManager;
     private final AllocationMoveService allocationMoveService;
-    private final AllocationBatchService allocationBatchService;
     private final AllocationAuditService allocationAuditService;
     private final MeterRegistry meterRegistry;
 
@@ -51,7 +50,6 @@ public class AllocationLifecycleService {
             WaitingListService waitingListService,
             RoomOccupancyManager roomOccupancyManager,
             AllocationMoveService allocationMoveService,
-            @Lazy AllocationBatchService allocationBatchService,
             AllocationAuditService allocationAuditService,
             MeterRegistry meterRegistry) {
         this.roomAllocationRepository = roomAllocationRepository;
@@ -63,7 +61,6 @@ public class AllocationLifecycleService {
         this.waitingListService = waitingListService;
         this.roomOccupancyManager = roomOccupancyManager;
         this.allocationMoveService = allocationMoveService;
-        this.allocationBatchService = allocationBatchService;
         this.allocationAuditService = allocationAuditService;
         this.meterRegistry = meterRegistry;
     }
@@ -152,11 +149,9 @@ public class AllocationLifecycleService {
 
         handleDeclineConsequences(saved, previousDeclineCount);
 
-        try {
-            allocationBatchService.allocateNextFromWaitingList();
-        } catch (Exception e) {
-            log.error("Failed to allocate next from waiting list after decline {}", id, e);
-        }
+        // Waiting-list refill runs AFTER_COMMIT (WaitingListRefillListener) so it sees the freed
+        // room and a refill failure cannot roll back this decline.
+        eventPublisher.publishEvent(new RoomVacatedEvent(allocation.getId(), roomIdOf(allocation), AllocationStatus.DECLINED));
 
         meterRegistry.counter("sas.allocations.declined").increment();
 
@@ -178,11 +173,8 @@ public class AllocationLifecycleService {
         allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.CANCELLED);
         log.info("Successfully cancelled room allocation with id: {}", id);
 
-        try {
-            allocationBatchService.allocateNextFromWaitingList();
-        } catch (Exception e) {
-            log.error("Failed to allocate next from waiting list after deletion {}", id, e);
-        }
+        // Refill from the waiting list only after this cancellation has committed.
+        eventPublisher.publishEvent(new RoomVacatedEvent(allocation.getId(), roomIdOf(allocation), AllocationStatus.CANCELLED));
     }
 
     @Transactional
@@ -269,6 +261,10 @@ public class AllocationLifecycleService {
     private Room getRoom(Long id) {
         return roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
+    }
+
+    private static Long roomIdOf(RoomAllocation allocation) {
+        return allocation.getRoom() == null ? null : allocation.getRoom().getId();
     }
 
     private RoomAllocation getAllocation(Long id) {

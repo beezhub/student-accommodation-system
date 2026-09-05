@@ -115,6 +115,10 @@ PLATFORM_ADMIN) manages tenant 0; `SystemSettingController` (`/api/admin/system-
 **Events and async.** Services publish `model/event/*Event`; `NotificationEventListener` handles them with
 `@TransactionalEventListener(AFTER_COMMIT)` + `@Async("notificationExecutor")`, so notifications never fire for
 rolled-back transactions and never run inside the caller's transaction.
+The waiting-list refill after a decline or cancel is the same pattern: `RoomVacatedEvent` -> `WaitingListRefillListener`
+(AFTER_COMMIT). `AllocationBatchService` commits each allocation in the `requiresNewTransactionTemplate` bean
+(`TransactionTemplateConfig`) and its entry points must stay non-`@Transactional`, or one failing item silently rolls back
+the whole batch while the result reports success.
 
 **Status state machines.** `ApplicationStatus.canTransitionTo()` and `AllocationStatus.canTransitionTo()` define legal
 transitions; `AllocationStatusValidator.validate()` throws `InvalidAllocationStatusTransitionException`. Call these

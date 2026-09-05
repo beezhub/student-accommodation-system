@@ -161,12 +161,10 @@ public class RoomAllocationService {
     // ==================== Batch Allocation Methods (Delegated)
     // ====================
 
-    @Transactional
     public void allocateNextFromWaitingList() {
         allocationBatchService.allocateNextFromWaitingList();
     }
 
-    @Transactional
     @Timed(value = "service.allocation.batchAllocate", percentiles = {0.5, 0.95, 0.99})
     public BatchAllocationResult batchAllocateFromWaitingList(int maxAllocations) {
         return allocationBatchService.batchAllocateFromWaitingList(maxAllocations);

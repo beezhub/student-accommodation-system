@@ -21,6 +21,7 @@ import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
+import com.beezhub.student_accommodation.model.event.RoomVacatedEvent;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -272,6 +273,8 @@ class AllocationLifecycleServiceTest {
         // Verify no cancellation — student is re-queued regardless of decline count
         verify(roomOccupancyManager).updateOccupancy(room, -1);
         verify(waitingListService).reQueueStudent(any(), eq(3));
+        // Refill is delegated to the AFTER_COMMIT listener, never run inside this transaction
+        verify(eventPublisher).publishEvent(new RoomVacatedEvent(1L, room.getId(), AllocationStatus.DECLINED));
     }
 
     @Test
@@ -288,6 +291,7 @@ class AllocationLifecycleServiceTest {
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.CANCELLED);
         verify(roomOccupancyManager).updateOccupancy(room, -1);
         verify(roomAllocationRepository).save(allocation);
+        verify(eventPublisher).publishEvent(new RoomVacatedEvent(1L, room.getId(), AllocationStatus.CANCELLED));
     }
 
     @Test
