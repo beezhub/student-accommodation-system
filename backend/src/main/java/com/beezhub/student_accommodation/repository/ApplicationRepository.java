@@ -22,6 +22,25 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      List<Application> findByStudent_Id(Long studentId);
 
+     /**
+      * Everything {@code ApplicationMapper} dereferences, fetched in one query.
+      *
+      * <p>The mapper reads {@code student.appUser}, {@code preferredBuilding} and each building
+      * preference's building, all LAZY. With {@code open-in-view} disabled those reads happened
+      * after the repository transaction closed, so the detail endpoints threw
+      * {@code LazyInitializationException} (GH-130). A read-only transaction on the service keeps
+      * the session open; this graph also stops the mapper issuing a query per preference.
+      */
+     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
+             "student", "student.appUser", "preferredBuilding",
+             "buildingPreferences", "buildingPreferences.building"})
+     Optional<Application> findWithDetailsById(Long id);
+
+     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
+             "student", "student.appUser", "preferredBuilding",
+             "buildingPreferences", "buildingPreferences.building"})
+     List<Application> findWithDetailsByStudent_Id(Long studentId);
+
      boolean existsByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
 
      boolean existsByStudent_IdAndTenantIdAndStatus(Long studentId, Long tenantId, ApplicationStatus status);
