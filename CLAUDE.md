@@ -82,7 +82,9 @@ allocation, orphan file cleanup, notification retry) and wraps each job with log
 
 **Feature flags.** Service code calls the `FeatureFlagService` interface; `FF4JFeatureFlagService` is the only class
 allowed to touch the FF4j bean. Batch auto-allocation is gated by the `auto-allocation` flag
-(`FF4jConfig.FEATURE_AUTO_ALLOCATION`, seeded from `AUTO_ALLOCATION_ENABLED`).
+(`FF4jConfig.FEATURE_AUTO_ALLOCATION`, seeded from `AUTO_ALLOCATION_ENABLED`). The FF4j REST API jar
+(`ff4j-spring-boot-web-api`) is excluded from the build and `/api/ff4j/**` is PLATFORM_ADMIN-only in `SecurityConfig`;
+manage flags through `FeatureController` (`/api/admin/features`).
 
 **Multi-tenancy.**
 - `JwtAuthenticationFilter` reads `tenantId` from the JWT into the `TenantContext` ThreadLocal and clears it after the

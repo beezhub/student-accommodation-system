@@ -85,6 +85,10 @@ public class SecurityConfig {
                                 "/api/institution/all")
                         .permitAll()
                         .requestMatchers("/api/admin/**").hasAnyRole("PLATFORM_ADMIN", "TENANT_ADMIN")
+                        // FF4j's bundled REST API and web console are not used (see FeatureController) and
+                        // the web-api jar is excluded from the build; keep the rule so a future dependency
+                        // change cannot expose flag mutation to non-platform users.
+                        .requestMatchers("/api/ff4j/**", "/ff4j-web-console/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/v3/api-docs/**").permitAll()
