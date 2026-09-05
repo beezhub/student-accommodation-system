@@ -51,6 +51,8 @@ class DocumentQueryServiceTest {
     private AuthService authService;
     @Mock
     private FileStorageService fileStorageService;
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentAccessGuard documentAccessGuard;
 
     @InjectMocks
     private DocumentQueryService documentQueryService;
@@ -141,6 +143,9 @@ class DocumentQueryServiceTest {
                 .build();
         when(appUserRepository.findByEmail("other@example.com")).thenReturn(Optional.of(other));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document1));
+        doThrow(new com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException(
+                "Unauthorized access to document"))
+                .when(documentAccessGuard).assertCanAccessDocument(document1, other);
 
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> documentQueryService.getDocumentInfo(1L, "other@example.com"));
@@ -250,6 +255,10 @@ class DocumentQueryServiceTest {
     void getAllDocumentsByUserId_unauthorizedUser_throwsUnauthorizedAccessException() {
         when(appUserRepository.findByEmail("user@test.com")).thenReturn(Optional.of(regularUser));
         // userId mismatch and not admin (requesting for user 999)
+        doThrow(new com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException(
+                "Unauthorized access to documents for user ID: 999"))
+                .when(documentAccessGuard).assertCanAccessDocumentsOfUser(999L, regularUser);
+
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> documentQueryService.getAllDocumentsByUserId(999L, "user@test.com"));
         assertTrue(ex.getMessage().contains("Unauthorized"));

@@ -98,6 +98,9 @@ manage flags through `FeatureController` (`/api/admin/features`).
   persist. Tenant FKs use a dual mapping: writable `@Column tenantId` plus read-only `@ManyToOne tenant`.
 - Code that runs outside a request (scheduled jobs, async listeners) sees all tenants unless it sets the context
   itself. A new tenant-scoped entity needs the interface, the filter annotation, and an isolation test.
+- `Document` is deliberately NOT tenant-scoped: a student's document pack is reused across applications to different
+  tenants, and stamping the uploader's platform tenant made every upload invisible to tenant admins. Tenant admins are
+  scoped explicitly by `DocumentAccessGuard` (student must have an application in the caller's tenant).
 
 **Roles and security.** `UserRole` is `STUDENT`, `PLATFORM_ADMIN`, `TENANT_ADMIN`, `BUILDING_STAFF`, plus deprecated
 `ADMIN` kept for migration. `SecurityConfig` declares the hierarchy `PLATFORM_ADMIN > TENANT_ADMIN` and

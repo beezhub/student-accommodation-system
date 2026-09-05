@@ -26,6 +26,12 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      boolean existsByStudent_IdAndTenantIdAndStatus(Long studentId, Long tenantId, ApplicationStatus status);
 
+     /** Whether a student has any application in the given tenant; drives tenant-admin document access. */
+     boolean existsByStudent_IdAndTenantId(Long studentId, Long tenantId);
+
+     /** Same check addressed by the student's login id, used when only the AppUser id is known. */
+     boolean existsByStudent_AppUser_IdAndTenantId(Long appUserId, Long tenantId);
+
      boolean existsByStudent_IdAndTenantIdAndStatusIn(Long studentId, Long tenantId, java.util.Collection<ApplicationStatus> statuses);
 
      List<Application> findByStudent_IdAndStatus(Long studentId, ApplicationStatus status);

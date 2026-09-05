@@ -116,6 +116,28 @@ class DocumentLifecycleServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("student upload stays visible while a tenant-scoped view is active (GH-112)")
+    void uploadSingleDocument_isVisibleInsideTenantScopedView() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "proof.pdf", "application/pdf", "proof content".getBytes());
+        documentLifecycleService.uploadSingleDocument(file, user.getEmail(), docType.getId());
+
+        Long uploadedId = documentRepository.findAllByStudent_Id(student.getId()).get(0).getId();
+
+        // A tenant admin's request runs with a non-platform tenant in context. Documents used to
+        // carry the tenant filter and were stamped with the student's platform tenant (0), so every
+        // tenant-scoped read returned nothing and review checklists showed NOT_UPLOADED.
+        TenantContext.setTenantId(99L);
+
+        assertThat(documentRepository.findById(uploadedId)).isPresent();
+        assertThat(documentRepository.findAllByStudent_Id(student.getId()))
+                .extracting(Document::getId)
+                .containsExactly(uploadedId);
+        assertThat(documentRepository.findByStudentIdAndDocumentTypeId(student.getId(), docType.getId()))
+                .isPresent();
+    }
+
+    @Test
     @DisplayName("uploadSingleDocument creates document when none exists for that type")
     void uploadSingleDocument_createsDocument_whenNoExistingSlot() {
         MockMultipartFile file = new MockMultipartFile(

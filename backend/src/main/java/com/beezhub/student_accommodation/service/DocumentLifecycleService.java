@@ -189,6 +189,9 @@ public class DocumentLifecycleService {
                 .orElseThrow(() -> new StudentNotFoundException("Student not found for user ID: " + user.getId()));
 
         var document = Document.builder()
+                // Documents are platform-level and student-owned; tenant_id is NOT NULL in the
+                // schema but carries no scoping meaning (see the Document javadoc).
+                .tenantId(com.beezhub.student_accommodation.service.tenant.TenantContext.PLATFORM_TENANT_ID)
                 .documentName(file.getOriginalFilename())
                 .documentType(docType)
                 .documentPath(objectPath)
