@@ -72,6 +72,9 @@ services:
       # shares one rate-limit bucket, throttling the whole deployment.
       - APP_SECURITY_TRUSTED_PROXIES=${APP_SECURITY_TRUSTED_PROXIES:-}
       - AUTH_RATE_LIMIT_PER_MINUTE=${AUTH_RATE_LIMIT_PER_MINUTE:-30}
+      # Empty keeps /actuator/prometheus PLATFORM_ADMIN-only; set it to let Prometheus scrape.
+      - PROMETHEUS_SCRAPE_USER=${PROMETHEUS_SCRAPE_USER:-prometheus}
+      - PROMETHEUS_SCRAPE_PASSWORD=${PROMETHEUS_SCRAPE_PASSWORD:-}
     restart: unless-stopped
     networks:
       - app-network
@@ -149,6 +152,8 @@ services:
     container_name: student-accommodation-prometheus
     volumes:
       - ./tools/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      # Must match the backend's PROMETHEUS_SCRAPE_PASSWORD; replace the placeholder before use.
+      - ./tools/prometheus/scrape-password:/etc/prometheus/scrape-password:ro
     ports:
       - "9090:9090"
     command:

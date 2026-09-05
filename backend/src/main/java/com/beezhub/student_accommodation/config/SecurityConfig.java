@@ -49,7 +49,50 @@ public class SecurityConfig {
         this.mustChangePasswordFilter = mustChangePasswordFilter;
     }
 
+    /**
+     * Lets Prometheus scrape metrics with HTTP basic credentials.
+     *
+     * <p>Everything under {@code /actuator/**} except health required {@code PLATFORM_ADMIN}, and
+     * the scrape job carries no credentials, so every scrape was rejected and the Grafana
+     * dashboards and alerts stayed empty (GH-134). This chain is matched first and only accepts the
+     * single scrape account; a platform admin can still reach the endpoints through the main chain
+     * with a JWT.
+     *
+     * <p>The chain is only registered when a password is configured, so an unconfigured deployment
+     * keeps the previous admin-only behaviour rather than gaining an account with a blank password.
+     */
     @Bean
+    @org.springframework.core.annotation.Order(1)
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnExpression(
+            "!'${management.metrics.scrape.password:}'.isEmpty()")
+    public SecurityFilterChain metricsScrapeFilterChain(
+            HttpSecurity http,
+            @org.springframework.beans.factory.annotation.Value("${management.metrics.scrape.username:prometheus}")
+            String scrapeUsername,
+            @org.springframework.beans.factory.annotation.Value("${management.metrics.scrape.password}")
+            String scrapePassword) throws Exception {
+        var scrapeUser = org.springframework.security.core.userdetails.User
+                .withUsername(scrapeUsername)
+                .password(passwordEncoder().encode(scrapePassword))
+                .roles("METRICS_SCRAPE")
+                .build();
+        var scrapeUserDetails =
+                new org.springframework.security.provisioning.InMemoryUserDetailsManager(scrapeUser);
+
+        return http
+                .securityMatcher("/actuator/prometheus", "/actuator/health", "/actuator/info")
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .anyRequest().hasRole("METRICS_SCRAPE"))
+                .userDetailsService(scrapeUserDetails)
+                .httpBasic(org.springframework.security.config.Customizer.withDefaults())
+                .build();
+    }
+
+    @Bean
+    @org.springframework.core.annotation.Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
