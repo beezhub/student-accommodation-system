@@ -10,7 +10,11 @@ import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.slf4j.MDC;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -20,6 +24,9 @@ import org.springframework.web.context.request.WebRequest;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -56,10 +63,122 @@ class RestResponseExceptionHandlerTest {
         assertErrorResponse(response, HttpStatus.CONFLICT, "Illegal argument");
     }
 
+    /**
+     * The no-regression proof for the 53 sites in main that throw a bare RuntimeException carrying
+     * user-facing text. They must keep their message and their 400 exactly as before (GH-149).
+     */
     @Test
-    void handleRuntimeException() {
+    void handleRuntimeException_applicationThrown_keepsMessageAndStatus() {
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleRuntimeException(new RuntimeException("Runtime error"), webRequest);
         assertErrorResponse(response, HttpStatus.BAD_REQUEST, "Runtime error");
+    }
+
+    /** A domain exception without its own handler also keeps its message. */
+    @Test
+    void handleRuntimeException_domainException_keepsMessageAndStatus() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleRuntimeException(
+                new ResourceNotFoundException("Building not found"), webRequest);
+        assertErrorResponse(response, HttpStatus.BAD_REQUEST, "Building not found");
+    }
+
+    /** The prepared statement and the column name must not reach the client. */
+    @Test
+    void handleRuntimeException_frameworkException_returnsGenericServerError() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleRuntimeException(
+                new InvalidDataAccessResourceUsageException(
+                        "could not prepare statement [ERROR: column \"foo\" does not exist] "
+                                + "[select r1_0.id from room r1_0 where r1_0.foo = ?]"),
+                webRequest);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        String message = response.getBody().getErrors().get(0);
+        assertTrue(message.startsWith("An unexpected error occurred"));
+        assertFalse(message.contains("select"));
+        assertFalse(message.contains("column"));
+    }
+
+    /** The entity class name and its primary key must not reach the client. */
+    @Test
+    void handleRuntimeException_lazyInitialization_hidesEntityDetail() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleRuntimeException(
+                new org.hibernate.LazyInitializationException(
+                        "could not initialize proxy [com.beezhub.student_accommodation.model.entity.Student#42]"
+                                + " - no Session"),
+                webRequest);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertFalse(response.getBody().getErrors().get(0).contains("Student#42"));
+    }
+
+    /** The reference is what connects the generic body to the log line holding the detail. */
+    @Test
+    void handleRuntimeException_frameworkException_includesRequestId() {
+        MDC.put("requestId", "req-123");
+        try {
+            ResponseEntity<ErrorResponse> response = exceptionHandler.handleRuntimeException(
+                    new InvalidDataAccessResourceUsageException("internal detail"), webRequest);
+            assertTrue(response.getBody().getErrors().get(0).contains("req-123"));
+        } finally {
+            MDC.remove("requestId");
+        }
+    }
+
+    /**
+     * A RuntimeException with no message used to make List.of throw inside the handler, so the
+     * request fell through to the container error page. The guard now lives in ErrorResponse, which
+     * every handler builds its body through.
+     */
+    @Test
+    void handleRuntimeException_nullMessage_doesNotThrow() {
+        ResponseEntity<ErrorResponse> response = assertDoesNotThrow(
+                () -> exceptionHandler.handleRuntimeException(new RuntimeException(), webRequest));
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody().getErrors().get(0));
+    }
+
+    @Test
+    void handleConflict_nullMessage_doesNotThrow() {
+        ResponseEntity<Object> response = assertDoesNotThrow(
+                () -> exceptionHandler.handleConflict(new IllegalStateException(), webRequest));
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+    }
+
+    /**
+     * Without its own handler this would be swallowed by the catch-all and returned as an opaque
+     * 500, losing the caller's ability to tell a retryable write conflict from a server fault.
+     */
+    @Test
+    void handleOptimisticLocking_returnsConflictWithoutEntityDetail() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleOptimisticLocking(
+                new ObjectOptimisticLockingFailureException(
+                        com.beezhub.student_accommodation.model.entity.Document.class, 42L),
+                webRequest);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        String message = response.getBody().getErrors().get(0);
+        assertFalse(message.contains("Document"));
+        assertFalse(message.contains("42"));
+    }
+
+    /** Raised inside the authentication manager, so its message carries JPA and connection detail. */
+    @Test
+    void handleInternalAuthenticationService_returnsGenericServerError() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleInternalAuthenticationService(
+                new InternalAuthenticationServiceException(
+                        "Could not open JPA EntityManager for transaction; jdbc:postgresql://db:5432/sas"),
+                webRequest);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        String message = response.getBody().getErrors().get(0);
+        assertFalse(message.contains("jdbc:postgresql"));
+        assertFalse(message.contains("EntityManager"));
+    }
+
+    @Test
+    void handleInvalidStatus_returnsBadRequestWithMessage() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleInvalidStatus(
+                new InvalidStatusException("Invalid application status: BOGUS"), webRequest);
+        assertErrorResponse(response, HttpStatus.BAD_REQUEST, "Invalid application status: BOGUS");
     }
 
     @Test
