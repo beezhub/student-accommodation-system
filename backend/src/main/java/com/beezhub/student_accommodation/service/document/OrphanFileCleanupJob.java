@@ -4,6 +4,7 @@ import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.BuildingImageRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -38,6 +39,7 @@ public class OrphanFileCleanupJob {
     private final Duration gracePeriod;
     private final Clock clock;
 
+    @Autowired
     public OrphanFileCleanupJob(FileStorageService fileStorageService,
                                 DocumentRepository documentRepository,
                                 BuildingImageRepository buildingImageRepository,
