@@ -216,7 +216,9 @@ role rules (BA, solution design, implementation plan, tech review) that reviewer
 
 ## Known inconsistencies
 
-- `frontend/Dockerfile` copies `dist/frontend/browser`, but the build outputs `dist/demo`; the image build fails as is.
+- `frontend/Dockerfile` builds with `npm run build -- --configuration=production` and copies `dist/demo/browser`; production
+  swaps in `src/environments/environment.prod.ts` (`apiUrl: '/api'`), so the image is environment-independent and nginx
+  proxies `/api/` to the backend. `npm run build` now defaults to the production configuration.
 - `frontend/README.md` mentions `npm run prepare`; no such script exists and there is no Husky/lint-staged/commitlint
   config despite the packages being in devDependencies.
 - `frontend/.github/instructions/student-accomodation.instructions.md` is an aspirational Copilot spec (microservices,
