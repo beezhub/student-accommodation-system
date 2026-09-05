@@ -158,6 +158,7 @@ class AllocationBatchServiceTransactionTest {
         student.setId(studentId);
         Application application = new Application();
         application.setId(100 + studentId);
+        application.setTenantId(1L);
         application.setStudent(student);
         WaitingListEntry entry = new WaitingListEntry();
         entry.setId(studentId);

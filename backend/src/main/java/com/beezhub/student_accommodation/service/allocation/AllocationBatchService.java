@@ -9,6 +9,7 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.FeatureFlagService;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.util.PageMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -151,49 +152,22 @@ public class AllocationBatchService {
                     .build();
         }
 
-        // 2. Build scoring matrix
-        Map<Long, List<ScoredRoom>> scoringMatrix = allocationScoringOrchestrator.buildScoringMatrix(waitingList);
+        // 2. Match within each tenant separately.
+        // The scheduled job runs with no TenantContext, so the Hibernate filter is off and the
+        // room pool was every tenant's rooms: a tenant-A applicant could be offered a tenant-B
+        // room, and the allocation was then stamped with the room's tenant (GH-125). Setting the
+        // context per group scopes the room query, the scoring matrix and the stamped tenant.
+        List<AllocationPair> allocationPairs = matchWithinEachTenant(waitingList, maxAllocations);
 
-        // 3. Fetch available rooms and track capacity
-        List<Room> availableRooms = allocationScoringOrchestrator.getAvailableRoomsForBatch();
-        if (availableRooms.isEmpty()) {
-            log.info("No available rooms for batch allocation");
+        if (allocationPairs.isEmpty()) {
+            log.info("No allocatable student/room pairs found");
             return BatchAllocationResult.builder()
                     .processedAt(LocalDateTime.now())
                     .processingTimeMs(System.currentTimeMillis() - startTime)
                     .build();
         }
 
-        Map<Long, Integer> roomCapacityRemaining = allocationScoringOrchestrator.buildRoomCapacityMap(availableRooms);
-
-        // 4. Build allocation pairs (greedy matching)
-        List<AllocationPair> allocationPairs = new ArrayList<>();
-        int allocatedCount = 0;
-
-        for (WaitingListEntry entry : waitingList) {
-            if (allocatedCount >= maxAllocations)
-                break;
-
-            Student student = entry.getStudent();
-            List<ScoredRoom> scoredRooms = scoringMatrix.get(student.getId());
-
-            if (scoredRooms == null || scoredRooms.isEmpty())
-                continue;
-
-            // Find first available room (sorted by score DESC)
-            for (ScoredRoom scoredRoom : scoredRooms) {
-                Integer remaining = roomCapacityRemaining.get(scoredRoom.getRoomId());
-                if (remaining != null && remaining > 0) {
-                    // Allocate this student to this room
-                    allocationPairs.add(new AllocationPair(entry, scoredRoom));
-                    roomCapacityRemaining.put(scoredRoom.getRoomId(), remaining - 1);
-                    allocatedCount++;
-                    break; // Move to next student
-                }
-            }
-        }
-
-        // 5. Create allocations in batch
+        // 3. Create allocations in batch
         BatchAllocationResult result = createAllocationsInBatch(allocationPairs);
         result.setProcessingTimeMs(System.currentTimeMillis() - startTime);
         result.setProcessedAt(LocalDateTime.now());
@@ -203,6 +177,105 @@ public class AllocationBatchService {
 
         sample.stop(meterRegistry.timer("sas.batch.allocation.duration"));
         return result;
+    }
+
+    /**
+     * Groups the waiting list by the tenant that owns each application and matches each group with
+     * {@link TenantContext} set to that tenant, so the room pool, the scoring matrix and the tenant
+     * stamped on the resulting allocation all belong to one tenant.
+     *
+     * <p>Entries whose tenant cannot be determined are skipped rather than matched against every
+     * tenant's rooms, and logged so they are visible.
+     *
+     * @param maxAllocations budget shared across all tenants, spent in waiting-list order
+     */
+    private List<AllocationPair> matchWithinEachTenant(List<WaitingListEntry> waitingList, int maxAllocations) {
+        Map<Long, List<WaitingListEntry>> byTenant = new LinkedHashMap<>();
+        for (WaitingListEntry entry : waitingList) {
+            Long tenantId = tenantIdOf(entry);
+            if (tenantId == null) {
+                log.warn("action=batchEntrySkipped reason=noTenant waitingListEntryId={}", entry.getId());
+                continue;
+            }
+            byTenant.computeIfAbsent(tenantId, k -> new ArrayList<>()).add(entry);
+        }
+
+        List<AllocationPair> pairs = new ArrayList<>();
+        Long previousTenant = TenantContext.getTenantId();
+        try {
+            for (Map.Entry<Long, List<WaitingListEntry>> group : byTenant.entrySet()) {
+                if (pairs.size() >= maxAllocations) {
+                    break;
+                }
+                TenantContext.setTenantId(group.getKey());
+                pairs.addAll(matchOneTenant(group.getValue(), maxAllocations - pairs.size(), group.getKey()));
+            }
+        } finally {
+            if (previousTenant == null) {
+                TenantContext.clear();
+            } else {
+                TenantContext.setTenantId(previousTenant);
+            }
+        }
+        return pairs;
+    }
+
+    /** Greedy matching for one tenant, with the tenant already set in the context. */
+    private List<AllocationPair> matchOneTenant(List<WaitingListEntry> entries, int budget, Long tenantId) {
+        List<Room> availableRooms = allocationScoringOrchestrator.getAvailableRoomsForBatch();
+        if (availableRooms.isEmpty()) {
+            log.info("No available rooms for tenant {}", tenantId);
+            return List.of();
+        }
+
+        Map<Long, List<ScoredRoom>> scoringMatrix = allocationScoringOrchestrator.buildScoringMatrix(entries);
+        Map<Long, Integer> roomCapacityRemaining = allocationScoringOrchestrator.buildRoomCapacityMap(availableRooms);
+
+        List<AllocationPair> pairs = new ArrayList<>();
+        for (WaitingListEntry entry : entries) {
+            if (pairs.size() >= budget) {
+                break;
+            }
+            List<ScoredRoom> scoredRooms = scoringMatrix.get(entry.getStudent().getId());
+            if (scoredRooms == null || scoredRooms.isEmpty()) {
+                continue;
+            }
+            for (ScoredRoom scoredRoom : scoredRooms) {
+                Integer remaining = roomCapacityRemaining.get(scoredRoom.getRoomId());
+                if (remaining != null && remaining > 0) {
+                    pairs.add(new AllocationPair(entry, scoredRoom));
+                    roomCapacityRemaining.put(scoredRoom.getRoomId(), remaining - 1);
+                    break; // Move to next student
+                }
+            }
+        }
+        log.info("Matched {} students to rooms for tenant {}", pairs.size(), tenantId);
+        return pairs;
+    }
+
+    /**
+     * The application's tenant owns the buildings the student applied to, so it decides which room
+     * pool they belong in. The waiting-list row's own stamp is the fallback, and is unreliable
+     * because entries created by a platform admin are stamped with the platform tenant (GH-146).
+     */
+    private static Long tenantIdOf(WaitingListEntry entry) {
+        Application application = entry.getApplication();
+        if (application != null) {
+            if (isRealTenant(application.getTenantId())) {
+                return application.getTenantId();
+            }
+            // Applications created by a platform admin are stamped with the platform tenant
+            // (GH-146). The building they applied to still identifies the owning tenant.
+            Building preferred = application.getPreferredBuilding();
+            if (preferred != null && isRealTenant(preferred.getTenantId())) {
+                return preferred.getTenantId();
+            }
+        }
+        return isRealTenant(entry.getTenantId()) ? entry.getTenantId() : null;
+    }
+
+    private static boolean isRealTenant(Long tenantId) {
+        return tenantId != null && !TenantContext.PLATFORM_TENANT_ID.equals(tenantId);
     }
 
     private BatchAllocationResult createAllocationsInBatch(List<AllocationPair> allocationPairs) {
@@ -215,8 +288,16 @@ public class AllocationBatchService {
         List<Long> allocatedStudentIds = new ArrayList<>();
         List<Long> allocatedRoomIds = new ArrayList<>();
 
+        Long previousTenant = TenantContext.getTenantId();
         for (AllocationPair pair : allocationPairs) {
             try {
+                // Create the allocation under its own tenant so the tenant filter scopes the reads
+                // inside createRoomAllocation and TenantListener stamps the right tenant. Matching
+                // restored the context before returning, so it has to be set again here (GH-125).
+                Long pairTenantId = tenantIdOf(pair.getWaitingListEntry());
+                if (pairTenantId != null) {
+                    TenantContext.setTenantId(pairTenantId);
+                }
                 // Create allocation in separate transaction for resilience
                 transactionTemplate.execute(status -> {
                     RoomAllocationRequest request = new RoomAllocationRequest();
@@ -248,6 +329,12 @@ public class AllocationBatchService {
                         pair.getStudent().getId(), pair.getRoomId(), e.getMessage());
                 errors.add(errorMsg);
                 log.error(errorMsg, e);
+            } finally {
+                if (previousTenant == null) {
+                    TenantContext.clear();
+                } else {
+                    TenantContext.setTenantId(previousTenant);
+                }
             }
         }
 
