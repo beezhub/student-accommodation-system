@@ -105,7 +105,15 @@ public class AuthService {
         return new LoginResponse(token, userData);
     }
 
-    @Transactional
+    /**
+     * Authenticates a user and maintains the failed-attempt counters.
+     *
+     * <p>{@code noRollbackFor} is load-bearing: the failure branch saves the incremented
+     * {@code failed_login_attempts} and {@code account_locked_until}, then rethrows. Without this,
+     * Spring rolled that save back with the transaction and the database lockout never took effect,
+     * leaving brute-force protection entirely dependent on Redis (GH-117).
+     */
+    @Transactional(noRollbackFor = BadCredentialsException.class)
     @Timed(value = "service.auth.login", percentiles = {0.5, 0.95, 0.99})
     public LoginResponse validateLogin(String username, String password) {
         // 1. Check if user exists first to check lock status
