@@ -75,7 +75,7 @@ public class ApplicationAdminService {
         tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         ApplicationStatus oldStatus = application.getStatus();
-        ApplicationStatus newStatus = ApplicationStatus.valueOf(request.getStatus().toUpperCase());
+        ApplicationStatus newStatus = parseStatus(request.getStatus());
 
         // Validate status transition
         validateStatusTransition(application, newStatus);
@@ -381,6 +381,22 @@ public class ApplicationAdminService {
      * @param username      The username of the requesting user
      * @return ApplicationFullDetailsResponse with all details
      */
+    /**
+     * The bare valueOf leaked the enum fully-qualified class name to the caller, because its
+     * IllegalArgumentException reached the conflict handler which echoed the message (GH-149). It
+     * also threw NullPointerException on a null status rather than saying what was wrong.
+     */
+    private static ApplicationStatus parseStatus(String status) {
+        if (status == null || status.isBlank()) {
+            throw new InvalidStatusException("A status is required");
+        }
+        try {
+            return ApplicationStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidStatusException("Invalid application status: " + status);
+        }
+    }
+
     public ApplicationFullDetailsResponse getApplicationFullDetailsEnhanced(Long applicationId, String username) {
         return applicationQueryService.getApplicationFullDetailsEnhanced(applicationId, username);
     }

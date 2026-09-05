@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.application;
 
+import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.mapper.ApplicationMapper;
 import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
@@ -102,10 +103,24 @@ public class ApplicationSearchService {
      * Retrieves all applications by status.
      * Admin only.
      */
+    /**
+     * The bare valueOf leaked the enum fully-qualified class name to the caller, because its
+     * IllegalArgumentException reached the conflict handler which echoed the message (GH-149).
+     * The type alone cannot separate that from the messages this codebase writes deliberately, so
+     * the guard has to sit here at the parse rather than in the handler.
+     */
+    private static ApplicationStatus parseStatus(String status) {
+        try {
+            return ApplicationStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidStatusException("Invalid application status: " + status);
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<ApplicationResponse> getApplicationsByStatus(String status) {
         log.info("Retrieving applications for status {}", status);
-        ApplicationStatus applicationStatus = ApplicationStatus.valueOf(status.toUpperCase());
+        ApplicationStatus applicationStatus = parseStatus(status);
         return applicationRepository.findByStatus(applicationStatus)
                 .stream()
                 .map(applicationMapper::toResponse)

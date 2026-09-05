@@ -2,7 +2,11 @@ package com.beezhub.student_accommodation.exceptions;
 
 import com.beezhub.student_accommodation.model.dto.ErrorResponse;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +24,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @ControllerAdvice(basePackages = "com.beezhub.student_accommodation.controller")
+@Slf4j
 public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
         @ExceptionHandler(DataIntegrityViolationException.class)
@@ -53,14 +58,109 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                 return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
         }
 
+        /**
+         * Catch-all for runtime exceptions with no more specific handler.
+         *
+         * <p>This used to copy {@code ex.getMessage()} into the body and return 400 for anything at
+         * all, so Hibernate and Spring Data messages reached the client intact: prepared statements
+         * with the full SQL, entity class names with primary keys, and JDK helpful-NPE text naming
+         * fields. The hardcoded 400 also meant genuine server faults never showed up as 5xx in the
+         * metrics, and the frontend interceptor never retried a transient database blip (GH-149).
+         *
+         * <p>Discrimination is by type rather than blanket genericisation. Messages this codebase
+         * wrote are user-facing and keep their old behaviour exactly; framework and JDK types get a
+         * fixed message, a 500 and an ERROR log carrying the detail.
+         */
         @ExceptionHandler(RuntimeException.class)
         public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, WebRequest request) {
-                ErrorResponse errorResponse = new ErrorResponse(
+                if (carriesClientSafeMessage(ex)) {
+                        log.warn("action=businessRuleViolation type={} path={}",
+                                        ex.getClass().getName(), request.getDescription(false));
+                        return new ResponseEntity<>(new ErrorResponse(
+                                        LocalDateTime.now(),
+                                        HttpStatus.BAD_REQUEST.value(),
+                                        ex.getMessage(),
+                                        request.getDescription(false)), HttpStatus.BAD_REQUEST);
+                }
+                String reference = reference();
+                log.error("action=unhandledException reference={} type={} path={}",
+                                reference, ex.getClass().getName(), request.getDescription(false), ex);
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                                "An unexpected error occurred. Reference: " + reference,
+                                request.getDescription(false)), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        /**
+         * Without this, an optimistic-lock conflict would be swallowed by the catch-all above and
+         * returned as an opaque 500. Room, Application and Document all carry a version column, and
+         * DocumentStatusService rethrows this deliberately so the caller can retry. 409 says that.
+         */
+        @ExceptionHandler(OptimisticLockingFailureException.class)
+        public ResponseEntity<ErrorResponse> handleOptimisticLocking(
+                        OptimisticLockingFailureException ex, WebRequest request) {
+                log.warn("action=optimisticLockConflict path={}", request.getDescription(false));
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                "This record was changed by someone else. Reload and try again.",
+                                request.getDescription(false)), HttpStatus.CONFLICT);
+        }
+
+        /**
+         * Raised inside the authentication manager when the failure is infrastructure rather than a
+         * bad credential, so its message carries JPA and connection detail. The general
+         * AuthenticationException handler below echoes messages, which handed that detail to an
+         * unauthenticated caller of the login endpoint.
+         */
+        @ExceptionHandler(InternalAuthenticationServiceException.class)
+        public ResponseEntity<ErrorResponse> handleInternalAuthenticationService(
+                        InternalAuthenticationServiceException ex, WebRequest request) {
+                String reference = reference();
+                log.error("action=authenticationInfrastructureFailure reference={} path={}",
+                                reference, request.getDescription(false), ex);
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                                "Authentication is temporarily unavailable. Reference: " + reference,
+                                request.getDescription(false)), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        /**
+         * Thrown where a request string failed to map onto a status enum. Without its own handler it
+         * fell to the catch-all, which is now a 500, and a rejected input is the caller to fix.
+         */
+        @ExceptionHandler(InvalidStatusException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidStatus(InvalidStatusException ex, WebRequest request) {
+                return new ResponseEntity<>(new ErrorResponse(
                                 LocalDateTime.now(),
                                 HttpStatus.BAD_REQUEST.value(),
                                 ex.getMessage(),
-                                request.getDescription(false));
-                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+                                request.getDescription(false)), HttpStatus.BAD_REQUEST);
+        }
+
+        /**
+         * True when the message was written by this codebase and is meant for a user.
+         *
+         * <p>Exactly {@code java.lang.RuntimeException} means a deliberate throw from this project.
+         * That is a pragmatic allowance for call sites predating the house rule against generic
+         * runtime exceptions, not an endorsement of it. The clean end state migrates them to domain
+         * exceptions and deletes the clause.
+         */
+        private static boolean carriesClientSafeMessage(RuntimeException ex) {
+                Class<?> type = ex.getClass();
+                return type == RuntimeException.class
+                                || type.getName().startsWith("com.beezhub.student_accommodation.");
+        }
+
+        /**
+         * Correlates the generic body with the ERROR log line holding the detail. Not a secret:
+         * RequestLoggingFilter already returns the same id in the X-Request-ID response header.
+         */
+        private static String reference() {
+                String requestId = MDC.get("requestId");
+                return (requestId == null || requestId.isBlank()) ? "unavailable" : requestId;
         }
 
         @ExceptionHandler(EmailAlreadyRegisteredException.class)
