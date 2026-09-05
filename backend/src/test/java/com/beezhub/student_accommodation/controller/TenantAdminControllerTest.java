@@ -124,7 +124,7 @@ class TenantAdminControllerTest {
     @DisplayName("POST /api/admin/tenants/{id}/admins — 201 for PLATFORM_ADMIN")
     void createAdmin_platformAdmin_returns201() throws Exception {
         TenantAdminRequestDto request = new TenantAdminRequestDto(
-                "Jane", "Smith", "admin@tenant.com", "Password1!");
+                "Jane", "Smith", "admin@tenant.com", "Str0ng!Passw0rd");
         when(tenantAdminService.createTenantAdmin(eq(TENANT_ID), any())).thenReturn(sampleResponse());
 
         mockMvc.perform(post("/api/admin/tenants/{id}/admins", TENANT_ID)
@@ -139,7 +139,7 @@ class TenantAdminControllerTest {
     @DisplayName("POST /api/admin/tenants/{id}/admins — 403 for TENANT_ADMIN")
     void createAdmin_tenantAdmin_returns403() throws Exception {
         TenantAdminRequestDto request = new TenantAdminRequestDto(
-                "Jane", "Smith", "admin@tenant.com", "Password1!");
+                "Jane", "Smith", "admin@tenant.com", "Str0ng!Passw0rd");
 
         mockMvc.perform(post("/api/admin/tenants/{id}/admins", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)

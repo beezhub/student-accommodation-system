@@ -17,6 +17,7 @@ public class CreateUserRequest {
     private String email;
 
     @NotBlank(message = "Password is required")
+    @com.beezhub.student_accommodation.validation.StrongPassword
     private String password;
 
     @NotBlank(message = "Role is required")
