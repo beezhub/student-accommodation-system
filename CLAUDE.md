@@ -98,6 +98,10 @@ manage flags through `FeatureController` (`/api/admin/features`).
   persist. Tenant FKs use a dual mapping: writable `@Column tenantId` plus read-only `@ManyToOne tenant`.
 - Code that runs outside a request (scheduled jobs, async listeners) sees all tenants unless it sets the context
   itself. A new tenant-scoped entity needs the interface, the filter annotation, and an isolation test.
+- Hibernate's filter does NOT apply to `findById`. Every admin path that loads a tenant-owned row by id must call
+  `TenantOwnershipGuard.assertOwned` (writes) or `assertReadable` (reads, which also allow platform-tenant rows).
+  `applyToLoadByKey` is deliberately not enabled: `AppUser` and other tenant-aware tables hold platform rows that
+  tenant admins must still be able to read.
 - `Document` is deliberately NOT tenant-scoped: a student's document pack is reused across applications to different
   tenants, and stamping the uploader's platform tenant made every upload invisible to tenant admins. Tenant admins are
   scoped explicitly by `DocumentAccessGuard` (student must have an application in the caller's tenant).

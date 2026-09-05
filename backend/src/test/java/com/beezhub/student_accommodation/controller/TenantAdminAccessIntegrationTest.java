@@ -3,9 +3,11 @@ package com.beezhub.student_accommodation.controller;
 import com.beezhub.student_accommodation.AbstractIntegrationTest;
 import com.beezhub.student_accommodation.config.JwtConfig;
 import com.beezhub.student_accommodation.model.entity.AppUser;
+import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.TenantRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
@@ -35,6 +37,7 @@ class TenantAdminAccessIntegrationTest extends AbstractIntegrationTest {
     @Autowired TestRestTemplate rest;
     @Autowired AppUserRepository appUserRepository;
     @Autowired TenantRepository tenantRepository;
+    @Autowired BuildingRepository buildingRepository;
     @Autowired JwtUtil jwtUtil;
 
     private Tenant tenant;
@@ -145,6 +148,58 @@ class TenantAdminAccessIntegrationTest extends AbstractIntegrationTest {
         assertThat(response.getStatusCode())
                 .isNotEqualTo(HttpStatus.OK)
                 .isNotEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    /**
+     * GH-111: the check above passes even with no isolation at all, because id 999999 does not
+     * exist anywhere. This seeds a real building owned by a second tenant and proves the first
+     * tenant's admin cannot update or delete it. Hibernate's filter does not apply to findById,
+     * so only the explicit ownership guard stops these.
+     */
+    @Test
+    @DisplayName("TENANT_ADMIN cannot mutate a building that really belongs to another tenant")
+    void tenantAdmin_cannotMutateRealBuildingOfAnotherTenant() {
+        Tenant otherTenant = tenantRepository.save(Tenant.builder()
+                .name("Other University " + System.currentTimeMillis())
+                .isActive(true)
+                .build());
+        Building building = new Building();
+        building.setName("Other Tenant Hall");
+        building.setAddress("1 Other Street");
+        building.setTotalFloors(3);
+        building.setTenantId(otherTenant.getId());
+        Building otherBuilding = buildingRepository.save(building);
+        try {
+            HttpHeaders headers = bearerHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            String body = """
+                    {"name":"Hijacked","address":"1 Other Street","totalFloors":3}""";
+
+            ResponseEntity<String> update = rest.exchange(
+                    "/api/building/" + otherBuilding.getId(),
+                    HttpMethod.PUT,
+                    new HttpEntity<>(body, headers),
+                    String.class);
+            assertThat(update.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+
+            ResponseEntity<String> delete = rest.exchange(
+                    "/api/building/" + otherBuilding.getId(),
+                    HttpMethod.DELETE,
+                    new HttpEntity<>(bearerHeaders()),
+                    String.class);
+            assertThat(delete.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+
+            // The row is untouched: same name, still owned by the other tenant.
+            TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+            Building reloaded = buildingRepository.findById(otherBuilding.getId()).orElseThrow();
+            assertThat(reloaded.getName()).isEqualTo("Other Tenant Hall");
+            assertThat(reloaded.getTenantId()).isEqualTo(otherTenant.getId());
+        } finally {
+            TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+            buildingRepository.deleteById(otherBuilding.getId());
+            tenantRepository.deleteById(otherTenant.getId());
+            TenantContext.clear();
+        }
     }
 
     // ── Task 9.4: TENANT_ADMIN receives 403 on platform-only endpoints ────────

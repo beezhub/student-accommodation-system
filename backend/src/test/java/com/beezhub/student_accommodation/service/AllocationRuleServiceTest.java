@@ -47,6 +47,9 @@ class AllocationRuleServiceTest {
     
     @Mock
     private AuthService authService;
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+
 
     @InjectMocks
     private AllocationRuleService allocationRuleService;

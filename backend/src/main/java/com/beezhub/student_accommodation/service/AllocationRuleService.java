@@ -27,6 +27,7 @@ public class AllocationRuleService {
     private final BuildingRepository buildingRepository;
     private final AppUserRepository appUserRepository;
     private final AuthService authService;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     @Transactional(readOnly = true)
     public PageResponse<AllocationRuleResponse> getRulesByBuilding(Long buildingId, Pageable pageable) {
@@ -46,6 +47,7 @@ public class AllocationRuleService {
     public AllocationRuleResponse getRuleById(Long id) {
         AllocationRule rule = allocationRuleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with id: " + id));
+        tenantOwnershipGuard.assertReadable(rule, "Allocation rule", id);
         return toResponse(rule);
     }
 
@@ -68,6 +70,7 @@ public class AllocationRuleService {
         if (request.getBuildingId() != null) {
             building = buildingRepository.findById(request.getBuildingId())
                     .orElseThrow(() -> new ResourceNotFoundException("Building not found with id: " + request.getBuildingId()));
+            tenantOwnershipGuard.assertOwned(building, "Building", request.getBuildingId());
         }
 
         AppUser createdBy = appUserRepository.findByEmail(adminEmail)
@@ -91,6 +94,7 @@ public class AllocationRuleService {
     public AllocationRuleResponse updateRule(Long id, AllocationRuleRequest request, String adminEmail) {
         AllocationRule rule = allocationRuleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(rule, "Allocation rule", id);
 
         // Only check duplicate name if name changed
         if (!rule.getRuleName().equals(request.getRuleName())) {
@@ -115,6 +119,7 @@ public class AllocationRuleService {
         if (request.getBuildingId() != null) {
             Building building = buildingRepository.findById(request.getBuildingId())
                     .orElseThrow(() -> new ResourceNotFoundException("Building not found with id: " + request.getBuildingId()));
+            tenantOwnershipGuard.assertOwned(building, "Building", request.getBuildingId());
             rule.setBuilding(building);
         } else {
             rule.setBuilding(null);
@@ -138,6 +143,7 @@ public class AllocationRuleService {
     public void deleteRule(Long id, String adminEmail) {
         AllocationRule rule = allocationRuleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(rule, "Allocation rule", id);
         rule.setActive(false);
         allocationRuleRepository.save(rule);
     }
@@ -146,6 +152,7 @@ public class AllocationRuleService {
     public AllocationRuleResponse activateRule(Long id, String adminEmail) {
         AllocationRule rule = allocationRuleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(rule, "Allocation rule", id);
         rule.setActive(true);
         return toResponse(allocationRuleRepository.save(rule));
     }

@@ -39,6 +39,9 @@ class BuildingImageServiceTest {
     private BuildingImageRepository buildingImageRepository;
     @Mock
     private BuildingRepository buildingRepository;
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+
 
     @InjectMocks
     private BuildingImageService service;

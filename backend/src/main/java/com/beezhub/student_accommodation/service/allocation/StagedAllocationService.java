@@ -62,6 +62,7 @@ public class StagedAllocationService {
     private int offerExpiryDays;
     private final WaitingListService waitingListService;
     private final RoomOccupancyManager roomOccupancyManager;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     @Transactional
     public RoomAllocationResponse confirmAllocation(Long stagedAllocationId, Long adminId) {
@@ -195,8 +196,10 @@ public class StagedAllocationService {
     // ==================== Private Helpers ====================
 
     private StagedAllocation getStagedAllocation(Long id) {
-        return stagedAllocationRepository.findById(id)
+        StagedAllocation staged = stagedAllocationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Staged allocation not found: " + id));
+        tenantOwnershipGuard.assertOwned(staged, "Staged allocation", id);
+        return staged;
     }
 
     private Student getStudent(Long id) {
@@ -205,8 +208,10 @@ public class StagedAllocationService {
     }
 
     private Room getRoom(Long id) {
-        return roomRepository.findById(id)
+        Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found: " + id));
+        tenantOwnershipGuard.assertOwned(room, "Room", id);
+        return room;
     }
 
     private AppUser getAdmin(Long id) {

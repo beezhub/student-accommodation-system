@@ -29,6 +29,7 @@ public class BuildingImageService {
     private final MinioConfig minioConfig;
     private final BuildingImageRepository buildingImageRepository;
     private final BuildingRepository buildingRepository;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     private static final List<String> ALLOWED_CONTENT_TYPES = List.of(
@@ -39,6 +40,7 @@ public class BuildingImageService {
     public List<BuildingImageResponse> uploadImages(Long buildingId, List<MultipartFile> files) {
         Building building = buildingRepository.findById(buildingId)
                 .orElseThrow(() -> new RuntimeException("Building not found with id: " + buildingId));
+        tenantOwnershipGuard.assertOwned(building, "Building", buildingId);
 
         List<BuildingImageResponse> responses = new ArrayList<>();
         List<BuildingImage> existingImages = buildingImageRepository
@@ -90,6 +92,8 @@ public class BuildingImageService {
         BuildingImage image = buildingImageRepository.findById(imageId)
                 .orElseThrow(() -> new RuntimeException("Image not found with id: " + imageId));
 
+        tenantOwnershipGuard.assertOwned(image.getBuilding(), "Building", buildingId);
+
         if (!image.getBuilding().getId().equals(buildingId)) {
             throw new RuntimeException("Image does not belong to building: " + buildingId);
         }
@@ -122,6 +126,8 @@ public class BuildingImageService {
     public BuildingImageResponse setPrimaryImage(Long buildingId, Long imageId) {
         BuildingImage image = buildingImageRepository.findById(imageId)
                 .orElseThrow(() -> new RuntimeException("Image not found with id: " + imageId));
+
+        tenantOwnershipGuard.assertOwned(image.getBuilding(), "Building", buildingId);
 
         if (!image.getBuilding().getId().equals(buildingId)) {
             throw new RuntimeException("Image does not belong to building: " + buildingId);

@@ -67,6 +67,9 @@ class ApplicationAdminServiceNotificationTest {
 
     @Mock
     private ApplicationService applicationService;
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+
 
     @InjectMocks
     private ApplicationAdminService applicationAdminService;

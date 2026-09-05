@@ -58,6 +58,9 @@ class ApplicationAdminServiceTest {
     private ApplicationQueryService applicationQueryService;
     @Mock
     private com.beezhub.student_accommodation.service.RoomAllocationService roomAllocationService;
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+
 
     @InjectMocks
     private ApplicationAdminService applicationAdminService;

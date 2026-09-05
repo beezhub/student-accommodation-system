@@ -69,6 +69,9 @@ class StagedAllocationServiceTest {
         private WaitingListService waitingListService;
         @Mock
         private RoomOccupancyManager roomOccupancyManager;
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+
 
         @InjectMocks
         private StagedAllocationService stagedAllocationService;
