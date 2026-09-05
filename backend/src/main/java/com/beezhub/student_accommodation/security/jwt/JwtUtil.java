@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -40,6 +41,22 @@ public class JwtUtil {
             return ((Number) tenantId).longValue();
         }
         return null;
+    }
+
+    /** Administrative roles share the shorter token lifetime. */
+    private static boolean isAdminRole(String authority) {
+        String role = authority.startsWith("ROLE_") ? authority.substring(5) : authority;
+        try {
+            return com.beezhub.student_accommodation.model.enums.UserRole.valueOf(role).isAdmin();
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /** When the token was issued; used to honour per-user revocation cutoffs. */
+    public Instant extractIssuedAt(String token) {
+        Date issuedAt = extractClaim(token, Claims::getIssuedAt);
+        return issuedAt == null ? null : issuedAt.toInstant();
     }
 
     public String extractJti(String token) {
@@ -82,7 +99,9 @@ public class JwtUtil {
 
         // Determine expiration based on role
         long expirationMs;
-        if (roles.contains("ROLE_PLATFORM_ADMIN")) {
+        // Every administrative role gets the shorter admin lifetime; only PLATFORM_ADMIN did before,
+        // so tenant admins and building staff held 10-hour tokens (GH-122).
+        if (roles.stream().anyMatch(JwtUtil::isAdminRole)) {
             expirationMs = Long.parseLong(jwtConfig.getAdminExpirationTime());
         } else {
             expirationMs = Long.parseLong(jwtConfig.getExpirationTime());

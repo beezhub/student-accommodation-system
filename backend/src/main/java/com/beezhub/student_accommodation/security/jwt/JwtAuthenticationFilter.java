@@ -55,6 +55,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     throw new BadCredentialsException("Token is blacklisted");
                 }
                 username = jwtUtil.extractUsername(jwt);
+
+                // Deactivating an account only sets account_locked_until, which an already-issued
+                // token never consults, so a deactivated admin kept working until expiry. A
+                // revocation cutoff recorded per user retires those tokens (GH-122).
+                if (tokenBlacklistService.isRevoked(username, jwtUtil.extractIssuedAt(jwt))) {
+                    throw new BadCredentialsException("Token has been revoked");
+                }
             }
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
