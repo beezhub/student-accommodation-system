@@ -63,7 +63,10 @@ public class BuildingImageService {
 
             BuildingImage image = new BuildingImage();
             image.setBuilding(building);
-            image.setTenant(building.getTenant());
+            // tenant_id is the writable side of the dual mapping now; the tenant association is
+            // read-only. Set it from the building rather than relying on TenantListener, so a
+            // platform admin uploading for a tenant still stamps that tenant.
+            image.setTenantId(building.getTenantId());
             image.setFileName(file.getOriginalFilename());
             image.setObjectPath(objectPath);
             image.setContentType(file.getContentType());
