@@ -45,6 +45,12 @@ public class DocumentTypeService {
      * Returns the merged view of document types for a given tenant:
      * platform types (tenant_id=0) + tenant's own types.
      * When a tenant type has the same type_name as a platform type, the tenant row wins.
+     *
+     * <p>This merge is why {@code DocumentType} deliberately carries no {@code tenantFilter}
+     * despite having a {@code tenant_id} column (GH-126): the filter would hide the platform
+     * defaults from every tenant admin and leave them with an empty or partial checklist, the same
+     * trap that made student uploads invisible in GH-112. Cross-tenant access is refused
+     * explicitly in {@link #guardPlatformType} instead.
      */
     public List<DocumentType> getEffectiveDocumentTypes(Long tenantId) {
         List<Long> tenantIds = tenantId.equals(PLATFORM_TENANT_ID)

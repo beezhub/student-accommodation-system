@@ -5,14 +5,30 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * A photograph attached to a building.
+ *
+ * <p>Images belong to the building's tenant. The table always carried {@code tenant_id} but the
+ * entity had no filter, so {@code findById} and list queries returned other tenants' images
+ * (GH-126). It now uses the standard dual mapping: a writable {@code tenantId} column that
+ * {@code TenantListener} stamps, plus the read-only {@code tenant} association.
+ *
+ * <p>Public building browsing is unaffected: anonymous visitors and students carry no tenant or the
+ * platform tenant, and the filter is inactive for both.
+ */
 @Entity
 @Table(name = "building_image")
 @Data
-public class BuildingImage {
+@org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
+@EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
+public class BuildingImage implements TenantAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "tenant_id")
+    private Long tenantId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "building_id", nullable = false)
@@ -43,7 +59,7 @@ public class BuildingImage {
     private LocalDateTime updatedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id", nullable = false)
+    @JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)
     private Tenant tenant;
 
     @PrePersist
