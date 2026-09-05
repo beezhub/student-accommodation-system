@@ -7,7 +7,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { DocumentViewerComponent } from './documents/document-viewer/document-viewer.component';
 import { DocumentService } from '../../core/services/document.service';
@@ -194,84 +193,52 @@ export class DashboardComponent implements OnInit {
   declineOffer(): void {
     if (!this.roomAllocation || !this.currentApplication) return;
 
-    // Count previous declines for this application
-    this.getPreviousDeclineCount(this.currentApplication.id).subscribe({
-      next: (declineCount: number) => {
-        const dialogData: DeclineOfferDialogData = {
-          previousDeclineCount: declineCount,
-          roomNumber: this.roomAllocation!.roomNumber,
-          buildingName: this.roomAllocation!.buildingName,
-        };
+    // The backend sends the decline count on the allocation itself. It used to be derived from
+    // the allocation search endpoint, which students may not call: the 403 aborted the flow and
+    // the dialog never opened.
+    const dialogData: DeclineOfferDialogData = {
+      previousDeclineCount: this.roomAllocation.previousDeclineCount ?? 0,
+      roomNumber: this.roomAllocation.roomNumber,
+      buildingName: this.roomAllocation.buildingName,
+    };
 
-        const dialogRef = this.dialog.open(DeclineOfferDialogComponent, {
-          width: '500px',
-          data: dialogData,
-          disableClose: false,
-        });
-
-        dialogRef.afterClosed().subscribe((request: DeclineOfferRequest | undefined) => {
-          if (request && this.roomAllocation) {
-            this.processing = true;
-            this.roomAllocationService.declineOffer(this.roomAllocation.id, request).subscribe({
-              next: (updatedAlloc) => {
-                this.roomAllocation = updatedAlloc;
-                this.processing = false;
-                // Reload application to get updated status
-                this.loadApplicationHistory();
-                this.cdr.markForCheck();
-              },
-              error: (err) => {
-                console.error('Failed to decline offer', err);
-                this.processing = false;
-
-                // Handle max decline error (403)
-                if (err.status === 403) {
-                  this.errorService.showErrorSnackbar(
-                    'Your application has been closed due to reaching the maximum number of declines.'
-                  );
-                  this.loadApplicationHistory();
-                } else {
-                  this.errorService.showErrorSnackbar(
-                    'Failed to decline offer. Please try again or contact support.'
-                  );
-                }
-
-                this.cdr.markForCheck();
-              },
-            });
-          }
-        });
-      },
-      error: (err: any) => {
-        console.error('Failed to get decline count', err);
-        this.errorService.showErrorSnackbar('Unable to process decline request. Please try again.');
-      },
+    const dialogRef = this.dialog.open(DeclineOfferDialogComponent, {
+      width: '500px',
+      data: dialogData,
+      disableClose: false,
     });
-  }
 
-  private getPreviousDeclineCount(applicationId: number): Observable<number> {
-    // Search for all DECLINED allocations for this application
-    return new Observable((observer) => {
-      this.roomAllocationService
-        .searchAllocations({
-          status: 'DECLINED',
-          page: 0,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          size: 100, // Should be enough to capture all declines
-        })
-        .subscribe({
-          next: (response) => {
-            // Filter by application ID and count
-            const declineCount = response.content.filter(
-              (alloc) => alloc.applicationId === applicationId
-            ).length;
-            observer.next(declineCount);
-            observer.complete();
+    dialogRef.afterClosed().subscribe((request: DeclineOfferRequest | undefined) => {
+      if (request && this.roomAllocation) {
+        this.processing = true;
+        this.roomAllocationService.declineOffer(this.roomAllocation.id, request).subscribe({
+          next: (updatedAlloc) => {
+            this.roomAllocation = updatedAlloc;
+            this.processing = false;
+            // Reload application to get updated status
+            this.loadApplicationHistory();
+            this.cdr.markForCheck();
           },
           error: (err) => {
-            observer.error(err);
+            console.error('Failed to decline offer', err);
+            this.processing = false;
+
+            // Handle max decline error (403)
+            if (err.status === 403) {
+              this.errorService.showErrorSnackbar(
+                'Your application has been closed due to reaching the maximum number of declines.'
+              );
+              this.loadApplicationHistory();
+            } else {
+              this.errorService.showErrorSnackbar(
+                'Failed to decline offer. Please try again or contact support.'
+              );
+            }
+
+            this.cdr.markForCheck();
           },
         });
+      }
     });
   }
 

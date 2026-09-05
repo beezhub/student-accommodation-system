@@ -84,7 +84,7 @@ public class RoomAllocationQueryService {
         RoomAllocation allocation = roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
         allocationAccessGuard.assertCanAccessAllocation(allocation);
-        return roomAllocationMapper.toResponse(allocation);
+        return withPreviousDeclineCount(allocation);
     }
 
     public RoomAllocationResponse getActiveAllocationByStudentId(Long studentId) {
@@ -93,7 +93,21 @@ public class RoomAllocationQueryService {
         RoomAllocation allocation = roomAllocationRepository.findActiveAllocationByStudentId(studentId)
                 .orElseThrow(() -> new RoomAllocationNotFoundException(
                         "No active allocation found for student with id: " + studentId));
-        return roomAllocationMapper.toResponse(allocation);
+        return withPreviousDeclineCount(allocation);
+    }
+
+    /**
+     * Maps the allocation and adds how many times its application has already been declined.
+     * Students need that number to be warned before declining again, and they cannot call the
+     * admin-only allocation search to derive it themselves (GH-109).
+     */
+    private RoomAllocationResponse withPreviousDeclineCount(RoomAllocation allocation) {
+        RoomAllocationResponse response = roomAllocationMapper.toResponse(allocation);
+        if (allocation.getApplication() != null) {
+            response.setPreviousDeclineCount(
+                    roomAllocationRepository.countDeclinedAllocationsByApplicationId(allocation.getApplication().getId()));
+        }
+        return response;
     }
 
     public boolean isRoomAvailable(Long roomId) {

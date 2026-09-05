@@ -36,6 +36,14 @@ public class RoomAllocationResponse {
     private DeclineReason declineReason;
     private String declineReasonText;
 
+    /**
+     * How many times this allocation's application has already been declined, so a student can be
+     * warned before declining again. Populated on single-allocation reads; {@code 0} when the
+     * allocation has no application. Students cannot reach the admin allocation search, so this is
+     * the only route to the count for them (GH-109).
+     */
+    private long previousDeclineCount;
+
     // Audit fields
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
