@@ -26,3 +26,14 @@ jwt:
   secret: test-secret-for-unit-tests-only-must-be-at-least-64-chars-long-padding
   expiration-time-ms: 36000000
   admin-expiration-time-ms: 14400000
+
+# Values the main application.yml no longer defaults, so tests that load a context still start.
+# Production deliberately fails fast when these are unset (GH-135).
+app:
+  base-url: http://localhost:4200
+  security:
+    allowed-origins: http://localhost:4200
+    storage-public-origin: http://localhost:9000
+minio:
+  access-key: test-access-key
+  secret-key: test-secret-key

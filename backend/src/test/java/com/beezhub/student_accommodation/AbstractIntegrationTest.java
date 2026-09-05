@@ -107,5 +107,13 @@ public abstract class AbstractIntegrationTest {
         // JWT — application.yml has no default for jwt.secret (fail-fast startup check requires
         // >= 64 chars), so the suite must supply one rather than depend on a JWT_SECRET env var.
         registry.add("jwt.secret", () -> TEST_JWT_SECRET);
+
+        // Settings that application.yml deliberately leaves without a default, so a real deployment
+        // fails fast rather than starting on development credentials or localhost URLs (GH-135).
+        // The suite supplies its own values for the same reason it supplies jwt.secret above:
+        // depending on ambient environment variables would make the build machine-specific.
+        registry.add("app.base-url", () -> "http://localhost:4200");
+        registry.add("app.security.allowed-origins", () -> "http://localhost:4200");
+        registry.add("app.security.storage-public-origin", () -> "http://localhost:9000");
     }
 }

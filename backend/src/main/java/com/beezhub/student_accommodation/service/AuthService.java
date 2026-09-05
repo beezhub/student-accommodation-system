@@ -65,7 +65,9 @@ public class AuthService {
     private final UserAnonymizationService userAnonymizationService;
     private final MeterRegistry meterRegistry;
 
-    @Value("${app.base-url:http://localhost:3000}")
+    // No default: app.base-url is required, and this one disagreed with application.yml (:4200),
+    // so password-reset links pointed at the wrong port whenever it was unset (GH-135).
+    @Value("${app.base-url}")
     private String baseUrl;
 
     @Value("${app.password-reset.expiry-hours:24}")
