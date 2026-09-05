@@ -98,11 +98,17 @@ public abstract class AbstractIntegrationTest {
         registry.add("minio.access-key", () -> "minioadmin");
         registry.add("minio.secret-key", () -> "minioadmin");
 
-        // Schema management is handled by Flyway — Hibernate must not validate or generate DDL.
-        // Both keys are set because application.yml uses the spring.jpa.properties.* path which
+        // Production boots with hbm2ddl.auto=validate (application.yml). These are the only tests
+        // that build the schema with Flyway on real PostgreSQL, so this is the one place entity
+        // mappings are ever checked against the migrated schema (GH-148).
+        //
+        // Both keys are set because application.yml uses the spring.jpa.properties.* path, which
         // takes precedence over the spring.jpa.hibernate.ddl-auto shortcut.
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.jpa.properties.hibernate.hbm2ddl.auto", () -> "none");
+        //
+        // Never set these back to "none" to turn a red build green. A failure here means an entity
+        // change is missing its Flyway migration, and it is the same failure production would give.
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
+        registry.add("spring.jpa.properties.hibernate.hbm2ddl.auto", () -> "validate");
 
         // JWT — application.yml has no default for jwt.secret (fail-fast startup check requires
         // >= 64 chars), so the suite must supply one rather than depend on a JWT_SECRET env var.
