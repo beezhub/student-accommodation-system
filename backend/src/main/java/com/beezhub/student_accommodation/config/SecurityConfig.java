@@ -41,17 +41,27 @@ public class SecurityConfig {
     /** False in production, so the springdoc paths require PLATFORM_ADMIN instead of being public. */
     private final boolean swaggerPublic;
 
+    /** Browser origins allowed to call the API. Required: an empty list blocks every browser call. */
+    private final java.util.List<String> allowedOrigins;
+
+    /** Object-storage origin the browser may load images from and connect to, for the CSP. */
+    private final String storagePublicOrigin;
+
     public SecurityConfig(
             AppUserDetailsService userDetailsService,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             RateLimitingFilter rateLimitingFilter,
             MustChangePasswordFilter mustChangePasswordFilter,
-            @org.springframework.beans.factory.annotation.Value("${app.security.swagger-public:true}") boolean swaggerPublic) {
+            @org.springframework.beans.factory.annotation.Value("${app.security.swagger-public:true}") boolean swaggerPublic,
+            @org.springframework.beans.factory.annotation.Value("${app.security.allowed-origins}") java.util.List<String> allowedOrigins,
+            @org.springframework.beans.factory.annotation.Value("${app.security.storage-public-origin}") String storagePublicOrigin) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.rateLimitingFilter = rateLimitingFilter;
         this.mustChangePasswordFilter = mustChangePasswordFilter;
         this.swaggerPublic = swaggerPublic;
+        this.allowedOrigins = allowedOrigins;
+        this.storagePublicOrigin = storagePublicOrigin;
     }
 
     /**
@@ -109,9 +119,14 @@ public class SecurityConfig {
                                                 "script-src 'self' 'unsafe-inline'; " +
                                                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                                                 "font-src 'self' https://fonts.gstatic.com; " +
-                                                "img-src 'self' data: blob: https://tile.openstreetmap.org http://localhost:9000; "
+                                        // The storage origin used to be pinned to a developer's port, so
+                                        // presigned document and image URLs were blocked in every
+                                        // environment but a developer's machine (GH-135).
+                                        "img-src 'self' data: blob: https://tile.openstreetmap.org "
+                                                + storagePublicOrigin + "; "
                                                 +
-                                                "connect-src 'self' https://nominatim.openstreetmap.org http://localhost:9000; "
+                                                "connect-src 'self' https://nominatim.openstreetmap.org "
+                                                + storagePublicOrigin + "; "
                                                 +
                                                 "frame-src 'none'; " +
                                                 "object-src 'none'")))
@@ -196,17 +211,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Get allowed origins from environment variable or use defaults for development
-        String allowedOrigins = System.getenv("ALLOWED_ORIGINS");
-        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty()) {
-            configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-        } else {
-            // Default to localhost origins for development
-            configuration.setAllowedOrigins(Arrays.asList(
-                    "http://localhost:3000",
-                    "http://localhost:4200",
-                    "http://localhost:8080"));
-        }
+        // Read through the Spring environment rather than the raw process environment, so the value
+        // can come from application.yml, a profile file or a container secret, and tests can set it.
+        configuration.setAllowedOrigins(allowedOrigins);
 
         // Allow all standard HTTP methods
         configuration.setAllowedMethods(Arrays.asList(

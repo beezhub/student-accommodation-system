@@ -21,7 +21,7 @@ public class EmailDispatchService {
         private final EmailContentBuilder contentBuilder;
         private final MeterRegistry meterRegistry;
 
-        @Value("${app.base-url:http://localhost:3000}")
+        @Value("${app.base-url}")
         private String baseUrl;
 
         @Value("${app.support-email:accommodation@university.edu}")
