@@ -69,6 +69,9 @@ dependencies {
 	implementation 'io.minio:minio:9.0.0'
 	implementation('org.ff4j:ff4j-spring-boot-starter:1.9') {
 		exclude group: 'org.springdoc'
+		// FF4j's own REST API (/api/ff4j/**) would let any authenticated user flip flags.
+		// Feature flags are managed through FeatureController (/api/admin/features) instead.
+		exclude group: 'org.ff4j', module: 'ff4j-spring-boot-web-api'
 	}
 	implementation 'org.ff4j:ff4j-store-springjdbc:1.9'
 	implementation 'com.google.code.gson:gson:2.10.1'
