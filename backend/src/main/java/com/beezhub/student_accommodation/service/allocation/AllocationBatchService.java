@@ -1,6 +1,8 @@
 package com.beezhub.student_accommodation.service.allocation;
 
 import com.beezhub.student_accommodation.config.FF4jConfig;
+import com.beezhub.student_accommodation.config.TransactionTemplateConfig;
+import org.springframework.beans.factory.annotation.Qualifier;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
@@ -40,7 +42,7 @@ public class AllocationBatchService {
             WaitingListRepository waitingListRepository,
             @Lazy AllocationLifecycleService allocationLifecycleService,
             FeatureFlagService featureFlagService,
-            TransactionTemplate transactionTemplate,
+            @Qualifier(TransactionTemplateConfig.REQUIRES_NEW) TransactionTemplate transactionTemplate,
             Environment environment,
             AllocationScoringOrchestrator allocationScoringOrchestrator,
             StagedAllocationService stagedAllocationService,
@@ -89,8 +91,10 @@ public class AllocationBatchService {
     /**
      * Allocates the next student from waiting list (wrapper for batch allocation).
      * Delegates to batchAllocateFromWaitingList with limit of 1.
+     *
+     * <p>Deliberately not {@code @Transactional}: each allocation commits in its own
+     * REQUIRES_NEW transaction, and this is also invoked from an AFTER_COMMIT listener.
      */
-    @Transactional
     public void allocateNextFromWaitingList() {
         // Delegate to batch method with limit of 1
         BatchAllocationResult result = batchAllocateFromWaitingList(1);
@@ -104,10 +108,15 @@ public class AllocationBatchService {
      * matching.
      * Processes up to maxAllocations students in FIFO order from waiting list.
      *
+     * <p>Deliberately not {@code @Transactional}. Each allocation runs in its own REQUIRES_NEW
+     * transaction via {@code transactionTemplate}, so one failure (room full, student already
+     * allocated) rolls back that item only and the reported counts match what was committed.
+     * An outer transaction here would be joined by nothing but would be marked rollback-only
+     * by a failing item, reverting every allocation while the result still claimed success.
+     *
      * @param maxAllocations Maximum number of allocations to create
      * @return BatchAllocationResult with success/failure statistics
      */
-    @Transactional
     @Timed(value = "service.allocation.batchRun", percentiles = {0.5, 0.95, 0.99})
     public BatchAllocationResult batchAllocateFromWaitingList(int maxAllocations) {
         long startTime = System.currentTimeMillis();
