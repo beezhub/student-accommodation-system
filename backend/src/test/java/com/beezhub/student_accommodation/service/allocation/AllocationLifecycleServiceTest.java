@@ -318,6 +318,81 @@ class AllocationLifecycleServiceTest {
         verify(eventPublisher).publishEvent(new RoomVacatedEvent(1L, room.getId(), AllocationStatus.DECLINED));
     }
 
+    // ── GH-129: updateRoomAllocation had no status or ownership validation ───
+
+    @Test
+    void updateRoomAllocation_declinedAllocation_rejectedWithoutTouchingOccupancy() {
+        // The room was already released when the offer was declined; re-pointing it would
+        // decrement the old room a second time.
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStatus(AllocationStatus.DECLINED);
+        allocation.setStudent(student);
+        allocation.setRoom(room);
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+
+        assertThatThrownBy(() -> allocationLifecycleService.updateRoomAllocation(1L, allocationRequest))
+                .isInstanceOf(InvalidAllocationStatusTransitionException.class);
+
+        verify(roomOccupancyManager, never()).updateOccupancy(any(), anyInt());
+        verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
+    }
+
+    @Test
+    void updateRoomAllocation_completedAllocation_rejected() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStatus(AllocationStatus.COMPLETED);
+        allocation.setStudent(student);
+        allocation.setRoom(room);
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+
+        assertThatThrownBy(() -> allocationLifecycleService.updateRoomAllocation(1L, allocationRequest))
+                .isInstanceOf(InvalidAllocationStatusTransitionException.class);
+    }
+
+    @Test
+    void updateRoomAllocation_newStudentAlreadyHoused_rejected() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStatus(AllocationStatus.OFFERED);
+        allocation.setRoom(room);
+        Student existingOccupant = new Student();
+        existingOccupant.setId(99L);
+        allocation.setStudent(existingOccupant);
+
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> allocationLifecycleService.updateRoomAllocation(1L, allocationRequest))
+                .isInstanceOf(StudentAlreadyAllocatedException.class);
+
+        verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
+    }
+
+    @Test
+    void updateRoomAllocation_offeredAllocationSameStudent_succeeds() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStatus(AllocationStatus.OFFERED);
+        allocation.setStudent(student);
+        allocation.setRoom(room);
+
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
+
+        assertThat(allocationLifecycleService.updateRoomAllocation(1L, allocationRequest)).isNotNull();
+
+        // Same student and same room: no occupancy movement at all.
+        verify(roomOccupancyManager, never()).updateOccupancy(any(), anyInt());
+        verify(roomAllocationRepository).save(allocation);
+    }
+
     @Test
     void deleteRoomAllocation_activeAllocation_statusCancelled() {
         RoomAllocation allocation = new RoomAllocation();
