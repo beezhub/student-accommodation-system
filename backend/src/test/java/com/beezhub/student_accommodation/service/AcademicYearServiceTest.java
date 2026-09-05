@@ -35,6 +35,9 @@ class AcademicYearServiceTest {
 
     @Mock
     private AcademicYearMapper academicYearMapper;
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+
 
     @InjectMocks
     private AcademicYearService academicYearService;

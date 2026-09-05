@@ -54,6 +54,7 @@ public class ApplicationAdminService {
     private final RoomAllocationService roomAllocationService;
     private final ApplicationDocumentService applicationDocumentService;
     private final ApplicationQueryService applicationQueryService;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     /**
      * Updates application status with validation and notifications.
@@ -71,6 +72,7 @@ public class ApplicationAdminService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         ApplicationStatus oldStatus = application.getStatus();
         ApplicationStatus newStatus = ApplicationStatus.valueOf(request.getStatus().toUpperCase());
@@ -139,6 +141,7 @@ public class ApplicationAdminService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         validateStatusTransition(application, UNDER_REVIEW);
 
@@ -163,6 +166,7 @@ public class ApplicationAdminService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         ApplicationStatus oldStatus = application.getStatus();
         validateStatusTransition(application, CHANGES_REQUESTED);
@@ -215,6 +219,7 @@ public class ApplicationAdminService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         // Validate current status is APPROVED
         if (application.getStatus() != APPROVED) {
@@ -300,6 +305,7 @@ public class ApplicationAdminService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         ApplicationResponse response = applicationMapper.toResponse(application);
 

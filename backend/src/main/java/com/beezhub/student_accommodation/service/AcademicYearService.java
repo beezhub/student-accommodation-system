@@ -26,6 +26,7 @@ public class AcademicYearService {
     private final AcademicYearRepository academicYearRepository;
     private final ApplicationRepository applicationRepository;
     private final AcademicYearMapper academicYearMapper;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     @Transactional
     public AcademicYearResponse createAcademicYear(@Valid AcademicYearRequest request) {
@@ -54,6 +55,7 @@ public class AcademicYearService {
 
         AcademicYear academicYear = academicYearRepository.findById(id)
                 .orElseThrow(() -> new AcademicYearNotFoundException("Academic year not found with ID: " + id));
+        tenantOwnershipGuard.assertOwned(academicYear, "Academic year", id);
 
         // Check for duplicate name (exclude current record)
         if (!academicYear.getName().equals(request.getName())
@@ -77,6 +79,7 @@ public class AcademicYearService {
     public AcademicYearResponse getAcademicYearById(Long id) {
         AcademicYear academicYear = academicYearRepository.findById(id)
                 .orElseThrow(() -> new AcademicYearNotFoundException("Academic year not found with ID: " + id));
+        tenantOwnershipGuard.assertReadable(academicYear, "Academic year", id);
         return academicYearMapper.toResponse(academicYear);
     }
 
@@ -106,6 +109,7 @@ public class AcademicYearService {
 
         AcademicYear academicYear = academicYearRepository.findById(id)
                 .orElseThrow(() -> new AcademicYearNotFoundException("Academic year not found with ID: " + id));
+        tenantOwnershipGuard.assertOwned(academicYear, "Academic year", id);
 
         // Clear any existing current year
         academicYearRepository.clearCurrentAcademicYear();
@@ -124,6 +128,7 @@ public class AcademicYearService {
 
         AcademicYear academicYear = academicYearRepository.findById(id)
                 .orElseThrow(() -> new AcademicYearNotFoundException("Academic year not found with ID: " + id));
+        tenantOwnershipGuard.assertOwned(academicYear, "Academic year", id);
 
         // Check if any applications are linked to this academic year
         if (applicationRepository.existsByAcademicYear_Id(id)) {

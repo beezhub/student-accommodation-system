@@ -46,6 +46,7 @@ public class BuildingService {
     private final BuildingMapper buildingMapper;
     private final RoomMapper roomMapper;
     private final BuildingImageService buildingImageService;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     public List<BuildingResponse> getAllBuildings() {
         log.info("Fetching all buildings");
@@ -175,6 +176,7 @@ public class BuildingService {
         log.info("Updating building with id: {}", id);
         Building building = buildingRepository.findById(id)
                 .orElseThrow(() -> new BuildingNotFoundException("Building not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(building, "Building", id);
         building.setName(request.getName());
         building.setAddress(request.getAddress());
         building.setDescription(request.getDescription());
@@ -206,6 +208,7 @@ public class BuildingService {
         log.info("Deleting building with id: {}", id);
         Building building = buildingRepository.findById(id)
                 .orElseThrow(() -> new BuildingNotFoundException("Building not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(building, "Building", id);
         buildingRepository.delete(building);
         log.info("Successfully deleted building with id: {}", id);
     }

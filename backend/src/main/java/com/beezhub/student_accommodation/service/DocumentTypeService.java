@@ -206,6 +206,17 @@ public class DocumentTypeService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Tenant admins cannot modify platform-level document types");
             }
+            return;
+        }
+        // DocumentType is not TenantAware, so no Hibernate filter ever applied and findById would
+        // return another tenant's row. Reject it here (GH-111).
+        Long callerTenantId = TenantContext.getTenantId();
+        if (callerTenantId != null
+                && !PLATFORM_TENANT_ID.equals(callerTenantId)
+                && !callerTenantId.equals(documentType.getTenantId())) {
+            log.warn("action=crossTenantAccessDenied entity=DocumentType id={} ownerTenantId={} callerTenantId={}",
+                    documentType.getId(), documentType.getTenantId(), callerTenantId);
+            throw new DocumentTypeNotFoundException("Document type not found");
         }
     }
 }

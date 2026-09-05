@@ -47,6 +47,9 @@ class RoomServiceTest {
     private RoomAllocationRepository roomAllocationRepository;
     @Mock
     private RoomMapper roomMapper;
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+
 
     @InjectMocks
     private RoomService roomService;

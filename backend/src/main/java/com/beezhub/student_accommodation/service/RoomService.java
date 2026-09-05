@@ -40,6 +40,7 @@ public class RoomService {
     private final BuildingRepository buildingRepository;
     private final RoomAllocationRepository roomAllocationRepository;
     private final RoomMapper roomMapper;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     public List<RoomResponse> getAllRooms() {
         log.info("Fetching all rooms");
@@ -88,6 +89,7 @@ public class RoomService {
         log.info("Fetching room with id: {}", id);
         Room room = roomRepository.findByIdWithAttributes(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
+        tenantOwnershipGuard.assertReadable(room, "Room", id);
         return roomMapper.toResponse(room);
     }
 
@@ -104,6 +106,7 @@ public class RoomService {
             Building building = buildingRepository.findById(request.getBuildingId())
                     .orElseThrow(() -> new BuildingNotFoundException(
                             "Building not found with id: " + request.getBuildingId()));
+            tenantOwnershipGuard.assertOwned(building, "Building", request.getBuildingId());
             if (roomRepository.existsByRoomNumberAndBuilding_Id(request.getRoomNumber(), request.getBuildingId())) {
                 throw new DuplicateResourceException(
                         "A room with this number already exists in this building");
@@ -149,9 +152,13 @@ public class RoomService {
 
             if (request.getBuildingId() != null) {
                 Building building = buildingCache.computeIfAbsent(request.getBuildingId(),
-                        id -> buildingRepository.findById(id)
-                                .orElseThrow(() -> new BuildingNotFoundException(
-                                        "Building not found with id: " + id)));
+                        id -> {
+                            Building found = buildingRepository.findById(id)
+                                    .orElseThrow(() -> new BuildingNotFoundException(
+                                            "Building not found with id: " + id));
+                            tenantOwnershipGuard.assertOwned(found, "Building", id);
+                            return found;
+                        });
                 Set<String> existing = existingByBuilding.getOrDefault(request.getBuildingId(), Set.of());
                 Set<String> inBatch = addedInBatch.computeIfAbsent(request.getBuildingId(), k -> new HashSet<>());
                 if (existing.contains(request.getRoomNumber()) || inBatch.contains(request.getRoomNumber())) {
@@ -174,6 +181,7 @@ public class RoomService {
         log.info("Updating room with id: {} and buildingId: {}", id, request.getBuildingId());
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(room, "Room", id);
 
         // Update basic fields
         room.setRoomNumber(request.getRoomNumber());
@@ -187,6 +195,7 @@ public class RoomService {
             Building building = buildingRepository.findById(request.getBuildingId())
                     .orElseThrow(() -> new BuildingNotFoundException(
                             "Building not found with id: " + request.getBuildingId()));
+            tenantOwnershipGuard.assertOwned(building, "Building", request.getBuildingId());
             if (roomRepository.existsByRoomNumberAndBuilding_IdAndIdNot(
                     request.getRoomNumber(), request.getBuildingId(), id)) {
                 throw new DuplicateResourceException(
@@ -208,6 +217,7 @@ public class RoomService {
         log.info("Deleting room with id: {}", id);
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(room, "Room", id);
         roomRepository.delete(room);
         log.info("Successfully deleted room with id: {}", id);
     }

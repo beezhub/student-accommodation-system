@@ -55,6 +55,9 @@ class BuildingServiceTest {
     private RoomMapper roomMapper;
     @Mock
     private BuildingImageService buildingImageService;
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+
 
     @InjectMocks
     private BuildingService buildingService;
@@ -232,5 +235,31 @@ class BuildingServiceTest {
 
         assertThat(building.getInstitutions()).isEmpty();
         verify(buildingRepository).save(building);
+    }
+
+    // ── GH-111: findById bypasses the Hibernate tenant filter ────────────────
+
+    @Test
+    void updateBuilding_buildingOfAnotherTenant_refusedBeforeAnySave() {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        doThrow(new ResourceNotFoundException("Building not found with id: 1"))
+                .when(tenantOwnershipGuard).assertOwned(building, "Building", 1L);
+
+        assertThatThrownBy(() -> buildingService.updateBuilding(1L, buildingRequest))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(buildingRepository, never()).save(any(Building.class));
+    }
+
+    @Test
+    void deleteBuilding_buildingOfAnotherTenant_refusedBeforeDelete() {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        doThrow(new ResourceNotFoundException("Building not found with id: 1"))
+                .when(tenantOwnershipGuard).assertOwned(building, "Building", 1L);
+
+        assertThatThrownBy(() -> buildingService.deleteBuilding(1L))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(buildingRepository, never()).delete(any(Building.class));
     }
 }
