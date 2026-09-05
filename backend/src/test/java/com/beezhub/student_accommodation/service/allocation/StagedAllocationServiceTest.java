@@ -173,6 +173,38 @@ class StagedAllocationServiceTest {
         }
 
         @Test
+        void confirmAllocation_studentAlreadyAllocated_rejectedWithoutCreatingASecondOffer() {
+                // GH-128: proposals go stale. The batch job or a manual allocation may have offered
+                // this student a room since the proposal was made.
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                when(roomAllocationRepository.existsActiveAllocationByStudentId(student.getId())).thenReturn(true);
+
+                assertThatThrownBy(() -> stagedAllocationService.confirmAllocation(1L, 2L))
+                                .isInstanceOf(StudentAlreadyAllocatedException.class);
+
+                verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
+                verify(roomOccupancyManager, never()).updateOccupancy(any(), anyInt());
+                assertThat(stagedAllocation.getStatus()).isEqualTo(StagedAllocationStatus.PROPOSED);
+        }
+
+        @Test
+        void confirmAllocation_marksTheStudentAllocatedOnTheWaitingList() {
+                // GH-128: the manual path does this inside createRoomAllocation; the staged path
+                // skipped it, leaving the student WAITING and eligible for a second offer.
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                when(roomAllocationRepository.existsActiveAllocationByStudentId(student.getId())).thenReturn(false);
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
+                                .thenReturn(new RoomAllocationResponse());
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+
+                stagedAllocationService.confirmAllocation(1L, 2L);
+
+                verify(waitingListService).updateStatusToAllocated(student.getId());
+        }
+
+        @Test
         void confirmAllocation_roomFull_throwsException() {
                 // Arrange
                 when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));

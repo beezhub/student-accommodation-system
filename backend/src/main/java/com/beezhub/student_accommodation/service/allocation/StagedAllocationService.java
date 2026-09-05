@@ -69,6 +69,7 @@ public class StagedAllocationService {
         log.info("Confirming allocation {} by admin {}", stagedAllocationId, adminId);
         StagedAllocation staged = getStagedAllocation(stagedAllocationId);
         validateStagedStatus(staged, StagedAllocationStatus.PROPOSED);
+        validateStudentNotAlreadyAllocated(staged);
         validateRoomCapacity(staged.getRoom());
 
         RoomAllocation allocation = createConfirmedAllocation(staged);
@@ -76,6 +77,9 @@ public class StagedAllocationService {
 
         updateStagedStatus(staged, StagedAllocationStatus.CONFIRMED);
         roomOccupancyManager.updateOccupancy(staged.getRoom(), 1);
+        // The manual path does this inside createRoomAllocation; without it a confirmed student
+        // stayed WAITING and could be offered a second room by the batch job (GH-128).
+        waitingListService.updateStatusToAllocated(staged.getStudent().getId());
 
         logConfirmationAudit(saved, staged, adminId);
         sendConfirmationNotification(saved);
@@ -229,6 +233,22 @@ public class StagedAllocationService {
         long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
         if (activeAllocations >= room.getCapacity()) {
             throw new RuntimeException("Room " + room.getRoomNumber() + " is at full capacity");
+        }
+    }
+
+    /**
+     * A proposal can sit in PROPOSED for a long time. In the meantime the batch job, a manual
+     * allocation or another confirmation in the same batch may already have offered this student a
+     * room, and confirming anyway produced two live OFFERED rows for one student. Capacity was
+     * re-checked here but this was not (GH-128).
+     */
+    private void validateStudentNotAlreadyAllocated(StagedAllocation staged) {
+        Long studentId = staged.getStudent().getId();
+        if (roomAllocationRepository.existsActiveAllocationByStudentId(studentId)) {
+            log.warn("action=stagedConfirmRejected reason=studentAlreadyAllocated stagedId={} studentId={}",
+                    staged.getId(), studentId);
+            throw new StudentAlreadyAllocatedException(
+                    "Student with ID " + studentId + " already has an active room allocation");
         }
     }
 
