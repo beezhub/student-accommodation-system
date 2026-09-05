@@ -25,6 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +46,8 @@ class AllocationEligibilityServiceTest {
     private RoomAttributesRepository roomAttributesRepository;
     @Mock
     private LegacyScoringStrategy allocationScoringService;
+    @Mock
+    private AllocationAccessGuard allocationAccessGuard;
 
     @InjectMocks
     private AllocationEligibilityService allocationEligibilityService;
@@ -101,6 +106,18 @@ class AllocationEligibilityServiceTest {
         application.setId(1L);
         application.setStudent(student);
         application.setStatus(ApplicationStatus.APPROVED);
+    }
+
+    @Test
+    void checkStudentEligibility_callerNotThatStudent_throwsBeforeLookup() {
+        doThrow(new com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException("not yours"))
+                .when(allocationAccessGuard).assertCanAccessStudent(1L);
+
+        assertThatThrownBy(() -> allocationEligibilityService.checkStudentEligibility(1L))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException.class);
+
+        verify(studentRepository, never()).findById(any());
+        verify(roomAllocationRepository, never()).existsActiveAllocationByStudentId(any());
     }
 
     @Test

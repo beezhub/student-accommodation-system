@@ -40,6 +40,7 @@ public class AllocationLifecycleService {
     private final AllocationBatchService allocationBatchService;
     private final AllocationAuditService allocationAuditService;
     private final MeterRegistry meterRegistry;
+    private final AllocationAccessGuard allocationAccessGuard;
 
     public AllocationLifecycleService(
             RoomAllocationRepository roomAllocationRepository,
@@ -53,7 +54,8 @@ public class AllocationLifecycleService {
             AllocationMoveService allocationMoveService,
             @Lazy AllocationBatchService allocationBatchService,
             AllocationAuditService allocationAuditService,
-            MeterRegistry meterRegistry) {
+            MeterRegistry meterRegistry,
+            AllocationAccessGuard allocationAccessGuard) {
         this.roomAllocationRepository = roomAllocationRepository;
         this.studentRepository = studentRepository;
         this.roomRepository = roomRepository;
@@ -66,6 +68,7 @@ public class AllocationLifecycleService {
         this.allocationBatchService = allocationBatchService;
         this.allocationAuditService = allocationAuditService;
         this.meterRegistry = meterRegistry;
+        this.allocationAccessGuard = allocationAccessGuard;
     }
 
     /**
@@ -106,6 +109,7 @@ public class AllocationLifecycleService {
     public RoomAllocationResponse acceptOffer(Long id, AcceptOfferRequest request) {
         log.info("Accepting room allocation offer with id: {}", id);
         RoomAllocation allocation = getAllocation(id);
+        allocationAccessGuard.assertCanAccessAllocation(allocation);
 
         validateOfferAcceptance(allocation, request);
 
@@ -132,6 +136,7 @@ public class AllocationLifecycleService {
     public RoomAllocationResponse declineOffer(Long id, DeclineOfferRequest request) {
         log.info("Declining room allocation offer with id: {} for reason: {}", id, request.getDeclineReason());
         RoomAllocation allocation = getAllocation(id);
+        allocationAccessGuard.assertCanAccessAllocation(allocation);
 
         long previousDeclineCount = getPreviousDeclineCount(allocation);
 

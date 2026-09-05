@@ -34,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -70,6 +71,8 @@ class AllocationLifecycleServiceTest {
     private RoomOccupancyManager roomOccupancyManager;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private MeterRegistry meterRegistry;
+    @Mock
+    private AllocationAccessGuard allocationAccessGuard;
 
     @InjectMocks
     private AllocationLifecycleService allocationLifecycleService;
@@ -159,6 +162,44 @@ class AllocationLifecycleServiceTest {
 
         assertThatThrownBy(() -> allocationLifecycleService.createRoomAllocation(allocationRequest))
                 .isInstanceOf(StudentAlreadyAllocatedException.class);
+    }
+
+    @Test
+    void acceptOffer_callerNotOwner_throwsAndNothingChanges() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStudent(student);
+        allocation.setStatus(AllocationStatus.OFFERED);
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        doThrow(new UnauthorizedAccessException("not yours"))
+                .when(allocationAccessGuard).assertCanAccessAllocation(allocation);
+
+        assertThatThrownBy(() -> allocationLifecycleService.acceptOffer(1L, new AcceptOfferRequest()))
+                .isInstanceOf(UnauthorizedAccessException.class);
+
+        assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.OFFERED);
+        verify(roomAllocationRepository, never()).save(any());
+        verify(waitingListService, never()).updateStatusToAllocated(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void declineOffer_callerNotOwner_throwsAndRoomNotFreed() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStudent(student);
+        allocation.setRoom(room);
+        allocation.setStatus(AllocationStatus.OFFERED);
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        doThrow(new UnauthorizedAccessException("not yours"))
+                .when(allocationAccessGuard).assertCanAccessAllocation(allocation);
+
+        assertThatThrownBy(() -> allocationLifecycleService.declineOffer(1L, new DeclineOfferRequest()))
+                .isInstanceOf(UnauthorizedAccessException.class);
+
+        assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.OFFERED);
+        verify(roomOccupancyManager, never()).updateOccupancy(any(), anyInt());
+        verify(roomAllocationRepository, never()).save(any());
     }
 
     @Test
