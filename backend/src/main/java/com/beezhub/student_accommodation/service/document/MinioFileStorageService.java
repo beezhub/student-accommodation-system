@@ -119,21 +119,26 @@ public class MinioFileStorageService implements FileStorageService {
     }
 
     @Override
-    public Stream<String> listObjects() {
+    public Stream<StoredObject> listObjects(String prefix) {
         String bucketName = minioConfig.getBucketName();
         Iterable<Result<Item>> results = minioClient.listObjects(
                 ListObjectsArgs.builder()
                         .bucket(bucketName)
+                        .prefix(prefix == null ? "" : prefix)
                         .recursive(true)
                         .build());
 
         return StreamSupport.stream(results.spliterator(), false)
                 .map(itemResult -> {
                     try {
-                        return itemResult.get().objectName();
+                        return itemResult.get();
                     } catch (Exception e) {
                         throw new FileStorageException("Error listing objects from MinIO", e);
                     }
-                });
+                })
+                .filter(item -> !item.isDir())
+                .map(item -> new StoredObject(
+                        item.objectName(),
+                        item.lastModified() == null ? null : item.lastModified().toInstant()));
     }
 }

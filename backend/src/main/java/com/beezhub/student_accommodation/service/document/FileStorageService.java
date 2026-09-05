@@ -57,9 +57,10 @@ public interface FileStorageService {
     String getContentType(String key);
 
     /**
-     * Lists all object keys in the storage.
+     * Lists objects whose key starts with the given prefix.
      *
-     * @return A stream of object keys
+     * @param prefix The key prefix to list under; an empty string lists the whole bucket
+     * @return A stream of stored objects (keys and last-modified timestamps)
      */
-    Stream<String> listObjects();
+    Stream<StoredObject> listObjects(String prefix);
 }
