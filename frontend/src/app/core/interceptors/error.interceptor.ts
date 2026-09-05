@@ -11,6 +11,19 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const snackBar = inject(MatSnackBar);
   const tokenStorage = inject(TokenStorageService);
 
+  // Endpoints reachable without a session. A 401 from one of these is a credential failure, so the
+  // session-expired handling must not run.
+  const PUBLIC_AUTH_PATHS = [
+    '/api/auth/login',
+    '/api/auth/signup',
+    '/api/auth/forgot-password',
+    '/api/auth/verify-reset-token',
+    '/api/auth/reset-password',
+    '/api/auth/verify-email',
+    '/api/auth/resend-verification',
+  ];
+  const isPublicAuthRequest = PUBLIC_AUTH_PATHS.some((path) => request.url.includes(path));
+
   const getServerErrorMessage = (error: HttpErrorResponse): string => {
     // Try to extract error message from different response formats
     if (error.error?.message) {
@@ -53,6 +66,12 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const handleSpecificErrors = (error: HttpErrorResponse): void => {
     switch (error.status) {
       case 401:
+        // A 401 from a public auth endpoint means the credentials were wrong, not that a session
+        // expired. Treating it as an expiry cleared storage, showed "Your session has expired" and
+        // bounced the user to /login?returnUrl=/login on top of the login page's own message.
+        if (isPublicAuthRequest) {
+          break;
+        }
         // Unauthorized - redirect to login
         localStorage.removeItem('currentUser');
         tokenStorage.removeToken();
@@ -124,8 +143,10 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
       // Handle specific error codes
       handleSpecificErrors(error);
 
-      // Display error message to user (except for silent errors)
-      if (!request.headers.has('X-Silent-Error')) {
+      // Display error message to user (except for silent errors). A rejected sign-in is reported
+      // by the login page itself, so the interceptor stays quiet and the user sees one message.
+      const credentialFailure = isPublicAuthRequest && error.status === 401;
+      if (!request.headers.has('X-Silent-Error') && !credentialFailure) {
         showError(errorMessage);
       }
 

@@ -157,6 +157,40 @@ describe('AuthService', () => {
       expect(institutionServiceSpy.clearCache).toHaveBeenCalled();
       expect(yearOfStudyServiceSpy.clearCache).toHaveBeenCalled();
     });
+
+    it('logout_withToken_callsBackendSoTheTokenIsBlacklisted', () => {
+      tokenStorageSpy.getToken.and.returnValue('a.b.c');
+
+      service.logout();
+
+      const req = httpMock.expectOne(`${apiUrl}/logout`);
+      expect(req.request.method).toBe('POST');
+      req.flush({});
+    });
+
+    it('logout_backendFails_localSessionStillCleared', () => {
+      tokenStorageSpy.getToken.and.returnValue('a.b.c');
+      localStorage.setItem('currentUser', JSON.stringify(mockUser));
+
+      service.logout();
+
+      httpMock
+        .expectOne(`${apiUrl}/logout`)
+        .flush({ message: 'boom' }, { status: 500, statusText: 'Server Error' });
+
+      expect(tokenStorageSpy.removeToken).toHaveBeenCalled();
+      expect(localStorage.getItem('currentUser')).toBeNull();
+      expect(service.currentUserValue).toBeNull();
+    });
+
+    it('logout_withoutToken_makesNoRequest', () => {
+      tokenStorageSpy.getToken.and.returnValue(null);
+
+      service.logout();
+
+      httpMock.expectNone(`${apiUrl}/logout`);
+      expect(tokenStorageSpy.removeToken).toHaveBeenCalled();
+    });
   });
 
   describe('isLoggedIn', () => {

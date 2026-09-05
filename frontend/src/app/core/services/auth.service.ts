@@ -98,13 +98,30 @@ export class AuthService {
     // Stop notifications before logout
     this.notificationService.stopNotifications();
 
+    // Tell the backend to blacklist this token, otherwise a stolen copy stays valid for the
+    // rest of its lifetime. Local state is cleared either way, so a failed call cannot strand
+    // the user in a half-logged-out state.
+    const hadToken = !!this.tokenStorage.getToken();
+    if (hadToken) {
+      this.http
+        .post(`${this.apiUrl}/logout`, {}, { headers: { 'X-Silent-Error': 'true' } })
+        .subscribe({
+          error: (err) =>
+            console.error('Logout request failed; clearing local session anyway', err),
+        });
+    }
+
+    this.clearLocalSession();
+    this.router.navigate(['/home']);
+  }
+
+  /** Drops every trace of the session held in the browser. */
+  private clearLocalSession(): void {
     localStorage.removeItem('currentUser');
     this.tokenStorage.removeToken();
     this.currentUserSubject.next(null);
     this.institutionService.clearCache();
     this.yearOfStudyService.clearCache();
-    this.router.navigate(['/home']);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }
   // Login a user
   login(data: any): Observable<User> {
