@@ -154,11 +154,16 @@ applied migration. Enums are stored as strings; no soft deletes.
 
 - Most tests are Mockito unit tests. For anything needing a database, extend a base class rather than configuring
   containers: `AbstractIntegrationTest` (`@SpringBootTest(RANDOM_PORT)`, Testcontainers PostgreSQL 16.2 + MailHog +
-  Redis + MinIO, Flyway on, `ddl-auto=none`, `protected mailServer` for assertions) or `AbstractJpaTest`
-  (`@DataJpaTest`, PostgreSQL container only, `create-drop`, Flyway off). `application-test.yml` still configures H2
-  for tests that only need a context.
+  Redis + MinIO, Flyway on, `ddl-auto=validate`, `protected mailServer` for assertions) or `AbstractJpaTest`
+  (`@DataJpaTest`, PostgreSQL container only, `create-drop`, Flyway off). `application-test.yml` is dead config:
+  nothing sets `spring.profiles.active` and no `@ActiveProfiles("test")` exists, so its H2 datasource is never loaded.
 - DDL property path: `application.yml` sets `spring.jpa.properties.hibernate.hbm2ddl.auto`, which overrides the
   `spring.jpa.hibernate.ddl-auto` shortcut. A `@DynamicPropertySource` must override both.
+- Entity/schema agreement is enforced only by `AbstractIntegrationTest` running `validate` against the Flyway
+  schema (GH-148). An entity change and its migration must land in the same commit, or every subclass fails at
+  context load. Never set `hbm2ddl.auto` back to `none` to clear that failure. Note what `validate` does *not*
+  check: nullability, defaults, column length, foreign keys, unique constraints and indexes. A migration adding
+  `NOT NULL` with no default still passes CI and still fails at runtime.
 - Full-stack tests without `@Transactional`: delete in FK-safe order in `@AfterEach` (applications -> academic_years ->
   students -> app_users); set `SecurityContextHolder` with a `UsernamePasswordAuthenticationToken(email, null, List.of())`
   for `authService.getCurrentUser()`; set `TenantContext.setTenantId(...)` so `TenantListener` stamps `tenant_id`; clear
@@ -169,10 +174,11 @@ applied migration. Enums are stored as strings; no soft deletes.
 - `AbstractIntegrationTest` supplies its own `jwt.secret`, so the suite does not need a `JWT_SECRET` env var or a
   `backend/.env`. If every `@SpringBootTest` class fails with "JWT_SECRET environment variable must be set", a
   subclass is loading a context that bypasses the base class properties.
-- CI baseline as of 2026-09-04 (run on this fix): backend job green, 1116 tests passed, 0 failed, 2 skipped,
-  including `RoomServiceTest` and `ScheduledJobRunnerTest`. The gitleaks job fails independently because the
-  `GITLEAKS_LICENSE` repository secret is not set. Compare a red branch against `develop` before attributing it to
-  your change.
+- CI baseline: do not trust a pinned number here, it goes stale on every merge. Read the test count off the most
+  recent green backend job on `develop` and compare your branch against that. The gitleaks job fails independently
+  because the `GITLEAKS_LICENSE` repository secret is not set; that failure is never yours. Testcontainers cannot
+  start on the maintainer's Docker Desktop, so integration tests are verified in CI only, and a local run failing
+  ~57 container tests is the expected local baseline.
 
 ## Frontend architecture
 
