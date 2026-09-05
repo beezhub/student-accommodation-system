@@ -103,6 +103,7 @@ class AllocationBatchServiceTest {
         Student student = new Student();
         student.setId(1L);
         Application application = new Application();
+        application.setTenantId(1L);
         application.setId(10L);
         application.setStudent(student);
         application.setStatus(ApplicationStatus.APPROVED);
@@ -143,6 +144,7 @@ class AllocationBatchServiceTest {
         Student student = new Student();
         student.setId(1L);
         Application application = new Application();
+        application.setTenantId(1L);
         application.setStudent(student);
         
         WaitingListEntry entry = new WaitingListEntry();
@@ -150,7 +152,8 @@ class AllocationBatchServiceTest {
         entry.setApplication(application);
 
         when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
-        when(allocationScoringOrchestrator.buildScoringMatrix(any())).thenReturn(Collections.emptyMap());
+        // Not reached: the service checks for available rooms before scoring.
+        lenient().when(allocationScoringOrchestrator.buildScoringMatrix(any())).thenReturn(Collections.emptyMap());
         // Or rooms empty
         when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(Collections.emptyList());
 
@@ -169,6 +172,7 @@ class AllocationBatchServiceTest {
         Student student = new Student();
         student.setId(1L);
         Application application = new Application();
+        application.setTenantId(1L);
         application.setId(10L);
         application.setStudent(student);
         application.setStatus(ApplicationStatus.APPROVED);
@@ -242,6 +246,7 @@ class AllocationBatchServiceTest {
         Student student = new Student();
         student.setId(1L);
         Application application = new Application();
+        application.setTenantId(1L);
         
         WaitingListEntry entry = new WaitingListEntry();
         entry.setStudent(student);
@@ -250,8 +255,9 @@ class AllocationBatchServiceTest {
         
         when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
 
-        // And: Scoring service returns empty list (declined rooms are filtered out by the service)
-        when(allocationScoringOrchestrator.buildScoringMatrix(any())).thenReturn(Collections.emptyMap());
+        // And: Scoring service returns empty list (declined rooms are filtered out by the service).
+        // Not reached: the service checks for available rooms before scoring.
+        lenient().when(allocationScoringOrchestrator.buildScoringMatrix(any())).thenReturn(Collections.emptyMap());
 
         // Act
         allocationBatchService.allocateNextFromWaitingList();
@@ -267,6 +273,7 @@ class AllocationBatchServiceTest {
         Student student = new Student();
         student.setId(1L);
         Application application = new Application();
+        application.setTenantId(1L);
         application.setId(10L);
         application.setStudent(student);
         application.setStatus(ApplicationStatus.APPROVED);
