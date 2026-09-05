@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.hibernate.Session;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -54,6 +55,16 @@ public class TenantFilterAspect {
     public void enableTenantFilter() {
         Long tenantId = TenantContext.getTenantId();
         if (tenantId == null || TenantContext.PLATFORM_TENANT_ID.equals(tenantId)) {
+            return;
+        }
+
+        // Without an active transaction the shared EntityManager proxy hands back a throwaway
+        // session, so enabling the filter on it does nothing and the caller silently reads every
+        // tenant's rows. TenantFilterConfig orders the transaction advisor outermost so this should
+        // not happen; log loudly rather than fail quietly if it ever does (GH-124).
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            log.warn("action=tenantFilterNotApplied reason=noActiveTransaction tenantId={} "
+                    + "— the calling service method needs @Transactional", tenantId);
             return;
         }
 
