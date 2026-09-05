@@ -142,7 +142,7 @@ public class AuthService {
                 userRepository.save(user);
             }
 
-            String token = jwtUtil.generateToken(userDetails);
+            String token = jwtUtil.generateToken(userDetails, Boolean.TRUE.equals(user.getMustChangePassword()));
             var userData = appUserMapper.toUserData(user);
 
             meterRegistry.counter("sas.auth.login.success", "tenant", String.valueOf(user.getTenantId())).increment();
@@ -197,9 +197,9 @@ public class AuthService {
     public LoginResponse refreshToken(Authentication authentication) {
         // Re-issue a new JWT for the authenticated principal
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String token = jwtUtil.generateToken(userDetails);
         var user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+        String token = jwtUtil.generateToken(userDetails, Boolean.TRUE.equals(user.getMustChangePassword()));
         var userData = appUserMapper.toUserData(user);
         return new LoginResponse(token, userData);
     }

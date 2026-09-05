@@ -110,6 +110,10 @@ manage flags through `FeatureController` (`/api/admin/features`).
 are also matched in `SecurityConfig`. Filter order: `RateLimitingFilter` (Redis counter per IP on `/api/auth/**`,
 skipped if Redis is down) -> `JwtAuthenticationFilter` (rejects blacklisted `jti` via `TokenBlacklistService`).
 Admin tokens expire in 4h, student tokens in 10h; `LoginAttemptService` locks accounts after repeated failures.
+`MustChangePasswordFilter` runs after the JWT filter and rejects every request except login, refresh, me, logout and
+change-password while the token carries the `mustChangePassword` claim. The seeded demo admin is disabled by
+`V2026_09_05_1000__disable_seeded_admin.sql` unless `DEMO_SEED=true`; provision the real first admin with
+`ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD` (`AdminBootstrap`).
 Endpoints a STUDENT can reach by id (accept/decline offer, `GET /room-allocation/{id}`, active allocation, eligibility) must
 call `AllocationAccessGuard` in the service: students are tenant 0, so the tenant filter does nothing for them and only an
 explicit ownership check stops one student acting on another student's allocation.

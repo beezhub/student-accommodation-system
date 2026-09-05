@@ -45,6 +45,7 @@ class TenantAdminControllerTest {
     @MockitoBean com.beezhub.student_accommodation.security.user.AppUserDetailsService appUserDetailsService;
     @MockitoBean com.beezhub.student_accommodation.security.jwt.JwtAuthenticationFilter jwtAuthenticationFilter;
     @MockitoBean RateLimitingFilter rateLimitingFilter;
+    @MockitoBean com.beezhub.student_accommodation.security.MustChangePasswordFilter mustChangePasswordFilter;
 
     private static final Long TENANT_ID = 1L;
 
@@ -71,6 +72,12 @@ class TenantAdminControllerTest {
             chain.doFilter(request, response);
             return null;
         }).when(rateLimitingFilter).doFilter(any(), any(), any());
+
+        org.mockito.Mockito.doAnswer(invocation -> {
+            jakarta.servlet.FilterChain passThrough = invocation.getArgument(2);
+            passThrough.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(mustChangePasswordFilter).doFilter(any(), any(), any());
     }
 
     private TenantAdminResponseDto sampleResponse() {

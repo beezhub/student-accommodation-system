@@ -139,7 +139,7 @@ class AuthServiceExtendedTest {
     void refreshToken_reissuesToKenForPrincipal() {
         Authentication auth = mock(Authentication.class);
         when(auth.getPrincipal()).thenReturn(userDetails);
-        when(jwtUtil.generateToken(userDetails)).thenReturn("new-token");
+        when(jwtUtil.generateToken(eq(userDetails), anyBoolean())).thenReturn("new-token");
         when(userRepository.findByEmail(userDetails.getUsername())).thenReturn(Optional.of(user));
         UserData userData = new UserData();
         when(appUserMapper.toUserData(user)).thenReturn(userData);

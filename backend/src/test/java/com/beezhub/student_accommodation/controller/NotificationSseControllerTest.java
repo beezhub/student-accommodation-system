@@ -44,6 +44,19 @@ class NotificationSseControllerTest {
     @MockBean
     private com.beezhub.student_accommodation.security.RateLimitingFilter rateLimitingFilter;
 
+    // Filter beans are part of the web slice; mocking it keeps JwtUtil out of this context.
+    @MockBean
+    private com.beezhub.student_accommodation.security.MustChangePasswordFilter mustChangePasswordFilter;
+
+    @org.junit.jupiter.api.BeforeEach
+    void passThroughMockedFilters() throws Exception {
+        Mockito.doAnswer(invocation -> {
+            jakarta.servlet.FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(mustChangePasswordFilter).doFilter(Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
     @Test
     @WithMockUser(username = "test@example.com")
     void subscribe_shouldReturnSseEmitter() throws Exception {

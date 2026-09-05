@@ -53,6 +53,9 @@ class AuthControllerTest {
     @MockitoBean
     private RateLimitingFilter rateLimitingFilter;
 
+    @MockitoBean
+    private com.beezhub.student_accommodation.security.MustChangePasswordFilter mustChangePasswordFilter;
+
     private LoginRequest loginRequest;
     private LoginResponse loginResponse;
     private SignupRequest signupRequest;
@@ -96,6 +99,12 @@ class AuthControllerTest {
                 chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
                 return null;
             }).when(rateLimitingFilter).doFilter(any(), any(), any());
+
+        org.mockito.Mockito.doAnswer(invocation -> {
+            jakarta.servlet.FilterChain passThrough = invocation.getArgument(2);
+            passThrough.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(mustChangePasswordFilter).doFilter(any(), any(), any());
         } catch (Exception e) {
             e.printStackTrace();
         }

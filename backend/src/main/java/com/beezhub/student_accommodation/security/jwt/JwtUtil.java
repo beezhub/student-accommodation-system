@@ -59,7 +59,23 @@ public class JwtUtil {
                 .getPayload();
     }
 
+    /** Claim carrying the forced-password-change flag; read by {@code MustChangePasswordFilter}. */
+    public static final String CLAIM_MUST_CHANGE_PASSWORD = "mustChangePassword";
+
+    /**
+     * Whether the token was issued to a user who still has to change their password. Tokens issued
+     * before this claim existed report {@code false}.
+     */
+    public boolean extractMustChangePassword(String token) {
+        Object value = extractAllClaims(token).get(CLAIM_MUST_CHANGE_PASSWORD);
+        return Boolean.TRUE.equals(value) || "true".equals(String.valueOf(value));
+    }
+
     public String generateToken(UserDetails userDetails) {
+        return generateToken(userDetails, false);
+    }
+
+    public String generateToken(UserDetails userDetails, boolean mustChangePassword) {
         var roles = userDetails.getAuthorities().stream()
             .map(GrantedAuthority::getAuthority)
             .collect(Collectors.toList());
@@ -82,6 +98,7 @@ public class JwtUtil {
             .subject(userDetails.getUsername())
             .claim("roles", roles)
             .claim("tenantId", tenantId)
+            .claim(CLAIM_MUST_CHANGE_PASSWORD, mustChangePassword)
             .issuedAt(new Date())
             .expiration(new Date(System.currentTimeMillis() + expirationMs))
             .signWith(key)

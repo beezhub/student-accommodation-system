@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.config;
 
+import com.beezhub.student_accommodation.security.MustChangePasswordFilter;
 import com.beezhub.student_accommodation.security.RateLimitingFilter;
 import com.beezhub.student_accommodation.security.jwt.JwtAuthenticationFilter;
 import com.beezhub.student_accommodation.security.user.AppUserDetailsService;
@@ -35,14 +36,17 @@ public class SecurityConfig {
     private final AppUserDetailsService userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RateLimitingFilter rateLimitingFilter;
+    private final MustChangePasswordFilter mustChangePasswordFilter;
 
     public SecurityConfig(
             AppUserDetailsService userDetailsService,
             JwtAuthenticationFilter jwtAuthenticationFilter,
-            RateLimitingFilter rateLimitingFilter) {
+            RateLimitingFilter rateLimitingFilter,
+            MustChangePasswordFilter mustChangePasswordFilter) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.rateLimitingFilter = rateLimitingFilter;
+        this.mustChangePasswordFilter = mustChangePasswordFilter;
     }
 
     @Bean
@@ -99,6 +103,9 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // Runs after the JWT filter: blocks everything but the change-password flow while
+                // the caller still has must_change_password set.
+                .addFilterAfter(mustChangePasswordFilter, JwtAuthenticationFilter.class)
                 .build();
     }
 
