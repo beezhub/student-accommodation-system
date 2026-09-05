@@ -108,6 +108,13 @@ app:
   features:
     auto-allocation:
       enabled: ${AUTO_ALLOCATION_ENABLED:true}
+  security:
+    # Addresses of reverse proxies whose X-Forwarded-For may be trusted. Leave empty when the app is
+    # reached directly. Unset behind a proxy, every client shares the proxy's address and therefore
+    # one rate-limit bucket, which throttles the whole deployment.
+    trusted-proxies: ${APP_SECURITY_TRUSTED_PROXIES:}
+    rate-limit:
+      requests-per-minute: ${AUTH_RATE_LIMIT_PER_MINUTE:30}
   admin-bootstrap:
     # Creates or resets the first PLATFORM_ADMIN at startup; leave blank once the admin has signed in.
     email: ${ADMIN_BOOTSTRAP_EMAIL:}
@@ -127,3 +134,10 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+  metrics:
+    scrape:
+      # HTTP basic credentials Prometheus uses for /actuator/prometheus. With the password empty the
+      # endpoint stays PLATFORM_ADMIN-only; setting it registers a scrape-only account that can read
+      # nothing else. Never expose the actuator port publicly.
+      username: ${PROMETHEUS_SCRAPE_USER:prometheus}
+      password: ${PROMETHEUS_SCRAPE_PASSWORD:}
