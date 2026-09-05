@@ -223,4 +223,57 @@ class SystemSettingServiceTest {
         verify(systemSettingRepository).save(argThat(s ->
                 "new_key".equals(s.getSettingKey()) && "new_value".equals(s.getSettingValue())));
     }
+
+    // ── GH-127: auto_allocation_enabled is platform-only ─────────────────────
+
+    @org.junit.jupiter.api.AfterEach
+    void clearTenantContext() {
+        com.beezhub.student_accommodation.service.tenant.TenantContext.clear();
+    }
+
+    @Test
+    @DisplayName("updateSetting_platformOnlyKeyAsTenantAdmin_rejectedWithoutWriting")
+    void updateSetting_platformOnlyKeyAsTenantAdmin_rejectedWithoutWriting() {
+        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(TENANT_1_ID);
+
+        assertThatThrownBy(() -> systemSettingService.updateSetting(KEY, "true"))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException.class)
+                .hasMessageContaining("platform administrator");
+
+        verify(systemSettingRepository, never()).save(any(SystemSetting.class));
+    }
+
+    @Test
+    @DisplayName("deleteSetting_platformOnlyKeyAsTenantAdmin_rejectedWithoutDeleting")
+    void deleteSetting_platformOnlyKeyAsTenantAdmin_rejectedWithoutDeleting() {
+        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(TENANT_1_ID);
+
+        assertThatThrownBy(() -> systemSettingService.deleteSetting(KEY))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException.class);
+
+        verify(systemSettingRepository, never()).delete(any(SystemSetting.class));
+    }
+
+    @Test
+    @DisplayName("updateSetting_platformOnlyKeyInPlatformContext_allowed")
+    void updateSetting_platformOnlyKeyInPlatformContext_allowed() {
+        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(
+                com.beezhub.student_accommodation.service.tenant.TenantContext.PLATFORM_TENANT_ID);
+        when(systemSettingRepository.findBySettingKey(KEY)).thenReturn(Optional.empty());
+
+        systemSettingService.updateSetting(KEY, "true");
+
+        verify(systemSettingRepository).save(any(SystemSetting.class));
+    }
+
+    @Test
+    @DisplayName("updateSetting_ordinaryKeyAsTenantAdmin_stillAllowed")
+    void updateSetting_ordinaryKeyAsTenantAdmin_stillAllowed() {
+        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(TENANT_1_ID);
+        when(systemSettingRepository.findBySettingKey("application_review_days")).thenReturn(Optional.empty());
+
+        systemSettingService.updateSetting("application_review_days", "5");
+
+        verify(systemSettingRepository).save(any(SystemSetting.class));
+    }
 }
