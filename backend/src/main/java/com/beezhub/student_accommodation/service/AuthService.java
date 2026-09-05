@@ -194,14 +194,42 @@ public class AuthService {
         return appUserMapper.toUserData(user);
     }
 
+    /**
+     * Issues a fresh JWT for the caller and retires the one they presented.
+     *
+     * <p>{@code JwtAuthenticationFilter} puts the username (a {@code String}) in the principal, so
+     * the previous cast to {@code UserDetails} always threw and this endpoint never worked. The
+     * user is re-read from the database rather than trusted from the old token, so a role change,
+     * a tenant move or a lock takes effect on refresh instead of persisting for the token's
+     * lifetime, and the old jti is blacklisted so refreshing cannot be used to keep two live
+     * tokens.
+     */
+    @Transactional
     public LoginResponse refreshToken(Authentication authentication) {
-        // Re-issue a new JWT for the authenticated principal
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        var user = userRepository.findByEmail(userDetails.getUsername())
+        if (authentication == null || authentication.getName() == null) {
+            throw new UserNotFoundException("No authenticated user found");
+        }
+        AppUser user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (Boolean.TRUE.equals(user.getIsAnonymized())) {
+            throw new UserNotFoundException("User not found");
+        }
+        if (user.getAccountLockedUntil() != null && user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
+            // 401, matching validateLogin. AccountLockedException is reused by the rate limiter and
+            // maps to 429, which would be misleading here.
+            log.warn("action=refreshRejected reason=accountLocked userId={}", user.getId());
+            throw new BadCredentialsException("Account is locked");
+        }
+
+        // Retire the presented token before handing out its replacement.
+        blacklistCurrentToken(authentication);
+
+        AppUserDetails userDetails = new AppUserDetails(
+                user.getEmail(), user.getUserPassword(), user.getUserRole().name(), user.getTenantId());
         String token = jwtUtil.generateToken(userDetails, Boolean.TRUE.equals(user.getMustChangePassword()));
-        var userData = appUserMapper.toUserData(user);
-        return new LoginResponse(token, userData);
+        log.info("action=tokenRefreshed userId={}", user.getId());
+        return new LoginResponse(token, appUserMapper.toUserData(user));
     }
 
     public void logout(Authentication authentication) {

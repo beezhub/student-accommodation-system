@@ -137,10 +137,13 @@ class AuthServiceExtendedTest {
 
     @Test
     void refreshToken_reissuesToKenForPrincipal() {
+        // GH-120: the filter puts the username (a String) in the principal, so refresh must read
+        // authentication.getName() rather than casting to UserDetails.
         Authentication auth = mock(Authentication.class);
-        when(auth.getPrincipal()).thenReturn(userDetails);
-        when(jwtUtil.generateToken(eq(userDetails), anyBoolean())).thenReturn("new-token");
-        when(userRepository.findByEmail(userDetails.getUsername())).thenReturn(Optional.of(user));
+        when(auth.getName()).thenReturn(user.getEmail());
+        when(auth.getCredentials()).thenReturn("old.jwt.token");
+        when(jwtUtil.generateToken(any(AppUserDetails.class), anyBoolean())).thenReturn("new-token");
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
         UserData userData = new UserData();
         when(appUserMapper.toUserData(user)).thenReturn(userData);
 
@@ -148,6 +151,68 @@ class AuthServiceExtendedTest {
 
         assertThat(response.getToken()).isEqualTo("new-token");
         assertThat(response.getUser()).isSameAs(userData);
+    }
+
+    @Test
+    void refreshToken_stringPrincipalFromFilter_doesNotThrowClassCastException() {
+        Authentication auth = mock(Authentication.class);
+        // Exactly what JwtAuthenticationFilter builds: a String principal.
+        lenient().when(auth.getPrincipal()).thenReturn(user.getEmail());
+        when(auth.getName()).thenReturn(user.getEmail());
+        when(auth.getCredentials()).thenReturn("old.jwt.token");
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(any(AppUserDetails.class), anyBoolean())).thenReturn("new-token");
+        when(appUserMapper.toUserData(user)).thenReturn(new UserData());
+
+        assertThat(authService.refreshToken(auth).getToken()).isEqualTo("new-token");
+    }
+
+    @Test
+    void refreshToken_blacklistsThePresentedTokenBeforeIssuingANewOne() {
+        Authentication auth = mock(Authentication.class);
+        when(auth.getName()).thenReturn(user.getEmail());
+        when(auth.getCredentials()).thenReturn("old.jwt.token");
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(jwtUtil.extractJti("old.jwt.token")).thenReturn("old-jti");
+        when(jwtUtil.getRemainingTtlSeconds("old.jwt.token")).thenReturn(600L);
+        when(jwtUtil.generateToken(any(AppUserDetails.class), anyBoolean())).thenReturn("new-token");
+        when(appUserMapper.toUserData(user)).thenReturn(new UserData());
+
+        authService.refreshToken(auth);
+
+        verify(tokenBlacklistService).blacklistToken("old-jti", 600L);
+    }
+
+    @Test
+    void refreshToken_lockedAccount_rejectedWithoutIssuingAToken() {
+        user.setAccountLockedUntil(java.time.LocalDateTime.now().plusMinutes(10));
+        Authentication auth = mock(Authentication.class);
+        when(auth.getName()).thenReturn(user.getEmail());
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.refreshToken(auth))
+                .isInstanceOf(org.springframework.security.authentication.BadCredentialsException.class);
+
+        verify(jwtUtil, never()).generateToken(any(AppUserDetails.class), anyBoolean());
+    }
+
+    @Test
+    void refreshToken_anonymisedUser_rejected() {
+        user.setIsAnonymized(true);
+        Authentication auth = mock(Authentication.class);
+        when(auth.getName()).thenReturn(user.getEmail());
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.refreshToken(auth))
+                .isInstanceOf(UserNotFoundException.class);
+
+        verify(jwtUtil, never()).generateToken(any(AppUserDetails.class), anyBoolean());
+    }
+
+    @Test
+    void refreshToken_nullAuthentication_rejected() {
+        assertThatThrownBy(() -> authService.refreshToken(null))
+                .isInstanceOf(UserNotFoundException.class);
     }
 
     // ─────────────────────────────────────────────────────────────
