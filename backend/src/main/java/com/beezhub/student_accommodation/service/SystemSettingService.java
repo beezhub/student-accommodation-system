@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.model.entity.SystemSetting;
 import com.beezhub.student_accommodation.repository.SystemSettingRepository;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
@@ -22,6 +23,9 @@ public class SystemSettingService {
     private final SystemSettingRepository systemSettingRepository;
 
     public static final String AUTO_ALLOCATION_ENABLED = "auto_allocation_enabled";
+
+    /** Settings only the platform tenant may create, change or remove. */
+    static final java.util.Set<String> PLATFORM_ONLY_KEYS = java.util.Set.of(AUTO_ALLOCATION_ENABLED);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Platform-level (tenant_id = 0) — filter-bypassing native queries
@@ -99,6 +103,7 @@ public class SystemSettingService {
      */
     @Transactional
     public void updateSetting(String key, String value) {
+        assertNotPlatformOnly(key);
         log.info("Updating tenant setting: {} = {}", key, value);
         Optional<SystemSetting> settingOpt = systemSettingRepository.findBySettingKey(key);
         if (settingOpt.isPresent()) {
@@ -122,6 +127,7 @@ public class SystemSettingService {
      */
     @Transactional
     public void deleteSetting(String key) {
+        assertNotPlatformOnly(key);
         SystemSetting setting = systemSettingRepository.findBySettingKey(key)
                 .filter(s -> !TenantContext.PLATFORM_TENANT_ID.equals(s.getTenantId()))
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -132,6 +138,26 @@ public class SystemSettingService {
     // ──────────────────────────────────────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Rejects a tenant-scoped write to a setting that only the platform may own.
+     *
+     * <p>The tenant-scoped endpoint passed every key straight through, so a tenant admin could
+     * create an override row for {@code auto_allocation_enabled} and turn batch allocation on or
+     * off for themselves, contradicting the documented platform-only rule (GH-127).
+     * The check lives here rather than in the controller so any future caller inherits it.
+     */
+    private void assertNotPlatformOnly(String key) {
+        if (!PLATFORM_ONLY_KEYS.contains(key)) {
+            return;
+        }
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId != null && !TenantContext.PLATFORM_TENANT_ID.equals(tenantId)) {
+            log.warn("action=platformOnlySettingRejected key={} tenantId={}", key, tenantId);
+            throw new UnauthorizedAccessException(
+                    "Setting '" + key + "' can only be changed by a platform administrator");
+        }
+    }
 
     /** Returns true if auto-allocation is enabled for the current context (cascade). */
     public boolean isAutoAllocationEnabled() {
