@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 @Injectable({
@@ -9,11 +9,11 @@ export class EmailVerifiedGuard {
   private router = inject(Router);
   private authService = inject(AuthService);
 
-  canActivate(): boolean {
+  canActivate(_route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
     const user = this.authService.currentUserValue;
 
     if (!user) {
-      this.router.navigate(['/login']);
+      this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
       return false;
     }
 
