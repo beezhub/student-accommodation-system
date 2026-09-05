@@ -227,6 +227,95 @@ class AllocationLifecycleServiceTest {
         verify(eventPublisher).publishEvent(any(AllocationAcceptedEvent.class));
     }
 
+    /** Builds an OFFERED allocation wired to the shared fixtures, ready for the accept path. */
+    private RoomAllocation offeredAllocation() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStatus(AllocationStatus.OFFERED);
+        allocation.setStudent(student);
+        allocation.setRoom(room);
+        allocation.setApplication(application);
+        return allocation;
+    }
+
+    /**
+     * GH-139: the offer deadline emailed to the student was enforced only by the hourly sweep, so a
+     * lapsed offer stayed acceptable for up to an hour, and accepting it extended the hold by a
+     * further seven days. Rejecting is all this path does - expiring the row, releasing the bed and
+     * refilling the waiting list stay with OfferExpiryService, hence the occupancy assertion.
+     */
+    @Test
+    void acceptOffer_offerDeadlinePassed_rejectedAndNothingChanges() {
+        RoomAllocation allocation = offeredAllocation();
+        allocation.setOfferExpiryDate(LocalDateTime.now().minusMinutes(1));
+        application.setStatus(ApplicationStatus.APPROVED);
+
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        // Stubbed so that before the guard existed this test failed on the missing rejection, not on
+        // an NPE from an unstubbed save further down acceptOffer.
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
+
+        AcceptOfferRequest request = new AcceptOfferRequest();
+        request.setExpectedCheckInDate(LocalDateTime.now().plusDays(1));
+
+        assertThatThrownBy(() -> allocationLifecycleService.acceptOffer(1L, request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("expired");
+
+        assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.OFFERED);
+        assertThat(allocation.getCheckInExpiryDate()).isNull();
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.APPROVED);
+        verify(roomAllocationRepository, never()).save(any());
+        verify(applicationRepository, never()).save(any());
+        verify(waitingListService, never()).updateStatusToAllocated(any());
+        verify(eventPublisher, never()).publishEvent(any());
+        verify(roomOccupancyManager, never()).updateOccupancy(any(), anyInt());
+    }
+
+    /**
+     * Pins the strict {@code isBefore} comparison: a deadline that has not yet passed is still
+     * acceptable. It is the same predicate the expiry sweep queries with, so the two never disagree
+     * about a given row.
+     */
+    @Test
+    void acceptOffer_offerDeadlineNotYetReached_accepted() {
+        RoomAllocation allocation = offeredAllocation();
+        allocation.setOfferExpiryDate(LocalDateTime.now().plusSeconds(2));
+
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
+
+        AcceptOfferRequest request = new AcceptOfferRequest();
+        request.setExpectedCheckInDate(LocalDateTime.now().plusDays(1));
+
+        allocationLifecycleService.acceptOffer(1L, request);
+
+        assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.ACCEPTED);
+    }
+
+    /**
+     * The column is nullable, and a row with no deadline is invisible to the sweep query, so accept
+     * has to admit it for the two to stay consistent. Unreachable in practice: both paths that create
+     * an OFFERED allocation stamp a deadline.
+     */
+    @Test
+    void acceptOffer_nullOfferExpiryDate_accepted() {
+        RoomAllocation allocation = offeredAllocation();
+
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
+
+        AcceptOfferRequest request = new AcceptOfferRequest();
+        request.setExpectedCheckInDate(LocalDateTime.now().plusDays(1));
+
+        allocationLifecycleService.acceptOffer(1L, request);
+
+        assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.ACCEPTED);
+    }
+
     @Test
     void acceptOffer_expiredOffer_throwsException() {
         RoomAllocation allocation = new RoomAllocation();

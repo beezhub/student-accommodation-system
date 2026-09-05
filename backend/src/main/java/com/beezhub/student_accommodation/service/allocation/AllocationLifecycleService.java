@@ -17,10 +17,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @Slf4j
 public class AllocationLifecycleService {
+
+    /** Human-readable form for the deadline echoed to the student when an offer has lapsed. */
+    private static final DateTimeFormatter OFFER_DEADLINE_FORMAT =
+            DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm");
 
     @Value("${app.allocation.offer-expiry-days:7}")
     private int offerExpiryDays;
@@ -394,6 +399,21 @@ public class AllocationLifecycleService {
         if (allocation.getStatus() != AllocationStatus.OFFERED) {
             throw new IllegalStateException(
                     "Can only accept OFFERED allocations, current status: " + allocation.getStatus());
+        }
+        // The hourly sweep (ScheduledJobRunner.runOfferExpiry -> AllocationExpiryService.expireOffers)
+        // is the only thing that flips a stale offer to EXPIRED, so a row stayed acceptable for up to
+        // an hour past the deadline the student was emailed. Enforce that deadline here (GH-139).
+        //
+        // isBefore is deliberate: it is the same strict predicate the sweep query uses, so there is no
+        // instant at which one admits a row the other would expire. A null deadline is unreachable in
+        // practice - both OFFERED creation paths stamp one - and a null row is equally invisible to
+        // the sweep, so treating it as "no deadline" keeps the two consistent.
+        LocalDateTime deadline = allocation.getOfferExpiryDate();
+        if (deadline != null && deadline.isBefore(now)) {
+            log.warn("action=offerAcceptRejected reason=offerExpired allocationId={} offerExpiryDate={}",
+                    allocation.getId(), deadline);
+            throw new IllegalStateException("This offer expired on "
+                    + deadline.format(OFFER_DEADLINE_FORMAT) + " and can no longer be accepted");
         }
         AllocationStatusValidator.validate(allocation, AllocationStatus.ACCEPTED);
     }
