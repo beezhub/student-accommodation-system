@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,7 +18,6 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      List<Application> findByStatus(ApplicationStatus status);
 
-     long countByApplicationCodeStartingWith(String s);
 
      long countByStatus(ApplicationStatus status);
 
@@ -59,8 +60,17 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      boolean existsByAcademicYear_Id(Long academicYearId);
 
-     @Query("SELECT MAX(a.applicationCode) FROM Application a WHERE a.applicationCode LIKE :prefix%")
-     Optional<String> findMaxApplicationCodeByPrefix(@Param("prefix") String prefix);
+     /**
+      * Race-free application-code counter; see V2026_09_05_1100__application_code_sequence.sql.
+      *
+      * <p>nextval is a write, but Spring Data cannot infer that from a native SELECT, so this would
+      * otherwise inherit SimpleJpaRepository's readOnly=true default and Postgres would reject it
+      * outside a read-write transaction. MANDATORY declares the requirement, so a misuse fails at
+      * the call site rather than as a confusing error from the driver.
+      */
+     @Transactional(propagation = Propagation.MANDATORY)
+     @Query(value = "SELECT nextval('application_code_seq')", nativeQuery = true)
+     long nextApplicationCodeSequence();
 
      @Query("SELECT COUNT(DISTINCT a.student.id) FROM Application a")
      long countDistinctStudents();
