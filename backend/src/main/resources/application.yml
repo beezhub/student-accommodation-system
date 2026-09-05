@@ -114,9 +114,9 @@ app:
     batch-interval-ms: ${BATCH_INTERVAL_MS:21600000}  # 6 hours
     batch-size: ${BATCH_SIZE:50}
     batch-on-expiry: ${BATCH_ON_EXPIRY:true}
-  features:
-    auto-allocation:
-      enabled: ${AUTO_ALLOCATION_ENABLED:true}
+  # No app.features block: the auto-allocation flag lives in ff4j_features and is toggled through
+  # /api/admin/features. A property that overwrote it on every boot silently reverted admin
+  # changes at the next restart (GH-142).
   security:
     # Browser origins allowed to call the API. No default: an unset value must fail startup rather
     # than silently falling back to localhost, which would block the real front end (GH-135).

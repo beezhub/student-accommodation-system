@@ -84,7 +84,11 @@ allocation, orphan file cleanup, notification retry) and wraps each job with log
 
 **Feature flags.** Service code calls the `FeatureFlagService` interface; `FF4JFeatureFlagService` is the only class
 allowed to touch the FF4j bean. Batch auto-allocation is gated by the `auto-allocation` flag
-(`FF4jConfig.FEATURE_AUTO_ALLOCATION`, seeded from `AUTO_ALLOCATION_ENABLED`). The FF4j REST API jar
+(`FF4jConfig.FEATURE_AUTO_ALLOCATION`). The stored row is the source of truth: the flag ships disabled
+from `V2026_02_25_0012__fix_ff4j_schema.sql` and is toggled through `/api/admin/features`. There is no
+environment variable for it, and none should be added; the one that existed overwrote admin changes on
+every boot (GH-142). Note this is a different switch from the `auto_allocation_enabled` system setting,
+which gates per-application auto-allocation. The FF4j REST API jar
 (`ff4j-spring-boot-web-api`) is excluded from the build and `/api/ff4j/**` is PLATFORM_ADMIN-only in `SecurityConfig`;
 manage flags through `FeatureController` (`/api/admin/features`).
 
