@@ -239,10 +239,11 @@ public class ApplicationCoreService {
                 return prefix + String.format("%03d", nextSequence);
         }
 
+        @Transactional(readOnly = true)
         public ApplicationResponse getApplicationById(Long applicationId) {
                 log.info("Retrieving application with ID: {}", applicationId);
 
-                Application application = applicationRepository.findById(applicationId)
+                Application application = applicationRepository.findWithDetailsById(applicationId)
                                 .orElseThrow(() -> new ApplicationNotFoundException(
                                                 "Application not found with ID: " + applicationId));
 
@@ -265,6 +266,7 @@ public class ApplicationCoreService {
                 return applicationMapper.toResponse(application);
         }
 
+        @Transactional(readOnly = true)
         public List<ApplicationResponse> getApplicationsByStudentId(Long studentId) {
                 log.info("Retrieving applications for student with ID: {}", studentId);
 
@@ -281,7 +283,7 @@ public class ApplicationCoreService {
                         throw new UnauthorizedAccessException("You are not authorized to view these applications");
                 }
 
-                return applicationRepository.findByStudent_Id(studentId)
+                return applicationRepository.findWithDetailsByStudent_Id(studentId)
                                 .stream()
                                 .map(applicationMapper::toResponse)
                                 .collect(Collectors.toList());

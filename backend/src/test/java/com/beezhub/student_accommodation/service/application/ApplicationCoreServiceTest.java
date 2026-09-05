@@ -138,7 +138,7 @@ class ApplicationCoreServiceTest {
 
         @Test
         void getApplicationById_shouldReturnApplication() {
-                when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+                when(applicationRepository.findWithDetailsById(1L)).thenReturn(Optional.of(application));
                 when(authService.getCurrentUser()).thenReturn(studentUser);
                 when(applicationMapper.toResponse(application)).thenReturn(new ApplicationResponse());
 
