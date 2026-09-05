@@ -10,6 +10,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import jakarta.persistence.EntityManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -25,6 +28,9 @@ public class NotificationEventListener {
     private final NotificationPersistenceService notificationService;
     private final EmailDispatchService emailDispatchService;
 
+    /** The shared, transaction-bound EntityManager proxy; see {@link #reload(Application)}. */
+    private final EntityManager entityManager;
+
     /** Creates a templateData map with {@code templateName} pre-populated. */
     private static Map<String, Object> td(String templateName, Map<String, Object> vars) {
         Map<String, Object> data = new HashMap<>(vars);
@@ -35,6 +41,49 @@ public class NotificationEventListener {
     /** Null-safe string coercion: returns the value if non-null, otherwise empty string. */
     private static Object ns(Object value) {
         return value != null ? value : "";
+    }
+
+    /**
+     * Re-loads an entity carried on an event so its LAZY associations can be read.
+     *
+     * <p>Every handler here runs on the notification executor, after the publishing transaction has
+     * committed. The entity on the event is detached and its proxies are bound to a closed session,
+     * so the first {@code getStudent().getAppUser()} threw {@code LazyInitializationException}
+     * before the inner try block. No {@code Notification} row was written and nothing was retried,
+     * so the email was lost with only a log line (GH-131).
+     *
+     * <p>Each handler is {@code REQUIRES_NEW}, which gives the async thread its own session; these
+     * helpers return an instance managed by it. Falling back to the detached entity keeps the old
+     * behaviour when the row has since been deleted, rather than turning a lost email into a crash.
+     */
+    private Application reload(Application detached) {
+        return detached == null ? null : orSelf(entityManager.find(Application.class, detached.getId()), detached);
+    }
+
+    private Document reload(Document detached) {
+        return detached == null ? null : orSelf(entityManager.find(Document.class, detached.getId()), detached);
+    }
+
+    private Room reload(Room detached) {
+        return detached == null ? null : orSelf(entityManager.find(Room.class, detached.getId()), detached);
+    }
+
+    private RoomAllocation reload(RoomAllocation detached) {
+        return detached == null ? null : orSelf(entityManager.find(RoomAllocation.class, detached.getId()), detached);
+    }
+
+    private StagedAllocation reload(StagedAllocation detached) {
+        return detached == null ? null
+                : orSelf(entityManager.find(StagedAllocation.class, detached.getId()), detached);
+    }
+
+    private <T> T orSelf(T managed, T detached) {
+        if (managed == null) {
+            log.warn("action=notificationEntityMissing type={} — sending from the detached copy",
+                    detached.getClass().getSimpleName());
+            return detached;
+        }
+        return managed;
     }
 
     /** Builds a Map from key-value pairs, coercing null values to empty string. */
@@ -48,8 +97,9 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleApplicationStatusChanged(ApplicationStatusChangedEvent event) {
-        Application application = event.application();
+        Application application = reload(event.application());
         TenantContext.setTenantId(application.getTenantId());
         try {
             ApplicationStatus newStatus = event.newStatus();
@@ -102,8 +152,9 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleDocumentVerification(DocumentVerificationEvent event) {
-        Document document = event.document();
+        Document document = reload(event.document());
         TenantContext.setTenantId(document.getTenantId());
         try {
             DocumentStatus newStatus = event.newStatus();
@@ -159,8 +210,9 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleDocumentComment(DocumentCommentEvent event) {
-        Document document = event.document();
+        Document document = reload(event.document());
         TenantContext.setTenantId(document.getTenantId());
         try {
             String commentText = event.comment();
@@ -201,8 +253,9 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleAllocationCreated(AllocationCreatedEvent event) {
-        RoomAllocation allocation = event.allocation();
+        RoomAllocation allocation = reload(event.allocation());
         TenantContext.setTenantId(allocation.getTenantId());
         try {
             Student student = allocation.getStudent();
@@ -239,11 +292,12 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleAllocationMoved(AllocationMovedEvent event) {
-        RoomAllocation newAllocation = event.newAllocation();
+        RoomAllocation newAllocation = reload(event.newAllocation());
         TenantContext.setTenantId(newAllocation.getTenantId());
         try {
-            Room oldRoom = event.oldRoom();
+            Room oldRoom = reload(event.oldRoom());
             Room newRoom = newAllocation.getRoom();
             String reason = event.reason();
             LocalDateTime effectiveDate = event.effectiveDate();
@@ -285,8 +339,9 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleAllocationExpired(AllocationExpiredEvent event) {
-        RoomAllocation allocation = event.allocation();
+        RoomAllocation allocation = reload(event.allocation());
         TenantContext.setTenantId(allocation.getTenantId());
         try {
             boolean isCheckIn = event.isCheckInExpiry();
@@ -367,8 +422,9 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleAllocationAccepted(AllocationAcceptedEvent event) {
-        RoomAllocation allocation = event.allocation();
+        RoomAllocation allocation = reload(event.allocation());
         TenantContext.setTenantId(allocation.getTenantId());
         try {
             log.info("Allocation accepted event received for allocation {}", allocation.getId());
@@ -380,8 +436,9 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleAllocationDeclined(AllocationDeclinedEvent event) {
-        RoomAllocation allocation = event.allocation();
+        RoomAllocation allocation = reload(event.allocation());
         TenantContext.setTenantId(allocation.getTenantId());
         try {
             int totalDeclineCount = event.totalDeclineCount();
@@ -427,8 +484,9 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleStagedAllocationProposed(StagedAllocationProposedEvent event) {
-        StagedAllocation stagedAllocation = event.stagedAllocation();
+        StagedAllocation stagedAllocation = reload(event.stagedAllocation());
         TenantContext.setTenantId(stagedAllocation.getTenantId());
         try {
             sendAllocationProposalNotification(stagedAllocation);
@@ -471,8 +529,9 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleStagedAllocationConfirmed(StagedAllocationConfirmedEvent event) {
-        RoomAllocation roomAllocation = event.roomAllocation();
+        RoomAllocation roomAllocation = reload(event.roomAllocation());
         if (roomAllocation != null) {
             TenantContext.setTenantId(roomAllocation.getTenantId());
             try {
@@ -516,8 +575,9 @@ public class NotificationEventListener {
 
     @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleStagedAllocationRejected(StagedAllocationRejectedEvent event) {
-        StagedAllocation stagedAllocation = event.stagedAllocation();
+        StagedAllocation stagedAllocation = reload(event.stagedAllocation());
         TenantContext.setTenantId(stagedAllocation.getTenantId());
         try {
             sendAllocationRejectedNotification(stagedAllocation, event.reason(), 0);

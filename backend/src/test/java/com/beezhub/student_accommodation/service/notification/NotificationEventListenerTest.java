@@ -3,6 +3,7 @@ package com.beezhub.student_accommodation.service.notification;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.model.event.*;
+import jakarta.persistence.EntityManager;
 import com.beezhub.student_accommodation.service.notification.NotificationPersistenceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,14 @@ class NotificationEventListenerTest {
 
     @Mock
     private EmailDispatchService emailDispatchService;
+
+    /**
+     * Returns null from every {@code find}, so the listener falls back to the entity carried on the
+     * event. That keeps these cases asserting on the same instances they always did, and covers the
+     * deleted-row fallback path added for GH-131.
+     */
+    @Mock
+    private EntityManager entityManager;
 
     @InjectMocks
     private NotificationEventListener notificationEventListener;
