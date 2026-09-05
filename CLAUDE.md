@@ -92,8 +92,10 @@ manage flags through `FeatureController` (`/api/admin/features`).
 - `JwtAuthenticationFilter` reads `tenantId` from the JWT into the `TenantContext` ThreadLocal and clears it after the
   request. `TenantContext.PLATFORM_TENANT_ID = 0` is the platform tenant, seeded by Flyway
   (`V2026_02_25_0013__platform_tenant_seed.sql`); student accounts are platform-level.
-- The Hibernate filter `tenantFilter` is enabled per request by `TenantFilterConfig` (MVC interceptor) and around
-  service methods by `TenantFilterAspect`. Entities implementing `TenantAware` carry
+- The Hibernate filter `tenantFilter` is enabled by `TenantFilterAspect` alone; there is no MVC interceptor. It only
+  works on the transactional session, so `TenantFilterConfig` pins the transaction advisor to `HIGHEST_PRECEDENCE`,
+  making the aspect run inside the transaction. A service read with no `@Transactional` is therefore unfiltered and
+  logs `action=tenantFilterNotApplied`. Entities implementing `TenantAware` carry
   `@Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")` and `TenantListener` stamps `tenant_id` on
   persist. Tenant FKs use a dual mapping: writable `@Column tenantId` plus read-only `@ManyToOne tenant`.
 - Code that runs outside a request (scheduled jobs, async listeners) sees all tenants unless it sets the context
