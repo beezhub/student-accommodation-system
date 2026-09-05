@@ -217,10 +217,13 @@ public class AllocationLifecycleService {
     public RoomAllocationResponse updateRoomAllocation(Long id, RoomAllocationRequest request) {
         log.info("Updating room allocation with id: {}", id);
         RoomAllocation allocation = getAllocation(id);
+        validateAllocationIsEditable(allocation);
 
         Room oldRoom = allocation.getRoom();
         Student student = getStudent(request.getStudentId());
         Room newRoom = getRoom(request.getRoomId());
+
+        validateStudentChange(allocation, student);
 
         boolean roomChanged = false;
         if (!oldRoom.getId().equals(newRoom.getId())) {
@@ -266,6 +269,41 @@ public class AllocationLifecycleService {
     private Room getRoom(Long id) {
         return roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
+    }
+
+    /**
+     * Statuses an allocation may still be edited in. Every other status has already released the
+     * room: a DECLINED, EXPIRED, COMPLETED or CANCELLED allocation had its occupancy decremented
+     * when it ended, so re-pointing it at another room decremented the old room a second time and
+     * incremented the new one, corrupting both counts (GH-129).
+     */
+    private static final java.util.Set<AllocationStatus> EDITABLE_STATUSES =
+            java.util.EnumSet.of(AllocationStatus.OFFERED, AllocationStatus.ACCEPTED);
+
+    private void validateAllocationIsEditable(RoomAllocation allocation) {
+        if (!EDITABLE_STATUSES.contains(allocation.getStatus())) {
+            log.warn("action=allocationUpdateRejected allocationId={} status={}",
+                    allocation.getId(), allocation.getStatus());
+            throw new InvalidAllocationStatusTransitionException(
+                    "Only OFFERED or ACCEPTED allocations can be updated; this one is "
+                            + allocation.getStatus());
+        }
+    }
+
+    /**
+     * A different student may only be moved onto this allocation when they are not already housed,
+     * otherwise the update would give one student two active allocations. An ACTIVE allocation is
+     * moved between rooms through {@code AllocationMoveService}, which keeps its own audit trail.
+     */
+    private void validateStudentChange(RoomAllocation allocation, Student newStudent) {
+        Student current = allocation.getStudent();
+        if (current != null && current.getId().equals(newStudent.getId())) {
+            return;
+        }
+        if (roomAllocationRepository.existsActiveAllocationByStudentId(newStudent.getId())) {
+            throw new StudentAlreadyAllocatedException(
+                    "Student with ID " + newStudent.getId() + " already has an active room allocation");
+        }
     }
 
     private static Long roomIdOf(RoomAllocation allocation) {
