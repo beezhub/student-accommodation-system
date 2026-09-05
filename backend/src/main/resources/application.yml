@@ -62,6 +62,12 @@ spring:
           auth: ${MAIL_SMTP_AUTH:false}
           starttls:
             enable: ${MAIL_STARTTLS_ENABLE:false}
+          # Without these a hung SMTP host blocks a notificationExecutor thread forever, and with
+          # 20 threads the whole notification pipeline stops (GH-132). JavaMail defaults to
+          # waiting indefinitely.
+          connectiontimeout: ${MAIL_CONNECT_TIMEOUT_MS:5000}
+          timeout: ${MAIL_READ_TIMEOUT_MS:5000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT_MS:5000}
     default-encoding: UTF-8
   servlet:
     multipart:
