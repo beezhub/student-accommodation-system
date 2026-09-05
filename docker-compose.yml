@@ -68,6 +68,10 @@ services:
       - APP_UNIVERSITY_NAME=${APP_UNIVERSITY_NAME:-University}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # Addresses whose X-Forwarded-For may be trusted. Without this every client behind a proxy
+      # shares one rate-limit bucket, throttling the whole deployment.
+      - APP_SECURITY_TRUSTED_PROXIES=${APP_SECURITY_TRUSTED_PROXIES:-}
+      - AUTH_RATE_LIMIT_PER_MINUTE=${AUTH_RATE_LIMIT_PER_MINUTE:-30}
     restart: unless-stopped
     networks:
       - app-network
