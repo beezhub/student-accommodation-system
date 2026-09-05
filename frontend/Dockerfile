@@ -14,11 +14,13 @@ RUN npm ci
 COPY . .
 
 # Build and verify output
-RUN npm run build --configuration=production && \
+# `--` is required: without it npm swallows the flag and an unoptimised build is produced.
+# angular.json writes to dist/demo (the project is named "demo"), not dist/frontend.
+RUN npm run build -- --configuration=production && \
     echo "Listing dist directory:" && \
-    ls -la dist/frontend/browser && \
-    echo "Contents of dist/frontend/browser:" && \
-    find dist/frontend/browser -type f
+    ls -la dist/demo/browser && \
+    echo "Contents of dist/demo/browser:" && \
+    find dist/demo/browser -type f
 
 # Stage 2: Serve the application
 FROM nginx:1.25-alpine
@@ -31,7 +33,7 @@ RUN mkdir -p /usr/share/nginx/html && \
     chown -R nginx:nginx /usr/share/nginx/html
 
 # Copy built application
-COPY --from=builder --chown=nginx:nginx /app/dist/frontend/browser/* /usr/share/nginx/html/
+COPY --from=builder --chown=nginx:nginx /app/dist/demo/browser/ /usr/share/nginx/html/
 
 # Verify the files are copied
 RUN ls -la /usr/share/nginx/html
