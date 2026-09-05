@@ -52,6 +52,9 @@ class DocumentStatusServiceTest {
     @Mock
     private DocumentCommentService documentCommentService;
 
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentAccessGuard documentAccessGuard;
+
     @InjectMocks
     private DocumentStatusService documentStatusService;
 

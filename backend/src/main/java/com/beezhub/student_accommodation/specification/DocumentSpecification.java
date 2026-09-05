@@ -104,6 +104,24 @@ public class DocumentSpecification {
         };
     }
 
+    /**
+     * Limits results to documents of students who have an application in the given tenant.
+     * Documents carry no tenant filter of their own, so tenant admins are scoped through the
+     * applications they can act on.
+     */
+    public static Specification<Document> studentHasApplicationInTenant(Long tenantId) {
+        return (root, query, criteriaBuilder) -> {
+            var subquery = query.subquery(Long.class);
+            var appRoot = subquery.from(Application.class);
+            subquery.select(appRoot.get("id"))
+                    .where(
+                            criteriaBuilder.equal(appRoot.get("student").get("id"), root.get("student").get("id")),
+                            criteriaBuilder.equal(appRoot.get("tenantId"), tenantId)
+                    );
+            return criteriaBuilder.exists(subquery);
+        };
+    }
+
     public static Specification<Document> belongsToUser(Long userId) {
         return (root, query, criteriaBuilder) ->
                 criteriaBuilder.equal(root.get("student").get("appUser").get("id"), userId);

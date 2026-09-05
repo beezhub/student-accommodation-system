@@ -16,9 +16,18 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
-@EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
-public class Document implements TenantAware {
+/**
+ * A student's uploaded document.
+ *
+ * <p>Documents are <strong>student-owned, not tenant-owned</strong>: one pack of documents is
+ * reused across every application a student makes, including applications to different tenants.
+ * The entity therefore carries no {@code tenantFilter} — filtering by the uploader's tenant hid
+ * every student upload from tenant admins, because students are platform-tenant users.
+ * {@code tenant_id} stays as the platform tenant for schema compatibility and is not a scope.
+ * Tenant scoping for admins is explicit instead: see {@code DocumentAccessGuard}, which grants a
+ * tenant admin access only to students who have an application in that admin's tenant.
+ */
+public class Document {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

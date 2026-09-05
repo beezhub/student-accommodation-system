@@ -36,6 +36,7 @@ public class DocumentQueryService {
     private final AppUserRepository appUserRepository;
     private final AuthService authService;
     private final FileStorageService fileStorageService;
+    private final com.beezhub.student_accommodation.service.document.DocumentAccessGuard documentAccessGuard;
 
     @Transactional(readOnly = true)
     public DocumentResponse getDocumentInfo(Long documentId, String username) {
@@ -75,9 +76,7 @@ public class DocumentQueryService {
     @Transactional(readOnly = true)
     public List<DocumentResponse> getAllDocumentsByUserId(Long userId, String username) {
         var user = getUserByEmail(username);
-        if (!user.getId().equals(userId) && !user.getUserRole().isAdmin()) {
-            throw new UnauthorizedAccessException("Unauthorized access to documents for user ID: " + userId);
-        }
+        documentAccessGuard.assertCanAccessDocumentsOfUser(userId, user);
 
         List<Document> documents = documentRepository.findAllByStudent_AppUser_Id(userId);
         return documentMapper.toDocumentResponseList(documents);
@@ -103,6 +102,12 @@ public class DocumentQueryService {
         // If not admin, restrict to user's own documents
         if (!user.getUserRole().isAdmin()) {
             spec = spec.and(DocumentSpecification.belongsToUser(user.getId()));
+        } else {
+            // Tenant admins see only students who applied to their tenant; platform admins see all.
+            var tenantScope = documentAccessGuard.tenantScopeOf(user);
+            if (tenantScope.isPresent()) {
+                spec = spec.and(DocumentSpecification.studentHasApplicationInTenant(tenantScope.get()));
+            }
         }
 
         Page<Document> documentsPage = documentRepository.findAll(spec, pageable);
@@ -134,8 +139,6 @@ public class DocumentQueryService {
     }
 
     private void assertDocumentAccess(Document document, AppUser user) {
-        if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new UnauthorizedAccessException("Unauthorized access to document");
-        }
+        documentAccessGuard.assertCanAccessDocument(document, user);
     }
 }
