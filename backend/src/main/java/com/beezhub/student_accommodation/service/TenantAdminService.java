@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,6 +29,10 @@ public class TenantAdminService {
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
+    private final TokenBlacklistService tokenBlacklistService;
+
+    /** Revocation markers must outlive the longest token lifetime (10h student tokens). */
+    private static final long TOKEN_REVOCATION_MARKER_TTL_SECONDS = 12 * 60 * 60L;
 
     @Transactional
     public TenantAdminResponseDto createTenantAdmin(Long tenantId, TenantAdminRequestDto request) {
@@ -83,6 +88,12 @@ public class TenantAdminService {
 
         admin.setAccountLockedUntil(LocalDateTime.of(9999, 12, 31, 23, 59, 59));
         appUserRepository.save(admin);
+
+        // Locking only stops future logins; tokens already issued stay valid until they expire.
+        // Retire them now (GH-122). The marker outlives the longest token lifetime.
+        tokenBlacklistService.revokeTokensIssuedBefore(
+                admin.getEmail(), Instant.now(), TOKEN_REVOCATION_MARKER_TTL_SECONDS);
+
         log.info("Deactivated TENANT_ADMIN user {} for tenant {}", userId, tenantId);
     }
 
