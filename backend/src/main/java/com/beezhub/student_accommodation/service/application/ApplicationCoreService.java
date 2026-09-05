@@ -227,16 +227,21 @@ public class ApplicationCoreService {
                 return applicationMapper.toResponse(savedApplication);
         }
 
+        /**
+         * Uniqueness comes from the database sequence alone, so nothing here reads, parses or
+         * compares an existing code. That is what removes the concurrent-submit race, the
+         * lexicographic MAX wraparound past 999 and the tenant-filtered read at once (GH-143).
+         *
+         * <p>The year is decorative and the sequence does not reset with it, so the ordinal
+         * continues across years. Padding stays at three digits to match every code already
+         * issued; past 999 it simply renders wider, which is harmless now that no code is parsed.
+         * Rolled-back submits leave gaps, because nextval is not transactional.
+         */
         private String generateApplicationCode() {
-                int year = LocalDate.now().getYear();
-                String prefix = "APP-" + year + "-";
-                long nextSequence = applicationRepository.findMaxApplicationCodeByPrefix(prefix)
-                                .map(maxCode -> {
-                                        String sequencePart = maxCode.substring(prefix.length());
-                                        return Long.parseLong(sequencePart) + 1;
-                                })
-                                .orElse(1L);
-                return prefix + String.format("%03d", nextSequence);
+                // A native query makes Hibernate flush the session first. Nothing is dirty at this
+                // point, since this runs before save(); do not move it after entity mutations.
+                long sequence = applicationRepository.nextApplicationCodeSequence();
+                return String.format("APP-%d-%03d", LocalDate.now().getYear(), sequence);
         }
 
         @Transactional(readOnly = true)

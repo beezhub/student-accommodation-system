@@ -13,6 +13,7 @@ import com.beezhub.student_accommodation.service.DocumentTypeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -186,12 +187,60 @@ class ApplicationCoreServiceTest {
                 when(authService.getCurrentUser()).thenReturn(studentUser);
                 when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
                 when(academicYearService.isApplicationWindowOpen(academicYear)).thenReturn(true);
-                lenient().when(applicationRepository.countByApplicationCodeStartingWith(anyString())).thenReturn(0L);
+                lenient().when(applicationRepository.nextApplicationCodeSequence()).thenReturn(1L);
                 lenient().when(documentRepository.findDocumentTypeNamesByStudentId(1L)).thenReturn(Set.of());
                 lenient().when(documentTypeService.getEffectiveRequiredTypeNames(anyLong())).thenReturn(Set.of());
                 lenient().when(applicationRepository.existsByStudent_IdAndTenantIdAndStatusIn(anyLong(), anyLong(), any())).thenReturn(false);
                 when(applicationRepository.save(any(Application.class))).thenReturn(application);
                 when(applicationMapper.toResponse(any(Application.class))).thenReturn(new ApplicationResponse());
+        }
+
+        /**
+         * GH-143: the code used to come from SELECT MAX(application_code) + 1 read back through the
+         * tenant filter, which raced on concurrent submits, wrapped around lexicographically past 999
+         * and saw only one tenant's rows. It now comes from a database sequence.
+         *
+         * <p>What this test can and cannot show: it pins the format and proves the service consults
+         * the sequence exactly once and reads no application row to build the code. The three original
+         * defects are prevented by the DELETION of findMaxApplicationCodeByPrefix, which the compiler
+         * enforces, and the atomicity itself is only provable against Postgres.
+         */
+        @Test
+        void submitApplication_codeComesFromTheSequence() {
+                var academicYear = buildOpenAcademicYear();
+                when(buildingRepository.findById(10L)).thenReturn(Optional.of(defaultBuilding));
+                when(buildingPreferenceRepository.saveAll(any())).thenReturn(List.of());
+                stubCommonSubmitMocks(academicYear);
+                when(applicationRepository.nextApplicationCodeSequence()).thenReturn(7L);
+
+                applicationCoreService.submitApplication(applicationRequest);
+
+                ArgumentCaptor<Application> saved = ArgumentCaptor.forClass(Application.class);
+                verify(applicationRepository).save(saved.capture());
+                assertThat(saved.getValue().getApplicationCode())
+                                .isEqualTo("APP-" + java.time.LocalDate.now().getYear() + "-007");
+                verify(applicationRepository, times(1)).nextApplicationCodeSequence();
+        }
+
+        /**
+         * Padding stays at three digits so new codes match every code already issued. Past 999 the
+         * number simply renders wider, which is harmless now that nothing parses or compares a code.
+         * Under the old generator a fourth digit was what poisoned the counter for the rest of the year.
+         */
+        @Test
+        void submitApplication_sequenceBeyond999_rendersWiderWithoutTruncation() {
+                var academicYear = buildOpenAcademicYear();
+                when(buildingRepository.findById(10L)).thenReturn(Optional.of(defaultBuilding));
+                when(buildingPreferenceRepository.saveAll(any())).thenReturn(List.of());
+                stubCommonSubmitMocks(academicYear);
+                when(applicationRepository.nextApplicationCodeSequence()).thenReturn(12345L);
+
+                applicationCoreService.submitApplication(applicationRequest);
+
+                ArgumentCaptor<Application> saved = ArgumentCaptor.forClass(Application.class);
+                verify(applicationRepository).save(saved.capture());
+                assertThat(saved.getValue().getApplicationCode())
+                                .isEqualTo("APP-" + java.time.LocalDate.now().getYear() + "-12345");
         }
 
         @Test
