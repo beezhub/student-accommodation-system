@@ -3,3 +3,9 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+app:
+  security:
+    # API documentation is not public in production; SecurityConfig requires PLATFORM_ADMIN for the
+    # springdoc paths when this is false, on top of springdoc being disabled above.
+    swagger-public: false

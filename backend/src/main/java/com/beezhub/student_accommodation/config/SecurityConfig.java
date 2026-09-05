@@ -38,15 +38,20 @@ public class SecurityConfig {
     private final RateLimitingFilter rateLimitingFilter;
     private final MustChangePasswordFilter mustChangePasswordFilter;
 
+    /** False in production, so the springdoc paths require PLATFORM_ADMIN instead of being public. */
+    private final boolean swaggerPublic;
+
     public SecurityConfig(
             AppUserDetailsService userDetailsService,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             RateLimitingFilter rateLimitingFilter,
-            MustChangePasswordFilter mustChangePasswordFilter) {
+            MustChangePasswordFilter mustChangePasswordFilter,
+            @org.springframework.beans.factory.annotation.Value("${app.security.swagger-public:true}") boolean swaggerPublic) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.rateLimitingFilter = rateLimitingFilter;
         this.mustChangePasswordFilter = mustChangePasswordFilter;
+        this.swaggerPublic = swaggerPublic;
     }
 
     /**
@@ -138,9 +143,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/ff4j/**", "/ff4j-web-console/**").hasRole("PLATFORM_ADMIN")
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")
-                        .requestMatchers("/v3/api-docs/**").permitAll()
-                        .requestMatchers("/swagger-ui/**").permitAll()
-                        .requestMatchers("/swagger-ui.html").permitAll()
+                        // Public only outside production. application-prod.yml sets this false, so a
+                        // production deployment does not serve its own API documentation anonymously
+                        // even if springdoc were re-enabled (GH-133).
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                swaggerPublic
+                                        || authentication.get().getAuthorities().stream()
+                                                .anyMatch(a -> "ROLE_PLATFORM_ADMIN".equals(a.getAuthority()))))
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

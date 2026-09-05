@@ -46,6 +46,10 @@ services:
       redis:
         condition: service_healthy
     environment:
+      # Selects application-<profile>.yml and the logback appender. Use "prod" in NONPROD and PROD:
+      # it disables Swagger, makes the API docs PLATFORM_ADMIN-only and switches logging to JSON.
+      # Empty here so local compose keeps the readable console appender.
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-}
       - POSTGRES_DB=studentaccommodationlocaldb
       - USER_DB=${USER_DB}
       - PASSWORD_DB=${PASSWORD_DB}
