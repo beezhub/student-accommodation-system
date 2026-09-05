@@ -38,6 +38,7 @@ class WaitlistControllerTest {
     @MockitoBean com.beezhub.student_accommodation.security.user.AppUserDetailsService appUserDetailsService;
     @MockitoBean com.beezhub.student_accommodation.security.jwt.JwtAuthenticationFilter jwtAuthenticationFilter;
     @MockitoBean RateLimitingFilter rateLimitingFilter;
+    @MockitoBean com.beezhub.student_accommodation.security.MustChangePasswordFilter mustChangePasswordFilter;
 
     /**
      * The servlet filters are @MockitoBean'd so the security chain can be built
@@ -62,6 +63,12 @@ class WaitlistControllerTest {
             chain.doFilter(request, response);
             return null;
         }).when(rateLimitingFilter).doFilter(any(), any(), any());
+
+        org.mockito.Mockito.doAnswer(invocation -> {
+            jakarta.servlet.FilterChain passThrough = invocation.getArgument(2);
+            passThrough.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(mustChangePasswordFilter).doFilter(any(), any(), any());
     }
 
     @Test

@@ -52,6 +52,9 @@ class Ff4jEndpointAuthorizationTest {
     @MockitoBean
     private RateLimitingFilter rateLimitingFilter;
 
+    @MockitoBean
+    private com.beezhub.student_accommodation.security.MustChangePasswordFilter mustChangePasswordFilter;
+
     @BeforeEach
     void passThroughSecurityFilters() throws Exception {
         doAnswer(invocation -> {
@@ -64,6 +67,12 @@ class Ff4jEndpointAuthorizationTest {
             chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
             return null;
         }).when(rateLimitingFilter).doFilter(any(), any(), any());
+
+        org.mockito.Mockito.doAnswer(invocation -> {
+            jakarta.servlet.FilterChain passThrough = invocation.getArgument(2);
+            passThrough.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(mustChangePasswordFilter).doFilter(any(), any(), any());
     }
 
     @Test

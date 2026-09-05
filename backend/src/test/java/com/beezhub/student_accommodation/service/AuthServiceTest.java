@@ -30,6 +30,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -186,7 +188,7 @@ class AuthServiceTest {
         Authentication auth = mock(Authentication.class);
         when(auth.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
-        when(jwtUtil.generateToken(userDetails)).thenReturn("token");
+        when(jwtUtil.generateToken(eq(userDetails), anyBoolean())).thenReturn("token");
         when(appUserMapper.toUserData(appUser)).thenReturn(userData);
 
         authService.validateLogin("test@example.com", "password");
@@ -205,7 +207,7 @@ class AuthServiceTest {
         Authentication auth = mock(Authentication.class);
         when(auth.getPrincipal()).thenReturn(userDetails);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
-        when(jwtUtil.generateToken(userDetails)).thenReturn("token");
+        when(jwtUtil.generateToken(eq(userDetails), anyBoolean())).thenReturn("token");
         when(appUserMapper.toUserData(appUser)).thenReturn(userData);
 
         authService.validateLogin("test@example.com", "password");
@@ -288,7 +290,7 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(userDetails);
-        when(jwtUtil.generateToken(userDetails)).thenReturn("jwt-token");
+        when(jwtUtil.generateToken(eq(userDetails), anyBoolean())).thenReturn("jwt-token");
         when(userRepository.findByEmail(userDetails.getUsername())).thenReturn(Optional.of(appUser));
         when(appUserMapper.toUserData(appUser)).thenReturn(userData);
 

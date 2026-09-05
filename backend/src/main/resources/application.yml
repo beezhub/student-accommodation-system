@@ -33,6 +33,10 @@ spring:
     locations: classpath:db/migration
     out-of-order: false
     validate-on-migrate: true
+    placeholders:
+      # true keeps the seeded demo administrator usable; anything else disables it (see
+      # V2026_09_05_1000__disable_seeded_admin.sql). Never set this in NONPROD or PROD.
+      demoSeed: ${DEMO_SEED:false}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -104,6 +108,10 @@ app:
   features:
     auto-allocation:
       enabled: ${AUTO_ALLOCATION_ENABLED:true}
+  admin-bootstrap:
+    # Creates or resets the first PLATFORM_ADMIN at startup; leave blank once the admin has signed in.
+    email: ${ADMIN_BOOTSTRAP_EMAIL:}
+    password: ${ADMIN_BOOTSTRAP_PASSWORD:}
   storage:
     cleanup:
       cron: ${STORAGE_CLEANUP_CRON:0 0 3 * * *}
