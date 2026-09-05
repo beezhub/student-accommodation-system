@@ -81,7 +81,7 @@ class AuthControllerTest {
         signupRequest.setEmail("newuser@example.com");
         signupRequest.setFirstName("New");
         signupRequest.setLastName("User");
-        signupRequest.setPassword("password123");
+        signupRequest.setPassword("Str0ng!Passw0rd");
 
         // Message response
         messageResponse = new MessageResponse("Success");
@@ -236,7 +236,7 @@ class AuthControllerTest {
         // Arrange
         ChangePasswordRequest request = new ChangePasswordRequest();
         request.setCurrentPassword("oldPassword123");
-        request.setNewPassword("newPassword123");
+        request.setNewPassword("Str0ng!Passw0rd");
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/change-password")
@@ -254,7 +254,7 @@ class AuthControllerTest {
         // Arrange
         ChangePasswordRequest request = new ChangePasswordRequest();
         request.setCurrentPassword("oldPassword123");
-        request.setNewPassword("newPassword123");
+        request.setNewPassword("Str0ng!Passw0rd");
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/change-password")
@@ -362,7 +362,7 @@ class AuthControllerTest {
         // Arrange
         ResetPasswordRequest request = new ResetPasswordRequest();
         request.setToken("reset-token-123");
-        request.setNewPassword("newPassword123");
+        request.setNewPassword("Str0ng!Passw0rd");
 
         when(authService.resetPassword(anyString(), anyString())).thenReturn(messageResponse);
 
@@ -374,7 +374,7 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Success"));
 
-        verify(authService).resetPassword(eq("reset-token-123"), eq("newPassword123"));
+        verify(authService).resetPassword(eq("reset-token-123"), eq("Str0ng!Passw0rd"));
     }
 
     @Test
