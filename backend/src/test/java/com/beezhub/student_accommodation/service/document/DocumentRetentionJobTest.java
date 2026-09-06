@@ -3,11 +3,13 @@ package com.beezhub.student_accommodation.service.document;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.beezhub.student_accommodation.config.TransactionTemplateConfig;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
@@ -31,7 +33,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
@@ -59,6 +64,39 @@ class DocumentRetentionJobTest {
     private DocumentRetentionJob job(boolean dryRun) {
         return new DocumentRetentionJob(documentRepository, eventPublisher, directTemplate(),
                 Period.ofMonths(12), dryRun, FIXED);
+    }
+
+    // ── Wiring ──────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Two constructors and no {@code @Autowired} left Spring unable to choose one, so it looked for
+     * a default constructor, found none, and failed to build the context — taking every
+     * {@code @SpringBootTest} in the suite down with it. Nothing in the unit tests caught that,
+     * because they call a constructor directly.
+     *
+     * <p>A real context, not a reflective check for the annotation: this asserts that Spring can
+     * actually build the bean, which is the thing that broke.
+     */
+    @Test
+    void springCanBuildTheBean() {
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.registerBean(PropertySourcesPlaceholderConfigurer.class);
+            context.registerBean(DocumentRepository.class, () -> documentRepository);
+            context.registerBean(ApplicationEventPublisher.class, () -> eventPublisher);
+            // A plain template, not the inline-running one below: Spring calls afterPropertiesSet,
+            // which requires a transaction manager. Nothing here runs a transaction.
+            context.registerBean(TransactionTemplateConfig.REQUIRES_NEW, TransactionTemplate.class,
+                    () -> new TransactionTemplate(mock(PlatformTransactionManager.class)));
+            context.register(DocumentRetentionJob.class);
+
+            context.refresh();
+
+            DocumentRetentionJob wired = context.getBean(DocumentRetentionJob.class);
+            assertThat(wired.retentionPeriod()).isEqualTo(Period.ofMonths(12));
+            assertThat(wired.isDryRun())
+                    .as("ships reporting-only; deletion is irreversible")
+                    .isTrue();
+        }
     }
 
     // ── The cutoff ──────────────────────────────────────────────────────────────────────────

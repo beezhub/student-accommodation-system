@@ -14,6 +14,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -97,6 +98,10 @@ public class DocumentRetentionJob {
     private final boolean dryRun;
     private final Clock clock;
 
+    // Required: two constructors, so Spring cannot infer which to use and falls back to a
+    // default one that does not exist. OrphanFileCleanupJob marks its public constructor the
+    // same way.
+    @Autowired
     public DocumentRetentionJob(
             DocumentRepository documentRepository,
             ApplicationEventPublisher eventPublisher,
