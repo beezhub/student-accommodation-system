@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.application;
 
+import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
@@ -125,7 +126,7 @@ public class ApplicationCoreService {
                         for (Long buildingId : preferredBuildingIds) {
                                 resolvedPreferenceBuildings.add(
                                         buildingRepository.findById(buildingId)
-                                                .orElseThrow(() -> new RuntimeException(
+                                                .orElseThrow(() -> new BuildingNotFoundException(
                                                         "Building not found with ID: " + buildingId)));
                         }
                 }
@@ -133,7 +134,7 @@ public class ApplicationCoreService {
                 Building legacyBuilding = null;
                 if (hasLegacyPref) {
                         legacyBuilding = buildingRepository.findById(request.getPreferredBuildingId())
-                                        .orElseThrow(() -> new RuntimeException(
+                                        .orElseThrow(() -> new BuildingNotFoundException(
                                                         "Building not found with ID: " + request.getPreferredBuildingId()));
                         // Only add to validation list if not already covered by multi-prefs
                         if (!hasMultiPrefs) {

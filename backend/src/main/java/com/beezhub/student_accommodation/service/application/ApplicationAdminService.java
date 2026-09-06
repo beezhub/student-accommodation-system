@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.application;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
@@ -275,7 +276,7 @@ public class ApplicationAdminService {
 
         // Get admin user
         AppUser admin = appUserRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
 
         if (!admin.getUserRole().isAdmin()) {
             throw new UnauthorizedAccessException("Only admins can move applications to allocation phase");

@@ -1,5 +1,8 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
+import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.model.dto.NotificationsResponse;
 import com.beezhub.student_accommodation.model.dto.UserNotificationResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
@@ -60,11 +63,11 @@ public class UserNotificationService {
         log.debug("Marking notification {} as read for user {}", notificationId, userId);
 
         UserNotification notification = userNotificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
         // Security check: ensure notification belongs to the user
         if (!notification.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized access to notification");
+            throw new UnauthorizedAccessException("Unauthorized access to notification");
         }
 
         if (!notification.getIsRead()) {
@@ -92,11 +95,11 @@ public class UserNotificationService {
         log.debug("Deleting notification {} for user {}", notificationId, userId);
 
         UserNotification notification = userNotificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
         // Security check: ensure notification belongs to the user
         if (!notification.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized access to notification");
+            throw new UnauthorizedAccessException("Unauthorized access to notification");
         }
 
         userNotificationRepository.delete(notification);
@@ -112,7 +115,7 @@ public class UserNotificationService {
         log.debug("Creating notification for user {}: type={}, title={}", userId, type, title);
 
         AppUser user = appUserRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         String dataJson = null;
         if (data != null && !data.isEmpty()) {

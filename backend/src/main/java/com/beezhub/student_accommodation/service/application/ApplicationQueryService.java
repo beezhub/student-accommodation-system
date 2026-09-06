@@ -107,7 +107,7 @@ public class ApplicationQueryService {
                 .gender(student.getGender())
                 .specialRequirements(student.getSpecialRequirements())
                 .institutionName(student.getInstitution() != null ? student.getInstitution().getName() : null)
-                .yearOfStudy(student.getYearOfStudy().getYearOfStudy())
+                .yearOfStudy(student.getYearOfStudy() != null ? student.getYearOfStudy().getYearOfStudy() : null)
                 .build();
     }
 
