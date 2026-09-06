@@ -76,7 +76,7 @@ public class StagedAllocationService {
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         updateStagedStatus(staged, StagedAllocationStatus.CONFIRMED);
-        roomOccupancyManager.updateOccupancy(staged.getRoom(), 1);
+        roomOccupancyManager.syncOccupancy(staged.getRoom());
         // The manual path does this inside createRoomAllocation; without it a confirmed student
         // stayed WAITING and could be offered a second room by the batch job (GH-128).
         waitingListService.updateStatusToAllocated(staged.getStudent().getId());

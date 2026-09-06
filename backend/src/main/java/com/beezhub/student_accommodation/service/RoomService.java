@@ -10,6 +10,7 @@ import com.beezhub.student_accommodation.model.dto.RoomResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.specification.RoomSpecification;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 public class RoomService {
 
     private final RoomRepository roomRepository;
+    private final RoomOccupancyManager roomOccupancyManager;
     private final BuildingRepository buildingRepository;
     private final RoomAllocationRepository roomAllocationRepository;
     private final RoomMapper roomMapper;
@@ -99,7 +101,7 @@ public class RoomService {
         room.setRoomNumber(request.getRoomNumber());
         room.setCapacity(request.getCapacity());
         room.setCurrentOccupancy(0);
-        room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+        room.setStatus(normaliseRequestedStatus(request.getStatus()));
         room.setMonthlyRate(request.getMonthlyRate());
 
         if (request.getBuildingId() != null) {
@@ -152,7 +154,7 @@ public class RoomService {
             room.setRoomNumber(request.getRoomNumber());
             room.setCapacity(request.getCapacity());
             room.setCurrentOccupancy(0);
-            room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+            room.setStatus(normaliseRequestedStatus(request.getStatus()));
             room.setMonthlyRate(request.getMonthlyRate());
 
             if (request.getBuildingId() != null) {
@@ -193,7 +195,7 @@ public class RoomService {
         // Update basic fields
         room.setRoomNumber(request.getRoomNumber());
         room.setCapacity(request.getCapacity());
-        room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+        room.setStatus(normaliseRequestedStatus(request.getStatus()));
         room.setMonthlyRate(request.getMonthlyRate());
 
         // Handle building relationship
@@ -215,9 +217,26 @@ public class RoomService {
             room.setBuilding(null);
         }
 
+        // Derived rather than taken from the request. This endpoint wrote capacity and status
+        // straight through and never reconciled either against the live allocation count, so a
+        // full room could be published as AVAILABLE and capacity cut below the number of students
+        // already in it (GH-136).
+        roomOccupancyManager.syncOccupancy(room);
+
         Room updated = roomRepository.save(room);
         log.info("Successfully updated room with id: {}, room number: {}", updated.getId(), updated.getRoomNumber());
         return roomMapper.toResponse(updated);
+    }
+
+    /**
+     * The only status an admin sets directly is MAINTENANCE. Everything else is a statement about
+     * how many students are in the room, which is derived.
+     *
+     * <p>Anything else maps to AVAILABLE rather than being rejected, which is what lets an admin
+     * clear maintenance: sending any other status hands the room back to the derivation.
+     */
+    private static String normaliseRequestedStatus(String requested) {
+        return "MAINTENANCE".equalsIgnoreCase(requested) ? "MAINTENANCE" : "AVAILABLE";
     }
 
     public void deleteRoom(Long id) {

@@ -95,7 +95,7 @@ class AllocationCheckInServiceTest {
         // Assert
         assertEquals(AllocationStatus.COMPLETED, allocation.getStatus());
         assertNotNull(allocation.getCheckOutDate());
-        verify(roomOccupancyManager).updateOccupancy(room, -1);
+        verify(roomOccupancyManager).syncOccupancy(room);
         verify(eventPublisher).publishEvent(any());
     }
 
@@ -121,6 +121,6 @@ class AllocationCheckInServiceTest {
         // Assert
         assertEquals(AllocationStatus.COMPLETED, allocation.getStatus()); // endAllocation sets COMPLETED currently
         assertNotNull(allocation.getEndDate());
-        verify(roomOccupancyManager).updateOccupancy(room, -1);
+        verify(roomOccupancyManager).syncOccupancy(room);
     }
 }

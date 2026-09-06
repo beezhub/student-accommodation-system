@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
@@ -41,6 +42,9 @@ class RoomServiceTest {
 
     @Mock
     private RoomRepository roomRepository;
+
+    @Mock
+    private RoomOccupancyManager roomOccupancyManager;
     @Mock
     private BuildingRepository buildingRepository;
     @Mock

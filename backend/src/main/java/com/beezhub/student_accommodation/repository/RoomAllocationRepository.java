@@ -72,6 +72,9 @@ public interface RoomAllocationRepository
        Optional<RoomAllocation> findByApplicationId(@Param("applicationId") Long applicationId);
 
        // Delete all allocations for a student
+       /** Every allocation for a student, used to find the rooms to recompute after a delete (GH-136). */
+       List<RoomAllocation> findByStudent_Id(Long studentId);
+
        void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 
        // Count declined allocations by application ID (for decline limit tracking)

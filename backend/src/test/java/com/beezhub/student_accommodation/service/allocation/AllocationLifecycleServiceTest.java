@@ -133,8 +133,8 @@ class AllocationLifecycleServiceTest {
         verify(roomAllocationRepository).save(any(RoomAllocation.class));
         verify(roomAllocationRepository).save(any(RoomAllocation.class));
         verify(eventPublisher).publishEvent(any(AllocationCreatedEvent.class));
-        verify(roomOccupancyManager).updateOccupancy(room, 1);
-        verify(roomOccupancyManager).updateOccupancy(room, 1);
+        verify(roomOccupancyManager).syncOccupancy(room);
+        verify(roomOccupancyManager).syncOccupancy(room);
     }
 
     @Test
@@ -199,7 +199,7 @@ class AllocationLifecycleServiceTest {
                 .isInstanceOf(UnauthorizedAccessException.class);
 
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.OFFERED);
-        verify(roomOccupancyManager, never()).updateOccupancy(any(), anyInt());
+        verify(roomOccupancyManager, never()).syncOccupancy(any());
         verify(roomAllocationRepository, never()).save(any());
     }
 
@@ -270,7 +270,7 @@ class AllocationLifecycleServiceTest {
         verify(applicationRepository, never()).save(any());
         verify(waitingListService, never()).updateStatusToAllocated(any());
         verify(eventPublisher, never()).publishEvent(any());
-        verify(roomOccupancyManager, never()).updateOccupancy(any(), anyInt());
+        verify(roomOccupancyManager, never()).syncOccupancy(any());
     }
 
     /**
@@ -351,7 +351,7 @@ class AllocationLifecycleServiceTest {
         allocationLifecycleService.declineOffer(1L, request);
 
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.DECLINED);
-        verify(roomOccupancyManager).updateOccupancy(room, -1);
+        verify(roomOccupancyManager).syncOccupancy(room);
         verify(roomAllocationRepository).save(allocation);
         verify(waitingListService).reQueueStudent(any(), eq(1));
     }
@@ -376,7 +376,7 @@ class AllocationLifecycleServiceTest {
         allocationLifecycleService.declineOffer(1L, request);
 
         // Check delegation
-        verify(roomOccupancyManager).updateOccupancy(room, -1);
+        verify(roomOccupancyManager).syncOccupancy(room);
         verify(waitingListService).reQueueStudent(any(), eq(2));
     }
 
@@ -401,7 +401,7 @@ class AllocationLifecycleServiceTest {
         allocationLifecycleService.declineOffer(1L, request);
 
         // Verify no cancellation — student is re-queued regardless of decline count
-        verify(roomOccupancyManager).updateOccupancy(room, -1);
+        verify(roomOccupancyManager).syncOccupancy(room);
         verify(waitingListService).reQueueStudent(any(), eq(3));
         // Refill is delegated to the AFTER_COMMIT listener, never run inside this transaction
         verify(eventPublisher).publishEvent(new RoomVacatedEvent(1L, room.getId(), AllocationStatus.DECLINED));
@@ -423,7 +423,7 @@ class AllocationLifecycleServiceTest {
         assertThatThrownBy(() -> allocationLifecycleService.updateRoomAllocation(1L, allocationRequest))
                 .isInstanceOf(InvalidAllocationStatusTransitionException.class);
 
-        verify(roomOccupancyManager, never()).updateOccupancy(any(), anyInt());
+        verify(roomOccupancyManager, never()).syncOccupancy(any());
         verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
     }
 
@@ -478,7 +478,7 @@ class AllocationLifecycleServiceTest {
         assertThat(allocationLifecycleService.updateRoomAllocation(1L, allocationRequest)).isNotNull();
 
         // Same student and same room: no occupancy movement at all.
-        verify(roomOccupancyManager, never()).updateOccupancy(any(), anyInt());
+        verify(roomOccupancyManager, never()).syncOccupancy(any());
         verify(roomAllocationRepository).save(allocation);
     }
 
@@ -494,7 +494,7 @@ class AllocationLifecycleServiceTest {
         allocationLifecycleService.deleteRoomAllocation(1L);
 
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.CANCELLED);
-        verify(roomOccupancyManager).updateOccupancy(room, -1);
+        verify(roomOccupancyManager).syncOccupancy(room);
         verify(roomAllocationRepository).save(allocation);
         verify(eventPublisher).publishEvent(new RoomVacatedEvent(1L, room.getId(), AllocationStatus.CANCELLED));
     }
