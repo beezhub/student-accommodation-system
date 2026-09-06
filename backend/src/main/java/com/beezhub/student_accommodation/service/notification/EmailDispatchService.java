@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -330,21 +332,31 @@ public class EmailDispatchService {
                 log.info("Offer declined max reached email sent to {}", email);
         }
 
+        /**
+         * The variables welcome.html reads, as a map that can be persisted alongside the
+         * notification row.
+         *
+         * <p>The welcome path was the only live producer of a notification with null template
+         * data, which the retry job could not rebuild an email from, so a failed welcome email was
+         * unrecoverable (GH-141). Dispatch goes through this same method, so what is sent and what
+         * is stored cannot drift apart.
+         */
+        public Map<String, Object> welcomeTemplateData(AppUser user, String studentName, String email) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("templateName", "welcome");
+                data.put("studentName", studentName);
+                data.put("email", email);
+                data.put("studentId", "N/A");
+                data.put("registrationDate", contentBuilder.formatDate(user.getCreatedAt()));
+                data.put("loginUrl", baseUrl + "/login");
+                data.put("guideUrl", baseUrl + "/guide");
+                return data;
+        }
+
         public void sendWelcomeEmail(AppUser user, String studentName, String email) {
-                String studentId = "N/A";
-                String registrationDate = contentBuilder.formatDate(user.getCreatedAt());
-                String loginUrl = baseUrl + "/login";
-                String guideUrl = baseUrl + "/guide";
+                Map<String, Object> data = welcomeTemplateData(user, studentName, email);
 
-                var ctx = new WelcomeContext(
-                                studentName,
-                                email,
-                                studentId,
-                                registrationDate,
-                                loginUrl,
-                                guideUrl);
-
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.WELCOME, "welcome", ctx));
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.WELCOME, "welcome", data));
                 log.info("Welcome email sent to {}", email);
         }
 

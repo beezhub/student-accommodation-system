@@ -26,13 +26,17 @@ public class NotificationService {
 
         log.info("Sending welcome email to {}", email);
 
+        // Persisting the template data is what makes a failed welcome email recoverable: the
+        // retry job rebuilds the email from this map, and without it the row was unsendable and
+        // stranded (GH-141).
         Notification notification = notificationPersistence.createNotification(
                 email,
                 EmailSubjects.WELCOME,
                 NotificationType.WELCOME_EMAIL,
                 user,
                 user.getId(),
-                "AppUser");
+                "AppUser",
+                emailDispatchService.welcomeTemplateData(user, studentName, email));
 
         try {
             emailDispatchService.sendWelcomeEmail(user, studentName, email);
@@ -49,6 +53,11 @@ public class NotificationService {
 
         log.info("Sending password reset email to {}", email);
 
+        // Deliberately stores no template data, unlike the welcome path above. The only variable
+        // this template needs is the reset URL, which embeds a live single-use token. Persisting
+        // it would write that token in cleartext to the notification table, and a retry minutes
+        // later could mail a token the user has already consumed. A secret-bearing notification
+        // is better left unsendable, which the retry job now terminates cleanly (GH-141).
         Notification notification = notificationPersistence.createNotification(
                 email,
                 EmailSubjects.PASSWORD_RESET,

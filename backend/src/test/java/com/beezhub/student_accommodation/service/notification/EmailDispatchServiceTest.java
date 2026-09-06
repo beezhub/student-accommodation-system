@@ -16,6 +16,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
@@ -217,5 +220,43 @@ class EmailDispatchServiceTest {
                 eq("offer-declined-requeue"),
                 any(OfferDeclinedRequeueContext.class)
         );
+    }
+
+    /**
+     * GH-141: the welcome path was the only live producer of a notification with null template
+     * data, so the retry job could not rebuild the email and the row was stranded. This is the
+     * only place a content assertion means anything, because this class is the one under test
+     * here rather than a mock.
+     */
+    @Test
+    void welcomeTemplateData_carriesEveryVariableTheTemplateReads() {
+        user.setCreatedAt(LocalDateTime.of(2026, 1, 15, 9, 0));
+        when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("15 Jan 2026");
+
+        Map<String, Object> data = emailDispatchService.welcomeTemplateData(
+                user, "Alice Smith", "alice@example.com");
+
+        assertThat(data).containsOnlyKeys("templateName", "studentName", "email", "studentId",
+                "registrationDate", "loginUrl", "guideUrl");
+        assertThat(data).containsEntry("templateName", "welcome");
+        assertThat(data).containsEntry("studentName", "Alice Smith");
+        assertThat(data).containsEntry("email", "alice@example.com");
+        assertThat(data).containsEntry("registrationDate", "15 Jan 2026");
+        assertThat(data).containsEntry("loginUrl", "http://test-url/login");
+        assertThat(data).containsEntry("guideUrl", "http://test-url/guide");
+    }
+
+    /** What is sent and what is stored come from the same call, so they cannot drift apart. */
+    @Test
+    void sendWelcomeEmail_sendsTheSameDataItWouldPersist() {
+        user.setCreatedAt(LocalDateTime.of(2026, 1, 15, 9, 0));
+        when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("15 Jan 2026");
+        Map<String, Object> expected = emailDispatchService.welcomeTemplateData(
+                user, "Alice Smith", "alice@example.com");
+
+        emailDispatchService.sendWelcomeEmail(user, "Alice Smith", "alice@example.com");
+
+        verify(emailService).sendTemplateEmail(
+                eq("alice@example.com"), anyString(), eq("welcome"), eq(expected));
     }
 }
