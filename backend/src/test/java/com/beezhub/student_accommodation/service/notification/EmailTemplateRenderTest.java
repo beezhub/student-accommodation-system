@@ -93,6 +93,29 @@ class EmailTemplateRenderTest {
         assertThat(html).contains("Jane Smith");
     }
 
+    /**
+     * GH-141 in one test: the map persisted with the notification row must be enough to rebuild
+     * the email days later. Anything the retry job cannot render is an email the user never gets.
+     * The keys here are exactly those EmailDispatchService.welcomeTemplateData produces.
+     */
+    @Test
+    void welcome_rendersFromThePersistedTemplateData() {
+        Map<String, Object> vars = baseContext();
+        vars.put("templateName", "welcome");
+        vars.put("studentName", "Alice Smith");
+        vars.put("email", "alice@example.com");
+        vars.put("studentId", "N/A");
+        vars.put("registrationDate", "15 Jan 2026");
+        vars.put("loginUrl", PORTAL_URL + "/login");
+        vars.put("guideUrl", PORTAL_URL + "/guide");
+
+        String html = render("welcome", vars);
+
+        assertBaseRequirements(html, "welcome");
+        assertThat(html).contains("Alice Smith");
+        assertThat(html).contains(PORTAL_URL + "/login");
+    }
+
     @Test
     void welcome_rendersCorrectly() {
         Map<String, Object> vars = baseContext();

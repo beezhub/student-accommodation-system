@@ -20,7 +20,7 @@
               },
               "datasourceUid": "prometheus",
               "model": {
-                "expr": "increase(notifications_permanently_failed_total[5m])",
+                "expr": "increase(sas_notifications_permanently_failed_total[5m])",
                 "instant": false,
                 "intervalMs": 1000,
                 "maxDataPoints": 43200,

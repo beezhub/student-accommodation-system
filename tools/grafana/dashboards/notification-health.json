@@ -120,7 +120,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "increase(notifications_permanently_failed_total[1h])",
+          "expr": "increase(sas_notifications_permanently_failed_total[1h])",
           "legendFormat": "Permanently Failed (1h)",
           "refId": "A"
         }
@@ -285,7 +285,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "increase(notifications_permanently_failed_total[24h])",
+          "expr": "increase(sas_notifications_permanently_failed_total[24h])",
           "legendFormat": "",
           "refId": "A"
         }
