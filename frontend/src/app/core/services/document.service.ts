@@ -137,11 +137,10 @@ export class DocumentService {
         observe: 'events',
       })
       .pipe(
-        map((event: HttpEvent<any>) => {
+        map((event: HttpEvent<unknown>) => {
           switch (event.type) {
             case HttpEventType.UploadProgress:
               const progress = event.total ? Math.round((100 * event.loaded) / event.total) : 0;
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               return { status: 'progress' as const, progress };
             case HttpEventType.Response:
               return {
@@ -160,17 +159,19 @@ export class DocumentService {
       );
   }
 
-  uploadMultipleDocuments(files: File[], documentTypes: (string | number)[]): Observable<any> {
+  uploadMultipleDocuments(
+    files: File[],
+    documentTypes: (string | number)[]
+  ): Observable<DocumentData[]> {
     const formData = new FormData();
     files.forEach((file) => formData.append('files', file));
 
     let params = new HttpParams();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     documentTypes.forEach((type) => {
       params = params.append('documentTypes', type.toString());
     });
 
-    return this.http.post(`${this.apiUrl}/upload-multiple`, formData, {
+    return this.http.post<DocumentData[]>(`${this.apiUrl}/upload-multiple`, formData, {
       params,
     });
   }
@@ -213,6 +214,13 @@ export class DocumentService {
   }
 }
 
-export function isNoActiveApplicationError(error: any): boolean {
-  return error?.error?.message?.includes('No active application found') || false;
+/**
+ * Whether this is the backend's "no active application" refusal.
+ *
+ * <p>Narrows rather than casting: the argument arrives from an error callback, where nothing has
+ * checked the shape, and `any` let the whole chain be dereferenced unchecked (GH-158).
+ */
+export function isNoActiveApplicationError(error: unknown): boolean {
+  const message = (error as { error?: { message?: unknown } } | null)?.error?.message;
+  return typeof message === 'string' && message.includes('No active application found');
 }

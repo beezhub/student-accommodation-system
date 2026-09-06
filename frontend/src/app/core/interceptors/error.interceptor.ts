@@ -149,7 +149,9 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
         // Only retry on 5xx or network errors (status 0), not on 4xx client errors
         if (error.status === 0 || error.status >= 500) {
           return new Observable((subscriber) => {
-            setTimeout(() => subscriber.next(undefined as any), 1000);
+            // The retry stream carries no value; T is whatever the caller's response type is, and
+            // `undefined` is the marker the operator ignores.
+            setTimeout(() => subscriber.next(undefined as never), 1000);
           });
         }
         throw error;

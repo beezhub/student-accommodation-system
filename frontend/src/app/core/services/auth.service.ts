@@ -10,6 +10,17 @@ import { Router } from '@angular/router';
 import { NotificationService } from './notification.service';
 import { TokenStorageService } from './token-storage.service';
 
+/** What the login form sends. Was `any`, so a typo in a field name compiled (GH-158). */
+export interface LoginData {
+  email: string;
+  password: string;
+}
+
+/** The `{ message }` body the backend returns from commands that have nothing else to say. */
+export interface MessageResponse {
+  message: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -85,18 +96,14 @@ export class AuthService {
     );
   }
 
-  uploadDocuments(files: FormData): Observable<any> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return this.http.post(`${environment.apiUrl}/documents/upload-multiple`, files);
+  uploadDocuments(files: FormData): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(
+      `${environment.apiUrl}/documents/upload-multiple`,
+      files
+    );
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  submitApplication(applicationData: any): Observable<any> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return this.http.post(`${this.apiUrl}/submit-application`, applicationData);
+  submitApplication(applicationData: unknown): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/submit-application`, applicationData);
   }
 
   logout(): void {
@@ -129,8 +136,7 @@ export class AuthService {
     this.yearOfStudyService.clearCache();
   }
   // Login a user
-  login(data: any): Observable<User> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  login(data: LoginData): Observable<User> {
     return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/login`, data).pipe(
       map((response) => {
         const tenantId = this.extractTenantIdFromToken(response.token);
@@ -160,14 +166,12 @@ export class AuthService {
   }
 
   isTokenExpired(): boolean {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return !this.tokenStorage.isTokenValid();
   }
 
-  changePassword(currentPassword: string, newPassword: string): Observable<any> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  changePassword(currentPassword: string, newPassword: string): Observable<MessageResponse> {
     return this.http
-      .post(`${this.apiUrl}/change-password`, {
+      .post<MessageResponse>(`${this.apiUrl}/change-password`, {
         currentPassword,
         newPassword,
       })
@@ -182,13 +186,11 @@ export class AuthService {
           }
           return response;
         })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       );
   }
 
-  deleteAccount(password: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/delete-account`, { password });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deleteAccount(password: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/delete-account`, { password });
   }
 
   resendVerificationEmail(email: string): Observable<{ message: string }> {

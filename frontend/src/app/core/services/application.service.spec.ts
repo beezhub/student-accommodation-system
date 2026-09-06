@@ -4,6 +4,7 @@ import {
   ApplicationService,
   ReviewProgressRequest,
   ApplicationFullDetails,
+  ApplicationDocument,
 } from './application.service';
 import { environment } from '../../../environments/environment';
 import { Application } from '../models/application.model';
@@ -21,10 +22,7 @@ describe('ApplicationService', () => {
     applicationDate: '2026-01-01',
     createdAt: '2026-01-01',
     updatedAt: '2026-01-01',
-  } as any;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as Application;
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -149,13 +147,9 @@ describe('ApplicationService', () => {
         applicationId: 1,
         documentUpdates: [{ documentId: 10, newStatus: 'APPROVED' }],
       };
-      let result: any;
+      let result: unknown;
 
       service.saveReviewProgress(request).subscribe((r) => (result = r));
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const req = httpMock.expectOne(`${apiUrl}/1/save-review-progress`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(request);
@@ -221,12 +215,8 @@ describe('ApplicationService', () => {
 
   describe('getApplicationFullDetails', () => {
     it('getApplicationFullDetails_validId_getsFromFullDetailsEndpoint', () => {
-      const mockDetails = { id: 1, applicationCode: 'APP-001' } as any;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mockDetails = { id: 1, applicationCode: 'APP-001' };
       service.getApplicationFullDetails(1).subscribe();
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const req = httpMock.expectOne(`${apiUrl}/1/full-details`);
       expect(req.request.method).toBe('GET');
       req.flush(mockDetails);
@@ -278,17 +268,14 @@ describe('ApplicationService', () => {
         },
       };
 
-      let result: any;
+      let result: ApplicationDocument[] = [];
       service.getApplicationDocuments(1).subscribe((docs) => (result = docs));
 
       const req = httpMock.expectOne(`${apiUrl}/1/full-details`);
       req.flush(fullDetails);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(result.length).toBe(1);
       expect(result[0].documentName).toBe('id.pdf');
       expect(result[0].documentStatus).toBe('APPROVED');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     });
   });
 

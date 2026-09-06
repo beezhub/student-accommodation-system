@@ -18,16 +18,20 @@
       <div class="hero-right">
         <div class="hero-metrics" role="list" aria-label="User summary">
           <div class="metric-chip" role="listitem">
-            <span class="metric-value">{{ users.length }}</span>
+            <span class="metric-value">{{ totalUsers }}</span>
             <span class="metric-label">Total</span>
           </div>
           <div class="metric-chip metric-admin" role="listitem">
-            <span class="metric-value">{{ adminCount }}</span>
-            <span class="metric-label">Admins</span>
+            <span class="metric-value">{{ platformAdminCount }}</span>
+            <span class="metric-label">Platform admins</span>
           </div>
           <div class="metric-chip metric-landlord" role="listitem">
-            <span class="metric-value">{{ landlordCount }}</span>
-            <span class="metric-label">Landlords</span>
+            <span class="metric-value">{{ tenantAdminCount }}</span>
+            <span class="metric-label">Tenant admins</span>
+          </div>
+          <div class="metric-chip metric-staff" role="listitem">
+            <span class="metric-value">{{ buildingStaffCount }}</span>
+            <span class="metric-label">Building staff</span>
           </div>
           <div class="metric-chip metric-student" role="listitem">
             <span class="metric-value">{{ studentCount }}</span>

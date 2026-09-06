@@ -20,6 +20,7 @@ import { DocumentType } from '../../../core/models/document-type.model';
 import { DocumentService } from '../../../core/services/document.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import { User } from '../../../core/models/user.model';
 
 @Component({
   selector: 'app-document-upload',
@@ -50,7 +51,7 @@ export class DocumentUploadComponent implements OnInit {
 
   uploadForm: FormGroup;
   isSubmitting = false;
-  currentUser: any;
+  currentUser: User | null = null;
   uploadedFiles: { [key: string]: File } = {};
 
   requiredDocuments: DocumentType[] = [];
@@ -84,12 +85,15 @@ export class DocumentUploadComponent implements OnInit {
     this.cdr.markForCheck();
 
     this.documentTypeService.getRequiredDocumentTypes().subscribe({
-      next: (documentTypes: any[]) => {
+      next: (documentTypes: DocumentType[]) => {
         this.isLoadingTypes = false;
         this.requiredDocuments = documentTypes;
         documentTypes.forEach((doc) => {
-          if (!this.uploadForm.contains(doc.id)) {
-            this.uploadForm.addControl(doc.id, this.fb.control(null, Validators.required));
+          // Control names are strings; doc.id is a number. `any[]` let the number through, and
+          // `contains` then never matched, so a control was added on every load (GH-158).
+          const controlName = String(doc.id);
+          if (!this.uploadForm.contains(controlName)) {
+            this.uploadForm.addControl(controlName, this.fb.control(null, Validators.required));
           }
         });
         this.cdr.markForCheck();
@@ -107,10 +111,10 @@ export class DocumentUploadComponent implements OnInit {
     this.loadDocumentTypes();
   }
 
-  onFileSelected(event: any, documentId: string) {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-
+  onFileSelected(event: Event, documentId: string) {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (file) {
       // Validate file
       const validation = this.documentService.validateFile(file);
 

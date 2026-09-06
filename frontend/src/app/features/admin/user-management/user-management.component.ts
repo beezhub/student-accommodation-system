@@ -21,9 +21,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CreateUserDialogComponent } from './create-user-dialog/create-user-dialog.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
-import { AuthService } from '../../../core/services/auth.service';
 import { TenantService, Tenant } from '../../../core/services/tenant.service';
 import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { RoleService } from '../../../core/services/role.service';
+import { ROLE, UserRoleValue } from '../../../core/models/role.model';
 
 @Component({
   selector: 'app-user-management',
@@ -72,27 +73,45 @@ export class UserManagementComponent implements OnInit {
     return this.filterRole !== 'all' ? 1 : 0;
   }
 
-  get adminCount(): number {
-    return this.users.filter((u) => u.userRole === 'ADMIN').length;
+  /**
+   * Counts over the page currently shown, by the roles that actually exist.
+   *
+   * <p>These counted `'ADMIN'` and `'LANDLORD'` before. `LANDLORD` is not a role in this system at
+   * all, so that chip always read zero, and `ADMIN` is the deprecated one kept only for migration,
+   * so the admin count missed every PLATFORM_ADMIN, TENANT_ADMIN and BUILDING_STAFF (GH-158).
+   */
+  private countOnPage(...roles: UserRoleValue[]): number {
+    const wanted = roles.map((role) => role.toUpperCase());
+    return this.users.filter((u) => wanted.includes((u.userRole ?? '').toUpperCase())).length;
   }
 
-  get landlordCount(): number {
-    return this.users.filter((u) => u.userRole === 'LANDLORD').length;
+  get platformAdminCount(): number {
+    return this.countOnPage(ROLE.PLATFORM_ADMIN, ROLE.ADMIN);
+  }
+
+  get tenantAdminCount(): number {
+    return this.countOnPage(ROLE.TENANT_ADMIN);
+  }
+
+  get buildingStaffCount(): number {
+    return this.countOnPage(ROLE.BUILDING_STAFF);
   }
 
   get studentCount(): number {
-    return this.users.filter((u) => u.userRole === 'STUDENT').length;
+    return this.countOnPage(ROLE.STUDENT);
   }
 
   toggleFilters(): void {
     this.filtersVisible = !this.filtersVisible;
   }
 
-  private authService = inject(AuthService);
+  private roleService = inject(RoleService);
   private tenantService = inject(TenantService);
 
   constructor() {
-    this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
+    // Was `tenantId === 0`. That is the tenant sentinel, not a role: students carry tenant 0 too,
+    // and a platform admin's authority comes from their role (GH-158).
+    this.isPlatformAdmin = this.roleService.isPlatformAdmin();
   }
 
   ngOnInit(): void {

@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../../core/services/auth.service';
+import { AbstractControl } from '@angular/forms';
 
 @Component({
   selector: 'app-delete-account-dialog',
@@ -190,7 +191,7 @@ export class DeleteAccountDialogComponent {
     });
   }
 
-  deleteConfirmationValidator(control: any) {
+  deleteConfirmationValidator(control: AbstractControl) {
     return control.value === 'DELETE' ? null : { confirmationMismatch: true };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }

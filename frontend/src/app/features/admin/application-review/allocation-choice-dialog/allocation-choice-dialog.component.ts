@@ -18,6 +18,11 @@ import { BuildingService, BuildingResponse } from '../../../../core/services/bui
 import { StagedAllocationService } from '../../../../core/services/staged-allocation.service';
 import { ApplicationService } from '../../../../core/services/application.service';
 
+/** What the dialog closes with. Named so callers stop reading it through `any` (GH-158). */
+export interface AllocationChoiceResult {
+  action: 'allocated' | 'waitlisted';
+}
+
 export interface AllocationChoiceDialogData {
   applicationId: number;
   studentId: number;
@@ -204,12 +209,13 @@ export class AllocationChoiceDialogComponent implements OnInit {
   }
 
   getYearRestrictionLabel(room: EligibleRoomResponse): string {
-    const attrs = room as any;
-    if (!attrs.minYearOfStudy && !attrs.maxYearOfStudy) return '';
-    if (attrs.minYearOfStudy && attrs.maxYearOfStudy) {
-      return `Year ${attrs.minYearOfStudy}-${attrs.maxYearOfStudy}`;
+    // EligibleRoomResponse already declares both fields, so the cast this used to go through was
+    // doing nothing but switching off type checking for the whole object (GH-158).
+    if (!room.minYearOfStudy && !room.maxYearOfStudy) return '';
+    if (room.minYearOfStudy && room.maxYearOfStudy) {
+      return `Year ${room.minYearOfStudy}-${room.maxYearOfStudy}`;
     }
-    if (attrs.minYearOfStudy) return `Year ${attrs.minYearOfStudy}+`;
-    return `Year 1-${attrs.maxYearOfStudy}`;
+    if (room.minYearOfStudy) return `Year ${room.minYearOfStudy}+`;
+    return `Year 1-${room.maxYearOfStudy}`;
   }
 }

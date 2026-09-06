@@ -34,6 +34,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { User } from '../../../core/models/user.model';
+import { DocumentData, DocumentPreview } from '../../../core/models/document.model';
+import { contentOf } from '../../../core/models/page-response.model';
 
 /** Merged view of a document type slot — either empty or populated by an uploaded document. */
 export interface DocumentSlot {
@@ -84,8 +87,8 @@ export class DocumentsComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
 
-  currentUser: any;
-  selectedDocument: any = null;
+  currentUser: User | null = null;
+  selectedDocument: DocumentPreview | null = null;
   isUploading = false;
   isLoading = true;
 
@@ -126,14 +129,8 @@ export class DocumentsComponent implements OnInit {
     this.loadError = null;
 
     this.documentTypeService.getAllDocumentTypes().subscribe({
-      next: (types: any) => {
-        if (Array.isArray(types)) {
-          this.allDocumentTypes = types;
-        } else if (types && Array.isArray(types.content)) {
-          this.allDocumentTypes = types.content;
-        } else {
-          this.allDocumentTypes = [];
-        }
+      next: (types) => {
+        this.allDocumentTypes = contentOf(types);
 
         // Now load uploaded documents
         this.documentService.getUploadedDocuments().subscribe({
@@ -157,10 +154,10 @@ export class DocumentsComponent implements OnInit {
     });
   }
 
-  private buildSlots(uploadedDocs: any[]): void {
+  private buildSlots(uploadedDocs: DocumentData[]): void {
     // Index uploaded docs by documentTypeId. Coerce to Number — the document-type
     // API returns ids as strings while the documents API returns them as numbers.
-    const docByTypeId = new Map<number, any>();
+    const docByTypeId = new Map<number, DocumentData>();
     for (const doc of uploadedDocs) {
       const key = doc.documentTypeId != null ? Number(doc.documentTypeId) : null;
       if (key != null) {
@@ -178,7 +175,7 @@ export class DocumentsComponent implements OnInit {
           isRequired: type.isRequired ?? false,
           documentId: uploaded.id,
           documentName: uploaded.documentName,
-          status: (uploaded.documentStatus as any) ?? 'PENDING',
+          status: (uploaded.documentStatus as DocumentSlot['status']) ?? 'PENDING',
           uploadDate: uploaded.uploadDate ?? null,
           fileSize: uploaded.fileSize ? this.formatFileSize(uploaded.fileSize) : null,
         } as DocumentSlot;
@@ -227,8 +224,9 @@ export class DocumentsComponent implements OnInit {
     this.uploadError = null;
   }
 
-  onFileSelected(event: any): void {
-    const file = event.target.files[0];
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
     if (file) {
       this.uploadStatus = 'validating';
       this.fileValidationErrors = [];
@@ -313,7 +311,7 @@ export class DocumentsComponent implements OnInit {
     if (!slot.documentId) return;
     this.selectedDocument = {
       id: slot.documentId,
-      name: slot.documentName,
+      name: slot.documentName ?? 'Document',
       type: slot.typeName,
       status: slot.status,
     };

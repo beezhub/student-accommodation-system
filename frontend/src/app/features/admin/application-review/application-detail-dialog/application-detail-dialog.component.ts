@@ -187,7 +187,7 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
         if (item.documentId) {
           const change = this.documentStatusChanges.get(item.documentId);
           if (change) {
-            return { ...item, status: change.newStatus as any };
+            return { ...item, status: change.newStatus as typeof item.status };
           }
         }
         return item;

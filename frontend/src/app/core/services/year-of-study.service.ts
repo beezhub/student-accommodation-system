@@ -6,6 +6,13 @@ import { YearOfStudy } from '../models/year-of-study.model';
 export { PageResponse } from '../models/page-response.model';
 import { PageResponse } from '../models/page-response.model';
 
+/** The query these paged endpoints accept. Was `any`, which typed nothing (GH-158). */
+export interface YearOfStudyFilters {
+  page?: number;
+  size?: number;
+  year?: string | number | null;
+}
+
 export interface YearOfStudyResponse {
   id: number;
   yearOfStudy: string;
@@ -38,8 +45,9 @@ export class YearOfStudyService {
     );
   }
 
-  getAllYearsOfStudyPaginated(filters: any): Observable<PageResponse<YearOfStudyResponse>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getAllYearsOfStudyPaginated(
+    filters: YearOfStudyFilters
+  ): Observable<PageResponse<YearOfStudyResponse>> {
     const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
@@ -47,8 +55,7 @@ export class YearOfStudyService {
     return this.http.get<PageResponse<YearOfStudyResponse>>(this.yearsOfStudyUrl, { params });
   }
 
-  searchYearsOfStudy(filters: any): Observable<PageResponse<YearOfStudyResponse>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  searchYearsOfStudy(filters: YearOfStudyFilters): Observable<PageResponse<YearOfStudyResponse>> {
     let params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');

@@ -6,6 +6,15 @@ import { Institution } from '../models/institution.model';
 export { PageResponse } from '../models/page-response.model';
 import { PageResponse } from '../models/page-response.model';
 
+/** The query these paged endpoints accept. Was `any`, which typed nothing (GH-158). */
+export interface InstitutionFilters {
+  page?: number;
+  size?: number;
+  name?: string;
+  address?: string;
+  contactEmail?: string;
+}
+
 export interface InstitutionResponse {
   id: number;
   name: string;
@@ -42,8 +51,7 @@ export class InstitutionService {
       .pipe(tap((data) => (this.institutions = data)));
   }
 
-  getAllInstitutions(filters: any): Observable<PageResponse<InstitutionResponse>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getAllInstitutions(filters: InstitutionFilters): Observable<PageResponse<InstitutionResponse>> {
     const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
@@ -51,8 +59,7 @@ export class InstitutionService {
     return this.http.get<PageResponse<InstitutionResponse>>(this.apiUrl, { params });
   }
 
-  searchInstitutions(filters: any): Observable<PageResponse<InstitutionResponse>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  searchInstitutions(filters: InstitutionFilters): Observable<PageResponse<InstitutionResponse>> {
     let params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');

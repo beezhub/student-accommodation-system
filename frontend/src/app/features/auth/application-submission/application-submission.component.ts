@@ -32,6 +32,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 import { BuildingGalleryComponent } from '../../dashboard/applications/building-gallery/building-gallery.component';
+import { User } from '../../../core/models/user.model';
+import { contentOf } from '../../../core/models/page-response.model';
+import { StudentResponse } from '../../../core/models/student.model';
 
 @Component({
   selector: 'app-application-submission',
@@ -73,8 +76,7 @@ export class ApplicationSubmissionComponent implements OnInit {
 
   applicationForm: FormGroup;
   isSubmitting = false;
-  currentUser: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  currentUser: User | null = null;
   studentId: number | null = null;
   studentInstitutionId: number | null = null;
   institutionName = '';
@@ -102,7 +104,7 @@ export class ApplicationSubmissionComponent implements OnInit {
   }
 
   /** Student profile data — used for pre-populating deferred fields */
-  studentProfile: any = null;
+  studentProfile: StudentResponse | null = null;
 
   readonly genderOptions = [
     { value: 'male', viewValue: 'Male' },
@@ -154,18 +156,22 @@ export class ApplicationSubmissionComponent implements OnInit {
       uploadedDocs: this.documentService.getUploadedDocuments(),
     }).subscribe({
       next: ({ requiredTypes, uploadedDocs }) => {
-        this.requiredDocTypes = (requiredTypes as any[]).map((t: any) => ({
+        this.requiredDocTypes = requiredTypes.map((t) => ({
           id: Number(t.id),
-          name: t.name ?? t.typeName,
+          name: t.name,
         }));
         // Name-based matching: compare type names case-insensitively.
         // Student's uploaded docs reference platform type names; tenant shadows
         // may have different IDs but the same name — so ID-based matching would fail.
-        const anyDocs = uploadedDocs as any[];
+        // The two endpoints name the same field differently, so both spellings are read. Typed
+        // rather than cast: the fallback chain is the uncertainty, not the whole object (GH-158).
         this.uploadedDocTypeNames = new Set(
-          anyDocs.map((d: any) =>
-            String(d.typeName ?? d.documentTypeName ?? d.name ?? '').toLowerCase()
-          )
+          uploadedDocs.map((d) => {
+            const named = d as { typeName?: string; documentTypeName?: string; name?: string };
+            return String(
+              named.typeName ?? named.documentTypeName ?? named.name ?? ''
+            ).toLowerCase();
+          })
         );
         this.isLoadingDocReadiness = false;
         this.cdr.markForCheck();
@@ -267,23 +273,13 @@ export class ApplicationSubmissionComponent implements OnInit {
         // Get institution name and load buildings after we know the institution
         if (profile.institutionId) {
           this.institutionService.getInstitutions().subscribe({
-            next: (response: any) => {
-              const institutions = Array.isArray((response as any).content)
-                ? (response as any).content
-                : Array.isArray(response)
-                ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  response
-                : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  [];
-
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
+            next: (response) => {
+              const institutions = contentOf(response);
               const institution = institutions.find(
-                (inst: any) => String(inst.id) === String(profile.institutionId)
+                (inst) => String(inst.id) === String(profile.institutionId)
               );
 
               if (institution) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 this.institutionName = institution.name;
                 this.cdr.markForCheck();
               }

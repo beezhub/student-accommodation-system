@@ -12,6 +12,7 @@ import { Observable } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { ROLE } from '../../models/role.model';
 import { BrandLogoComponent } from '../../../shared/components/brand-logo/brand-logo.component';
+import { BreakpointState } from '@angular/cdk/layout';
 
 interface NavItem {
   path: string;
@@ -57,7 +58,7 @@ export class AdminSidebarComponent {
   }
 
   isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset).pipe(
-    map((result: any) => result.matches),
+    map((result: BreakpointState) => result.matches),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     shareReplay()

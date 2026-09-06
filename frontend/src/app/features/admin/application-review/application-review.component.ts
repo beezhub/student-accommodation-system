@@ -49,12 +49,14 @@ import {
 import {
   AllocationChoiceDialogComponent,
   AllocationChoiceDialogData,
+  AllocationChoiceResult,
 } from './allocation-choice-dialog/allocation-choice-dialog.component';
 import {
   PreferencesDialogComponent,
   PreferencesDialogData,
 } from './preferences-dialog/preferences-dialog.component';
 import { askForReason } from '../../../shared/components/reason-dialog/reason-dialog.component';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 
 @Component({
   selector: 'app-application-review',
@@ -237,7 +239,7 @@ export class ApplicationReviewComponent implements OnInit {
     return building ? building.name : '';
   }
 
-  onBuildingSelected(event: any): void {
+  onBuildingSelected(event: MatAutocompleteSelectedEvent): void {
     const building = event.option.value;
     if (typeof building === 'object') {
       this.filterForm.get('preferredBuilding')!.setValue(building.name);
@@ -389,7 +391,7 @@ export class ApplicationReviewComponent implements OnInit {
       } as AllocationChoiceDialogData,
     });
 
-    dialogRef.afterClosed().subscribe((result: any) => {
+    dialogRef.afterClosed().subscribe((result: AllocationChoiceResult | undefined) => {
       if (result && result.action === 'allocated') {
         this.loadApplications();
       }

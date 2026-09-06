@@ -32,6 +32,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { ErrorDisplayComponent } from '../../../../shared/error-display/error-display.component';
 import { BuildingGalleryComponent } from '../building-gallery/building-gallery.component';
+import { User } from '../../../../core/models/user.model';
+import { contentOf } from '../../../../core/models/page-response.model';
 
 @Component({
   selector: 'app-new-application',
@@ -70,10 +72,9 @@ export class NewApplicationComponent implements OnInit {
 
   applicationForm: FormGroup;
   isSubmitting = false;
-  currentUser: any;
+  currentUser: User | null = null;
   studentId: number | null = null;
   studentInstitutionId: number | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   institutionName = '';
   buildings: BuildingResponse[] = [];
   submitError: ParsedError | null = null;
@@ -149,25 +150,15 @@ export class NewApplicationComponent implements OnInit {
         // Get institution name and load buildings after we know the institution
         if (profile.institutionId) {
           this.institutionService.getInstitutions().subscribe({
-            next: (response: any) => {
-              const institutions = Array.isArray((response as any).content)
-                ? (response as any).content
-                : Array.isArray(response)
-                ? response
-                : [];
-
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            next: (response) => {
+              const institutions = contentOf(response);
               const institution = institutions.find(
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (inst: any) => String(inst.id) === String(profile.institutionId)
+                (inst) => String(inst.id) === String(profile.institutionId)
               );
 
               if (institution) {
                 this.institutionName = institution.name;
               }
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               // Load buildings after we know the institution
               this.loadBuildings();
               this.cdr.markForCheck();

@@ -6,6 +6,14 @@ import { DocumentType } from '../models/document-type.model';
 export { PageResponse } from '../models/page-response.model';
 import { PageResponse } from '../models/page-response.model';
 
+/** The query these paged endpoints accept. Was `any`, which typed nothing (GH-158). */
+export interface DocumentTypeFilters {
+  page?: number;
+  size?: number;
+  name?: string;
+  isRequired?: boolean;
+}
+
 export interface DocumentTypeResponse {
   id: number;
   typeName: string;
@@ -42,19 +50,18 @@ export class DocumentTypeService {
     return this.http.get<DocumentType[]>(`${this.apiUrl}/required`, { params });
   }
 
-  getAllDocumentTypesPaginated(filters: any): Observable<PageResponse<DocumentTypeResponse>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getAllDocumentTypesPaginated(
+    filters: DocumentTypeFilters
+  ): Observable<PageResponse<DocumentTypeResponse>> {
     const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
 
     return this.http.get<PageResponse<DocumentTypeResponse>>(this.apiUrl, { params });
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  searchDocumentTypes(filters: any): Observable<PageResponse<DocumentTypeResponse>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  searchDocumentTypes(
+    filters: DocumentTypeFilters
+  ): Observable<PageResponse<DocumentTypeResponse>> {
     let params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
@@ -62,11 +69,9 @@ export class DocumentTypeService {
     if (filters.name) {
       params = params.set('name', filters.name);
     }
-    if (
-      filters.isRequired !== undefined &&
-      filters.isRequired !== null &&
-      filters.isRequired !== ''
-    ) {
+    // The `!== ''` arm here was unreachable once the parameter had a type: isRequired is a
+    // boolean, and comparing it to a string never matched (GH-158).
+    if (filters.isRequired !== undefined && filters.isRequired !== null) {
       params = params.set('isRequired', filters.isRequired.toString());
     }
 

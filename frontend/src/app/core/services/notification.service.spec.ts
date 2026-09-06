@@ -8,6 +8,7 @@ import { Notification, NotificationResponse } from '../models/notification.model
 describe('NotificationService', () => {
   let service: NotificationService;
   let httpMock: HttpTestingController;
+  let eventSourceSpy: jasmine.Spy;
   let tokenStorageSpy: jasmine.SpyObj<TokenStorageService>;
 
   const apiUrl = `${environment.apiUrl}/notifications`;
@@ -36,14 +37,16 @@ describe('NotificationService', () => {
     tokenStorageSpy.getToken.and.returnValue(null);
     tokenStorageSpy.isTokenValid.and.returnValue(false);
 
-    // Stub EventSource so SSE connection attempts don't fail in jsdom
-    (window as any).EventSource = jasmine.createSpy('EventSource').and.returnValue({
+    // Stub EventSource so SSE connection attempts don't fail in the test browser. Installed
+    // through a view of `window` narrowed to the one property, rather than by switching off
+    // checking on the whole object (GH-158).
+    eventSourceSpy = jasmine.createSpy('EventSource').and.returnValue({
       addEventListener: jasmine.createSpy(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       close: jasmine.createSpy(),
       onopen: null,
       onerror: null,
     });
+    (window as unknown as { EventSource: unknown }).EventSource = eventSourceSpy;
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -209,18 +212,13 @@ describe('NotificationService', () => {
       const mockEventSource = {
         addEventListener: jasmine.createSpy(),
         close: jasmine.createSpy(),
-        onopen: null as any,
-        onerror: null as any,
+        onopen: null,
+        onerror: null,
       };
-      service['eventSource'] = mockEventSource as any;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      service['eventSource'] = mockEventSource as unknown as EventSource;
       service.stopNotifications();
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
       expect(mockEventSource.close).toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(service['eventSource']).toBeUndefined();
     });
   });
@@ -229,19 +227,17 @@ describe('NotificationService', () => {
     it('initializeNotifications_noToken_doesNotConnectToSse', () => {
       tokenStorageSpy.getToken.and.returnValue(null);
       service.initializeNotifications();
-      expect((window as any).EventSource).not.toHaveBeenCalled();
+      expect(eventSourceSpy).not.toHaveBeenCalled();
     });
 
     it('initializeNotifications_withToken_connectsToSse', () => {
       tokenStorageSpy.getToken.and.returnValue('my-token');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       service.initializeNotifications();
-      expect((window as any).EventSource).toHaveBeenCalled();
+      expect(eventSourceSpy).toHaveBeenCalled();
     });
   });
 
   describe('deleteNotification', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     it('deleteNotification_validId_deletesToNotificationEndpoint', () => {
       service.deleteNotification(1).subscribe();
 

@@ -34,6 +34,7 @@ import { MatInputModule } from '@angular/material/input';
 
 // Shared Components
 import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-badge/modern-status-badge.component';
+import { User } from '../../../../core/models/user.model';
 
 @Component({
   selector: 'app-application-details',
@@ -75,7 +76,7 @@ export class ApplicationDetailsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  currentUser: any;
+  currentUser: User | null = null;
   applicationId: number = 0;
   application: ApplicationResponse | null = null;
   isLoading = false;

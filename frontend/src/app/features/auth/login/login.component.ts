@@ -13,6 +13,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -91,7 +92,7 @@ export class LoginComponent {
             }
           }
         },
-        error: (error: any) => {
+        error: (error: HttpErrorResponse) => {
           this.isSubmitting = false;
           this.errorMessage =
             error?.error?.message || error?.message || 'Login failed. Please try again.';

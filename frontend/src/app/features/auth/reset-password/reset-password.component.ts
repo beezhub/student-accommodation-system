@@ -17,6 +17,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-reset-password',
@@ -98,7 +99,7 @@ export class ResetPasswordComponent implements OnInit {
           });
         }
       },
-      error: (error: any) => {
+      error: (error: HttpErrorResponse) => {
         this.isVerifying = false;
         this.tokenValid = false;
         const errorMessage = error?.error?.message || 'Token verification failed';
@@ -126,7 +127,7 @@ export class ResetPasswordComponent implements OnInit {
             panelClass: ['success-snackbar'],
           });
         },
-        error: (error: any) => {
+        error: (error: HttpErrorResponse) => {
           this.isSubmitting = false;
           const errorMessage =
             error?.error?.message ||

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { HttpEventType } from '@angular/common/http';
+import { HttpEventType, HttpResponse } from '@angular/common/http';
 import {
   DocumentService,
   FileValidationResult,
@@ -220,14 +220,12 @@ describe('DocumentService', () => {
         headers: req.request.headers,
         url: req.request.url,
         body: 'done',
-      } as any);
+      } as HttpResponse<string>);
 
       expect(results.length).toBeGreaterThan(0);
       expect(results.some((r) => r.status === 'progress')).toBeTrue();
     });
   });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
   describe('uploadMultipleDocumentsWithProgress', () => {
     it('uploadMultipleDocumentsWithProgress_postsToUploadMultipleEndpoint', () => {
@@ -249,7 +247,7 @@ describe('DocumentService', () => {
         headers: req.request.headers,
         url: req.request.url,
         body: {},
-      } as any);
+      } as HttpResponse<string>);
     });
   });
 });

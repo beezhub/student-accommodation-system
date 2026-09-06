@@ -16,7 +16,9 @@ export interface Application {
 
   // Preference fields
   requiresAccessibility?: boolean;
-  specialRequirements?: string;
+  // Nullable, not just optional: the reactive form emits null for an untouched control,
+  // and `any` at the call site hid the mismatch (GH-158).
+  specialRequirements?: string | null;
   institutionName?: string;
   courseName?: string;
 

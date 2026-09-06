@@ -11,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-forgot-password',
@@ -64,7 +65,7 @@ export class ForgotPasswordComponent {
             }
           );
         },
-        error: (error: any) => {
+        error: (error: HttpErrorResponse) => {
           this.isSubmitting = false;
           const errorMessage =
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

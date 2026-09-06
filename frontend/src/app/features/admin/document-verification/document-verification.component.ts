@@ -20,6 +20,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { DocumentPreview } from '../../../core/models/document.model';
+import { DocumentTypeResponse } from '../../../core/services/document-type.service';
 
 @Component({
   selector: 'app-document-verification',
@@ -73,9 +75,9 @@ export class DocumentVerificationComponent implements OnInit {
   }
 
   statuses = ['PENDING', 'APPROVED', 'REJECTED'];
-  documentTypes: any[] = [];
+  documentTypes: DocumentTypeResponse[] = [];
 
-  selectedDocument: any = null;
+  selectedDocument: DocumentPreview | null = null;
 
   constructor() {
     this.filterForm = this.fb.group({

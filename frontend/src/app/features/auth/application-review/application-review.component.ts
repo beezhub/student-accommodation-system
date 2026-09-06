@@ -31,6 +31,7 @@ import {
 } from '../../../core/services/application-draft.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import { contentOf } from '../../../core/models/page-response.model';
 
 @Component({
   selector: 'app-application-review',
@@ -102,13 +103,7 @@ export class ApplicationReviewComponent implements OnInit {
 
     this.yearOfStudyService.getYearsOfStudy().subscribe({
       next: (yearOfStudy) => {
-        if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
-          this.yearOfStudy = (yearOfStudy as any).content;
-        } else if (Array.isArray(yearOfStudy)) {
-          this.yearOfStudy = yearOfStudy;
-        } else {
-          this.yearOfStudy = [];
-        }
+        this.yearOfStudy = contentOf(yearOfStudy);
         this.cdr.markForCheck();
       },
       error: (err) => {
@@ -119,13 +114,7 @@ export class ApplicationReviewComponent implements OnInit {
 
     this.institutionService.getInstitutions().subscribe({
       next: (institutions) => {
-        if (institutions && Array.isArray((institutions as any).content)) {
-          this.institutions = (institutions as any).content;
-        } else if (Array.isArray(institutions)) {
-          this.institutions = institutions;
-        } else {
-          this.institutions = [];
-        }
+        this.institutions = contentOf(institutions);
         this.cdr.markForCheck();
       },
       error: (err) => {

@@ -412,7 +412,13 @@ describe('DashboardComponent', () => {
   });
 
   it('viewDocument_thenClose_togglesTheSelection', () => {
-    component.viewDocument({ name: 'Passport' });
+    component.viewDocument({
+      id: 1,
+      documentName: 'Passport',
+      documentTypeName: 'ID',
+      documentStatus: 'APPROVED',
+      uploadDate: '2026-01-01',
+    });
     expect(component.selectedDocument).toBeTruthy();
 
     component.closeViewer();
