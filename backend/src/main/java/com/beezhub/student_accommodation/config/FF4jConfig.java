@@ -21,8 +21,12 @@ import javax.sql.DataSource;
  * silently inert thereafter, which is a subtler version of the same trap.
  *
  * <p>The flag ships disabled, seeded by {@code V2026_02_25_0012__fix_ff4j_schema.sql}, and is
- * turned on through {@code /api/admin/features/auto-allocation/enable}. That matches the platform
- * default for the separate {@code auto_allocation_enabled} system setting.
+ * turned on through {@code /api/admin/features/auto-allocation/enable}.
+ *
+ * <p>It is the only switch for auto-allocation. There used to be a second, unconnected
+ * {@code auto_allocation_enabled} system setting gating the per-application path while this flag
+ * gated the batch path, so enabling one left the other silently off and neither screen mentioned
+ * the other. The setting is retired (GH-207).
  */
 @Slf4j
 @Configuration

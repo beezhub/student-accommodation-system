@@ -1,5 +1,4 @@
 <div class="system-settings-page">
-
   <!-- ══════════════════════════════════════════════════════
        HERO HEADER BAND
   ══════════════════════════════════════════════════════ -->
@@ -27,48 +26,40 @@
   </div>
 
   <div class="page-content">
-
     <!-- ══════════════════════════════════════════════════════
-         AUTO-ALLOCATION TOGGLE CARD
+         AUTO-ALLOCATION POINTER CARD
+
+         This was a toggle writing the `auto_allocation_enabled` setting, which gated only the
+         per-application path while the FF4j flag gated the batch path. Enabling one left the
+         other silently off and neither screen said so (GH-207). One switch now, and it lives on
+         the Feature Flags screen; this card says where rather than leaving admins hunting for a
+         toggle that used to be here.
     ══════════════════════════════════════════════════════ -->
     <div class="toggle-section">
-
-      @if (loading) {
-        <div class="toggle-card-skeleton" aria-busy="true" aria-label="Loading auto-allocation setting">
-          <div class="skeleton-icon"></div>
-          <div class="skeleton-text">
-            <div class="skeleton-line skeleton-line--title"></div>
-            <div class="skeleton-line skeleton-line--sub"></div>
-          </div>
-          <div class="skeleton-toggle"></div>
+      <div class="toggle-card">
+        <div class="toggle-icon-wrap" aria-hidden="true">
+          <mat-icon>autorenew</mat-icon>
         </div>
-      } @else {
-        <div
-          class="toggle-card"
-          [class.toggle-card--enabled]="autoAllocationEnabled"
-          [class.toggle-card--disabled]="!autoAllocationEnabled">
-          <div class="toggle-icon-wrap" [class.icon-enabled]="autoAllocationEnabled" aria-hidden="true">
-            <mat-icon>{{ autoAllocationEnabled ? 'autorenew' : 'pause_circle' }}</mat-icon>
-          </div>
-          <div class="toggle-info">
-            <h2 class="toggle-title">Auto-Allocation</h2>
-            <p class="toggle-desc">Automatically assign rooms to approved applications on a scheduled batch cycle.</p>
-          </div>
-          <div class="toggle-action">
-            <div class="toggle-state-label" [class.state-enabled]="autoAllocationEnabled">
-              {{ autoAllocationEnabled ? 'Enabled' : 'Disabled' }}
-            </div>
-            <mat-slide-toggle
-              [checked]="autoAllocationEnabled"
-              [disabled]="autoAllocationReadOnly"
-              (change)="toggleAutoAllocation()"
-              [matTooltip]="autoAllocationReadOnly ? 'Managed by platform administrator' : ''"
-              [attr.aria-label]="'Auto-allocation is ' + (autoAllocationEnabled ? 'enabled' : 'disabled')">
-            </mat-slide-toggle>
-          </div>
+        <div class="toggle-info">
+          <h2 class="toggle-title">Auto-Allocation</h2>
+          <p class="toggle-desc">
+            Automatically assign rooms to approved applications. Managed as a feature flag, which
+            covers both the scheduled batch cycle and per-application allocation on approval.
+          </p>
         </div>
-      }
-
+        <div class="toggle-action">
+          @if (canManageFeatureFlags) {
+          <a mat-stroked-button color="primary" routerLink="/admin/feature-flags">
+            <mat-icon>toggle_on</mat-icon>
+            Feature Flags
+          </a>
+          } @else {
+          <div class="toggle-state-label" matTooltip="Managed by platform administrator">
+            Platform-managed
+          </div>
+          }
+        </div>
+      </div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════
@@ -76,22 +67,23 @@
     ══════════════════════════════════════════════════════ -->
     <div class="settings-grid">
       @for (category of settingsCategories; track category.route) {
-        <a
-          [class]="'settings-card ' + category.class"
-          [routerLink]="category.route"
-          role="link"
-          [attr.aria-label]="'Navigate to ' + category.title + ': ' + category.description">
-          <div class="card-icon-wrap">
-            <mat-icon>{{ category.icon }}</mat-icon>
-          </div>
-          <div class="card-info">
-            <h2 class="card-title">{{ category.title }}</h2>
-            <p class="card-desc">{{ category.description }}</p>
-          </div>
-          <div class="card-arrow" aria-hidden="true">
-            <mat-icon>chevron_right</mat-icon>
-          </div>
-        </a>
+      <a
+        [class]="'settings-card ' + category.class"
+        [routerLink]="category.route"
+        role="link"
+        [attr.aria-label]="'Navigate to ' + category.title + ': ' + category.description"
+      >
+        <div class="card-icon-wrap">
+          <mat-icon>{{ category.icon }}</mat-icon>
+        </div>
+        <div class="card-info">
+          <h2 class="card-title">{{ category.title }}</h2>
+          <p class="card-desc">{{ category.description }}</p>
+        </div>
+        <div class="card-arrow" aria-hidden="true">
+          <mat-icon>chevron_right</mat-icon>
+        </div>
+      </a>
       }
     </div>
 
@@ -100,9 +92,10 @@
     ══════════════════════════════════════════════════════ -->
     <div class="info-note" role="note">
       <mat-icon aria-hidden="true">info_outline</mat-icon>
-      <span>Changes to master data settings are reflected across all relevant modules immediately.</span>
+      <span
+        >Changes to master data settings are reflected across all relevant modules
+        immediately.</span
+      >
     </div>
-
   </div>
-
 </div>

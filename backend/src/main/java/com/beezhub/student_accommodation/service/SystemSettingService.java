@@ -23,6 +23,13 @@ public class SystemSettingService {
 
     private final SystemSettingRepository systemSettingRepository;
 
+    /**
+     * Retired. Auto-allocation is gated solely by the FF4j {@code auto-allocation} flag now; this
+     * row is deleted by {@code V2026_09_06_1600__retire_auto_allocation_setting.sql} (GH-207).
+     *
+     * <p>The key is kept in {@link #PLATFORM_ONLY_KEYS} rather than dropped, so a tenant admin
+     * cannot create an override row for a key that no longer controls anything and be misled by it.
+     */
     public static final String AUTO_ALLOCATION_ENABLED = "auto_allocation_enabled";
 
     /** Settings only the platform tenant may create, change or remove. */
@@ -160,8 +167,4 @@ public class SystemSettingService {
         }
     }
 
-    /** Returns true if auto-allocation is enabled for the current context (cascade). */
-    public boolean isAutoAllocationEnabled() {
-        return Boolean.parseBoolean(getSetting(AUTO_ALLOCATION_ENABLED));
-    }
 }

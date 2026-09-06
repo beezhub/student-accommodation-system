@@ -134,40 +134,13 @@ class SystemSettingServiceTest {
                 .containsEntry("offer_expiry_days", "7");
     }
 
-    @Test
-    @DisplayName("isAutoAllocationEnabled_returnsTrueWhenSettingIsTrue")
-    void isAutoAllocationEnabled_returnsTrueWhenSettingIsTrue() {
-        when(systemSettingRepository.findBySettingKey(SystemSettingService.AUTO_ALLOCATION_ENABLED))
-                .thenReturn(Optional.of(tenant1Setting)); // tenant1Setting has value "true"
-
-        assertThat(systemSettingService.isAutoAllocationEnabled()).isTrue();
-    }
-
-    @Test
-    @DisplayName("isAutoAllocationEnabled_returnsFalseWhenSettingIsFalse")
-    void isAutoAllocationEnabled_returnsFalseWhenSettingIsFalse() {
-        // Use a current-tenant setting whose value is "false" to test boolean parsing
-        SystemSetting tenant1FalseSetting = SystemSetting.builder()
-                .id(4L)
-                .tenantId(TENANT_1_ID)
-                .settingKey(SystemSettingService.AUTO_ALLOCATION_ENABLED)
-                .settingValue("false")
-                .build();
-
-        when(systemSettingRepository.findBySettingKey(SystemSettingService.AUTO_ALLOCATION_ENABLED))
-                .thenReturn(Optional.of(tenant1FalseSetting));
-
-        assertThat(systemSettingService.isAutoAllocationEnabled()).isFalse();
-    }
-
-    @Test
-    @DisplayName("isAutoAllocationEnabled_returnsFalseWhenSettingAbsent")
-    void isAutoAllocationEnabled_returnsFalseWhenSettingAbsent() {
-        when(systemSettingRepository.findBySettingKey(SystemSettingService.AUTO_ALLOCATION_ENABLED))
-                .thenReturn(Optional.empty());
-
-        assertThat(systemSettingService.isAutoAllocationEnabled()).isFalse();
-    }
+    // The isAutoAllocationEnabled_* cases that stood here are gone with the accessor. Auto-
+    // allocation is gated by the FF4j `auto-allocation` flag alone now; the per-application path
+    // read this setting while the batch path read the flag, so enabling one left the other
+    // silently off (GH-207). The gate is covered in AutoAllocationServiceTest.
+    //
+    // KEY is still a platform-only key below: the row is deleted, and a tenant admin should not be
+    // able to create an override for a key that no longer controls anything.
 
     // ─────────────────────────────────────────────────────────────
     // TASK-1.03: Filter-disabled failure mode (cross-tenant clash)
