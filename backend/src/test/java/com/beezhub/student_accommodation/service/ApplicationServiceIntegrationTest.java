@@ -374,7 +374,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
 
         // Upload the required document for the student
         MockMultipartFile file = new MockMultipartFile(
-                "file", "enrollment.pdf", "application/pdf", "enrollment proof content".getBytes());
+                "file", "enrollment.pdf", "application/pdf", pdfBytes("enrollment proof content"));
         documentLifecycleService.uploadSingleDocument(file, student.getAppUser().getEmail(), requiredType.getId());
 
         ApplicationRequest request = new ApplicationRequest();
@@ -413,7 +413,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
 
         // Student uploads document using the PLATFORM type id
         MockMultipartFile file = new MockMultipartFile(
-                "file", "passport.pdf", "application/pdf", "passport content".getBytes());
+                "file", "passport.pdf", "application/pdf", pdfBytes("passport content"));
         documentLifecycleService.uploadSingleDocument(file, student.getAppUser().getEmail(), platformType.getId());
 
         // Application to Tenant A — name-based check must find the document via the platform type name
@@ -477,5 +477,13 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         assertThatThrownBy(() -> applicationService.submitApplication(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Missing required documents");
+    }
+
+    /**
+     * A minimal but genuine PDF. Uploads are validated against the file bytes now, so a fixture
+     * whose content is prose is correctly rejected (GH-144).
+     */
+    private static byte[] pdfBytes(String marker) {
+        return ("%PDF-1.7\n% " + marker + "\n%%EOF\n").getBytes(java.nio.charset.StandardCharsets.US_ASCII);
     }
 }

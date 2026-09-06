@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.stream.Stream;
@@ -106,12 +107,21 @@ public class MinioFileStorageService implements FileStorageService {
     public String generatePresignedUrl(String key, Duration expiry) {
         String bucketName = minioConfig.getBucketName();
         try {
+            // The stored type is clamped here too, not only on the download endpoint. A presigned
+            // URL is served straight by object storage, so without these overrides an object
+            // stored before GH-144 would still be delivered as whatever type the client claimed.
+            // attachment stops the browser rendering it inline whatever the type says.
+            Map<String, String> responseOverrides = Map.of(
+                    "response-content-type", DocumentContentTypes.clamp(getContentType(key)),
+                    "response-content-disposition", "attachment");
+
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .bucket(bucketName)
                             .object(key)
                             .method(Http.Method.GET)
                             .expiry((int) expiry.toSeconds())
+                            .extraQueryParams(responseOverrides)
                             .build());
         } catch (Exception e) {
             throw new FileStorageException("Error generating presigned URL for key: " + key, e);

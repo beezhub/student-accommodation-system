@@ -185,11 +185,14 @@ public class DocumentLifecycleService {
     private Document validateAndUploadFile(MultipartFile file, AppUser user, DocumentType docType) {
         String objectPath = buildObjectPath(user, docType, file);
 
+        String resolvedContentType;
         try (InputStream is = file.getInputStream()) {
-            ValidationResult validationResult = fileValidationService.scanFile(is, file.getOriginalFilename());
+            ValidationResult validationResult =
+                    fileValidationService.scanFile(is, file.getOriginalFilename(), file.getSize());
             if (!validationResult.clean()) {
                 throw new FileValidationException("File rejected: " + validationResult.reason());
             }
+            resolvedContentType = validationResult.resolvedContentType();
         } catch (FileValidationException e) {
             throw e;
         } catch (IOException e) {
@@ -197,7 +200,10 @@ public class DocumentLifecycleService {
         }
 
         try (InputStream is = file.getInputStream()) {
-            fileStorageService.upload(objectPath, is, file.getSize(), file.getContentType());
+            // The type decided from the bytes, never file.getContentType(). That header is
+            // attacker-chosen, was stored verbatim and echoed back on download, so the client
+            // controlled the response Content-Type (GH-144).
+            fileStorageService.upload(objectPath, is, file.getSize(), resolvedContentType);
         } catch (IOException e) {
             throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
         }

@@ -85,9 +85,9 @@ class DocumentLifecycleServiceIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("uploadSingleDocument replaces existing document of same type (upsert)")
     void uploadSingleDocument_upsert_replacesExistingDocument() {
         MockMultipartFile firstFile = new MockMultipartFile(
-                "file", "id-v1.pdf", "application/pdf", "first file content".getBytes());
+                "file", "id-v1.pdf", "application/pdf", pdfBytes("first file content"));
         MockMultipartFile secondFile = new MockMultipartFile(
-                "file", "id-v2.pdf", "application/pdf", "second file content".getBytes());
+                "file", "id-v2.pdf", "application/pdf", pdfBytes("second file content"));
 
         // First upload
         documentLifecycleService.uploadSingleDocument(firstFile, user.getEmail(), docType.getId());
@@ -119,7 +119,7 @@ class DocumentLifecycleServiceIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("student upload stays visible while a tenant-scoped view is active (GH-112)")
     void uploadSingleDocument_isVisibleInsideTenantScopedView() {
         MockMultipartFile file = new MockMultipartFile(
-                "file", "proof.pdf", "application/pdf", "proof content".getBytes());
+                "file", "proof.pdf", "application/pdf", pdfBytes("proof content"));
         documentLifecycleService.uploadSingleDocument(file, user.getEmail(), docType.getId());
 
         Long uploadedId = documentRepository.findAllByStudent_Id(student.getId()).get(0).getId();
@@ -141,7 +141,7 @@ class DocumentLifecycleServiceIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("uploadSingleDocument creates document when none exists for that type")
     void uploadSingleDocument_createsDocument_whenNoExistingSlot() {
         MockMultipartFile file = new MockMultipartFile(
-                "file", "transcript.pdf", "application/pdf", "transcript content".getBytes());
+                "file", "transcript.pdf", "application/pdf", pdfBytes("transcript content"));
 
         documentLifecycleService.uploadSingleDocument(file, user.getEmail(), docType.getId());
 
@@ -150,5 +150,13 @@ class DocumentLifecycleServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(docs.get(0).getDocumentName()).isEqualTo("transcript.pdf");
         assertThat(docs.get(0).getDocumentType().getId()).isEqualTo(docType.getId());
         assertThat(docs.get(0).getStudent().getId()).isEqualTo(student.getId());
+    }
+
+    /**
+     * A minimal but genuine PDF. Uploads are validated against the file bytes now, so a fixture
+     * whose content is prose is correctly rejected (GH-144).
+     */
+    private static byte[] pdfBytes(String marker) {
+        return ("%PDF-1.7\n% " + marker + "\n%%EOF\n").getBytes(java.nio.charset.StandardCharsets.US_ASCII);
     }
 }
