@@ -81,8 +81,18 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
         break;
 
       case 403:
-        // Forbidden - redirect to unauthorized page
-        router.navigate(['/unauthorized']);
+        // Deliberately does not navigate. Route-level authorization is already enforced by
+        // AdminGuard, PlatformAdminGuard and StudentGuard, which redirect somewhere sensible, so
+        // a 403 reaching here is a refused action rather than a forbidden page. Navigating tore
+        // the user off the page mid-edit, and since this runs before the X-Silent-Error check a
+        // background poll could evict them with no message at all. There was no /unauthorized
+        // route either, so the wildcard dropped them on the public landing page (GH-150).
+        //
+        // Caveat: the backend also returns 403 for a required password change and an unverified
+        // email, which are remediable states with their own routes. ErrorResponse carries no
+        // machine-readable code, so this cannot tell them apart. Routing those needs a backend
+        // discriminator and is out of scope here.
+        console.warn('Forbidden:', error.url);
         break;
 
       case 404:

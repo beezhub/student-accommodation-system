@@ -192,8 +192,15 @@ export class RoomAllocationService {
     });
   }
 
+  /**
+   * Silent because the dashboard renders its own message for both the max-declines 403 and the
+   * generic failure. Without this the interceptor stacked a second, vaguer snackbar on top of it
+   * (GH-150). Matches getActiveAllocationByStudentId above.
+   */
   declineOffer(id: number, request: DeclineOfferRequest): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/decline`, request);
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/decline`, request, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   checkIn(id: number): Observable<RoomAllocationResponse> {

@@ -248,7 +248,10 @@ export class ErrorHandlingService {
     }
 
     if (opts.navigateOnUnauthorized && parsed.type === 'unauthorized') {
-      this.router.navigate(['/login']);
+      // This runs in the component error callback, after errorInterceptor has already navigated
+      // to /login with a returnUrl in the same tick. A bare navigate here supersedes it and
+      // silently strips the returnUrl, so it has to carry one too (GH-150).
+      this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
     }
 
     return parsed;

@@ -26,8 +26,11 @@ export const tokenExpiryInterceptor: HttpInterceptorFn = (req, next) => {
 
   const token = tokenStorage.getToken();
   if (!isPublicEndpoint && token && !tokenStorage.isTokenValid()) {
+    // Read the URL first: logout() navigates to /home, and only deferred navigation timing
+    // makes a read after it happen to still return the old value (GH-150).
+    const returnUrl = router.url;
     authService.logout();
-    router.navigate(['/login']);
+    router.navigate(['/login'], { queryParams: { returnUrl } });
     return throwError(() => new Error('Token expired'));
   }
   return next(req);
