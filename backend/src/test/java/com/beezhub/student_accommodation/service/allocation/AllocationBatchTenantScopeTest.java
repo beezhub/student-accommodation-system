@@ -65,7 +65,7 @@ class AllocationBatchTenantScopeTest {
     void setUp() {
         service = new AllocationBatchService(waitingListRepository, lifecycleService, featureFlagService,
                 transactionTemplate, environment, orchestrator, stagedAllocationService, roomAllocationMapper,
-                new SimpleMeterRegistry());
+                new SimpleMeterRegistry(), neutralPriorityScorer());
 
         when(featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
         when(transactionTemplate.execute(any())).thenAnswer(i ->
@@ -188,5 +188,14 @@ class AllocationBatchTenantScopeTest {
         service.batchAllocateFromWaitingList(1);
 
         assertThat(allocationTenants).hasSize(1);
+    }
+
+    /**
+     * A real scorer over a rule repository with nothing in it, so the neutral weights apply and the
+     * queue falls back to arrival then id — the order these fixtures already expected (GH-225).
+     */
+    private static ApplicantPriorityScorer neutralPriorityScorer() {
+        return new ApplicantPriorityScorer(org.mockito.Mockito.mock(
+                com.beezhub.student_accommodation.repository.AllocationRuleRepository.class));
     }
 }

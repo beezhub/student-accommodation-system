@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,6 +31,7 @@ public class AllocationScoringOrchestrator {
     private final RoomAllocationRepository roomAllocationRepository;
     private final RoomRepository roomRepository;
     private final WaitingListRepository waitingListRepository;
+    private final ApplicantPriorityScorer applicantPriorityScorer;
     private final BuildingRepository buildingRepository;
 
     public Map<Long, List<ScoredRoom>> buildScoringMatrix(List<WaitingListEntry> waitingList) {
@@ -79,7 +81,15 @@ public class AllocationScoringOrchestrator {
     public List<WaitingListEntryResponse> getWaitingListWithScores(Long buildingId) {
         log.info("Getting waiting list with scores for building {}", buildingId);
 
-        List<WaitingListEntry> entries = waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING");
+        // Ordered by the same scorer the batch job uses, not by the repository method's createdAt.
+        // The admin screen showing one order while the job serves another is GH-140, and arrival
+        // alone stopped being the order when the weights started counting (GH-225).
+        List<WaitingListEntry> entries =
+                new ArrayList<>(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING"));
+        Map<Long, BigDecimal> priorities = applicantPriorityScorer.priorityByEntryId(
+                entries, applicantPriorityScorer.tenantRule(), LocalDateTime.now());
+        entries.sort(applicantPriorityScorer.queueOrder(priorities));
+
         List<WaitingListEntryResponse> responses = new ArrayList<>();
 
         Building targetBuilding = buildingId != null ? buildingRepository.findById(buildingId).orElse(null) : null;
