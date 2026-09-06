@@ -41,9 +41,17 @@ public class FF4jConfig {
         ff4j = new FF4j();
         ff4j.setFeatureStore(new JdbcFeatureStore(dataSource));
 
-        // If the row is missing, FF4j creates it disabled rather than throwing. The seed migration
-        // inserts it, so this is a safety net.
-        ff4j.autoCreate(true);
+        // Deliberately not autoCreate(true). FF4j 1.9's enable(String)/disable(String) catch
+        // FeatureNotFoundException and create the feature when autocreate is on, so
+        // POST /api/admin/features/{anything}/enable returned 200 and minted a feature row named
+        // from the URL path segment. A platform admin could fill the FF4j tables by typing URLs,
+        // and a typo in a real flag name created a lookalike that did nothing rather than failing
+        // (GH-203).
+        //
+        // Nothing relies on autocreate to seed: auto-allocation, the only flag in the codebase, is
+        // inserted by V2026_02_19_2101__seed_reference_data.sql. An unknown id now raises
+        // FeatureNotFoundException, which FF4JFeatureFlagService turns into a 404.
+        ff4j.autoCreate(false);
 
         return ff4j;
     }
