@@ -14,7 +14,6 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SystemSettingsService } from '../../../core/services/system-settings.service';
-import { RoleService } from '../../../core/services/role.service';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -39,15 +38,9 @@ export class SystemSettingsComponent implements OnInit {
   private readonly systemSettingsService = inject(SystemSettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly cdr = inject(ChangeDetectorRef);
-  protected readonly roleService = inject(RoleService);
 
   autoAllocationEnabled = false;
   loading = false;
-
-  /** Auto-allocation is a platform-level setting; tenant admins can only view it. */
-  get autoAllocationReadOnly(): boolean {
-    return this.roleService.isTenantAdmin();
-  }
 
   settingsCategories = [
     {

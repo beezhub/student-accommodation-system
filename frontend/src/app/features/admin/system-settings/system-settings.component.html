@@ -60,9 +60,7 @@
             </div>
             <mat-slide-toggle
               [checked]="autoAllocationEnabled"
-              [disabled]="autoAllocationReadOnly"
               (change)="toggleAutoAllocation()"
-              [matTooltip]="autoAllocationReadOnly ? 'Managed by platform administrator' : ''"
               [attr.aria-label]="'Auto-allocation is ' + (autoAllocationEnabled ? 'enabled' : 'disabled')">
             </mat-slide-toggle>
           </div>

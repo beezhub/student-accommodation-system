@@ -16,13 +16,13 @@ public class SystemSettingController {
     private final SystemSettingService systemSettingService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Map<String, String>> getAllSettings() {
         return ResponseEntity.ok(systemSettingService.getAllSettings());
     }
 
     @PutMapping("/{key}")
-    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Void> updateSetting(@PathVariable String key, @RequestBody Map<String, String> payload) {
         String value = payload.get("value");
         if (value == null || value.isBlank()) {
@@ -33,7 +33,7 @@ public class SystemSettingController {
     }
 
     @DeleteMapping("/{key}")
-    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Void> deleteSetting(@PathVariable String key) {
         systemSettingService.deleteSetting(key);
         return ResponseEntity.noContent().build();

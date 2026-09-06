@@ -32,7 +32,7 @@ public class ActivityLogController {
     )
     @ApiResponse(responseCode = "200", description = "Activity logs retrieved successfully")
     @ApiResponse(responseCode = "403", description = "Access denied - Admin only")
-    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @GetMapping
     public ResponseEntity<ActivityLogPageResponse> getActivityLogs(
             @Parameter(description = "User ID filter")
@@ -79,7 +79,7 @@ public class ActivityLogController {
     @ApiResponse(responseCode = "200", description = "Activity log retrieved successfully")
     @ApiResponse(responseCode = "404", description = "Activity log not found")
     @ApiResponse(responseCode = "403", description = "Access denied - Admin only")
-    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<com.beezhub.student_accommodation.model.dto.ActivityLogResponse> getActivityLogById(
             @Parameter(description = "Activity log ID")
@@ -95,7 +95,7 @@ public class ActivityLogController {
     )
     @ApiResponse(responseCode = "200", description = "CSV file generated successfully")
     @ApiResponse(responseCode = "403", description = "Access denied - Admin only")
-    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportActivityLogs(
             @Parameter(description = "User ID filter")
