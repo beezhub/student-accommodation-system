@@ -308,12 +308,18 @@ public class BuildingService {
     }
 
     /**
-     * Enriches a single building response with pricing and availability from pre-loaded rooms.
+     * Enriches a single building response with pricing and availability.
+     *
+     * <p>Pricing comes from the rooms already loaded for the detail view. Availability does not:
+     * it used to count rooms whose status string was {@code AVAILABLE}, and that string is set by
+     * {@code RoomOccupancyManager.deriveStatus}, which says AVAILABLE only when a room is
+     * completely empty. A two-bed room with one occupant reads OCCUPIED, so every shared room with
+     * space was counted as having none (GH-221). The count now comes from the same live-allocation
+     * query the list view uses, so the two views agree.
      */
     private void enrichSingleBuildingWithPricingAndAvailability(BuildingResponse response, List<Room> rooms) {
         BigDecimal min = null;
         BigDecimal max = null;
-        int availableCount = 0;
 
         for (Room room : rooms) {
             if (room.getMonthlyRate() != null) {
@@ -324,13 +330,11 @@ public class BuildingService {
                     max = room.getMonthlyRate();
                 }
             }
-            if ("AVAILABLE".equals(room.getStatus())) {
-                availableCount++;
-            }
         }
 
         response.setMinMonthlyRate(min);
         response.setMaxMonthlyRate(max);
-        response.setAvailableRoomCount(availableCount);
+        response.setAvailableRoomCount(
+                (int) roomRepository.countAvailableRoomsByBuildingId(response.getId()));
     }
 }

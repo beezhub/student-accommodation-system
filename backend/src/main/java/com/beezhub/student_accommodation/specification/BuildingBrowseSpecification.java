@@ -2,6 +2,8 @@ package com.beezhub.student_accommodation.specification;
 
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Room;
+import com.beezhub.student_accommodation.model.entity.RoomAllocation;
+import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -44,14 +46,32 @@ public class BuildingBrowseSpecification {
                 predicates.add(cb.exists(priceSubquery));
             }
 
-            // Availability filter: building must have at least one AVAILABLE room
+            // Availability filter: the building must have at least one room with space left.
+            //
+            // Derived from the live allocation count rather than r.status = 'AVAILABLE'. That
+            // string is set by RoomOccupancyManager.deriveStatus, which says AVAILABLE only when a
+            // room is completely empty, so a two-bed room with one occupant read as full and its
+            // building disappeared from the filter despite having a free bed (GH-221).
             if (Boolean.TRUE.equals(available)) {
                 Subquery<Long> availSubquery = query.subquery(Long.class);
                 var roomRoot = availSubquery.from(Room.class);
+
+                Subquery<Long> heldBeds = availSubquery.subquery(Long.class);
+                var allocationRoot = heldBeds.from(RoomAllocation.class);
+                heldBeds.select(cb.count(allocationRoot))
+                        .where(
+                                cb.equal(allocationRoot.get("room"), roomRoot),
+                                allocationRoot.get("status").in(
+                                        AllocationStatus.ACTIVE,
+                                        AllocationStatus.ACCEPTED,
+                                        AllocationStatus.OFFERED)
+                        );
+
                 availSubquery.select(roomRoot.get("id"))
                         .where(
                                 cb.equal(roomRoot.get("building"), root),
-                                cb.equal(roomRoot.get("status"), "AVAILABLE")
+                                cb.notEqual(roomRoot.get("status"), "MAINTENANCE"),
+                                cb.greaterThan(roomRoot.<Integer>get("capacity").as(Long.class), heldBeds)
                         );
                 predicates.add(cb.exists(availSubquery));
             }
