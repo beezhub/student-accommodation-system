@@ -4,6 +4,9 @@ import com.beezhub.student_accommodation.model.entity.Notification;
 import com.beezhub.student_accommodation.model.enums.NotificationStatus;
 import com.beezhub.student_accommodation.model.enums.NotificationType;
 import com.beezhub.student_accommodation.repository.NotificationRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +33,20 @@ class NotificationStatusConstraintIntegrationTest extends AbstractIntegrationTes
 
     @Autowired
     private NotificationRepository notificationRepository;
+
+    /**
+     * tenant_id is NOT NULL and TenantListener stamps it from the context on persist, which is
+     * unset outside a request. The platform tenant is seeded by Flyway.
+     */
+    @BeforeEach
+    void setTenant() {
+        TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+    }
+
+    @AfterEach
+    void clearTenant() {
+        TenantContext.clear();
+    }
 
     @Test
     void permanentlyFailed_isAcceptedByTheStatusCheckConstraint() {
