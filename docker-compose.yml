@@ -86,7 +86,13 @@ services:
       # Empty keeps /actuator/prometheus PLATFORM_ADMIN-only; set it to let Prometheus scrape.
       - PROMETHEUS_SCRAPE_USER=${PROMETHEUS_SCRAPE_USER:-prometheus}
       - PROMETHEUS_SCRAPE_PASSWORD=${PROMETHEUS_SCRAPE_PASSWORD:-}
+      # Timestamps are stored without a time zone and written from the JVM default, so the zone
+      # is pinned. Changing it reinterprets every value already stored.
+      - TZ=${APP_TIMEZONE:-UTC}
     restart: unless-stopped
+    # Longer than spring.lifecycle.timeout-per-shutdown-phase, so graceful shutdown finishes
+    # before Docker sends SIGKILL.
+    stop_grace_period: 45s
     networks:
       - app-network
     deploy:
