@@ -156,7 +156,11 @@ public class SecurityConfig {
                         // the web-api jar is excluded from the build; keep the rule so a future dependency
                         // change cannot expose flag mutation to non-platform users.
                         .requestMatchers("/api/ff4j/**", "/ff4j-web-console/**").hasRole("PLATFORM_ADMIN")
-                        .requestMatchers("/actuator/health").permitAll()
+                        // The two probe paths are listed explicitly rather than matched with a
+                        // wildcard: /actuator/health/** would also expose every component
+                        // health path by name to an anonymous caller.
+                        .requestMatchers("/actuator/health", "/actuator/health/liveness",
+                                "/actuator/health/readiness").permitAll()
                         .requestMatchers("/actuator/**").hasRole("PLATFORM_ADMIN")
                         // Public only outside production. application-prod.yml sets this false, so a
                         // production deployment does not serve its own API documentation anonymously
