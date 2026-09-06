@@ -117,6 +117,11 @@ app:
   # No app.features block: the auto-allocation flag lives in ff4j_features and is toggled through
   # /api/admin/features. A property that overwrote it on every boot silently reverted admin
   # changes at the next restart (GH-142).
+  documents:
+    # Per-document limit, enforced by AllowListFileValidationService and returning 422. The
+    # servlet multipart limit is the outer bound and rejects the request before it reaches the
+    # application. Defaults to the same 10MB so this is behaviour-neutral (GH-144).
+    max-file-size-bytes: ${DOCUMENT_MAX_FILE_SIZE_BYTES:10485760}
   security:
     # Browser origins allowed to call the API. No default: an unset value must fail startup rather
     # than silently falling back to localhost, which would block the real front end (GH-135).

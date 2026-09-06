@@ -10,6 +10,7 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
+import com.beezhub.student_accommodation.service.document.DocumentContentTypes;
 import com.beezhub.student_accommodation.service.document.FileStorageService;
 import com.beezhub.student_accommodation.specification.DocumentSpecification;
 import lombok.RequiredArgsConstructor;
@@ -63,7 +64,10 @@ public class DocumentQueryService {
 
         String objectPath = document.getDocumentPath();
 
-        String contentType = fileStorageService.getContentType(objectPath);
+        // Clamped on the way out as well as on the way in. Objects stored before GH-144 carry
+        // whatever type the client claimed, and no migration re-stats them, so the read side is
+        // what actually neutralises existing rows.
+        String contentType = DocumentContentTypes.clamp(fileStorageService.getContentType(objectPath));
         InputStream response = fileStorageService.download(objectPath);
         var inputStreamResource = new InputStreamResource(response);
         return DocumentDownloadResponse.builder()

@@ -101,18 +101,17 @@ class DocumentLifecycleServiceTest {
         when(file.getOriginalFilename()).thenReturn("file.pdf");
         when(file.getSize()).thenReturn(10L);
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
-        when(file.getContentType()).thenReturn("application/pdf");
 
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
         when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
         when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/file.pdf");
-        when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.valid());
+        when(fileValidationService.scanFile(any(), anyString(), anyLong())).thenReturn(ValidationResult.valid("application/pdf"));
 
         documentLifecycleService.uploadSingleDocument(file, "user@example.com", 2L);
 
-        verify(fileValidationService, times(1)).scanFile(any(), anyString());
+        verify(fileValidationService, times(1)).scanFile(any(), anyString(), anyLong());
         verify(fileStorageService, times(1)).upload(anyString(), any(InputStream.class), anyLong(), anyString());
         verify(documentRepository, times(1)).save(any(Document.class));
     }
@@ -127,14 +126,13 @@ class DocumentLifecycleServiceTest {
         when(file.getOriginalFilename()).thenReturn("id.pdf");
         when(file.getSize()).thenReturn(20L);
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 4, 5, 6 }));
-        when(file.getContentType()).thenReturn("application/pdf");
 
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
         when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
         when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/id.pdf");
-        when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.valid());
+        when(fileValidationService.scanFile(any(), anyString(), anyLong())).thenReturn(ValidationResult.valid("application/pdf"));
 
         // Should succeed — no application needed
         assertDoesNotThrow(() ->
@@ -149,7 +147,6 @@ class DocumentLifecycleServiceTest {
         when(file.getOriginalFilename()).thenReturn("file.pdf");
         when(file.getSize()).thenReturn(10L);
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
-        when(file.getContentType()).thenReturn("application/pdf");
 
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentTypeRepository.findById(anyLong())).thenReturn(Optional.of(docType));
@@ -158,11 +155,11 @@ class DocumentLifecycleServiceTest {
         when(documentRepository.save(any(Document.class))).thenThrow(new RuntimeException("DB Error"));
 
         when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString())).thenReturn("path/to/file.pdf");
-        when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.valid());
+        when(fileValidationService.scanFile(any(), anyString(), anyLong())).thenReturn(ValidationResult.valid("application/pdf"));
 
         assertThrows(RuntimeException.class, () -> documentLifecycleService.uploadSingleDocument(file, "user@example.com", 2L));
 
-        verify(fileValidationService, times(1)).scanFile(any(), anyString());
+        verify(fileValidationService, times(1)).scanFile(any(), anyString(), anyLong());
         verify(fileStorageService, times(1)).upload(anyString(), any(InputStream.class), anyLong(), anyString());
         verify(fileStorageService, times(1)).delete(anyString());
     }
@@ -178,13 +175,13 @@ class DocumentLifecycleServiceTest {
         when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
         when(documentRepository.findByStudentIdAndDocumentTypeId(student.getId(), docType.getId())).thenReturn(Optional.empty());
 
-        when(fileValidationService.scanFile(any(), anyString())).thenReturn(ValidationResult.invalid("Malware detected"));
+        when(fileValidationService.scanFile(any(), anyString(), anyLong())).thenReturn(ValidationResult.invalid("Malware detected"));
 
         FileValidationException ex = assertThrows(FileValidationException.class,
             () -> documentLifecycleService.uploadSingleDocument(file, "user@example.com", 2L));
         assertTrue(ex.getMessage().contains("File rejected"));
 
-        verify(fileValidationService, times(1)).scanFile(any(), anyString());
+        verify(fileValidationService, times(1)).scanFile(any(), anyString(), anyLong());
         verify(fileStorageService, never()).upload(anyString(), any(InputStream.class), anyLong(), anyString());
         verify(documentRepository, never()).save(any(Document.class));
     }
@@ -313,5 +310,50 @@ class DocumentLifecycleServiceTest {
         assertFalse(statuses.getValue().contains(ApplicationStatus.REJECTED));
         assertFalse(statuses.getValue().contains(ApplicationStatus.EXPIRED));
         assertFalse(statuses.getValue().contains(ApplicationStatus.CANCELLED));
+    }
+
+    // --------------------------------------------------------- GH-144 stored content type
+
+    /**
+     * The declared multipart content type is attacker-chosen, and it used to be stored verbatim
+     * and echoed back on download, so the client controlled the response Content-Type. What
+     * reaches storage must be the type resolved from the file bytes instead.
+     */
+    @Test
+    void uploadDocuments_declaredContentTypeIsIgnored_theResolvedOneIsStored() throws Exception {
+        MultipartFile file = mock(MultipartFile.class);
+        lenient().when(file.getContentType()).thenReturn("text/html");
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentTypeRepository.findById(2L)).thenReturn(Optional.of(docType));
+        when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
+        when(file.getOriginalFilename()).thenReturn("transcript.pdf");
+        when(file.getSize()).thenReturn(13L);
+        when(file.getInputStream()).thenAnswer(i -> new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
+        when(fileValidationService.scanFile(any(InputStream.class), anyString(), anyLong()))
+                .thenReturn(ValidationResult.valid("application/pdf"));
+        when(documentRepository.save(any(Document.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        documentLifecycleService.uploadSingleDocument(file, "user@example.com", 2L);
+
+        verify(fileStorageService).upload(anyString(), any(InputStream.class), anyLong(),
+                eq("application/pdf"));
+    }
+
+    /** A rejected file must never reach storage at all. */
+    @Test
+    void uploadDocuments_validationRejects_nothingIsStored() throws Exception {
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentTypeRepository.findById(2L)).thenReturn(Optional.of(docType));
+        when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.getOriginalFilename()).thenReturn("cv.pdf");
+        when(file.getInputStream()).thenAnswer(i -> new ByteArrayInputStream(new byte[] { 1, 2, 3 }));
+        when(fileValidationService.scanFile(any(InputStream.class), anyString(), anyLong()))
+                .thenReturn(ValidationResult.invalid("the file contents are not a PDF, JPG or PNG"));
+
+        assertThrows(FileValidationException.class,
+                () -> documentLifecycleService.uploadSingleDocument(file, "user@example.com", 2L));
+
+        verify(fileStorageService, never()).upload(anyString(), any(InputStream.class), anyLong(), anyString());
     }
 }
