@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -90,6 +91,12 @@ public class OfferExpiryService {
 
                 log.info("Successfully expired offer for allocation {}", current.getId());
                 return null;
+            } catch (OptimisticLockingFailureException e) {
+                // Someone changed this allocation while the sweep was working on it — the student
+                // accepting, most likely. Rethrown as itself rather than wrapped, so the caller can
+                // tell a lost race from a real failure and skip it quietly (GH-196).
+                status.setRollbackOnly();
+                throw e;
             } catch (Exception e) {
                 status.setRollbackOnly();
                 throw new RuntimeException("Failed to expire offer for allocation " + allocation.getId(), e);
