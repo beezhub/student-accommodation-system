@@ -10,7 +10,6 @@ MinIO (documents), SMTP via MailHog locally, FF4j feature flags, Prometheus + Gr
 
 Where the intent lives:
 
-- `openspec/specs/` — canonical capability specs; `openspec/changes/` — in-flight and archived changes (see OpenSpec below).
 - `docs/adr/` — architecture decision records (ADR-007 JWT cookie storage is *deferred*, ADR-008 application partitioning).
 - `test-cases/` — manual UAT plan per domain; `ux-research/` — student and admin research; `tools/k6/` — load tests;
   `tools/grafana/`, `tools/prometheus/` — dashboards, alerts, scrape config mounted by docker-compose.
@@ -211,13 +210,6 @@ applied migration. Enums are stored as strings; no soft deletes.
   `global_styles.css`. Snackbar panel classes `snack-*` and `*-snackbar` are both defined and valid. Prefer the tokens
   and mixins over hardcoded values; `frontend/docs/STYLING_AUDIT_REPORT.md` catalogs the existing debt.
 - Team convention: invoke the `ui-ux-pro-max` skill before implementing frontend code, when it is installed.
-
-## OpenSpec workflow
-
-Changes are spec-driven under `openspec/`: `changes/<slug>/` holds `proposal.md`, `design.md`, `specs/<capability>/spec.md`,
-and `tasks.md`; `changes/archive/` holds completed ones; `specs/` is the canonical snapshot updated on archive.
-Commands: `/opsx:propose` -> `/opsx:apply` -> `/opsx:verify` -> `/opsx:archive`. `openspec/config.yaml` carries the
-role rules (BA, solution design, implementation plan, tech review) that reviewers apply.
 
 ## Conventions enforced in review
 
