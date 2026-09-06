@@ -5,6 +5,7 @@ import { catchError, retry } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TokenStorageService } from '../services/token-storage.service';
+import { isOurApiRequest } from './api-request';
 
 export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const router = inject(Router);
@@ -23,6 +24,13 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
     '/api/auth/resend-verification',
   ];
   const isPublicAuthRequest = PUBLIC_AUTH_PATHS.some((path) => request.url.includes(path));
+
+  // Someone else's service is not ours to retry, redirect on, or report in our own snackbars.
+  // The retry doubled third-party traffic against the OpenStreetMap usage policy, and a failure
+  // there surfaced as "You do not have permission to perform this action".
+  if (!isOurApiRequest(request.url)) {
+    return next(request);
+  }
 
   const getServerErrorMessage = (error: HttpErrorResponse): string => {
     // Try to extract error message from different response formats
