@@ -1,5 +1,7 @@
 package com.beezhub.student_accommodation.service.application;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
+import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
 import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
@@ -152,7 +154,7 @@ public class ApplicationDocumentService {
                                                 "Application not found with ID: " + applicationId));
 
                 AppUser admin = appUserRepository.findByEmail(username)
-                                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
 
                 if (!admin.getUserRole().isAdmin()) {
                         throw new UnauthorizedAccessException("Only admins can save review progress");
@@ -164,7 +166,7 @@ public class ApplicationDocumentService {
 
                 for (DocumentUpdate update : request.getDocumentUpdates()) {
                         Document document = documentRepository.findById(update.getDocumentId())
-                                        .orElseThrow(() -> new RuntimeException(
+                                        .orElseThrow(() -> new DocumentNotFoundException(
                                                         "Document not found with ID: " + update.getDocumentId()));
 
                         // Verify document belongs to this application's student
