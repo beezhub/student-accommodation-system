@@ -76,7 +76,7 @@ public class AllocationCheckInService {
         allocation.setCheckOutDate(LocalDateTime.now());
         allocation.setEndDate(LocalDateTime.now());
 
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
+        roomOccupancyManager.syncOccupancy(allocation.getRoom());
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
         log.info("Successfully checked out allocation with id: {}", id);
@@ -95,7 +95,7 @@ public class AllocationCheckInService {
         allocation.setStatus(AllocationStatus.COMPLETED);
         allocation.setEndDate(LocalDateTime.now());
 
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
+        roomOccupancyManager.syncOccupancy(allocation.getRoom());
 
         RoomAllocation updated = roomAllocationRepository.save(allocation);
         log.info("Successfully ended room allocation with id: {}", id);

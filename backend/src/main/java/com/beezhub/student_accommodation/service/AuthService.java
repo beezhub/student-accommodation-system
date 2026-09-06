@@ -3,9 +3,12 @@ package com.beezhub.student_accommodation.service;
 import com.beezhub.student_accommodation.exceptions.*;
 import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.*;
+import com.beezhub.student_accommodation.model.entity.Room;
+import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.EmailVerificationToken;
 import com.beezhub.student_accommodation.model.entity.PasswordResetToken;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.EmailVerificationTokenRepository;
 import com.beezhub.student_accommodation.repository.PasswordResetTokenRepository;
@@ -37,6 +40,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -56,6 +62,7 @@ public class AuthService {
     private final ApplicationRepository applicationRepository;
     private final DocumentRepository documentRepository;
     private final RoomAllocationRepository roomAllocationRepository;
+    private final RoomOccupancyManager roomOccupancyManager;
     private final WaitingListRepository waitingListRepository;
     private final UserNotificationRepository userNotificationRepository;
     private final ActivityLogRepository activityLogRepository;
@@ -287,8 +294,20 @@ public class AuthService {
             var student = studentOpt.get();
             log.info("Deleting related data for student: {}", student.getId());
 
-            // Delete room allocations
+            // Delete room allocations. The rooms they occupied have to be recomputed afterwards:
+            // this is a hard delete of OFFERED, ACCEPTED and ACTIVE rows, and without a sync the
+            // room keeps the departed student in its occupancy for ever. A capacity-one room lands
+            // on FULL, which the scoring strategies exclude, so it can never receive another
+            // allocation and nothing later triggers a recount (GH-136).
+            List<Room> affectedRooms = roomAllocationRepository.findByStudent_Id(student.getId()).stream()
+                    .map(RoomAllocation::getRoom)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toMap(Room::getId, room -> room, (a, b) -> a))
+                    .values().stream().toList();
+
             roomAllocationRepository.deleteByStudent(student);
+            roomAllocationRepository.flush();
+            affectedRooms.forEach(roomOccupancyManager::syncOccupancy);
             log.info("Deleted room allocations");
 
             // Delete waiting list entries

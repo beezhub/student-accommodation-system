@@ -71,7 +71,7 @@ public class OfferExpiryService {
                 roomAllocationRepository.save(current);
 
                 // Free the room
-                roomOccupancyManager.updateOccupancy(current.getRoom(), -1);
+                roomOccupancyManager.syncOccupancy(current.getRoom());
 
                 // Cancel application
                 cancelApplicationAfterOfferExpiry(current);

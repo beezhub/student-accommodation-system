@@ -97,7 +97,7 @@ public class AllocationLifecycleService {
         allocationAuditService.logStatusChange(saved, null, AllocationStatus.OFFERED);
 
         waitingListService.updateStatusToAllocated(student.getId());
-        roomOccupancyManager.updateOccupancy(room, 1);
+        roomOccupancyManager.syncOccupancy(room);
 
         sendAllocationNotification(saved);
 
@@ -145,14 +145,15 @@ public class AllocationLifecycleService {
         AllocationStatus previousStatus = allocation.getStatus();
         AllocationStatusValidator.validate(allocation, AllocationStatus.DECLINED);
 
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
-
         allocation.setStatus(AllocationStatus.DECLINED);
         allocation.setEndDate(LocalDateTime.now());
         allocation.setDeclineReason(request.getDeclineReason());
         allocation.setDeclineReasonText(request.getDeclineReasonText());
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
+        // After the status change, not before it. Occupancy is derived from the live count now,
+        // so syncing first would count this allocation as still active (GH-136).
+        roomOccupancyManager.syncOccupancy(saved.getRoom());
         allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.DECLINED);
         log.info("Successfully declined room allocation with id: {}. Previous decline count: {}", id,
                 previousDeclineCount);
@@ -178,7 +179,7 @@ public class AllocationLifecycleService {
         allocation.setStatus(AllocationStatus.CANCELLED);
         allocation.setEndDate(LocalDateTime.now());
 
-        roomOccupancyManager.updateOccupancy(allocation.getRoom(), -1);
+        roomOccupancyManager.syncOccupancy(allocation.getRoom());
         RoomAllocation saved = roomAllocationRepository.save(allocation);
         allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.CANCELLED);
         log.info("Successfully cancelled room allocation with id: {}", id);
@@ -233,8 +234,6 @@ public class AllocationLifecycleService {
         boolean roomChanged = false;
         if (!oldRoom.getId().equals(newRoom.getId())) {
             validateRoomCapacity(newRoom);
-            roomOccupancyManager.updateOccupancy(oldRoom, -1);
-            roomOccupancyManager.updateOccupancy(newRoom, 1);
             roomChanged = true;
         }
 
@@ -253,6 +252,9 @@ public class AllocationLifecycleService {
         log.info("Successfully updated room allocation with id: {}", id);
 
         if (roomChanged) {
+            // Both rooms, after the save (GH-136).
+            roomOccupancyManager.syncOccupancy(oldRoom);
+            roomOccupancyManager.syncOccupancy(newRoom);
             sendAllocationNotification(updated);
         }
 

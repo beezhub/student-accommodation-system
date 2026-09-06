@@ -69,7 +69,7 @@ public class CheckInExpiryService {
                 roomAllocationRepository.save(current);
 
                 // Free the room
-                roomOccupancyManager.updateOccupancy(current.getRoom(), -1);
+                roomOccupancyManager.syncOccupancy(current.getRoom());
 
                 // Cancel application
                 cancelApplicationAfterCheckInExpiry(current);

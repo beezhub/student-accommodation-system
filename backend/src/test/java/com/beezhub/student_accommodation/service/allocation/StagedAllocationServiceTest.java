@@ -153,7 +153,7 @@ class StagedAllocationServiceTest {
                 assertThat(stagedAllocation.getConfirmedAt()).isNotNull();
                 verify(roomAllocationRepository).save(any(RoomAllocation.class));
                 verify(stagedAllocationRepository).save(stagedAllocation);
-                verify(roomOccupancyManager).updateOccupancy(room, 1);
+                verify(roomOccupancyManager).syncOccupancy(room);
                 verify(allocationAuditService).logAuditActionInCurrentTransaction(any(),
                                 eq(AllocationAuditActionType.FORCE_ALLOCATE),
                                 eq(admin),
@@ -212,7 +212,7 @@ class StagedAllocationServiceTest {
                                 .isInstanceOf(StudentAlreadyAllocatedException.class);
 
                 verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
-                verify(roomOccupancyManager, never()).updateOccupancy(any(), anyInt());
+                verify(roomOccupancyManager, never()).syncOccupancy(any());
                 assertThat(stagedAllocation.getStatus()).isEqualTo(StagedAllocationStatus.PROPOSED);
         }
 

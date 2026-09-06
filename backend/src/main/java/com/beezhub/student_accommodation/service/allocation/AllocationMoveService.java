@@ -55,11 +55,13 @@ public class AllocationMoveService {
         validateRoomCapacity(newRoom);
         validateHardConstraints(allocation.getStudent(), newRoom);
 
-        roomOccupancyManager.updateOccupancy(oldRoom, -1);
-        roomOccupancyManager.updateOccupancy(newRoom, 1);
-
         allocation.setRoom(newRoom);
         RoomAllocation updated = roomAllocationRepository.save(allocation);
+
+        // Both rooms, after the move. Syncing before it would count the allocation against the
+        // room it is leaving and not yet against the one it is joining (GH-136).
+        roomOccupancyManager.syncOccupancy(oldRoom);
+        roomOccupancyManager.syncOccupancy(newRoom);
 
         AppUser admin = appUserRepository.findById(adminId).orElse(null);
         allocationAuditService.logAuditAction(allocation, AllocationAuditActionType.MOVE, admin, reason, oldRoom,
