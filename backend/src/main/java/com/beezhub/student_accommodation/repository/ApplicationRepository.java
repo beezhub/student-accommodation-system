@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,6 +44,9 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
      List<Application> findWithDetailsByStudent_Id(Long studentId);
 
      boolean existsByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
+
+     /** True when the student has an application in any of the given statuses; see GH-145. */
+     boolean existsByStudent_IdAndStatusIn(Long studentId, Collection<ApplicationStatus> statuses);
 
      boolean existsByStudent_IdAndTenantIdAndStatus(Long studentId, Long tenantId, ApplicationStatus status);
 

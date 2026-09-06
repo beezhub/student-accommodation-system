@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.aspect.LogActivity;
+import com.beezhub.student_accommodation.exceptions.DocumentLockedException;
 import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DocumentTypeNotFoundException;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
@@ -14,6 +15,10 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import com.beezhub.student_accommodation.model.enums.DocumentStatus;
+import com.beezhub.student_accommodation.model.event.StoredFileDeletionEvent;
+import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
@@ -24,6 +29,7 @@ import com.beezhub.student_accommodation.service.document.ValidationResult;
 import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,8 +37,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static com.beezhub.student_accommodation.model.enums.DocumentStatus.PENDING;
@@ -45,6 +53,8 @@ public class DocumentLifecycleService {
     private final FileStorageService fileStorageService;
     private final FileValidationService fileValidationService;
     private final DocumentRepository documentRepository;
+    private final ApplicationRepository applicationRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final DocumentTypeRepository documentTypeRepository;
     private final StudentRepository studentRepository;
     private final AppUserRepository appUserRepository;
@@ -84,17 +94,14 @@ public class DocumentLifecycleService {
 
         if (existing.isPresent()) {
             Document old = existing.get();
+            assertNotLockedByReview(old, student.getId());
             String oldPath = old.getDocumentPath();
             documentRepository.delete(old);
             documentRepository.flush();
-            // Best-effort MinIO deletion of the old file
-            try {
-                fileStorageService.delete(oldPath);
-                log.info("Deleted previous document file at {} during replace", oldPath);
-            } catch (RuntimeException e) {
-                log.error("Failed to delete previous MinIO object {} during replace — cleanup job will handle orphan",
-                        oldPath, e);
-            }
+            // After commit, not here. Deleting inline destroyed the old object before the
+            // replacement was even validated, so a rejected upload rolled back to a row
+            // pointing at nothing and the download failed forever (GH-145).
+            eventPublisher.publishEvent(new StoredFileDeletionEvent(oldPath));
         }
 
         validateAndUploadFile(file, user, docType);
@@ -107,21 +114,72 @@ public class DocumentLifecycleService {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
-        if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
+        boolean isAdmin = user.getUserRole().isAdmin();
+        if (!document.getStudent().getAppUser().equals(user) && !isAdmin) {
             throw new UnauthorizedAccessException("Unauthorized access to document");
         }
 
-        String objectPath = document.getDocumentPath();
+        // Admins are not locked out: this is the only way to unlock an approved document while
+        // the application is live, since a document cannot be rejected once the application has
+        // moved past APPROVED.
+        if (!isAdmin) {
+            assertNotLockedByReview(document, document.getStudent().getId());
+        }
 
-        // Step 1: Delete DB record (can be rolled back on failure)
+        String objectPath = document.getDocumentPath();
         documentRepository.delete(document);
 
-        // Step 2: Delete file from storage (best-effort; cleanup job handles orphans)
-        try {
-            fileStorageService.delete(objectPath);
-        } catch (RuntimeException e) {
-            log.error("DB record deleted but MinIO file deletion failed for key {}: {}", objectPath, e.getMessage());
+        // After commit. Inline, the object was destroyed while the transaction could still roll
+        // back — including from the activity-log write this method is annotated with, which
+        // joins the same transaction and runs after this line (GH-145).
+        eventPublisher.publishEvent(new StoredFileDeletionEvent(objectPath));
+    }
+
+    /**
+     * Application statuses under which an approved document is still doing work.
+     *
+     * <p>Terminal statuses are excluded on purpose: once an application is rejected, expired or
+     * cancelled, nothing depends on the evidence any more and the student should be free to
+     * clear their pack.
+     */
+    private static final Set<ApplicationStatus> LIVE_APPLICATION_STATUSES = EnumSet.of(
+            ApplicationStatus.PENDING,
+            ApplicationStatus.UNDER_REVIEW,
+            ApplicationStatus.CHANGES_REQUESTED,
+            ApplicationStatus.APPROVED,
+            ApplicationStatus.AWAITING_ALLOCATION,
+            ApplicationStatus.ALLOCATED,
+            ApplicationStatus.CHECKED_IN);
+
+    /**
+     * Refuses to let a student change a document an administrator has already approved while an
+     * application that approval supports is still live.
+     *
+     * <p>Neither the replace nor the delete path looked at the document status, so the evidence
+     * behind an approved or allocated application could be swapped or wiped after review. The
+     * required-documents checklist and the allocation gate both read the live pack by student id,
+     * so it changed underneath them silently (GH-145).
+     *
+     * <p>Keyed on the document type NAME rather than its id. Tenants get shadow document types
+     * that share a name under a different id by design, so an id-keyed check would let the same
+     * logical document be re-uploaded against a sibling type. Name is also how the checklist and
+     * the allocation gate read the pack, so this matches what actually consumes it.
+     */
+    private void assertNotLockedByReview(Document document, Long studentId) {
+        if (document.getDocumentStatus() != DocumentStatus.APPROVED) {
+            return;
         }
+        if (!applicationRepository.existsByStudent_IdAndStatusIn(studentId, LIVE_APPLICATION_STATUSES)) {
+            return;
+        }
+        String typeName = document.getDocumentType() != null
+                ? document.getDocumentType().getTypeName()
+                : "document";
+        log.warn("action=documentChangeBlocked reason=approvedWithLiveApplication documentId={} studentId={}",
+                document.getId(), studentId);
+        throw new DocumentLockedException(
+                "Your " + typeName + " has already been approved and cannot be changed while your "
+                        + "application is active. Ask an administrator to remove it before uploading a new one.");
     }
 
     private Document validateAndUploadFile(MultipartFile file, AppUser user, DocumentType docType) {

@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.DocumentLockedException;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import com.beezhub.student_accommodation.exceptions.FileValidationException;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
@@ -7,7 +8,11 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
+import com.beezhub.student_accommodation.model.event.StoredFileDeletionEvent;
+import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
@@ -18,13 +23,16 @@ import com.beezhub.student_accommodation.service.document.ValidationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,6 +56,10 @@ class DocumentLifecycleServiceTest {
     StudentRepository studentRepository;
     @Mock
     DocumentMapper documentMapper;
+    @Mock
+    ApplicationRepository applicationRepository;
+    @Mock
+    ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     DocumentLifecycleService documentLifecycleService;
@@ -178,26 +190,128 @@ class DocumentLifecycleServiceTest {
     }
 
     @Test
-    void deleteDocument_validUser_deletesFileAndRecord() {
+    void deleteDocument_validUser_deletesRecordAndDefersTheFile() {
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
-
-        doNothing().when(fileStorageService).delete(anyString());
         doNothing().when(documentRepository).delete(document);
+
         documentLifecycleService.deleteDocument(100L, "user@example.com");
-        verify(fileStorageService, times(1)).delete(anyString());
+
         verify(documentRepository, times(1)).delete(document);
+        // The storage layer is deliberately untouched here. Deleting inline destroyed the object
+        // while the transaction could still roll back, including from the activity-log write this
+        // method is annotated with, which joins the same transaction (GH-145).
+        verifyNoInteractions(fileStorageService);
+        verify(eventPublisher).publishEvent(any(StoredFileDeletionEvent.class));
     }
 
     @Test
-    void deleteDocument_storageFailure_suppressesException() {
+    void deleteDocument_publishesTheObjectPathItRemoved() {
         when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
 
-        doThrow(new FileStorageException("storage error")).when(fileStorageService).delete(anyString());
+        documentLifecycleService.deleteDocument(100L, "user@example.com");
 
-        assertDoesNotThrow(() -> documentLifecycleService.deleteDocument(100L, "user@example.com"));
+        ArgumentCaptor<StoredFileDeletionEvent> event =
+                ArgumentCaptor.forClass(StoredFileDeletionEvent.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertEquals(document.getDocumentPath(), event.getValue().objectPath());
+    }
+
+    // ------------------------------------------------------------------ GH-145 review lock
+
+    /** Puts the document in the state the lock protects: approved, application still live. */
+    private void givenApprovedDocumentOnALiveApplication() {
+        document.setDocumentStatus(DocumentStatus.APPROVED);
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+        when(applicationRepository.existsByStudent_IdAndStatusIn(eq(10L), any())).thenReturn(true);
+    }
+
+    /**
+     * The checklist and the allocation gate both read the live document pack by student id, so
+     * wiping an approved document changed the evidence behind an approved or allocated
+     * application underneath them.
+     */
+    @Test
+    void deleteDocument_approvedWithLiveApplication_isRefused() {
+        givenApprovedDocumentOnALiveApplication();
+
+        assertThrows(DocumentLockedException.class,
+                () -> documentLifecycleService.deleteDocument(100L, "user@example.com"));
+
+        verify(documentRepository, never()).delete(any(Document.class));
+        verifyNoInteractions(eventPublisher);
+    }
+
+    /** Once nothing depends on the evidence, the student is free to clear their pack. */
+    @Test
+    void deleteDocument_approvedButNoLiveApplication_isAllowed() {
+        document.setDocumentStatus(DocumentStatus.APPROVED);
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+        when(applicationRepository.existsByStudent_IdAndStatusIn(eq(10L), any())).thenReturn(false);
+
+        documentLifecycleService.deleteDocument(100L, "user@example.com");
 
         verify(documentRepository).delete(document);
+    }
+
+    @Test
+    void deleteDocument_pendingDocument_isNotLocked() {
+        document.setDocumentStatus(DocumentStatus.PENDING);
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+
+        documentLifecycleService.deleteDocument(100L, "user@example.com");
+
+        verify(documentRepository).delete(document);
+        verifyNoInteractions(applicationRepository);
+    }
+
+    /**
+     * Admins are exempt, and this is the only unlock path: a document cannot be rejected once the
+     * application has moved past APPROVED, so without this a locked document would be permanent.
+     */
+    @Test
+    void deleteDocument_adminCaller_isNotLocked() {
+        AppUser admin = AppUser.builder().id(9L).email("admin@example.com")
+                .userRole(UserRole.PLATFORM_ADMIN).build();
+        document.setDocumentStatus(DocumentStatus.APPROVED);
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(admin));
+        when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+
+        documentLifecycleService.deleteDocument(100L, "admin@example.com");
+
+        verify(documentRepository).delete(document);
+        verifyNoInteractions(applicationRepository);
+    }
+
+    /**
+     * Pins the status set itself. Without this any future edit to LIVE_APPLICATION_STATUSES passes
+     * silently, because every other test stubs the repository on a matcher.
+     */
+    @Test
+    void deleteDocument_locksOnLiveStatusesOnly() {
+        givenApprovedDocumentOnALiveApplication();
+
+        assertThrows(DocumentLockedException.class,
+                () -> documentLifecycleService.deleteDocument(100L, "user@example.com"));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Collection<ApplicationStatus>> statuses =
+                ArgumentCaptor.forClass(Collection.class);
+        verify(applicationRepository).existsByStudent_IdAndStatusIn(eq(10L), statuses.capture());
+        assertTrue(statuses.getValue().containsAll(java.util.List.of(
+                ApplicationStatus.PENDING,
+                ApplicationStatus.UNDER_REVIEW,
+                ApplicationStatus.CHANGES_REQUESTED,
+                ApplicationStatus.APPROVED,
+                ApplicationStatus.AWAITING_ALLOCATION,
+                ApplicationStatus.ALLOCATED,
+                ApplicationStatus.CHECKED_IN)));
+        assertFalse(statuses.getValue().contains(ApplicationStatus.REJECTED));
+        assertFalse(statuses.getValue().contains(ApplicationStatus.EXPIRED));
+        assertFalse(statuses.getValue().contains(ApplicationStatus.CANCELLED));
     }
 }
