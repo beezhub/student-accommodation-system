@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.util.SecureTokenHasher;
 import com.beezhub.student_accommodation.exceptions.*;
 import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.*;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -294,16 +296,42 @@ class AuthServiceExtendedTest {
     }
 
     @Test
-    void requestPasswordReset_emailFails_throwsRuntimeException() {
+    /**
+     * GH-154: it already returned the same message for an unknown email, then threw a 500 when
+     * the send failed — which can only happen for an account that exists. That difference was an
+     * enumeration oracle, reachable by knocking the mail server over or just by catching a
+     * transient failure.
+     */
+    void requestPasswordReset_emailFails_stillReportsTheSameOutcome() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwordResetTokenRepository.save(any(PasswordResetToken.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
         doThrow(new RuntimeException("SMTP error"))
                 .when(emailService).sendSimpleEmail(any(), any(), any());
 
-        assertThatThrownBy(() -> authService.requestPasswordReset("test@example.com"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Failed to send password reset email");
+        var response = authService.requestPasswordReset("test@example.com");
+
+        assertThat(response.getMessage())
+                .isEqualTo("Password reset instructions have been sent to your email");
+    }
+
+    /** The stored token must not be the one that was emailed. */
+    @Test
+    void requestPasswordReset_storesTheTokenHashedNotInPlaintext() {
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        ArgumentCaptor<PasswordResetToken> saved = ArgumentCaptor.forClass(PasswordResetToken.class);
+        when(passwordResetTokenRepository.save(saved.capture()))
+                .thenAnswer(inv -> inv.getArgument(0));
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+
+        authService.requestPasswordReset("test@example.com");
+
+        verify(emailService).sendSimpleEmail(any(), any(), body.capture());
+        String stored = saved.getValue().getToken();
+        assertThat(stored).hasSize(64);
+        assertThat(body.getValue())
+                .as("the emailed link must carry the plaintext, never the stored hash")
+                .doesNotContain(stored);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -312,7 +340,7 @@ class AuthServiceExtendedTest {
 
     @Test
     void verifyResetToken_tokenNotFound_returnsInvalid() {
-        when(passwordResetTokenRepository.findByToken("bad-token")).thenReturn(Optional.empty());
+        when(passwordResetTokenRepository.findByToken(SecureTokenHasher.hash("bad-token"))).thenReturn(Optional.empty());
 
         TokenValidationResponse result = authService.verifyResetToken("bad-token");
 
@@ -323,7 +351,7 @@ class AuthServiceExtendedTest {
     void verifyResetToken_tokenAlreadyUsed_returnsInvalid() {
         PasswordResetToken token = PasswordResetToken.builder()
                 .token("used-token").user(user).expiryDate(LocalDateTime.now().plusHours(1)).used(true).build();
-        when(passwordResetTokenRepository.findByToken("used-token")).thenReturn(Optional.of(token));
+        when(passwordResetTokenRepository.findByToken(SecureTokenHasher.hash("used-token"))).thenReturn(Optional.of(token));
 
         TokenValidationResponse result = authService.verifyResetToken("used-token");
 
@@ -334,7 +362,7 @@ class AuthServiceExtendedTest {
     void verifyResetToken_tokenExpired_returnsInvalid() {
         PasswordResetToken token = PasswordResetToken.builder()
                 .token("expired").user(user).expiryDate(LocalDateTime.now().minusHours(1)).used(false).build();
-        when(passwordResetTokenRepository.findByToken("expired")).thenReturn(Optional.of(token));
+        when(passwordResetTokenRepository.findByToken(SecureTokenHasher.hash("expired"))).thenReturn(Optional.of(token));
 
         TokenValidationResponse result = authService.verifyResetToken("expired");
 
@@ -345,7 +373,7 @@ class AuthServiceExtendedTest {
     void verifyResetToken_validToken_returnsValid() {
         PasswordResetToken token = PasswordResetToken.builder()
                 .token("good").user(user).expiryDate(LocalDateTime.now().plusHours(24)).used(false).build();
-        when(passwordResetTokenRepository.findByToken("good")).thenReturn(Optional.of(token));
+        when(passwordResetTokenRepository.findByToken(SecureTokenHasher.hash("good"))).thenReturn(Optional.of(token));
 
         TokenValidationResponse result = authService.verifyResetToken("good");
 
@@ -358,7 +386,7 @@ class AuthServiceExtendedTest {
 
     @Test
     void resetPassword_tokenNotFound_throwsInvalidTokenException() {
-        when(passwordResetTokenRepository.findByToken("none")).thenReturn(Optional.empty());
+        when(passwordResetTokenRepository.findByToken(SecureTokenHasher.hash("none"))).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.resetPassword("none", "newPass"))
                 .isInstanceOf(InvalidTokenException.class);
@@ -368,7 +396,7 @@ class AuthServiceExtendedTest {
     void resetPassword_tokenAlreadyUsed_throwsInvalidTokenException() {
         PasswordResetToken token = PasswordResetToken.builder()
                 .token("used").user(user).expiryDate(LocalDateTime.now().plusHours(1)).used(true).build();
-        when(passwordResetTokenRepository.findByToken("used")).thenReturn(Optional.of(token));
+        when(passwordResetTokenRepository.findByToken(SecureTokenHasher.hash("used"))).thenReturn(Optional.of(token));
 
         assertThatThrownBy(() -> authService.resetPassword("used", "newPass"))
                 .isInstanceOf(InvalidTokenException.class);
@@ -378,7 +406,7 @@ class AuthServiceExtendedTest {
     void resetPassword_tokenExpired_throwsTokenExpiredException() {
         PasswordResetToken token = PasswordResetToken.builder()
                 .token("exp").user(user).expiryDate(LocalDateTime.now().minusHours(1)).used(false).build();
-        when(passwordResetTokenRepository.findByToken("exp")).thenReturn(Optional.of(token));
+        when(passwordResetTokenRepository.findByToken(SecureTokenHasher.hash("exp"))).thenReturn(Optional.of(token));
 
         assertThatThrownBy(() -> authService.resetPassword("exp", "newPass"))
                 .isInstanceOf(TokenExpiredException.class);
@@ -388,7 +416,7 @@ class AuthServiceExtendedTest {
     void resetPassword_validToken_resetsPasswordAndMarksTokenUsed() {
         PasswordResetToken token = PasswordResetToken.builder()
                 .token("valid").user(user).expiryDate(LocalDateTime.now().plusHours(1)).used(false).build();
-        when(passwordResetTokenRepository.findByToken("valid")).thenReturn(Optional.of(token));
+        when(passwordResetTokenRepository.findByToken(SecureTokenHasher.hash("valid"))).thenReturn(Optional.of(token));
         when(passwordEncoder.encode("newPass")).thenReturn("encoded-new");
         when(userRepository.save(user)).thenReturn(user);
         when(passwordResetTokenRepository.save(token)).thenReturn(token);
@@ -405,20 +433,31 @@ class AuthServiceExtendedTest {
     // ─────────────────────────────────────────────────────────────
 
     @Test
-    void sendVerificationEmail_userNotFound_throwsUserNotFoundException() {
+    /**
+     * GH-154: this returned 404 for an unknown address, so an unauthenticated caller could
+     * enumerate registered accounts by watching the status code.
+     */
+    void sendVerificationEmail_userNotFound_reportsTheSameOutcome() {
         when(userRepository.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.sendVerificationEmail("nobody@example.com"))
-                .isInstanceOf(UserNotFoundException.class);
+        var response = authService.sendVerificationEmail("nobody@example.com");
+
+        assertThat(response.getMessage())
+                .isEqualTo("Verification email has been sent to your email address");
+        verifyNoInteractions(emailVerificationTokenRepository);
     }
 
     @Test
-    void sendVerificationEmail_alreadyVerified_throwsEmailAlreadyVerifiedException() {
+    /** Distinguishing a verified account from an unverified one is the same oracle. */
+    void sendVerificationEmail_alreadyVerified_reportsTheSameOutcome() {
         user.setEmailVerified(true);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
-        assertThatThrownBy(() -> authService.sendVerificationEmail("test@example.com"))
-                .isInstanceOf(EmailAlreadyVerifiedException.class);
+        var response = authService.sendVerificationEmail("test@example.com");
+
+        assertThat(response.getMessage())
+                .isEqualTo("Verification email has been sent to your email address");
+        verifyNoInteractions(emailVerificationTokenRepository);
     }
 
     @Test
@@ -436,16 +475,21 @@ class AuthServiceExtendedTest {
     }
 
     @Test
-    void sendVerificationEmail_emailFails_throwsRuntimeException() {
+    /**
+     * A send failure only happens for an account that exists, so throwing on it told the caller
+     * the address was real. It is logged and swallowed instead.
+     */
+    void sendVerificationEmail_emailFails_stillReportsTheSameOutcome() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(emailVerificationTokenRepository.save(any(EmailVerificationToken.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
         doThrow(new RuntimeException("SMTP down"))
                 .when(emailService).sendSimpleEmail(any(), any(), any());
 
-        assertThatThrownBy(() -> authService.sendVerificationEmail("test@example.com"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Failed to send verification email");
+        var response = authService.sendVerificationEmail("test@example.com");
+
+        assertThat(response.getMessage())
+                .isEqualTo("Verification email has been sent to your email address");
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -454,7 +498,7 @@ class AuthServiceExtendedTest {
 
     @Test
     void verifyEmail_tokenNotFound_throwsInvalidTokenException() {
-        when(emailVerificationTokenRepository.findByToken("bad")).thenReturn(Optional.empty());
+        when(emailVerificationTokenRepository.findByToken(SecureTokenHasher.hash("bad"))).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.verifyEmail("bad"))
                 .isInstanceOf(InvalidTokenException.class);
@@ -464,7 +508,7 @@ class AuthServiceExtendedTest {
     void verifyEmail_tokenAlreadyUsed_throwsInvalidTokenException() {
         EmailVerificationToken token = EmailVerificationToken.builder()
                 .token("used").user(user).expiryDate(LocalDateTime.now().plusHours(1)).used(true).build();
-        when(emailVerificationTokenRepository.findByToken("used")).thenReturn(Optional.of(token));
+        when(emailVerificationTokenRepository.findByToken(SecureTokenHasher.hash("used"))).thenReturn(Optional.of(token));
 
         assertThatThrownBy(() -> authService.verifyEmail("used"))
                 .isInstanceOf(InvalidTokenException.class);
@@ -474,7 +518,7 @@ class AuthServiceExtendedTest {
     void verifyEmail_tokenExpired_throwsTokenExpiredException() {
         EmailVerificationToken token = EmailVerificationToken.builder()
                 .token("exp").user(user).expiryDate(LocalDateTime.now().minusHours(1)).used(false).build();
-        when(emailVerificationTokenRepository.findByToken("exp")).thenReturn(Optional.of(token));
+        when(emailVerificationTokenRepository.findByToken(SecureTokenHasher.hash("exp"))).thenReturn(Optional.of(token));
 
         assertThatThrownBy(() -> authService.verifyEmail("exp"))
                 .isInstanceOf(TokenExpiredException.class);
@@ -485,7 +529,7 @@ class AuthServiceExtendedTest {
         user.setEmailVerified(true);
         EmailVerificationToken token = EmailVerificationToken.builder()
                 .token("tok").user(user).expiryDate(LocalDateTime.now().plusHours(1)).used(false).build();
-        when(emailVerificationTokenRepository.findByToken("tok")).thenReturn(Optional.of(token));
+        when(emailVerificationTokenRepository.findByToken(SecureTokenHasher.hash("tok"))).thenReturn(Optional.of(token));
 
         assertThatThrownBy(() -> authService.verifyEmail("tok"))
                 .isInstanceOf(EmailAlreadyVerifiedException.class);
@@ -495,7 +539,7 @@ class AuthServiceExtendedTest {
     void verifyEmail_validToken_verifiesEmailAndMarksTokenUsed() {
         EmailVerificationToken token = EmailVerificationToken.builder()
                 .token("good").user(user).expiryDate(LocalDateTime.now().plusHours(1)).used(false).build();
-        when(emailVerificationTokenRepository.findByToken("good")).thenReturn(Optional.of(token));
+        when(emailVerificationTokenRepository.findByToken(SecureTokenHasher.hash("good"))).thenReturn(Optional.of(token));
         when(userRepository.save(user)).thenReturn(user);
         when(emailVerificationTokenRepository.save(token)).thenReturn(token);
 
