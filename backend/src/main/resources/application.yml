@@ -44,13 +44,19 @@ spring:
       port: ${REDIS_PORT:6379}
       # Empty locally; set wherever Redis requires auth.
       password: ${REDIS_PASSWORD:}
-      timeout: 60000
+      # Two seconds, not sixty. Redis is on the request path for token-blacklist checks and auth
+      # rate limiting, and both fail open, so a stalled server should be given up on quickly
+      # rather than holding a request thread for a minute per call (GH-162).
+      timeout: ${REDIS_TIMEOUT_MS:2000}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT_MS:1000}
       lettuce:
         pool:
           max-active: 8
           max-idle: 8
           min-idle: 0
-          max-wait: -1ms
+          # Bounded, not -1ms. An unlimited wait means a pool exhausted by a slow Redis blocks
+          # every subsequent caller indefinitely instead of failing open.
+          max-wait: ${REDIS_POOL_MAX_WAIT_MS:1000}ms
   jackson:
     serialization:
       write-dates-as-timestamps: false
