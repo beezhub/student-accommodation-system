@@ -110,6 +110,13 @@ public class OfferExpiryService {
                 application.getId(), student.getId());
 
         // Update application status to CANCELLED
+        if (!ApplicationStatusValidator.canApply(application, ApplicationStatus.CANCELLED)) {
+            // An admin has already decided this application. Expiring the offer must not
+            // overwrite that decision (GH-137).
+            log.info("action=applicationCancelSkipped applicationId={} from={}",
+                    application.getId(), application.getStatus());
+            return;
+        }
         application.setStatus(ApplicationStatus.CANCELLED);
         String remarks = "Application cancelled: Room offer expired without response within " + offerExpiryDays
                 + " days.";

@@ -37,6 +37,10 @@ public class AllocationCheckInService {
         RoomAllocation allocation = getAllocation(id);
 
         AllocationStatusValidator.validate(allocation, AllocationStatus.ACTIVE);
+        // After the allocation guard, so an illegal allocation transition still reports as such
+        // rather than being masked by the application state (GH-137).
+        ApplicationStatusValidator.validate(allocation.getApplication(),
+                com.beezhub.student_accommodation.model.enums.ApplicationStatus.CHECKED_IN);
         allocation.setStatus(AllocationStatus.ACTIVE);
         allocation.setCheckInDate(LocalDateTime.now());
 

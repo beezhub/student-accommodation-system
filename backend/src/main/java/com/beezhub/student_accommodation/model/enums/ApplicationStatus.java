@@ -32,16 +32,26 @@ public enum ApplicationStatus {
     }
 
     /**
-     * Checks if this status can transition to the target status.
-     * Valid transitions:
-     * - PENDING -> UNDER_REVIEW, APPROVED, REJECTED, CANCELLED
-     * - UNDER_REVIEW -> CHANGES_REQUESTED, APPROVED, REJECTED
-     * - CHANGES_REQUESTED -> PENDING, CANCELLED
-     * - APPROVED -> AWAITING_ALLOCATION, REJECTED
-     * - AWAITING_ALLOCATION -> ALLOCATED, REJECTED, EXPIRED
-     * - ALLOCATED -> CHECKED_IN, EXPIRED, CANCELLED
-     * - CHECKED_IN -> (terminal state for application flow)
-     * - REJECTED, EXPIRED, CANCELLED -> (terminal states)
+     * Whether this status may transition to the target status.
+     *
+     * <p>Valid transitions, matching the switch below rather than an older draft of it:
+     * <ul>
+     *   <li>PENDING -> UNDER_REVIEW, APPROVED, REJECTED, CANCELLED</li>
+     *   <li>UNDER_REVIEW -> PENDING, CHANGES_REQUESTED, APPROVED, REJECTED</li>
+     *   <li>CHANGES_REQUESTED -> PENDING, CANCELLED</li>
+     *   <li>APPROVED -> AWAITING_ALLOCATION, ALLOCATED, REJECTED, CANCELLED</li>
+     *   <li>AWAITING_ALLOCATION -> ALLOCATED, REJECTED, EXPIRED, CANCELLED</li>
+     *   <li>ALLOCATED -> CHECKED_IN, EXPIRED, CANCELLED</li>
+     *   <li>CHECKED_IN, REJECTED, EXPIRED, CANCELLED -> terminal</li>
+     * </ul>
+     *
+     * <p>APPROVED -> ALLOCATED is legal, and the enum was wrong to forbid it. Three of the four
+     * offer-creation paths make an OFFERED allocation without moving the application, so it is
+     * still APPROVED when the student accepts. Requiring AWAITING_ALLOCATION first would have made
+     * the ordinary accept path illegal rather than describing it (GH-137).
+     *
+     * <p>The javadoc above also previously omitted three transitions the switch has always
+     * allowed, which is how the issue came to describe a legal expiry transition as illegal.
      */
     public boolean canTransitionTo(ApplicationStatus target) {
         // Allow self-transition
@@ -53,7 +63,9 @@ public enum ApplicationStatus {
             case UNDER_REVIEW ->
                 target == PENDING || target == CHANGES_REQUESTED || target == APPROVED || target == REJECTED;
             case CHANGES_REQUESTED -> target == PENDING || target == CANCELLED;
-            case APPROVED -> target == AWAITING_ALLOCATION || target == REJECTED || target == CANCELLED;
+            case APPROVED ->
+                target == AWAITING_ALLOCATION || target == ALLOCATED || target == REJECTED
+                        || target == CANCELLED;
             case AWAITING_ALLOCATION ->
                 target == ALLOCATED || target == REJECTED || target == EXPIRED || target == CANCELLED;
             case ALLOCATED -> target == CHECKED_IN || target == EXPIRED || target == CANCELLED;

@@ -108,6 +108,11 @@ public class CheckInExpiryService {
                 application.getId(), student.getId());
 
         // Update application status to CANCELLED
+        if (!ApplicationStatusValidator.canApply(application, ApplicationStatus.CANCELLED)) {
+            log.info("action=applicationCancelSkipped applicationId={} from={}",
+                    application.getId(), application.getStatus());
+            return;
+        }
         application.setStatus(ApplicationStatus.CANCELLED);
         String remarks = "Application cancelled: Student failed to check in within " + checkInExpiryDays +
                 " days of accepting the offer.";
