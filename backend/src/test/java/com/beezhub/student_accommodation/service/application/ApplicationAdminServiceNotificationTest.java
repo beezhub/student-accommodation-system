@@ -70,6 +70,13 @@ class ApplicationAdminServiceNotificationTest {
     @Mock
     private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
+    /**
+     * A terminal status now releases any allocation the application still holds, so this
+     * collaborator is reached on the rejection paths below (GH-223).
+     */
+    @Mock
+    private com.beezhub.student_accommodation.service.RoomAllocationService roomAllocationService;
+
 
     @InjectMocks
     private ApplicationAdminService applicationAdminService;

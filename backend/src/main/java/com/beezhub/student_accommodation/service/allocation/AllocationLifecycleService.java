@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -192,6 +193,69 @@ public class AllocationLifecycleService {
 
         // Refill from the waiting list only after this cancellation has committed.
         eventPublisher.publishEvent(new RoomVacatedEvent(allocation.getId(), roomIdOf(allocation), AllocationStatus.CANCELLED));
+    }
+
+    /**
+     * Allocation statuses that still hold a room for an application. ACTIVE is deliberately absent:
+     * a student who has checked in is living there, and an admin rejecting the application is not
+     * grounds for silently ending an occupancy. That case needs a deliberate move-out.
+     */
+    private static final java.util.Set<AllocationStatus> OUTSTANDING_STATUSES =
+            java.util.EnumSet.of(AllocationStatus.OFFERED, AllocationStatus.ACCEPTED);
+
+    /**
+     * Cancels any outstanding offer or acceptance for an application that has reached a terminal
+     * status, and releases the rooms they held.
+     *
+     * <p>GH-137 stopped a rejected application being resurrected by an accept or a check-in, but
+     * left the state that made the resurrection possible: rejecting an application left its OFFERED
+     * or ACCEPTED allocation alive. The room stayed counted as occupied until the hourly expiry
+     * sweep ran, and the student kept seeing a live offer on their dashboard that would now fail if
+     * they acted on it. Refusing correctly is still a worse experience than not offering (GH-223).
+     *
+     * <p>Deliberately does not touch the waiting list the way {@code deleteRoomAllocation} does.
+     * Cancelling an allocation on its own means the student is still waiting for a room; here the
+     * application itself is over, so putting them back on the queue would undo the admin's
+     * decision.
+     *
+     * @return how many allocations were cancelled
+     */
+    @Transactional
+    public int releaseOutstandingAllocations(Long applicationId, String reason) {
+        List<RoomAllocation> outstanding =
+                roomAllocationRepository.findByApplicationIdAndStatusIn(applicationId, OUTSTANDING_STATUSES);
+        if (outstanding.isEmpty()) {
+            return 0;
+        }
+
+        int cancelled = 0;
+        for (RoomAllocation allocation : outstanding) {
+            AllocationStatus previousStatus = allocation.getStatus();
+            if (previousStatus == null || !previousStatus.canTransitionTo(AllocationStatus.CANCELLED)) {
+                log.warn("action=allocationReleaseSkipped allocationId={} from={} applicationId={}",
+                        allocation.getId(), previousStatus, applicationId);
+                continue;
+            }
+
+            allocation.setStatus(AllocationStatus.CANCELLED);
+            allocation.setEndDate(LocalDateTime.now());
+            RoomAllocation saved = roomAllocationRepository.save(allocation);
+
+            // After the status change, not before: occupancy is derived from the live count, so
+            // syncing first would still count this allocation as active (GH-136).
+            roomOccupancyManager.syncOccupancy(saved.getRoom());
+            allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.CANCELLED);
+
+            // AFTER_COMMIT, so the refill sees the freed room and a refill failure cannot roll back
+            // the admin's decision on the application.
+            eventPublisher.publishEvent(
+                    new RoomVacatedEvent(saved.getId(), roomIdOf(saved), AllocationStatus.CANCELLED));
+
+            log.info("action=allocationReleased allocationId={} from={} applicationId={} reason={}",
+                    saved.getId(), previousStatus, applicationId, reason);
+            cancelled++;
+        }
+        return cancelled;
     }
 
     @Transactional

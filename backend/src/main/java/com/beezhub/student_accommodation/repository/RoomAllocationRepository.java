@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -70,6 +71,23 @@ public interface RoomAllocationRepository
        // Find allocation by application ID
        @Query("SELECT ra FROM RoomAllocation ra WHERE ra.application.id = :applicationId")
        Optional<RoomAllocation> findByApplicationId(@Param("applicationId") Long applicationId);
+
+       /**
+        * Allocations for one application that still hold a room, with the room and student loaded.
+        *
+        * <p>Used when an application reaches a terminal status: those allocations have to be
+        * released, or the room stays counted as occupied until the expiry sweep runs and the
+        * student keeps seeing an offer they can no longer act on (GH-223).
+        */
+       @Query("SELECT ra FROM RoomAllocation ra " +
+                     "LEFT JOIN FETCH ra.room r " +
+                     "LEFT JOIN FETCH r.building " +
+                     "LEFT JOIN FETCH ra.student s " +
+                     "LEFT JOIN FETCH s.appUser " +
+                     "WHERE ra.application.id = :applicationId AND ra.status IN :statuses")
+       List<RoomAllocation> findByApplicationIdAndStatusIn(
+                     @Param("applicationId") Long applicationId,
+                     @Param("statuses") Collection<AllocationStatus> statuses);
 
        // Delete all allocations for a student
        /** Every allocation for a student, used to find the rooms to recompute after a delete (GH-136). */

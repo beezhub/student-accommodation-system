@@ -532,4 +532,97 @@ class AllocationLifecycleServiceTest {
         // Alias for deleteRoomAllocation
         deleteRoomAllocation_activeAllocation_statusCancelled();
     }
+
+    // ── GH-223: an application that ends must not leave an offer standing ────────────────────
+
+    private RoomAllocation outstandingAllocation(Long id, AllocationStatus status) {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(id);
+        allocation.setStatus(status);
+        allocation.setRoom(room);
+        allocation.setStudent(student);
+        allocation.setApplication(application);
+        return allocation;
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = AllocationStatus.class, names = {"OFFERED", "ACCEPTED"})
+    void releaseOutstandingAllocations_cancelsTheAllocationAndFreesTheRoom(AllocationStatus held) {
+        RoomAllocation allocation = outstandingAllocation(50L, held);
+        when(roomAllocationRepository.findByApplicationIdAndStatusIn(eq(7L), any()))
+                .thenReturn(java.util.List.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        int released = allocationLifecycleService.releaseOutstandingAllocations(7L, "application REJECTED");
+
+        assertThat(released).isEqualTo(1);
+        assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.CANCELLED);
+        assertThat(allocation.getEndDate()).isNotNull();
+        // Without this the room stays counted as occupied until the hourly expiry sweep runs.
+        verify(roomOccupancyManager).syncOccupancy(room);
+        verify(allocationAuditService).logStatusChange(allocation, held, AllocationStatus.CANCELLED);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = AllocationStatus.class, names = {"OFFERED", "ACCEPTED"})
+    void releaseOutstandingAllocations_publishesVacatedSoTheWaitingListRefills(AllocationStatus held) {
+        RoomAllocation allocation = outstandingAllocation(50L, held);
+        when(roomAllocationRepository.findByApplicationIdAndStatusIn(eq(7L), any()))
+                .thenReturn(java.util.List.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        allocationLifecycleService.releaseOutstandingAllocations(7L, "application REJECTED");
+
+        ArgumentCaptor<RoomVacatedEvent> event = ArgumentCaptor.forClass(RoomVacatedEvent.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertThat(event.getValue().allocationId()).isEqualTo(50L);
+        assertThat(event.getValue().roomId()).isEqualTo(room.getId());
+        assertThat(event.getValue().newStatus()).isEqualTo(AllocationStatus.CANCELLED);
+    }
+
+    /**
+     * The student is not put back on the waiting list, unlike a plain allocation cancellation.
+     * The application itself is over, so re-queuing them would undo the admin's decision.
+     */
+    @Test
+    void releaseOutstandingAllocations_doesNotRequeueTheStudent() {
+        RoomAllocation allocation = outstandingAllocation(50L, AllocationStatus.OFFERED);
+        when(roomAllocationRepository.findByApplicationIdAndStatusIn(eq(7L), any()))
+                .thenReturn(java.util.List.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        allocationLifecycleService.releaseOutstandingAllocations(7L, "application REJECTED");
+
+        verify(waitingListService, never()).restoreAfterCancellation(any(), any());
+    }
+
+    @Test
+    void releaseOutstandingAllocations_nothingOutstanding_doesNothing() {
+        when(roomAllocationRepository.findByApplicationIdAndStatusIn(eq(7L), any()))
+                .thenReturn(java.util.List.of());
+
+        assertThat(allocationLifecycleService.releaseOutstandingAllocations(7L, "application REJECTED"))
+                .isZero();
+        verify(roomOccupancyManager, never()).syncOccupancy(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    /**
+     * A checked-in student is living in the room. Rejecting the application is not grounds for
+     * ending an occupancy behind their back; that needs a deliberate move-out.
+     */
+    @Test
+    void releaseOutstandingAllocations_leavesACheckedInOccupancyAlone() {
+        allocationLifecycleService.releaseOutstandingAllocations(7L, "application REJECTED");
+
+        ArgumentCaptor<java.util.Collection<AllocationStatus>> statuses =
+                ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(roomAllocationRepository).findByApplicationIdAndStatusIn(eq(7L), statuses.capture());
+        assertThat(statuses.getValue())
+                .containsExactlyInAnyOrder(AllocationStatus.OFFERED, AllocationStatus.ACCEPTED)
+                .doesNotContain(AllocationStatus.ACTIVE);
+    }
 }

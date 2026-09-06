@@ -136,6 +136,12 @@ public class RoomAllocationService {
         return allocationLifecycleService.allocateRoomByApplication(applicationId, roomId);
     }
 
+    /** See {@link AllocationLifecycleService#releaseOutstandingAllocations(Long, String)}. */
+    @Transactional
+    public int releaseOutstandingAllocations(Long applicationId, String reason) {
+        return allocationLifecycleService.releaseOutstandingAllocations(applicationId, reason);
+    }
+
     @Transactional
     public RoomAllocationResponse moveStudent(Long allocationId, Long newRoomId, String reason, Long adminId) {
         return allocationLifecycleService.moveStudent(allocationId, newRoomId, reason, adminId);
