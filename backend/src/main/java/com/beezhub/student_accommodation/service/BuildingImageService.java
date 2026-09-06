@@ -4,8 +4,12 @@ import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.model.dto.BuildingImageResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.BuildingImage;
+import com.beezhub.student_accommodation.exceptions.FileValidationException;
 import com.beezhub.student_accommodation.repository.BuildingImageRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.service.document.ValidationResult;
+import com.beezhub.student_accommodation.service.image.ImageContentTypes;
+import com.beezhub.student_accommodation.service.image.ImageUploadValidator;
 import io.minio.*;
 
 import lombok.RequiredArgsConstructor;
@@ -17,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -30,10 +35,8 @@ public class BuildingImageService {
     private final BuildingImageRepository buildingImageRepository;
     private final BuildingRepository buildingRepository;
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+    private final ImageUploadValidator imageUploadValidator;
 
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-    private static final List<String> ALLOWED_CONTENT_TYPES = List.of(
-            "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp");
     static final int MAX_IMAGES_PER_BUILDING = 10;
 
     @Transactional
@@ -56,10 +59,13 @@ public class BuildingImageService {
         }
 
         for (MultipartFile file : files) {
-            validateImage(file);
+            // The type comes from the file's own bytes. It used to come from the multipart part
+            // header, checked only against a list of strings the uploader also controlled, then
+            // stored on the row and sent to object storage as the object's type (GH-219).
+            String contentType = validateImage(file);
 
             String objectPath = buildObjectPath(buildingId, file);
-            uploadFileToMinio(objectPath, file);
+            uploadFileToMinio(objectPath, file, contentType);
 
             BuildingImage image = new BuildingImage();
             image.setBuilding(building);
@@ -69,7 +75,7 @@ public class BuildingImageService {
             image.setTenantId(building.getTenantId());
             image.setFileName(file.getOriginalFilename());
             image.setObjectPath(objectPath);
-            image.setContentType(file.getContentType());
+            image.setContentType(contentType);
             image.setFileSize(file.getSize());
             image.setPrimary(isFirstImage && responses.isEmpty());
             image.setDisplayOrder(existingImages.size() + responses.size());
@@ -159,19 +165,13 @@ public class BuildingImageService {
                 .orElse(null);
     }
 
-    private void validateImage(MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new RuntimeException("File is empty");
+    /** Returns the content type read from the file's bytes, or throws if it is not a valid image. */
+    private String validateImage(MultipartFile file) {
+        ValidationResult result = imageUploadValidator.validate(file);
+        if (!result.clean()) {
+            throw new FileValidationException("Image rejected: " + result.reason());
         }
-
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new RuntimeException("File size exceeds maximum of 5MB");
-        }
-
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
-            throw new RuntimeException("Invalid file type. Only images are allowed (JPEG, PNG, GIF, WebP)");
-        }
+        return result.resolvedContentType();
     }
 
     private String buildObjectPath(Long buildingId, MultipartFile file) {
@@ -180,7 +180,7 @@ public class BuildingImageService {
         return String.format("buildings/%d/%s_%s", buildingId, uuid, originalFilename);
     }
 
-    private void uploadFileToMinio(String objectPath, MultipartFile file) {
+    private void uploadFileToMinio(String objectPath, MultipartFile file, String contentType) {
         String bucketName = minioConfig.getBucketName();
         try (InputStream is = file.getInputStream()) {
             minioClient.putObject(
@@ -188,7 +188,7 @@ public class BuildingImageService {
                             .bucket(bucketName)
                             .object(objectPath)
                             .stream(is, file.getSize(), -1L)
-                            .contentType(file.getContentType())
+                            .contentType(contentType)
                             .build());
         } catch (Exception e) {
             throw new RuntimeException("Error uploading file: " + file.getOriginalFilename(), e);
@@ -212,14 +212,40 @@ public class BuildingImageService {
     private String getPresignedUrl(String objectPath) {
         String bucketName = minioConfig.getBucketName();
         try {
+            // A presigned URL is served straight by object storage, so the type it was stored with
+            // is the type the browser sees. Overriding it clamps objects written before this
+            // change, which carry whatever the uploader declared, without a re-upload (GH-219).
+            //
+            // inline, not attachment: these are gallery images meant to render in an <img>. The
+            // clamp is what makes that safe — the type can only ever be one of four image types,
+            // never text/html.
+            Map<String, String> responseOverrides = Map.of(
+                    "response-content-type", ImageContentTypes.clamp(storedContentType(objectPath)),
+                    "response-content-disposition", "inline");
+
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .bucket(bucketName)
                             .object(objectPath)
                             .method(Http.Method.GET)
+                            .extraQueryParams(responseOverrides)
                             .build());
         } catch (Exception e) {
             log.error("Error generating presigned URL for: {}", objectPath, e);
+            return null;
+        }
+    }
+
+    /** The type object storage holds for the object, or null when it cannot be read. */
+    private String storedContentType(String objectPath) {
+        try {
+            return minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(minioConfig.getBucketName())
+                            .object(objectPath)
+                            .build()).contentType();
+        } catch (Exception e) {
+            log.warn("Could not read stored content type for {}: {}", objectPath, e.getMessage());
             return null;
         }
     }
