@@ -1,6 +1,9 @@
 package com.beezhub.student_accommodation.security.jwt;
 
 import com.beezhub.student_accommodation.config.JwtConfig;
+import com.beezhub.student_accommodation.security.FilterErrorResponseWriter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +21,7 @@ class JwtAuthenticationFilterTest {
     private JwtUtil jwtUtil;
     private JwtAuthenticationFilter filter;
     private com.beezhub.student_accommodation.service.TokenBlacklistService tokenBlacklistService;
-    private org.springframework.web.servlet.HandlerExceptionResolver handlerExceptionResolver;
+    private FilterErrorResponseWriter errorResponseWriter;
 
     @BeforeEach
     void setUp() {
@@ -30,8 +33,9 @@ class JwtAuthenticationFilterTest {
         );
         jwtUtil = new JwtUtil(cfg);
         tokenBlacklistService = mock(com.beezhub.student_accommodation.service.TokenBlacklistService.class);
-        handlerExceptionResolver = mock(org.springframework.web.servlet.HandlerExceptionResolver.class);
-        filter = new JwtAuthenticationFilter(jwtUtil, tokenBlacklistService, handlerExceptionResolver);
+        errorResponseWriter = new FilterErrorResponseWriter(
+                new ObjectMapper().registerModule(new JavaTimeModule()));
+        filter = new JwtAuthenticationFilter(jwtUtil, tokenBlacklistService, errorResponseWriter);
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
@@ -58,7 +62,8 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void doFilterInternal_blacklistedToken_resolvesException() throws ServletException, IOException {
+    void doFilterInternal_blacklistedToken_returnsUnauthorizedWithAnErrorResponseBody()
+            throws ServletException, IOException {
         String token = jwtUtil.generateToken(new org.springframework.security.core.userdetails.User(
                 "bob@example.com", "pw", java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"))
         ));
@@ -73,7 +78,14 @@ class JwtAuthenticationFilterTest {
 
         filter.doFilterInternal(req, res, chain);
 
-        verify(handlerExceptionResolver).resolveException(eq(req), eq(res), eq(null), any(org.springframework.security.authentication.BadCredentialsException.class));
+        // Delegating to the HandlerExceptionResolver with a null handler resolved nothing, because
+        // RestResponseExceptionHandler carries basePackages, so the request fell through to the
+        // container error page. The filter writes the body itself now (GH-204).
+        assertEquals(401, res.getStatus());
+        assertTrue(res.getContentAsString().contains("Authentication failed"));
+        assertTrue(res.getContentType().startsWith("application/json"));
+        // Never the reason: "Token is blacklisted" tells an unauthenticated caller which check ran.
+        assertFalse(res.getContentAsString().contains("blacklisted"));
         verify(chain, never()).doFilter(req, res);
         assertNull(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication());
     }

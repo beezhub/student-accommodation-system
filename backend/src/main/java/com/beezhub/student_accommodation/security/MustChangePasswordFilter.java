@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -38,6 +37,7 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
             "/api/auth/refresh-token");
 
     private final JwtUtil jwtUtil;
+    private final FilterErrorResponseWriter errorResponseWriter;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -63,10 +63,10 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
         }
 
         log.warn("action=passwordChangeRequired method={} path={}", request.getMethod(), request.getRequestURI());
-        response.setStatus(HttpStatus.FORBIDDEN.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write(
-                "{\"status\":403,\"error\":\"Forbidden\",\"message\":\"You must change your password before using the application.\"}");
+        // Was a hand-written JSON literal with its own field names, a third body shape alongside
+        // ErrorResponse and the container error page. One writer, one shape (GH-204).
+        errorResponseWriter.write(request, response, HttpStatus.FORBIDDEN,
+                "You must change your password before using the application.");
     }
 
     private boolean isAllowed(HttpServletRequest request) {

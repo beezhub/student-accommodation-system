@@ -33,6 +33,14 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   }
 
   const getServerErrorMessage = (error: HttpErrorResponse): string => {
+    // The backend's ErrorResponse carries its message in `errors`, and nothing here read that
+    // field, so every handled backend error fell through to the generic message for its status
+    // code and the specific reason never reached the user (GH-204).
+    const errors: unknown = error.error?.errors;
+    if (Array.isArray(errors) && errors.length > 0 && typeof errors[0] === 'string') {
+      return errors[0];
+    }
+
     // Try to extract error message from different response formats
     if (error.error?.message) {
       return error.error.message;

@@ -74,6 +74,29 @@ describe('errorInterceptor', () => {
     expect(snackBar.open).toHaveBeenCalled();
   });
 
+  // GH-204: the backend's ErrorResponse puts its message in `errors`, a field nothing here read,
+  // so every handled backend error showed the generic message for its status code instead.
+  it('errorResponseBody_showsTheBackendMessageRatherThanTheGenericOne', async () => {
+    await run(
+      new HttpRequest('GET', '/api/applications'),
+      new HttpErrorResponse({
+        status: 409,
+        error: {
+          timestamp: '2026-09-06T10:00:00',
+          status: 409,
+          errors: ['You already have an active application'],
+          path: '/api/applications',
+        },
+      })
+    );
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'You already have an active application',
+      'Close',
+      jasmine.anything()
+    );
+  });
+
   it('forbiddenResponse_onASilentRequest_doesNothingVisible', async () => {
     await run(
       new HttpRequest('GET', '/api/notifications', { headers: undefined }).clone({
