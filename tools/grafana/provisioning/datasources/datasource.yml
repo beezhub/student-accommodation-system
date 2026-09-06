@@ -7,15 +7,18 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
 
+  # The database name and credentials must match what compose actually creates. This pointed at a
+  # database "student_accommodation" with postgres/postgres, neither of which exists, so every
+  # PostgreSQL-backed panel failed to connect (GH-162).
   - name: PostgreSQL
     uid: PostgreSQL
     type: postgres
     access: proxy
     url: db:5432
-    database: student_accommodation
-    user: ${GRAFANA_DB_USER:-postgres}
+    database: ${POSTGRES_DB:-studentaccommodationlocaldb}
+    user: ${USER_DB:-localadmin}
     secureJsonData:
-      password: ${GRAFANA_DB_PASSWORD:-postgres}
+      password: ${PASSWORD_DB}
     jsonData:
       sslmode: disable
       postgresVersion: 1600
