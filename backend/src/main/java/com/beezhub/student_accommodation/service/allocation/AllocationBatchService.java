@@ -231,8 +231,18 @@ public class AllocationBatchService {
         Map<Long, List<ScoredRoom>> scoringMatrix = allocationScoringOrchestrator.buildScoringMatrix(entries);
         Map<Long, Integer> roomCapacityRemaining = allocationScoringOrchestrator.buildRoomCapacityMap(availableRooms);
 
+        // Stated here rather than inherited from the repository method name. This is the order
+        // AllocationScoringOrchestrator.getWaitingListWithScores renders, and the two must not
+        // drift: the admin screen showing one order while the job serves another is GH-140.
+        List<WaitingListEntry> queue = new ArrayList<>(entries);
+        queue.sort(Comparator
+                .comparing(WaitingListEntry::getCreatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(WaitingListEntry::getId,
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+
         List<AllocationPair> pairs = new ArrayList<>();
-        for (WaitingListEntry entry : entries) {
+        for (WaitingListEntry entry : queue) {
             if (pairs.size() >= budget) {
                 break;
             }

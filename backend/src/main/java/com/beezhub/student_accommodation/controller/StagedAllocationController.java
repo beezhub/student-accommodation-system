@@ -239,21 +239,37 @@ public class StagedAllocationController {
         }
 
         /**
-         * Gets waiting list with priority scores.
+         * Gets the waiting list with priority scores.
+         *
+         * <p>Ordered by queue position, which is the order the batch job consumes the list in.
+         * The scores are informational: they describe how well a student matches the available
+         * rooms, not when that student will be served. Ranking the display by score meant the
+         * student shown at position 1 could lose the last free room to an earlier applicant
+         * (GH-140).
          *
          * @param buildingId Optional building filter
-         * @param sortBy     Sort field
+         * @param sortBy     Display order: "queue" (default) or "score". Position always stays the
+         *                   queue position, so it can never contradict the job.
          * @return List of waiting list entries with scores
          */
         @GetMapping("/waiting-list")
-        @Operation(summary = "Get waiting list with scores", description = "Returns the waiting list with priority scores calculated using the latest allocation rules. Sorted by score descending.")
+        @Operation(summary = "Get waiting list with scores", description = "Returns the waiting list with priority scores calculated using the latest allocation rules. Ordered by queue position, which is the order the allocation job serves. Pass sortBy=score to view by score; the position column still shows the queue position.")
         public ResponseEntity<java.util.List<WaitingListEntryResponse>> getWaitingListWithScores(
                         @RequestParam(required = false) Long buildingId,
-                        @RequestParam(required = false, defaultValue = "score") String sortBy) {
+                        @RequestParam(required = false, defaultValue = "queue") String sortBy) {
 
-                log.info("Getting waiting list with scores for buildingId: {}", buildingId);
+                log.info("Getting waiting list with scores for buildingId: {} sortBy: {}", buildingId, sortBy);
                 java.util.List<WaitingListEntryResponse> response = roomAllocationService
                                 .getWaitingListWithScores(buildingId);
+
+                if ("score".equalsIgnoreCase(sortBy)) {
+                        // A view, not a re-ranking. Each row keeps the queue position it was given,
+                        // so sorting by score cannot make the screen disagree with the job.
+                        response = new java.util.ArrayList<>(response);
+                        response.sort(java.util.Comparator
+                                        .comparing(WaitingListEntryResponse::getPriorityScore,
+                                                        java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
+                }
                 return ResponseEntity.ok(response);
         }
 

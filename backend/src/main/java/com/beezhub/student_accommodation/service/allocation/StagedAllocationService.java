@@ -257,6 +257,11 @@ public class StagedAllocationService {
         allocation.setStudent(staged.getStudent());
         allocation.setRoom(staged.getRoom());
         allocation.setApplication(staged.getApplication());
+        if (staged.getApplication() != null) {
+            // See buildNewAllocation: without this the wait estimate has nothing to count
+            // (GH-140).
+            allocation.setAcademicYear(staged.getApplication().getAcademicYear());
+        }
         // From the room, not the staged row: the room is the tenant-owned asset, so this also
         // heals a legacy staged row that was itself stamped with the wrong tenant. Without it
         // TenantListener copies the acting context, which is 0 for a platform admin, and the row
