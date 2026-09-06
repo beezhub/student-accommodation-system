@@ -370,6 +370,15 @@ public class AllocationLifecycleService {
         allocation.setRoom(room);
         allocation.setApplication(application);
         allocation.setTenantId(room.getTenantId());
+        // Neither construction site ever stamped this, so academic_year_id was null on every
+        // row. The wait estimate counts allocations for the year and always got zero, which is
+        // below its minimum sample, so it returned null every time (GH-140).
+        //
+        // From the application rather than the current year: an allocation with no application
+        // has no academic year, and guessing one would inflate the velocity the estimate reads.
+        if (application != null) {
+            allocation.setAcademicYear(application.getAcademicYear());
+        }
         allocation.setAllocationDate(
                 request.getAllocationDate() != null ? request.getAllocationDate() : LocalDateTime.now());
         allocation.setEndDate(request.getEndDate());

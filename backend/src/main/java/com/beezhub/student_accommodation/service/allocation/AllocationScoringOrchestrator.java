@@ -131,11 +131,13 @@ public class AllocationScoringOrchestrator {
             responses.add(response);
         }
 
-        responses.sort(Comparator.comparing(WaitingListEntryResponse::getPriorityScore).reversed());
-
-        for (int i = 0; i < responses.size(); i++) {
-            responses.get(i).setPosition(i + 1);
-        }
+        // Deliberately not re-sorted or renumbered by score. The position assigned during the
+        // FIFO walk above is the order the batch job actually consumes the queue in; ranking the
+        // display by score meant the student shown at position 1 could lose the last free room
+        // to an earlier, lower-scoring applicant (GH-140).
+        //
+        // priorityScore and bestRoomScore stay on the response as informational columns. They
+        // describe how well a student matches the available rooms, not when they will be served.
 
         log.info("Returning {} waiting list entries with scores", responses.size());
         return responses;

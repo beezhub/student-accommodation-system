@@ -121,10 +121,17 @@ public class OwnerConfigurableScoringStrategy implements ScoringStrategy {
             scoredRooms.add(scored);
         }
 
-        // Sort DESC by totalScore, tiebreaker ASC by applicationCreatedAt
+        // Score descending, then the better room, then the id.
+        //
+        // applicationCreatedAt is gone from the tie-break: every room here belongs to the same
+        // application, so it held the same value for all of them and decided nothing. Ties then
+        // fell through the sort stability to the order rooms came back from findAll(), which has
+        // no ORDER BY, so equally-scored rooms were picked in unspecified heap order (GH-140).
         scoredRooms.sort(Comparator
                 .comparing(ScoredRoom::getTotalScore, Comparator.reverseOrder())
-                .thenComparing(ScoredRoom::getApplicationCreatedAt,
+                .thenComparing(ScoredRoom::getDesirabilityRating,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(ScoredRoom::getRoomId,
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
         log.info("strategy=OwnerConfigurable action=scored count={} student={}", scoredRooms.size(), student.getId());
@@ -190,9 +197,20 @@ public class OwnerConfigurableScoringStrategy implements ScoringStrategy {
                 ? buildingAttrMap.get(room.getBuilding().getId()) : null;
 
         // --- FCFS component ---
-        // In bulk scoring createdAt is the same for all rooms; value is per-application,
-        // not per-room, so we use the max constant (pool normalisation handled at the
-        // scoreAvailableRooms level by ordering). For single-room scoring, max is used.
+        //
+        // This term is INERT and rule.fcfsWeight cannot influence any ranking. The score is the
+        // same constant for every room of every student, so multiplying it by the weight shifts
+        // every candidate equally and changes no order (GH-140).
+        //
+        // That is structural rather than a missing calculation. This method scores rooms for ONE
+        // student and never sees the other applicants, while first-come-first-served is a property
+        // of the application relative to the queue. It can only rank applicants, which needs pool
+        // context this strategy is not given. The comment here previously claimed the ordering was
+        // handled at the scoreAvailableRooms level; it is not, and was not.
+        //
+        // Making the weights rank applicants is filed separately. Note the arrival term would then
+        // compete with bursary, university and accessibility bonuses that are each the same
+        // magnitude as the entire arrival span, so one flag would outrank the whole queue.
         BigDecimal fcfsScore           = FCFS_MAX_SCORE;
         BigDecimal weightedFcfs        = fcfsScore.multiply(rule.getFcfsWeight());
 

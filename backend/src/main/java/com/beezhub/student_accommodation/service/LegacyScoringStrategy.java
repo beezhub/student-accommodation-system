@@ -100,10 +100,14 @@ public class LegacyScoringStrategy implements ScoringStrategy {
             }
         }
 
-        // Sort by score DESC, then by application createdAt ASC (tie-breaker)
+        // Score descending, then the better room, then the id. The previous tie-break read the
+        // application createdAt, which is the same for every room in this list and so decided
+        // nothing, leaving equally-scored rooms in unspecified repository order (GH-140).
         scoredRooms.sort(Comparator
                 .comparing(ScoredRoom::getTotalScore, Comparator.reverseOrder())
-                .thenComparing(sr -> application != null ? application.getCreatedAt() : null,
+                .thenComparing(ScoredRoom::getDesirabilityRating,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(ScoredRoom::getRoomId,
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
         log.info("Scored {} rooms for student {}", scoredRooms.size(), student.getId());

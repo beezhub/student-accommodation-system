@@ -4,6 +4,7 @@ import com.beezhub.student_accommodation.exceptions.*;
 import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.*;
+import com.beezhub.student_accommodation.model.entity.AcademicYear;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
@@ -131,10 +133,36 @@ class AllocationLifecycleServiceTest {
 
         assertThat(response).isNotNull();
         verify(roomAllocationRepository).save(any(RoomAllocation.class));
-        verify(roomAllocationRepository).save(any(RoomAllocation.class));
         verify(eventPublisher).publishEvent(any(AllocationCreatedEvent.class));
         verify(roomOccupancyManager).syncOccupancy(room);
-        verify(roomOccupancyManager).syncOccupancy(room);
+    }
+
+    /**
+     * GH-140: neither construction site stamped the academic year, so every row was null and the
+     * waiting-list wait estimate, which counts allocations for the year, always counted zero and
+     * returned null. The existing WaitingListServiceTest cases stayed green throughout, because
+     * they stub that count directly.
+     */
+    @Test
+    void createRoomAllocation_stampsTheAcademicYearFromTheApplication() {
+        AcademicYear year = new AcademicYear();
+        year.setId(5L);
+        year.setName("2026");
+        application.setAcademicYear(year);
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(roomAllocationRepository.existsByApplicationId(1L)).thenReturn(false);
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
+
+        allocationLifecycleService.createRoomAllocation(allocationRequest);
+
+        ArgumentCaptor<RoomAllocation> saved = ArgumentCaptor.forClass(RoomAllocation.class);
+        verify(roomAllocationRepository).save(saved.capture());
+        assertThat(saved.getValue().getAcademicYear()).isEqualTo(year);
     }
 
     @Test
