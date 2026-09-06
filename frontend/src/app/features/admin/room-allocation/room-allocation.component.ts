@@ -199,6 +199,32 @@ export class RoomAllocationComponent implements OnInit {
     });
   }
 
+  /**
+   * GH-198: enforcing the offer deadline on the accept path left a lapsed offer with no recovery
+   * route. An admin can move the deadline, which hands the decision back to the student rather
+   * than accepting on their behalf.
+   */
+  extendOffer(allocation: RoomAllocationResponse): void {
+    import('../extend-offer-dialog/extend-offer-dialog.component').then((m) => {
+      const dialogRef = this.dialog.open(m.ExtendOfferDialogComponent, {
+        width: '480px',
+        data: {
+          allocationId: allocation.id,
+          studentName: `${allocation.studentFirstName} ${allocation.studentLastName}`,
+          roomNumber: allocation.roomNumber,
+          buildingName: allocation.buildingName,
+          currentDeadline: allocation.offerExpiryDate,
+        },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          this.loadAllocations();
+        }
+      });
+    });
+  }
+
   endAllocation(allocation: RoomAllocationResponse): void {
     if (
       confirm(

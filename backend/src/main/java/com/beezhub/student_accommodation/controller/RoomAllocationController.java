@@ -121,6 +121,25 @@ public class RoomAllocationController {
                 return ResponseEntity.ok(roomAllocationService.declineOffer(id, request));
         }
 
+        @PostMapping("/{id}/extend-offer")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+        @Operation(
+                summary = "Extend an offer's response deadline",
+                description = "Moves the deadline on an outstanding offer, so a student who missed it can "
+                              + "still accept. Admin only, and recorded against the allocation with the "
+                              + "reason given. The new deadline must be in the future and no later than a "
+                              + "fresh offer would give. Only while the offer is still OFFERED: once the "
+                              + "expiry sweep has run the room is released and the student must be "
+                              + "allocated a room again."
+        )
+        public ResponseEntity<RoomAllocationResponse> extendOffer(
+                        @PathVariable Long id,
+                        @Valid @RequestBody ExtendOfferRequest request) {
+                log.info("Extending offer deadline for allocation {} to {}", id, request.newExpiryDate());
+                return ResponseEntity.ok(roomAllocationService.extendOfferDeadline(
+                                id, request.newExpiryDate(), request.reason()));
+        }
+
         @PostMapping("/{id}/check-in")
         @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(

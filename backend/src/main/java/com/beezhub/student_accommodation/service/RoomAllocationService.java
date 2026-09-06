@@ -136,6 +136,12 @@ public class RoomAllocationService {
         return allocationLifecycleService.allocateRoomByApplication(applicationId, roomId);
     }
 
+    /** See {@link AllocationLifecycleService#extendOfferDeadline(Long, java.time.LocalDateTime, String)}. */
+    @Transactional
+    public RoomAllocationResponse extendOfferDeadline(Long id, java.time.LocalDateTime newExpiryDate, String reason) {
+        return allocationLifecycleService.extendOfferDeadline(id, newExpiryDate, reason);
+    }
+
     /** See {@link AllocationLifecycleService#releaseOutstandingAllocations(Long, String)}. */
     @Transactional
     public int releaseOutstandingAllocations(Long applicationId, String reason) {
