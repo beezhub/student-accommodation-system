@@ -92,6 +92,8 @@ export class RoomAllocationComponent implements OnInit {
     'CHECK_IN_EXPIRED',
     'ACTIVE',
     'COMPLETED',
+    // Ending a lease early now writes TERMINATED rather than COMPLETED (GH-138).
+    'TERMINATED',
     'CANCELLED',
   ];
 
@@ -294,6 +296,8 @@ export class RoomAllocationComponent implements OnInit {
         return 'check_circle';
       case 'COMPLETED':
         return 'done_all';
+      case 'TERMINATED':
+        return 'gavel';
       case 'CANCELLED':
         return 'cancel';
       case 'EXPIRED':

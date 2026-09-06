@@ -16,6 +16,15 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * (see {@code TransactionTemplateConfig#REQUIRES_NEW}), which is required for database work in an
  * AFTER_COMMIT listener. Exceptions are swallowed here because an exception thrown from an
  * after-commit callback would surface to the caller even though its data is already committed.
+ *
+ * <p>Triggered by decline, cancel, check-out and end. Three paths still free a room without
+ * publishing and so do not refill: {@code OfferExpiryService}, {@code CheckInExpiryService} and
+ * {@code AllocationMoveService}. The first two are followed by the batch job on its own
+ * schedule; the move is a swap rather than a vacancy. Recorded here so the gap is known rather
+ * than assumed closed.
+ *
+ * <p>The refill is a no-op while the {@code auto-allocation} feature flag is off, which is how
+ * it ships.
  */
 @Component
 @RequiredArgsConstructor
