@@ -112,6 +112,11 @@ public class RoomService {
                         "A room with this number already exists in this building");
             }
             room.setBuilding(building);
+            // From the building, not the acting context. Room creation is open to platform
+            // admins, and TenantListener would otherwise stamp the room with tenant 0. Every
+            // allocation and staged proposal derives its own tenant from the room, so a room
+            // stamped 0 propagates the defect to everything built on it (GH-146).
+            room.setTenantId(building.getTenantId());
         }
 
         Room saved = roomRepository.save(room);
@@ -167,6 +172,8 @@ public class RoomService {
                 }
                 inBatch.add(request.getRoomNumber());
                 room.setBuilding(building);
+                // Same reason as createRoom above (GH-146).
+                room.setTenantId(building.getTenantId());
             }
 
             Room saved = roomRepository.save(room);

@@ -60,6 +60,9 @@ class WaitingListServiceTest {
     @Captor
     private ArgumentCaptor<AllocationDeclinedEvent> eventCaptor;
 
+    @Captor
+    private ArgumentCaptor<WaitingListEntry> entryCaptor;
+
     @InjectMocks
     private WaitingListService waitingListService;
 
@@ -129,6 +132,49 @@ class WaitingListServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getMessage()).contains("added to waiting list");
         verify(waitingListRepository).save(any(WaitingListEntry.class));
+    }
+
+    /**
+     * GH-146: the entry was left unstamped, so TenantListener copied the acting context, which is
+     * 0 for both a platform admin and a student. The owning tenant could not then see the row
+     * through any filtered query, so confirming an allocation left the student WAITING and the
+     * already-allocated guard did not fire.
+     */
+    @Test
+    void enqueueWaitingList_stampsTheTenantThatOwnsTheApplication() {
+        application.setTenantId(7L);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(waitingListRepository.existsByStudent_IdAndStatus(1L, "WAITING")).thenReturn(false);
+        when(waitingListRepository.save(any(WaitingListEntry.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        waitingListService.enqueueWaitingList(1L, 1L);
+
+        verify(waitingListRepository).save(entryCaptor.capture());
+        assertThat(entryCaptor.getValue().getTenantId()).isEqualTo(7L);
+    }
+
+    /**
+     * An application created by a platform admin carries the platform tenant itself, so the
+     * building it was made to is what still identifies the owner. Same rule the batch allocator
+     * uses when grouping entries by tenant.
+     */
+    @Test
+    void enqueueWaitingList_platformTenantApplication_fallsBackToThePreferredBuilding() {
+        application.setTenantId(0L);
+        Building preferred = new Building();
+        preferred.setId(3L);
+        preferred.setTenantId(7L);
+        application.setPreferredBuilding(preferred);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(waitingListRepository.existsByStudent_IdAndStatus(1L, "WAITING")).thenReturn(false);
+        when(waitingListRepository.save(any(WaitingListEntry.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        waitingListService.enqueueWaitingList(1L, 1L);
+
+        verify(waitingListRepository).save(entryCaptor.capture());
+        assertThat(entryCaptor.getValue().getTenantId()).isEqualTo(7L);
     }
 
     @Test

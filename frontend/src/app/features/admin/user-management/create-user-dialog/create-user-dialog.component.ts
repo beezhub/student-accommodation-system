@@ -44,7 +44,15 @@ export class CreateUserDialogComponent {
   isPlatformAdmin = false;
   tenants: Tenant[] = [];
 
-  readonly availableRoles: string[] = ['PLATFORM_ADMIN', 'ADMIN', 'BUILDING_STAFF'];
+  /**
+   * ADMIN is gone: it is the deprecated role, and AppUserMapper rejects it outright, so that
+   * option failed every time it was chosen whatever tenant was picked. TENANT_ADMIN is the role
+   * the tenant-scoping rule is actually written for and was not selectable at all.
+   */
+  readonly availableRoles: string[] = ['PLATFORM_ADMIN', 'TENANT_ADMIN', 'BUILDING_STAFF'];
+
+  /** Roles the backend requires a real institution tenant for (GH-146). */
+  private static readonly TENANT_SCOPED_ROLES = ['TENANT_ADMIN', 'BUILDING_STAFF'];
 
   private authService = inject(AuthService);
   private tenantService = inject(TenantService);
@@ -56,7 +64,9 @@ export class CreateUserDialogComponent {
       lastName: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
-      userRole: ['BUILDING_OWNER', [Validators.required]],
+      // Was BUILDING_OWNER, which is in neither availableRoles nor the backend UserRole, so the
+      // form opened on a value that could never be submitted.
+      userRole: ['BUILDING_STAFF', [Validators.required]],
     });
 
     if (this.isPlatformAdmin) {
@@ -65,21 +75,39 @@ export class CreateUserDialogComponent {
         next: (tenants) => (this.tenants = tenants),
         error: () => this.snackBar.open('Failed to load tenants', 'Close', { duration: 3000 }),
       });
+
+      // Without this, choosing a tenant and then switching to PLATFORM_ADMIN submits a stale
+      // non-zero tenantId, which the backend now rejects (GH-146). The control keeps a value
+      // that is no longer among the options, so the user cannot see what is wrong.
+      this.createUserForm.get('userRole')?.valueChanges.subscribe((role: string) => {
+        const tenantControl = this.createUserForm.get('tenantId');
+        if (!tenantControl) return;
+        tenantControl.reset(null);
+        if (this.isTenantScoped(role)) {
+          tenantControl.setValidators([Validators.required]);
+        } else {
+          tenantControl.clearValidators();
+        }
+        tenantControl.updateValueAndValidity();
+      });
     }
   }
 
+  private isTenantScoped(role: string): boolean {
+    return CreateUserDialogComponent.TENANT_SCOPED_ROLES.includes(role);
+  }
+
+  /** The tenant control is meaningless for a platform admin, who must be tenant 0. */
+  get showTenantField(): boolean {
+    return this.isPlatformAdmin && this.isTenantScoped(this.createUserForm.get('userRole')?.value);
+  }
+
+  /**
+   * The platform tenant is never a valid choice for a tenant-scoped role: 0 is the sentinel that
+   * disables the tenant filter, which is the privilege escalation in GH-146.
+   */
   get availableTenantsForRole(): Tenant[] {
-    const role = this.createUserForm.get('userRole')?.value;
-    if (role === 'ADMIN') {
-      return this.tenants.filter((t) => t.id !== 0);
-    }
-    return this.tenants;
-  }
-
-  get showTenantScopeWarning(): boolean {
-    const role = this.createUserForm.get('userRole')?.value;
-    const tenantId = this.createUserForm.get('tenantId')?.value;
-    return role === 'ADMIN' && tenantId === 0;
+    return this.tenants.filter((t) => t.id !== 0);
   }
 
   onSubmit(): void {

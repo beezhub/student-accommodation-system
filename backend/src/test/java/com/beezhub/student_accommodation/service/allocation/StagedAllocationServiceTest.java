@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -158,6 +159,34 @@ class StagedAllocationServiceTest {
                                 eq(admin),
                                 anyString(), isNull(), eq(room));
                 verify(eventPublisher).publishEvent(any(AllocationCreatedEvent.class));
+        }
+
+        /**
+         * GH-146: only one of the five construction sites for tenant-owned allocation rows set
+         * tenantId. The rest left it null, so TenantListener copied the acting context, which is 0
+         * for a platform admin. The owning tenant could not then see the row through any filtered
+         * query: the student stayed WAITING after confirmation, the already-allocated guard did
+         * not fire, and a tenant admin was refused ownership of their own proposal.
+         *
+         * <p>From the room rather than the staged row, so a legacy staged row that is itself
+         * mis-stamped still produces a correctly stamped allocation.
+         */
+        @Test
+        void confirmAllocation_stampsTheAllocationWithTheRoomTenant() {
+                room.setTenantId(7L);
+                stagedAllocation.setTenantId(0L);
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
+                                .thenReturn(new RoomAllocationResponse());
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+
+                stagedAllocationService.confirmAllocation(1L, 2L);
+
+                ArgumentCaptor<RoomAllocation> saved = ArgumentCaptor.forClass(RoomAllocation.class);
+                verify(roomAllocationRepository).save(saved.capture());
+                assertThat(saved.getValue().getTenantId()).isEqualTo(7L);
         }
 
         @Test

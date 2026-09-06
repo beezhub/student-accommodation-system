@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.EmailAlreadyRegisteredException;
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.CreateUserRequest;
@@ -8,6 +9,7 @@ import com.beezhub.student_accommodation.model.dto.UserData;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.repository.TenantRepository;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 public class UserManagementService {
 
     private final AppUserRepository userRepository;
+    private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
     private final AppUserMapper appUserMapper;
 
@@ -46,12 +49,7 @@ public class UserManagementService {
             passwordEncoder.encode(request.getPassword())
         );
 
-        // Assign tenant
-        if (request.getTenantId() != null) {
-            user.setTenantId(request.getTenantId());
-        } else if (TenantContext.getTenantId() != null) {
-            user.setTenantId(TenantContext.getTenantId());
-        }
+        user.setTenantId(resolveTenantForRole(role, request.getTenantId()));
 
         // Save and return
         AppUser savedUser = userRepository.save(user);
@@ -105,11 +103,39 @@ public class UserManagementService {
             throw new IllegalArgumentException(
                     "Invalid role for admin creation. Allowed: PLATFORM_ADMIN, ADMIN, BUILDING_STAFF");
         }
-        if (role == UserRole.ADMIN) {
-            if (tenantId == null || tenantId == 0L) {
+    }
+
+    /**
+     * The tenant a new account is scoped to.
+     *
+     * <p>This used to fall back to the acting context when the request carried no tenant. A
+     * platform admin creating a tenant admin therefore stamped the new account with tenant 0,
+     * and 0 is the sentinel that turns the Hibernate tenant filter off and makes
+     * TenantOwnershipGuard wave every check through. A tenant-scoped account silently became a
+     * platform-wide reader (GH-146). There is no safe default here, so there is no default.
+     *
+     * <p>Platform admins are the mirror image: they must be tenant 0, because that sentinel is
+     * what gives them platform-wide visibility. A platform admin stamped with a real tenant would
+     * quietly lose it.
+     */
+    private Long resolveTenantForRole(UserRole role, Long requestedTenantId) {
+        if (role == UserRole.PLATFORM_ADMIN) {
+            if (requestedTenantId != null && !TenantContext.PLATFORM_TENANT_ID.equals(requestedTenantId)) {
                 throw new IllegalArgumentException(
-                        "Tenant admins must be scoped to a specific institution tenant");
+                        "Platform admins are not scoped to a tenant");
             }
+            return TenantContext.PLATFORM_TENANT_ID;
         }
+
+        if (requestedTenantId == null || TenantContext.PLATFORM_TENANT_ID.equals(requestedTenantId)) {
+            throw new IllegalArgumentException(
+                    "Tenant admins and building staff must be scoped to a specific institution tenant");
+        }
+        // tenant_id is NOT NULL behind a foreign key, and this is now the only source of the
+        // value, so an unknown id would surface as a 500 rather than a 404.
+        if (!tenantRepository.existsById(requestedTenantId)) {
+            throw new ResourceNotFoundException("Tenant not found with id: " + requestedTenantId);
+        }
+        return requestedTenantId;
     }
 }

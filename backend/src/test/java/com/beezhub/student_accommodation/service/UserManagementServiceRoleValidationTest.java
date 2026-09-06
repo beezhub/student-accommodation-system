@@ -7,10 +7,13 @@ import com.beezhub.student_accommodation.model.dto.UserData;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.repository.TenantRepository;
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,6 +42,9 @@ class UserManagementServiceRoleValidationTest {
     private AppUserRepository userRepository;
 
     @Mock
+    private TenantRepository tenantRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
@@ -48,13 +54,26 @@ class UserManagementServiceRoleValidationTest {
     private UserManagementService userManagementService;
 
     private CreateUserRequest buildRequest(String role) {
+        return buildRequest(role, null);
+    }
+
+    private CreateUserRequest buildRequest(String role, Long tenantId) {
         CreateUserRequest req = new CreateUserRequest();
         req.setEmail("test@example.com");
         req.setPassword("password123");
         req.setFirstName("Test");
         req.setLastName("User");
         req.setUserRole(role);
+        req.setTenantId(tenantId);
         return req;
+    }
+
+    /** Captures the entity handed to save, which is where the tenant stamp lands. */
+    private AppUser createAndCapture(CreateUserRequest request) {
+        userManagementService.createUser(request);
+        ArgumentCaptor<AppUser> saved = ArgumentCaptor.forClass(AppUser.class);
+        verify(userRepository).save(saved.capture());
+        return saved.getValue();
     }
 
     @BeforeEach
@@ -82,20 +101,94 @@ class UserManagementServiceRoleValidationTest {
         assertThat(result).isNotNull();
     }
 
-    @Test
-    @DisplayName("Creating a BUILDING_STAFF user succeeds")
-    void createUser_buildingStaff_succeeds() {
+    /** Stubs the mapper and repository for a successful create of the given role. */
+    private void stubSuccessfulCreate(UserRole role) {
         stubPasswordEncoder();
         AppUser savedUser = AppUser.builder()
                 .email("test@example.com")
-                .userRole(UserRole.BUILDING_STAFF)
+                .userRole(role)
                 .build();
         when(appUserMapper.toEntityFromAdminRequest(any(), anyString())).thenReturn(savedUser);
         when(userRepository.save(any())).thenReturn(savedUser);
         when(appUserMapper.toUserData(any())).thenReturn(new UserData());
+        when(tenantRepository.existsById(any())).thenReturn(true);
+    }
 
-        UserData result = userManagementService.createUser(buildRequest("Building_Staff"));
+    @Test
+    @DisplayName("Creating a BUILDING_STAFF user with a tenant succeeds")
+    void createUser_buildingStaffWithTenant_succeeds() {
+        stubSuccessfulCreate(UserRole.BUILDING_STAFF);
+
+        UserData result = userManagementService.createUser(buildRequest("Building_Staff", 7L));
         assertThat(result).isNotNull();
+    }
+
+    /**
+     * GH-146: the tenant used to fall back to the acting context, so a platform admin creating a
+     * tenant-scoped account stamped it with tenant 0. That sentinel disables the Hibernate tenant
+     * filter and makes TenantOwnershipGuard wave every check through, so the new account silently
+     * became a platform-wide reader. There is no safe default, so there is no default.
+     */
+    @Test
+    @DisplayName("Creating a BUILDING_STAFF user without a tenant is rejected")
+    void createUser_buildingStaffWithoutTenant_throws() {
+        assertThatThrownBy(() -> userManagementService.createUser(buildRequest("Building_Staff")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("scoped to a specific institution tenant");
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Creating a BUILDING_STAFF user with the platform tenant is rejected")
+    void createUser_buildingStaffWithPlatformTenant_throws() {
+        assertThatThrownBy(() -> userManagementService.createUser(buildRequest("Building_Staff", 0L)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("scoped to a specific institution tenant");
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("A tenant-scoped account is stamped with the requested tenant")
+    void createUser_buildingStaffWithTenant_stampsThatTenant() {
+        stubSuccessfulCreate(UserRole.BUILDING_STAFF);
+
+        assertThat(createAndCapture(buildRequest("Building_Staff", 7L)).getTenantId()).isEqualTo(7L);
+    }
+
+    /**
+     * tenant_id is NOT NULL behind a foreign key, and the request is now the only source of the
+     * value, so an unknown id would otherwise surface as a 500 rather than a not-found.
+     */
+    @Test
+    @DisplayName("Creating a user for an unknown tenant is rejected")
+    void createUser_unknownTenant_throws() {
+        stubPasswordEncoder();
+        when(tenantRepository.existsById(99L)).thenReturn(false);
+
+        assertThatThrownBy(() -> userManagementService.createUser(buildRequest("Building_Staff", 99L)))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(userRepository, never()).save(any());
+    }
+
+    /**
+     * The mirror image: 0 is what gives a platform admin platform-wide visibility, so one stamped
+     * with a real tenant would quietly lose it.
+     */
+    @Test
+    @DisplayName("A platform admin is stamped with the platform tenant")
+    void createUser_platformAdmin_stampsThePlatformTenant() {
+        stubSuccessfulCreate(UserRole.PLATFORM_ADMIN);
+
+        assertThat(createAndCapture(buildRequest("Platform_Admin")).getTenantId()).isZero();
+    }
+
+    @Test
+    @DisplayName("Creating a platform admin scoped to a real tenant is rejected")
+    void createUser_platformAdminWithTenant_throws() {
+        assertThatThrownBy(() -> userManagementService.createUser(buildRequest("Platform_Admin", 7L)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not scoped to a tenant");
+        verify(userRepository, never()).save(any());
     }
 
     @Test
