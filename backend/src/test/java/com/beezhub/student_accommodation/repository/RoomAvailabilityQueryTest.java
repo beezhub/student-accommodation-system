@@ -8,6 +8,7 @@ import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
+import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.specification.BuildingBrowseSpecification;
@@ -40,16 +41,25 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
     @Autowired private RoomAllocationRepository roomAllocationRepository;
     @Autowired private StudentRepository studentRepository;
     @Autowired private AppUserRepository appUserRepository;
+    @Autowired private TenantRepository tenantRepository;
 
     private Building building;
+    private Long tenantId;
 
     @BeforeEach
     void setUp() {
+        // AbstractJpaTest builds the schema from the entity mappings with Flyway off, so the tenant
+        // table exists but is empty — the platform tenant (id 0) is a Flyway seed. PostgreSQL
+        // enforces the tenant_id foreign key, so a fixture cannot simply assume 0 exists.
+        Tenant tenant = new Tenant();
+        tenant.setName("Availability Test Company");
+        tenantId = tenantRepository.saveAndFlush(tenant).getId();
+
         building = new Building();
         building.setName("Availability Test");
         building.setAddress("1 Test Street");
-        building.setTenantId(0L);
-        building = buildingRepository.save(building);
+        building.setTenantId(tenantId);
+        building = buildingRepository.saveAndFlush(building);
     }
 
     /**
@@ -173,7 +183,7 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
         room.setCapacity(capacity);
         room.setCurrentOccupancy(0);
         room.setStatus(status);
-        room.setTenantId(0L);
+        room.setTenantId(tenantId);
         return roomRepository.saveAndFlush(room);
     }
 
@@ -184,7 +194,7 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
         user.setFirstName("Avail");
         user.setLastName("Test");
         user.setUserRole(UserRole.STUDENT);
-        user.setTenantId(0L);
+        user.setTenantId(tenantId);
         user = appUserRepository.saveAndFlush(user);
 
         Student student = new Student();
@@ -195,7 +205,7 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
         RoomAllocation allocation = new RoomAllocation();
         allocation.setRoom(room);
         allocation.setStudent(student);
-        allocation.setTenantId(0L);
+        allocation.setTenantId(tenantId);
         allocation.setStatus(status);
         allocation.setAllocationDate(LocalDateTime.now());
         roomAllocationRepository.saveAndFlush(allocation);
