@@ -9,6 +9,7 @@ import com.beezhub.student_accommodation.model.entity.EmailVerificationToken;
 import com.beezhub.student_accommodation.model.entity.PasswordResetToken;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
+import com.beezhub.student_accommodation.util.SecureTokenHasher;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.EmailVerificationTokenRepository;
 import com.beezhub.student_accommodation.repository.PasswordResetTokenRepository;
@@ -102,7 +103,7 @@ public class AuthService {
             sendVerificationEmail(save.getEmail());
             log.info("Verification email sent to new user: {}", save.getEmail());
         } catch (Exception e) {
-            log.error("Failed to send verification email during signup to: {}", save.getEmail(), e);
+            log.error("action=signupVerificationEmailFailed userId={}", save.getId(), e);
         }
 
         var userData = appUserMapper.toUserData(save);
@@ -394,14 +395,23 @@ public class AuthService {
         return getCurrentUser().getId();
     }
 
+    /**
+     * Always reports the same outcome, whether the account exists, the send succeeded, or the
+     * mail server was down.
+     *
+     * <p>It already returned the same message for an unknown email, but then threw a 500 when the
+     * send failed — which only happens for an account that exists. That difference was an
+     * enumeration oracle: a caller could tell a real address from a fake one by knocking the mail
+     * server over, or simply by observing a transient failure (GH-154).
+     */
     @Transactional
     public MessageResponse requestPasswordReset(String email) {
-        log.info("Password reset requested for email: {}", email);
+        log.info("action=passwordResetRequested");
 
         var userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            // Return the same message to prevent user enumeration
-            log.warn("Password reset requested for non-existent email: {}", email);
+            // Deliberately indistinguishable from the success path.
+            log.info("action=passwordResetRequestedForUnknownAccount");
             return new MessageResponse("Password reset instructions have been sent to your email");
         }
 
@@ -409,12 +419,13 @@ public class AuthService {
 
         passwordResetTokenRepository.deleteByUserId(user.getId());
 
-        // Generate new token
+        // The plaintext goes in the email; only its hash is stored. Plaintext at rest meant a
+        // database read handed over every live reset token (GH-154).
         String token = UUID.randomUUID().toString();
         LocalDateTime expiryDate = LocalDateTime.now().plusHours(passwordResetExpiryHours);
 
         PasswordResetToken resetToken = PasswordResetToken.builder()
-                .token(token)
+                .token(SecureTokenHasher.hash(token))
                 .user(user)
                 .expiryDate(expiryDate)
                 .used(false)
@@ -436,10 +447,10 @@ public class AuthService {
                             "If you did not request this, please ignore this email.\n\n" +
                             "Best regards,\n" +
                             "Student Accommodation Team");
-            log.info("Password reset email sent successfully to: {}", email);
+            log.info("action=passwordResetEmailSent userId={}", user.getId());
         } catch (Exception e) {
-            log.error("Failed to send password reset email to: {}", email, e);
-            throw new RuntimeException("Failed to send password reset email");
+            // Logged, not rethrown. Throwing here reveals that the account exists.
+            log.error("action=passwordResetEmailFailed userId={}", user.getId(), e);
         }
 
         return new MessageResponse("Password reset instructions have been sent to your email");
@@ -449,7 +460,8 @@ public class AuthService {
     public TokenValidationResponse verifyResetToken(String token) {
         log.info("Verifying reset token");
 
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+        PasswordResetToken resetToken = passwordResetTokenRepository
+                .findByToken(SecureTokenHasher.hash(token))
                 .orElse(null);
 
         if (resetToken == null) {
@@ -471,7 +483,8 @@ public class AuthService {
     public MessageResponse resetPassword(String token, String newPassword) {
         log.info("Attempting to reset password with token");
 
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+        PasswordResetToken resetToken = passwordResetTokenRepository
+                .findByToken(SecureTokenHasher.hash(token))
                 .orElseThrow(() -> new InvalidTokenException("Invalid password reset token"));
 
         if (resetToken.isUsed()) {
@@ -496,15 +509,28 @@ public class AuthService {
 
     // ==================== Email Verification Methods ====================
 
+    /**
+     * Always reports the same outcome, whether the account exists, is already verified, or the
+     * send failed.
+     *
+     * <p>It previously returned 404 for an unknown address and a distinct error for an already
+     * verified one, so an unauthenticated caller could enumerate registered accounts and learn
+     * which had completed verification (GH-154).
+     */
     @Transactional
     public MessageResponse sendVerificationEmail(String email) {
-        log.info("Sending verification email to: {}", email);
+        log.info("action=verificationEmailRequested");
 
-        AppUser user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+        var userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            log.info("action=verificationEmailRequestedForUnknownAccount");
+            return new MessageResponse("Verification email has been sent to your email address");
+        }
 
+        AppUser user = userOpt.get();
         if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new EmailAlreadyVerifiedException("Email is already verified");
+            log.info("action=verificationEmailSkipped reason=alreadyVerified userId={}", user.getId());
+            return new MessageResponse("Verification email has been sent to your email address");
         }
 
         // Delete any existing verification tokens for this user
@@ -514,8 +540,9 @@ public class AuthService {
         String token = UUID.randomUUID().toString();
         LocalDateTime expiryDate = LocalDateTime.now().plusHours(emailVerificationExpiryHours);
 
+        // Hashed at rest for the same reason as the reset token (GH-154).
         EmailVerificationToken verificationToken = EmailVerificationToken.builder()
-                .token(token)
+                .token(SecureTokenHasher.hash(token))
                 .user(user)
                 .expiryDate(expiryDate)
                 .used(false)
@@ -536,10 +563,10 @@ public class AuthService {
                             "If you did not register, please ignore this email.\n\n" +
                             "Best regards,\n" +
                             "Student Accommodation Team");
-            log.info("Verification email sent successfully to: {}", email);
+            log.info("action=verificationEmailSent userId={}", user.getId());
         } catch (Exception e) {
-            log.error("Failed to send verification email to: {}", email, e);
-            throw new RuntimeException("Failed to send verification email");
+            // Logged, not rethrown: throwing reveals that the account exists.
+            log.error("action=verificationEmailFailed userId={}", user.getId(), e);
         }
 
         return new MessageResponse("Verification email has been sent to your email address");
@@ -549,7 +576,8 @@ public class AuthService {
     public MessageResponse verifyEmail(String token) {
         log.info("Attempting to verify email with token");
 
-        EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
+        EmailVerificationToken verificationToken = emailVerificationTokenRepository
+                .findByToken(SecureTokenHasher.hash(token))
                 .orElseThrow(() -> new InvalidTokenException("Invalid verification token"));
 
         if (verificationToken.isUsed()) {
