@@ -1,6 +1,13 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -20,6 +27,7 @@ import {
 } from '../../../../core/services/room-allocation.service';
 import { RoomService, RoomResponse } from '../../../../core/services/room.service';
 import { AdminService, ApplicationResponse } from '../../../../core/services/admin.service';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 @Component({
   selector: 'app-allocate-dialog',
@@ -78,7 +86,19 @@ import { AdminService, ApplicationResponse } from '../../../../core/services/adm
             <mat-label>Room</mat-label>
             <mat-icon matPrefix>meeting_room</mat-icon>
             <mat-select formControlName="roomId" required (selectionChange)="checkAvailability()">
-              @for (room of availableRooms; track room.id) {
+              <div class="option-search" (click)="$event.stopPropagation()">
+                <input
+                  matInput
+                  [formControl]="roomSearch"
+                  placeholder="Search by room number"
+                  aria-label="Search rooms"
+                />
+              </div>
+              @if (moreRoomsExist) {
+              <div class="option-hint">
+                Showing the first {{ optionPageSize }}. Search to narrow.
+              </div>
+              } @for (room of availableRooms; track room.id) {
               <mat-option [value]="room.id">
                 <div class="room-option">
                   <span class="room-name">{{ room.roomNumber }} - {{ room.buildingName }}</span>
@@ -116,6 +136,19 @@ import { AdminService, ApplicationResponse } from '../../../../core/services/adm
             <mat-label>Application (Optional)</mat-label>
             <mat-icon matPrefix>description</mat-icon>
             <mat-select formControlName="applicationId" (selectionChange)="onApplicationSelected()">
+              <div class="option-search" (click)="$event.stopPropagation()">
+                <input
+                  matInput
+                  [formControl]="applicationSearch"
+                  placeholder="Search by application code"
+                  aria-label="Search applications"
+                />
+              </div>
+              @if (moreApplicationsExist) {
+              <div class="option-hint">
+                Showing the first {{ optionPageSize }}. Search to narrow.
+              </div>
+              }
               <mat-option value="">No Application</mat-option>
               @for (app of studentApplications; track app.id) {
               <mat-option [value]="app.id">
@@ -195,6 +228,25 @@ import { AdminService, ApplicationResponse } from '../../../../core/services/adm
     `
       .dialog-container {
         min-width: 550px;
+      }
+
+      /* Search inside the option lists: these are server-side searches, not client filters. */
+      .option-search {
+        padding: 8px 16px;
+        border-bottom: 1px solid rgb(0 0 0 / 12%);
+      }
+      .option-search input {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        font: inherit;
+        color: inherit;
+      }
+      .option-hint {
+        padding: 4px 16px;
+        font-size: 0.75rem;
+        opacity: 0.7;
       }
 
       /* Dialog Header */
@@ -500,6 +552,7 @@ import { AdminService, ApplicationResponse } from '../../../../core/services/adm
   ],
 })
 export class AllocateDialogComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private fb = inject(FormBuilder);
   private allocationService = inject(RoomAllocationService);
   private roomService = inject(RoomService);
@@ -512,6 +565,13 @@ export class AllocateDialogComponent implements OnInit {
   isSubmitting = false;
   availableRooms: RoomResponse[] = [];
   studentApplications: ApplicationResponse[] = [];
+
+  /** Options fetched per search. Small on purpose: these feed a dropdown, not a report. */
+  readonly optionPageSize = 25;
+  moreRoomsExist = false;
+  moreApplicationsExist = false;
+  readonly roomSearch = new FormControl('');
+  readonly applicationSearch = new FormControl('');
 
   eligibility: AllocationEligibilityResponse | null = null;
   eligibilityChecked = false;
@@ -530,33 +590,57 @@ export class AllocateDialogComponent implements OnInit {
   ngOnInit(): void {
     this.loadAvailableRooms();
     this.loadApplications();
+
+    this.roomSearch.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe((term) => this.loadAvailableRooms(term ?? ''));
+
+    this.applicationSearch.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe((term) => this.loadApplications(term ?? ''));
   }
 
-  loadAvailableRooms(): void {
-    // Load rooms that are not full
-    this.roomService.searchRooms({ page: 0, size: 1000 }).subscribe({
-      next: (response) => {
-        this.availableRooms = response.content.filter(
-          (room) => room.status === 'AVAILABLE' || room.status === 'OCCUPIED'
-        );
-      },
-      error: (error) => {
-        console.error('Failed to load rooms:', error);
-        this.snackBar.open('Failed to load available rooms', 'Close', { duration: 3000 });
-      },
-    });
+  /**
+   * One page of rooms, narrowed by what the admin types.
+   *
+   * <p>Both dropdowns used to ask for 1000 rows up front (GH-157). That is a large payload for a
+   * select, and it truncates rather than pages: room 1001 simply could not be chosen. Searching
+   * server-side keeps the payload small and makes every room reachable.
+   */
+  loadAvailableRooms(roomNumber?: string): void {
+    this.roomService
+      .searchRooms({ page: 0, size: this.optionPageSize, roomNumber: roomNumber || undefined })
+      .subscribe({
+        next: (response) => {
+          this.availableRooms = response.content.filter(
+            (room) => room.status === 'AVAILABLE' || room.status === 'OCCUPIED'
+          );
+          this.moreRoomsExist = response.totalElements > response.content.length;
+        },
+        error: (error) => {
+          console.error('Failed to load rooms:', error);
+          this.snackBar.open('Failed to load available rooms', 'Close', { duration: 3000 });
+        },
+      });
   }
 
-  loadApplications(): void {
-    // Load approved applications for linking to allocations
-    this.adminService.searchApplications({ status: 'APPROVED', page: 0, size: 1000 }).subscribe({
-      next: (response) => {
-        this.studentApplications = response.content;
-      },
-      error: (error) => {
-        console.error('Failed to load applications:', error);
-      },
-    });
+  loadApplications(applicationCode?: string): void {
+    this.adminService
+      .searchApplications({
+        status: 'APPROVED',
+        page: 0,
+        size: this.optionPageSize,
+        applicationCode: applicationCode || undefined,
+      })
+      .subscribe({
+        next: (response) => {
+          this.studentApplications = response.content;
+          this.moreApplicationsExist = response.totalElements > response.content.length;
+        },
+        error: (error) => {
+          console.error('Failed to load applications:', error);
+        },
+      });
   }
 
   checkEligibility(): void {
@@ -619,7 +703,6 @@ export class AllocateDialogComponent implements OnInit {
     const applicationId = this.allocateForm.get('applicationId')?.value;
     if (applicationId) {
       // If an application is selected, we can use the allocateByApplication endpoint
-      console.log('Application selected:', applicationId);
     }
   }
 

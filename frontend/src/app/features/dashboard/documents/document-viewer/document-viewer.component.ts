@@ -66,14 +66,11 @@ export class DocumentViewerComponent implements OnInit {
       return;
     }
 
-    console.log('Loading preview for document:', this.document);
     this.isLoadingPreview = true;
     this.previewError = false;
 
     this.documentService.downloadDocument(this.document.id).subscribe({
       next: (blob: Blob) => {
-        console.log('Document blob received:', blob.type, blob.size);
-
         // Create object URL for the blob
         const objectUrl = URL.createObjectURL(blob);
 
@@ -91,7 +88,6 @@ export class DocumentViewerComponent implements OnInit {
           console.warn('Unknown file type:', blob.type, fileName);
         }
 
-        console.log('Preview loaded successfully. File type:', this.fileType);
         this.isLoadingPreview = false;
         this.cdr.markForCheck();
       },

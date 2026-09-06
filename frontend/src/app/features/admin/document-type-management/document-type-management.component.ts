@@ -30,6 +30,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
 import { DecimalPipe } from '@angular/common';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-document-type-management',
@@ -211,11 +212,13 @@ export class DocumentTypeManagementComponent implements OnInit {
   }
 
   deleteDocumentType(documentType: DocumentTypeResponse): void {
-    if (
-      confirm(
-        `Are you sure you want to delete document type "${documentType.typeName}"? This action cannot be undone.`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Delete this document type?',
+      message: `"${documentType.typeName}" is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.documentTypeService.deleteDocumentType(documentType.id).subscribe({
         next: () => {
           this.snackBar.open('Document type deleted successfully', 'Close', { duration: 3000 });
@@ -230,7 +233,7 @@ export class DocumentTypeManagementComponent implements OnInit {
           );
         },
       });
-    }
+    });
   }
 
   getRequiredBadgeStatus(isRequired: boolean): string {

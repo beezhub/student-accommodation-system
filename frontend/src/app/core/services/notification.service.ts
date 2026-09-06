@@ -58,7 +58,6 @@ export class NotificationService {
     this.eventSource = new EventSource(url);
 
     this.eventSource.onopen = () => {
-      console.log('SSE connection opened');
       this.reconnectAttempts = 0;
       // Load existing notifications immediately after connection is established
       this.fetchNotifications().subscribe();
@@ -75,10 +74,6 @@ export class NotificationService {
       });
     });
 
-    this.eventSource.addEventListener('connected', () => {
-      console.log('SSE connected confirmed by server');
-    });
-
     this.eventSource.onerror = (error) => {
       this.ngZone.run(() => {
         console.error('SSE error:', error);
@@ -86,9 +81,6 @@ export class NotificationService {
 
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++;
-          console.log(
-            `Retrying SSE connection in 5s (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
-          );
           setTimeout(() => this.connectToSse(), 5000);
         } else {
           console.warn('Max SSE reconnect attempts reached. Falling back to polling.');
@@ -116,7 +108,6 @@ export class NotificationService {
       return;
     }
 
-    console.log('Starting notification polling fallback');
     this.pollingSubscription = interval(30000) // Poll every 30 seconds
       .pipe(
         startWith(0), // Start immediately

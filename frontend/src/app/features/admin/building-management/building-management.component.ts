@@ -23,6 +23,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-building-management',
@@ -156,11 +157,13 @@ export class BuildingManagementComponent implements OnInit {
   }
 
   deleteBuilding(building: BuildingResponse): void {
-    if (
-      confirm(
-        `Are you sure you want to delete building "${building.name}"? This action cannot be undone.`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Delete this building?',
+      message: `"${building.name}" is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.buildingService.deleteBuilding(building.id).subscribe({
         next: () => {
           this.snackBar.open('Building deleted successfully', 'Close', { duration: 3000 });
@@ -173,7 +176,7 @@ export class BuildingManagementComponent implements OnInit {
           });
         },
       });
-    }
+    });
   }
 
   // ── UI helpers ──────────────────────────────────────────────

@@ -16,6 +16,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-academic-year-management',
@@ -105,11 +106,13 @@ export class AcademicYearManagementComponent implements OnInit {
   }
 
   deleteAcademicYear(academicYear: AcademicYear): void {
-    if (
-      confirm(
-        `Are you sure you want to delete academic year "${academicYear.name}"? This action cannot be undone.`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Delete this academic year?',
+      message: `"${academicYear.name}" is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.academicYearService.deleteAcademicYear(academicYear.id).subscribe({
         next: () => {
           this.snackBar.open('Academic year deleted successfully', 'Close', { duration: 3000 });
@@ -124,7 +127,7 @@ export class AcademicYearManagementComponent implements OnInit {
           );
         },
       });
-    }
+    });
   }
 
   setAsCurrent(academicYear: AcademicYear): void {

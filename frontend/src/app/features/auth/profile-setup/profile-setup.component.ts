@@ -70,7 +70,6 @@ export class ProfileSetupComponent implements OnInit {
 
     this.institutionService.getInstitutions().subscribe({
       next: (institutions) => {
-        console.log('Institutions API response:', institutions);
         if (institutions && Array.isArray((institutions as any).content)) {
           this.institutions = (institutions as any).content;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,7 +89,6 @@ export class ProfileSetupComponent implements OnInit {
 
     this.yearOfStudyService.getYearsOfStudy().subscribe({
       next: (yearOfStudy) => {
-        console.log('YearsOfStudy API response:', yearOfStudy);
         if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
           this.yearsOfStudy = (yearOfStudy as any).content;
         } else if (Array.isArray(yearOfStudy)) {

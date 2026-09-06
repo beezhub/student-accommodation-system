@@ -90,9 +90,15 @@ export class RoomBrowserComponent implements OnInit {
     });
   }
 
+  pageIndex = 0;
+  pageSize = 25;
+  totalRooms = 0;
+
   loadRooms(): void {
     this.isLoading = true;
-    this.roomService.searchRooms({ page: 0, size: 1000 }).subscribe({
+    // 25, not 1000: this feeds a browsable list, and asking for a thousand rows both moved a
+    // large payload and truncated silently past it (GH-157).
+    this.roomService.searchRooms({ page: this.pageIndex, size: this.pageSize }).subscribe({
       next: (response) => {
         // Only show available or partially occupied rooms
         this.rooms = response.content.filter(
@@ -100,6 +106,7 @@ export class RoomBrowserComponent implements OnInit {
             room.status === 'AVAILABLE' ||
             (room.status === 'OCCUPIED' && room.currentOccupancy < room.capacity)
         );
+        this.totalRooms = response.totalElements;
         this.applyFilters();
         this.isLoading = false;
       },

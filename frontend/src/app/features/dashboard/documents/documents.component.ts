@@ -32,6 +32,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /** Merged view of a document type slot — either empty or populated by an uploaded document. */
 export interface DocumentSlot {
@@ -80,6 +82,7 @@ export class DocumentsComponent implements OnInit {
   private readonly documentTypeService = inject(DocumentTypeService);
   private readonly errorService = inject(ErrorHandlingService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly dialog = inject(MatDialog);
 
   currentUser: any;
   selectedDocument: any = null;
@@ -286,17 +289,23 @@ export class DocumentsComponent implements OnInit {
 
   deleteDocument(slot: DocumentSlot): void {
     if (!slot.documentId) return;
-    if (!confirm(`Delete "${slot.typeName}" document? You can re-upload at any time.`)) return;
-
-    this.documentService.deleteDocument(slot.documentId).subscribe({
-      next: () => {
-        this.errorService.showSuccess('Document deleted.');
-        this.loadPack();
-      },
-      error: (err) => {
-        this.errorService.showErrorSnackbar(this.errorService.parseError(err));
-        this.cdr.markForCheck();
-      },
+    confirmAction(this.dialog, {
+      title: 'Delete this document?',
+      message: `Your "${slot.typeName}" upload is removed. You can upload it again at any time.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.documentService.deleteDocument(slot.documentId!).subscribe({
+        next: () => {
+          this.errorService.showSuccess('Document deleted.');
+          this.loadPack();
+        },
+        error: (err) => {
+          this.errorService.showErrorSnackbar(this.errorService.parseError(err));
+          this.cdr.markForCheck();
+        },
+      });
     });
   }
 

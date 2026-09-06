@@ -1,10 +1,12 @@
 import {
-  Component,
-  OnInit,
   ChangeDetectionStrategy,
-  inject,
   ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -60,6 +62,7 @@ import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-bad
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ApplicationDetailsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
@@ -103,7 +106,7 @@ export class ApplicationDetailsComponent implements OnInit {
     this.currentUser = this.authService.currentUserValue;
     this.isAdmin = this.roleService.isPlatformAdmin();
 
-    this.route.params.subscribe((params) => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.applicationId = +params['id'];
       if (this.applicationId) {
         this.loadApplicationDetails();
@@ -124,7 +127,6 @@ export class ApplicationDetailsComponent implements OnInit {
 
     this.applicationService.getApplicationFullDetails(this.applicationId).subscribe({
       next: (fullDetails) => {
-        console.log('Application full details loaded:', fullDetails);
         // Map ApplicationFullDetails to ApplicationResponse structure for compatibility
         this.application = {
           id: fullDetails.id,

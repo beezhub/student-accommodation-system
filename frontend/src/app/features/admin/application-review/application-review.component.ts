@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -53,6 +54,7 @@ import {
   PreferencesDialogComponent,
   PreferencesDialogData,
 } from './preferences-dialog/preferences-dialog.component';
+import { askForReason } from '../../../shared/components/reason-dialog/reason-dialog.component';
 
 @Component({
   selector: 'app-application-review',
@@ -89,6 +91,7 @@ import {
   ],
 })
 export class ApplicationReviewComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private adminService = inject(AdminService);
   private applicationService = inject(ApplicationService);
   private buildingService = inject(BuildingService);
@@ -162,7 +165,11 @@ export class ApplicationReviewComponent implements OnInit {
     this.setupBuildingAutocomplete();
     this.loadApplications();
     this.loadCounts();
-    this.filterForm.valueChanges.subscribe(() => this.computeActiveFilterCount());
+    // valueChanges never completes, so without this the subscription outlives the component
+    // and keeps it, its form and its closures alive for the life of the app (GH-157).
+    this.filterForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.computeActiveFilterCount());
   }
 
   toggleFilters(): void {
@@ -474,17 +481,25 @@ export class ApplicationReviewComponent implements OnInit {
   }
 
   requestChanges(application: ApplicationResponse): void {
-    const reason = prompt('Please enter the reason for requesting changes:');
-    if (!reason) return;
-
-    this.applicationService.requestChanges(application.id, reason).subscribe({
-      next: () => {
-        this.errorService.showSuccess('Changes requested successfully');
-        this.loadApplications();
-      },
-      error: (error) => {
-        this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-      },
+    // The reason reaches the student as the whole explanation of what to fix, so it is validated
+    // rather than accepted as whatever `prompt` returned — which included a single space (GH-157).
+    askForReason(this.dialog, {
+      title: 'Request changes',
+      message: 'The student sees this, and it is the only guidance they get on what to change.',
+      label: 'What needs to change?',
+      placeholder: 'e.g. The proof of registration is for the wrong academic year.',
+      confirmLabel: 'Request changes',
+    }).subscribe((reason) => {
+      if (!reason) return;
+      this.applicationService.requestChanges(application.id, reason).subscribe({
+        next: () => {
+          this.errorService.showSuccess('Changes requested successfully');
+          this.loadApplications();
+        },
+        error: (error) => {
+          this.errorService.showErrorSnackbar(this.errorService.parseError(error));
+        },
+      });
     });
   }
 }

@@ -27,6 +27,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-room-allocation',
@@ -226,11 +227,13 @@ export class RoomAllocationComponent implements OnInit {
   }
 
   endAllocation(allocation: RoomAllocationResponse): void {
-    if (
-      confirm(
-        `Are you sure you want to end the allocation for ${allocation.studentFirstName} ${allocation.studentLastName}?`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'End this allocation?',
+      message: `${allocation.studentFirstName} ${allocation.studentLastName} will no longer hold this room, and the bed is released.`,
+      confirmLabel: 'End allocation',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.allocationService.endAllocation(allocation.id).subscribe({
         next: () => {
           this.snackBar.open('Allocation ended successfully', 'Close', { duration: 3000 });
@@ -241,11 +244,17 @@ export class RoomAllocationComponent implements OnInit {
           this.snackBar.open('Failed to end allocation', 'Close', { duration: 5000 });
         },
       });
-    }
+    });
   }
 
   deleteAllocation(allocation: RoomAllocationResponse): void {
-    if (confirm(`Are you sure you want to delete this allocation? This action cannot be undone.`)) {
+    confirmAction(this.dialog, {
+      title: 'Delete this allocation?',
+      message: `The record for ${allocation.studentFirstName} ${allocation.studentLastName} is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.allocationService.deleteAllocation(allocation.id).subscribe({
         next: () => {
           this.snackBar.open('Allocation deleted successfully', 'Close', { duration: 3000 });
@@ -256,15 +265,19 @@ export class RoomAllocationComponent implements OnInit {
           this.snackBar.open('Failed to delete allocation', 'Close', { duration: 5000 });
         },
       });
-    }
+    });
   }
 
   checkIn(allocation: RoomAllocationResponse): void {
-    if (
-      confirm(`Confirm check-in for ${allocation.studentFirstName} ${allocation.studentLastName}?`)
-    ) {
-      this.performCheckIn(allocation, false);
-    }
+    confirmAction(this.dialog, {
+      title: 'Confirm check-in?',
+      message: `${allocation.studentFirstName} ${allocation.studentLastName} takes up room ${
+        allocation.roomNumber ?? ''
+      } from now.`,
+      confirmLabel: 'Check in',
+    }).subscribe((confirmed) => {
+      if (confirmed) this.performCheckIn(allocation, false);
+    });
   }
 
   /**
@@ -285,11 +298,15 @@ export class RoomAllocationComponent implements OnInit {
         const deadlinePassed =
           !overrideDeadline && error?.status === 409 && message?.includes('check-in deadline');
 
-        if (deadlinePassed && confirm(`${message}\n\nCheck in anyway?`)) {
-          this.performCheckIn(allocation, true);
-          return;
-        }
         if (deadlinePassed) {
+          confirmAction(this.dialog, {
+            title: 'The check-in deadline has passed',
+            message: `${message}\n\nOverriding is recorded against this allocation.`,
+            confirmLabel: 'Check in anyway',
+            destructive: true,
+          }).subscribe((override) => {
+            if (override) this.performCheckIn(allocation, true);
+          });
           return;
         }
 
@@ -300,9 +317,12 @@ export class RoomAllocationComponent implements OnInit {
   }
 
   checkOut(allocation: RoomAllocationResponse): void {
-    if (
-      confirm(`Confirm check-out for ${allocation.studentFirstName} ${allocation.studentLastName}?`)
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Confirm check-out?',
+      message: `${allocation.studentFirstName} ${allocation.studentLastName} moves out and the bed is released.`,
+      confirmLabel: 'Check out',
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.allocationService.checkOut(allocation.id).subscribe({
         next: () => {
           this.snackBar.open('Check-out confirmed successfully', 'Close', { duration: 3000 });
@@ -313,7 +333,7 @@ export class RoomAllocationComponent implements OnInit {
           this.snackBar.open('Failed to confirm check-out', 'Close', { duration: 5000 });
         },
       });
-    }
+    });
   }
 
   // ── UI helpers ──────────────────────────────────────────────

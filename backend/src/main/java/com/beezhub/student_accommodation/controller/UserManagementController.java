@@ -2,15 +2,19 @@ package com.beezhub.student_accommodation.controller;
 
 import com.beezhub.student_accommodation.model.dto.CreateUserRequest;
 import com.beezhub.student_accommodation.model.dto.MessageResponse;
+import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.dto.UserData;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.UserManagementService;
+import com.beezhub.student_accommodation.util.PageMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -38,21 +42,26 @@ public class UserManagementController {
         return ResponseEntity.status(201).body(user);
     }
 
-    @Operation(summary = "Get all users")
+    @Operation(summary = "Get all users, one page at a time")
     @ApiResponse(responseCode = "200", description = "Users retrieved")
     @GetMapping
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
-    public ResponseEntity<List<UserData>> getAllUsers() {
-        return ResponseEntity.ok(userManagementService.getAllUsers());
+    public ResponseEntity<PageResponse<UserData>> getAllUsers(
+            @PageableDefault(size = 25, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(
+                PageMapper.toPageResponse(userManagementService.getAllUsers(pageable)));
     }
 
-    @Operation(summary = "Get users by role")
+    @Operation(summary = "Get users by role, one page at a time")
     @ApiResponse(responseCode = "200", description = "Users retrieved")
     @GetMapping("/role/{role}")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
-    public ResponseEntity<List<UserData>> getUsersByRole(@PathVariable String role) {
+    public ResponseEntity<PageResponse<UserData>> getUsersByRole(
+            @PathVariable String role,
+            @PageableDefault(size = 25, sort = "id") Pageable pageable) {
         UserRole userRole = UserRole.enumRoleOf(role);
-        return ResponseEntity.ok(userManagementService.getUsersByRole(userRole));
+        return ResponseEntity.ok(
+                PageMapper.toPageResponse(userManagementService.getUsersByRole(userRole, pageable)));
     }
 
     @Operation(summary = "Delete user")

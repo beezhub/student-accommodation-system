@@ -12,6 +12,10 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     List<AppUser> findByUserRole(UserRole role);
 
+    /** Paged variant; the admin user list is unbounded otherwise (GH-157). */
+    org.springframework.data.domain.Page<AppUser> findByUserRole(
+            UserRole role, org.springframework.data.domain.Pageable pageable);
+
     long countByUserRole(UserRole role);
 
     List<AppUser> findByTenantIdAndUserRole(Long tenantId, UserRole role);

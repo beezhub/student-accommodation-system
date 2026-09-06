@@ -131,7 +131,6 @@ export class ProfileComponent implements OnInit {
   loadInstitutions() {
     this.institutionService.getInstitutions().subscribe({
       next: (response) => {
-        console.log('Institutions API response:', response);
         // Handle both paginated and non-paginated responses
         if (response && Array.isArray((response as any).content)) {
           this.institutions = (response as any).content;
@@ -142,7 +141,6 @@ export class ProfileComponent implements OnInit {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        console.log('Loaded institutions:', this.institutions);
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -159,7 +157,6 @@ export class ProfileComponent implements OnInit {
   loadYearsOfStudy() {
     this.yearOfStudyService.getYearsOfStudy().subscribe({
       next: (response) => {
-        console.log('Years of Study API response:', response);
         // Handle both paginated and non-paginated responses
         if (response && Array.isArray((response as any).content)) {
           this.yearsOfStudy = (response as any).content;
@@ -169,7 +166,6 @@ export class ProfileComponent implements OnInit {
           this.yearsOfStudy = [];
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        console.log('Loaded years of study:', this.yearsOfStudy);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.cdr.markForCheck();
       },

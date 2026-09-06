@@ -196,8 +196,9 @@ export class ApplicationsComponent implements OnInit {
   cancelApplication(_applicationId: number) {
     // Note: Application cancellation is not currently supported by the backend API
     // This is a placeholder for future implementation
-    alert(
-      'Application cancellation is not currently available. Please contact support if you need to cancel your application.'
+    this.errorService.showInfo(
+      'Cancelling an application is not available yet. Contact support if you need to withdraw.',
+      6000
     );
   }
 }

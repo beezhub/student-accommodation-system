@@ -25,6 +25,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { DecimalPipe } from '@angular/common';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-accommodation-type-management',
@@ -157,11 +158,13 @@ export class AccommodationTypeManagementComponent implements OnInit {
   }
 
   deleteAccommodationType(accommodationType: AccommodationType): void {
-    if (
-      confirm(
-        `Are you sure you want to delete accommodation type "${accommodationType.name}"? This action cannot be undone.`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Delete this accommodation type?',
+      message: `"${accommodationType.name}" is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.accommodationTypeService.delete(accommodationType.id).subscribe({
         next: () => {
           this.snackBar.open('Accommodation type deleted successfully', 'Close', {
@@ -178,6 +181,6 @@ export class AccommodationTypeManagementComponent implements OnInit {
           );
         },
       });
-    }
+    });
   }
 }
