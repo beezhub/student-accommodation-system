@@ -131,6 +131,20 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
          * Thrown where a request string failed to map onto a status enum. Without its own handler it
          * fell to the catch-all, which is now a 500, and a rejected input is the caller to fix.
          */
+        /**
+         * A student tried to replace or delete a document an administrator already approved while
+         * the application it supports is still live. 409 rather than 403: the caller owns the
+         * document, the state of the review is what refuses (GH-145).
+         */
+        @ExceptionHandler(DocumentLockedException.class)
+        public ResponseEntity<ErrorResponse> handleDocumentLocked(DocumentLockedException ex, WebRequest request) {
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false)), HttpStatus.CONFLICT);
+        }
+
         @ExceptionHandler(InvalidStatusException.class)
         public ResponseEntity<ErrorResponse> handleInvalidStatus(InvalidStatusException ex, WebRequest request) {
                 return new ResponseEntity<>(new ErrorResponse(
