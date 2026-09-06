@@ -4,6 +4,7 @@ import { throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { TokenStorageService } from '../services/token-storage.service';
+import { isOurApiRequest } from './api-request';
 
 export const tokenExpiryInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
@@ -21,6 +22,12 @@ export const tokenExpiryInterceptor: HttpInterceptorFn = (req, next) => {
     '/api/auth/resend-verification',
     '/api/public/owner/',
   ];
+
+  // A third-party URL is in none of the lists above, so without this an expired token turned
+  // typing in the address field into a forced sign-out.
+  if (!isOurApiRequest(req.url)) {
+    return next(req);
+  }
 
   const isPublicEndpoint = publicEndpoints.some((endpoint) => req.url.includes(endpoint));
 
