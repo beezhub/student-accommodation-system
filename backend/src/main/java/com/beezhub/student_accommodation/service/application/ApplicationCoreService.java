@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service.application;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
+import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ApplicationWindowClosedException;
@@ -39,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
+import java.util.EnumSet;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -295,8 +297,27 @@ public class ApplicationCoreService {
                                 .collect(Collectors.toList());
         }
 
+        /**
+         * Statuses a student may withdraw from themselves.
+         *
+         * <p>The old rule was PENDING only, which contradicted the state machine: a student asked
+         * to amend their application could not withdraw it instead (GH-156).
+         *
+         * <p>Narrower than the state machine allows, deliberately. That also permits cancelling an
+         * APPROVED, AWAITING_ALLOCATION or ALLOCATED application, but by then an offer or a room
+         * may exist, and cancelling the application without releasing it would leave the room
+         * counted as occupied with nothing pointing at it. Declining the offer is the route for
+         * that, and it frees the room and refills the waiting list.
+         */
+        private static final Set<ApplicationStatus> STUDENT_CANCELLABLE_STATUSES = EnumSet.of(
+                        ApplicationStatus.PENDING,
+                        ApplicationStatus.UNDER_REVIEW,
+                        ApplicationStatus.CHANGES_REQUESTED);
+
         @Transactional
+        // The action stays DELETE for continuity with the log rows already written under it.
         @LogActivity(action = "DELETE", entityType = "APPLICATION", description = "Canceled application {0}", entityIdParamIndex = 0)
+
         public void cancelApplication(Long applicationId) {
                 log.info("Canceling application with ID: {}", applicationId);
 
@@ -311,13 +332,22 @@ public class ApplicationCoreService {
                         throw new UnauthorizedAccessException("You can only cancel your own applications");
                 }
 
-                // Only pending applications can be canceled
-                if (!application.getStatus().equals(PENDING)) {
-                        throw new IllegalStateException("Only pending applications can be canceled");
+                if (!STUDENT_CANCELLABLE_STATUSES.contains(application.getStatus())
+                                || !application.getStatus().canTransitionTo(ApplicationStatus.CANCELLED)) {
+                        throw new InvalidStatusException(
+                                        "An application that is " + application.getStatus().getStatus().toLowerCase()
+                                                        + " cannot be cancelled");
                 }
 
-                applicationRepository.delete(application);
-                log.info("Application {} canceled successfully", applicationId);
+                // Cancelled, not deleted. Deleting destroyed the record a student and an
+                // administrator may both need to refer to, and left the activity log pointing at an
+                // id that no longer resolves. CANCELLED is already a terminal status the rest of
+                // the system understands, and it is excluded from the active-application check, so
+                // the student is just as free to re-apply.
+                application.setStatus(ApplicationStatus.CANCELLED);
+                application.setRemarks("Cancelled by the student.");
+                applicationRepository.save(application);
+                log.info("action=applicationCancelled applicationId={}", applicationId);
         }
 
         @Transactional(readOnly = true)

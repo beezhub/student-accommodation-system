@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.application;
 
+import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.exceptions.*;
 import com.beezhub.student_accommodation.mapper.ApplicationMapper;
 import com.beezhub.student_accommodation.model.dto.*;
@@ -149,23 +150,61 @@ class ApplicationCoreServiceTest {
         }
 
         @Test
-        void cancelApplication_shouldDeleteApplication() {
+        /**
+         * GH-156: this deleted the row. That destroyed a record a student and an administrator may
+         * both need to refer to, and left the activity log pointing at an id that no longer
+         * resolves.
+         */
+        void cancelApplication_marksItCancelledRatherThanDeletingIt() {
                 when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
                 when(authService.getCurrentUser()).thenReturn(studentUser);
 
                 applicationCoreService.cancelApplication(1L);
 
-                verify(applicationRepository).delete(application);
+                assertThat(application.getStatus()).isEqualTo(ApplicationStatus.CANCELLED);
+                verify(applicationRepository).save(application);
+                verify(applicationRepository, never()).delete(any(Application.class));
         }
 
+        /**
+         * The old rule was PENDING only, which contradicted the state machine: a student asked to
+         * amend their application could not withdraw it instead.
+         */
         @Test
-        void cancelApplication_shouldThrowException_whenNotPending() {
+        void cancelApplication_changesRequested_isAllowed() {
+                application.setStatus(ApplicationStatus.CHANGES_REQUESTED);
+                when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                applicationCoreService.cancelApplication(1L);
+
+                assertThat(application.getStatus()).isEqualTo(ApplicationStatus.CANCELLED);
+        }
+
+        /**
+         * Narrower than the state machine allows, deliberately: by APPROVED an offer may exist, and
+         * cancelling the application without releasing it would leave the room counted as occupied
+         * with nothing pointing at it. Declining the offer is the route for that.
+         */
+        @Test
+        void cancelApplication_afterApproval_isRefused() {
                 application.setStatus(ApplicationStatus.APPROVED);
                 when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
                 when(authService.getCurrentUser()).thenReturn(studentUser);
 
                 assertThatThrownBy(() -> applicationCoreService.cancelApplication(1L))
-                                .isInstanceOf(IllegalStateException.class);
+                                .isInstanceOf(InvalidStatusException.class);
+                verify(applicationRepository, never()).save(any(Application.class));
+        }
+
+        @Test
+        void cancelApplication_alreadyCancelled_isRefused() {
+                application.setStatus(ApplicationStatus.CANCELLED);
+                when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                assertThatThrownBy(() -> applicationCoreService.cancelApplication(1L))
+                                .isInstanceOf(InvalidStatusException.class);
         }
 
         // ── Building preference tests ─────────────────────────────────────────────
