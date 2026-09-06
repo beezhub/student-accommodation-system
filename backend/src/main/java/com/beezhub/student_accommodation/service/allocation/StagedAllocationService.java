@@ -257,6 +257,11 @@ public class StagedAllocationService {
         allocation.setStudent(staged.getStudent());
         allocation.setRoom(staged.getRoom());
         allocation.setApplication(staged.getApplication());
+        // From the room, not the staged row: the room is the tenant-owned asset, so this also
+        // heals a legacy staged row that was itself stamped with the wrong tenant. Without it
+        // TenantListener copies the acting context, which is 0 for a platform admin, and the row
+        // becomes invisible to every filtered query the owning tenant runs (GH-146).
+        allocation.setTenantId(staged.getRoom().getTenantId());
         allocation.setAllocationDate(LocalDateTime.now());
         AllocationStatusValidator.validate(allocation, AllocationStatus.OFFERED);
         allocation.setStatus(AllocationStatus.OFFERED);
@@ -317,6 +322,7 @@ public class StagedAllocationService {
         return StagedAllocation.builder()
                 .student(student)
                 .room(room)
+                .tenantId(room.getTenantId())
                 .application(application)
                 .status(StagedAllocationStatus.PROPOSED)
                 .score(allocationScoringService.scoreSingleRoom(student, application, room).getTotalScore())
@@ -414,6 +420,7 @@ public class StagedAllocationService {
         StagedAllocation staged = StagedAllocation.builder()
                 .student(student)
                 .room(room)
+                .tenantId(room.getTenantId())
                 .application(application)
                 .status(StagedAllocationStatus.PROPOSED)
                 .score(bestRoom.getTotalScore())

@@ -94,8 +94,8 @@
         </mat-hint>
       </mat-form-field>
 
-      @if (isPlatformAdmin) {
-        <!-- Tenant Selection -->
+      @if (showTenantField) {
+        <!-- Tenant Selection. Hidden for PLATFORM_ADMIN, who must be tenant 0. -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Tenant</mat-label>
           <mat-icon matPrefix>business</mat-icon>
@@ -106,9 +106,6 @@
           </mat-select>
           @if (createUserForm.get('tenantId')?.hasError('required')) {
             <mat-error>Tenant is required</mat-error>
-          }
-          @if (showTenantScopeWarning) {
-            <mat-error>Tenant admins must be scoped to a specific institution tenant</mat-error>
           }
         </mat-form-field>
       }

@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.model.dto.WaitlistPositionDto;
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Application;
+import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.entity.WaitingListEntry;
@@ -16,6 +17,7 @@ import com.beezhub.student_accommodation.repository.WaitingListRepository;
 import com.beezhub.student_accommodation.service.AcademicYearService;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.NotificationService;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
@@ -87,6 +89,7 @@ public class WaitingListService {
         entry.setStudent(student);
         entry.setApplication(application);
         entry.setStatus("WAITING");
+        entry.setTenantId(resolveOwningTenantId(student, application));
         waitingListRepository.save(entry);
         log.warn("No rooms available; student {} placed on waiting list", student.getId());
     }
@@ -183,5 +186,42 @@ public class WaitingListService {
 
         double averageIntervalDays = (double) ESTIMATE_WINDOW_DAYS / recentAllocations;
         return (int) Math.round(position * averageIntervalDays);
+    }
+
+    /**
+     * The tenant that owns a waiting-list entry.
+     *
+     * <p>The entry used to be left unstamped, so TenantListener copied the acting context. That is
+     * 0 for a platform admin and also 0 for a student, since both carry the platform tenant in
+     * their token. The owning tenant then could not see the row through any filtered query, so a
+     * confirmed allocation left the student WAITING and the already-allocated guard did not fire
+     * (GH-146).
+     *
+     * <p>Same rule AllocationBatchService applies when grouping entries by tenant: the application
+     * first, then the building it was made to, which still identifies the owner when the
+     * application itself was created by a platform admin.
+     *
+     * <p>Falls back to the acting context rather than throwing. The column is NOT NULL, and
+     * students legitimately enqueue with context 0 on the decline path.
+     */
+    private Long resolveOwningTenantId(Student student, Application application) {
+        if (application != null) {
+            if (isRealTenant(application.getTenantId())) {
+                return application.getTenantId();
+            }
+            Building preferred = application.getPreferredBuilding();
+            if (preferred != null && isRealTenant(preferred.getTenantId())) {
+                return preferred.getTenantId();
+            }
+        }
+        log.warn("action=waitingListTenantUnresolved studentId={} applicationId={} contextTenantId={}",
+                student != null ? student.getId() : null,
+                application != null ? application.getId() : null,
+                TenantContext.getTenantId());
+        return TenantContext.getTenantId();
+    }
+
+    private static boolean isRealTenant(Long tenantId) {
+        return tenantId != null && !TenantContext.PLATFORM_TENANT_ID.equals(tenantId);
     }
 }
