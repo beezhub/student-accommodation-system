@@ -370,4 +370,85 @@ class WaitingListServiceTest {
         assertThatThrownBy(() -> waitingListService.getMyWaitlistPosition())
                 .isInstanceOf(StudentNotFoundException.class);
     }
+
+    // ------------------------------------------------- GH-138 restore after cancellation
+
+    private RoomAllocation cancelledAllocation(com.beezhub.student_accommodation.model.enums.AllocationStatus previous) {
+        RoomAllocation cancelled = new RoomAllocation();
+        cancelled.setId(9L);
+        cancelled.setStudent(student);
+        cancelled.setApplication(application);
+        cancelled.setStatus(previous);
+        return cancelled;
+    }
+
+    /**
+     * Cancelling wrote nothing to the application, so it stayed ALLOCATED. That counts as an
+     * active application, which blocked the student from re-applying to that tenant while the
+     * cancelled allocation no longer held them a room.
+     */
+    @Test
+    void restoreAfterCancellation_cancelledOffer_returnsTheApplicationToTheQueue() {
+        application.setStatus(ApplicationStatus.ALLOCATED);
+
+        waitingListService.restoreAfterCancellation(
+                cancelledAllocation(com.beezhub.student_accommodation.model.enums.AllocationStatus.OFFERED),
+                com.beezhub.student_accommodation.model.enums.AllocationStatus.OFFERED);
+
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
+        verify(applicationRepository).save(application);
+    }
+
+    /**
+     * Cancelling an ACTIVE allocation is the termination of a sitting resident, not a re-route.
+     * Quietly putting them back on the queue would be wrong; the end endpoint is for that.
+     */
+    @Test
+    void restoreAfterCancellation_previousStatusActive_leavesApplicationAndQueueAlone() {
+        application.setStatus(ApplicationStatus.CHECKED_IN);
+
+        waitingListService.restoreAfterCancellation(
+                cancelledAllocation(com.beezhub.student_accommodation.model.enums.AllocationStatus.ACTIVE),
+                com.beezhub.student_accommodation.model.enums.AllocationStatus.ACTIVE);
+
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.CHECKED_IN);
+        verify(applicationRepository, never()).save(any(Application.class));
+        verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
+    }
+
+    /**
+     * A fresh arrival time, so the student re-enters at the back. Leaving the original would let
+     * the after-commit refill hand them straight back the room just taken from them.
+     */
+    @Test
+    void restoreAfterCancellation_existingEntry_reQueuesItAtTheBack() {
+        application.setStatus(ApplicationStatus.ALLOCATED);
+        WaitingListEntry allocated = new WaitingListEntry();
+        allocated.setId(3L);
+        allocated.setStudent(student);
+        allocated.setStatus("ALLOCATED");
+        allocated.setCreatedAt(LocalDateTime.now().minusDays(30));
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "ALLOCATED"))
+                .thenReturn(Optional.of(allocated));
+
+        waitingListService.restoreAfterCancellation(
+                cancelledAllocation(com.beezhub.student_accommodation.model.enums.AllocationStatus.OFFERED),
+                com.beezhub.student_accommodation.model.enums.AllocationStatus.OFFERED);
+
+        assertThat(allocated.getStatus()).isEqualTo("WAITING");
+        assertThat(allocated.getCreatedAt()).isAfter(LocalDateTime.now().minusMinutes(1));
+    }
+
+    /** An allocation with no application has nothing to restore. */
+    @Test
+    void restoreAfterCancellation_noApplication_doesNothing() {
+        RoomAllocation orphan = new RoomAllocation();
+        orphan.setId(9L);
+        orphan.setStudent(student);
+
+        waitingListService.restoreAfterCancellation(orphan,
+                com.beezhub.student_accommodation.model.enums.AllocationStatus.OFFERED);
+
+        verify(applicationRepository, never()).save(any(Application.class));
+    }
 }

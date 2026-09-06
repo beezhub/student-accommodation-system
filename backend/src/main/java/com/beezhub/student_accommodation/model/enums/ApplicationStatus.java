@@ -41,7 +41,7 @@ public enum ApplicationStatus {
      *   <li>CHANGES_REQUESTED -> PENDING, CANCELLED</li>
      *   <li>APPROVED -> AWAITING_ALLOCATION, ALLOCATED, REJECTED, CANCELLED</li>
      *   <li>AWAITING_ALLOCATION -> ALLOCATED, REJECTED, EXPIRED, CANCELLED</li>
-     *   <li>ALLOCATED -> CHECKED_IN, EXPIRED, CANCELLED</li>
+     *   <li>ALLOCATED -> CHECKED_IN, AWAITING_ALLOCATION, EXPIRED, CANCELLED</li>
      *   <li>CHECKED_IN, REJECTED, EXPIRED, CANCELLED -> terminal</li>
      * </ul>
      *
@@ -68,7 +68,12 @@ public enum ApplicationStatus {
                         || target == CANCELLED;
             case AWAITING_ALLOCATION ->
                 target == ALLOCATED || target == REJECTED || target == EXPIRED || target == CANCELLED;
-            case ALLOCATED -> target == CHECKED_IN || target == EXPIRED || target == CANCELLED;
+            // AWAITING_ALLOCATION is a re-route, not a regression: cancelling an offer has to put
+            // the student back on the queue, and without it the application stayed ALLOCATED and
+            // blocked them from re-applying (GH-138). Reachable from the admin PATCH endpoint too.
+            case ALLOCATED ->
+                target == CHECKED_IN || target == AWAITING_ALLOCATION || target == EXPIRED
+                        || target == CANCELLED;
             case CHECKED_IN, REJECTED, EXPIRED, CANCELLED -> false; // Terminal states
         };
     }

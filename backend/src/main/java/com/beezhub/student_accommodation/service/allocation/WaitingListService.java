@@ -9,6 +9,7 @@ import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.entity.WaitingListEntry;
+import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
@@ -197,6 +198,58 @@ public class WaitingListService {
 
         double averageIntervalDays = (double) ESTIMATE_WINDOW_DAYS / recentAllocations;
         return (int) Math.round(position * averageIntervalDays);
+    }
+
+    /**
+     * Puts a student back on the queue after their allocation is cancelled.
+     *
+     * <p>Cancelling wrote nothing to the application, so it stayed ALLOCATED. That counts as an
+     * active application, which permanently blocked the student from re-applying to that tenant
+     * while the cancelled allocation no longer held them a room (GH-138).
+     *
+     * <p>Only an outstanding offer is a re-route. Cancelling an ACTIVE allocation is a termination
+     * of a sitting resident, and quietly re-queueing them would be wrong; the admin wants the end
+     * endpoint for that.
+     */
+    @Transactional
+    public void restoreAfterCancellation(RoomAllocation allocation, AllocationStatus previousStatus) {
+        Application application = allocation.getApplication();
+        if (application == null) {
+            log.warn("action=restoreAfterCancellationSkipped reason=noApplication allocationId={}",
+                    allocation.getId());
+            return;
+        }
+
+        if (previousStatus != AllocationStatus.OFFERED && previousStatus != AllocationStatus.ACCEPTED) {
+            log.info("action=cancelOfActiveAllocation allocationId={} previousStatus={}",
+                    allocation.getId(), previousStatus);
+            return;
+        }
+
+        if (!ApplicationStatusValidator.canApply(application, ApplicationStatus.AWAITING_ALLOCATION)) {
+            log.info("action=restoreAfterCancellationSkipped applicationId={} from={}",
+                    application.getId(), application.getStatus());
+            return;
+        }
+
+        application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
+        application.setRemarks("Allocation cancelled. Returned to the waiting list.");
+        applicationRepository.save(application);
+
+        Student student = allocation.getStudent();
+        waitingListRepository.findByStudent_IdAndStatus(student.getId(), "ALLOCATED")
+                .ifPresent(entry -> {
+                    entry.setStatus("WAITING");
+                    // A fresh timestamp, so the student re-enters at the back. A cancelled offer is
+                    // not a served turn, but leaving the original arrival time would let the
+                    // after-commit refill hand them straight back the room just taken from them.
+                    entry.setCreatedAt(LocalDateTime.now());
+                    waitingListRepository.save(entry);
+                });
+
+        if (!waitingListRepository.existsByStudent_IdAndStatus(student.getId(), "WAITING")) {
+            enqueueWaitingList(student, application);
+        }
     }
 
     /**

@@ -50,4 +50,16 @@ public enum AllocationStatus {
             case DECLINED, EXPIRED, CHECK_IN_EXPIRED, COMPLETED, TERMINATED, CANCELLED -> false; // Terminal states
         };
     }
+
+    /**
+     * Whether this is an end state. Note {@link #canTransitionTo} permits a self-transition, so a
+     * terminal status alone does not stop an operation being applied twice; callers that must not
+     * repeat themselves check this explicitly (GH-138).
+     */
+    public boolean isTerminal() {
+        return switch (this) {
+            case DECLINED, EXPIRED, CHECK_IN_EXPIRED, COMPLETED, TERMINATED, CANCELLED -> true;
+            default -> false;
+        };
+    }
 }

@@ -182,6 +182,12 @@ public class AllocationLifecycleService {
         roomOccupancyManager.syncOccupancy(allocation.getRoom());
         RoomAllocation saved = roomAllocationRepository.save(allocation);
         allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.CANCELLED);
+
+        // Without this the application stays ALLOCATED, which counts as active, so the student
+        // is permanently blocked from re-applying to this tenant while the cancelled allocation
+        // no longer holds them a room (GH-138). The allocation is passed, not the save result,
+        // because they are the same managed instance.
+        waitingListService.restoreAfterCancellation(allocation, previousStatus);
         log.info("Successfully cancelled room allocation with id: {}", id);
 
         // Refill from the waiting list only after this cancellation has committed.

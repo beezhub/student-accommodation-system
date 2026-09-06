@@ -1,5 +1,7 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.exceptions.InvalidAllocationStatusTransitionException;
+import com.beezhub.student_accommodation.model.event.RoomVacatedEvent;
 import com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationResponse;
@@ -22,9 +24,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -96,7 +100,9 @@ class AllocationCheckInServiceTest {
         assertEquals(AllocationStatus.COMPLETED, allocation.getStatus());
         assertNotNull(allocation.getCheckOutDate());
         verify(roomOccupancyManager).syncOccupancy(room);
-        verify(eventPublisher).publishEvent(any());
+        // The event something actually listens for. AllocationFreedEvent had no listener, so
+        // every check-out published into the void and the room was never refilled (GH-138).
+        verify(eventPublisher).publishEvent(any(RoomVacatedEvent.class));
     }
 
     @Test
@@ -119,8 +125,43 @@ class AllocationCheckInServiceTest {
         allocationCheckInService.endAllocation(id);
 
         // Assert
-        assertEquals(AllocationStatus.COMPLETED, allocation.getStatus()); // endAllocation sets COMPLETED currently
+        // TERMINATED ("Lease cancelled early"), not COMPLETED ("Student moved out naturally").
+        // Both methods wrote COMPLETED, which made TERMINATED unreachable despite the transition
+        // being legal, and lost the distinction between the two (GH-138).
+        assertEquals(AllocationStatus.TERMINATED, allocation.getStatus());
         assertNotNull(allocation.getEndDate());
         verify(roomOccupancyManager).syncOccupancy(room);
+        verify(eventPublisher).publishEvent(any(RoomVacatedEvent.class));
+    }
+
+    /**
+     * The status machine permits a self-transition, so a second close passed validation and ran
+     * the whole method again, re-stamping the dates and publishing a second vacated event.
+     */
+    @Test
+    void confirmCheckOut_alreadyCompleted_isRefused() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStatus(AllocationStatus.COMPLETED);
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+
+        assertThrows(InvalidAllocationStatusTransitionException.class,
+                () -> allocationCheckInService.confirmCheckOut(1L));
+
+        verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
+        verify(eventPublisher, never()).publishEvent(any(RoomVacatedEvent.class));
+    }
+
+    @Test
+    void endAllocation_alreadyTerminated_isRefused() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStatus(AllocationStatus.TERMINATED);
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+
+        assertThrows(InvalidAllocationStatusTransitionException.class,
+                () -> allocationCheckInService.endAllocation(1L));
+
+        verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
     }
 }
