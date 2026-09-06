@@ -116,6 +116,20 @@ public class WaitingListService {
 
         log.info("Re-queueing student {} after decline {}", student.getId(), totalDeclineCount);
 
+        // The event fires either way: the student declined, and the notification and audit for
+        // that are owed regardless of whether they go back on the list.
+        eventPublisher.publishEvent(new AllocationDeclinedEvent(allocation, totalDeclineCount));
+
+        // The whole re-queue is guarded, not just the status write. A rejected application that
+        // is then declined would otherwise leave a permanent WAITING row that the batch allocator
+        // retries and fails on every run, because it does not filter by application status
+        // (GH-137).
+        if (!ApplicationStatusValidator.canApply(application, ApplicationStatus.AWAITING_ALLOCATION)) {
+            log.info("action=reQueueSkipped applicationId={} from={}",
+                    application.getId(), application.getStatus());
+            return;
+        }
+
         application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
         String remarks = String.format("Declined offer %d. Added to waiting list.", totalDeclineCount);
         application.setRemarks(remarks);
@@ -124,9 +138,6 @@ public class WaitingListService {
         if (!waitingListRepository.existsByStudent_IdAndStatus(student.getId(), "WAITING")) {
             enqueueWaitingList(student, application);
         }
-
-        // Publish re-queue event
-        eventPublisher.publishEvent(new AllocationDeclinedEvent(allocation, totalDeclineCount));
     }
 
     /**

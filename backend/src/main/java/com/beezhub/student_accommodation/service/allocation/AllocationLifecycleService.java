@@ -418,6 +418,11 @@ public class AllocationLifecycleService {
                     + deadline.format(OFFER_DEADLINE_FORMAT) + " and can no longer be accepted");
         }
         AllocationStatusValidator.validate(allocation, AllocationStatus.ACCEPTED);
+        // Rejecting an application does not cancel its outstanding offer, so a student could
+        // still accept it: the allocation guard passed, and the application status was silently
+        // overwritten from REJECTED to ALLOCATED, un-rejecting it and keeping the room (GH-137).
+        ApplicationStatusValidator.validate(allocation.getApplication(),
+                com.beezhub.student_accommodation.model.enums.ApplicationStatus.ALLOCATED);
     }
 
     private void updateApplicationStatus(RoomAllocation allocation,
