@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.ExternalServiceException;
 import com.beezhub.student_accommodation.service.notification.*;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -51,7 +52,7 @@ public class EmailService {
             log.info("Simple email sent successfully to: {}", to);
         } catch (Exception e) {
             log.error("Failed to send simple email to: {}", to, e);
-            throw new RuntimeException("Failed to send email", e);
+            throw new ExternalServiceException("Failed to send email", e);
         }
     }
 
@@ -67,7 +68,7 @@ public class EmailService {
             log.info("HTML email sent successfully to: {}", to);
         } catch (MessagingException e) {
             log.error("Failed to send HTML email to: {}", to, e);
-            throw new RuntimeException("Failed to send email", e);
+            throw new ExternalServiceException("Failed to send email", e);
         }
     }
 
@@ -88,7 +89,7 @@ public class EmailService {
             log.info("Email with attachment sent successfully to: {}", to);
         } catch (MessagingException e) {
             log.error("Failed to send email with attachment to: {}", to, e);
-            throw new RuntimeException("Failed to send email with attachment", e);
+            throw new ExternalServiceException("Failed to send email with attachment", e);
         }
     }
 
@@ -125,10 +126,10 @@ public class EmailService {
             log.info("Template email '{}' sent successfully to: {}", templateName, to);
         } catch (MessagingException e) {
             log.error("Failed to send template email '{}' to: {}", templateName, to, e);
-            throw new RuntimeException("Failed to send template email", e);
+            throw new ExternalServiceException("Failed to send template email", e);
         } catch (Exception e) {
             log.error("Error processing email template '{}' for: {}", templateName, to, e);
-            throw new RuntimeException("Failed to process email template", e);
+            throw new ExternalServiceException("Failed to process email template", e);
         }
     }
 

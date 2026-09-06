@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.model.dto.AllocationRuleRequest;
@@ -74,7 +75,7 @@ public class AllocationRuleService {
         }
 
         AppUser createdBy = appUserRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new RuntimeException("User not found: " + adminEmail));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + adminEmail));
 
         AllocationRule rule = AllocationRule.builder()
                 .building(building)

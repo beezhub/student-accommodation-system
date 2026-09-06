@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
@@ -234,7 +235,7 @@ public class StagedAllocationController {
          */
         private Long extractAdminId(Authentication auth) {
                 AppUser user = appUserRepository.findByEmail(auth.getName())
-                        .orElseThrow(() -> new RuntimeException("Admin user not found: " + auth.getName()));
+                        .orElseThrow(() -> new UserNotFoundException("Admin user not found: " + auth.getName()));
                 return user.getId();
         }
 

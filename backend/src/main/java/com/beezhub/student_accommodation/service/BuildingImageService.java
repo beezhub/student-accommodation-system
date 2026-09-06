@@ -1,5 +1,8 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+import com.beezhub.student_accommodation.exceptions.FileStorageException;
+import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.model.dto.BuildingImageResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
@@ -42,7 +45,7 @@ public class BuildingImageService {
     @Transactional
     public List<BuildingImageResponse> uploadImages(Long buildingId, List<MultipartFile> files) {
         Building building = buildingRepository.findById(buildingId)
-                .orElseThrow(() -> new RuntimeException("Building not found with id: " + buildingId));
+                .orElseThrow(() -> new BuildingNotFoundException("Building not found with id: " + buildingId));
         tenantOwnershipGuard.assertOwned(building, "Building", buildingId);
 
         List<BuildingImageResponse> responses = new ArrayList<>();
@@ -53,7 +56,9 @@ public class BuildingImageService {
         int existingCount = existingImages.size();
         int incomingCount = files.size();
         if (existingCount + incomingCount > MAX_IMAGES_PER_BUILDING) {
-            throw new RuntimeException(String.format(
+            // FileValidationException, so the refusal is 422 rather than the 400 a bare
+            // RuntimeException produced: the upload itself is what cannot be accepted.
+            throw new FileValidationException(String.format(
                     "Building cannot have more than %d images (current: %d, requested: %d)",
                     MAX_IMAGES_PER_BUILDING, existingCount, incomingCount));
         }
@@ -99,12 +104,15 @@ public class BuildingImageService {
     @Transactional
     public void deleteImage(Long buildingId, Long imageId) {
         BuildingImage image = buildingImageRepository.findById(imageId)
-                .orElseThrow(() -> new RuntimeException("Image not found with id: " + imageId));
+                .orElseThrow(() -> new ResourceNotFoundException("Image not found with id: " + imageId));
 
         tenantOwnershipGuard.assertOwned(image.getBuilding(), "Building", buildingId);
 
         if (!image.getBuilding().getId().equals(buildingId)) {
-            throw new RuntimeException("Image does not belong to building: " + buildingId);
+            // 404 rather than a mismatch error: from the caller's side that image does not exist
+            // under that building, and saying more would confirm it exists under another.
+            throw new ResourceNotFoundException(
+                    "Image " + imageId + " not found for building " + buildingId);
         }
 
         boolean wasPrimary = image.getPrimary();
@@ -134,12 +142,15 @@ public class BuildingImageService {
     @Transactional
     public BuildingImageResponse setPrimaryImage(Long buildingId, Long imageId) {
         BuildingImage image = buildingImageRepository.findById(imageId)
-                .orElseThrow(() -> new RuntimeException("Image not found with id: " + imageId));
+                .orElseThrow(() -> new ResourceNotFoundException("Image not found with id: " + imageId));
 
         tenantOwnershipGuard.assertOwned(image.getBuilding(), "Building", buildingId);
 
         if (!image.getBuilding().getId().equals(buildingId)) {
-            throw new RuntimeException("Image does not belong to building: " + buildingId);
+            // 404 rather than a mismatch error: from the caller's side that image does not exist
+            // under that building, and saying more would confirm it exists under another.
+            throw new ResourceNotFoundException(
+                    "Image " + imageId + " not found for building " + buildingId);
         }
 
         // Unset current primary - must flush before setting new primary
@@ -191,7 +202,7 @@ public class BuildingImageService {
                             .contentType(contentType)
                             .build());
         } catch (Exception e) {
-            throw new RuntimeException("Error uploading file: " + file.getOriginalFilename(), e);
+            throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.exceptions.ScheduledJobException;
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
@@ -97,7 +98,7 @@ public class CheckInExpiryService {
                 throw e;
             } catch (Exception e) {
                 status.setRollbackOnly();
-                throw new RuntimeException("Failed to expire check-in for allocation " + allocation.getId(), e);
+                throw new ScheduledJobException("Failed to expire check-in for allocation " + allocation.getId(), e);
             }
         });
     }
