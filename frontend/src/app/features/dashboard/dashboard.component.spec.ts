@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
+import { throwError } from 'rxjs';
 import { provideLocationMocks } from '@angular/common/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -27,40 +28,45 @@ describe('DashboardComponent', () => {
   let roomAllocationService: jasmine.SpyObj<RoomAllocationService>;
   let documentService: jasmine.SpyObj<DocumentService>;
   let dialog: jasmine.SpyObj<MatDialog>;
+  let studentService: jasmine.SpyObj<StudentService>;
+  let applicationService: jasmine.SpyObj<ApplicationService>;
+  let systemSettingsService: jasmine.SpyObj<SystemSettingsService>;
+  let waitlistService: jasmine.SpyObj<WaitlistService>;
+  let errorService: jasmine.SpyObj<ErrorHandlingService>;
+  let authService: { currentUserValue: unknown; logout: jasmine.Spy };
+  let router: Router;
 
   const application = (status: string, createdAt: string): Application =>
     ({ id: 1, status, createdAt } as unknown as Application);
 
   beforeEach(() => {
-    const authService = { currentUserValue: { id: 1, email: 'a@b.com' } };
+    authService = {
+      currentUserValue: { id: 1, email: 'a@b.com' },
+      logout: jasmine.createSpy('logout'),
+    };
     documentService = jasmine.createSpyObj<DocumentService>('DocumentService', [
       'getUploadedDocuments',
     ]);
     documentService.getUploadedDocuments.and.returnValue(of([]));
-    const studentService = jasmine.createSpyObj<StudentService>('StudentService', [
-      'getStudentProfile',
-    ]);
+    studentService = jasmine.createSpyObj<StudentService>('StudentService', ['getStudentProfile']);
     roomAllocationService = jasmine.createSpyObj<RoomAllocationService>('RoomAllocationService', [
       'getActiveAllocationByStudentId',
       'acceptOffer',
       'declineOffer',
     ]);
-    const applicationService = jasmine.createSpyObj<ApplicationService>('ApplicationService', [
+    applicationService = jasmine.createSpyObj<ApplicationService>('ApplicationService', [
       'getMyApplications',
     ]);
     applicationService.getMyApplications.and.returnValue(of([]));
-    const systemSettingsService = jasmine.createSpyObj<SystemSettingsService>(
-      'SystemSettingsService',
-      ['getPublicSetting']
-    );
-    const errorService = jasmine.createSpyObj<ErrorHandlingService>('ErrorHandlingService', [
+    systemSettingsService = jasmine.createSpyObj<SystemSettingsService>('SystemSettingsService', [
+      'getPublicSetting',
+    ]);
+    errorService = jasmine.createSpyObj<ErrorHandlingService>('ErrorHandlingService', [
       'showWarning',
       'showErrorSnackbar',
       'parseError',
     ]);
-    const waitlistService = jasmine.createSpyObj<WaitlistService>('WaitlistService', [
-      'getMyPosition',
-    ]);
+    waitlistService = jasmine.createSpyObj<WaitlistService>('WaitlistService', ['getMyPosition']);
     dialog = jasmine.createSpyObj<MatDialog>('MatDialog', ['open']);
 
     TestBed.configureTestingModule({
@@ -82,6 +88,13 @@ describe('DashboardComponent', () => {
     // The component imports MatDialogModule itself, and a standalone component's own imports take
     // precedence over TestBed providers, so this has to be an override rather than a provider.
     TestBed.overrideProvider(MatDialog, { useValue: dialog });
+    studentService.getStudentProfile.and.returnValue(of({ id: 1 } as never) as never);
+    roomAllocationService.getActiveAllocationByStudentId.and.returnValue(
+      of({ id: 7 } as never) as never
+    );
+    systemSettingsService.getPublicSetting.and.returnValue(of('5' as never) as never);
+    waitlistService.getMyPosition.and.returnValue(of({ position: 2 } as never) as never);
+    router = TestBed.inject(Router);
     component = TestBed.createComponent(DashboardComponent).componentInstance;
   });
 
@@ -262,5 +275,176 @@ describe('DashboardComponent', () => {
 
       expect(acceptWith(today)).toBe(expected);
     });
+  });
+
+  // ------------------------------------------------------------ data loading
+
+  it('loadRoomAllocation_activeAllocation_isStored', () => {
+    component.loadRoomAllocation();
+
+    expect(component.roomAllocation).toEqual({ id: 7 } as never);
+    expect(component.isLoadingRoom).toBeFalse();
+  });
+
+  /** No allocation is an ordinary state for a student, not an error to report. */
+  it('loadRoomAllocation_noAllocation_leavesItNullWithoutWarning', () => {
+    roomAllocationService.getActiveAllocationByStudentId.and.returnValue(
+      throwError(() => new Error('404')) as never
+    );
+
+    component.loadRoomAllocation();
+
+    expect(component.roomAllocation).toBeNull();
+    expect(errorService.showWarning).not.toHaveBeenCalled();
+  });
+
+  it('loadRoomAllocation_profileFails_warnsAndStopsLoading', () => {
+    studentService.getStudentProfile.and.returnValue(throwError(() => new Error('boom')) as never);
+
+    component.loadRoomAllocation();
+
+    expect(errorService.showWarning).toHaveBeenCalled();
+    expect(component.isLoadingRoom).toBeFalse();
+  });
+
+  it('loadDocuments_mapsTheResponseOntoRows', () => {
+    documentService.getUploadedDocuments.and.returnValue(
+      of([
+        { documentName: 'Passport', uploadDate: '2026-01-01', documentStatus: 'Verified' },
+      ]) as never
+    );
+
+    component.loadDocuments();
+
+    expect(component.uploadedDocuments).toEqual([
+      { name: 'Passport', date: '2026-01-01', status: 'Verified' },
+    ]);
+  });
+
+  it('loadApplicationHistory_sortsNewestFirstAndPicksTheCurrent', () => {
+    applicationService.getMyApplications.and.returnValue(
+      of([
+        application('PENDING', '2026-09-01T10:00:00'),
+        application('ALLOCATED', '2026-09-05T10:00:00'),
+      ]) as never
+    );
+
+    component.loadApplicationHistory();
+
+    expect(component.applicationHistory[0].createdAt).toBe('2026-09-05T10:00:00');
+    expect(component.currentApplication?.status).toBe('ALLOCATED');
+    expect(component.isLoadingApplications).toBeFalse();
+  });
+
+  it('loadApplicationHistory_requestFails_clearsEverythingAndWarns', () => {
+    applicationService.getMyApplications.and.returnValue(
+      throwError(() => new Error('boom')) as never
+    );
+
+    component.loadApplicationHistory();
+
+    expect(component.applicationHistory).toEqual([]);
+    expect(component.currentApplication).toBeNull();
+    expect(component.waitlistPosition).toBeNull();
+    expect(errorService.showWarning).toHaveBeenCalled();
+  });
+
+  /** A waiting-list entry can only exist in one status, so the call is not worth making otherwise. */
+  it('loadWaitlistPosition_statusIsNotAwaitingAllocation_skipsTheRequest', () => {
+    component.currentApplication = application('PENDING', '2026-09-01T10:00:00');
+
+    component.loadWaitlistPosition();
+
+    expect(component.waitlistPosition).toBeNull();
+    expect(waitlistService.getMyPosition).not.toHaveBeenCalled();
+  });
+
+  it('loadWaitlistPosition_awaitingAllocation_storesThePosition', () => {
+    component.currentApplication = application('AWAITING_ALLOCATION', '2026-09-01T10:00:00');
+
+    component.loadWaitlistPosition();
+
+    expect(component.waitlistPosition).toEqual({ position: 2 } as never);
+  });
+
+  it('loadResponseTimeSetting_valuePresent_quotesTheNumberOfDays', () => {
+    component.loadResponseTimeSetting();
+
+    expect(component.responseTimeMessage).toContain('5 business days');
+  });
+
+  it('loadResponseTimeSetting_noValue_fallsBackToAGenericMessage', () => {
+    systemSettingsService.getPublicSetting.and.returnValue(of(null as never));
+
+    component.loadResponseTimeSetting();
+
+    expect(component.responseTimeMessage).toContain('being reviewed');
+    expect(component.responseTimeMessage).not.toContain('business days');
+  });
+
+  // ------------------------------------------------------------------ misc
+
+  it('ngOnInit_noUser_redirectsToLogin', () => {
+    const navigate = spyOn(router, 'navigate').and.callThrough();
+    authService.currentUserValue = null;
+
+    component.ngOnInit();
+
+    expect(navigate).toHaveBeenCalledWith(['/login']);
+    expect(documentService.getUploadedDocuments).not.toHaveBeenCalled();
+  });
+
+  it('ngOnInit_signedIn_loadsEverything', () => {
+    component.ngOnInit();
+
+    expect(documentService.getUploadedDocuments).toHaveBeenCalled();
+    expect(applicationService.getMyApplications).toHaveBeenCalled();
+    expect(systemSettingsService.getPublicSetting).toHaveBeenCalled();
+  });
+
+  it('logout_signsOutAndReturnsToLogin', () => {
+    const navigate = spyOn(router, 'navigate').and.callThrough();
+
+    component.logout();
+
+    expect(authService.logout).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('viewDocument_thenClose_togglesTheSelection', () => {
+    component.viewDocument({ name: 'Passport' });
+    expect(component.selectedDocument).toBeTruthy();
+
+    component.closeViewer();
+    expect(component.selectedDocument).toBeNull();
+  });
+
+  it('timeOfDay_returnsAGreeting', () => {
+    expect(component.timeOfDay).toMatch(/^Good (morning|afternoon|evening)$/);
+  });
+
+  /** The decline path is the other half of an outstanding offer. */
+  it('declineOffer_dialogDismissed_doesNothing', () => {
+    dialog.open.and.returnValue({ afterClosed: () => of(null) } as never);
+    component.roomAllocation = { id: 7 } as never;
+    component.currentApplication = application('ALLOCATED', '2026-09-01T10:00:00');
+
+    component.declineOffer();
+
+    expect(roomAllocationService.declineOffer).not.toHaveBeenCalled();
+  });
+
+  it('declineOffer_confirmed_sendsTheRequest', () => {
+    dialog.open.and.returnValue({ afterClosed: () => of({ reason: 'Too far' }) } as never);
+    roomAllocationService.declineOffer.and.returnValue(of({ id: 7 } as never) as never);
+    applicationService.getMyApplications.and.returnValue(of([]) as never);
+    component.roomAllocation = { id: 7 } as never;
+    component.currentApplication = application('ALLOCATED', '2026-09-01T10:00:00');
+
+    component.declineOffer();
+
+    expect(roomAllocationService.declineOffer).toHaveBeenCalledWith(7, {
+      reason: 'Too far',
+    } as never);
   });
 });
