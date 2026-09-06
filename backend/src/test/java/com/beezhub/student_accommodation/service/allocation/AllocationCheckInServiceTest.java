@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,6 +52,10 @@ class AllocationCheckInServiceTest {
     private ApplicationEventPublisher eventPublisher;
     @Mock
     private RoomOccupancyManager roomOccupancyManager;
+    @Mock
+    private AllocationAuditService allocationAuditService;
+    @Mock
+    private com.beezhub.student_accommodation.service.AuthService authService;
 
     @InjectMocks
     private AllocationCheckInService allocationCheckInService;
@@ -69,12 +74,103 @@ class AllocationCheckInServiceTest {
         when(roomAllocationMapper.toResponse(any())).thenReturn(new RoomAllocationResponse());
 
         // Act
-        allocationCheckInService.confirmCheckIn(id);
+        allocationCheckInService.confirmCheckIn(id, false);
 
         // Assert
         assertEquals(AllocationStatus.ACTIVE, allocation.getStatus());
         assertNotNull(allocation.getCheckInDate());
         verify(applicationRepository).save(any(Application.class));
+    }
+
+    // ── GH-197: the check-in deadline is enforced here, not only by the hourly sweep ─────────
+
+    private RoomAllocation acceptedAllocation(Long id, java.time.LocalDateTime checkInDeadline) {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(id);
+        allocation.setStatus(AllocationStatus.ACCEPTED);
+        allocation.setApplication(new Application());
+        allocation.setRoom(new Room());
+        allocation.setCheckInExpiryDate(checkInDeadline);
+        return allocation;
+    }
+
+    @Test
+    void checkIn_pastTheDeadline_isRefusedAndSaysWhen() {
+        // confirmCheckIn never read checkInExpiryDate, so the only thing enforcing the deadline was
+        // the hourly sweep and an ACCEPTED allocation stayed checkable-in past it.
+        java.time.LocalDateTime deadline = java.time.LocalDateTime.now().minusDays(2);
+        RoomAllocation allocation = acceptedAllocation(1L, deadline);
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+
+        IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                () -> allocationCheckInService.confirmCheckIn(1L, false));
+
+        assertTrue(thrown.getMessage().contains("check-in deadline"),
+                "the message the frontend matches on to offer the override");
+        assertTrue(thrown.getMessage().contains(String.valueOf(deadline.getYear())),
+                "an admin should be told which deadline they are past");
+        assertEquals(AllocationStatus.ACCEPTED, allocation.getStatus());
+        verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
+    }
+
+    @Test
+    void checkIn_pastTheDeadline_withOverride_succeeds() {
+        // Admin-triggered, not student-triggered: checking someone in slightly late is a judgement
+        // an admin may legitimately want to make. It must be deliberate, not silent.
+        RoomAllocation allocation = acceptedAllocation(1L, java.time.LocalDateTime.now().minusDays(2));
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(allocation);
+        when(roomAllocationMapper.toResponse(any())).thenReturn(new RoomAllocationResponse());
+
+        allocationCheckInService.confirmCheckIn(1L, true);
+
+        assertEquals(AllocationStatus.ACTIVE, allocation.getStatus());
+    }
+
+    @Test
+    void checkIn_pastTheDeadline_withOverride_isRecordedInTheAuditTrail() {
+        RoomAllocation allocation = acceptedAllocation(1L, java.time.LocalDateTime.now().minusDays(2));
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(allocation);
+        when(roomAllocationMapper.toResponse(any())).thenReturn(new RoomAllocationResponse());
+
+        allocationCheckInService.confirmCheckIn(1L, true);
+
+        verify(allocationAuditService).logAuditActionWithConstraint(
+                any(RoomAllocation.class),
+                org.mockito.ArgumentMatchers.eq(
+                        com.beezhub.student_accommodation.model.enums.AllocationAuditActionType.OVERRIDE),
+                any(),
+                org.mockito.ArgumentMatchers.contains("after the deadline"),
+                any(),
+                any(),
+                org.mockito.ArgumentMatchers.eq(AllocationCheckInService.CHECK_IN_DEADLINE_CONSTRAINT));
+    }
+
+    @Test
+    void checkIn_beforeTheDeadline_needsNoOverrideAndRecordsNothing() {
+        RoomAllocation allocation = acceptedAllocation(1L, java.time.LocalDateTime.now().plusDays(2));
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(allocation);
+        when(roomAllocationMapper.toResponse(any())).thenReturn(new RoomAllocationResponse());
+
+        allocationCheckInService.confirmCheckIn(1L, false);
+
+        assertEquals(AllocationStatus.ACTIVE, allocation.getStatus());
+        verifyNoInteractions(allocationAuditService);
+    }
+
+    @Test
+    void checkIn_withNoDeadlineRecorded_isTreatedAsHavingNone() {
+        // A null deadline is equally invisible to the sweep, so the two agree on it.
+        RoomAllocation allocation = acceptedAllocation(1L, null);
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(allocation);
+        when(roomAllocationMapper.toResponse(any())).thenReturn(new RoomAllocationResponse());
+
+        allocationCheckInService.confirmCheckIn(1L, false);
+
+        assertEquals(AllocationStatus.ACTIVE, allocation.getStatus());
     }
 
     @Test

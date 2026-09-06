@@ -127,11 +127,15 @@ public class RoomAllocationController {
                 summary = "Check in student", 
                 description = "Confirms student physical arrival and activates the allocation. " +
                               "Sets allocation status to ACTIVE and application status to CHECKED_IN. " +
-                              "This should be done when the student arrives and receives room keys. Admin only."
+                              "This should be done when the student arrives and receives room keys. Admin only. " +
+                              "Refused once the check-in deadline has passed; pass overrideDeadline=true to " +
+                              "check the student in anyway, which is recorded against the allocation."
         )
-        public ResponseEntity<RoomAllocationResponse> checkIn(@PathVariable Long id) {
-                log.info("Checking in allocation with id: {}", id);
-                return ResponseEntity.ok(roomAllocationService.confirmCheckIn(id));
+        public ResponseEntity<RoomAllocationResponse> checkIn(
+                        @PathVariable Long id,
+                        @RequestParam(name = "overrideDeadline", defaultValue = "false") boolean overrideDeadline) {
+                log.info("Checking in allocation with id: {} overrideDeadline={}", id, overrideDeadline);
+                return ResponseEntity.ok(roomAllocationService.confirmCheckIn(id, overrideDeadline));
         }
 
         @PostMapping("/{id}/check-out")

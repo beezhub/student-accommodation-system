@@ -203,8 +203,24 @@ export class RoomAllocationService {
     });
   }
 
-  checkIn(id: number): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/check-in`, {});
+  /**
+   * Confirms a student's arrival.
+   *
+   * <p>Refused with 409 once the check-in deadline has passed. Pass overrideDeadline to check the
+   * student in anyway; the backend records that against the allocation's audit trail (GH-197).
+   *
+   * <p>Silent because the caller decides what to say: a passed deadline is a question to put to
+   * the admin, not an error to flash at them.
+   */
+  checkIn(id: number, overrideDeadline = false): Observable<RoomAllocationResponse> {
+    const params = overrideDeadline
+      ? new HttpParams().set('overrideDeadline', 'true')
+      : new HttpParams();
+    return this.http.post<RoomAllocationResponse>(
+      `${this.apiUrl}/${id}/check-in`,
+      {},
+      { params, headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   checkOut(id: number): Observable<RoomAllocationResponse> {

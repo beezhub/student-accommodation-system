@@ -150,8 +150,8 @@ public class RoomAllocationService {
     // ==================== Check-In Methods (Delegated) ====================
 
     @Transactional
-    public RoomAllocationResponse confirmCheckIn(Long id) {
-        return allocationCheckInService.confirmCheckIn(id);
+    public RoomAllocationResponse confirmCheckIn(Long id, boolean overrideDeadline) {
+        return allocationCheckInService.confirmCheckIn(id, overrideDeadline);
     }
 
     @Transactional

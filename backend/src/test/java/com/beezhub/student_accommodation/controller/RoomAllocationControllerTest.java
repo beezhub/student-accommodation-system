@@ -144,9 +144,9 @@ class RoomAllocationControllerTest {
 
     @Test
     void checkIn() {
-        when(roomAllocationService.confirmCheckIn(1L)).thenReturn(allocationResponse);
+        when(roomAllocationService.confirmCheckIn(1L, false)).thenReturn(allocationResponse);
 
-        ResponseEntity<RoomAllocationResponse> response = controller.checkIn(1L);
+        ResponseEntity<RoomAllocationResponse> response = controller.checkIn(1L, false);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
