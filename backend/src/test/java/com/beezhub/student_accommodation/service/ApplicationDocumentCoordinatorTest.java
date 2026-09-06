@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.ApplicationNotApprovedException;
 import com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationRequest;
 import com.beezhub.student_accommodation.model.entity.Application;
@@ -189,14 +190,77 @@ class ApplicationDocumentCoordinatorTest {
         verify(roomAllocationRepository).findActiveAllocationByStudentId(10L);
     }
 
-    @Test
-    void findApprovedApplication_success() {
-        Application approvedApp = new Application();
-        approvedApp.setStatus(ApplicationStatus.APPROVED);
-        when(applicationRepository.findByStudent_Id(10L)).thenReturn(List.of(approvedApp));
+    // ── GH-217 / GH-231: the review lookup ──────────────────────────────────────────────────
 
-        Application result = coordinator.findApprovedApplication(10L);
-        assertNotNull(result);
-        assertEquals(ApplicationStatus.APPROVED, result.getStatus());
+    private static Application application(Long id, Long tenantId, ApplicationStatus status) {
+        Application application = new Application();
+        application.setId(id);
+        application.setTenantId(tenantId);
+        application.setStatus(status);
+        return application;
+    }
+
+    @Test
+    void findReviewableApplication_tenantAdmin_looksOnlyWithinTheirCompany() {
+        Application app = application(1L, 42L, ApplicationStatus.AWAITING_ALLOCATION);
+        when(applicationRepository.findByStudent_IdAndTenantIdAndStatusInOrderByIdDesc(
+                10L, 42L, ApplicationStatus.LIVE_STATUSES)).thenReturn(List.of(app));
+
+        Application result = coordinator.findReviewableApplication(10L, Optional.of(42L));
+
+        assertSame(app, result);
+        verify(applicationRepository, never())
+                .findByStudent_IdAndStatusInOrderByIdDesc(anyLong(), any());
+    }
+
+    /**
+     * The old lookup required status exactly APPROVED, and approval moves an application to
+     * AWAITING_ALLOCATION immediately, so review was possible only in a window that closed at once.
+     */
+    @Test
+    void findReviewableApplication_acceptsEveryLiveStatusRatherThanOnlyApproved() {
+        for (ApplicationStatus status : ApplicationStatus.LIVE_STATUSES) {
+            Application app = application(1L, 42L, status);
+            when(applicationRepository.findByStudent_IdAndTenantIdAndStatusInOrderByIdDesc(
+                    10L, 42L, ApplicationStatus.LIVE_STATUSES)).thenReturn(List.of(app));
+
+            assertSame(app, coordinator.findReviewableApplication(10L, Optional.of(42L)),
+                    "review should be available while the application is " + status);
+        }
+    }
+
+    @Test
+    void findReviewableApplication_platformAdmin_singleCompany_resolvesIt() {
+        Application app = application(1L, 42L, ApplicationStatus.ALLOCATED);
+        when(applicationRepository.findByStudent_IdAndStatusInOrderByIdDesc(
+                10L, ApplicationStatus.LIVE_STATUSES)).thenReturn(List.of(app));
+
+        assertSame(app, coordinator.findReviewableApplication(10L, Optional.empty()));
+    }
+
+    /**
+     * The old lookup took the first approved application the database returned. A platform admin
+     * has tenant 0, the sentinel that disables the tenant filter, so that could be another
+     * company's application — and it is the application tryAllocateOrQueue then allocates against.
+     * Refusing beats guessing.
+     */
+    @Test
+    void findReviewableApplication_platformAdmin_severalCompanies_refusesRatherThanGuessing() {
+        when(applicationRepository.findByStudent_IdAndStatusInOrderByIdDesc(
+                10L, ApplicationStatus.LIVE_STATUSES)).thenReturn(List.of(
+                        application(2L, 43L, ApplicationStatus.APPROVED),
+                        application(1L, 42L, ApplicationStatus.APPROVED)));
+
+        assertThrows(IllegalStateException.class,
+                () -> coordinator.findReviewableApplication(10L, Optional.empty()));
+    }
+
+    @Test
+    void findReviewableApplication_noLiveApplication_isRefused() {
+        when(applicationRepository.findByStudent_IdAndTenantIdAndStatusInOrderByIdDesc(
+                10L, 42L, ApplicationStatus.LIVE_STATUSES)).thenReturn(List.of());
+
+        assertThrows(ApplicationNotApprovedException.class,
+                () -> coordinator.findReviewableApplication(10L, Optional.of(42L)));
     }
 }

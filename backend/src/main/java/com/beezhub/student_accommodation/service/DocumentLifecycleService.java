@@ -37,7 +37,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -138,18 +137,11 @@ public class DocumentLifecycleService {
     /**
      * Application statuses under which an approved document is still doing work.
      *
-     * <p>Terminal statuses are excluded on purpose: once an application is rejected, expired or
-     * cancelled, nothing depends on the evidence any more and the student should be free to
-     * clear their pack.
+     * <p>Was a private copy of this list. It now shares one definition with the document-review
+     * guard, which had a different and much narrower idea of when an application counts, so a
+     * document could be locked in a state where no admin could unlock it (GH-217).
      */
-    private static final Set<ApplicationStatus> LIVE_APPLICATION_STATUSES = EnumSet.of(
-            ApplicationStatus.PENDING,
-            ApplicationStatus.UNDER_REVIEW,
-            ApplicationStatus.CHANGES_REQUESTED,
-            ApplicationStatus.APPROVED,
-            ApplicationStatus.AWAITING_ALLOCATION,
-            ApplicationStatus.ALLOCATED,
-            ApplicationStatus.CHECKED_IN);
+    private static final Set<ApplicationStatus> LIVE_APPLICATION_STATUSES = ApplicationStatus.LIVE_STATUSES;
 
     /**
      * Refuses to let a student change a document an administrator has already approved while an

@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.application;
 
+import com.beezhub.student_accommodation.exceptions.ApplicationNotApprovedException;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
@@ -9,6 +10,7 @@ import com.beezhub.student_accommodation.model.dto.ReviewProgressRequest.Documen
 import com.beezhub.student_accommodation.model.dto.ReviewProgressResponse;
 import com.beezhub.student_accommodation.model.dto.DocumentWithCommentsResponse;
 import com.beezhub.student_accommodation.model.entity.*;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.*;
@@ -70,6 +72,7 @@ class ApplicationDocumentServiceTest {
         application.setId(1L);
         application.setTenantId(42L);
         application.setStudent(student);
+        application.setStatus(ApplicationStatus.UNDER_REVIEW);
 
         adminUser = new AppUser();
         adminUser.setId(10L);
@@ -141,6 +144,55 @@ class ApplicationDocumentServiceTest {
         verify(documentRepository).save(document1);
         assertThat(document1.getDocumentStatus()).isEqualTo(DocumentStatus.REJECTED);
         verify(documentCommentRepository).save(any(DocumentComment.class));
+    }
+
+    /**
+     * GH-231: this endpoint and the single-document status endpoint are two halves of one review
+     * screen, but disagreed on which application statuses permit review. This one accepted any
+     * status at all, including terminal ones, while the other required exactly APPROVED. They now
+     * accept the same set: every live status, and nothing terminal.
+     */
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(
+            value = ApplicationStatus.class,
+            names = {"REJECTED", "EXPIRED", "CANCELLED"})
+    void saveReviewProgress_terminalApplication_isRefused(ApplicationStatus terminal) {
+        application.setStatus(terminal);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
+        ReviewProgressRequest request = new ReviewProgressRequest();
+        request.setDocumentUpdates(List.of(update(1000L, "REJECTED", null)));
+
+        assertThrows(ApplicationNotApprovedException.class,
+                () -> service.saveReviewProgress(1L, request, "admin@test.com"));
+
+        verify(documentRepository, never()).save(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(
+            value = ApplicationStatus.class,
+            names = {"PENDING", "UNDER_REVIEW", "CHANGES_REQUESTED", "APPROVED", "AWAITING_ALLOCATION",
+                    "ALLOCATED", "CHECKED_IN"})
+    void saveReviewProgress_liveApplication_isAllowedAtEveryLiveStatus(ApplicationStatus live) {
+        application.setStatus(live);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(appUserRepository.findByEmail("admin@test.com")).thenReturn(Optional.of(adminUser));
+        when(documentRepository.findById(1000L)).thenReturn(Optional.of(document1));
+        ReviewProgressRequest request = new ReviewProgressRequest();
+        request.setDocumentUpdates(List.of(update(1000L, "REJECTED", null)));
+
+        ReviewProgressResponse response = service.saveReviewProgress(1L, request, "admin@test.com");
+
+        assertThat(response.getDocumentsUpdated()).isEqualTo(1);
+    }
+
+    private static DocumentUpdate update(Long documentId, String newStatus, String comment) {
+        DocumentUpdate update = new DocumentUpdate();
+        update.setDocumentId(documentId);
+        update.setNewStatus(newStatus);
+        update.setComment(comment);
+        return update;
     }
 
     @Test

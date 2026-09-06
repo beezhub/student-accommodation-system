@@ -3,6 +3,7 @@ package com.beezhub.student_accommodation.service.application;
 import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DocumentNotFoundException;
 import com.beezhub.student_accommodation.aspect.LogActivity;
+import com.beezhub.student_accommodation.exceptions.ApplicationNotApprovedException;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
@@ -16,6 +17,7 @@ import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentComment;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
@@ -138,6 +140,11 @@ public class ApplicationDocumentService {
          * Saves document review progress atomically.
          * Updates document statuses and adds comments without completing the review.
          *
+         * <p>Accepts the same application statuses as the single-document status endpoint. The two
+         * are halves of one review screen but disagreed: this one allowed review at any status
+         * while the other required exactly {@code APPROVED}, so an admin could record progress here
+         * that the status endpoint would then refuse to act on (GH-231).
+         *
          * @param applicationId The application ID
          * @param request       The review progress request
          * @param username      The admin username
@@ -158,6 +165,17 @@ public class ApplicationDocumentService {
 
                 if (!admin.getUserRole().isAdmin()) {
                         throw new UnauthorizedAccessException("Only admins can save review progress");
+                }
+
+                // Terminal applications are the one case the two endpoints still had to be brought
+                // together on: nothing depends on the evidence once an application is rejected,
+                // expired or cancelled, and the document lock is released there too (GH-231).
+                ApplicationStatus status = application.getStatus();
+                if (status == null || !status.isLive()) {
+                        throw new ApplicationNotApprovedException(
+                                        "Application " + applicationId + " is "
+                                                        + (status == null ? "in an unknown state" : status.getStatus())
+                                                        + ", so its documents are no longer under review");
                 }
 
                 Long studentId = application.getStudent().getId();
