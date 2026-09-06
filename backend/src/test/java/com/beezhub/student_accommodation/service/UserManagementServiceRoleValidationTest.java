@@ -12,6 +12,10 @@ import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -217,30 +221,49 @@ class UserManagementServiceRoleValidationTest {
     }
 
     @Test
-    @DisplayName("getAllUsers returns mapped list of users")
-    void getAllUsers_returnsMappedList() {
+    @DisplayName("getAllUsers returns one page of mapped users")
+    void getAllUsers_returnsMappedPage() {
         AppUser u1 = AppUser.builder().id(1L).email("a@a.com").userRole(UserRole.STUDENT).build();
         AppUser u2 = AppUser.builder().id(2L).email("b@b.com").userRole(UserRole.PLATFORM_ADMIN).build();
-        when(userRepository.findAll()).thenReturn(List.of(u1, u2));
+        Pageable pageable = PageRequest.of(0, 25);
+        when(userRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(u1, u2), pageable, 2));
         when(appUserMapper.toUserData(any())).thenReturn(new UserData());
 
-        List<UserData> result = userManagementService.getAllUsers();
+        Page<UserData> result = userManagementService.getAllUsers(pageable);
 
-        assertThat(result).hasSize(2);
-        verify(userRepository).findAll();
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        verify(userRepository).findAll(pageable);
+    }
+
+    /**
+     * The unpaged findAll is no longer reachable from this path: it loaded and mapped every
+     * account in the deployment on each visit to the admin screen (GH-157).
+     */
+    @Test
+    @DisplayName("getAllUsers never falls back to an unpaged findAll")
+    void getAllUsers_doesNotLoadEveryUser() {
+        Pageable pageable = PageRequest.of(0, 25);
+        when(userRepository.findAll(pageable)).thenReturn(Page.empty(pageable));
+
+        userManagementService.getAllUsers(pageable);
+
+        verify(userRepository, never()).findAll();
     }
 
     @Test
-    @DisplayName("getUsersByRole returns users with the given role")
-    void getUsersByRole_returnsMappedList() {
+    @DisplayName("getUsersByRole returns one page of users with the given role")
+    void getUsersByRole_returnsMappedPage() {
         AppUser admin = AppUser.builder().id(1L).email("admin@a.com").userRole(UserRole.PLATFORM_ADMIN).build();
-        when(userRepository.findByUserRole(UserRole.PLATFORM_ADMIN)).thenReturn(List.of(admin));
+        Pageable pageable = PageRequest.of(0, 25);
+        when(userRepository.findByUserRole(UserRole.PLATFORM_ADMIN, pageable))
+                .thenReturn(new PageImpl<>(List.of(admin), pageable, 1));
         when(appUserMapper.toUserData(any())).thenReturn(new UserData());
 
-        List<UserData> result = userManagementService.getUsersByRole(UserRole.PLATFORM_ADMIN);
+        Page<UserData> result = userManagementService.getUsersByRole(UserRole.PLATFORM_ADMIN, pageable);
 
-        assertThat(result).hasSize(1);
-        verify(userRepository).findByUserRole(UserRole.PLATFORM_ADMIN);
+        assertThat(result.getContent()).hasSize(1);
+        verify(userRepository).findByUserRole(UserRole.PLATFORM_ADMIN, pageable);
     }
 
     @Test
