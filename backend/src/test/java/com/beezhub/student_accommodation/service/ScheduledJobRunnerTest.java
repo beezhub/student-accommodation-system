@@ -4,6 +4,7 @@ import com.beezhub.student_accommodation.service.allocation.AllocationBatchServi
 import com.beezhub.student_accommodation.service.allocation.AllocationExpiryService;
 import com.beezhub.student_accommodation.service.allocation.OfferReminderService;
 import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
+import com.beezhub.student_accommodation.service.document.DocumentRetentionJob;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
 import com.beezhub.student_accommodation.service.notification.NotificationRetryService;
 import io.micrometer.core.instrument.Counter;
@@ -32,6 +33,9 @@ class ScheduledJobRunnerTest {
     private OrphanFileCleanupJob orphanFileCleanupJob;
 
     @Mock
+    private DocumentRetentionJob documentRetentionJob;
+
+    @Mock
     private OfferReminderService offerReminderService;
     @Mock
     private CheckInReminderService checkInReminderService;
@@ -48,10 +52,37 @@ class ScheduledJobRunnerTest {
                 allocationExpiryService,
                 allocationBatchService,
                 orphanFileCleanupJob,
+                documentRetentionJob,
                 offerReminderService,
                 checkInReminderService,
                 notificationRetryService,
                 meterRegistry);
+    }
+
+    // --- documentRetention (GH-235) ---
+
+    @Test
+    void runDocumentRetention_countsWhatTheJobProcessed() {
+        when(documentRetentionJob.expireDocumentsPastRetention()).thenReturn(7);
+
+        scheduledJobRunner.runDocumentRetention();
+
+        Counter processed = meterRegistry.find("sas.jobs.documentRetention.processed").counter();
+        assertThat(processed).isNotNull();
+        assertThat(processed.count()).isEqualTo(7.0);
+    }
+
+    /** The job deletes student documents; a failure must not take the scheduler thread down. */
+    @Test
+    void runDocumentRetention_whenJobThrows_failureCounterIncremented_noExceptionPropagated() {
+        when(documentRetentionJob.expireDocumentsPastRetention())
+                .thenThrow(new RuntimeException("storage unavailable"));
+
+        assertThatCode(() -> scheduledJobRunner.runDocumentRetention()).doesNotThrowAnyException();
+
+        Counter failures = meterRegistry.find("sas.jobs.documentRetention.failures").counter();
+        assertThat(failures).isNotNull();
+        assertThat(failures.count()).isEqualTo(1.0);
     }
 
     // --- offerExpiry ---

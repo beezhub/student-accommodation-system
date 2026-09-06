@@ -105,6 +105,11 @@ Now, both the backend and frontend servers should be running. Access the applica
 - Meal plans and student-paid budgets are not collected; bursaries cover accommodation costs. Related columns are dropped and not exposed via API.
 - Submission endpoint: `POST /api/applications/submit` accepts `ApplicationRequest` with the above preference fields only.
 
+## Operations
+- [Backup and restore runbook](docs/BACKUP_AND_RESTORE.md) — PostgreSQL and MinIO backup, restore
+  ordering, and the document retention rule (twelve months after a student's last application
+  closes and last tenancy ends). Read it before turning retention off dry-run mode.
+
 ## Folder Structure
 ```
 student-accommodation-system/

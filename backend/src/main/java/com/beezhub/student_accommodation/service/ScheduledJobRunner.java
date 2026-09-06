@@ -4,6 +4,7 @@ import com.beezhub.student_accommodation.service.allocation.AllocationBatchServi
 import com.beezhub.student_accommodation.service.allocation.AllocationExpiryService;
 import com.beezhub.student_accommodation.service.allocation.OfferReminderService;
 import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
+import com.beezhub.student_accommodation.service.document.DocumentRetentionJob;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
 import com.beezhub.student_accommodation.service.notification.NotificationRetryService;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -31,6 +32,7 @@ public class ScheduledJobRunner {
     private final AllocationExpiryService allocationExpiryService;
     private final AllocationBatchService allocationBatchService;
     private final OrphanFileCleanupJob orphanFileCleanupJob;
+    private final DocumentRetentionJob documentRetentionJob;
     private final OfferReminderService offerReminderService;
     private final CheckInReminderService checkInReminderService;
     private final NotificationRetryService notificationRetryService;
@@ -84,6 +86,25 @@ public class ScheduledJobRunner {
         log.info("job={} action=start", jobName);
         try {
             int processed = orphanFileCleanupJob.cleanupOrphanedFiles();
+            log.info("job={} action=complete processed={}", jobName, processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
+        } catch (Exception e) {
+            log.error("job={} action=failed", jobName, e);
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
+        }
+    }
+
+    /**
+     * Deletes documents past their retention period (GH-235). Runs after the orphan sweep rather
+     * than beside it: this job leaves objects for the after-commit deletion listener to remove, and
+     * anything that listener misses is an orphan the next sweep collects.
+     */
+    @Scheduled(cron = "${app.storage.retention.cron:0 30 3 * * *}")
+    public void runDocumentRetention() {
+        String jobName = "documentRetention";
+        log.info("job={} action=start", jobName);
+        try {
+            int processed = documentRetentionJob.expireDocumentsPastRetention();
             log.info("job={} action=complete processed={}", jobName, processed);
             meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
         } catch (Exception e) {

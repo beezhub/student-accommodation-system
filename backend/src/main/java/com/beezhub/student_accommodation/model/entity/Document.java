@@ -56,7 +56,13 @@ public class Document {
     @JoinColumn(name = "student_id", referencedColumnName = "id", nullable = false)
     private Student student;
 
-    @OneToOne
+    // @ManyToOne, not @OneToOne. The real constraint is uq_document_student_type — one slot per
+    // student per type (V2026_03_19_0004) — but @OneToOne told Hibernate the column was unique on
+    // its own, so the schema it derives allows a single document of each type in the whole table.
+    // Production never saw it, because the Flyway schema is authoritative there and hbm2ddl
+    // validate does not check unique constraints; JPA slice tests, which build from the mappings,
+    // did (GH-235).
+    @ManyToOne
     @JoinColumn(name = "document_type_id", referencedColumnName = "id", nullable = false)
     private DocumentType documentType;
 
