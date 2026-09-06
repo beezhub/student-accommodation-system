@@ -281,9 +281,8 @@ describe('AuthService', () => {
   });
 
   describe('currentUserValue', () => {
-    it('currentUserValue_initialized_fromLocalStorage', () => {
-      localStorage.setItem('currentUser', JSON.stringify(mockUser));
-      // Force re-init by creating a new instance via injection reset
+    /** Rebuilds the service against the current localStorage and spy state. */
+    function rebuildService(): AuthService {
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         imports: [HttpClientTestingModule, RouterTestingModule],
@@ -295,9 +294,37 @@ describe('AuthService', () => {
           { provide: YearOfStudyService, useValue: yearOfStudyServiceSpy },
         ],
       });
-      const freshService = TestBed.inject(AuthService);
-      expect(freshService.currentUserValue).toEqual(mockUser);
-      // Clean up extra HTTP requests
+      return TestBed.inject(AuthService);
+    }
+
+    it('currentUserValue_validToken_initializedFromLocalStorage', () => {
+      tokenStorageSpy.isTokenValid.and.returnValue(true);
+      localStorage.setItem('currentUser', JSON.stringify(mockUser));
+
+      expect(rebuildService().currentUserValue).toEqual(mockUser);
+      TestBed.inject(HttpTestingController).verify();
+    });
+
+    /**
+     * GH-151: the stored user was emitted whatever the token said, so an expired session still
+     * rendered the signed-in toolbar until the guard redirect resolved.
+     */
+    it('currentUserValue_expiredToken_restoresNothing', () => {
+      tokenStorageSpy.isTokenValid.and.returnValue(false);
+      localStorage.setItem('currentUser', JSON.stringify(mockUser));
+
+      expect(rebuildService().currentUserValue).toBeNull();
+      TestBed.inject(HttpTestingController).verify();
+    });
+
+    /** And the profile data does not sit in localStorage indefinitely either. */
+    it('currentUserValue_expiredToken_clearsTheStoredProfile', () => {
+      tokenStorageSpy.isTokenValid.and.returnValue(false);
+      localStorage.setItem('currentUser', JSON.stringify(mockUser));
+
+      rebuildService();
+
+      expect(localStorage.getItem('currentUser')).toBeNull();
       TestBed.inject(HttpTestingController).verify();
     });
   });

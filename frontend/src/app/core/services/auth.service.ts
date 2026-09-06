@@ -33,14 +33,19 @@ export class AuthService {
     // Initialize from localStorage on app start
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
-      try {
-        this.currentUserSubject.next(JSON.parse(storedUser));
-        // Re-initialize notification stream on page refresh if user is already logged in
-        if (this.isLoggedIn()) {
+      if (!this.tokenStorage.isTokenValid()) {
+        // The stored user used to be emitted whatever the token said, so an expired session
+        // still rendered the signed-in toolbar until the guard redirect resolved, and the name,
+        // email and role stayed in localStorage indefinitely (GH-151).
+        this.clearLocalSession();
+      } else {
+        try {
+          this.currentUserSubject.next(JSON.parse(storedUser));
+          // Re-initialize notification stream on page refresh if user is already logged in
           this.notificationService.initializeNotifications();
+        } catch {
+          this.clearLocalSession();
         }
-      } catch {
-        localStorage.removeItem('currentUser');
       }
     }
 

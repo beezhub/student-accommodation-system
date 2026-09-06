@@ -157,7 +157,9 @@
               <app-skeleton-loader type="text-block" [count]="3"></app-skeleton-loader>
             }
 
-            @if (!isLoadingCurrentApplication && currentApplication) {
+            <!-- showJourney is false for REJECTED, EXPIRED and CANCELLED, which are off the
+                 happy path the track describes and used to render as five blank dots. -->
+            @if (!isLoadingCurrentApplication && currentApplication && showJourney) {
               <div class="journey-track">
                 @for (step of journeySteps; track step.label) {
                   <div class="journey-step"
