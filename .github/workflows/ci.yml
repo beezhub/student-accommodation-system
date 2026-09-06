@@ -7,19 +7,13 @@ on:
     branches: [main, develop]
 
 jobs:
-  # ── Secrets scan ──────────────────────────────────────────────────────────
-  secrets-scan:
-    name: Secrets Scan (gitleaks)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # No secrets scan. gitleaks-action requires a GITLEAKS_LICENSE for organisation-owned
+  # repositories, which was never set, so the job failed on every run since it was added. A check
+  # that is always red carries no information and teaches everyone to ignore a failing build,
+  # which is worse than not having it (GH-163).
+  #
+  # If secret scanning comes back, run the pinned binary in a plain step with config in
+  # .gitleaks.toml rather than the action, so it needs no licence key server at CI time.
 
   # ── Backend ───────────────────────────────────────────────────────────────
   backend:
@@ -95,5 +89,8 @@ jobs:
       - name: Run unit tests
         run: npm test -- --watch=false --browsers=ChromeHeadless
 
+      # Explicit, so the step name and what it runs cannot drift apart again. The default
+      # configuration is production today, but this step was named "Build (production)" while
+      # relying on that default rather than stating it (GH-163).
       - name: Build (production)
-        run: npm run build
+        run: npm run build -- --configuration=production
