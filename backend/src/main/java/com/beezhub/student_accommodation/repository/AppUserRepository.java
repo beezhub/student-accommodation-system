@@ -16,5 +16,14 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     List<AppUser> findByTenantIdAndUserRole(Long tenantId, UserRole role);
 
+    /**
+     * Admin accounts sitting on a given tenant with any of the listed roles.
+     *
+     * <p>Used to find accounts stranded on the platform tenant: tenant 0 disables the Hibernate
+     * tenant filter, so a TENANT_ADMIN or BUILDING_STAFF stamped 0 reads every company's data
+     * (GH-212).
+     */
+    List<AppUser> findByTenantIdAndUserRoleIn(Long tenantId, java.util.Collection<UserRole> roles);
+
     boolean existsByEmail(String email);
 }
