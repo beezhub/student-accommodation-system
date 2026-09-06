@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 import static com.beezhub.student_accommodation.model.enums.DocumentStatus.APPROVED;
 
@@ -33,13 +34,62 @@ public class ApplicationDocumentCoordinator {
     private final ApplicationRepository applicationRepository;
     private final DocumentTypeService documentTypeService;
 
-    public Application findApprovedApplication(Long studentId) {
-        return applicationRepository.findByStudent_Id(studentId)
-                .stream()
-                .filter(app -> app.getStatus() == ApplicationStatus.APPROVED)
-                .findFirst()
-                .orElseThrow(() -> new ApplicationNotApprovedException(
-                        "Documents can only be reviewed for approved applications"));
+    /**
+     * The application a document review is acting on: the student's most recent live application,
+     * within the reviewing admin's company where they have one.
+     *
+     * <p>Was {@code findApprovedApplication}, which required status exactly {@code APPROVED} and
+     * ignored the tenant entirely. Both were wrong:
+     *
+     * <ul>
+     *   <li>Approval moves an application straight to {@code AWAITING_ALLOCATION}, so the window in
+     *       which review succeeded closed the moment the application was approved. That left an
+     *       admin no way to reject a wrongly approved document except deleting it, which loses the
+     *       record of what was approved — and {@code saveReviewProgress}, the other half of the same
+     *       screen, allowed review at any status, so the two guards disagreed (GH-217, GH-231).</li>
+     *   <li>It returned the first approved application it found, in no defined order and with no
+     *       tenant scope. A platform admin carries tenant 0, the sentinel that disables the
+     *       Hibernate tenant filter, so the lookup could return an application belonging to a
+     *       different company from the one reviewing the document — and that application is what
+     *       {@code tryAllocateOrQueue} then allocates a room against (GH-231).</li>
+     * </ul>
+     *
+     * <p>The accepted statuses are {@link ApplicationStatus#LIVE_STATUSES}, the same set that
+     * decides whether an approved document is locked, so review is available in exactly the states
+     * the lock covers.
+     *
+     * <p>The scope comes from {@code DocumentAccessGuard.tenantScopeOf}, which is how every other
+     * document rule decides what an admin may reach. The document's own {@code tenant_id} is
+     * deliberately not used: documents are student-owned and carry no tenant filter, so that column
+     * holds whatever context the student uploaded under rather than the owning company.
+     *
+     * @param tenantScope the reviewing admin's company, or empty for a platform admin
+     * @throws IllegalStateException when the caller sees every tenant and the student has live
+     *     applications with more than one company, so there is no single right answer. Guessing
+     *     would allocate a room at the wrong company.
+     */
+    public Application findReviewableApplication(Long studentId, Optional<Long> tenantScope) {
+        List<Application> live = tenantScope
+                .map(tenantId -> applicationRepository.findByStudent_IdAndTenantIdAndStatusInOrderByIdDesc(
+                        studentId, tenantId, ApplicationStatus.LIVE_STATUSES))
+                .orElseGet(() -> applicationRepository.findByStudent_IdAndStatusInOrderByIdDesc(
+                        studentId, ApplicationStatus.LIVE_STATUSES));
+
+        if (live.isEmpty()) {
+            throw new ApplicationNotApprovedException(
+                    "Documents can only be reviewed while the student has an active application");
+        }
+
+        long distinctTenants = live.stream().map(Application::getTenantId).distinct().count();
+        if (distinctTenants > 1) {
+            log.warn("action=ambiguousDocumentReview studentId={} tenants={}", studentId, distinctTenants);
+            throw new IllegalStateException(
+                    "This student has active applications with more than one property company, so "
+                            + "there is no single application to review this document against. "
+                            + "Review it from that company's admin account.");
+        }
+
+        return live.get(0);
     }
 
     @Transactional

@@ -58,6 +58,17 @@ public class ApplicationAdminService {
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     /**
+     * Application statuses that end the application. Reaching one of these releases any allocation
+     * the application still holds (GH-223).
+     *
+     * <p>Student-initiated cancellation is not routed through here and does not need to be: it is
+     * only permitted from PENDING, UNDER_REVIEW and CHANGES_REQUESTED, none of which can hold an
+     * offer.
+     */
+    private static final java.util.Set<ApplicationStatus> TERMINAL_STATUSES =
+            java.util.EnumSet.of(REJECTED, EXPIRED, CANCELLED);
+
+    /**
      * Updates application status with validation and notifications.
      * 
      * @param applicationId Application ID
@@ -108,6 +119,24 @@ public class ApplicationAdminService {
                 log.error(
                         "Failed to trigger notification for application {} - notification will be retried by scheduler",
                         applicationId, e);
+            }
+        }
+
+        // An application that is over must not leave an offer standing. GH-137 stopped a rejected
+        // application being resurrected by an accept or a check-in, but left the state that made
+        // that possible: the OFFERED or ACCEPTED allocation stayed alive, so the room read as
+        // occupied until the hourly sweep and the student kept seeing an offer that would now fail
+        // if they acted on it (GH-223).
+        //
+        // Not wrapped in a try/catch like the notification below: this is part of the decision, not
+        // a side effect of it. If the room cannot be released the status change should not commit
+        // either, rather than leaving the two halves disagreeing.
+        if (newStatus != oldStatus && TERMINAL_STATUSES.contains(newStatus)) {
+            int released = roomAllocationService.releaseOutstandingAllocations(
+                    applicationId, "application " + newStatus);
+            if (released > 0) {
+                log.info("action=allocationsReleasedOnTerminalStatus applicationId={} status={} count={}",
+                        applicationId, newStatus, released);
             }
         }
 

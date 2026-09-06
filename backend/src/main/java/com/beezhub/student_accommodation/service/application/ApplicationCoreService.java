@@ -34,6 +34,7 @@ import com.beezhub.student_accommodation.repository.StudentRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,6 +67,13 @@ public class ApplicationCoreService {
         private final ApplicationMapper applicationMapper;
         private final AuthService authService;
         private final AcademicYearService academicYearService;
+
+        /** The student sees the same sentence whether the pre-check or the index refused. */
+        private static final String DUPLICATE_APPLICATION_MESSAGE =
+                        "You already have an active application with this property company";
+
+        /** Defined in V2026_09_06_1300__unique_active_application_per_student_tenant.sql. */
+        private static final String ACTIVE_APPLICATION_INDEX = "ux_application_student_tenant_active";
 
         @Transactional
         @LogActivity(action = "CREATE", entityType = "APPLICATION", description = "Submitted application for student {0}", entityIdParamIndex = 0)
@@ -176,12 +184,18 @@ public class ApplicationCoreService {
                                         "Missing required documents: " + String.join(", ", missingTypeNames));
                 }
 
-                // Check for existing active application per student per tenant (one per property company)
+                // Check for existing active application per student per tenant (one per property
+                // company). This is the fast path and the source of the message; it is not what
+                // makes the invariant hold. Two concurrent submits both pass this check, which is
+                // why ux_application_student_tenant_active exists and why the insert below is
+                // flushed inside this method (GH-201).
+                //
+                // Keep this list and the index predicate in
+                // V2026_09_06_1300__unique_active_application_per_student_tenant.sql identical.
                 List<ApplicationStatus> activeStatuses = List.of(
                                 PENDING, UNDER_REVIEW, CHANGES_REQUESTED, APPROVED, AWAITING_ALLOCATION, ALLOCATED);
                 if (applicationRepository.existsByStudent_IdAndTenantIdAndStatusIn(studentId, applicationTenantId, activeStatuses)) {
-                        throw new DuplicateApplicationException(
-                                        "You already have an active application with this property company");
+                        throw new DuplicateApplicationException(DUPLICATE_APPLICATION_MESSAGE);
                 }
 
                 // Determine legacy preferred building for the application entity
@@ -208,7 +222,20 @@ public class ApplicationCoreService {
                                 .academicYear(currentYear)
                                 .build();
 
-                Application savedApplication = applicationRepository.save(application);
+                // saveAndFlush, not save: the INSERT would otherwise be deferred to commit, which is
+                // outside this method, and the constraint violation would surface as an unhandled
+                // 500 rather than the duplicate message the student gets on the fast path.
+                Application savedApplication;
+                try {
+                        savedApplication = applicationRepository.saveAndFlush(application);
+                } catch (DataIntegrityViolationException e) {
+                        if (!isDuplicateActiveApplication(e)) {
+                                throw e;
+                        }
+                        log.info("action=duplicateApplicationRejected reason=uniqueIndex student={} tenant={}",
+                                        studentId, applicationTenantId);
+                        throw new DuplicateApplicationException(DUPLICATE_APPLICATION_MESSAGE);
+                }
 
                 // Persist ordered building preferences (buildings already resolved)
                 if (hasMultiPrefs) {
@@ -228,6 +255,25 @@ public class ApplicationCoreService {
                 log.info("Application submitted successfully with code: {}", savedApplication.getApplicationCode());
 
                 return applicationMapper.toResponse(savedApplication);
+        }
+
+        /**
+         * Whether this violation is the one-active-application-per-company index rather than any
+         * other constraint on the table.
+         *
+         * <p>Matched on the index name, which appears in the PostgreSQL detail message, so an
+         * unrelated violation is not reported to the student as a duplicate application. Renaming
+         * the index in the migration without renaming it here turns a 409 back into a 500, which is
+         * why both sides say so.
+         */
+        private static boolean isDuplicateActiveApplication(DataIntegrityViolationException e) {
+                for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+                        String message = cause.getMessage();
+                        if (message != null && message.contains(ACTIVE_APPLICATION_INDEX)) {
+                                return true;
+                        }
+                }
+                return false;
         }
 
         /**

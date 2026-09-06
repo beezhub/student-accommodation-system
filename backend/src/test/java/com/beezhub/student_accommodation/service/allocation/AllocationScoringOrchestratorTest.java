@@ -40,6 +40,15 @@ class AllocationScoringOrchestratorTest {
         @Mock
         private BuildingRepository buildingRepository;
 
+        /**
+         * Real, not a mock: the waiting-list order is what GH-225 changed, and this test asserts
+         * that order. Backed by a rule repository with nothing in it, so the neutral weights apply.
+         */
+        @org.mockito.Spy
+        private ApplicantPriorityScorer applicantPriorityScorer =
+                new ApplicantPriorityScorer(org.mockito.Mockito.mock(
+                        com.beezhub.student_accommodation.repository.AllocationRuleRepository.class));
+
         @InjectMocks
         private AllocationScoringOrchestrator allocationScoringOrchestrator;
 

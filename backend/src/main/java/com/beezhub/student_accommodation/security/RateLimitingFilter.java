@@ -1,6 +1,5 @@
 package com.beezhub.student_accommodation.security;
 
-import com.beezhub.student_accommodation.exceptions.AccountLockedException;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,10 +9,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.util.List;
@@ -26,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 public class RateLimitingFilter extends OncePerRequestFilter {
 
     private final StringRedisTemplate redisTemplate;
-    private final HandlerExceptionResolver handlerExceptionResolver;
+    private final FilterErrorResponseWriter errorResponseWriter;
 
     private static final String RATE_LIMIT_PREFIX = "rate_limit:ip:";
 
@@ -80,13 +79,13 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
                 if (count != null && count > maxRequestsPerMinute) {
                     log.warn("Rate limit exceeded for IP: {}", clientIp);
-                    // Use HandlerExceptionResolver to throw 429
-                    // We reuse AccountLockedException or create a specific RateLimitExceededException
-                    // The task says "map lockout to 429", so AccountLockedException works, 
-                    // or better, a dedicated RateLimitException mapped to 429.
-                    // For now, I'll use a new RateLimitExceededException.
-                    handlerExceptionResolver.resolveException(request, response, null, 
-                        new AccountLockedException("Too many requests. Please try again later."));
+                    // This handed an AccountLockedException to the shared HandlerExceptionResolver
+                    // with a null handler. RestResponseExceptionHandler carries basePackages, so no
+                    // advice was applicable, resolveException returned null and the filter returned
+                    // having written nothing at all: a rate-limited caller got 200 with an empty
+                    // body rather than a 429 (GH-204).
+                    errorResponseWriter.write(request, response, HttpStatus.TOO_MANY_REQUESTS,
+                            "Too many requests. Please try again later.");
                     return;
                 }
             } catch (Exception e) {

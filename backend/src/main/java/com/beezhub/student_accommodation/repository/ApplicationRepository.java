@@ -25,6 +25,19 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
      List<Application> findByStudent_Id(Long studentId);
 
      /**
+      * Applications for a student within one property company, newest first.
+      *
+      * <p>tenantId is an explicit parameter rather than left to the Hibernate tenant filter,
+      * because tenant 0 is the sentinel that switches that filter off (GH-231).
+      */
+     List<Application> findByStudent_IdAndTenantIdAndStatusInOrderByIdDesc(
+                     Long studentId, Long tenantId, Collection<ApplicationStatus> statuses);
+
+     /** Applications for a student across every property company, newest first. */
+     List<Application> findByStudent_IdAndStatusInOrderByIdDesc(
+                     Long studentId, Collection<ApplicationStatus> statuses);
+
+     /**
       * Everything {@code ApplicationMapper} dereferences, fetched in one query.
       *
       * <p>The mapper reads {@code student.appUser}, {@code preferredBuilding} and each building

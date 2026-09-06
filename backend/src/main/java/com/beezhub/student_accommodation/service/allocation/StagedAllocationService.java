@@ -1,5 +1,11 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
+import com.beezhub.student_accommodation.exceptions.RoomCapacityExceededException;
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
+import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
+import com.beezhub.student_accommodation.exceptions.AllocationConstraintViolationException;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
 import com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException;
@@ -201,7 +207,7 @@ public class StagedAllocationService {
 
     private StagedAllocation getStagedAllocation(Long id) {
         StagedAllocation staged = stagedAllocationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Staged allocation not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Staged allocation not found: " + id));
         tenantOwnershipGuard.assertOwned(staged, "Staged allocation", id);
         return staged;
     }
@@ -220,19 +226,21 @@ public class StagedAllocationService {
 
     private AppUser getAdmin(Long id) {
         return appUserRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Admin not found: " + id));
+                .orElseThrow(() -> new UserNotFoundException("Admin not found: " + id));
     }
 
     private void validateStagedStatus(StagedAllocation staged, StagedAllocationStatus expected) {
         if (staged.getStatus() != expected) {
-            throw new RuntimeException("Invalid status: " + staged.getStatus() + ", expected: " + expected);
+            throw new InvalidStatusException(
+                    "Invalid status: " + staged.getStatus() + ", expected: " + expected);
         }
     }
 
     private void validateRoomCapacity(Room room) {
         long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
         if (activeAllocations >= room.getCapacity()) {
-            throw new RuntimeException("Room " + room.getRoomNumber() + " is at full capacity");
+            throw new RoomCapacityExceededException(
+                    "Room " + room.getRoomNumber() + " is at full capacity");
         }
     }
 
@@ -416,7 +424,8 @@ public class StagedAllocationService {
                 effectiveBuilding);
         if (scoredRooms.isEmpty()) {
             waitingListService.enqueueWaitingList(student, application);
-            throw new RuntimeException("No available rooms for student; added to waiting list");
+            throw new AllocationConstraintViolationException(
+                    "No available rooms for student; added to waiting list");
         }
 
         ScoredRoom bestRoom = scoredRooms.get(0);
@@ -448,7 +457,7 @@ public class StagedAllocationService {
     private void validateNoPendingProposal(Long studentId) {
         if (stagedAllocationRepository.findByStudent_IdAndStatus(studentId, StagedAllocationStatus.PROPOSED)
                 .isPresent()) {
-            throw new RuntimeException("Student already has a pending proposal");
+            throw new DuplicateResourceException("Student already has a pending proposal");
         }
     }
 

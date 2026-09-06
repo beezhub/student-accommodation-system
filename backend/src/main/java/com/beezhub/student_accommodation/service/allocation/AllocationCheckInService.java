@@ -11,6 +11,9 @@ import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
+import com.beezhub.student_accommodation.model.entity.AppUser;
+import com.beezhub.student_accommodation.model.enums.AllocationAuditActionType;
+import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -31,13 +35,28 @@ public class AllocationCheckInService {
     private final UserNotificationService userNotificationService;
     private final ApplicationEventPublisher eventPublisher;
     private final RoomOccupancyManager roomOccupancyManager;
+    private final AllocationAuditService allocationAuditService;
+    private final AuthService authService;
 
+    /** Human-readable form for the deadline echoed to the admin who is past it. */
+    private static final DateTimeFormatter CHECK_IN_DEADLINE_FORMAT =
+            DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm");
+
+    /** Recorded in the audit log's constraint_bypassed column when an admin overrides. */
+    static final String CHECK_IN_DEADLINE_CONSTRAINT = "CHECK_IN_DEADLINE";
+
+    /**
+     * Checks a student in, refusing once the check-in deadline has passed.
+     *
+     * @param overrideDeadline lets an admin check a student in anyway. Recorded in the audit log.
+     */
     @Transactional
-    public RoomAllocationResponse confirmCheckIn(Long id) {
+    public RoomAllocationResponse confirmCheckIn(Long id, boolean overrideDeadline) {
         log.info("Confirming check-in for allocation with id: {}", id);
         RoomAllocation allocation = getAllocation(id);
 
         AllocationStatusValidator.validate(allocation, AllocationStatus.ACTIVE);
+        boolean pastDeadline = assertWithinCheckInDeadline(allocation, overrideDeadline);
         // After the allocation guard, so an illegal allocation transition still reports as such
         // rather than being masked by the application state (GH-137).
         ApplicationStatusValidator.validate(allocation.getApplication(),
@@ -54,7 +73,11 @@ public class AllocationCheckInService {
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
         log.info("Successfully checked in allocation with id: {}", id);
-        
+
+        if (pastDeadline) {
+            recordDeadlineOverride(saved);
+        }
+
         try {
             if (allocation.getStudent() != null && allocation.getStudent().getAppUser() != null) {
                 userNotificationService.createCheckInConfirmedNotification(
@@ -69,6 +92,60 @@ public class AllocationCheckInService {
         }
         
         return roomAllocationMapper.toResponse(saved);
+    }
+
+    /**
+     * Refuses a check-in past its deadline unless the admin has explicitly overridden it.
+     *
+     * <p>{@code confirmCheckIn} never read {@code checkInExpiryDate}, so the only thing enforcing
+     * the deadline was the hourly sweep and an ACCEPTED allocation stayed checkable-in for up to an
+     * hour past it. This is the same gap the offer deadline had before GH-139, but the remedy
+     * differs because this endpoint is admin-triggered rather than student-triggered: an admin
+     * checking someone in slightly late is a judgement they may legitimately want to make, so it is
+     * refused by default and permitted deliberately, not silently allowed (GH-197).
+     *
+     * <p>{@code isBefore} matches the predicate the sweep query uses, so there is no instant at
+     * which one admits a row the other would expire. A null deadline is treated as no deadline, for
+     * the same reason: a null row is equally invisible to the sweep.
+     *
+     * @return whether the deadline had passed, so the caller can record the override
+     */
+    private boolean assertWithinCheckInDeadline(RoomAllocation allocation, boolean overrideDeadline) {
+        LocalDateTime deadline = allocation.getCheckInExpiryDate();
+        if (deadline == null || !deadline.isBefore(LocalDateTime.now())) {
+            return false;
+        }
+        if (!overrideDeadline) {
+            log.warn("action=checkInRejected reason=deadlinePassed allocationId={} checkInExpiryDate={}",
+                    allocation.getId(), deadline);
+            throw new IllegalStateException("The check-in deadline for this allocation passed on "
+                    + deadline.format(CHECK_IN_DEADLINE_FORMAT)
+                    + ". Check in anyway by confirming the override, which is recorded against the "
+                    + "allocation.");
+        }
+        log.warn("action=checkInDeadlineOverridden allocationId={} checkInExpiryDate={}",
+                allocation.getId(), deadline);
+        return true;
+    }
+
+    /** Writes the override to the allocation's audit trail, so a late check-in is traceable. */
+    private void recordDeadlineOverride(RoomAllocation allocation) {
+        AppUser admin = null;
+        try {
+            admin = authService.getCurrentUser();
+        } catch (RuntimeException e) {
+            // An unresolvable caller must not lose the record that an override happened.
+            log.warn("action=checkInOverrideAdminUnresolved allocationId={}", allocation.getId());
+        }
+        allocationAuditService.logAuditActionWithConstraint(
+                allocation,
+                AllocationAuditActionType.OVERRIDE,
+                admin,
+                "Checked in after the deadline of "
+                        + allocation.getCheckInExpiryDate().format(CHECK_IN_DEADLINE_FORMAT),
+                null,
+                allocation.getRoom(),
+                CHECK_IN_DEADLINE_CONSTRAINT);
     }
 
     @Transactional

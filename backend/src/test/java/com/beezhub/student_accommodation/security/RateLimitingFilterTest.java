@@ -6,8 +6,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -16,10 +19,10 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -43,9 +46,12 @@ class RateLimitingFilterTest {
     @Mock
     private ValueOperations<String, String> valueOperations;
     @Mock
-    private HandlerExceptionResolver handlerExceptionResolver;
-    @Mock
     private FilterChain chain;
+
+    /** Real, not a mock: the point of GH-204 is what actually reaches the client. */
+    @Spy
+    private FilterErrorResponseWriter errorResponseWriter =
+            new FilterErrorResponseWriter(new ObjectMapper().registerModule(new JavaTimeModule()));
 
     @InjectMocks
     private RateLimitingFilter filter;
@@ -107,13 +113,21 @@ class RateLimitingFilterTest {
         verify(valueOperations).increment("rate_limit:ip:198.51.100.9");
     }
 
+    /**
+     * This used to assert only that the exception was handed to the HandlerExceptionResolver, which
+     * it was — and which did nothing, because the advice carries basePackages. The caller got 200
+     * with an empty body. Assert the response itself, so that cannot pass again (GH-204).
+     */
     @Test
-    void overTheCeiling_theRequestIsRejected() throws Exception {
+    void overTheCeiling_theRequestIsRejectedWithA429AndABody() throws Exception {
         when(valueOperations.increment(anyString())).thenReturn(31L);
+        MockHttpServletResponse response = new MockHttpServletResponse();
 
-        filter.doFilter(request("/api/auth/login", CLIENT_IP, null), new MockHttpServletResponse(), chain);
+        filter.doFilter(request("/api/auth/login", CLIENT_IP, null), response, chain);
 
-        verify(handlerExceptionResolver).resolveException(any(), any(), any(), any());
+        assertThat(response.getStatus()).isEqualTo(429);
+        assertThat(response.getContentAsString()).contains("Too many requests");
+        assertThat(response.getContentType()).startsWith("application/json");
         verify(chain, never()).doFilter(any(), any());
     }
 

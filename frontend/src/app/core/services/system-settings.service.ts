@@ -25,11 +25,9 @@ export class SystemSettingsService {
     return this.http.delete<void>(`${this.apiUrl}/${key}`);
   }
 
-  isAutoAllocationEnabled(): Observable<boolean> {
-    return this.getSettings().pipe(
-      map((settings) => settings['auto_allocation_enabled'] === 'true')
-    );
-  }
+  // isAutoAllocationEnabled() lived here and read the `auto_allocation_enabled` setting. Auto-
+  // allocation is gated by the FF4j `auto-allocation` flag alone now, and that row is deleted, so
+  // this would have returned false forever (GH-207). Read the flag through FeatureFlagService.
 
   /**
    * Fetches a single setting value via the public (authenticated) endpoint.

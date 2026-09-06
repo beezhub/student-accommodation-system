@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.notification;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.model.dto.UserNotificationResponse;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ public class SseService {
 
     public SseEmitter subscribeByEmail(String email) {
         Long userId = appUserRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"))
+                .orElseThrow(() -> new UserNotFoundException("User not found"))
                 .getId();
         return subscribe(userId);
     }

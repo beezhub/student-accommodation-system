@@ -12,7 +12,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
+import com.beezhub.student_accommodation.security.FilterErrorResponseWriter;
 
 import java.io.IOException;
 import java.util.stream.Collectors;
@@ -26,7 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final com.beezhub.student_accommodation.service.TokenBlacklistService tokenBlacklistService;
-    private final HandlerExceptionResolver handlerExceptionResolver;
+    private final FilterErrorResponseWriter errorResponseWriter;
 
     @Override
     protected void doFilterInternal(
@@ -90,9 +90,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
 
         } catch (Exception e) {
-            // Delegate exception handling to the global exception resolver
-            // (RestResponseExceptionHandler)
-            handlerExceptionResolver.resolveException(request, response, null, e);
+            // This used to delegate to the shared HandlerExceptionResolver with a null handler, but
+            // RestResponseExceptionHandler is a @ControllerAdvice with basePackages, and
+            // ControllerAdviceBean.isApplicableToBeanType(null) is false for any advice carrying
+            // selectors. So nothing handled it and the request fell through to the container error
+            // page, whose body shape the frontend cannot read. Write the ErrorResponse here
+            // instead (GH-204).
+            errorResponseWriter.write(request, response, e);
         } finally {
             com.beezhub.student_accommodation.service.tenant.TenantContext.clear();
         }

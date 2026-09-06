@@ -163,9 +163,12 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
          * exceptions and deletes the clause.
          */
         private static boolean carriesClientSafeMessage(RuntimeException ex) {
-                Class<?> type = ex.getClass();
-                return type == RuntimeException.class
-                                || type.getName().startsWith("com.beezhub.student_accommodation.");
+                // java.lang.RuntimeException itself used to be listed here, because 53 sites threw
+                // it with user-facing text that admin dialogs render directly. Those sites now
+                // throw domain or infrastructure exceptions (GH-205), so the allowance is gone —
+                // and with it the risk that a third-party library throwing a bare RuntimeException
+                // with sensitive text has that text echoed to a client.
+                return ex.getClass().getName().startsWith("com.beezhub.student_accommodation.");
         }
 
         /**
@@ -529,14 +532,59 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                 return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
+        /**
+         * Object storage failed. 503 rather than 500: the caller did nothing wrong and the request
+         * may succeed later.
+         *
+         * <p>The message is no longer echoed. These carry the object key and MinIO's own driver
+         * text, which is internal detail the caller cannot act on (GH-205).
+         */
         @ExceptionHandler(FileStorageException.class)
         public ResponseEntity<ErrorResponse> handleFileStorageException(FileStorageException ex, WebRequest request) {
-                ErrorResponse errorResponse = new ErrorResponse(
+                String reference = reference();
+                log.error("action=fileStorageFailure reference={} path={}",
+                                reference, request.getDescription(false), ex);
+                return new ResponseEntity<>(new ErrorResponse(
                                 LocalDateTime.now(),
                                 HttpStatus.SERVICE_UNAVAILABLE.value(),
+                                "File storage is temporarily unavailable. Reference: " + reference,
+                                request.getDescription(false)), HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
+        /**
+         * A service this application depends on failed: mail, report generation, or similar.
+         *
+         * <p>These were bare RuntimeExceptions, which GH-149 had to treat as carrying a client-safe
+         * message, so an SMTP outage answered 400 with the driver's text and never showed up in 5xx
+         * alerting. 503 with a fixed sentence and a reference, detail in the log (GH-205).
+         */
+        @ExceptionHandler(ExternalServiceException.class)
+        public ResponseEntity<ErrorResponse> handleExternalService(
+                        ExternalServiceException ex, WebRequest request) {
+                String reference = reference();
+                log.error("action=externalServiceFailure reference={} path={}",
+                                reference, request.getDescription(false), ex);
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                                "A service this action depends on is temporarily unavailable. Reference: "
+                                                + reference,
+                                request.getDescription(false)), HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
+        /**
+         * An allocation refused by a rule about rooms and students rather than by a status
+         * transition. The message is written for the administrator who triggered it.
+         */
+        @ExceptionHandler(AllocationConstraintViolationException.class)
+        public ResponseEntity<ErrorResponse> handleAllocationConstraint(
+                        AllocationConstraintViolationException ex, WebRequest request) {
+                log.warn("action=allocationConstraintViolation path={}", request.getDescription(false));
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
                                 ex.getMessage(),
-                                request.getDescription(false));
-                return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
+                                request.getDescription(false)), HttpStatus.CONFLICT);
         }
 
         @Override

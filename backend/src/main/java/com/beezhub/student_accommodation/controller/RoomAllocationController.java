@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
@@ -121,17 +122,40 @@ public class RoomAllocationController {
                 return ResponseEntity.ok(roomAllocationService.declineOffer(id, request));
         }
 
+        @PostMapping("/{id}/extend-offer")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+        @Operation(
+                summary = "Extend an offer's response deadline",
+                description = "Moves the deadline on an outstanding offer, so a student who missed it can "
+                              + "still accept. Admin only, and recorded against the allocation with the "
+                              + "reason given. The new deadline must be in the future and no later than a "
+                              + "fresh offer would give. Only while the offer is still OFFERED: once the "
+                              + "expiry sweep has run the room is released and the student must be "
+                              + "allocated a room again."
+        )
+        public ResponseEntity<RoomAllocationResponse> extendOffer(
+                        @PathVariable Long id,
+                        @Valid @RequestBody ExtendOfferRequest request) {
+                log.info("Extending offer deadline for allocation {} to {}", id, request.newExpiryDate());
+                return ResponseEntity.ok(roomAllocationService.extendOfferDeadline(
+                                id, request.newExpiryDate(), request.reason()));
+        }
+
         @PostMapping("/{id}/check-in")
         @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(
                 summary = "Check in student", 
                 description = "Confirms student physical arrival and activates the allocation. " +
                               "Sets allocation status to ACTIVE and application status to CHECKED_IN. " +
-                              "This should be done when the student arrives and receives room keys. Admin only."
+                              "This should be done when the student arrives and receives room keys. Admin only. " +
+                              "Refused once the check-in deadline has passed; pass overrideDeadline=true to " +
+                              "check the student in anyway, which is recorded against the allocation."
         )
-        public ResponseEntity<RoomAllocationResponse> checkIn(@PathVariable Long id) {
-                log.info("Checking in allocation with id: {}", id);
-                return ResponseEntity.ok(roomAllocationService.confirmCheckIn(id));
+        public ResponseEntity<RoomAllocationResponse> checkIn(
+                        @PathVariable Long id,
+                        @RequestParam(name = "overrideDeadline", defaultValue = "false") boolean overrideDeadline) {
+                log.info("Checking in allocation with id: {} overrideDeadline={}", id, overrideDeadline);
+                return ResponseEntity.ok(roomAllocationService.confirmCheckIn(id, overrideDeadline));
         }
 
         @PostMapping("/{id}/check-out")
@@ -254,7 +278,7 @@ public class RoomAllocationController {
 
         private Long getAdminId(Authentication authentication) {
                 return appUserRepository.findByEmail(authentication.getName())
-                                .orElseThrow(() -> new RuntimeException("Admin user not found"))
+                                .orElseThrow(() -> new UserNotFoundException("Admin user not found"))
                                 .getId();
         }
 }

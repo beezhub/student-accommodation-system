@@ -1,5 +1,7 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.exceptions.InvalidAllocationStatusTransitionException;
+import com.beezhub.student_accommodation.exceptions.AllocationConstraintViolationException;
 import com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.RoomCapacityExceededException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
@@ -76,7 +78,7 @@ public class AllocationMoveService {
 
     private void validateMoveEligibility(RoomAllocation allocation) {
         if (!"ACTIVE".equals(allocation.getStatus().name())) {
-            throw new RuntimeException("Can only move ACTIVE allocations");
+            throw new InvalidAllocationStatusTransitionException("Can only move ACTIVE allocations");
         }
     }
 
@@ -92,7 +94,8 @@ public class AllocationMoveService {
 
     private void validateHardConstraints(Student student, Room room) {
         if (!allocationScoringService.validateHardConstraints(student, room, false)) {
-            throw new RuntimeException("New room does not meet hard constraints for student");
+            throw new AllocationConstraintViolationException(
+                    "New room does not meet hard constraints for student");
         }
     }
 

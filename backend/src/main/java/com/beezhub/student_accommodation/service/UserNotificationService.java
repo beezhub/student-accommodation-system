@@ -346,6 +346,29 @@ public class UserNotificationService {
     }
 
     /**
+     * Creates an in-app notification when an administrator moves an offer's deadline.
+     *
+     * <p>The student was told a date when the offer was made; without this they would keep acting
+     * on the old one, which is the opposite of what the extension is for (GH-198).
+     *
+     * @param userId        The app user ID
+     * @param roomNumber    The room number
+     * @param newDeadline   The new deadline, already formatted for reading
+     */
+    @Transactional
+    public void createOfferExtendedNotification(Long userId, String roomNumber, String newDeadline) {
+        createNotification(
+                userId,
+                "OFFER_EXTENDED",
+                "Room Offer Deadline Extended",
+                String.format("The deadline to respond to your offer for Room %s has been extended to %s. "
+                        + "Please log in and respond before then to keep your room.", roomNumber, newDeadline),
+                null);
+
+        log.info("Created offer extended notification for user {}, room {}", userId, roomNumber);
+    }
+
+    /**
      * Creates an in-app notification when check-in deadline is missed.
      *
      * @param userId       The app user ID

@@ -71,6 +71,17 @@ class AllocationBatchServiceTest {
     private RoomAllocationMapper roomAllocationMapper;
     @Mock
     private AllocationScoringOrchestrator allocationScoringOrchestrator;
+
+    /**
+     * Real, not a mock: the queue order is what GH-225 changed, and a stubbed scorer would assert
+     * nothing about it. Backed by a mock repository that returns no rule, so the neutral weights
+     * apply and ordering falls to arrival then id — the order these fixtures already expected.
+     */
+    @org.mockito.Spy
+    private ApplicantPriorityScorer applicantPriorityScorer =
+            new ApplicantPriorityScorer(org.mockito.Mockito.mock(
+                    com.beezhub.student_accommodation.repository.AllocationRuleRepository.class));
+
     @Mock
     private FeatureFlagService featureFlagService;
     @Mock

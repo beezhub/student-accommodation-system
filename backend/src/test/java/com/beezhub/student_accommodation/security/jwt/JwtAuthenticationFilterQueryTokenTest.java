@@ -1,6 +1,9 @@
 package com.beezhub.student_accommodation.security.jwt;
 
+import com.beezhub.student_accommodation.security.FilterErrorResponseWriter;
 import com.beezhub.student_accommodation.service.TokenBlacklistService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,13 +11,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.util.List;
 
@@ -41,9 +44,11 @@ class JwtAuthenticationFilterQueryTokenTest {
     @Mock
     private TokenBlacklistService tokenBlacklistService;
     @Mock
-    private HandlerExceptionResolver handlerExceptionResolver;
-    @Mock
     private FilterChain chain;
+
+    @Spy
+    private FilterErrorResponseWriter errorResponseWriter =
+            new FilterErrorResponseWriter(new ObjectMapper().registerModule(new JavaTimeModule()));
 
     @InjectMocks
     private JwtAuthenticationFilter filter;

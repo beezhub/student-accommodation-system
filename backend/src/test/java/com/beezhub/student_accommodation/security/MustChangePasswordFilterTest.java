@@ -1,6 +1,8 @@
 package com.beezhub.student_accommodation.security;
 
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,6 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -31,6 +34,10 @@ class MustChangePasswordFilterTest {
     @Mock
     private FilterChain chain;
 
+    @Spy
+    private FilterErrorResponseWriter errorResponseWriter =
+            new FilterErrorResponseWriter(new ObjectMapper().registerModule(new JavaTimeModule()));
+
     @InjectMocks
     private MustChangePasswordFilter filter;
 
@@ -51,7 +58,12 @@ class MustChangePasswordFilterTest {
         filter.doFilter(request("GET", "/api/admin/users", true), response, chain);
 
         assertThat(response.getStatus()).isEqualTo(403);
-        assertThat(response.getContentAsString()).contains("must change your password");
+        // The body used to be a hand-written JSON literal with its own field names. It is an
+        // ErrorResponse now, the one shape the frontend reads (GH-204).
+        assertThat(response.getContentAsString())
+                .contains("must change your password")
+                .contains("\"errors\"")
+                .contains("\"path\":\"/api/admin/users\"");
         verify(chain, never()).doFilter(any(), any());
     }
 

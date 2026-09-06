@@ -203,8 +203,46 @@ export class RoomAllocationService {
     });
   }
 
-  checkIn(id: number): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/check-in`, {});
+  /**
+   * Moves an outstanding offer's response deadline, so a student who missed it can still accept.
+   *
+   * <p>Admin only, and recorded against the allocation with the reason given. Refused once the
+   * expiry sweep has flipped the offer to EXPIRED, because the room has been released by then
+   * (GH-198).
+   *
+   * <p>Silent because the caller decides what to say: the backend's refusals are specific and
+   * worth showing verbatim rather than behind a generic snackbar.
+   */
+  extendOffer(
+    id: number,
+    newExpiryDate: string,
+    reason: string
+  ): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(
+      `${this.apiUrl}/${id}/extend-offer`,
+      { newExpiryDate, reason },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
+  }
+
+  /**
+   * Confirms a student's arrival.
+   *
+   * <p>Refused with 409 once the check-in deadline has passed. Pass overrideDeadline to check the
+   * student in anyway; the backend records that against the allocation's audit trail (GH-197).
+   *
+   * <p>Silent because the caller decides what to say: a passed deadline is a question to put to
+   * the admin, not an error to flash at them.
+   */
+  checkIn(id: number, overrideDeadline = false): Observable<RoomAllocationResponse> {
+    const params = overrideDeadline
+      ? new HttpParams().set('overrideDeadline', 'true')
+      : new HttpParams();
+    return this.http.post<RoomAllocationResponse>(
+      `${this.apiUrl}/${id}/check-in`,
+      {},
+      { params, headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   checkOut(id: number): Observable<RoomAllocationResponse> {

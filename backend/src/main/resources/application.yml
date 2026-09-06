@@ -149,6 +149,17 @@ app:
       cron: ${STORAGE_CLEANUP_CRON:0 0 3 * * *}
       # Objects written more recently than this are never treated as orphans; the DB row commits after the object write
       grace-period-minutes: ${STORAGE_CLEANUP_GRACE_MINUTES:60}
+    retention:
+      cron: ${DOCUMENT_RETENTION_CRON:0 30 3 * * *}
+      # How long a student's document pack is kept after their last application closes and their
+      # last tenancy ends. The clock is the student's history, not the upload date: a pack is
+      # reused across applications to different companies, so a live application or a held bed
+      # anywhere keeps everything (GH-235).
+      document-months: ${DOCUMENT_RETENTION_MONTHS:12}
+      # Reporting only until an operator turns this off. Deletion is irreversible and the first run
+      # on an existing deployment acts on the whole backlog at once, so the job logs what it would
+      # delete and deletes nothing. See docs/BACKUP_AND_RESTORE.md before flipping it.
+      dry-run: ${DOCUMENT_RETENTION_DRY_RUN:true}
 async:
   core-pool-size: ${ASYNC_CORE_POOL_SIZE:10}
   max-pool-size: ${ASYNC_MAX_POOL_SIZE:20}

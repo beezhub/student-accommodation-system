@@ -1,0 +1,22 @@
+-- GH-196: accept and the offer-expiry sweep can interleave.
+--
+-- GH-139 enforced the offer deadline on the accept path, which shrank the window from up to an hour
+-- down to milliseconds. It did not close it. RoomAllocation declared no @Version and the accept path
+-- reads through findByIdWithDetails, a plain JOIN FETCH with no lock mode, so this ordering is still
+-- reachable:
+--
+--   1. accept reads the row as OFFERED and passes the deadline guard
+--   2. the sweep commits EXPIRED and decrements the room's occupancy
+--   3. accept commits ACCEPTED over it
+--
+-- The result is an ACCEPTED allocation on a room whose occupancy was already released, and that
+-- undercount lets the room be over-allocated.
+--
+-- A version column makes the second writer's UPDATE match zero rows and fail rather than silently
+-- overwrite. Chosen over a PESSIMISTIC_WRITE read because the accept path is student-facing and
+-- short: a losing writer should be told to reload, not made to wait on a row lock held by an hourly
+-- batch job. Room, Application and Document already carry one, and
+-- RestResponseExceptionHandler already maps the resulting failure to a 409.
+--
+-- DEFAULT 0 backfills every existing row in place, so no separate backfill is needed.
+ALTER TABLE room_allocation ADD COLUMN version BIGINT NOT NULL DEFAULT 0;

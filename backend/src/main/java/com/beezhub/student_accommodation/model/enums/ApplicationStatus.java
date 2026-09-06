@@ -1,5 +1,8 @@
 package com.beezhub.student_accommodation.model.enums;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import lombok.Getter;
 
 @Getter
@@ -19,6 +22,35 @@ public enum ApplicationStatus {
 
     ApplicationStatus(String status) {
         this.status = status;
+    }
+
+    /**
+     * The statuses under which an application is still doing work, and so under which its
+     * supporting documents still matter.
+     *
+     * <p>Lives here because two rules have to agree on it and previously did not.
+     * {@code DocumentLifecycleService} locks an approved document while an application it supports
+     * is live, while document review resolved the application through a lookup that required status
+     * exactly {@code APPROVED}. Approval moves an application to {@code AWAITING_ALLOCATION}
+     * immediately, so the one remedy for a wrongly approved document — an admin rejecting it so the
+     * student can re-upload — was unavailable in precisely the states the lock protects, leaving
+     * deletion as the only unlock and losing the record of what was approved (GH-217).
+     *
+     * <p>Terminal statuses are excluded on purpose: once an application is rejected, expired or
+     * cancelled, nothing depends on the evidence any more.
+     */
+    public static final Set<ApplicationStatus> LIVE_STATUSES = EnumSet.of(
+            PENDING,
+            UNDER_REVIEW,
+            CHANGES_REQUESTED,
+            APPROVED,
+            AWAITING_ALLOCATION,
+            ALLOCATED,
+            CHECKED_IN);
+
+    /** Whether an application in this status is still doing work. See {@link #LIVE_STATUSES}. */
+    public boolean isLive() {
+        return LIVE_STATUSES.contains(this);
     }
 
     public static ApplicationStatus fromString(String status) {

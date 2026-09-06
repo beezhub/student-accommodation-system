@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -38,6 +39,7 @@ public class AllocationBatchService {
     private final StagedAllocationService stagedAllocationService;
     private final RoomAllocationMapper roomAllocationMapper;
     private final MeterRegistry meterRegistry;
+    private final ApplicantPriorityScorer applicantPriorityScorer;
 
     public AllocationBatchService(
             WaitingListRepository waitingListRepository,
@@ -48,7 +50,8 @@ public class AllocationBatchService {
             AllocationScoringOrchestrator allocationScoringOrchestrator,
             StagedAllocationService stagedAllocationService,
             RoomAllocationMapper roomAllocationMapper,
-            MeterRegistry meterRegistry) {
+            MeterRegistry meterRegistry,
+            ApplicantPriorityScorer applicantPriorityScorer) {
         this.waitingListRepository = waitingListRepository;
         this.allocationLifecycleService = allocationLifecycleService;
         this.featureFlagService = featureFlagService;
@@ -58,6 +61,7 @@ public class AllocationBatchService {
         this.stagedAllocationService = stagedAllocationService;
         this.roomAllocationMapper = roomAllocationMapper;
         this.meterRegistry = meterRegistry;
+        this.applicantPriorityScorer = applicantPriorityScorer;
     }
 
     /**
@@ -233,13 +237,16 @@ public class AllocationBatchService {
 
         // Stated here rather than inherited from the repository method name. This is the order
         // AllocationScoringOrchestrator.getWaitingListWithScores renders, and the two must not
-        // drift: the admin screen showing one order while the job serves another is GH-140.
+        // drift: the admin screen showing one order while the job serves another is GH-140. Both
+        // now go through ApplicantPriorityScorer for exactly that reason.
+        //
+        // This used to sort on createdAt alone, so the queue was pure first-come-first-served and
+        // none of the configured weights could influence who was served first (GH-225).
         List<WaitingListEntry> queue = new ArrayList<>(entries);
-        queue.sort(Comparator
-                .comparing(WaitingListEntry::getCreatedAt,
-                        Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(WaitingListEntry::getId,
-                        Comparator.nullsLast(Comparator.naturalOrder())));
+        LocalDateTime scoredAt = LocalDateTime.now();
+        Map<Long, BigDecimal> priorities = applicantPriorityScorer.priorityByEntryId(
+                queue, applicantPriorityScorer.tenantRule(), scoredAt);
+        queue.sort(applicantPriorityScorer.queueOrder(priorities));
 
         List<AllocationPair> pairs = new ArrayList<>();
         for (WaitingListEntry entry : queue) {

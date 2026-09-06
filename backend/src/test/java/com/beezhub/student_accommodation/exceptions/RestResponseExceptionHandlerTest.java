@@ -64,13 +64,22 @@ class RestResponseExceptionHandlerTest {
     }
 
     /**
-     * The no-regression proof for the 53 sites in main that throw a bare RuntimeException carrying
-     * user-facing text. They must keep their message and their 400 exactly as before (GH-149).
+     * The inverse of what this asserted before. GH-149 had to treat java.lang.RuntimeException as
+     * carrying a client-safe message, because 53 sites in main threw it with user-facing text.
+     * Those sites now throw domain or infrastructure exceptions (GH-205), so a bare RuntimeException
+     * is once again what it looks like: something unplanned, whose text is not ours and must not be
+     * echoed.
      */
     @Test
-    void handleRuntimeException_applicationThrown_keepsMessageAndStatus() {
-        ResponseEntity<ErrorResponse> response = exceptionHandler.handleRuntimeException(new RuntimeException("Runtime error"), webRequest);
-        assertErrorResponse(response, HttpStatus.BAD_REQUEST, "Runtime error");
+    void handleRuntimeException_bareRuntimeException_isNoLongerTreatedAsClientSafe() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleRuntimeException(
+                new RuntimeException("connection string jdbc:postgresql://db:5432 with password hunter2"),
+                webRequest);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        String message = response.getBody().getErrors().get(0);
+        assertTrue(message.startsWith("An unexpected error occurred"));
+        assertFalse(message.contains("hunter2"));
     }
 
     /** A domain exception without its own handler also keeps its message. */
@@ -127,11 +136,25 @@ class RestResponseExceptionHandlerTest {
      * A RuntimeException with no message used to make List.of throw inside the handler, so the
      * request fell through to the container error page. The guard now lives in ErrorResponse, which
      * every handler builds its body through.
+     *
+     * <p>The status is 500 rather than the 400 it was: a bare RuntimeException is no longer treated
+     * as carrying a client-safe message (GH-205). What this test is about — that a null message does
+     * not blow up the handler itself — is unchanged.
      */
     @Test
     void handleRuntimeException_nullMessage_doesNotThrow() {
         ResponseEntity<ErrorResponse> response = assertDoesNotThrow(
                 () -> exceptionHandler.handleRuntimeException(new RuntimeException(), webRequest));
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody().getErrors().get(0));
+    }
+
+    /** A domain exception with no message must not blow up the handler either. */
+    @Test
+    void handleRuntimeException_domainExceptionWithNullMessage_doesNotThrow() {
+        ResponseEntity<ErrorResponse> response = assertDoesNotThrow(
+                () -> exceptionHandler.handleRuntimeException(
+                        new ResourceNotFoundException(null), webRequest));
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody().getErrors().get(0));
     }
@@ -374,10 +397,16 @@ class RestResponseExceptionHandlerTest {
         assertErrorResponse(response, HttpStatus.UNPROCESSABLE_ENTITY, "Validation failed");
     }
     
+    /**
+     * Still 503, but the message is no longer echoed: these carry the object key and MinIO's driver
+     * text, which the caller cannot act on (GH-205). The detail-hiding is asserted separately in
+     * handleFileStorage_isServiceUnavailableAndHidesTheObjectKey.
+     */
     @Test
     void handleFileStorageException() {
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleFileStorageException(new FileStorageException("Storage failed"), webRequest);
-        assertErrorResponse(response, HttpStatus.SERVICE_UNAVAILABLE, "Storage failed");
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertTrue(response.getBody().getErrors().get(0).contains("temporarily unavailable"));
     }
 
     @Test
@@ -395,5 +424,52 @@ class RestResponseExceptionHandlerTest {
         ErrorResponse errorResponse = (ErrorResponse) response.getBody();
         assertEquals(HttpStatus.BAD_REQUEST.value(), errorResponse.getStatus());
         assertEquals("Invalid value", errorResponse.getErrors().get(0));
+    }
+
+    // ── GH-205: infrastructure failures are 503, and say nothing about the infrastructure ─────
+
+    /**
+     * An SMTP outage used to answer 400 with the mail driver's own text, because the site threw a
+     * bare RuntimeException and GH-149 had to treat that as client-safe. A client error is also
+     * invisible to 5xx alerting, so nobody was told the mail server was down.
+     */
+    @Test
+    void handleExternalService_isServiceUnavailableAndHidesTheDetail() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleExternalService(
+                new ExternalServiceException(
+                        "Failed to send email",
+                        new IllegalStateException("smtp.internal.example:587 auth failed for postmaster")),
+                webRequest);
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        String message = response.getBody().getErrors().get(0);
+        assertTrue(message.contains("temporarily unavailable"));
+        assertFalse(message.contains("smtp.internal.example"));
+        assertFalse(message.contains("postmaster"));
+    }
+
+    /** Storage failures carry the object key and the driver's text; neither is the caller's business. */
+    @Test
+    void handleFileStorage_isServiceUnavailableAndHidesTheObjectKey() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleFileStorageException(
+                new FileStorageException("Error uploading file to MinIO: student/12/passport-scan.pdf"),
+                webRequest);
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        String message = response.getBody().getErrors().get(0);
+        assertTrue(message.contains("temporarily unavailable"));
+        assertFalse(message.contains("passport-scan"));
+    }
+
+    /** An allocation rule refusal is the admin's to act on, so its message is theirs to read. */
+    @Test
+    void handleAllocationConstraint_isConflictAndKeepsTheMessage() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleAllocationConstraint(
+                new AllocationConstraintViolationException(
+                        "New room does not meet hard constraints for student"),
+                webRequest);
+
+        assertErrorResponse(response, HttpStatus.CONFLICT,
+                "New room does not meet hard constraints for student");
     }
 }

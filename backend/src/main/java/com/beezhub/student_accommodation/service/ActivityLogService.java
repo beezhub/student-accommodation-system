@@ -1,5 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.ExternalServiceException;
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.model.dto.ActivityLogPageResponse;
 import com.beezhub.student_accommodation.model.dto.ActivityLogResponse;
 import com.beezhub.student_accommodation.model.entity.ActivityLog;
@@ -125,7 +127,7 @@ public class ActivityLogService {
         log.debug("Logging activity - user: {}, action: {}, entityType: {}", userId, action, entityType);
 
         AppUser user = appUserRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         String metadataJson = null;
         if (metadata != null && !metadata.isEmpty()) {
@@ -162,7 +164,7 @@ public class ActivityLogService {
             HttpServletRequest request
     ) {
         AppUser user = appUserRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         String ipAddress = getClientIpAddress(request);
 
@@ -251,7 +253,7 @@ public class ActivityLogService {
             return baos.toByteArray();
         } catch (Exception e) {
             log.error("Failed to generate CSV", e);
-            throw new RuntimeException("Failed to generate CSV export", e);
+            throw new ExternalServiceException("Failed to generate CSV export", e);
         }
     }
 

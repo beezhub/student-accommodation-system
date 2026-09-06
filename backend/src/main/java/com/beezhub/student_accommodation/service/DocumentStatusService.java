@@ -51,7 +51,11 @@ public class DocumentStatusService {
         DocumentStatus oldStatus = document.getDocumentStatus();
         DocumentStatus newStatus = parseDocumentStatus(status);
 
-        Application application = applicationDocumentCoordinator.findApprovedApplication(document.getStudent().getId());
+        // Scoped to the reviewing admin's company. Unscoped, this returned whichever approved
+        // application the database happened to hand back, which for a platform admin could belong
+        // to a different company from the one reviewing the document (GH-231).
+        Application application = applicationDocumentCoordinator.findReviewableApplication(
+                document.getStudent().getId(), documentAccessGuard.tenantScopeOf(user));
 
         document.setDocumentStatus(newStatus);
         Document updatedDocument;

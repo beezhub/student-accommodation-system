@@ -11,7 +11,8 @@ import com.beezhub.student_accommodation.exceptions.RoomCapacityExceededExceptio
 import com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.service.allocation.ScoringStrategy;
-import com.beezhub.student_accommodation.service.SystemSettingService;
+import com.beezhub.student_accommodation.config.FF4jConfig;
+import com.beezhub.student_accommodation.service.FeatureFlagService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.service.application.ApplicationDocumentService;
 import lombok.RequiredArgsConstructor;
@@ -27,13 +28,17 @@ import java.util.List;
  * Extracted from RoomAllocationService (Strangler Pattern) to keep the facade lean.
  * Called when an application transitions to APPROVED status and the auto-allocation
  * feature flag is enabled.
+ *
+ * <p>That flag — FF4j {@code auto-allocation}, toggled at {@code /api/admin/features} — is the one
+ * switch for auto-allocation. The batch path reads the same one. There was a second, unconnected
+ * {@code auto_allocation_enabled} system setting gating this method; it has been retired (GH-207).
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AutoAllocationService {
 
-    private final SystemSettingService systemSettingService;
+    private final FeatureFlagService featureFlagService;
     private final ApplicationDocumentService applicationDocumentService;
     private final ScoringStrategy allocationScoringService;
     private final AllocationLifecycleService allocationLifecycleService;
@@ -56,8 +61,13 @@ public class AutoAllocationService {
     public void attemptAutoAllocation(Application application) {
         log.info("Attempting auto-allocation for application {}", application.getId());
 
-        if (!systemSettingService.isAutoAllocationEnabled()) {
-            log.info("Auto-allocation disabled, skipping for application {}", application.getId());
+        // The same switch the batch path reads. This used to be the `auto_allocation_enabled`
+        // system setting, an entirely separate toggle on a separate screen, so a platform admin
+        // who enabled the feature flag still saw per-application allocation skipped and nothing
+        // said why (GH-207).
+        if (!featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)) {
+            log.info("action=autoAllocationSkipped reason=featureFlagDisabled applicationId={}",
+                    application.getId());
             return;
         }
 

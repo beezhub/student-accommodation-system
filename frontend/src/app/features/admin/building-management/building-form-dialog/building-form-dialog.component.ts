@@ -21,6 +21,8 @@ import {
 import { InstitutionService } from '../../../../core/services/institution.service';
 import { Institution } from '../../../../core/models/institution.model';
 import { NominatimService, AddressSuggestion } from '../../../../core/services/nominatim.service';
+import { TenantService, Tenant } from '../../../../core/services/tenant.service';
+import { RoleService } from '../../../../core/services/role.service';
 
 @Component({
   selector: 'app-building-form-dialog',
@@ -114,6 +116,23 @@ import { NominatimService, AddressSuggestion } from '../../../../core/services/n
             />
             <mat-hint>Number of floors in the building</mat-hint>
           </mat-form-field>
+
+          @if (showCompanySelector) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Property Company</mat-label>
+            <mat-icon matPrefix>business</mat-icon>
+            <mat-select formControlName="tenantId">
+              @for (company of companies; track company.id) {
+              <mat-option [value]="company.id">{{ company.name }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>The company that will own this building</mat-hint>
+            @if (buildingForm.get('tenantId')?.hasError('required') &&
+            buildingForm.get('tenantId')?.touched) {
+            <mat-error>Choose the company that will own this building</mat-error>
+            }
+          </mat-form-field>
+          }
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Institutions Served</mat-label>
@@ -378,6 +397,8 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
   private buildingService = inject(BuildingService);
   private institutionService = inject(InstitutionService);
   private nominatimService = inject(NominatimService);
+  private tenantService = inject(TenantService);
+  private roleService = inject(RoleService);
   private snackBar = inject(MatSnackBar);
   dialogRef = inject<MatDialogRef<BuildingFormDialogComponent>>(MatDialogRef);
   data = inject<{
@@ -388,6 +409,13 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
   buildingForm: FormGroup;
   isSubmitting = false;
   institutions: Institution[] = [];
+  companies: Tenant[] = [];
+
+  /**
+   * A platform admin's own tenant is the platform sentinel, which cannot own buildings, so they
+   * must name the company. A tenant admin has exactly one and the backend derives it (GH-213).
+   */
+  readonly showCompanySelector = this.data.mode === 'create' && this.roleService.isPlatformAdmin();
   addressSuggestions: AddressSuggestion[] = [];
   isSearching = false;
 
@@ -404,12 +432,21 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
       totalFloors: [null],
       description: [''],
       institutionIds: [[]],
+      tenantId: [null],
     });
+
+    if (this.showCompanySelector) {
+      this.buildingForm.get('tenantId')?.addValidators(Validators.required);
+    }
   }
 
   ngOnInit(): void {
     this.loadInstitutions();
     this.setupAddressSearch();
+
+    if (this.showCompanySelector) {
+      this.loadCompanies();
+    }
 
     if (this.data.mode === 'edit' && this.data.building) {
       this.buildingForm.patchValue({
@@ -482,6 +519,20 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
     return suggestion.displayName;
   }
 
+  loadCompanies(): void {
+    this.tenantService
+      .getAllTenants()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (companies) => {
+          this.companies = companies.filter((company) => company.id !== 0);
+        },
+        error: () => {
+          this.snackBar.open('Could not load property companies', 'Close', { duration: 5000 });
+        },
+      });
+  }
+
   loadInstitutions(): void {
     this.institutionService.getInstitutions().subscribe({
       next: (institutions) => {
@@ -514,6 +565,12 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
       description: formValue.description,
       institutionIds: formValue.institutionIds,
     };
+
+    // Only on create, and only from a platform admin. Sending it on an edit is refused by the
+    // backend, because moving a building between companies would re-home everything under it.
+    if (this.showCompanySelector) {
+      buildingData.tenantId = formValue.tenantId;
+    }
 
     const operation =
       this.data.mode === 'create'

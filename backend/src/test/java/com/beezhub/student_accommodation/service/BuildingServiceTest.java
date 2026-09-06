@@ -57,6 +57,8 @@ class BuildingServiceTest {
     private BuildingImageService buildingImageService;
     @Mock
     private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+    @Mock
+    private com.beezhub.student_accommodation.repository.TenantRepository tenantRepository;
 
 
     @InjectMocks
@@ -66,11 +68,20 @@ class BuildingServiceTest {
     private BuildingRequest buildingRequest;
     private Institution institution;
 
+    /** A property company, as opposed to the platform tenant (0), which cannot own buildings. */
+    private static final Long OWNING_TENANT = 42L;
+
     @BeforeEach
     void setUp() {
+        // These tests used to run with no tenant context at all, which reads as a platform admin.
+        // Building creation now requires an owning company, so the default caller here is a tenant
+        // admin — the ordinary case (GH-213).
+        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(OWNING_TENANT);
+
         building = new Building();
         building.setId(1L);
         building.setName("Block A");
+        building.setTenantId(OWNING_TENANT);
 
         institution = new Institution();
         institution.setId(1L);
@@ -80,6 +91,94 @@ class BuildingServiceTest {
         buildingRequest.setName("Block A");
         buildingRequest.setAddress("123 Test St");
         buildingRequest.setInstitutionIds(java.util.Arrays.asList(1L));
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void clearTenantContext() {
+        com.beezhub.student_accommodation.service.tenant.TenantContext.clear();
+    }
+
+    // ── GH-213: a building's owning company has to be stated, not inherited from the caller ───
+
+    @Test
+    void createBuilding_asTenantAdmin_stampsTheirOwnCompany() {
+        when(institutionRepository.findAllById(any())).thenReturn(Collections.singletonList(institution));
+        when(buildingRepository.save(any(Building.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(buildingMapper.toResponse(any(Building.class))).thenReturn(new BuildingResponse());
+
+        buildingService.createBuilding(buildingRequest);
+
+        org.mockito.ArgumentCaptor<Building> saved = org.mockito.ArgumentCaptor.forClass(Building.class);
+        verify(buildingRepository).save(saved.capture());
+        assertThat(saved.getValue().getTenantId()).isEqualTo(OWNING_TENANT);
+    }
+
+    @Test
+    void createBuilding_asPlatformAdmin_withoutACompany_isRefused() {
+        // The platform admin's own context is 0. Left to TenantListener this stamped the building
+        // with the platform tenant, making it invisible to the company that owns it — and with no
+        // parent column, nothing could repair it afterwards.
+        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(0L);
+
+        assertThatThrownBy(() -> buildingService.createBuilding(buildingRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("property company");
+
+        verify(buildingRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void createBuilding_asPlatformAdmin_namingThePlatformTenant_isRefused() {
+        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(0L);
+        buildingRequest.setTenantId(0L);
+
+        assertThatThrownBy(() -> buildingService.createBuilding(buildingRequest))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void createBuilding_asPlatformAdmin_withACompany_stampsThatCompany() {
+        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(0L);
+        buildingRequest.setTenantId(OWNING_TENANT);
+        when(tenantRepository.existsById(OWNING_TENANT)).thenReturn(true);
+        when(institutionRepository.findAllById(any())).thenReturn(Collections.singletonList(institution));
+        when(buildingRepository.save(any(Building.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(buildingMapper.toResponse(any(Building.class))).thenReturn(new BuildingResponse());
+
+        buildingService.createBuilding(buildingRequest);
+
+        org.mockito.ArgumentCaptor<Building> saved = org.mockito.ArgumentCaptor.forClass(Building.class);
+        verify(buildingRepository).save(saved.capture());
+        assertThat(saved.getValue().getTenantId()).isEqualTo(OWNING_TENANT);
+    }
+
+    @Test
+    void createBuilding_asPlatformAdmin_namingAnUnknownCompany_isRefused() {
+        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(0L);
+        buildingRequest.setTenantId(999L);
+        when(tenantRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> buildingService.createBuilding(buildingRequest))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.TenantNotFoundException.class);
+    }
+
+    @Test
+    void createBuilding_asTenantAdmin_namingAnotherCompany_isRefused() {
+        // Refused rather than ignored, so a mistaken id fails loudly instead of quietly creating
+        // the building in the caller's own company.
+        buildingRequest.setTenantId(99L);
+
+        assertThatThrownBy(() -> buildingService.createBuilding(buildingRequest))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException.class);
+    }
+
+    @Test
+    void updateBuilding_cannotMoveTheBuildingToAnotherCompany() {
+        buildingRequest.setTenantId(99L);
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+
+        assertThatThrownBy(() -> buildingService.updateBuilding(1L, buildingRequest))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException.class);
     }
 
     @Test

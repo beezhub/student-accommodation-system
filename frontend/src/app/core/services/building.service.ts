@@ -14,6 +14,12 @@ export interface BuildingRequest {
   description?: string;
   totalFloors?: number;
   institutionIds?: number[];
+  /**
+   * The property company that will own the building. Sent only by a platform admin, whose own
+   * tenant is the platform sentinel and cannot own buildings; a tenant admin's company is derived
+   * from their token (GH-213).
+   */
+  tenantId?: number;
 }
 
 export interface InstitutionSummary {

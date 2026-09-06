@@ -3,7 +3,10 @@ package com.beezhub.student_accommodation.security.jwt;
 import com.beezhub.student_accommodation.config.JwtConfig;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
+import com.beezhub.student_accommodation.security.FilterErrorResponseWriter;
 import com.beezhub.student_accommodation.service.TokenBlacklistService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -12,13 +15,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.time.Instant;
 import java.util.Date;
@@ -103,9 +106,11 @@ class JwtTokenRevocationTest {
     @Mock
     private TokenBlacklistService tokenBlacklistService;
     @Mock
-    private HandlerExceptionResolver handlerExceptionResolver;
-    @Mock
     private FilterChain chain;
+
+    @Spy
+    private FilterErrorResponseWriter errorResponseWriter =
+            new FilterErrorResponseWriter(new ObjectMapper().registerModule(new JavaTimeModule()));
 
     @InjectMocks
     private JwtAuthenticationFilter filter;
@@ -126,10 +131,15 @@ class JwtTokenRevocationTest {
         when(jwtUtil.extractIssuedAt("token")).thenReturn(issuedAt);
         when(tokenBlacklistService.isRevoked("user@example.com", issuedAt)).thenReturn(true);
 
-        filter.doFilter(bearerRequest(), new MockHttpServletResponse(), chain);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(bearerRequest(), response, chain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-        verify(handlerExceptionResolver).resolveException(any(), any(), any(), any());
+        // Asserting the response, not the delegation: delegating to the resolver was exactly what
+        // produced no response at all (GH-204).
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getContentAsString()).contains("Authentication failed");
     }
 
     @Test

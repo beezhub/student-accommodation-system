@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Multi-tenant student-accommodation platform: a Spring Boot 3.5 / Java 17 monolith in `backend/` and an Angular 21 +
+Multi-tenant student-accommodation platform: a Spring Boot 3.5 / Java 21 monolith in `backend/` and an Angular 21 +
 Material standalone-component app in `frontend/`. PostgreSQL 16 (Flyway), Redis (token blacklist, rate limiting),
 MinIO (documents), SMTP via MailHog locally, FF4j feature flags, Prometheus + Grafana metrics, Google Maps geocoding.
 
@@ -86,8 +86,9 @@ allowed to touch the FF4j bean. Batch auto-allocation is gated by the `auto-allo
 (`FF4jConfig.FEATURE_AUTO_ALLOCATION`). The stored row is the source of truth: the flag ships disabled
 from `V2026_02_25_0012__fix_ff4j_schema.sql` and is toggled through `/api/admin/features`. There is no
 environment variable for it, and none should be added; the one that existed overwrote admin changes on
-every boot (GH-142). Note this is a different switch from the `auto_allocation_enabled` system setting,
-which gates per-application auto-allocation. The FF4j REST API jar
+every boot (GH-142). It is the *only* switch for auto-allocation: both the batch path and the
+per-application path read it. The separate `auto_allocation_enabled` system setting that used to gate
+the per-application path is retired (GH-207). The FF4j REST API jar
 (`ff4j-spring-boot-web-api`) is excluded from the build and `/api/ff4j/**` is PLATFORM_ADMIN-only in `SecurityConfig`;
 manage flags through `FeatureController` (`/api/admin/features`).
 
@@ -131,7 +132,8 @@ explicit ownership check stops one student acting on another student's allocatio
 `tenant_id = 0`; tenants add override rows. `getSetting(key)` checks the current tenant then falls back to platform;
 `getAllSettings()` overlays tenant rows on the platform map. `PlatformSettingController` (`/api/platform/system-settings`,
 PLATFORM_ADMIN) manages tenant 0; `SystemSettingController` (`/api/admin/system-settings`) is the tenant-scoped view.
-`auto_allocation_enabled` is platform-only.
+`auto_allocation_enabled` was platform-only and is now retired; its key stays in `PLATFORM_ONLY_KEYS`
+so no tenant override can be created for a key that controls nothing (GH-207).
 
 **Events and async.** Services publish `model/event/*Event`; `NotificationEventListener` handles them with
 `@TransactionalEventListener(AFTER_COMMIT)` + `@Async("notificationExecutor")`, so notifications never fire for

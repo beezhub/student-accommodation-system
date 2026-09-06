@@ -199,6 +199,32 @@ export class RoomAllocationComponent implements OnInit {
     });
   }
 
+  /**
+   * GH-198: enforcing the offer deadline on the accept path left a lapsed offer with no recovery
+   * route. An admin can move the deadline, which hands the decision back to the student rather
+   * than accepting on their behalf.
+   */
+  extendOffer(allocation: RoomAllocationResponse): void {
+    import('../extend-offer-dialog/extend-offer-dialog.component').then((m) => {
+      const dialogRef = this.dialog.open(m.ExtendOfferDialogComponent, {
+        width: '480px',
+        data: {
+          allocationId: allocation.id,
+          studentName: `${allocation.studentFirstName} ${allocation.studentLastName}`,
+          roomNumber: allocation.roomNumber,
+          buildingName: allocation.buildingName,
+          currentDeadline: allocation.offerExpiryDate,
+        },
+      });
+
+      dialogRef.afterClosed().subscribe((result) => {
+        if (result) {
+          this.loadAllocations();
+        }
+      });
+    });
+  }
+
   endAllocation(allocation: RoomAllocationResponse): void {
     if (
       confirm(
@@ -237,17 +263,40 @@ export class RoomAllocationComponent implements OnInit {
     if (
       confirm(`Confirm check-in for ${allocation.studentFirstName} ${allocation.studentLastName}?`)
     ) {
-      this.allocationService.checkIn(allocation.id).subscribe({
-        next: () => {
-          this.snackBar.open('Check-in confirmed successfully', 'Close', { duration: 3000 });
-          this.loadAllocations();
-        },
-        error: (error) => {
-          console.error('Failed to confirm check-in:', error);
-          this.snackBar.open('Failed to confirm check-in', 'Close', { duration: 5000 });
-        },
-      });
+      this.performCheckIn(allocation, false);
     }
+  }
+
+  /**
+   * A check-in past its deadline is refused with 409 rather than silently allowed, and the admin
+   * is asked whether to override. An admin checking someone in slightly late is a judgement they
+   * may legitimately want to make; overriding is recorded against the allocation (GH-197).
+   *
+   * <p>The message match is on the phrase the backend's guard produces. Keep the two in step.
+   */
+  private performCheckIn(allocation: RoomAllocationResponse, overrideDeadline: boolean): void {
+    this.allocationService.checkIn(allocation.id, overrideDeadline).subscribe({
+      next: () => {
+        this.snackBar.open('Check-in confirmed successfully', 'Close', { duration: 3000 });
+        this.loadAllocations();
+      },
+      error: (error) => {
+        const message: string | undefined = error?.error?.errors?.[0];
+        const deadlinePassed =
+          !overrideDeadline && error?.status === 409 && message?.includes('check-in deadline');
+
+        if (deadlinePassed && confirm(`${message}\n\nCheck in anyway?`)) {
+          this.performCheckIn(allocation, true);
+          return;
+        }
+        if (deadlinePassed) {
+          return;
+        }
+
+        console.error('Failed to confirm check-in:', error);
+        this.snackBar.open(message || 'Failed to confirm check-in', 'Close', { duration: 5000 });
+      },
+    });
   }
 
   checkOut(allocation: RoomAllocationResponse): void {

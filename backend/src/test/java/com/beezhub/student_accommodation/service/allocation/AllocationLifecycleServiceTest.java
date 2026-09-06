@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -68,6 +69,8 @@ class AllocationLifecycleServiceTest {
     private AppUserRepository appUserRepository;
     @Mock
     private UserNotificationService userNotificationService;
+    @Mock
+    private com.beezhub.student_accommodation.service.AuthService authService;
     @Mock
     private ApplicationEventPublisher eventPublisher;
     @Mock
@@ -531,5 +534,216 @@ class AllocationLifecycleServiceTest {
     void cancelAllocation_activeAllocation_statusCancelled() {
         // Alias for deleteRoomAllocation
         deleteRoomAllocation_activeAllocation_statusCancelled();
+    }
+
+    // ── GH-223: an application that ends must not leave an offer standing ────────────────────
+
+    private RoomAllocation outstandingAllocation(Long id, AllocationStatus status) {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(id);
+        allocation.setStatus(status);
+        allocation.setRoom(room);
+        allocation.setStudent(student);
+        allocation.setApplication(application);
+        return allocation;
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = AllocationStatus.class, names = {"OFFERED", "ACCEPTED"})
+    void releaseOutstandingAllocations_cancelsTheAllocationAndFreesTheRoom(AllocationStatus held) {
+        RoomAllocation allocation = outstandingAllocation(50L, held);
+        when(roomAllocationRepository.findByApplicationIdAndStatusIn(eq(7L), any()))
+                .thenReturn(java.util.List.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        int released = allocationLifecycleService.releaseOutstandingAllocations(7L, "application REJECTED");
+
+        assertThat(released).isEqualTo(1);
+        assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.CANCELLED);
+        assertThat(allocation.getEndDate()).isNotNull();
+        // Without this the room stays counted as occupied until the hourly expiry sweep runs.
+        verify(roomOccupancyManager).syncOccupancy(room);
+        verify(allocationAuditService).logStatusChange(allocation, held, AllocationStatus.CANCELLED);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = AllocationStatus.class, names = {"OFFERED", "ACCEPTED"})
+    void releaseOutstandingAllocations_publishesVacatedSoTheWaitingListRefills(AllocationStatus held) {
+        RoomAllocation allocation = outstandingAllocation(50L, held);
+        when(roomAllocationRepository.findByApplicationIdAndStatusIn(eq(7L), any()))
+                .thenReturn(java.util.List.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        allocationLifecycleService.releaseOutstandingAllocations(7L, "application REJECTED");
+
+        ArgumentCaptor<RoomVacatedEvent> event = ArgumentCaptor.forClass(RoomVacatedEvent.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertThat(event.getValue().allocationId()).isEqualTo(50L);
+        assertThat(event.getValue().roomId()).isEqualTo(room.getId());
+        assertThat(event.getValue().newStatus()).isEqualTo(AllocationStatus.CANCELLED);
+    }
+
+    /**
+     * The student is not put back on the waiting list, unlike a plain allocation cancellation.
+     * The application itself is over, so re-queuing them would undo the admin's decision.
+     */
+    @Test
+    void releaseOutstandingAllocations_doesNotRequeueTheStudent() {
+        RoomAllocation allocation = outstandingAllocation(50L, AllocationStatus.OFFERED);
+        when(roomAllocationRepository.findByApplicationIdAndStatusIn(eq(7L), any()))
+                .thenReturn(java.util.List.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        allocationLifecycleService.releaseOutstandingAllocations(7L, "application REJECTED");
+
+        verify(waitingListService, never()).restoreAfterCancellation(any(), any());
+    }
+
+    @Test
+    void releaseOutstandingAllocations_nothingOutstanding_doesNothing() {
+        when(roomAllocationRepository.findByApplicationIdAndStatusIn(eq(7L), any()))
+                .thenReturn(java.util.List.of());
+
+        assertThat(allocationLifecycleService.releaseOutstandingAllocations(7L, "application REJECTED"))
+                .isZero();
+        verify(roomOccupancyManager, never()).syncOccupancy(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    /**
+     * A checked-in student is living in the room. Rejecting the application is not grounds for
+     * ending an occupancy behind their back; that needs a deliberate move-out.
+     */
+    @Test
+    void releaseOutstandingAllocations_leavesACheckedInOccupancyAlone() {
+        allocationLifecycleService.releaseOutstandingAllocations(7L, "application REJECTED");
+
+        ArgumentCaptor<java.util.Collection<AllocationStatus>> statuses =
+                ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(roomAllocationRepository).findByApplicationIdAndStatusIn(eq(7L), statuses.capture());
+        assertThat(statuses.getValue())
+                .containsExactlyInAnyOrder(AllocationStatus.OFFERED, AllocationStatus.ACCEPTED)
+                .doesNotContain(AllocationStatus.ACTIVE);
+    }
+
+    // ── GH-198: a lapsed offer had no recovery route for anyone ──────────────────────────────
+
+    private RoomAllocation offeredAllocation(java.time.LocalDateTime deadline) {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(60L);
+        allocation.setStatus(AllocationStatus.OFFERED);
+        allocation.setRoom(room);
+        allocation.setStudent(student);
+        allocation.setApplication(application);
+        allocation.setOfferExpiryDate(deadline);
+        allocation.setReminder24hSent(true);
+        return allocation;
+    }
+
+    private void stubExtendable(RoomAllocation allocation) {
+        when(roomAllocationRepository.findByIdWithDetails(60L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(roomAllocationMapper.toResponse(any())).thenReturn(new RoomAllocationResponse());
+    }
+
+    @Test
+    void extendOfferDeadline_movesTheDeadlineAndRearmsTheReminder() {
+        RoomAllocation allocation = offeredAllocation(java.time.LocalDateTime.now().minusDays(1));
+        stubExtendable(allocation);
+        java.time.LocalDateTime newDeadline = java.time.LocalDateTime.now().plusDays(3);
+
+        allocationLifecycleService.extendOfferDeadline(60L, newDeadline, "Student was in hospital");
+
+        assertThat(allocation.getOfferExpiryDate()).isEqualTo(newDeadline);
+        // The 24h reminder already fired against the old deadline; without re-arming, the student
+        // would get no warning before the new one.
+        assertThat(allocation.isReminder24hSent()).isFalse();
+    }
+
+    /** An extension changes a decision the student was told about, so it is never anonymous. */
+    @Test
+    void extendOfferDeadline_isRecordedWithTheReasonAndBothDates() {
+        java.time.LocalDateTime oldDeadline = java.time.LocalDateTime.now().minusDays(1);
+        RoomAllocation allocation = offeredAllocation(oldDeadline);
+        stubExtendable(allocation);
+
+        allocationLifecycleService.extendOfferDeadline(
+                60L, java.time.LocalDateTime.now().plusDays(3), "Student was in hospital");
+
+        ArgumentCaptor<String> reason = ArgumentCaptor.forClass(String.class);
+        verify(allocationAuditService).logAuditAction(any(RoomAllocation.class),
+                eq(com.beezhub.student_accommodation.model.enums.AllocationAuditActionType.OVERRIDE),
+                any(), reason.capture(), any(), any());
+        assertThat(reason.getValue())
+                .contains("Student was in hospital")
+                .contains("Offer deadline moved from");
+    }
+
+    @Test
+    void extendOfferDeadline_tellsTheStudentTheDateMoved() {
+        RoomAllocation allocation = offeredAllocation(java.time.LocalDateTime.now().minusDays(1));
+        stubExtendable(allocation);
+
+        allocationLifecycleService.extendOfferDeadline(
+                60L, java.time.LocalDateTime.now().plusDays(3), "Student was in hospital");
+
+        // Otherwise they keep acting on the old date, which is the opposite of the point.
+        verify(userNotificationService).createOfferExtendedNotification(anyLong(), any(), any());
+    }
+
+    @Test
+    void extendOfferDeadline_intoThePast_isRefused() {
+        RoomAllocation allocation = offeredAllocation(java.time.LocalDateTime.now().minusDays(1));
+        when(roomAllocationRepository.findByIdWithDetails(60L)).thenReturn(Optional.of(allocation));
+
+        assertThatThrownBy(() -> allocationLifecycleService.extendOfferDeadline(
+                60L, java.time.LocalDateTime.now().minusHours(1), "typo"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("future");
+    }
+
+    /**
+     * Without a ceiling a mistyped year leaves an offer open for decades, holding a room out of
+     * the pool the whole time.
+     */
+    @Test
+    void extendOfferDeadline_beyondWhatANewOfferWouldGive_isRefused() {
+        RoomAllocation allocation = offeredAllocation(java.time.LocalDateTime.now().minusDays(1));
+        when(roomAllocationRepository.findByIdWithDetails(60L)).thenReturn(Optional.of(allocation));
+
+        assertThatThrownBy(() -> allocationLifecycleService.extendOfferDeadline(
+                60L, java.time.LocalDateTime.now().plusYears(1000), "fat finger"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("days from now");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(
+            value = AllocationStatus.class, names = {"ACCEPTED", "DECLINED", "ACTIVE", "CANCELLED"})
+    void extendOfferDeadline_whenThereIsNoOutstandingOffer_isRefused(AllocationStatus status) {
+        RoomAllocation allocation = offeredAllocation(java.time.LocalDateTime.now().minusDays(1));
+        allocation.setStatus(status);
+        when(roomAllocationRepository.findByIdWithDetails(60L)).thenReturn(Optional.of(allocation));
+
+        assertThatThrownBy(() -> allocationLifecycleService.extendOfferDeadline(
+                60L, java.time.LocalDateTime.now().plusDays(3), "too late"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    /** The sweep has already released the room, and EXPIRED is terminal. Say so. */
+    @Test
+    void extendOfferDeadline_afterTheSweepExpiredIt_saysToAllocateAgain() {
+        RoomAllocation allocation = offeredAllocation(java.time.LocalDateTime.now().minusDays(1));
+        allocation.setStatus(AllocationStatus.EXPIRED);
+        when(roomAllocationRepository.findByIdWithDetails(60L)).thenReturn(Optional.of(allocation));
+
+        assertThatThrownBy(() -> allocationLifecycleService.extendOfferDeadline(
+                60L, java.time.LocalDateTime.now().plusDays(3), "too late"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("allocate the student a room again");
     }
 }

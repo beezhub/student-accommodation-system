@@ -89,7 +89,7 @@ class AllocationBatchServiceTransactionTest {
 
     private AllocationBatchService serviceUsing(TransactionTemplate template) {
         return new AllocationBatchService(waitingListRepository, lifecycleService, featureFlagService, template,
-                environment, orchestrator, stagedAllocationService, roomAllocationMapper, new SimpleMeterRegistry());
+                environment, orchestrator, stagedAllocationService, roomAllocationMapper, new SimpleMeterRegistry(), neutralPriorityScorer());
     }
 
     @Test
@@ -250,5 +250,14 @@ class AllocationBatchServiceTransactionTest {
         protected void doSetRollbackOnly(DefaultTransactionStatus status) {
             ((Holder) status.getTransaction()).tx.rollbackOnly = true;
         }
+    }
+
+    /**
+     * A real scorer over a rule repository with nothing in it, so the neutral weights apply and the
+     * queue falls back to arrival then id — the order these fixtures already expected (GH-225).
+     */
+    private static ApplicantPriorityScorer neutralPriorityScorer() {
+        return new ApplicantPriorityScorer(org.mockito.Mockito.mock(
+                com.beezhub.student_accommodation.repository.AllocationRuleRepository.class));
     }
 }

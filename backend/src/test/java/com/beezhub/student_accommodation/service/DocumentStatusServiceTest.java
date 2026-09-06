@@ -111,7 +111,7 @@ class DocumentStatusServiceTest {
         String status = "APPROVED";
         String comment = null;
 
-        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
+        when(applicationDocumentCoordinator.findReviewableApplication(anyLong(), any())).thenReturn(application);
         when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
@@ -141,7 +141,7 @@ class DocumentStatusServiceTest {
         String status = "REJECTED";
         String comment = "Document is blurry";
 
-        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
+        when(applicationDocumentCoordinator.findReviewableApplication(anyLong(), any())).thenReturn(application);
         when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
@@ -168,7 +168,7 @@ class DocumentStatusServiceTest {
         // Given
         String status = "PENDING";
 
-        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
+        when(applicationDocumentCoordinator.findReviewableApplication(anyLong(), any())).thenReturn(application);
         when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
@@ -187,7 +187,7 @@ class DocumentStatusServiceTest {
         document.setDocumentStatus(DocumentStatus.APPROVED);
         String status = "APPROVED";
 
-        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
+        when(applicationDocumentCoordinator.findReviewableApplication(anyLong(), any())).thenReturn(application);
         when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
@@ -205,7 +205,7 @@ class DocumentStatusServiceTest {
         // Given
         String status = "APPROVED";
 
-        when(applicationDocumentCoordinator.findApprovedApplication(anyLong())).thenReturn(application);
+        when(applicationDocumentCoordinator.findReviewableApplication(anyLong(), any())).thenReturn(application);
         when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
         when(documentRepository.save(any(Document.class))).thenReturn(document);
@@ -226,7 +226,7 @@ class DocumentStatusServiceTest {
     void updateDocumentStatus_noApprovedApplication_throwsApplicationNotApprovedException() {
         when(appUserRepository.findByEmail("student@university.edu")).thenReturn(Optional.of(appUser));
         when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
-        when(applicationDocumentCoordinator.findApprovedApplication(anyLong()))
+        when(applicationDocumentCoordinator.findReviewableApplication(anyLong(), any()))
             .thenThrow(new ApplicationNotApprovedException("Documents can only be reviewed for approved applications"));
 
         assertThrows(ApplicationNotApprovedException.class,

@@ -18,6 +18,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -111,7 +112,7 @@ class ApplicationCoreServiceTest {
 
                 // Assert
                 assertThat(response).isNotNull();
-                verify(applicationRepository).save(any(Application.class));
+                verify(applicationRepository).saveAndFlush(any(Application.class));
         }
 
         @Test
@@ -136,6 +137,58 @@ class ApplicationCoreServiceTest {
 
                 assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
                                 .isInstanceOf(DuplicateApplicationException.class);
+        }
+
+        /**
+         * GH-201: the pre-check is a fast path, not the invariant. Two concurrent submits both pass
+         * it, so ux_application_student_tenant_active is what actually refuses the second, and the
+         * student must see the same sentence either way rather than a 500.
+         */
+        @Test
+        void submitApplication_uniqueIndexViolation_isReportedAsADuplicate() {
+                var academicYear = buildOpenAcademicYear();
+                when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+                when(buildingRepository.findById(10L)).thenReturn(Optional.of(defaultBuilding));
+                when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+                when(academicYearService.isApplicationWindowOpen(academicYear)).thenReturn(true);
+                when(documentRepository.findDocumentTypeNamesByStudentId(1L)).thenReturn(Set.of());
+                when(documentTypeService.getEffectiveRequiredTypeNames(anyLong())).thenReturn(Set.of());
+                when(applicationRepository.existsByStudent_IdAndTenantIdAndStatusIn(anyLong(), anyLong(), any()))
+                                .thenReturn(false);
+                when(applicationRepository.nextApplicationCodeSequence()).thenReturn(1L);
+                when(applicationRepository.saveAndFlush(any(Application.class))).thenThrow(
+                                new DataIntegrityViolationException(
+                                                "could not execute statement",
+                                                new RuntimeException("ERROR: duplicate key value violates unique "
+                                                                + "constraint \"ux_application_student_tenant_active\"")));
+
+                assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
+                                .isInstanceOf(DuplicateApplicationException.class)
+                                .hasMessage("You already have an active application with this property company");
+        }
+
+        @Test
+        void submitApplication_unrelatedConstraintViolation_isNotDisguisedAsADuplicate() {
+                // Reporting every integrity violation as a duplicate application would tell the
+                // student to look at an application that has nothing to do with the failure.
+                var academicYear = buildOpenAcademicYear();
+                when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+                when(buildingRepository.findById(10L)).thenReturn(Optional.of(defaultBuilding));
+                when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+                when(academicYearService.isApplicationWindowOpen(academicYear)).thenReturn(true);
+                when(documentRepository.findDocumentTypeNamesByStudentId(1L)).thenReturn(Set.of());
+                when(documentTypeService.getEffectiveRequiredTypeNames(anyLong())).thenReturn(Set.of());
+                when(applicationRepository.existsByStudent_IdAndTenantIdAndStatusIn(anyLong(), anyLong(), any()))
+                                .thenReturn(false);
+                when(applicationRepository.nextApplicationCodeSequence()).thenReturn(1L);
+                when(applicationRepository.saveAndFlush(any(Application.class))).thenThrow(
+                                new DataIntegrityViolationException(
+                                                "ERROR: null value in column \"academic_year_id\" violates not-null constraint"));
+
+                assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
+                                .isInstanceOf(DataIntegrityViolationException.class);
         }
 
         @Test
@@ -230,7 +283,7 @@ class ApplicationCoreServiceTest {
                 lenient().when(documentRepository.findDocumentTypeNamesByStudentId(1L)).thenReturn(Set.of());
                 lenient().when(documentTypeService.getEffectiveRequiredTypeNames(anyLong())).thenReturn(Set.of());
                 lenient().when(applicationRepository.existsByStudent_IdAndTenantIdAndStatusIn(anyLong(), anyLong(), any())).thenReturn(false);
-                when(applicationRepository.save(any(Application.class))).thenReturn(application);
+                when(applicationRepository.saveAndFlush(any(Application.class))).thenReturn(application);
                 when(applicationMapper.toResponse(any(Application.class))).thenReturn(new ApplicationResponse());
         }
 
@@ -255,7 +308,7 @@ class ApplicationCoreServiceTest {
                 applicationCoreService.submitApplication(applicationRequest);
 
                 ArgumentCaptor<Application> saved = ArgumentCaptor.forClass(Application.class);
-                verify(applicationRepository).save(saved.capture());
+                verify(applicationRepository).saveAndFlush(saved.capture());
                 assertThat(saved.getValue().getApplicationCode())
                                 .isEqualTo("APP-" + java.time.LocalDate.now().getYear() + "-007");
                 verify(applicationRepository, times(1)).nextApplicationCodeSequence();
@@ -277,7 +330,7 @@ class ApplicationCoreServiceTest {
                 applicationCoreService.submitApplication(applicationRequest);
 
                 ArgumentCaptor<Application> saved = ArgumentCaptor.forClass(Application.class);
-                verify(applicationRepository).save(saved.capture());
+                verify(applicationRepository).saveAndFlush(saved.capture());
                 assertThat(saved.getValue().getApplicationCode())
                                 .isEqualTo("APP-" + java.time.LocalDate.now().getYear() + "-12345");
         }

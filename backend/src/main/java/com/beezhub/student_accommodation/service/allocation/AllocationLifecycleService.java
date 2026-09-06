@@ -9,6 +9,8 @@ import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
 import com.beezhub.student_accommodation.model.event.RoomVacatedEvent;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.AuthService;
+import com.beezhub.student_accommodation.service.UserNotificationService;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -45,6 +48,8 @@ public class AllocationLifecycleService {
     private final AllocationAuditService allocationAuditService;
     private final MeterRegistry meterRegistry;
     private final AllocationAccessGuard allocationAccessGuard;
+    private final AuthService authService;
+    private final UserNotificationService userNotificationService;
 
     public AllocationLifecycleService(
             RoomAllocationRepository roomAllocationRepository,
@@ -58,7 +63,9 @@ public class AllocationLifecycleService {
             AllocationMoveService allocationMoveService,
             AllocationAuditService allocationAuditService,
             MeterRegistry meterRegistry,
-            AllocationAccessGuard allocationAccessGuard) {
+            AllocationAccessGuard allocationAccessGuard,
+            AuthService authService,
+            UserNotificationService userNotificationService) {
         this.roomAllocationRepository = roomAllocationRepository;
         this.studentRepository = studentRepository;
         this.roomRepository = roomRepository;
@@ -71,6 +78,8 @@ public class AllocationLifecycleService {
         this.allocationAuditService = allocationAuditService;
         this.meterRegistry = meterRegistry;
         this.allocationAccessGuard = allocationAccessGuard;
+        this.authService = authService;
+        this.userNotificationService = userNotificationService;
     }
 
     /**
@@ -192,6 +201,171 @@ public class AllocationLifecycleService {
 
         // Refill from the waiting list only after this cancellation has committed.
         eventPublisher.publishEvent(new RoomVacatedEvent(allocation.getId(), roomIdOf(allocation), AllocationStatus.CANCELLED));
+    }
+
+    /**
+     * Allocation statuses that still hold a room for an application. ACTIVE is deliberately absent:
+     * a student who has checked in is living there, and an admin rejecting the application is not
+     * grounds for silently ending an occupancy. That case needs a deliberate move-out.
+     */
+    private static final java.util.Set<AllocationStatus> OUTSTANDING_STATUSES =
+            java.util.EnumSet.of(AllocationStatus.OFFERED, AllocationStatus.ACCEPTED);
+
+    /**
+     * Cancels any outstanding offer or acceptance for an application that has reached a terminal
+     * status, and releases the rooms they held.
+     *
+     * <p>GH-137 stopped a rejected application being resurrected by an accept or a check-in, but
+     * left the state that made the resurrection possible: rejecting an application left its OFFERED
+     * or ACCEPTED allocation alive. The room stayed counted as occupied until the hourly expiry
+     * sweep ran, and the student kept seeing a live offer on their dashboard that would now fail if
+     * they acted on it. Refusing correctly is still a worse experience than not offering (GH-223).
+     *
+     * <p>Deliberately does not touch the waiting list the way {@code deleteRoomAllocation} does.
+     * Cancelling an allocation on its own means the student is still waiting for a room; here the
+     * application itself is over, so putting them back on the queue would undo the admin's
+     * decision.
+     *
+     * @return how many allocations were cancelled
+     */
+    @Transactional
+    public int releaseOutstandingAllocations(Long applicationId, String reason) {
+        List<RoomAllocation> outstanding =
+                roomAllocationRepository.findByApplicationIdAndStatusIn(applicationId, OUTSTANDING_STATUSES);
+        if (outstanding.isEmpty()) {
+            return 0;
+        }
+
+        int cancelled = 0;
+        for (RoomAllocation allocation : outstanding) {
+            AllocationStatus previousStatus = allocation.getStatus();
+            if (previousStatus == null || !previousStatus.canTransitionTo(AllocationStatus.CANCELLED)) {
+                log.warn("action=allocationReleaseSkipped allocationId={} from={} applicationId={}",
+                        allocation.getId(), previousStatus, applicationId);
+                continue;
+            }
+
+            allocation.setStatus(AllocationStatus.CANCELLED);
+            allocation.setEndDate(LocalDateTime.now());
+            RoomAllocation saved = roomAllocationRepository.save(allocation);
+
+            // After the status change, not before: occupancy is derived from the live count, so
+            // syncing first would still count this allocation as active (GH-136).
+            roomOccupancyManager.syncOccupancy(saved.getRoom());
+            allocationAuditService.logStatusChange(saved, previousStatus, AllocationStatus.CANCELLED);
+
+            // AFTER_COMMIT, so the refill sees the freed room and a refill failure cannot roll back
+            // the admin's decision on the application.
+            eventPublisher.publishEvent(
+                    new RoomVacatedEvent(saved.getId(), roomIdOf(saved), AllocationStatus.CANCELLED));
+
+            log.info("action=allocationReleased allocationId={} from={} applicationId={} reason={}",
+                    saved.getId(), previousStatus, applicationId, reason);
+            cancelled++;
+        }
+        return cancelled;
+    }
+
+    /**
+     * Moves an offer's response deadline.
+     *
+     * <p>GH-139 made the accept path enforce {@code offerExpiryDate}, which was right, but left a
+     * lapsed offer with no recovery route for anyone: nothing anywhere writes that column after the
+     * offer is created, and the deadline guard blocks a platform admin accepting on the student's
+     * behalf too. The only route was to cancel and re-allocate, losing the student's place and the
+     * audit connection to the original offer (GH-198).
+     *
+     * <p>Extending rather than letting an admin accept past the deadline is deliberate. Accepting a
+     * room is the student's decision; an extension hands it back to them, where accepting on their
+     * behalf would take it away. It also keeps one rule about deadlines — the accept path stays
+     * strict — instead of two.
+     *
+     * <p>Only while the allocation is still OFFERED. Once the sweep has flipped it to EXPIRED the
+     * room has been released and possibly re-let, and EXPIRED is terminal, so re-allocation is the
+     * honest route from there.
+     */
+    @Transactional
+    public RoomAllocationResponse extendOfferDeadline(Long id, LocalDateTime newExpiryDate, String reason) {
+        log.info("Extending offer deadline for allocation {} to {}", id, newExpiryDate);
+        RoomAllocation allocation = getAllocation(id);
+
+        if (allocation.getStatus() != AllocationStatus.OFFERED) {
+            throw new IllegalStateException(
+                    "Only an outstanding offer can have its deadline extended. This allocation is "
+                            + allocation.getStatus()
+                            + (allocation.getStatus() == AllocationStatus.EXPIRED
+                                    ? ", so its room has already been released; allocate the student a room again."
+                                    : "."));
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (!newExpiryDate.isAfter(now)) {
+            throw new IllegalArgumentException("The new deadline must be in the future");
+        }
+        // A fresh offer gets offerExpiryDays, so an extension cannot quietly grant more than
+        // starting over would. Without a ceiling a mistyped year leaves an offer open for decades,
+        // holding a room out of the pool the whole time.
+        LocalDateTime ceiling = now.plusDays(offerExpiryDays);
+        if (newExpiryDate.isAfter(ceiling)) {
+            throw new IllegalArgumentException(
+                    "The deadline cannot be more than " + offerExpiryDays
+                            + " days from now, which is what a new offer would give");
+        }
+
+        LocalDateTime previousDeadline = allocation.getOfferExpiryDate();
+        allocation.setOfferExpiryDate(newExpiryDate);
+        // The 24-hour reminder has already been sent against the old deadline, so without this the
+        // student would get no warning before the new one.
+        allocation.setReminder24hSent(false);
+
+        RoomAllocation saved = roomAllocationRepository.save(allocation);
+
+        allocationAuditService.logAuditAction(
+                saved,
+                AllocationAuditActionType.OVERRIDE,
+                currentAdminOrNull(),
+                "Offer deadline moved from "
+                        + (previousDeadline == null ? "none" : previousDeadline.format(OFFER_DEADLINE_FORMAT))
+                        + " to " + newExpiryDate.format(OFFER_DEADLINE_FORMAT) + ": " + reason,
+                null,
+                roomOf(saved));
+
+        notifyOfferExtended(saved, newExpiryDate);
+
+        log.info("action=offerDeadlineExtended allocationId={} from={} to={}",
+                id, previousDeadline, newExpiryDate);
+        return roomAllocationMapper.toResponse(saved);
+    }
+
+    /** The acting administrator, or null when the caller cannot be resolved. */
+    private AppUser currentAdminOrNull() {
+        try {
+            return authService.getCurrentUser();
+        } catch (RuntimeException e) {
+            // An unresolvable caller must not cost us the record that the extension happened.
+            log.warn("action=offerExtensionAdminUnresolved");
+            return null;
+        }
+    }
+
+    /** The student was told a deadline; they have to be told it moved, or they act on a stale one. */
+    private void notifyOfferExtended(RoomAllocation allocation, LocalDateTime newExpiryDate) {
+        try {
+            if (allocation.getStudent() == null || allocation.getStudent().getAppUser() == null) {
+                return;
+            }
+            userNotificationService.createOfferExtendedNotification(
+                    allocation.getStudent().getAppUser().getId(),
+                    allocation.getRoom() != null ? allocation.getRoom().getRoomNumber() : "your room",
+                    newExpiryDate.format(OFFER_DEADLINE_FORMAT));
+        } catch (Exception e) {
+            log.error("Failed to notify student of extended offer deadline for allocation {}",
+                    allocation.getId(), e);
+        }
+    }
+
+    private static Room roomOf(RoomAllocation allocation) {
+        return allocation.getRoom();
     }
 
     @Transactional

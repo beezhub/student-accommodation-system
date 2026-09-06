@@ -13,6 +13,7 @@ import io.minio.RemoveObjectArgs;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -42,6 +43,13 @@ class BuildingImageServiceTest {
     @Mock
     private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
+    /**
+     * The real validator, not a mock: what this fix is about is whether the bytes are looked at
+     * at all, and a stubbed validator would assert nothing about that (GH-219).
+     */
+    @org.mockito.Spy
+    private com.beezhub.student_accommodation.service.image.ImageUploadValidator imageUploadValidator =
+            new com.beezhub.student_accommodation.service.image.ImageUploadValidator(5 * 1024 * 1024);
 
     @InjectMocks
     private BuildingImageService service;
@@ -70,9 +78,28 @@ class BuildingImageServiceTest {
         image2.setPrimary(false);
         image2.setDisplayOrder(1);
 
-        validFile = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test data".getBytes());
+        // Real JPEG magic bytes. This used to be the string "test data" and the upload was
+        // accepted, because nothing looked past the multipart part header (GH-219).
+        validFile = new MockMultipartFile("file", "test.jpg", "image/jpeg", jpegBytes());
 
         lenient().when(minioConfig.getBucketName()).thenReturn("test-bucket");
+    }
+
+    /** A minimal file whose leading bytes are a real JPEG signature. */
+    private static byte[] jpegBytes() {
+        byte[] bytes = new byte[64];
+        bytes[0] = (byte) 0xFF;
+        bytes[1] = (byte) 0xD8;
+        bytes[2] = (byte) 0xFF;
+        return bytes;
+    }
+
+    /** A minimal file whose leading bytes are a real PNG signature. */
+    private static byte[] pngBytes() {
+        byte[] bytes = new byte[64];
+        byte[] magic = { (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        System.arraycopy(magic, 0, bytes, 0, magic.length);
+        return bytes;
     }
 
     private void mockPresignedUrl() throws Exception {
@@ -109,7 +136,9 @@ class BuildingImageServiceTest {
     @Test
     void uploadImages_LargeFile_ThrowsException() {
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
-        MockMultipartFile largeFile = new MockMultipartFile("file", "large.jpg", "image/jpeg", new byte[6 * 1024 * 1024]);
+        byte[] large = new byte[6 * 1024 * 1024];
+        System.arraycopy(jpegBytes(), 0, large, 0, 3);
+        MockMultipartFile largeFile = new MockMultipartFile("file", "large.jpg", "image/jpeg", large);
 
         assertThrows(RuntimeException.class, () -> service.uploadImages(1L, List.of(largeFile)));
     }
@@ -120,6 +149,81 @@ class BuildingImageServiceTest {
         MockMultipartFile txtFile = new MockMultipartFile("file", "test.txt", "text/plain", "data".getBytes());
 
         assertThrows(RuntimeException.class, () -> service.uploadImages(1L, List.of(txtFile)));
+    }
+
+    // ── GH-219: the declared content type is no longer trusted ─────────────────────────────
+
+    @Test
+    void uploadImages_declaredTypeIsIgnored_theBytesDecide() throws Exception {
+        // Declares image/png; the bytes are a JPEG. The stored type must be what the file is.
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(buildingImageRepository.save(any(BuildingImage.class))).thenAnswer(i -> i.getArgument(0));
+        mockPresignedUrl();
+        MockMultipartFile mislabelled =
+                new MockMultipartFile("file", "test.jpg", "image/png", jpegBytes());
+
+        service.uploadImages(1L, List.of(mislabelled));
+
+        ArgumentCaptor<BuildingImage> saved = ArgumentCaptor.forClass(BuildingImage.class);
+        verify(buildingImageRepository).save(saved.capture());
+        assertThat(saved.getValue().getContentType()).isEqualTo("image/jpeg");
+
+        ArgumentCaptor<PutObjectArgs> put = ArgumentCaptor.forClass(PutObjectArgs.class);
+        verify(minioClient).putObject(put.capture());
+        // contentType() is a rich type in this MinIO version, so compare its rendered form.
+        assertThat(put.getValue().contentType()).hasToString("image/jpeg");
+    }
+
+    @Test
+    void uploadImages_htmlDeclaredAsAnImage_isRejected() {
+        // The old check compared the part header against an allow-list the uploader controlled, so
+        // this file was stored and served as image/png.
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        MockMultipartFile html = new MockMultipartFile(
+                "file", "evil.png", "image/png", "<html><script>alert(1)</script></html>".getBytes());
+
+        assertThrows(RuntimeException.class, () -> service.uploadImages(1L, List.of(html)));
+        verify(buildingImageRepository, never()).save(any());
+    }
+
+    @Test
+    void uploadImages_extensionAndBytesDisagree_isRejected() {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        MockMultipartFile mismatched =
+                new MockMultipartFile("file", "photo.png", "image/png", jpegBytes());
+
+        assertThrows(RuntimeException.class, () -> service.uploadImages(1L, List.of(mismatched)));
+        verify(buildingImageRepository, never()).save(any());
+    }
+
+    @Test
+    void uploadImages_pngIsAccepted() throws Exception {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(buildingImageRepository.save(any(BuildingImage.class))).thenAnswer(i -> i.getArgument(0));
+        mockPresignedUrl();
+        MockMultipartFile png = new MockMultipartFile("file", "test.png", "image/png", pngBytes());
+
+        assertThat(service.uploadImages(1L, List.of(png))).hasSize(1);
+    }
+
+    @Test
+    void presignedUrl_clampsTheTypeItIsServedAs() throws Exception {
+        // Objects written before this change carry whatever the uploader declared. The override
+        // means such a row cannot be served as text/html even so.
+        when(buildingImageRepository.findByBuilding_IdAndPrimaryTrue(1L)).thenReturn(Optional.of(image1));
+        when(minioClient.statObject(any(io.minio.StatObjectArgs.class)))
+                .thenThrow(new RuntimeException("legacy object, type unreadable"));
+        mockPresignedUrl();
+
+        service.getPrimaryImageUrl(1L);
+
+        ArgumentCaptor<GetPresignedObjectUrlArgs> args =
+                ArgumentCaptor.forClass(GetPresignedObjectUrlArgs.class);
+        verify(minioClient).getPresignedObjectUrl(args.capture());
+        assertThat(args.getValue().extraQueryParams().getFirst("response-content-type"))
+                .isEqualTo("application/octet-stream");
+        assertThat(args.getValue().extraQueryParams().getFirst("response-content-disposition"))
+                .isEqualTo("inline");
     }
 
     @Test
