@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Multi-tenant student-accommodation platform: a Spring Boot 3.5 / Java 17 monolith in `backend/` and an Angular 21 +
+Multi-tenant student-accommodation platform: a Spring Boot 3.5 / Java 21 monolith in `backend/` and an Angular 21 +
 Material standalone-component app in `frontend/`. PostgreSQL 16 (Flyway), Redis (token blacklist, rate limiting),
 MinIO (documents), SMTP via MailHog locally, FF4j feature flags, Prometheus + Grafana metrics, Google Maps geocoding.
 

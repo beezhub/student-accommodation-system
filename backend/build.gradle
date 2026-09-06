@@ -14,18 +14,6 @@ java {
 	}
 }
 
-tasks.withType(JavaCompile).configureEach {
-	options.compilerArgs += ['--enable-preview']
-}
-
-tasks.withType(Test).configureEach {
-	jvmArgs '--enable-preview'
-}
-
-tasks.withType(JavaExec).configureEach {
-	jvmArgs '--enable-preview'
-}
-
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
