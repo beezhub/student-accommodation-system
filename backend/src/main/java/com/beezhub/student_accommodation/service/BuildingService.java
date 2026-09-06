@@ -2,6 +2,8 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
+import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.mapper.BuildingMapper;
 import com.beezhub.student_accommodation.mapper.RoomMapper;
 import com.beezhub.student_accommodation.model.dto.BuildingRequest;
@@ -15,8 +17,10 @@ import com.beezhub.student_accommodation.repository.BuildingAttributesRepository
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.InstitutionRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
+import com.beezhub.student_accommodation.repository.TenantRepository;
 import com.beezhub.student_accommodation.specification.BuildingBrowseSpecification;
 import com.beezhub.student_accommodation.specification.BuildingSpecification;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +51,7 @@ public class BuildingService {
     private final RoomMapper roomMapper;
     private final BuildingImageService buildingImageService;
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+    private final TenantRepository tenantRepository;
 
     public List<BuildingResponse> getAllBuildings() {
         log.info("Fetching all buildings");
@@ -147,6 +152,7 @@ public class BuildingService {
     public BuildingResponse createBuilding(BuildingRequest request) {
         log.info("Creating new building with name: {}", request.getName());
         Building building = new Building();
+        building.setTenantId(resolveOwningTenant(request));
         building.setName(request.getName());
         building.setAddress(request.getAddress());
         building.setDescription(request.getDescription());
@@ -168,8 +174,46 @@ public class BuildingService {
         }
 
         Building saved = buildingRepository.save(building);
-        log.info("Successfully created building with id: {}", saved.getId());
+        log.info("action=buildingCreated buildingId={} tenantId={}", saved.getId(), saved.getTenantId());
         return buildingMapper.toResponse(saved);
+    }
+
+    /**
+     * The property company a new building belongs to.
+     *
+     * <p>This used to be left to {@code TenantListener}, which copies the acting context. Building
+     * creation is open to PLATFORM_ADMIN, whose context is the platform tenant (0), so a building
+     * created by a platform admin was stamped 0 and became invisible to the company that owns it.
+     * Unlike the rows PR #211 repaired, a building has no parent to derive from, so nothing could
+     * back-fill it afterwards (GH-213).
+     *
+     * <p>A platform admin must therefore say which company they are creating for. A tenant admin
+     * may only create in their own, and passing a different one is refused rather than ignored, so
+     * a mistaken id fails loudly instead of quietly creating in the wrong place.
+     */
+    private Long resolveOwningTenant(BuildingRequest request) {
+        Long callerTenantId = TenantContext.getTenantId();
+        boolean callerIsPlatform = callerTenantId == null
+                || TenantContext.PLATFORM_TENANT_ID.equals(callerTenantId);
+
+        if (!callerIsPlatform) {
+            if (request.getTenantId() != null && !request.getTenantId().equals(callerTenantId)) {
+                throw new UnauthorizedAccessException(
+                        "You can only create buildings for your own property company");
+            }
+            return callerTenantId;
+        }
+
+        Long requested = request.getTenantId();
+        if (requested == null || TenantContext.PLATFORM_TENANT_ID.equals(requested)) {
+            throw new IllegalArgumentException(
+                    "A property company must be chosen for the building. The platform tenant cannot "
+                            + "own buildings, and a building stamped with it is invisible to every company.");
+        }
+        if (!tenantRepository.existsById(requested)) {
+            throw new TenantNotFoundException("Property company not found with id: " + requested);
+        }
+        return requested;
     }
 
     public BuildingResponse updateBuilding(Long id, BuildingRequest request) {
@@ -177,6 +221,13 @@ public class BuildingService {
         Building building = buildingRepository.findById(id)
                 .orElseThrow(() -> new BuildingNotFoundException("Building not found with id: " + id));
         tenantOwnershipGuard.assertOwned(building, "Building", id);
+        // Refused rather than ignored. Moving a building between companies would re-home every
+        // room, allocation and application beneath it, so it is not something an edit does by
+        // quietly accepting a field (GH-213).
+        if (request.getTenantId() != null && !request.getTenantId().equals(building.getTenantId())) {
+            throw new UnauthorizedAccessException(
+                    "A building cannot be moved to another property company by editing it");
+        }
         building.setName(request.getName());
         building.setAddress(request.getAddress());
         building.setDescription(request.getDescription());
