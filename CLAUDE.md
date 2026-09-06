@@ -178,8 +178,7 @@ applied migration. Enums are stored as strings; no soft deletes.
   `backend/.env`. If every `@SpringBootTest` class fails with "JWT_SECRET environment variable must be set", a
   subclass is loading a context that bypasses the base class properties.
 - CI baseline: do not trust a pinned number here, it goes stale on every merge. Read the test count off the most
-  recent green backend job on `develop` and compare your branch against that. The gitleaks job fails independently
-  because the `GITLEAKS_LICENSE` repository secret is not set; that failure is never yours. Testcontainers cannot
+  recent green backend job on `develop` and compare your branch against that. Testcontainers cannot
   start on the maintainer's Docker Desktop, so integration tests are verified in CI only, and a local run failing
   ~57 container tests is the expected local baseline.
 
