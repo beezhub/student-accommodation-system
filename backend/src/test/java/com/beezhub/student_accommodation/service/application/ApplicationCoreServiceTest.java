@@ -78,6 +78,10 @@ class ApplicationCoreServiceTest {
                 student.setPhoneNumber("0123456789");
                 student.setDateOfBirth(new java.util.Date());
                 student.setGender("Female");
+                // GH-239: a complete profile now includes an emergency contact, so the happy-path
+                // fixture carries one. The gate's own cases below clear it deliberately.
+                student.setEmergencyContactName("Thandi Mokoena");
+                student.setEmergencyContactPhone("+27 82 123 4567");
                 student.setAppUser(studentUser);
 
                 application = Application.builder()
@@ -414,6 +418,67 @@ class ApplicationCoreServiceTest {
                                 .hasMessageContaining("phone number")
                                 .hasMessageContaining("date of birth")
                                 .hasMessageContaining("gender");
+        }
+
+        /**
+         * GH-239. The emergency contact is required here rather than by a NOT NULL column, because
+         * existing students have no value and none can be invented for them. This gate makes it
+         * required going forward, for exactly the students it matters for.
+         */
+        @Test
+        void submitApplication_noEmergencyContact_isRefusedAndSaysWhichPartIsMissing() {
+                student.setEmergencyContactName(null);
+                student.setEmergencyContactPhone(null);
+                when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("profile is incomplete")
+                                .hasMessageContaining("emergency contact name")
+                                .hasMessageContaining("emergency contact phone");
+        }
+
+        /** A name with no number is not a contact: there is no one to call. */
+        @Test
+        void submitApplication_emergencyContactNameWithoutAPhone_isRefused() {
+                student.setEmergencyContactPhone(null);
+                when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("emergency contact phone");
+        }
+
+        /** Blank is not a value; the other profile checks treat it the same way. */
+        @Test
+        void submitApplication_blankEmergencyContact_isRefused() {
+                student.setEmergencyContactName("   ");
+                when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("emergency contact name");
+        }
+
+        /**
+         * Relationship and email are optional. Requiring them would refuse an application over a
+         * detail that does not affect whether anyone can be reached.
+         */
+        @Test
+        void submitApplication_emergencyContactWithoutRelationshipOrEmail_isAccepted() {
+                student.setEmergencyContactRelationship(null);
+                student.setEmergencyContactEmail(null);
+                var academicYear = buildOpenAcademicYear();
+                when(buildingRepository.findById(10L)).thenReturn(Optional.of(defaultBuilding));
+                when(buildingPreferenceRepository.saveAll(any())).thenReturn(List.of());
+                stubCommonSubmitMocks(academicYear);
+
+                applicationCoreService.submitApplication(applicationRequest);
+
+                verify(applicationRepository).saveAndFlush(any(Application.class));
         }
 
 }

@@ -243,6 +243,52 @@
                 </div>
               </div>
 
+              <!-- Emergency contact section (GH-239) -->
+              <div class="form-section">
+                <h2 class="section-title">Emergency Contact</h2>
+                <p class="section-help">
+                  Who we should call if something happens to you. Required before you can submit an
+                  application.
+                </p>
+                <div class="form-grid">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Full Name</mat-label>
+                    <input matInput formControlName="emergencyContactName" [readonly]="!isEditing"
+                      autocomplete="off" placeholder="e.g. Thandi Mokoena">
+                    @if (profileForm.get('emergencyContactName')?.hasError('maxlength')) {
+                      <mat-error>Name must be at most 150 characters</mat-error>
+                    }
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Relationship</mat-label>
+                    <input matInput formControlName="emergencyContactRelationship" [readonly]="!isEditing"
+                      placeholder="e.g. Mother, Guardian, Sibling">
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Phone Number</mat-label>
+                    <input matInput formControlName="emergencyContactPhone" [readonly]="!isEditing"
+                      autocomplete="off" placeholder="e.g. +27 82 123 4567">
+                    @if (isEditing) {
+                      <mat-hint>Include the country code if they are outside South Africa</mat-hint>
+                    }
+                    @if (profileForm.get('emergencyContactPhone')?.hasError('pattern')) {
+                      <mat-error>Enter 7-20 digits, optionally starting with +</mat-error>
+                    }
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Email</mat-label>
+                    <input matInput type="email" formControlName="emergencyContactEmail"
+                      [readonly]="!isEditing" placeholder="e.g. thandi@example.com">
+                    @if (profileForm.get('emergencyContactEmail')?.hasError('email')) {
+                      <mat-error>Enter a valid email address</mat-error>
+                    }
+                  </mat-form-field>
+                </div>
+              </div>
+
               @if (isEditing) {
                 <div class="form-actions">
                   <button mat-flat-button color="primary" type="submit" [disabled]="!profileForm.valid || isSaving" class="save-btn">

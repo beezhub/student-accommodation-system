@@ -306,6 +306,12 @@ mat-card-content {
   margin-bottom: 0;
 }
 
+.section-help {
+  margin: -8px 0 16px;
+  font-size: 0.875rem;
+  opacity: 0.75;
+}
+
 .section-title {
   font-size: 0.6875rem;
   font-weight: 700;

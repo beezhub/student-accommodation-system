@@ -80,6 +80,22 @@ public class StudentService {
         if (request.getGender() != null) student.setGender(request.getGender());
         if (request.getSpecialRequirements() != null) student.setSpecialRequirements(request.getSpecialRequirements());
 
+        // GH-239. Null means "not sent, leave alone", matching every field above; an empty string
+        // is how a student clears one they had entered. Treating both as "leave alone" would make
+        // a contact impossible to remove once set, and this is someone else's data to withdraw.
+        if (request.getEmergencyContactName() != null) {
+            student.setEmergencyContactName(blankToNull(request.getEmergencyContactName()));
+        }
+        if (request.getEmergencyContactRelationship() != null) {
+            student.setEmergencyContactRelationship(blankToNull(request.getEmergencyContactRelationship()));
+        }
+        if (request.getEmergencyContactPhone() != null) {
+            student.setEmergencyContactPhone(blankToNull(request.getEmergencyContactPhone()));
+        }
+        if (request.getEmergencyContactEmail() != null) {
+            student.setEmergencyContactEmail(blankToNull(request.getEmergencyContactEmail()));
+        }
+
         // Update Institution if changed
         if (request.getInstitutionId() != null) {
             var institution = institutionRepository.findById(request.getInstitutionId())
@@ -139,5 +155,10 @@ public class StudentService {
 
     public void deleteStudentByUserId(Long userId) {
         studentRepository.findByAppUser_Id(userId).ifPresent(studentRepository::delete);
+    }
+
+    /** Stores a cleared field as NULL rather than as an empty string, so "absent" has one form. */
+    private static String blankToNull(String value) {
+        return value.isBlank() ? null : value.trim();
     }
 }
