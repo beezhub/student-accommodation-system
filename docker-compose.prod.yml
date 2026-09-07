@@ -32,6 +32,11 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
       # Without this every client behind the proxy shares one rate-limit bucket.
       - APP_SECURITY_TRUSTED_PROXIES=${APP_SECURITY_TRUSTED_PROXIES:?set to the proxy addresses}
+      # Read by application.yml but forwarded by neither compose file, so a fresh database gets no
+      # PLATFORM_ADMIN and no supported way to create one — the deployment reports success and
+      # nobody can log in (GH-257). Clear both once the first login has changed the password.
+      - ADMIN_BOOTSTRAP_EMAIL=${ADMIN_BOOTSTRAP_EMAIL:-}
+      - ADMIN_BOOTSTRAP_PASSWORD=${ADMIN_BOOTSTRAP_PASSWORD:-}
     # Reachable only through the reverse proxy that terminates TLS.
     ports: !override []
 
