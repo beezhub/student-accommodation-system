@@ -93,11 +93,15 @@ export class AdminSidebarComponent {
         { path: '/admin/year-of-study', icon: 'timeline', label: 'Years of Study' },
         { path: '/admin/academic-years', icon: 'date_range', label: 'Academic Years' },
         { path: '/admin/document-types', icon: 'folder', label: 'Doc Types' },
+        // Not platform-only: the backend allows TENANT_ADMIN, and the route dropped
+        // PlatformAdminGuard for exactly that reason (GH-158). The flag survived that fix and
+        // left the screen reachable only by typing the URL — including for the platform staff
+        // this surface is meant to serve (GH-238). The component renders a read-only branch for
+        // anyone who is not a platform admin.
         {
           path: '/admin/settings',
           icon: 'settings',
           label: 'System Settings',
-          platformAdminOnly: true,
         },
         {
           path: '/admin/feature-flags',
@@ -118,11 +122,12 @@ export class AdminSidebarComponent {
           platformAdminOnly: true,
         },
         { path: '/admin/documents', icon: 'description', label: 'Documents' },
+        // Same mislabel as System Settings above: tenant-scoped for a tenant admin, whole-platform
+        // for a platform role, and @PreAuthorize'd for both.
         {
           path: '/admin/activity-logs',
           icon: 'history',
           label: 'Activity Logs',
-          platformAdminOnly: true,
         },
       ],
     },

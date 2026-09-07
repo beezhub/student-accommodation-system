@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.application;
 
+import com.beezhub.student_accommodation.exceptions.EmailNotVerifiedException;
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.aspect.LogActivity;
@@ -92,6 +93,24 @@ public class ApplicationCoreService {
                 if (!student.getAppUser().getId().equals(currentUser.getId()) &&
                                 !currentUser.getUserRole().isAdmin()) {
                         throw new UnauthorizedAccessException("You can only submit applications for yourself");
+                }
+
+                // GH-153: verification is enforced here rather than at login.
+                //
+                // EmailNotVerifiedException existed, was mapped to 403, and was thrown nowhere:
+                // signup issues a token immediately, so verification was cosmetic. Gating login
+                // would have locked out every account that had never verified, with no way back
+                // in except an email that has to be deliverable in production. Gating submission
+                // stops the action that creates a real commitment — a room held, a company's
+                // waiting list joined — while leaving everyone able to sign in and fix it.
+                //
+                // Checked against the applicant's own account, not the caller's: an admin
+                // submitting on a student's behalf must not launder an unverified address.
+                AppUser applicant = student.getAppUser();
+                if (!Boolean.TRUE.equals(applicant.getEmailVerified())) {
+                        throw new EmailNotVerifiedException(
+                                        "Confirm your email address before submitting an application. "
+                                                        + "Check your inbox for the verification link, or request a new one.");
                 }
 
                 // Validate that all required student profile fields are complete

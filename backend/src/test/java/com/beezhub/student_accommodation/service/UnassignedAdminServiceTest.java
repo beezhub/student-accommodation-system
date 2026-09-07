@@ -19,12 +19,14 @@ import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.TenantRepository;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -91,6 +93,24 @@ class UnassignedAdminServiceTest {
 
         assertThat(service.listUnassignedAdmins()).singleElement()
                 .satisfies(row -> assertThat(row.userRole()).isEqualTo(UserRole.ADMIN));
+    }
+
+    /**
+     * PLATFORM_STAFF belongs on the platform tenant, so a staff row sitting there is correct, not
+     * stranded. Listing it would invite an operator to "fix" it by assigning a company, which
+     * would strip the cross-company visibility the role exists for (GH-238).
+     */
+    @Test
+    void listUnassignedAdmins_doesNotTreatPlatformStaffAsStranded() {
+        ArgumentCaptor<Collection<UserRole>> roles = ArgumentCaptor.forClass(Collection.class);
+        when(appUserRepository.findByTenantIdAndUserRoleIn(eq(0L), any())).thenReturn(List.of());
+
+        service.listUnassignedAdmins();
+
+        verify(appUserRepository).findByTenantIdAndUserRoleIn(eq(0L), roles.capture());
+        assertThat(roles.getValue())
+                .doesNotContain(UserRole.PLATFORM_STAFF, UserRole.PLATFORM_ADMIN)
+                .contains(UserRole.TENANT_ADMIN, UserRole.BUILDING_STAFF);
     }
 
     @ParameterizedTest

@@ -631,6 +631,6 @@ public class AllocationLifecycleService {
     }
 
     private void handleDeclineConsequences(RoomAllocation allocation, long previousDeclineCount) {
-        waitingListService.reQueueStudent(allocation, (int) previousDeclineCount + 1);
+        waitingListService.handleDeclineOutcome(allocation, (int) previousDeclineCount + 1);
     }
 }

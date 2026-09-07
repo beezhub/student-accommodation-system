@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.application;
 
+import com.beezhub.student_accommodation.exceptions.EmailNotVerifiedException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
 import com.beezhub.student_accommodation.exceptions.*;
 import com.beezhub.student_accommodation.mapper.ApplicationMapper;
@@ -71,6 +72,9 @@ class ApplicationCoreServiceTest {
                 studentUser.setId(1L);
                 studentUser.setEmail("student@test.com");
                 studentUser.setUserRole(UserRole.STUDENT);
+                // GH-153: submitApplication now refuses an unverified applicant. The gate's own
+                // cases below clear this deliberately.
+                studentUser.setEmailVerified(true);
 
                 student = new Student();
                 student.setId(1L);
@@ -418,6 +422,67 @@ class ApplicationCoreServiceTest {
                                 .hasMessageContaining("phone number")
                                 .hasMessageContaining("date of birth")
                                 .hasMessageContaining("gender");
+        }
+
+        // ── GH-153: email verification is enforced at submission ────────────────
+
+        /**
+         * EmailNotVerifiedException existed, was mapped to 403, and was thrown nowhere: signup
+         * issues a token immediately, so verification was cosmetic. It is enforced here rather
+         * than at login, which would have locked out every account that had never verified.
+         */
+        @Test
+        void submitApplication_unverifiedEmail_isRefused() {
+                studentUser.setEmailVerified(false);
+                when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
+                                .isInstanceOf(EmailNotVerifiedException.class)
+                                .hasMessageContaining("Confirm your email address");
+        }
+
+        /** An absent flag is not a verification. */
+        @Test
+        void submitApplication_verificationFlagAbsent_isRefused() {
+                studentUser.setEmailVerified(null);
+                when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
+                                .isInstanceOf(EmailNotVerifiedException.class);
+        }
+
+        /**
+         * The check is against the applicant's account, not the caller's. An admin submitting on a
+         * student's behalf must not launder an unverified address through their own verified one.
+         */
+        @Test
+        void submitApplication_byAVerifiedAdminForAnUnverifiedStudent_isStillRefused() {
+                studentUser.setEmailVerified(false);
+                AppUser admin = new AppUser();
+                admin.setId(99L);
+                admin.setEmail("admin@test.com");
+                admin.setUserRole(UserRole.PLATFORM_ADMIN);
+                admin.setEmailVerified(true);
+                when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
+                when(authService.getCurrentUser()).thenReturn(admin);
+
+                assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
+                                .isInstanceOf(EmailNotVerifiedException.class);
+        }
+
+        /** Verification is checked before the profile fields, so the first thing to fix is named first. */
+        @Test
+        void submitApplication_unverifiedAndIncompleteProfile_reportsVerificationFirst() {
+                studentUser.setEmailVerified(false);
+                student.setPhoneNumber(null);
+                student.setGender(null);
+                when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                assertThatThrownBy(() -> applicationCoreService.submitApplication(applicationRequest))
+                                .isInstanceOf(EmailNotVerifiedException.class);
         }
 
         /**

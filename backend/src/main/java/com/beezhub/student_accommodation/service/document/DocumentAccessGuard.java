@@ -17,8 +17,11 @@ import java.util.Optional;
  *
  * <p>Documents are student-owned and carry no Hibernate tenant filter (see {@link Document}), so
  * the scope a tenant admin gets must be applied explicitly here: a non-platform admin may reach a
- * document only when its student has an application in that admin's tenant. Platform admins see
- * everything; students see their own documents.
+ * document only when its student has an application in that admin's tenant. Platform-level admins
+ * (PLATFORM_ADMIN, PLATFORM_STAFF) see everything; students see their own documents.
+ *
+ * <p>Both entry points gate on {@code UserRole.isAdmin()} before any scoping happens, so a role
+ * left out of that predicate is not merely unscoped here — it is denied documents outright.
  */
 @Service
 @RequiredArgsConstructor
@@ -58,11 +61,19 @@ public class DocumentAccessGuard {
 
     /**
      * The tenant an admin's document view is limited to, or empty when the caller sees every tenant
-     * (platform admin) or is not an admin at all. Callers use it to narrow a search specification.
+     * (a platform-level role) or is not an admin at all. Callers use it to narrow a search
+     * specification.
+     *
+     * <p>The first branch asks {@code isPlatformLevel()} rather than naming PLATFORM_ADMIN. Both
+     * spellings return an empty scope for PLATFORM_STAFF today, but for different reasons: named,
+     * staff would fall through to the tenant check and get an empty scope only because platform
+     * accounts happen to be stamped tenant 0 (GH-238). That is the right answer reached by
+     * accident, and it would stop being reached the moment a platform account carried a real
+     * tenant id. Asking the role directly makes the cross-tenant view a property of the role.
      */
     public Optional<Long> tenantScopeOf(AppUser caller) {
         UserRole role = caller.getUserRole();
-        if (role == null || role == UserRole.PLATFORM_ADMIN || !role.isAdmin()) {
+        if (role == null || role.isPlatformLevel() || !role.isAdmin()) {
             return Optional.empty();
         }
         Long tenantId = TenantContext.getTenantId();

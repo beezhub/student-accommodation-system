@@ -18,8 +18,10 @@ export class PlatformAdminGuard implements CanActivate {
       return true;
     }
 
-    // Redirect admins without platform access back to the admin dashboard
-    if (currentUser && this.roleService.isTenantAdmin()) {
+    // Redirect admins without governance access back to the admin dashboard. Platform staff land
+    // here too: they hold /admin but not tenants, users, feature flags or platform defaults, and
+    // the backend answers those with a 403 (GH-238).
+    if (currentUser && (this.roleService.isTenantAdmin() || this.roleService.isPlatformStaff())) {
       this.router.navigate(['/admin']);
     } else if (currentUser) {
       this.router.navigate(['/dashboard']);

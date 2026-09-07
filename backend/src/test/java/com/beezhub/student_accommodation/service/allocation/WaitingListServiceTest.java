@@ -258,14 +258,14 @@ class WaitingListServiceTest {
     }
 
     @Test
-    void reQueueStudent_firstDecline_addsToWaitingList() {
+    void handleDeclineOutcome_firstDecline_addsToWaitingList() {
         // Arrange
         when(waitingListRepository.existsByStudent_IdAndStatus(1L, "WAITING")).thenReturn(false);
         when(waitingListRepository.save(any(WaitingListEntry.class))).thenAnswer(i -> i.getArguments()[0]);
         when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
-        waitingListService.reQueueStudent(allocation, 1);
+        waitingListService.handleDeclineOutcome(allocation, 1);
 
         // Assert
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
@@ -278,14 +278,14 @@ class WaitingListServiceTest {
     }
 
     @Test
-    void reQueueStudent_updatesApplicationStatus() {
+    void handleDeclineOutcome_secondDecline_updatesApplicationStatus() {
         // Arrange
         application.setStatus(ApplicationStatus.APPROVED);
         when(waitingListRepository.existsByStudent_IdAndStatus(1L, "WAITING")).thenReturn(true);
         when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
-        waitingListService.reQueueStudent(allocation, 2);
+        waitingListService.handleDeclineOutcome(allocation, 2);
 
         // Assert
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
@@ -293,16 +293,96 @@ class WaitingListServiceTest {
     }
 
     @Test
-    void reQueueStudent_noApplication_logsWarning() {
+    void handleDeclineOutcome_noApplication_logsWarning() {
         // Arrange
         allocation.setApplication(null);
 
         // Act
-        waitingListService.reQueueStudent(allocation, 1);
+        waitingListService.handleDeclineOutcome(allocation, 1);
 
         // Assert
         verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
         verify(applicationRepository, never()).save(any(Application.class));
+    }
+
+    // ── The decline limit (GH-160 recorded the gap; this is the decision) ────
+
+    /**
+     * The decline dialog has always told students the third decline closes their application.
+     * Nothing enforced it — every decline re-queued, whatever the count — so the warning promised
+     * something the system did not do, and one student could cycle through offers other applicants
+     * were waiting for.
+     */
+    @Test
+    void handleDeclineOutcome_thirdDecline_closesTheApplicationInsteadOfReQueueing() {
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
+                .thenReturn(Optional.empty());
+        when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        waitingListService.handleDeclineOutcome(allocation, WaitingListService.MAX_DECLINES);
+
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.CANCELLED);
+        assertThat(application.getRemarks()).contains("application closed");
+        verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
+    }
+
+    /**
+     * A WAITING entry left behind would have the batch allocator keep offering rooms to a student
+     * whose application is closed — the orphaned-row shape GH-137 fixed for rejected applications.
+     */
+    @Test
+    void handleDeclineOutcome_thirdDecline_takesTheStudentOffTheWaitingList() {
+        WaitingListEntry waiting = new WaitingListEntry();
+        waiting.setId(9L);
+        waiting.setStatus("WAITING");
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
+                .thenReturn(Optional.of(waiting));
+        when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        waitingListService.handleDeclineOutcome(allocation, WaitingListService.MAX_DECLINES);
+
+        assertThat(waiting.getStatus()).isEqualTo("CANCELLED");
+        verify(waitingListRepository).save(waiting);
+    }
+
+    /** The notification and audit are owed whether or not the student goes back on the list. */
+    @Test
+    void handleDeclineOutcome_thirdDecline_stillPublishesTheDeclinedEvent() {
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
+                .thenReturn(Optional.empty());
+        when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        waitingListService.handleDeclineOutcome(allocation, WaitingListService.MAX_DECLINES);
+
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().totalDeclineCount())
+                .isEqualTo(WaitingListService.MAX_DECLINES);
+    }
+
+    /** Two is still within the allowance the dialog offers, so it re-queues as before. */
+    @Test
+    void handleDeclineOutcome_secondDecline_stillReQueues() {
+        when(waitingListRepository.existsByStudent_IdAndStatus(1L, "WAITING")).thenReturn(false);
+        when(waitingListRepository.save(any(WaitingListEntry.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        waitingListService.handleDeclineOutcome(allocation, 2);
+
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
+        verify(waitingListRepository).save(any(WaitingListEntry.class));
+    }
+
+    /** A fourth decline cannot happen once the third closed the application, but is safe if it does. */
+    @Test
+    void handleDeclineOutcome_pastTheLimit_isStillClosedNotReQueued() {
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
+                .thenReturn(Optional.empty());
+        when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        waitingListService.handleDeclineOutcome(allocation, WaitingListService.MAX_DECLINES + 1);
+
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.CANCELLED);
+        verify(waitingListRepository, never()).save(any(WaitingListEntry.class));
     }
 
     // ── getMyWaitlistPosition ────────────────────────────────────────────────

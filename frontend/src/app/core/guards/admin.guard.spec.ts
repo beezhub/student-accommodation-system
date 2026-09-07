@@ -20,6 +20,7 @@ describe('AdminGuard', () => {
     });
     roleServiceSpy = jasmine.createSpyObj<RoleService>('RoleService', [
       'isPlatformAdmin',
+      'isPlatformStaff',
       'isTenantAdmin',
     ]);
     routerSpy = jasmine.createSpyObj<Router>('Router', ['navigate']);
@@ -44,6 +45,7 @@ describe('AdminGuard', () => {
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
     ).and.returnValue({ userRole: ROLE.PLATFORM_ADMIN });
     roleServiceSpy.isPlatformAdmin.and.returnValue(true);
+    roleServiceSpy.isPlatformStaff.and.returnValue(false);
     roleServiceSpy.isTenantAdmin.and.returnValue(false);
 
     const result = guard.canActivate(mockRoute, mockState);
@@ -57,7 +59,24 @@ describe('AdminGuard', () => {
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
     ).and.returnValue({ userRole: ROLE.TENANT_ADMIN });
     roleServiceSpy.isPlatformAdmin.and.returnValue(false);
+    roleServiceSpy.isPlatformStaff.and.returnValue(false);
     roleServiceSpy.isTenantAdmin.and.returnValue(true);
+
+    const result = guard.canActivate(mockRoute, mockState);
+
+    expect(result).toBeTrue();
+    expect(routerSpy.navigate).not.toHaveBeenCalled();
+  });
+
+  it('canActivate_platformStaffUser_returnsTrue', () => {
+    // The shared admin surface is staff's; only its governance children are held back, and by
+    // PlatformAdminGuard rather than here (GH-238).
+    (
+      Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
+    ).and.returnValue({ userRole: ROLE.PLATFORM_STAFF });
+    roleServiceSpy.isPlatformAdmin.and.returnValue(false);
+    roleServiceSpy.isPlatformStaff.and.returnValue(true);
+    roleServiceSpy.isTenantAdmin.and.returnValue(false);
 
     const result = guard.canActivate(mockRoute, mockState);
 
@@ -70,6 +89,7 @@ describe('AdminGuard', () => {
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
     ).and.returnValue({ userRole: ROLE.STUDENT });
     roleServiceSpy.isPlatformAdmin.and.returnValue(false);
+    roleServiceSpy.isPlatformStaff.and.returnValue(false);
     roleServiceSpy.isTenantAdmin.and.returnValue(false);
 
     const result = guard.canActivate(mockRoute, mockState);
@@ -83,6 +103,7 @@ describe('AdminGuard', () => {
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
     ).and.returnValue(null);
     roleServiceSpy.isPlatformAdmin.and.returnValue(false);
+    roleServiceSpy.isPlatformStaff.and.returnValue(false);
     roleServiceSpy.isTenantAdmin.and.returnValue(false);
 
     const result = guard.canActivate(mockRoute, mockState);

@@ -84,9 +84,22 @@ describe('AdminSidebarComponent', () => {
 
       expect(platformOnlyLabels).toContain('Tenants');
       expect(platformOnlyLabels).toContain('Users');
-      expect(platformOnlyLabels).toContain('System Settings');
       expect(platformOnlyLabels).toContain('Feature Flags');
-      expect(platformOnlyLabels).toContain('Activity Logs');
+    });
+
+    /**
+     * These two were flagged platform-only while the backend @PreAuthorize'd both for
+     * TENANT_ADMIN and the route dropped PlatformAdminGuard for exactly that reason (GH-158).
+     * Hiding the links left them reachable only by typing the URL (GH-238).
+     */
+    it('navGroups expose the screens a tenant admin is actually allowed', () => {
+      const visibleLabels = component.navGroups
+        .flatMap((g) => g.items)
+        .filter((item) => !item.platformAdminOnly)
+        .map((item) => item.label);
+
+      expect(visibleLabels).toContain('System Settings');
+      expect(visibleLabels).toContain('Activity Logs');
     });
 
     it('non-platform-only items remain visible for TENANT_ADMIN', () => {

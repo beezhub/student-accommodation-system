@@ -31,15 +31,22 @@ public class BuildingController {
 
     private final BuildingService buildingService;
     private final BuildingImageService buildingImageService;
+    private final com.beezhub.student_accommodation.service.geocoding.GeocodingService geocodingService;
 
+    /**
+     * Whether address lookup is available, so the building form can disable its autocomplete
+     * rather than leave an administrator typing into a field that returns nothing (GH-152).
+     *
+     * <p>Deliberately carries no key. This used to return {@code "dummy-api-key-for-development"},
+     * and the fix is not to put a real key there: a geocoding key handed to the browser is a
+     * geocoding key anyone can read and spend. The lookup happens server-side through
+     * {@code /api/geocoding/search}, so the key never leaves the backend.
+     */
     @GetMapping("/maps-config")
-    @Operation(summary = "Get maps configuration", description = "Returns the configuration for maps in the frontend")
+    @Operation(summary = "Whether address lookup is configured")
     public ResponseEntity<java.util.Map<String, Object>> getMapsConfig() {
-        log.info("Fetching maps config");
-        // Returning a basic config for maps. 
         java.util.Map<String, Object> config = new java.util.HashMap<>();
-        config.put("enabled", true);
-        config.put("apiKey", "dummy-api-key-for-development"); // In a real app, this should come from application properties
+        config.put("enabled", geocodingService.isConfigured());
         return ResponseEntity.ok(config);
     }
 

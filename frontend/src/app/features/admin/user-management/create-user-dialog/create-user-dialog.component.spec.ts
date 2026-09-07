@@ -42,7 +42,12 @@ describe('CreateUserDialogComponent tenant scoping', () => {
 
   it('availableRoles_excludesTheDeprecatedAdminRole', () => {
     // The backend mapper rejects ADMIN outright, so it failed every time it was chosen.
-    expect(build().availableRoles).toEqual(['PLATFORM_ADMIN', 'TENANT_ADMIN', 'BUILDING_STAFF']);
+    expect(build().availableRoles).toEqual([
+      'PLATFORM_ADMIN',
+      'PLATFORM_STAFF',
+      'TENANT_ADMIN',
+      'BUILDING_STAFF',
+    ]);
   });
 
   it('defaultRole_isOneTheBackendAccepts', () => {
@@ -59,6 +64,16 @@ describe('CreateUserDialogComponent tenant scoping', () => {
     const component = build();
 
     component.createUserForm.get('userRole')?.setValue('PLATFORM_ADMIN');
+
+    expect(component.showTenantField).toBeFalse();
+  });
+
+  it('showTenantField_platformStaffRole_isHidden', () => {
+    // Staff must be tenant 0; offering a company here would produce a request the backend
+    // refuses with "Platform roles are not scoped to a tenant" (GH-238).
+    const component = build();
+
+    component.createUserForm.get('userRole')?.setValue('PLATFORM_STAFF');
 
     expect(component.showTenantField).toBeFalse();
   });

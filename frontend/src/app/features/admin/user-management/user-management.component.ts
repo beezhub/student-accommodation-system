@@ -204,6 +204,8 @@ export class UserManagementComponent implements OnInit {
     switch (role) {
       case 'PLATFORM_ADMIN':
         return 'primary';
+      case 'PLATFORM_STAFF':
+        return 'primary';
       case 'BUILDING_OWNER':
         return 'accent';
       case 'BUILDING_STAFF':

@@ -100,13 +100,19 @@ public class UserManagementService {
      * <ul>
      *   <li>{@code STUDENT} — never admin-creatable</li>
      *   <li>{@code ADMIN} — allowed, but must be scoped to a non-platform tenant (tenantId != 0)</li>
-     *   <li>{@code PLATFORM_ADMIN}, {@code BUILDING_STAFF} — no tenant restriction</li>
+     *   <li>{@code PLATFORM_ADMIN}, {@code PLATFORM_STAFF}, {@code BUILDING_STAFF} — no tenant
+     *       restriction</li>
      * </ul>
      */
     private void validateAdminCreatableRole(UserRole role, Long tenantId) {
         if (role == UserRole.STUDENT) {
-            throw new IllegalArgumentException(
-                    "Invalid role for admin creation. Allowed: PLATFORM_ADMIN, ADMIN, BUILDING_STAFF");
+            // The list is built rather than written out, so adding a role cannot leave it stale
+            // the way it already had (GH-238).
+            String creatable = java.util.Arrays.stream(UserRole.values())
+                    .filter(candidate -> candidate != UserRole.STUDENT)
+                    .map(Enum::name)
+                    .collect(java.util.stream.Collectors.joining(", "));
+            throw new IllegalArgumentException("Invalid role for admin creation. Allowed: " + creatable);
         }
     }
 
@@ -119,15 +125,19 @@ public class UserManagementService {
      * TenantOwnershipGuard wave every check through. A tenant-scoped account silently became a
      * platform-wide reader (GH-146). There is no safe default here, so there is no default.
      *
-     * <p>Platform admins are the mirror image: they must be tenant 0, because that sentinel is
-     * what gives them platform-wide visibility. A platform admin stamped with a real tenant would
+     * <p>Platform roles are the mirror image: they must be tenant 0, because that sentinel is what
+     * gives them cross-company visibility. A platform account stamped with a real tenant would
      * quietly lose it.
+     *
+     * <p>Asked of {@code UserRole.isPlatformLevel()} rather than naming PLATFORM_ADMIN, so
+     * PLATFORM_STAFF takes the platform branch instead of falling into the tenant-scoped one and
+     * failing creation with a demand for a company it should not have (GH-238).
      */
     private Long resolveTenantForRole(UserRole role, Long requestedTenantId) {
-        if (role == UserRole.PLATFORM_ADMIN) {
+        if (role.isPlatformLevel()) {
             if (requestedTenantId != null && !TenantContext.PLATFORM_TENANT_ID.equals(requestedTenantId)) {
                 throw new IllegalArgumentException(
-                        "Platform admins are not scoped to a tenant");
+                        "Platform roles are not scoped to a tenant");
             }
             return TenantContext.PLATFORM_TENANT_ID;
         }

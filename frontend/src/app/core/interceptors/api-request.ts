@@ -5,9 +5,14 @@ import { environment } from '../../../environments/environment';
  *
  * <p>Every interceptor in this app was written as a deny-list: skip a handful of known public
  * paths, treat everything else as ours. That is only safe while every request goes to our backend,
- * and one does not — the address autocomplete on the building form calls
- * {@code nominatim.openstreetmap.org} through the same HttpClient, so it passes through the same
+ * and one did not — the address autocomplete on the building form called
+ * {@code nominatim.openstreetmap.org} through the same HttpClient, so it passed through the same
  * chain.
+ *
+ * <p>That particular call is gone: geocoding moved behind {@code /api/geocoding/search} in GH-152,
+ * so the browser no longer talks to a third party. The allow-list stays, because it is the correct
+ * posture rather than a fix for one URL — the next third-party call added through this HttpClient
+ * should be untouched by default, not by remembering to add it to a deny-list.
  *
  * <p>The consequence was that `authInterceptor` attached the caller's `Authorization: Bearer`
  * header to it. The caller is an administrator, so that is a four-hour admin token, and the request

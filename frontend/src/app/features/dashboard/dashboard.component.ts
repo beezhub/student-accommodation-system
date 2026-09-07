@@ -18,7 +18,6 @@ import {
 import { ApplicationService } from '../../core/services/application.service';
 import { Application } from '../../core/models/application.model';
 import { AllocationStatus } from '../../core/models/status.model';
-import { SystemSettingsService } from '../../core/services/system-settings.service';
 import { ErrorHandlingService } from '../../core/services/error-handling.service';
 import { WaitlistService, WaitlistPosition } from '../../core/services/waitlist.service';
 
@@ -101,7 +100,6 @@ export class DashboardComponent implements OnInit {
   private readonly applicationService = inject(ApplicationService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
-  private readonly systemSettingsService = inject(SystemSettingsService);
   private readonly errorService = inject(ErrorHandlingService);
   private readonly waitlistService = inject(WaitlistService);
 
@@ -328,18 +326,16 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  /**
+   * GH-152: this used to fetch `application_review_response_days` and promise students an update
+   * "within N business days". Nothing in the backend read that setting — no job, no escalation, no
+   * reminder — so it was a service level the system had no mechanism to keep. The setting is gone
+   * and so is the promise; what remains is what is actually true.
+   */
   loadResponseTimeSetting(): void {
-    this.systemSettingsService.getPublicSetting('application_review_response_days').subscribe({
-      next: (value) => {
-        if (value) {
-          this.responseTimeMessage = `Your application is now being reviewed. You\u2019ll receive an update within ${value} business days.`;
-        } else {
-          this.responseTimeMessage =
-            'Your application is being reviewed. We\u2019ll notify you as soon as there\u2019s an update.';
-        }
-        this.cdr.markForCheck();
-      },
-    });
+    this.responseTimeMessage =
+      'Your application is being reviewed. We\u2019ll notify you as soon as there\u2019s an update.';
+    this.cdr.markForCheck();
   }
 
   /** Position in {@link JOURNEY_STAGES}, or -1 for a status that is off the happy path. */

@@ -124,13 +124,9 @@ describe('DeclineOfferDialogComponent', () => {
   });
 
   /**
-   * On the last decline the dialog warns that the application will be closed.
-   *
-   * <p>Asserted as the frontend's stated behaviour, not as a system guarantee. Nothing in
-   * {@code WaitingListService.reQueueStudent} enforces a decline limit — it re-queues on every
-   * decline whatever the count — so this warning currently promises something the backend does
-   * not do. Left as-is and raised separately, because whether a limit should exist is a product
-   * decision, not a test fix.
+   * On the last decline the dialog warns that the application will be closed — and since the limit
+   * was enforced in `WaitingListService.handleDeclineOutcome`, that is now true. The warning used
+   * to promise something the backend did not do: every decline re-queued, whatever the count.
    */
   it('finalDecline_warnsThatTheApplicationWillBeClosed', () => {
     build({ previousDeclineCount: 2 });

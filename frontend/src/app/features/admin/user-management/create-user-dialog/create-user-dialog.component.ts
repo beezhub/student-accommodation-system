@@ -49,9 +49,18 @@ export class CreateUserDialogComponent {
    * option failed every time it was chosen whatever tenant was picked. TENANT_ADMIN is the role
    * the tenant-scoping rule is actually written for and was not selectable at all.
    */
-  readonly availableRoles: string[] = ['PLATFORM_ADMIN', 'TENANT_ADMIN', 'BUILDING_STAFF'];
+  readonly availableRoles: string[] = [
+    'PLATFORM_ADMIN',
+    'PLATFORM_STAFF',
+    'TENANT_ADMIN',
+    'BUILDING_STAFF',
+  ];
 
-  /** Roles the backend requires a real institution tenant for (GH-146). */
+  /**
+   * Roles the backend requires a real institution tenant for (GH-146). PLATFORM_STAFF is absent
+   * on purpose: like PLATFORM_ADMIN it must be tenant 0, and resolveTenantForRole refuses to
+   * create one carrying a company (GH-238).
+   */
   private static readonly TENANT_SCOPED_ROLES = ['TENANT_ADMIN', 'BUILDING_STAFF'];
 
   private authService = inject(AuthService);

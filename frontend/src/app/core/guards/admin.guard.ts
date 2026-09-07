@@ -14,8 +14,15 @@ export class AdminGuard implements CanActivate {
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
     const currentUser = this.authService.currentUserValue;
 
-    // Check if user is logged in and has an admin role (PLATFORM_ADMIN or TENANT_ADMIN)
-    if (currentUser && (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin())) {
+    // Platform staff hold the same shared admin surface as a tenant admin, only across every
+    // company, so /admin as a whole is theirs; the governance children are held back by
+    // PlatformAdminGuard instead (GH-238).
+    if (
+      currentUser &&
+      (this.roleService.isPlatformAdmin() ||
+        this.roleService.isPlatformStaff() ||
+        this.roleService.isTenantAdmin())
+    ) {
       return true;
     }
 

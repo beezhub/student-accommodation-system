@@ -170,4 +170,38 @@ class DocumentAccessGuardTest {
                 .isInstanceOf(UnauthorizedAccessException.class);
         verify(applicationRepository, never()).existsByStudent_IdAndTenantId(any(), anyLong());
     }
+
+    @Test
+    void tenantScopeOf_platformStaff_isEmptyEvenWhenATenantIsInContext() {
+        // The scope is empty because the ROLE is platform-level, not because platform accounts
+        // happen to be stamped tenant 0. Pinning a real tenant into the context proves the
+        // difference: if tenantScopeOf named PLATFORM_ADMIN instead of asking isPlatformLevel(),
+        // staff would fall through to the tenant check and this would return TENANT (GH-238).
+        TenantContext.setTenantId(TENANT);
+
+        assertThat(guard.tenantScopeOf(user(4L, UserRole.PLATFORM_STAFF))).isEmpty();
+    }
+
+    @Test
+    void assertCanAccessDocument_platformStaff_passesWithoutTenantCheck() {
+        // assertCanAccessDocument denies outright unless UserRole.isAdmin() is true, so leaving
+        // PLATFORM_STAFF out of that predicate locks staff out of every document rather than
+        // merely leaving them unscoped (GH-238).
+        TenantContext.setTenantId(TENANT);
+        Document document = documentOf(user(1L, UserRole.STUDENT), 1L);
+
+        assertThatCode(() -> guard.assertCanAccessDocument(document, user(4L, UserRole.PLATFORM_STAFF)))
+                .doesNotThrowAnyException();
+        verify(applicationRepository, never()).existsByStudent_IdAndTenantId(any(), anyLong());
+    }
+
+    @Test
+    void tenantScopeOf_deprecatedAdmin_staysScopedToItsTenant() {
+        // isPlatformLevel() excludes the deprecated ADMIN on purpose. It is grouped with
+        // PLATFORM_ADMIN by isAdmin(), so widening isPlatformLevel() to match would silently give
+        // a legacy role the cross-company document view it never had (GH-238).
+        TenantContext.setTenantId(TENANT);
+
+        assertThat(guard.tenantScopeOf(user(5L, UserRole.ADMIN))).contains(TENANT);
+    }
 }
