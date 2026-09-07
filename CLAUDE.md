@@ -241,3 +241,19 @@ Configured in: `backend/src/main/resources/application.yml`
 - `main` - Production-ready code
 - `develop` - Integration branch for features
 - Feature branches merge into `develop`, then `develop` merges to `main`
+
+## Scout (issue agent)
+
+Scout is an agent that works one GitHub issue per run: it picks an open issue, fixes it
+on a branch off `develop`, and opens a pull request. It asks in the issue, in plain
+language, whenever a decision belongs to a person.
+
+- Run one pass: `/scout:run` (or `/scout:run 268` for a specific issue)
+- See what it is doing: `/scout:status`
+- Definition and rules: `.claude/agents/scout.md`
+- Run procedure: `.claude/scout/playbook.md`
+- Setup, labels, and the off switch: `.claude/scout/setup.md`
+- Overview for humans: `docs/scout-agent.md`
+
+Scout never merges, never pushes to `main` or `develop`, and never touches secrets or
+existing migrations.
