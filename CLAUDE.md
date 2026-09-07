@@ -241,3 +241,24 @@ Configured in: `backend/src/main/resources/application.yml`
 - `main` - Production-ready code
 - `develop` - Integration branch for features
 - Feature branches merge into `develop`, then `develop` merges to `main`
+
+## Contribution Rules
+
+Read `CONTRIBUTING.md` before committing or opening a pull request. The
+rules that matter most:
+
+- Do not identify a contribution as agent-generated anywhere in the
+  repository or its history: no `Co-Authored-By:` trailers naming a
+  model or tool, no "Generated with" footers, no AI markers in commit
+  messages, PR text, code comments, or docs.
+- Commit under the configured `user.name` and `user.email`. Never
+  override them with `--author`, `GIT_AUTHOR_*`, or `GIT_COMMITTER_*`.
+- Name branches with the project convention (`feat/`, `fix/`,
+  `chore/`). Never put an agent, model, or tool name in a branch.
+- Write Conventional Commits with an imperative subject of 72
+  characters or less. The body says what changed and why.
+- Do not use em dashes, and do not use en dashes as sentence
+  punctuation.
+
+Before pushing, confirm `git log --format='%an <%ae>%n%b'
+origin/main..HEAD` and `git rev-parse --abbrev-ref HEAD` are clean.
