@@ -144,6 +144,14 @@ app:
     # Creates or resets the first PLATFORM_ADMIN at startup; leave blank once the admin has signed in.
     email: ${ADMIN_BOOTSTRAP_EMAIL:}
     password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+  geocoding:
+    google:
+      # Blank disables address lookup entirely: no requests are made, /api/geocoding/search returns
+      # 503, and buildings/maps-config reports enabled=false so the form disables its autocomplete.
+      # Backend-only on purpose — a geocoding key handed to the browser is one anyone can spend.
+      api-key: ${GOOGLE_MAPS_API_KEY:}
+      # Overridable so a test can point at a stub instead of the live API.
+      base-url: ${GOOGLE_GEOCODING_BASE_URL:https://maps.googleapis.com/maps/api/geocode/json}
   storage:
     cleanup:
       cron: ${STORAGE_CLEANUP_CRON:0 0 3 * * *}

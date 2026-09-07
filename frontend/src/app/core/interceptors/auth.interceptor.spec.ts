@@ -12,7 +12,9 @@ import { environment } from '../../../environments/environment';
 /**
  * Every interceptor here was a deny-list: skip a few known public paths, treat everything else as
  * ours. That is only safe while every request goes to our backend, and one does not — the address
- * autocomplete on the building form calls nominatim.openstreetmap.org through the same HttpClient.
+ * autocomplete on the building form called nominatim.openstreetmap.org through the same
+ * HttpClient. That call moved behind our own API in GH-152; the URL stays here as the third-
+ * party fixture, because what these assert is the allow-list, not that one host.
  *
  * <p>So `authInterceptor` attached the caller's bearer token to it. The caller is an administrator,
  * and the request really is transmitted: the host allows the `authorization` header and any origin,

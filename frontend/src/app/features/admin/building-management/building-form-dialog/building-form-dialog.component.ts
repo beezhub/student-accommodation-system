@@ -20,7 +20,7 @@ import {
 } from '../../../../core/services/building.service';
 import { InstitutionService } from '../../../../core/services/institution.service';
 import { Institution } from '../../../../core/models/institution.model';
-import { NominatimService, AddressSuggestion } from '../../../../core/services/nominatim.service';
+import { GeocodingService, AddressSuggestion } from '../../../../core/services/geocoding.service';
 import { TenantService, Tenant } from '../../../../core/services/tenant.service';
 import { RoleService } from '../../../../core/services/role.service';
 
@@ -396,7 +396,7 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private buildingService = inject(BuildingService);
   private institutionService = inject(InstitutionService);
-  private nominatimService = inject(NominatimService);
+  private geocodingService = inject(GeocodingService);
   private tenantService = inject(TenantService);
   private roleService = inject(RoleService);
   private snackBar = inject(MatSnackBar);
@@ -479,7 +479,7 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
             return [];
           }
           this.isSearching = true;
-          return this.nominatimService.search(query);
+          return this.geocodingService.search(query);
         }),
         takeUntil(this.destroy$)
       )

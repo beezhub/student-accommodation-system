@@ -16,9 +16,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     '/api/auth/resend-verification',
   ];
 
-  // Allow-list, not deny-list. The address autocomplete calls a third-party host through this
-  // same HttpClient, so treating everything unrecognised as ours sent an administrator bearer
-  // token to nominatim.openstreetmap.org.
+  // Allow-list, not deny-list. The address autocomplete used to call a third-party host through
+  // this same HttpClient, and treating everything unrecognised as ours sent an administrator
+  // bearer token to nominatim.openstreetmap.org. That call moved behind our own API in GH-152;
+  // the allow-list stays, so the next third-party call is safe by default rather than by
+  // someone remembering to exclude it.
   if (!isOurApiRequest(req.url)) {
     return next(req);
   }
