@@ -9,6 +9,7 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ActivityLogRepository;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +41,7 @@ public class ActivityLogService {
     private final ActivityLogRepository activityLogRepository;
     private final AppUserRepository appUserRepository;
     private final ObjectMapper objectMapper;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
 
     /**
      * Get activity logs with filters and pagination
@@ -85,6 +87,11 @@ public class ActivityLogService {
 
         ActivityLog logEntry = activityLogRepository.findById(id)
                 .orElseThrow(() -> new com.beezhub.student_accommodation.exceptions.ResourceNotFoundException("ActivityLog not found with id: " + id));
+
+        // Hibernate's tenant filter does not apply to findById, so without this a tenant admin
+        // could read another tenant's audit entry by guessing an id. The list endpoint is
+        // filtered and always was; this by-id path was not (GH-158).
+        tenantOwnershipGuard.assertReadable(logEntry, "ActivityLog", id);
 
         return mapToResponse(logEntry);
     }

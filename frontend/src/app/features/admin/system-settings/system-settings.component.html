@@ -17,7 +17,7 @@
       <div class="hero-right">
         <div class="hero-metrics" role="list" aria-label="Settings summary">
           <div class="metric-chip" role="listitem">
-            <span class="metric-value">{{ settingsCategories.length }}</span>
+            <span class="metric-value">{{ visibleSettingsCategories.length }}</span>
             <span class="metric-label">Categories</span>
           </div>
         </div>
@@ -66,7 +66,7 @@
          SETTINGS CATEGORY GRID
     ══════════════════════════════════════════════════════ -->
     <div class="settings-grid">
-      @for (category of settingsCategories; track category.route) {
+      @for (category of visibleSettingsCategories; track category.route) {
       <a
         [class]="'settings-card ' + category.class"
         [routerLink]="category.route"

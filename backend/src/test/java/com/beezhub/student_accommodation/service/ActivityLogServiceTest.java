@@ -1,20 +1,25 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.model.dto.ActivityLogPageResponse;
 import com.beezhub.student_accommodation.model.entity.ActivityLog;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ActivityLogRepository;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -51,6 +56,10 @@ class ActivityLogServiceTest {
     @Mock
     private HttpServletRequest request;
 
+    /** Stateless and the thing under test here, so real rather than mocked. */
+    @Spy
+    private TenantOwnershipGuard tenantOwnershipGuard = new TenantOwnershipGuard();
+
     @InjectMocks
     private ActivityLogService activityLogService;
 
@@ -78,6 +87,32 @@ class ActivityLogServiceTest {
                 .timestamp(LocalDateTime.now())
                 .metadata("{\"key\":\"value\"}")
                 .build();
+    }
+
+    @AfterEach
+    void clearTenant() {
+        TenantContext.clear();
+    }
+
+    @Test
+    void getActivityLogById_entryOfAnotherTenant_throwsResourceNotFound() {
+        TenantContext.setTenantId(7L);
+        activityLog.setTenantId(9L);
+        when(activityLogRepository.findById(100L)).thenReturn(Optional.of(activityLog));
+
+        // Reported as not-found rather than forbidden, so ids cannot be probed for existence.
+        assertThrows(ResourceNotFoundException.class, () -> activityLogService.getActivityLogById(100L));
+    }
+
+    @Test
+    void getActivityLogById_entryOfTheCallersTenant_returnsIt() throws Exception {
+        TenantContext.setTenantId(7L);
+        activityLog.setTenantId(7L);
+        when(activityLogRepository.findById(100L)).thenReturn(Optional.of(activityLog));
+        when(objectMapper.readValue(eq("{\"key\":\"value\"}"), any(TypeReference.class)))
+                .thenReturn(Map.of("key", "value"));
+
+        assertThat(activityLogService.getActivityLogById(100L).getId()).isEqualTo(100L);
     }
 
     @Test

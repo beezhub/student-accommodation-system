@@ -38,7 +38,14 @@ export class SystemSettingsComponent {
     return this.roleService.isPlatformAdmin();
   }
 
-  settingsCategories = [
+  settingsCategories: {
+    title: string;
+    description: string;
+    icon: string;
+    route: string;
+    class: string;
+    platformOnly?: boolean;
+  }[] = [
     {
       title: 'Accommodation Types',
       description: 'Manage accommodation type options',
@@ -73,6 +80,16 @@ export class SystemSettingsComponent {
       icon: 'toggle_on',
       route: '/admin/feature-flags',
       class: 'feature-flags',
+      // Its route is PlatformAdminGuard-protected, so a tenant admin who clicked this would be
+      // bounced straight back here. Now that they can reach this page, do not offer it (GH-158).
+      platformOnly: true,
     },
   ];
+
+  /** The cards this admin can actually open. */
+  get visibleSettingsCategories() {
+    return this.settingsCategories.filter(
+      (category) => !category.platformOnly || this.roleService.isPlatformAdmin()
+    );
+  }
 }
