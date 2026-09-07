@@ -47,6 +47,7 @@
             "assets": [],
             "index": "src/index.html",
             "browser": "src/main.ts",
+            "inlineStyleLanguage": "scss",
             "outputPath": "dist/demo",
             "polyfills": [
               "zone.js"
@@ -80,6 +81,7 @@
             ],
             "tsConfig": "tsconfig.spec.json",
             "assets": [],
+            "inlineStyleLanguage": "scss",
             "styles": [
               "src/styles.scss"
             ],
