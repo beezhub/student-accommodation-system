@@ -11,7 +11,7 @@ groups:
     folder: SAS Alerts
     interval: 1m
     rules:
-      - uid: sas-notification-permanently-failed-alert
+      - uid: sas-notification-perm-failed-alert
         title: Notification Permanently Failed
         condition: C
         data:

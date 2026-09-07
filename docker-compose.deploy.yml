@@ -15,8 +15,73 @@
 #     registry.
 #   - GH-246's managed-database section is obsolete. It was written for DigitalOcean Managed
 #     PostgreSQL; the deployment now runs Postgres in a container on Oracle Cloud, so `db` stays.
+#
+# Logs: every container's stdout/stderr and the host's Caddy journal are shipped by Alloy to Loki
+# and searched from Grafana's Explore page. Grafana is published on loopback only; reach it over
+# an SSH tunnel (README, Operations).
+
+# Same rotation the production overlay applies to the base services; the anchor cannot be shared
+# across files, so it is declared again here.
+x-bounded-logs: &bounded-logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
+  # Publish Grafana on loopback so `ssh -L 3000:127.0.0.1:3000 <host>` reaches it. Nothing else
+  # needs it and the prod overlay has already taken the base file's 0.0.0.0 publish away.
+  grafana:
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+
+  loki:
+    image: grafana/loki:3.4.2
+    container_name: student-accommodation-loki
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./tools/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    restart: unless-stopped
+    networks:
+      - monitoring-network
+    logging: *bounded-logs
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  alloy:
+    image: grafana/alloy:v1.9.2
+    container_name: student-accommodation-alloy
+    # Root, not the image's alloy user: the Docker socket and the journal are root-readable on
+    # the host, and the container's uid 473 matches nothing there.
+    user: root
+    command:
+      - run
+      - --server.http.listen-addr=127.0.0.1:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./tools/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log/journal:/var/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - alloy_data:/var/lib/alloy/data
+    depends_on:
+      - loki
+    restart: unless-stopped
+    networks:
+      - monitoring-network
+    logging: *bounded-logs
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
   frontend:
     container_name: student-accommodation-frontend
     image: student-accommodation-frontend:latest
@@ -31,6 +96,7 @@ services:
       student-accommodation-back-end:
         condition: service_started
     restart: unless-stopped
+    logging: *bounded-logs
     networks:
       app-network:
         # Fixed address so APP_SECURITY_TRUSTED_PROXIES can name it. GH-252: the backend compares
@@ -48,3 +114,7 @@ networks:
     ipam:
       config:
         - subnet: 172.28.0.0/16
+
+volumes:
+  loki_data:
+  alloy_data:
