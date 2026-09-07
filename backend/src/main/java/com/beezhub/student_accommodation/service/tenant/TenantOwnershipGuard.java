@@ -17,6 +17,13 @@ import org.springframework.stereotype.Service;
  *
  * <p>A refusal is reported as "not found" rather than "forbidden", so probing ids cannot be used to
  * discover which records exist in other tenants.
+ *
+ * <p>Note what the platform-tenant short-circuit means for {@code PLATFORM_STAFF}: staff accounts
+ * carry {@code tenant_id = 0}, so {@link #assertOwned} waves them through on every company's rows,
+ * exactly as it does a platform admin. That is deliberate — GH-238 gives staff the whole shared
+ * admin surface, writes included, and the governance endpoints they must not reach are held back
+ * by {@code @PreAuthorize("hasRole('PLATFORM_ADMIN')")} rather than by tenancy. This guard is
+ * about which company owns a row, never about what a role may do to it.
  */
 @Service
 @Slf4j

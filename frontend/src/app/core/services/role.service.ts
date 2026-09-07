@@ -25,6 +25,17 @@ export class RoleService {
     );
   }
 
+  /**
+   * True if the current user is a PLATFORM_STAFF.
+   *
+   * Deliberately not folded into isPlatformAdmin(): that predicate gates the governance screens
+   * staff must not reach, so widening it would hand staff the tenant, user and feature-flag
+   * screens the backend then refuses with a 403 (GH-238).
+   */
+  isPlatformStaff(): boolean {
+    return this.currentRole?.toUpperCase() === ROLE.PLATFORM_STAFF.toUpperCase();
+  }
+
   /** True if the current user is a TENANT_ADMIN. */
   isTenantAdmin(): boolean {
     return this.currentRole?.toUpperCase() === ROLE.TENANT_ADMIN.toUpperCase();
@@ -40,11 +51,13 @@ export class RoleService {
     return this.currentRole?.toUpperCase() === ROLE.STUDENT.toUpperCase();
   }
 
-  /**
-   * True if the current user has any administrative role
-   * (PLATFORM_ADMIN or BUILDING_STAFF).
-   */
+  /** True if the current user has any administrative role. */
   isAdmin(): boolean {
-    return this.isPlatformAdmin() || this.isTenantAdmin() || this.isBuildingStaff();
+    return (
+      this.isPlatformAdmin() ||
+      this.isPlatformStaff() ||
+      this.isTenantAdmin() ||
+      this.isBuildingStaff()
+    );
   }
 }

@@ -151,7 +151,15 @@ public class SecurityConfig {
                                 "/api/building/{buildingId}/images",
                                 "/api/institution/all")
                         .permitAll()
-                        .requestMatchers("/api/admin/**").hasAnyRole("PLATFORM_ADMIN", "TENANT_ADMIN")
+                        // PLATFORM_STAFF is admitted to the /api/admin URL space, and every
+                        // governance endpoint inside it is held shut by its own
+                        // @PreAuthorize("hasRole('PLATFORM_ADMIN')") rather than by this line. The
+                        // matcher and the annotations do different jobs: this lets you into the
+                        // space, the annotation stops you at the endpoint. A governance endpoint
+                        // added here without one becomes staff-reachable — which is what
+                        // PlatformStaffAccessIntegrationTest enumerates (GH-238).
+                        .requestMatchers("/api/admin/**")
+                        .hasAnyRole("PLATFORM_ADMIN", "PLATFORM_STAFF", "TENANT_ADMIN")
                         // FF4j's bundled REST API and web console are not used (see FeatureController) and
                         // the web-api jar is excluded from the build; keep the rule so a future dependency
                         // change cannot expose flag mutation to non-platform users.
@@ -183,14 +191,25 @@ public class SecurityConfig {
 
     /**
      * Configure role hierarchy for the application.
-     * PLATFORM_ADMIN has all privileges of BUILDING_STAFF.
-     * STUDENT is an independent role and is NOT part of the management hierarchy.
-     * Endpoints accessible to both students and platform admins must use hasAnyRole('STUDENT', 'PLATFORM_ADMIN').
+     *
+     * <p>PLATFORM_STAFF sits between PLATFORM_ADMIN and TENANT_ADMIN (GH-238). That one edge is
+     * what grants platform employees the whole shared admin surface — everything currently open to
+     * TENANT_ADMIN — without any governance surface, because a hierarchy only ever grants
+     * downwards: the endpoints guarded {@code hasRole('PLATFORM_ADMIN')} stay out of reach.
+     *
+     * <p>What makes it cross-company is not the hierarchy but the tenant: platform roles are
+     * stamped {@code tenant_id = 0}, and {@code TenantFilterAspect} skips the Hibernate filter for
+     * that sentinel.
+     *
+     * <p>STUDENT is an independent role and is NOT part of this hierarchy. Endpoints accessible to
+     * both students and platform admins must use hasAnyRole('STUDENT', 'PLATFORM_ADMIN').
      */
     @Bean
     public RoleHierarchy roleHierarchy() {
         return RoleHierarchyImpl.fromHierarchy(
-                "ROLE_PLATFORM_ADMIN > ROLE_TENANT_ADMIN\nROLE_PLATFORM_ADMIN > ROLE_BUILDING_STAFF");
+                "ROLE_PLATFORM_ADMIN > ROLE_PLATFORM_STAFF\n"
+                        + "ROLE_PLATFORM_STAFF > ROLE_TENANT_ADMIN\n"
+                        + "ROLE_PLATFORM_ADMIN > ROLE_BUILDING_STAFF");
     }
 
     /**

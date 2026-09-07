@@ -85,11 +85,36 @@ describe('RoleService', () => {
     expect(service.isAdmin()).toBeFalse();
   });
 
+  it('isPlatformStaff_whenUserIsPlatformStaff_returnsTrue', () => {
+    (
+      Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
+    ).and.returnValue({ userRole: ROLE.PLATFORM_STAFF });
+    expect(service.isPlatformStaff()).toBeTrue();
+    expect(service.isAdmin()).toBeTrue();
+  });
+
+  it('isPlatformAdmin_whenUserIsPlatformStaff_returnsFalse', () => {
+    // The two must stay distinct: isPlatformAdmin gates the tenants, users and feature-flag
+    // screens, which staff are refused server-side (GH-238).
+    (
+      Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
+    ).and.returnValue({ userRole: ROLE.PLATFORM_STAFF });
+    expect(service.isPlatformAdmin()).toBeFalse();
+  });
+
+  it('isPlatformStaff_whenUserIsPlatformAdmin_returnsFalse', () => {
+    (
+      Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
+    ).and.returnValue({ userRole: ROLE.PLATFORM_ADMIN });
+    expect(service.isPlatformStaff()).toBeFalse();
+  });
+
   it('hasRole_withUnknownRole_returnsFalse', () => {
     (
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
     ).and.returnValue({ userRole: 'UNKNOWN_ROLE' });
     expect(service.isPlatformAdmin()).toBeFalse();
+    expect(service.isPlatformStaff()).toBeFalse();
     expect(service.isStudent()).toBeFalse();
     expect(service.isBuildingStaff()).toBeFalse();
   });
@@ -99,6 +124,7 @@ describe('RoleService', () => {
       Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
     ).and.returnValue(null);
     expect(service.isPlatformAdmin()).toBeFalse();
+    expect(service.isPlatformStaff()).toBeFalse();
     expect(service.isStudent()).toBeFalse();
     expect(service.isBuildingStaff()).toBeFalse();
     expect(service.isAdmin()).toBeFalse();
