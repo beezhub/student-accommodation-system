@@ -236,6 +236,24 @@ Configured in: `backend/src/main/resources/application.yml`
 - Mappers are in `mapper/` package
 - Regenerate mappers after entity/DTO changes: `./gradlew build`
 
+## Issue Agent
+
+An automated agent (`.github/workflows/issue-agent.yml`) runs hourly, picks one
+open issue, fixes it, and opens a pull request. Its behaviour is defined in two
+plain-English files:
+
+- `.github/agents/issue-agent.md` - the playbook: issue selection, coding rules,
+  verification, pull request format
+- `.github/agents/asking-for-help.md` - the format it uses when it needs a
+  human decision
+
+Edit those files to change how the agent behaves; the workflow file itself
+rarely needs to change. Human guide: `docs/issue-agent.md`.
+
+Labels: `agent:ready`, `agent:working`, `agent:needs-input`, `agent:blocked`,
+`agent:done`, `agent:hands-off`, and `agent` on the pull requests it opens.
+Kill switch: repository variable `AGENT_ENABLED=false`.
+
 ## Branch Strategy
 
 - `main` - Production-ready code

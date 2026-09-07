@@ -1,0 +1,129 @@
+name: Issue agent
+
+# Wakes up every hour, picks one open issue, fixes it, and opens a pull request.
+# It also wakes up straight away when someone answers a question it asked.
+#
+# Read docs/issue-agent.md first. The agent's instructions live in
+# .github/agents/issue-agent.md and can be edited without touching this file.
+#
+# Scheduled runs only work from the repository's default branch, so this file
+# has to be merged into that branch before the hourly loop starts.
+
+on:
+  schedule:
+    # Minute 20 of every hour. Off the hour on purpose: GitHub delays scheduled
+    # runs that are queued at :00 with everyone else's.
+    - cron: "20 * * * *"
+
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "Issue number to work on. Leave blank to let the agent choose."
+        required: false
+        type: string
+      dry_run:
+        description: "Investigate and report only. No branch, no commits, no pull request."
+        required: false
+        type: boolean
+        default: false
+
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+# One run at a time. A second run would pick the same issue as the first.
+concurrency:
+  group: issue-agent
+  cancel-in-progress: false
+
+jobs:
+  work-an-issue:
+    # Three gates:
+    #   1. The kill switch. Set the repository variable AGENT_ENABLED to false
+    #      to stop the loop without deleting anything.
+    #   2. Comment runs only fire on issues (not pull requests) that are waiting
+    #      on an answer from a person.
+    #   3. Bot comments never wake the agent, so it cannot answer itself.
+    if: >-
+      vars.AGENT_ENABLED != 'false'
+      && (github.event_name != 'issue_comment'
+          || (github.event.issue.pull_request == null
+              && github.event.comment.user.type != 'Bot'
+              && contains(github.event.issue.labels.*.name, 'agent:needs-input')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      # A personal access token or GitHub App token makes CI run on the agent's
+      # pull requests. With the default GITHUB_TOKEN, GitHub deliberately does
+      # not trigger workflows on pushes the token makes. See docs/issue-agent.md.
+      GH_TOKEN: ${{ secrets.AGENT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+      AGENT_BASE_BRANCH: ${{ vars.AGENT_BASE_BRANCH || 'develop' }}
+      AGENT_MAX_OPEN_PRS: ${{ vars.AGENT_MAX_OPEN_PRS || '3' }}
+      AGENT_TARGET_ISSUE: ${{ inputs.issue || github.event.issue.number }}
+      AGENT_DRY_RUN: ${{ inputs.dry_run || 'false' }}
+      AGENT_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    steps:
+      - name: Check out the base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ vars.AGENT_BASE_BRANCH || 'develop' }}
+          fetch-depth: 0
+          token: ${{ secrets.AGENT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Make sure the agent labels exist
+        run: .github/scripts/agent-labels.sh
+
+      - name: Set the commit identity
+        run: |
+          git config user.name "${{ vars.AGENT_GIT_NAME || 'github-actions[bot]' }}"
+          git config user.email "${{ vars.AGENT_GIT_EMAIL || '41898282+github-actions[bot]@users.noreply.github.com' }}"
+
+      - name: Run the agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Only used if the action ever creates a branch itself. Branch names
+          # in this repository do not carry tool names.
+          branch_prefix: "fix/"
+          prompt: |
+            You are this repository's issue agent. This is one run.
+
+            Read .github/agents/issue-agent.md now and follow it exactly. It is
+            your playbook: how to pick an issue, how to work, when to stop and
+            ask a person, and how to open the pull request.
+
+            Run context:
+            - Repository: ${{ github.repository }}
+            - Triggered by: ${{ github.event_name }}
+            - Issue to work on: ${{ env.AGENT_TARGET_ISSUE }} (blank means choose one yourself)
+            - Base branch: ${{ env.AGENT_BASE_BRANCH }}
+            - Most open agent pull requests allowed at once: ${{ env.AGENT_MAX_OPEN_PRS }}
+            - Dry run: ${{ env.AGENT_DRY_RUN }}
+            - Link to this run: ${{ env.AGENT_RUN_URL }}
+
+            The gh CLI is already signed in. Java 17, Gradle and Node are installed.
+            Finish the run by printing a short summary of what you did.
+          claude_args: |
+            --allowedTools "Bash,Read,Write,Edit,Glob,Grep,TodoWrite"

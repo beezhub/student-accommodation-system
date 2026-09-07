@@ -113,6 +113,21 @@ student-accommodation-system/
 └── README.md
 ```
 
+## Issue agent
+
+This repository has an automated helper that works through GitHub issues on its
+own. Once an hour it picks one open issue, writes the fix, runs the tests, and
+opens a pull request for a person to review. When it is unsure about something
+it stops and asks a question on the issue in plain language, with options and a
+recommendation, and waits for an answer.
+
+It never merges anything. To give it a job, open an issue using the *Job for
+the issue agent* template. To turn it off, set the repository variable
+`AGENT_ENABLED` to `false`.
+
+Full details, including setup and how to change its behaviour, are in
+[docs/issue-agent.md](docs/issue-agent.md).
+
 ## Contributing
 Contributions are welcome! Please fork the repository and submit a pull request.
 

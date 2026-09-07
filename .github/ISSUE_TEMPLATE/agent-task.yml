@@ -1,0 +1,79 @@
+name: Job for the issue agent
+description: Describe something you want fixed or added, and the agent will pick it up on its next hourly run.
+title: "[agent] "
+labels: ["agent:ready"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill this in in plain language. You do not need to know how the code
+        works. The more clearly you describe what should be true when it is
+        finished, the better the result.
+
+        The agent runs once an hour. It will comment here when it picks this
+        up, and again when it opens a pull request or has a question for you.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What needs to happen?
+      description: What is wrong, or what is missing? Describe it the way you would to a colleague.
+      placeholder: |
+        When a student uploads their proof of enrolment, the page says it worked
+        but the document never shows up in the admin list.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where do you see this?
+      options:
+        - Student pages
+        - Admin pages
+        - Emails and notifications
+        - Something behind the scenes (server, database, deployment)
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can the agent see it happening?
+      description: Steps to follow, a screenshot, an error message, or a link to a log. Leave blank if this is a new feature rather than a bug.
+      placeholder: |
+        1. Sign in as a student
+        2. Go to Documents
+        3. Upload any PDF
+        4. Sign in as an admin and open that student, the document is not listed
+    validations:
+      required: false
+
+  - type: textarea
+    id: done
+    attributes:
+      label: What does "finished" look like?
+      description: How will you know it worked?
+      placeholder: The uploaded document appears in the admin list within a few seconds of upload.
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Anything the agent should avoid?
+      description: Files, areas, or approaches to stay away from. Leave blank if nothing comes to mind.
+      placeholder: Do not change how the emails are worded, marketing signed those off.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: ack
+    attributes:
+      label: Before you submit
+      options:
+        - label: I understand the agent will open a pull request that a person still has to review and merge.
+          required: true
+        - label: This does not involve real student data, credentials, or anything confidential.
+          required: true
