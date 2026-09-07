@@ -1,0 +1,125 @@
+# Deployment overlay. Third in the chain, and used on a server only:
+#
+#   docker compose --env-file .env --env-file .env.deploy \
+#     -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml \
+#     up -d --no-build --remove-orphans
+#
+# GH-246. docker-compose.prod.yml closes the exposure gaps in the laptop stack, but the stack still
+# builds the backend from whatever source happens to be on the host, ships no frontend at all, and
+# runs PostgreSQL in a container. This overlay is what makes it deployable: registry images pinned
+# by digest, the frontend service docker-build.yml has been publishing all along, and DO Managed
+# PostgreSQL in place of the db container.
+#
+# A third file rather than edits to either existing one, for the reason the prod overlay's own
+# header gives: the base file is deliberately the laptop file. A required ${BACKEND_IMAGE:?} there
+# would break `docker compose up --build`, the one workflow CLAUDE.md documents.
+#
+# REQUIRES COMPOSE >= 2.24.4 for `!reset` and `!override`. Older versions parse them as unknown
+# tags and *ignore them*, which here means the backend silently keeps its build: key and its db
+# dependency — and in the prod overlay means ports stay published. cloud-init pins the floor
+# (GH-247) and `docker compose version` is on the first-deploy checklist for exactly this reason.
+
+networks:
+  app-network:
+    # A fixed subnet so the frontend can hold a fixed address. APP_SECURITY_TRUSTED_PROXIES has to
+    # name the backend's peer exactly — trusted proxies are compared as strings, not CIDR ranges
+    # (GH-252) — and that peer is the nginx container, not Caddy on the host.
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+
+services:
+  # PostgreSQL is a DO Managed instance in the same VPC (GH-247), so this container is not wanted.
+  #
+  # profiles + replicas: 0 is not sufficient on its own. Compose starts a dependency regardless of
+  # its profile, and the base file has the backend depending on db with condition: service_healthy,
+  # so db would come up anyway and the backend would block waiting for a container nobody wants.
+  # The depends_on !override below is the half that actually keeps it down.
+  db:
+    profiles: ["never"]
+    deploy:
+      replicas: 0
+
+  student-accommodation-back-end:
+    image: ${BACKEND_IMAGE:?set to the backend image digest published by docker-build.yml}
+    # A server must never build from the tree that happens to be checked out on it. `--no-build` on
+    # the command line is the belt to this brace.
+    build: !reset null
+    depends_on: !override
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # The managed instance. DO enforces TLS, so this URL must carry sslmode=require; without it
+      # the server closes the connection and the backend fails at startup with a bare EOF.
+      - DB_URL=${DB_URL:?set to the managed PostgreSQL JDBC URL, including sslmode=require}
+      - POSTGRES_DB=${POSTGRES_DB:?set to the managed database name}
+      #
+      # APP_SECURITY_TRUSTED_PROXIES is deliberately NOT redefined here. The prod overlay already
+      # declares it `:?`, and Compose interpolates every file before merging any of them, so that
+      # requirement fires whatever this file says — a default written here could never apply. Set
+      # it in .env.deploy instead, to the frontend container's static address below: Caddy on the
+      # host forwards to that container, and nginx there proxies /api/ onward, so it is the peer
+      # the backend actually sees.
+      #
+      # Everything below reaches no container in the base or prod files, so setting it in .env
+      # silently does nothing today. Enumerated rather than switched to `env_file: [.env]`, which
+      # would inject MINIO_SECRET_KEY and GRAFANA_ADMIN_PASSWORD into the backend for no reason and
+      # hide which variables this service actually consumes.
+      #
+      # ADMIN_BOOTSTRAP_* is the blocking one. The seeded demo admin is disabled outside demo by
+      # V2026_09_05_1000__disable_seeded_admin.sql, so on a fresh database this pair is the only
+      # way to create a first PLATFORM_ADMIN. Set both for the first deploy, log in, change the
+      # password, then clear both and redeploy — see docs/DEPLOYMENT.md.
+      - ADMIN_BOOTSTRAP_EMAIL=${ADMIN_BOOTSTRAP_EMAIL:-}
+      - ADMIN_BOOTSTRAP_PASSWORD=${ADMIN_BOOTSTRAP_PASSWORD:-}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+      # Retention deletes documents irreversibly once this is false. It stays true until someone
+      # has read the retention section of docs/BACKUP_AND_RESTORE.md and decided otherwise.
+      - DOCUMENT_RETENTION_DRY_RUN=${DOCUMENT_RETENTION_DRY_RUN:-true}
+      # The managed 1 GiB plan permits far fewer connections than a local container does. 25 is the
+      # application default and fits; raising it means checking the plan's connection limit first,
+      # because exhausting it takes the database down for every client, not just this one.
+      - HIKARI_MAX_POOL_SIZE=${HIKARI_MAX_POOL_SIZE:-25}
+      - HIKARI_MIN_IDLE=${HIKARI_MIN_IDLE:-10}
+    #
+    # DEMO_SEED is deliberately absent and must stay absent. application.yml is emphatic that it
+    # must never be set in NONPROD or PROD; adding it here is how it would get set by accident.
+
+  # The service docker-build.yml has been publishing since it was written, with nothing to run it.
+  #
+  # Two things to know about the image, neither fixable from this file:
+  #   - nginx resolves `proxy_pass http://student-accommodation-back-end:8080` once at startup and
+  #     caches the address. Safe as deployed, because `up -d` recreates both containers together —
+  #     but restarting the backend alone leaves the frontend serving 502s until it is restarted too.
+  #   - nginx.conf adds `Access-Control-Allow-Origin: http://localhost:4200` to static responses.
+  #     Harmless here, since the app is served same-origin, but it is a leftover and it will read
+  #     as a misconfiguration to anyone auditing headers.
+  frontend:
+    container_name: student-accommodation-front-end
+    image: ${FRONTEND_IMAGE:?set to the frontend image digest published by docker-build.yml}
+    # Loopback only. Caddy on the host terminates TLS in front of this; nothing else may reach it,
+    # and the cloud firewall admits 443 and 22 alone.
+    ports:
+      - "127.0.0.1:8081:80"
+    networks:
+      app-network:
+        ipv4_address: 172.28.0.10
+    depends_on:
+      - student-accommodation-back-end
+    restart: unless-stopped
+    stop_grace_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # The provisioned PostgreSQL datasource points at DB_HOST, which is the managed instance here.
+  # The base file supplies the local defaults; only the host, port and TLS mode differ.
+  grafana:
+    environment:
+      - DB_HOST=${DB_HOST:?set to the managed PostgreSQL host}
+      # DO Managed PostgreSQL does not listen on 5432.
+      - DB_PORT=${DB_PORT:-25060}
+      - DB_SSLMODE=${DB_SSLMODE:-require}

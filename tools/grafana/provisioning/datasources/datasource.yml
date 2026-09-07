@@ -10,17 +10,22 @@ datasources:
   # The database name and credentials must match what compose actually creates. This pointed at a
   # database "student_accommodation" with postgres/postgres, neither of which exists, so every
   # PostgreSQL-backed panel failed to connect (GH-162).
+  #
+  # Every value is now supplied by compose, with the local defaults in docker-compose.yml and the
+  # managed instance's host, port and TLS mode in docker-compose.deploy.yml (GH-246). The shell
+  # ${VAR:-default} form is deliberately gone: Grafana's provisioning interpolation substitutes
+  # ${VAR} but does not implement defaults, so the fallbacks written here never applied.
   - name: PostgreSQL
     uid: PostgreSQL
     type: postgres
     access: proxy
-    url: db:5432
-    database: ${POSTGRES_DB:-studentaccommodationlocaldb}
-    user: ${USER_DB:-localadmin}
+    url: ${DB_HOST}:${DB_PORT}
+    database: ${POSTGRES_DB}
+    user: ${USER_DB}
     secureJsonData:
       password: ${PASSWORD_DB}
     jsonData:
-      sslmode: disable
+      sslmode: ${DB_SSLMODE}
       postgresVersion: 1600
       timescaledb: false
 

@@ -192,6 +192,16 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      # The provisioned PostgreSQL datasource interpolates all five of these from the environment.
+      # None of them were passed, so Grafana saw empty strings and every PostgreSQL-backed panel
+      # failed to connect (GH-246). The host is a variable because the deploy overlay points it at
+      # a managed instance, which also needs a different port and sslmode.
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - POSTGRES_DB=${POSTGRES_DB:-studentaccommodationlocaldb}
+      - USER_DB=${USER_DB:-localadmin}
+      - PASSWORD_DB=${PASSWORD_DB}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./tools/grafana/provisioning:/etc/grafana/provisioning
@@ -201,6 +211,10 @@ services:
       - prometheus
     restart: unless-stopped
     networks:
+      # app-network as well as monitoring: the PostgreSQL datasource has to reach the database, and
+      # locally that is the db container on app-network. Grafana was on monitoring-network alone,
+      # so the datasource could not have worked even with credentials (GH-246).
+      - app-network
       - monitoring-network
     deploy:
       resources:

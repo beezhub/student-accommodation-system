@@ -10,6 +10,11 @@
 **/.env
 **/env
 backend/.env
+# The deployment overlay's env file (GH-246). None of the patterns above match it: `.env` is exact
+# and `*.env` matches only names ending in .env. It holds the managed database URL and the first
+# admin's password, so the miss would matter. The template is kept.
+.env.deploy
+!.env.deploy.example
 
 
 
