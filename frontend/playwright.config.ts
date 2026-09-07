@@ -20,4 +20,14 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+
+  // The suite starts the dev server itself. It used to assume one was already running, so a bare
+  // `npx playwright test` failed on connection refused rather than on anything about the app
+  // (GH-159).
+  webServer: {
+    command: 'npm start',
+    url: 'http://localhost:4200',
+    reuseExistingServer: !process.env.CI,
+    timeout: 180_000,
+  },
 });

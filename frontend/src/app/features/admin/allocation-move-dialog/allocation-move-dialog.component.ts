@@ -96,14 +96,12 @@ export class AllocationMoveDialogComponent implements OnInit {
       .getEligibleRoomsForStudent(this.data.studentId, filters.buildingId || undefined)
       .subscribe({
         next: (eligibleRooms) => {
-          console.log('Eligible rooms received:', eligibleRooms);
           // Filter by room number if specified
           this.rooms = filters.roomNumber
             ? eligibleRooms.filter((r) =>
                 r.roomNumber.toLowerCase().includes(filters.roomNumber.toLowerCase())
               )
             : eligibleRooms;
-          console.log('Filtered rooms:', this.rooms);
           this.isLoadingRooms = false;
         },
         error: (err) => {
@@ -115,25 +113,15 @@ export class AllocationMoveDialogComponent implements OnInit {
   }
 
   selectRoom(room: EligibleRoomResponse): void {
-    console.log('Selected room object:', room);
-    console.log('Room ID:', room.roomId);
     this.selectedRoom = room;
   }
 
   confirmMove(): void {
     if (!this.selectedRoom) {
-      console.log('Validation failed:', {
-        hasSelectedRoom: !!this.selectedRoom,
-      });
       return;
     }
 
     this.isMoving = true;
-
-    console.log('Moving student:', {
-      allocationId: this.data.allocationId,
-      newRoomId: this.selectedRoom.roomId,
-    });
 
     this.stagedAllocationService
       .moveStudent(this.data.allocationId, this.selectedRoom.roomId, 'Manual Move')

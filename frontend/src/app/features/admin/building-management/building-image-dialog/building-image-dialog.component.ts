@@ -1,5 +1,10 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -11,6 +16,7 @@ import {
   BuildingImageResponse,
   BuildingResponse,
 } from '../../../../core/services/building.service';
+import { confirmAction } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-building-image-dialog',
@@ -30,6 +36,7 @@ import {
 export class BuildingImageDialogComponent implements OnInit {
   private buildingService = inject(BuildingService);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
   dialogRef = inject<MatDialogRef<BuildingImageDialogComponent>>(MatDialogRef);
   data = inject<{
     building: BuildingResponse;
@@ -116,17 +123,23 @@ export class BuildingImageDialogComponent implements OnInit {
   }
 
   deleteImage(image: BuildingImageResponse): void {
-    if (!confirm('Are you sure you want to delete this image?')) return;
-
-    this.buildingService.deleteBuildingImage(this.data.building.id, image.id).subscribe({
-      next: () => {
-        this.snackBar.open('Image deleted successfully', 'Close', { duration: 2000 });
-        this.loadImages();
-      },
-      error: (error) => {
-        console.error('Error deleting image:', error);
-        this.snackBar.open('Failed to delete image', 'Close', { duration: 3000 });
-      },
+    confirmAction(this.dialog, {
+      title: 'Delete this image?',
+      message: 'It is removed from the building permanently.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.buildingService.deleteBuildingImage(this.data.building.id, image.id).subscribe({
+        next: () => {
+          this.snackBar.open('Image deleted successfully', 'Close', { duration: 2000 });
+          this.loadImages();
+        },
+        error: (error) => {
+          console.error('Error deleting image:', error);
+          this.snackBar.open('Failed to delete image', 'Close', { duration: 3000 });
+        },
+      });
     });
   }
 

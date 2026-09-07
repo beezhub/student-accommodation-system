@@ -213,7 +213,11 @@ export const routes: Routes = [
       },
       {
         path: 'activity-logs',
-        canActivate: [PlatformAdminGuard],
+        // No PlatformAdminGuard: the backend allows TENANT_ADMIN on both of these
+        // (SystemSettingController and ActivityLogController), and guarding them platform-only
+        // made system-settings' own tenant read-only branch unreachable (GH-158). The parent
+        // /admin route's AdminGuard still applies.
+
         loadComponent: () =>
           import('./features/admin/activity-logs/activity-logs.component').then(
             (m) => m.ActivityLogsComponent
@@ -249,7 +253,11 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        canActivate: [PlatformAdminGuard],
+        // No PlatformAdminGuard: the backend allows TENANT_ADMIN on both of these
+        // (SystemSettingController and ActivityLogController), and guarding them platform-only
+        // made system-settings' own tenant read-only branch unreachable (GH-158). The parent
+        // /admin route's AdminGuard still applies.
+
         loadComponent: () =>
           import('./features/admin/system-settings/system-settings.component').then(
             (m) => m.SystemSettingsComponent

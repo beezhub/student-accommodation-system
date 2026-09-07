@@ -23,6 +23,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { DecimalPipe } from '@angular/common';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-year-of-study-management',
@@ -156,11 +157,13 @@ export class YearOfStudyManagementComponent implements OnInit {
   }
 
   deleteYearOfStudy(yearOfStudy: YearOfStudyResponse): void {
-    if (
-      confirm(
-        `Are you sure you want to delete year "${yearOfStudy.yearOfStudy}"? This action cannot be undone.`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Delete this year of study?',
+      message: `"${yearOfStudy.yearOfStudy}" is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.yearOfStudyService.deleteYearOfStudy(yearOfStudy.id).subscribe({
         next: () => {
           this.snackBar.open('Year of study deleted successfully', 'Close', { duration: 3000 });
@@ -176,7 +179,7 @@ export class YearOfStudyManagementComponent implements OnInit {
           );
         },
       });
-    }
+    });
   }
 
   getYearNumber(index: number): string {

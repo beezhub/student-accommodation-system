@@ -37,6 +37,8 @@ import { DeclineOfferRequest } from '../../core/services/room-allocation.service
 import { OfferExpiryComponent } from '../../shared/components/offer-expiry/offer-expiry.component';
 import { SkeletonLoaderComponent } from '../../shared/components/skeleton-loader/skeleton-loader.component';
 import { WaitlistStatusComponent } from '../../shared/components/waitlist-status/waitlist-status.component';
+import { User } from '../../core/models/user.model';
+import { DocumentData, DocumentPreview } from '../../core/models/document.model';
 
 /** One row of the Documents card. */
 interface UploadedDocumentRow {
@@ -103,8 +105,8 @@ export class DashboardComponent implements OnInit {
   private readonly errorService = inject(ErrorHandlingService);
   private readonly waitlistService = inject(WaitlistService);
 
-  currentUser: any;
-  selectedDocument: any = null;
+  currentUser: User | null = null;
+  selectedDocument: DocumentPreview | null = null;
   currentApplication: Application | null = null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -439,8 +441,16 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  viewDocument(document: any) {
-    this.selectedDocument = document;
+  viewDocument(document: DocumentData) {
+    // The DTO field is documentName; the viewer reads `name`. Passing the DTO straight through
+    // left the viewer with no name at all (GH-158).
+    this.selectedDocument = {
+      id: document.id,
+      name: document.documentName,
+      type: document.documentTypeName,
+      uploadDate: document.uploadDate,
+      status: document.documentStatus,
+    };
   }
 
   closeViewer() {

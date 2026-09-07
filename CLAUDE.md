@@ -39,7 +39,7 @@ frontend `lint`, `test`, `build`.
 npm install
 npm start                      # ng serve -> http://localhost:4200, calls http://localhost:8080/api
 npm run build                  # no defaultConfiguration set; pass --configuration=production for an optimized build
-npm run lint                   # ESLint (--max-warnings 0, so `any` warnings FAIL) + Stylelint
+npm run lint                   # ESLint (`no-explicit-any` is an error, --max-warnings 0) + Stylelint
 npm run lint:fix
 npm run format                 # Prettier
 npm test                       # Karma/Jasmine, ChromeHeadless, single run
@@ -188,6 +188,9 @@ applied migration. Enums are stored as strings; no soft deletes.
 
 - `src/main.ts` bootstraps a standalone `AppComponent` with `provideRouter`, `provideHttpClient(withInterceptors(...))`,
   animations, and the native date adapter. No `app.config.ts`, no root `NgModule`.
+- `/admin/settings` and `/admin/activity-logs` are NOT platform-only: the backend allows
+  `TENANT_ADMIN` on both, and guarding them with `PlatformAdminGuard` made the tenant read-only
+  branch in `system-settings.component.ts` unreachable (GH-158).
 - Routing is flat in `src/app/app-routing.module.ts` (a plain `routes` array, no `.routes.ts` files), every route lazy
   via `loadComponent`. `/admin` is guarded by `AuthGuard, AdminGuard, MustChangePasswordGuard`; platform-only children
   (`tenants`, `feature-flags`, and others) add `PlatformAdminGuard`. `/buildings` and `/buildings/:id` are public.
@@ -207,6 +210,10 @@ applied migration. Enums are stored as strings; no soft deletes.
   imports. Reusable components live in both `shared/` and `shared/components/`.
 - Components are standalone, mostly `OnPush`, importing Material modules individually; `shared/material.module.ts` is
   unused by them. `features/student/room-browser/` is intentionally unrouted.
+- Production builds enforce Angular budgets: 1mb warning / 1.5mb error on the initial bundle, and
+  8kb warning / 20kb error per component stylesheet. Six component stylesheets are over the 8kb
+  warning today; that warning is the debt list, and the error threshold sits above the worst of
+  them so an unrelated change cannot fail the build (GH-158).
 - Styling: `styles.scss` -> `styles/_variables`, `_mixins`, `custom-theme.scss`, `_utilities`, then legacy
   `global_styles.css`. Snackbar panel classes `snack-*` and `*-snackbar` are both defined and valid. Prefer the tokens
   and mixins over hardcoded values; `frontend/docs/STYLING_AUDIT_REPORT.md` catalogs the existing debt.

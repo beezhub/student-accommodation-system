@@ -14,6 +14,8 @@ import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,18 +60,21 @@ public class UserManagementService {
         return appUserMapper.toUserData(savedUser);
     }
 
+    /**
+     * One page of users.
+     *
+     * <p>Was an unpaged {@code findAll}, which loaded and mapped every account in the deployment
+     * on each visit to the admin screen and grew without limit (GH-157). Every other list endpoint
+     * here is paginated; this one was the exception.
+     */
     @Transactional(readOnly = true)
-    public List<UserData> getAllUsers() {
-        return userRepository.findAll().stream()
-            .map(appUserMapper::toUserData)
-            .collect(Collectors.toList());
+    public Page<UserData> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).map(appUserMapper::toUserData);
     }
 
     @Transactional(readOnly = true)
-    public List<UserData> getUsersByRole(UserRole role) {
-        return userRepository.findByUserRole(role).stream()
-            .map(appUserMapper::toUserData)
-            .collect(Collectors.toList());
+    public Page<UserData> getUsersByRole(UserRole role, Pageable pageable) {
+        return userRepository.findByUserRole(role, pageable).map(appUserMapper::toUserData);
     }
 
     @Transactional

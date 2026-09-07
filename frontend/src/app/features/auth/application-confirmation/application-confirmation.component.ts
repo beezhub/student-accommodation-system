@@ -10,6 +10,7 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { User } from '../../../core/models/user.model';
 
 @Component({
   selector: 'app-application-confirmation',
@@ -32,7 +33,7 @@ export class ApplicationConfirmationComponent implements OnInit {
   private applicationService = inject(ApplicationService);
   private snackBar = inject(MatSnackBar);
 
-  currentUser: any;
+  currentUser: User | null = null;
   application: Application | null = null;
   applicationId: number | null = null;
 

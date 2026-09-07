@@ -7,6 +7,7 @@ import { AdminService, AdminUser } from '../../../core/services/admin.service';
 // Material imports
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
@@ -20,8 +21,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CreateUserDialogComponent } from './create-user-dialog/create-user-dialog.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
-import { AuthService } from '../../../core/services/auth.service';
 import { TenantService, Tenant } from '../../../core/services/tenant.service';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { RoleService } from '../../../core/services/role.service';
+import { ROLE, UserRoleValue } from '../../../core/models/role.model';
 
 @Component({
   selector: 'app-user-management',
@@ -33,6 +36,7 @@ import { TenantService, Tenant } from '../../../core/services/tenant.service';
     ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
+    MatPaginatorModule,
     MatButtonModule,
     MatIconModule,
     MatDialogModule,
@@ -56,6 +60,10 @@ export class UserManagementComponent implements OnInit {
   displayedColumns: string[] = ['id', 'name', 'email', 'role', 'mustChangePassword', 'actions'];
   isLoading = false;
   filterRole: string = 'all';
+  // Server-side paging: the list used to arrive whole, however many accounts existed (GH-157).
+  pageIndex = 0;
+  pageSize = 25;
+  totalUsers = 0;
   isPlatformAdmin = false;
   tenants: Tenant[] = [];
   filterTenantId: number | 'all' = 'all';
@@ -65,27 +73,45 @@ export class UserManagementComponent implements OnInit {
     return this.filterRole !== 'all' ? 1 : 0;
   }
 
-  get adminCount(): number {
-    return this.users.filter((u) => u.userRole === 'ADMIN').length;
+  /**
+   * Counts over the page currently shown, by the roles that actually exist.
+   *
+   * <p>These counted `'ADMIN'` and `'LANDLORD'` before. `LANDLORD` is not a role in this system at
+   * all, so that chip always read zero, and `ADMIN` is the deprecated one kept only for migration,
+   * so the admin count missed every PLATFORM_ADMIN, TENANT_ADMIN and BUILDING_STAFF (GH-158).
+   */
+  private countOnPage(...roles: UserRoleValue[]): number {
+    const wanted = roles.map((role) => role.toUpperCase());
+    return this.users.filter((u) => wanted.includes((u.userRole ?? '').toUpperCase())).length;
   }
 
-  get landlordCount(): number {
-    return this.users.filter((u) => u.userRole === 'LANDLORD').length;
+  get platformAdminCount(): number {
+    return this.countOnPage(ROLE.PLATFORM_ADMIN, ROLE.ADMIN);
+  }
+
+  get tenantAdminCount(): number {
+    return this.countOnPage(ROLE.TENANT_ADMIN);
+  }
+
+  get buildingStaffCount(): number {
+    return this.countOnPage(ROLE.BUILDING_STAFF);
   }
 
   get studentCount(): number {
-    return this.users.filter((u) => u.userRole === 'STUDENT').length;
+    return this.countOnPage(ROLE.STUDENT);
   }
 
   toggleFilters(): void {
     this.filtersVisible = !this.filtersVisible;
   }
 
-  private authService = inject(AuthService);
+  private roleService = inject(RoleService);
   private tenantService = inject(TenantService);
 
   constructor() {
-    this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
+    // Was `tenantId === 0`. That is the tenant sentinel, not a role: students carry tenant 0 too,
+    // and a platform admin's authority comes from their role (GH-158).
+    this.isPlatformAdmin = this.roleService.isPlatformAdmin();
   }
 
   ngOnInit(): void {
@@ -99,39 +125,38 @@ export class UserManagementComponent implements OnInit {
   loadUsers(): void {
     this.isLoading = true;
 
-    if (this.filterRole === 'all') {
-      this.adminService.getAllUsers().subscribe({
-        next: (users) => {
-          this.users = users;
-          this.isLoading = false;
-        },
-        error: (_err) => {
-          this.isLoading = false;
-          this.snackBar.open('Failed to load users', 'Close', {
-            duration: 3000,
-            panelClass: ['error-snackbar'],
-          });
-        },
-      });
-    } else {
-      this.adminService.getUsersByRole(this.filterRole).subscribe({
-        next: (users) => {
-          this.users = users;
-          this.isLoading = false;
-        },
-        error: (_err) => {
-          this.isLoading = false;
-          this.snackBar.open('Failed to load users', 'Close', {
-            duration: 3000,
-            panelClass: ['error-snackbar'],
-          });
-        },
-      });
-    }
+    const page$ =
+      this.filterRole === 'all'
+        ? this.adminService.getAllUsers(this.pageIndex, this.pageSize)
+        : this.adminService.getUsersByRole(this.filterRole, this.pageIndex, this.pageSize);
+
+    page$.subscribe({
+      next: (page) => {
+        this.users = page.content;
+        this.totalUsers = page.totalElements;
+        this.isLoading = false;
+      },
+      error: (_err) => {
+        this.isLoading = false;
+        this.snackBar.open('Failed to load users', 'Close', {
+          duration: 3000,
+          panelClass: ['error-snackbar'],
+        });
+      },
+    });
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.loadUsers();
   }
 
   onFilterChange(role: string): void {
     this.filterRole = role;
+    // A new filter is a new result set, so go back to the first page rather than asking for a
+    // page number that may not exist in it.
+    this.pageIndex = 0;
     this.loadUsers();
   }
 
@@ -148,7 +173,13 @@ export class UserManagementComponent implements OnInit {
   }
 
   deleteUser(user: AdminUser): void {
-    if (confirm(`Are you sure you want to delete user ${user.email}?`)) {
+    confirmAction(this.dialog, {
+      title: 'Delete this user?',
+      message: `${user.email} loses access immediately. This cannot be undone.`,
+      confirmLabel: 'Delete user',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.adminService.deleteUser(user.id).subscribe({
         next: () => {
           this.snackBar.open('User deleted successfully', 'Close', {
@@ -166,7 +197,7 @@ export class UserManagementComponent implements OnInit {
           });
         },
       });
-    }
+    });
   }
 
   getRoleColor(role: string): string {

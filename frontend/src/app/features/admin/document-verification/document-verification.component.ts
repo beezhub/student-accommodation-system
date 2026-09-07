@@ -20,6 +20,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { DocumentPreview } from '../../../core/models/document.model';
+import { DocumentTypeResponse } from '../../../core/services/document-type.service';
 
 @Component({
   selector: 'app-document-verification',
@@ -73,9 +75,9 @@ export class DocumentVerificationComponent implements OnInit {
   }
 
   statuses = ['PENDING', 'APPROVED', 'REJECTED'];
-  documentTypes: any[] = [];
+  documentTypes: DocumentTypeResponse[] = [];
 
-  selectedDocument: any = null;
+  selectedDocument: DocumentPreview | null = null;
 
   constructor() {
     this.filterForm = this.fb.group({
@@ -90,16 +92,27 @@ export class DocumentVerificationComponent implements OnInit {
     this.loadDocuments();
   }
 
+  /**
+   * The document-type filter list. Reference data, so one bounded page is the right shape — but
+   * the cap is no longer silent: a tenant with more types than this used to lose the rest from
+   * the filter with nothing to say so (GH-157).
+   */
   loadDocumentTypes(): void {
-    this.documentTypeService.searchDocumentTypes({ page: 0, size: 100 }).subscribe({
-      next: (response) => {
-        this.documentTypes = response.content;
-      },
-      error: (err) => {
-        console.error('Failed to load document types:', err);
-      },
-    });
+    this.documentTypeService
+      .searchDocumentTypes({ page: 0, size: this.documentTypePageSize })
+      .subscribe({
+        next: (response) => {
+          this.documentTypes = response.content;
+          this.documentTypesTruncated = response.totalElements > response.content.length;
+        },
+        error: (err) => {
+          console.error('Failed to load document types:', err);
+        },
+      });
   }
+
+  readonly documentTypePageSize = 100;
+  documentTypesTruncated = false;
 
   loadDocuments(): void {
     this.isLoading = true;

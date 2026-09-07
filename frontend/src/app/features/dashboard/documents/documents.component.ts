@@ -32,6 +32,11 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { User } from '../../../core/models/user.model';
+import { DocumentData, DocumentPreview } from '../../../core/models/document.model';
+import { contentOf } from '../../../core/models/page-response.model';
 
 /** Merged view of a document type slot — either empty or populated by an uploaded document. */
 export interface DocumentSlot {
@@ -80,9 +85,10 @@ export class DocumentsComponent implements OnInit {
   private readonly documentTypeService = inject(DocumentTypeService);
   private readonly errorService = inject(ErrorHandlingService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly dialog = inject(MatDialog);
 
-  currentUser: any;
-  selectedDocument: any = null;
+  currentUser: User | null = null;
+  selectedDocument: DocumentPreview | null = null;
   isUploading = false;
   isLoading = true;
 
@@ -123,14 +129,8 @@ export class DocumentsComponent implements OnInit {
     this.loadError = null;
 
     this.documentTypeService.getAllDocumentTypes().subscribe({
-      next: (types: any) => {
-        if (Array.isArray(types)) {
-          this.allDocumentTypes = types;
-        } else if (types && Array.isArray(types.content)) {
-          this.allDocumentTypes = types.content;
-        } else {
-          this.allDocumentTypes = [];
-        }
+      next: (types) => {
+        this.allDocumentTypes = contentOf(types);
 
         // Now load uploaded documents
         this.documentService.getUploadedDocuments().subscribe({
@@ -154,10 +154,10 @@ export class DocumentsComponent implements OnInit {
     });
   }
 
-  private buildSlots(uploadedDocs: any[]): void {
+  private buildSlots(uploadedDocs: DocumentData[]): void {
     // Index uploaded docs by documentTypeId. Coerce to Number — the document-type
     // API returns ids as strings while the documents API returns them as numbers.
-    const docByTypeId = new Map<number, any>();
+    const docByTypeId = new Map<number, DocumentData>();
     for (const doc of uploadedDocs) {
       const key = doc.documentTypeId != null ? Number(doc.documentTypeId) : null;
       if (key != null) {
@@ -175,7 +175,7 @@ export class DocumentsComponent implements OnInit {
           isRequired: type.isRequired ?? false,
           documentId: uploaded.id,
           documentName: uploaded.documentName,
-          status: (uploaded.documentStatus as any) ?? 'PENDING',
+          status: (uploaded.documentStatus as DocumentSlot['status']) ?? 'PENDING',
           uploadDate: uploaded.uploadDate ?? null,
           fileSize: uploaded.fileSize ? this.formatFileSize(uploaded.fileSize) : null,
         } as DocumentSlot;
@@ -224,8 +224,9 @@ export class DocumentsComponent implements OnInit {
     this.uploadError = null;
   }
 
-  onFileSelected(event: any): void {
-    const file = event.target.files[0];
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
     if (file) {
       this.uploadStatus = 'validating';
       this.fileValidationErrors = [];
@@ -286,17 +287,23 @@ export class DocumentsComponent implements OnInit {
 
   deleteDocument(slot: DocumentSlot): void {
     if (!slot.documentId) return;
-    if (!confirm(`Delete "${slot.typeName}" document? You can re-upload at any time.`)) return;
-
-    this.documentService.deleteDocument(slot.documentId).subscribe({
-      next: () => {
-        this.errorService.showSuccess('Document deleted.');
-        this.loadPack();
-      },
-      error: (err) => {
-        this.errorService.showErrorSnackbar(this.errorService.parseError(err));
-        this.cdr.markForCheck();
-      },
+    confirmAction(this.dialog, {
+      title: 'Delete this document?',
+      message: `Your "${slot.typeName}" upload is removed. You can upload it again at any time.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.documentService.deleteDocument(slot.documentId!).subscribe({
+        next: () => {
+          this.errorService.showSuccess('Document deleted.');
+          this.loadPack();
+        },
+        error: (err) => {
+          this.errorService.showErrorSnackbar(this.errorService.parseError(err));
+          this.cdr.markForCheck();
+        },
+      });
     });
   }
 
@@ -304,7 +311,7 @@ export class DocumentsComponent implements OnInit {
     if (!slot.documentId) return;
     this.selectedDocument = {
       id: slot.documentId,
-      name: slot.documentName,
+      name: slot.documentName ?? 'Document',
       type: slot.typeName,
       status: slot.status,
     };

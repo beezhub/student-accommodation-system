@@ -38,6 +38,7 @@ import { DocumentCommentSectionComponent } from '../../../shared/components/docu
 import { TimeagoPipe } from '../../../../shared/pipes/timeago.pipe';
 import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
+import { confirmAction } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 export interface ApplicationDetailDialogData {
   applicationId: number;
@@ -186,7 +187,7 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
         if (item.documentId) {
           const change = this.documentStatusChanges.get(item.documentId);
           if (change) {
-            return { ...item, status: change.newStatus as any };
+            return { ...item, status: change.newStatus as typeof item.status };
           }
         }
         return item;
@@ -460,12 +461,22 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
 
   // Close dialog
   closeDialog(): void {
-    if (this.hasUnsavedChanges()) {
-      const confirmClose = confirm('You have unsaved changes. Are you sure you want to close?');
-      if (!confirmClose) {
-        return;
-      }
+    if (!this.hasUnsavedChanges()) {
+      this.close();
+      return;
     }
+    confirmAction(this.dialog, {
+      title: 'Discard your changes?',
+      message: 'This review has unsaved changes. Closing now loses them.',
+      confirmLabel: 'Discard and close',
+      cancelLabel: 'Keep editing',
+      destructive: true,
+    }).subscribe((discard) => {
+      if (discard) this.close();
+    });
+  }
+
+  private close(): void {
     this.dialogRef.close({
       action: 'closed',
       applicationId: this.data.applicationId,

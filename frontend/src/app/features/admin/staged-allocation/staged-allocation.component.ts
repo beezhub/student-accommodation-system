@@ -20,6 +20,7 @@ import { StagedAllocation, BatchAllocationProposal } from '../../../core/models/
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 
 @Component({
   selector: 'app-staged-allocation',
@@ -30,6 +31,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
     RouterModule,
     MatStepperModule,
     MatTableModule,
+    MatPaginatorModule,
     MatCheckboxModule,
     MatButtonModule,
     MatIconModule,
@@ -87,6 +89,10 @@ export class StagedAllocationComponent implements OnInit {
   existingProposals: StagedAllocation[] = [];
   isLoadingExistingProposals = false;
 
+  pageIndex = 0;
+  pageSize = 25;
+  totalApplications = 0;
+
   constructor() {
     this.selectionForm = this.fb.group({
       selectedCount: [0, [Validators.required, Validators.min(1), Validators.max(50)]],
@@ -100,19 +106,41 @@ export class StagedAllocationComponent implements OnInit {
 
   // --- Step 1: Selection Logic ---
 
+  /**
+   * One page of the awaiting-allocation queue.
+   *
+   * <p>Was a fixed 100, which silently hid everyone past that: a queue longer than 100 could not
+   * be worked through from this screen at all (GH-157).
+   */
   loadApplications(): void {
     this.isLoadingApplications = true;
-    this.adminService.searchApplications({ status: 'AWAITING_ALLOCATION', size: 100 }).subscribe({
-      next: (page) => {
-        this.availableApplications = page.content;
-        this.isLoadingApplications = false;
-      },
-      error: (err) => {
-        console.error('Failed to load applications', err);
-        this.isLoadingApplications = false;
-        this.snackBar.open('Error loading applications', 'Close', { duration: 3000 });
-      },
-    });
+    this.adminService
+      .searchApplications({
+        status: 'AWAITING_ALLOCATION',
+        page: this.pageIndex,
+        size: this.pageSize,
+      })
+      .subscribe({
+        next: (page) => {
+          this.availableApplications = page.content;
+          this.totalApplications = page.totalElements;
+          this.isLoadingApplications = false;
+        },
+        error: (err) => {
+          console.error('Failed to load applications', err);
+          this.isLoadingApplications = false;
+          this.snackBar.open('Error loading applications', 'Close', { duration: 3000 });
+        },
+      });
+  }
+
+  onApplicationsPageChange(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    // Selections refer to rows on the page that is going away, so they are dropped rather than
+    // silently carried into a proposal the admin can no longer see.
+    this.selection.clear();
+    this.loadApplications();
   }
 
   isAllSelected(): boolean {

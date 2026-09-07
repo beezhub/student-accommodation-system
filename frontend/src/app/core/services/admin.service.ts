@@ -135,12 +135,18 @@ export class AdminService {
     return this.http.post<AdminUser>(this.userApiUrl, userData);
   }
 
-  getAllUsers(): Observable<AdminUser[]> {
-    return this.http.get<AdminUser[]>(this.userApiUrl);
+  /**
+   * One page of users. Was unpaged, so the admin screen fetched every account in the deployment
+   * on each visit and the response grew without limit (GH-157).
+   */
+  getAllUsers(page = 0, size = 25): Observable<PageResponse<AdminUser>> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get<PageResponse<AdminUser>>(this.userApiUrl, { params });
   }
 
-  getUsersByRole(role: string): Observable<AdminUser[]> {
-    return this.http.get<AdminUser[]>(`${this.userApiUrl}/role/${role}`);
+  getUsersByRole(role: string, page = 0, size = 25): Observable<PageResponse<AdminUser>> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get<PageResponse<AdminUser>>(`${this.userApiUrl}/role/${role}`, { params });
   }
 
   deleteUser(userId: number): Observable<void> {

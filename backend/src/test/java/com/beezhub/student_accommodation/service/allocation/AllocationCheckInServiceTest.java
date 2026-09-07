@@ -16,6 +16,8 @@ import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -80,6 +82,78 @@ class AllocationCheckInServiceTest {
         assertEquals(AllocationStatus.ACTIVE, allocation.getStatus());
         assertNotNull(allocation.getCheckInDate());
         verify(applicationRepository).save(any(Application.class));
+    }
+
+    /**
+     * GH-160: checking in on a status other than ACCEPTED had no test.
+     *
+     * <p>OFFERED is the case that matters: the student has not answered the offer yet, so checking
+     * them in would put someone in a room they never agreed to and skip the accept step that
+     * reserves it.
+     */
+    @ParameterizedTest
+    @EnumSource(value = AllocationStatus.class, names = {"ACCEPTED", "ACTIVE"},
+            mode = EnumSource.Mode.EXCLUDE)
+    void checkIn_fromAnyStatusButAccepted_isRefusedAndNothingChanges(AllocationStatus status) {
+        Long id = 1L;
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(id);
+        allocation.setStatus(status);
+        allocation.setApplication(new Application());
+        when(roomAllocationRepository.findByIdWithDetails(id)).thenReturn(Optional.of(allocation));
+
+        assertThrows(InvalidAllocationStatusTransitionException.class,
+                () -> allocationCheckInService.confirmCheckIn(id, false));
+
+        assertEquals(status, allocation.getStatus());
+        assertNull(allocation.getCheckInDate());
+        verify(roomAllocationRepository, never()).save(any());
+    }
+
+    /**
+     * ACTIVE is excluded from the case above because it is not refused: {@code canTransitionTo}
+     * permits a self-transition, and {@code confirmCheckIn} does not check {@code isTerminal}
+     * the way GH-138's note says repeat-sensitive callers must.
+     *
+     * <p>So checking in an already-checked-in student succeeds and overwrites {@code checkInDate}
+     * with the second attempt's timestamp — the record of when they actually moved in is lost.
+     * Asserted as current behaviour rather than changed here, so the loss is visible and a
+     * decision about it is a deliberate one.
+     */
+    @Test
+    void checkIn_onAnAlreadyActiveAllocation_succeedsAndOverwritesTheCheckInDate() {
+        Long id = 1L;
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(id);
+        allocation.setStatus(AllocationStatus.ACTIVE);
+        allocation.setApplication(new Application());
+        java.time.LocalDateTime originalCheckIn = java.time.LocalDateTime.now().minusDays(30);
+        allocation.setCheckInDate(originalCheckIn);
+        when(roomAllocationRepository.findByIdWithDetails(id)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(allocation);
+        when(roomAllocationMapper.toResponse(any())).thenReturn(new RoomAllocationResponse());
+
+        allocationCheckInService.confirmCheckIn(id, false);
+
+        assertEquals(AllocationStatus.ACTIVE, allocation.getStatus());
+        assertNotEquals(originalCheckIn, allocation.getCheckInDate());
+    }
+
+    /** The override is for a late check-in, not for a check-in that was never legal. */
+    @Test
+    void checkIn_onAnOfferedAllocation_isRefusedEvenWithTheOverride() {
+        Long id = 1L;
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(id);
+        allocation.setStatus(AllocationStatus.OFFERED);
+        allocation.setApplication(new Application());
+        when(roomAllocationRepository.findByIdWithDetails(id)).thenReturn(Optional.of(allocation));
+
+        assertThrows(InvalidAllocationStatusTransitionException.class,
+                () -> allocationCheckInService.confirmCheckIn(id, true));
+
+        assertEquals(AllocationStatus.OFFERED, allocation.getStatus());
+        verify(roomAllocationRepository, never()).save(any());
     }
 
     // ── GH-197: the check-in deadline is enforced here, not only by the hourly sweep ─────────

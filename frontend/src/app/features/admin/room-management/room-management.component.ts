@@ -28,6 +28,7 @@ import { SelectionModel } from '@angular/cdk/collections';
 
 // Modern UI Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-room-management',
@@ -205,11 +206,13 @@ export class RoomManagementComponent implements OnInit {
   }
 
   deleteRoom(room: RoomResponse): void {
-    if (
-      confirm(
-        `Are you sure you want to delete room "${room.roomNumber}"? This action cannot be undone.`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Delete this room?',
+      message: `Room "${room.roomNumber}" is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.roomService.deleteRoom(room.id).subscribe({
         next: () => {
           this.snackBar.open('Room deleted successfully', 'Close', { duration: 3000 });
@@ -222,7 +225,7 @@ export class RoomManagementComponent implements OnInit {
           });
         },
       });
-    }
+    });
   }
 
   openAttributesDialog(room: RoomResponse): void {

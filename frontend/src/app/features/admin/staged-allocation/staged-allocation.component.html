@@ -17,7 +17,7 @@
 
       <div class="hero-metrics" role="list" aria-label="Allocation summary">
         <div class="metric-chip" role="listitem">
-          <span class="metric-value">{{ availableApplications.length | number }}</span>
+          <span class="metric-value">{{ totalApplications | number }}</span>
           <span class="metric-label">Eligible</span>
         </div>
         <div class="metric-chip metric-selected" role="listitem">
@@ -228,6 +228,15 @@
                     (click)="selection.toggle(row); onSelectionChange()">
                 </tr>
               </table>
+
+              <mat-paginator
+                [length]="totalApplications"
+                [pageIndex]="pageIndex"
+                [pageSize]="pageSize"
+                [pageSizeOptions]="[10, 25, 50, 100]"
+                (page)="onApplicationsPageChange($event)"
+                aria-label="Select page of students awaiting allocation">
+              </mat-paginator>
             </div>
 
             <div class="step-actions">

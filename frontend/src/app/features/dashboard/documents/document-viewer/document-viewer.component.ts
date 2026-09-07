@@ -17,6 +17,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DocumentService } from '../../../../core/services/document.service';
 import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-badge/modern-status-badge.component';
+import { DocumentPreview } from '../../../../core/models/document.model';
 
 @Component({
   selector: 'app-document-viewer',
@@ -39,7 +40,7 @@ export class DocumentViewerComponent implements OnInit {
   private sanitizer = inject(DomSanitizer);
   private snackBar = inject(MatSnackBar);
 
-  @Input() document: any;
+  @Input() document: DocumentPreview | null = null;
   @Output() viewerClosed = new EventEmitter<void>();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,19 +67,16 @@ export class DocumentViewerComponent implements OnInit {
       return;
     }
 
-    console.log('Loading preview for document:', this.document);
     this.isLoadingPreview = true;
     this.previewError = false;
 
-    this.documentService.downloadDocument(this.document.id).subscribe({
+    this.documentService.downloadDocument(this.document!.id).subscribe({
       next: (blob: Blob) => {
-        console.log('Document blob received:', blob.type, blob.size);
-
         // Create object URL for the blob
         const objectUrl = URL.createObjectURL(blob);
 
         // Determine file type from blob type or filename
-        const fileName = this.document.name?.toLowerCase() || '';
+        const fileName = this.document?.name?.toLowerCase() || '';
 
         if (blob.type.includes('pdf') || fileName.endsWith('.pdf')) {
           this.fileType = 'pdf';
@@ -91,7 +89,6 @@ export class DocumentViewerComponent implements OnInit {
           console.warn('Unknown file type:', blob.type, fileName);
         }
 
-        console.log('Preview loaded successfully. File type:', this.fileType);
         this.isLoadingPreview = false;
         this.cdr.markForCheck();
       },
@@ -116,12 +113,12 @@ export class DocumentViewerComponent implements OnInit {
   downloadDocument() {
     if (!this.document?.id) return;
 
-    this.documentService.downloadDocument(this.document.id).subscribe({
+    this.documentService.downloadDocument(this.document!.id).subscribe({
       next: (blob: Blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = this.document.name || 'document';
+        link.download = this.document?.name || 'document';
         link.click();
         window.URL.revokeObjectURL(url);
       },
@@ -138,7 +135,9 @@ export class DocumentViewerComponent implements OnInit {
   onClose() {
     // Clean up object URL
     if (this.previewUrl) {
-      const url = (this.previewUrl as any).changingThisBreaksApplicationSecurity;
+      // SafeUrl hides the string it wraps; this is the documented way to read it back.
+      const url = (this.previewUrl as { changingThisBreaksApplicationSecurity: string })
+        .changingThisBreaksApplicationSecurity;
       if (url && url.startsWith('blob:')) {
         URL.revokeObjectURL(url);
       }

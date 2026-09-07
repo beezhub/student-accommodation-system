@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -65,7 +65,7 @@ export interface DeclineOfferDialogData {
         <form [formGroup]="form" class="decline-form">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Reason for Declining *</mat-label>
-            <mat-select formControlName="declineReason" required>
+            <mat-select formControlName="declineReason" required cdkFocusInitial>
               @for (reason of declineReasons; track reason.value) {
               <mat-option [value]="reason.value">
                 {{ reason.label }}
@@ -192,7 +192,7 @@ export interface DeclineOfferDialogData {
     `,
   ],
 })
-export class DeclineOfferDialogComponent implements OnInit {
+export class DeclineOfferDialogComponent {
   private fb = inject(FormBuilder);
   private dialogRef = inject<MatDialogRef<DeclineOfferDialogComponent>>(MatDialogRef);
   data = inject<DeclineOfferDialogData>(MAT_DIALOG_DATA);
@@ -215,16 +215,6 @@ export class DeclineOfferDialogComponent implements OnInit {
       declineReason: [null, Validators.required],
       declineReasonText: ['', Validators.maxLength(500)],
     });
-  }
-
-  ngOnInit(): void {
-    // Focus on the select field after a short delay
-    setTimeout(() => {
-      const selectElement = document.querySelector('mat-select');
-      if (selectElement) {
-        (selectElement as HTMLElement).focus();
-      }
-    }, 100);
   }
 
   submit(): void {

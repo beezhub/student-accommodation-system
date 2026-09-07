@@ -175,7 +175,7 @@ export class BuildingAttributesManagementComponent implements OnInit {
     });
   }
 
-  updateRoomAttribute(room: RoomAttributes, field: string, value: any): void {
+  updateRoomAttribute(room: RoomAttributes, field: string, value: string | number | boolean): void {
     if (!room.id) return;
 
     const update: Partial<RoomAttributes> = {};

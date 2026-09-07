@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
@@ -32,6 +33,7 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class ChangePasswordComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -61,7 +63,7 @@ export class ChangePasswordComponent implements OnInit {
 
   ngOnInit(): void {
     // Check if this is a forced password change
-    this.route.queryParams.subscribe((params) => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.isForced = params['forced'] === 'true';
     });
   }

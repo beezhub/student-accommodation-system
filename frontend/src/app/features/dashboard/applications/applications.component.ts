@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, Observable } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
 import { ApplicationService } from '../../../core/services/application.service';
@@ -32,6 +32,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { User } from '../../../core/models/user.model';
 
 export interface DocRequirementStatus {
   typeId: number;
@@ -68,7 +69,7 @@ export class ApplicationsComponent implements OnInit {
   private readonly errorService = inject(ErrorHandlingService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  currentUser: any;
+  currentUser: User | null = null;
   applications: Application[] = [];
   isLoading = false;
 
@@ -137,7 +138,7 @@ export class ApplicationsComponent implements OnInit {
         .getRequiredDocumentTypes(tenantId)
         .pipe(catchError(() => of([] as DocumentType[])));
       return acc;
-    }, {} as Record<number, any>);
+    }, {} as Record<number, Observable<DocumentType[]>>);
 
     const myDocs$ = this.documentService
       .getUploadedDocuments()
@@ -152,7 +153,8 @@ export class ApplicationsComponent implements OnInit {
           const result = new Map<number, DocRequirementStatus[]>();
           for (const app of applications) {
             if (app.tenantId == null) continue;
-            const required: DocumentType[] = (requiredByTenant as any)[app.tenantId] ?? [];
+            const required: DocumentType[] =
+              (requiredByTenant as Record<number, DocumentType[]>)[app.tenantId] ?? [];
             if (required.length === 0) continue;
             result.set(
               app.id,
@@ -196,8 +198,9 @@ export class ApplicationsComponent implements OnInit {
   cancelApplication(_applicationId: number) {
     // Note: Application cancellation is not currently supported by the backend API
     // This is a placeholder for future implementation
-    alert(
-      'Application cancellation is not currently available. Please contact support if you need to cancel your application.'
+    this.errorService.showInfo(
+      'Cancelling an application is not available yet. Contact support if you need to withdraw.',
+      6000
     );
   }
 }

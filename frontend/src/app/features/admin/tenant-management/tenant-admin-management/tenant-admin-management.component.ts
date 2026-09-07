@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, inject, Optional } from '@angular/core';
+import { Component, Input, OnInit, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { TenantService, TenantAdminUser } from '../../../../core/services/tenant.service';
 
@@ -14,6 +14,12 @@ import { MatChipsModule } from '@angular/material/chips';
 import { DatePipe } from '@angular/common';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { SkeletonLoaderComponent } from '../../../../shared/components/skeleton-loader/skeleton-loader.component';
+
+/** What the dialog form of this component is opened with. */
+interface TenantAdminDialogData {
+  tenantId: number;
+  tenantName?: string;
+}
 
 @Component({
   selector: 'app-tenant-admin-management',
@@ -42,10 +48,11 @@ export class TenantAdminManagementComponent implements OnInit {
   private tenantService = inject(TenantService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
-  @Optional() private dialogData = inject(MAT_DIALOG_DATA, { optional: true } as any);
-  @Optional() dialogRef = inject(MatDialogRef<TenantAdminManagementComponent>, {
-    optional: true,
-  } as any);
+  // This component is used both as a routed page and as a dialog, so both tokens are optional.
+  // `{ optional: true }` already selects the nullable overload; the `as any` that used to be here
+  // defeated that overload resolution rather than helping it (GH-158).
+  private dialogData = inject<TenantAdminDialogData | null>(MAT_DIALOG_DATA, { optional: true });
+  dialogRef = inject(MatDialogRef<TenantAdminManagementComponent>, { optional: true });
 
   ngOnInit(): void {
     // When opened as a dialog, data comes via MAT_DIALOG_DATA

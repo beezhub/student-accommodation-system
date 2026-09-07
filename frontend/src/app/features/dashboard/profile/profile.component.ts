@@ -23,6 +23,8 @@ import { ChangePasswordDialogComponent } from './change-password-dialog/change-p
 import { DeleteAccountDialogComponent } from './delete-account-dialog/delete-account-dialog.component';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import { User } from '../../../core/models/user.model';
+import { contentOf } from '../../../core/models/page-response.model';
 
 @Component({
   selector: 'app-profile',
@@ -43,7 +45,7 @@ export class ProfileComponent implements OnInit {
   private readonly errorService = inject(ErrorHandlingService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  currentUser: any;
+  currentUser: User | null = null;
   profileForm: FormGroup;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isEditing = false;
@@ -131,18 +133,8 @@ export class ProfileComponent implements OnInit {
   loadInstitutions() {
     this.institutionService.getInstitutions().subscribe({
       next: (response) => {
-        console.log('Institutions API response:', response);
         // Handle both paginated and non-paginated responses
-        if (response && Array.isArray((response as any).content)) {
-          this.institutions = (response as any).content;
-        } else if (Array.isArray(response)) {
-          this.institutions = response;
-        } else {
-          this.institutions = [];
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        console.log('Loaded institutions:', this.institutions);
+        this.institutions = contentOf(response);
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -159,18 +151,8 @@ export class ProfileComponent implements OnInit {
   loadYearsOfStudy() {
     this.yearOfStudyService.getYearsOfStudy().subscribe({
       next: (response) => {
-        console.log('Years of Study API response:', response);
         // Handle both paginated and non-paginated responses
-        if (response && Array.isArray((response as any).content)) {
-          this.yearsOfStudy = (response as any).content;
-        } else if (Array.isArray(response)) {
-          this.yearsOfStudy = response;
-        } else {
-          this.yearsOfStudy = [];
-        }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        console.log('Loaded years of study:', this.yearsOfStudy);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.yearsOfStudy = contentOf(response);
         this.cdr.markForCheck();
       },
       error: (error) => {
@@ -277,13 +259,16 @@ export class ProfileComponent implements OnInit {
             yearOfStudyId: String(response.yearOfStudyId),
           };
 
-          // Update current user in auth service
-          this.currentUser = {
-            ...this.currentUser,
-            firstName: response.firstName,
-            lastName: response.lastName,
-            email: response.email,
-          };
+          // Update current user in auth service. Guarded: spreading a null user built an object
+          // missing id, profileCompleted and userRole, which `any` accepted as a User (GH-158).
+          if (this.currentUser) {
+            this.currentUser = {
+              ...this.currentUser,
+              firstName: response.firstName,
+              lastName: response.lastName,
+              email: response.email,
+            };
+          }
 
           this.errorService.showSuccess('Profile updated successfully!');
           this.cdr.markForCheck();

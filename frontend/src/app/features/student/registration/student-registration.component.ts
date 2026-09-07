@@ -14,6 +14,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-student-registration',
@@ -34,6 +35,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatSnackBarModule,
   ],
 })
 export class StudentRegistrationComponent {
@@ -44,6 +46,7 @@ export class StudentRegistrationComponent {
 
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
 
   constructor() {
     this.registrationForm = this.fb.group({
@@ -147,7 +150,7 @@ export class StudentRegistrationComponent {
       setTimeout(() => {
         this.isSubmitting = false;
         // Show a success message or redirect
-        alert('Student registered successfully!');
+        this.snackBar.open('Student registered successfully!', 'Close', { duration: 3000 });
         this.router.navigate(['/login']);
       }, 1500);
     } else {
