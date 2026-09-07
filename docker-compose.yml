@@ -148,7 +148,9 @@ services:
           memory: 128M
 
   redis:
-    image: redis:7.4-alpine
+    # Redis 8 is licensed AGPLv3 (OSI-approved). 7.x was RSALv2/SSPLv1 only, the one component in
+    # the stack that was not open source.
+    image: redis:8.2-alpine
     container_name: student-accommodation-redis
     ports:
       - "6379:6379"

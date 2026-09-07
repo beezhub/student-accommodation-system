@@ -51,7 +51,7 @@ public abstract class AbstractIntegrationTest {
                     .withExposedPorts(1025, 8025);
 
     private static final GenericContainer<?> redis =
-            new GenericContainer<>("redis:7")
+            new GenericContainer<>("redis:8")
                     .withExposedPorts(6379);
 
     private static final GenericContainer<?> minio =
