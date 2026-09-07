@@ -24,11 +24,12 @@ Write for that person.
 - Under 150 words. Cut anything that is you showing your working.
 - Never ask for a password, a key, or anything secret. Ask the human to set it themselves.
 - Ask once. Do not follow up, do not nudge, do not repost.
+- Open with 🔭, so the reader can see the question is from you and not a colleague.
 
 ## Template: a choice to make
 
 ```markdown
-**Scout needs a decision on this one.**
+🔭 **Scout needs a decision on this one.**
 
 **What I was doing:** <the issue in one plain sentence>.
 
@@ -50,7 +51,7 @@ Reply here and I will carry on next time I run.
 ## Template: too big for me
 
 ```markdown
-**Scout is standing down on this one, it is bigger than it looks.**
+🔭 **Scout is standing down on this one, it is bigger than it looks.**
 
 **What I was doing:** <the issue in one plain sentence>.
 
@@ -65,7 +66,7 @@ I have not changed any code. Removing my label and leaving this for a person.
 ## Template: I cannot reproduce it
 
 ```markdown
-**Scout could not make this happen.**
+🔭 **Scout could not make this happen.**
 
 **What I was doing:** <the issue in one plain sentence>.
 
@@ -82,7 +83,7 @@ Add that here and I will pick this back up.
 ## Template: work in progress, saved for later
 
 ```markdown
-**Scout has saved what it had so far.**
+🔭 **Scout has saved what it had so far.**
 
 I started on this and got as far as <plain sentence>. I have put that in a draft
 pull request so it is not lost: #<number>.
@@ -103,7 +104,7 @@ Not this:
 
 This:
 
-> **Scout needs a decision on this one.**
+> 🔭 **Scout needs a decision on this one.**
 >
 > **What I was doing:** students and admins cannot open any uploaded document or see any
 > building photo. Every one of them fails to load.

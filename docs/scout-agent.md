@@ -22,6 +22,15 @@ Once an hour, Scout wakes up with no memory of last time and does this:
 
 One issue per run. Never more.
 
+## Spotting Scout on an issue
+
+Every comment Scout writes opens with 🔭, so you can tell its voice from a
+colleague's without reading the whole thread.
+
+That mark stays in comments. Its commits and pull requests carry nothing of the sort:
+they are ordinary contributions, authored under the repository's configured user, and
+they read that way.
+
 ## What it will not do
 
 - It never merges anything. Every change waits for a person.
