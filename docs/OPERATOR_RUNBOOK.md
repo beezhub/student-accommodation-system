@@ -13,6 +13,12 @@ here in the order it is needed, so nothing hides inside an implementation issue.
 Work top to bottom. Several steps wait on DNS or domain verification, so start section 0 and steps
 1–2 early even if you are not deploying yet.
 
+**Standing constraint: the domain already hosts live email.** It is registered with SADomains with
+mailboxes on the same provider, so the apex DNS zone is not ours to move or rewrite. DigitalOcean is
+delegated the two host subdomains only (step 2), and every mail-related record — `MX`, `SPF`, `DKIM`
+— stays at SADomains (step 4). Any instruction anywhere in the programme that says to point the
+domain's nameservers at DigitalOcean is superseded by step 2 here.
+
 ## What you do NOT do
 
 Terraform (GH-247) creates the droplets, the managed databases, the VPC, the firewall and the DNS
@@ -37,6 +43,10 @@ Write them down; several steps below need them.
 `ALLOWED_ORIGINS`, `APP_BASE_URL`, `STORAGE_PUBLIC_ORIGIN` and `GRAFANA_ROOT_URL` are all derived
 from the hostname, so deciding the hostname decides them. `APP_SECURITY_TRUSTED_PROXIES` is decided
 by the Terraform module (GH-247), not here.
+
+`APP_SUPPORT_EMAIL` must be a **real mailbox on the existing email hosting**, not a send-only
+address. It is the reply-to on every message the application sends, so a student hitting reply on a
+rejection or an offer expiry has to reach a person. Create it before the first deploy.
 
 ## 0.2 Generate the application secrets
 
@@ -69,21 +79,58 @@ hands.
 
 ## 1. Domain
 
-Register the domain with any registrar (~$12/year). You will point its nameservers at DigitalOcean
-in step 2, so the registrar's own DNS is not used.
+**Already done.** The domain is registered with SADomains, and it carries live email hosting on the
+same provider.
 
-## 2. DigitalOcean account and DNS
+That second fact governs everything about DNS below. The apex zone holds working `MX`, `SPF` and
+`DKIM` records for real mailboxes. Moving that zone wholesale to DigitalOcean means recreating every
+one of those records by hand before the delegation takes effect, and finding out you missed one when
+mail stops arriving hours later. So the zone does not move.
+
+## 2. DigitalOcean account, and delegating only the host subdomains
+
+**The apex zone stays at SADomains.** DigitalOcean is given authority over two subdomains and
+nothing else, so Terraform can still create and destroy the host records while mail is never at
+risk.
 
 1. Create a DigitalOcean account. Enable two-factor authentication — this account holds production.
 2. **API → Tokens → Generate New Token**, read *and* write, no expiry. This is Terraform's
    credential. Store it in a password manager; you will paste it once into `terraform.tfvars`
    (which is gitignored).
-3. **Networking → Domains → Add Domain**: add the domain from step 1. Do not add any records yet.
-4. At your registrar, set the domain's nameservers to `ns1.digitalocean.com`,
-   `ns2.digitalocean.com`, `ns3.digitalocean.com`. Propagation takes up to a day; `dig NS <domain>`
-   shows when it is done.
+3. **Networking → Domains → Add Domain**, *twice*, entering the full hostnames as the domains:
+   `nonprod.<domain>` and `app.<domain>`. Not the apex. DigitalOcean treats each as its own zone.
+   It offers to attach a droplet — decline; Terraform creates the records.
+4. In the **SADomains** DNS editor for your domain, add three `NS` records per hostname — six
+   records in total:
 
-Terraform will create the `nonprod` and `app` A records. Mail records are added in step 4.
+   | Name | Type | Value |
+   | --- | --- | --- |
+   | `nonprod` | NS | `ns1.digitalocean.com` |
+   | `nonprod` | NS | `ns2.digitalocean.com` |
+   | `nonprod` | NS | `ns3.digitalocean.com` |
+   | `app` | NS | `ns1.digitalocean.com` |
+   | `app` | NS | `ns2.digitalocean.com` |
+   | `app` | NS | `ns3.digitalocean.com` |
+
+   Touch nothing else. In particular do not alter the `MX` records or the existing `SPF` record.
+5. Confirm the delegation before going further:
+
+   ```
+   dig NS nonprod.<domain> +short     # expects the three DigitalOcean nameservers
+   dig MX <domain> +short             # expects your email host, unchanged
+   ```
+
+   Propagation is usually minutes for a fresh subdomain, since nothing was cached.
+
+Terraform creates the A record *inside* each delegated zone — an `@` record in the
+`nonprod.<domain>` zone, not a `nonprod` record in the apex zone. Certificate issuance is
+unaffected: Caddy solves the HTTP-01 challenge over port 80 and never touches DNS.
+
+> **Note for GH-247.** The module's `digitalocean_domain` is the full hostname and the record name
+> is `@`. Writing it the other way — zone `<domain>`, name `nonprod` — makes Terraform demand
+> authority over the apex zone, which it does not have and must not be given.
+
+Mail records are added in step 4, and they go to **SADomains**, not DigitalOcean.
 
 ## 3. Cloudflare R2 (backup destination)
 
@@ -100,19 +147,46 @@ Without this the backend refuses to start (`docker-compose.prod.yml` fail-fasts 
 no student can register: MailHog is scaled to zero outside development, and email verification gates
 application submission.
 
-1. Sign up at Brevo, free tier (300 emails/day).
-2. **Senders & IP → Domains → Add a domain**: enter your domain. Brevo shows you a set of DNS
-   records to add — typically a DKIM record, a Brevo verification record, and an SPF `include`.
-   **Add each of them, exactly as shown, in DigitalOcean DNS** (Networking → Domains → your domain
-   → Create new record). Use the type and name Brevo gives; if an SPF record already exists, merge
-   the `include:` into it rather than adding a second SPF record, which invalidates both.
-3. Back in Brevo, click **Authenticate** and wait for all records to show green. If they do not
-   within an hour, the record name or type is wrong.
-4. **SMTP & API → SMTP**: note the server (`smtp-relay.brevo.com`), port (587), your login, and
+**Brevo sends only the application's mail.** The existing email hosting keeps every human mailbox,
+including `APP_SUPPORT_EMAIL`, and its `MX` records are not touched at any point in this step. The
+two coexist: `MX` governs mail *arriving*, `SPF` and `DKIM` govern mail *leaving*, and only the
+second pair is being extended.
+
+Brevo was chosen over the existing host's SMTP because mailbox hosting typically caps sending at a
+few hundred a day and throttles bursts — which is precisely deadline day, when every student submits
+at once — and because a bounce and spam dashboard matters when a verification link failing to arrive
+silently blocks an application.
+
+1. Sign up at Brevo, free tier (300 emails/day). If a deadline is expected to push a single day over
+   300 recipients, price the paid tier before that day rather than during it.
+2. **Senders & IP → Domains → Add a domain**: enter your domain. Brevo shows a set of DNS records —
+   typically a DKIM `TXT` at `brevo._domainkey`, a `TXT` verification code at the apex, and an SPF
+   `include:spf.brevo.com`.
+3. **Add them in the SADomains DNS editor, not DigitalOcean.** These are apex-zone records, and the
+   apex zone was deliberately left at SADomains in step 2. Two rules:
+
+   - **The SPF record already exists**, because the domain already sends mail. Do not add a second
+     one — a domain with two `TXT` SPF records fails SPF entirely, which breaks the *existing*
+     mailboxes as well as Brevo. Edit the existing record and add the include before the `~all` or
+     `-all`:
+
+     ```
+     v=spf1 include:<existing-host> include:spf.brevo.com ~all
+     ```
+
+   - **Do not change the `MX` records.** If Brevo's wizard suggests routing mail to it, decline;
+     you are authenticating a sending domain, not migrating a mailbox.
+4. Back in Brevo, click **Authenticate** and wait for all records to show green. If they do not
+   within an hour, the record name or type is wrong. SADomains may append the domain to record names
+   automatically — check you have not created `brevo._domainkey.<domain>.<domain>`.
+5. **SMTP & API → SMTP**: note the server (`smtp-relay.brevo.com`), port (587), your login, and
    generate an SMTP key. These are `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`.
-5. **Test it before moving on:** send one email from Brevo's interface to a Gmail address and
+6. **Test it before moving on:** send one email from Brevo's interface to a Gmail address and
    confirm it arrives in the inbox, not spam. Then open the message, "Show original", and confirm
    `SPF: PASS` and `DKIM: PASS`.
+7. **Then confirm you did not break the mailboxes you already had:** send a message from an existing
+   mailbox on the domain to the same Gmail address, and check `SPF: PASS` on that one too. A
+   malformed SPF merge shows up here and nowhere else.
 
 ## 5. Free monitoring accounts
 
@@ -178,9 +252,13 @@ recovery copy.
 
 ## Done when
 
-- [ ] `dig NS <domain>` returns DigitalOcean nameservers
+- [ ] `dig NS nonprod.<domain>` and `dig NS app.<domain>` return DigitalOcean nameservers, and
+      `dig NS <domain>` still returns SADomains
+- [ ] `dig MX <domain>` is unchanged from before any of this started
 - [ ] Brevo shows the domain authenticated, and a test email arrived in a Gmail inbox with SPF and
       DKIM passing
+- [ ] a message sent from an *existing* mailbox on the domain also still passes SPF
+- [ ] `APP_SUPPORT_EMAIL` is a mailbox someone reads, not a send-only address
 - [ ] the R2 bucket exists and its token is stored
 - [ ] both GitHub environments exist, `production` has a required reviewer, and each holds its
       `SSH_PRIVATE_KEY`, `DEPLOY_HOST` and `DEPLOY_USER`
