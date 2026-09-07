@@ -7,8 +7,9 @@
 
 apiVersion: 1
 
-# Contact point for alert notifications.
-# Update smtp settings to match your environment or replace with a webhook receiver.
+# Contact point for alert notifications. The address comes from the GRAFANA_ALERT_EMAIL
+# environment variable, which compose defaults to the support mailbox; Grafana expands $VAR in
+# provisioning files. Delivery needs GF_SMTP_* set, which docker-compose.prod.yml does from MAIL_*.
 contactPoints:
   - orgId: 1
     name: Platform Admin Email
@@ -16,7 +17,7 @@ contactPoints:
       - uid: platform-admin-email
         type: email
         settings:
-          addresses: admin@example.com
+          addresses: $GRAFANA_ALERT_EMAIL
           singleEmail: false
 
 # Default notification policy — all alerts route to Platform Admin Email.

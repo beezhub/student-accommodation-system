@@ -72,19 +72,22 @@ class MetricsScrapeSecurityTest {
     }
 
     @Test
-    void composeMountsThePasswordFileAndPassesTheCredentials() throws IOException {
+    void composeFeedsBothSidesFromTheSameVariable() throws IOException {
+        // The backend reads PROMETHEUS_SCRAPE_PASSWORD directly; Prometheus gets the same value as
+        // a compose secret. One variable, so the two cannot disagree (GH-249).
         String compose = read(REPO_ROOT.resolve("docker-compose.yml"));
+        String scrapeConfig = read(REPO_ROOT.resolve("tools/prometheus/prometheus.yml"));
 
-        assertThat(compose).contains("scrape-password:/etc/prometheus/scrape-password");
-        assertThat(compose).contains("PROMETHEUS_SCRAPE_PASSWORD");
+        assertThat(compose).contains("PROMETHEUS_SCRAPE_PASSWORD=${PROMETHEUS_SCRAPE_PASSWORD:-}");
+        assertThat(compose).contains("environment: PROMETHEUS_SCRAPE_PASSWORD");
+        assertThat(compose).contains("- prometheus_scrape_password");
+        assertThat(scrapeConfig).contains("password_file: /run/secrets/prometheus_scrape_password");
     }
 
     @Test
-    void theCommittedPasswordFileHoldsNoWorkingCredential() throws IOException {
-        // It exists so Prometheus starts locally; it grants nothing because the backend default is
-        // empty, which means no scrape account is registered at all.
-        String committed = read(REPO_ROOT.resolve("tools/prometheus/scrape-password")).trim();
-
-        assertThat(committed).contains("change-me");
+    void noCredentialFileIsCommitted() {
+        // A committed placeholder used to be bind-mounted into Prometheus, and the deploy had to
+        // avoid overwriting the operator's real copy on every sync.
+        assertThat(REPO_ROOT.resolve("tools/prometheus/scrape-password")).doesNotExist();
     }
 }

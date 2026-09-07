@@ -176,12 +176,22 @@ services:
     container_name: student-accommodation-prometheus
     volumes:
       - ./tools/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      # Must match the backend's PROMETHEUS_SCRAPE_PASSWORD; replace the placeholder before use.
-      - ./tools/prometheus/scrape-password:/etc/prometheus/scrape-password:ro
+      # Without a volume every deploy recreated the container and threw away all metrics history,
+      # which is exactly the before/after evidence a deploy is judged by (GH-249).
+      - prometheus_data:/prometheus
+    # The scrape password reaches Prometheus as a compose secret built from the same variable the
+    # backend reads, so the two cannot disagree. It used to be a committed placeholder file that
+    # the deploy had to avoid overwriting; a mismatch produced 401s on every scrape and empty
+    # dashboards with no error anywhere. The key must exist in .env (an empty value is fine and
+    # keeps /actuator/prometheus PLATFORM_ADMIN-only).
+    secrets:
+      - prometheus_scrape_password
     ports:
       - "9090:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
     restart: unless-stopped
     networks:
       - app-network
@@ -199,6 +209,10 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      # Where provisioned alerts are sent (tools/grafana/alerts/alerting.yaml). Falls back to the
+      # support mailbox rather than a placeholder, so an alert always has somewhere real to go.
+      # Delivery needs SMTP, which the production overlay configures from MAIL_*.
+      - GRAFANA_ALERT_EMAIL=${GRAFANA_ALERT_EMAIL:-${APP_SUPPORT_EMAIL:-accommodation@university.edu}}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./tools/grafana/provisioning:/etc/grafana/provisioning
@@ -219,3 +233,8 @@ volumes:
   postgres_data:
   redis_data:
   grafana_data:
+  prometheus_data:
+
+secrets:
+  prometheus_scrape_password:
+    environment: PROMETHEUS_SCRAPE_PASSWORD

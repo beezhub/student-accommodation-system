@@ -125,6 +125,12 @@ Now, both the backend and frontend servers should be running. Access the applica
   `{service="frontend"}` for nginx. The backend's level is a label; its logger, request id and
   tenant id are structured metadata and filter with `| logger=~"...Service"`. Without a tunnel,
   `docker compose logs` on the host still works, but only holds the last 30 MB per container.
+- **Metrics and alerts.** Prometheus scrapes the backend every 15 seconds and keeps 30 days on
+  its own volume; the dashboards under `tools/grafana/dashboards` read from it through the same
+  tunnel. Scraping needs `PROMETHEUS_SCRAPE_PASSWORD` set in `.env`, which feeds both the backend
+  and Prometheus. Provisioned alerts email `GRAFANA_ALERT_EMAIL` (default `APP_SUPPORT_EMAIL`)
+  through the `MAIL_*` account. Check `up{job="student-accommodation-backend"}` in Explore first:
+  `0` means the scrape is failing, and the usual cause is that password.
 
 ## Folder Structure
 ```

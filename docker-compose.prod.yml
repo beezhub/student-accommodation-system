@@ -86,3 +86,11 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
       # Grafana is behind the proxy; tell it so, or its generated links point at the container.
       - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
+      # Alert delivery through the same SMTP account the application uses. Without this every
+      # provisioned alert fires into Grafana's UI and reaches nobody (GH-249).
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=${MAIL_HOST:?MAIL_HOST must be set}:${MAIL_PORT:-587}
+      - GF_SMTP_USER=${MAIL_USERNAME:-}
+      - GF_SMTP_PASSWORD=${MAIL_PASSWORD:-}
+      - GF_SMTP_FROM_ADDRESS=${GRAFANA_SMTP_FROM:-${MAIL_USERNAME:-}}
+      - GF_SMTP_FROM_NAME=${APP_UNIVERSITY_NAME:-University} monitoring

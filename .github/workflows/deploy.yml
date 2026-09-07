@@ -64,12 +64,9 @@ jobs:
 
       # tar over the ssh channel, not git clone on the host: a clone needs a repository credential
       # on the server and lets host state drift from the commit that produced this run.
-      # tools/prometheus/scrape-password is excluded because the committed placeholder would
-      # overwrite the operator's real value on every deploy and break metrics silently (GH-249).
       - name: Sync the tree to the host
         run: |
           tar --exclude='.git' \
-              --exclude='tools/prometheus/scrape-password' \
               --exclude='frontend/node_modules' \
               -cf - . \
             | ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
