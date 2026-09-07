@@ -328,6 +328,16 @@ export class ApplicationSubmissionComponent implements OnInit {
       return;
     }
 
+    // GH-153: the backend refuses an application from an unverified address with a 403. Caught
+    // here so the student is sent somewhere they can act, rather than filling in the review step
+    // and being stopped by a snackbar at the end of it. The backend gate is the real enforcement;
+    // this only saves the wasted trip.
+    if (this.currentUser && this.currentUser.emailVerified !== true) {
+      this.errorService.showWarning('Confirm your email address before submitting an application.');
+      this.router.navigate(['/email-verification-required']);
+      return;
+    }
+
     if (this.applicationForm.valid) {
       const formValue = this.applicationForm.value;
 
