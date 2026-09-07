@@ -1,11 +1,25 @@
 apiVersion: 1
 
 datasources:
+  # The uid is what the provisioned alert rules in tools/grafana/alerts reference. Without it
+  # Grafana assigns a random one and every rule points at a datasource that does not exist; the
+  # dashboards only got away with "Prometheus" because the frontend falls back to matching by
+  # name, and rule evaluation does not (GH-261).
   - name: Prometheus
+    uid: prometheus
     type: prometheus
     access: proxy
     url: http://prometheus:9090
     isDefault: true
+
+  # Container and Caddy logs, shipped by Alloy. Only present in a deployed stack
+  # (docker-compose.deploy.yml); locally the entry exists but the host does not resolve, and
+  # Grafana reports that on the datasource page rather than failing to start.
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
 
   # The database name and credentials must match what compose actually creates. This pointed at a
   # database "student_accommodation" with postgres/postgres, neither of which exists, so every

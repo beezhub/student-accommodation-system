@@ -109,6 +109,22 @@ Now, both the backend and frontend servers should be running. Access the applica
 - [Backup and restore runbook](docs/BACKUP_AND_RESTORE.md) — PostgreSQL and MinIO backup, restore
   ordering, and the document retention rule (twelve months after a student's last application
   closes and last tenancy ends). Read it before turning retention off dry-run mode.
+- **Logs.** On a deployed host every container's output and the Caddy journal are shipped by
+  Alloy to Loki and kept for two weeks (`tools/alloy/config.alloy`, `tools/loki/loki.yml`). Grafana
+  is published on the host's loopback only, so open a tunnel and use Explore with the Loki
+  datasource:
+
+  ```bash
+  ssh -L 3000:127.0.0.1:3000 ubuntu@nonprod.beezhub.co.za
+  # then http://localhost:3000/explore, datasource Loki
+  ```
+
+  Useful queries: `{service="student-accommodation-back-end", level="ERROR"}` for backend errors,
+  `{service="student-accommodation-back-end"} | requestId="<id>"` to follow one request by the
+  `x-request-id` the API returns, `{unit="caddy.service"}` for the TLS proxy's access log, and
+  `{service="frontend"}` for nginx. The backend's level is a label; its logger, request id and
+  tenant id are structured metadata and filter with `| logger=~"...Service"`. Without a tunnel,
+  `docker compose logs` on the host still works, but only holds the last 30 MB per container.
 
 ## Folder Structure
 ```

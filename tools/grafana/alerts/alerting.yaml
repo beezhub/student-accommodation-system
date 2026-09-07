@@ -1,7 +1,8 @@
-# Grafana alert rule provisioning configuration.
-# Grafana reads YAML files from /etc/grafana/provisioning/alerting/ on startup.
-# The alert rule files are mounted from tools/grafana/alerts/ into the container
-# via the docker-compose volume: ./tools/grafana/alerts:/etc/grafana/provisioning/alerting
+# Grafana contact point and notification policy.
+#
+# Lives next to the rule files rather than under tools/grafana/provisioning/, because compose
+# mounts ./tools/grafana/alerts over /etc/grafana/provisioning/alerting, and that mount hid the
+# copy that used to sit in provisioning/alerting/: Grafana never saw a contact point (GH-261).
 # Refs: TASK-3.05, ARCH 6.4
 
 apiVersion: 1

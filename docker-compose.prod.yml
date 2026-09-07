@@ -11,14 +11,26 @@
 # GRAFANA_ADMIN_PASSWORD, REDIS_PASSWORD, MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD, ALLOWED_ORIGINS,
 # APP_BASE_URL, STORAGE_PUBLIC_ORIGIN. See CREDENTIAL_ROTATION.md before rotating any of them.
 
+# Docker's json-file driver has no cap by default, and the backend logs JSON at production
+# verbosity, so an unbounded log is a slow path to a full disk that takes MinIO and the database
+# with it (GH-249). 30 MB per container, and Alloy (docker-compose.deploy.yml) has usually shipped
+# a line to Loki long before it is rotated away.
+x-bounded-logs: &bounded-logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
+    logging: *bounded-logs
     # No host port. The backend reaches it over the compose network; nothing else needs to.
     ports: !override []
     environment:
       POSTGRES_PASSWORD: ${PASSWORD_DB:?PASSWORD_DB must be set}
 
   student-accommodation-back-end:
+    logging: *bounded-logs
     environment:
       # Selects application-prod.yml: Swagger off, API docs restricted, JSON logging.
       - SPRING_PROFILES_ACTIVE=prod
@@ -41,6 +53,7 @@ services:
     ports: !override []
 
   minio:
+    logging: *bounded-logs
     # The API stays internal. Publish the console deliberately, or reach it over a tunnel.
     ports: !override []
     environment:
@@ -56,15 +69,18 @@ services:
     profiles: ["never"]
 
   redis:
+    logging: *bounded-logs
     ports: !override []
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD must be set}"]
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
 
   prometheus:
+    logging: *bounded-logs
     ports: !override []
 
   grafana:
+    logging: *bounded-logs
     ports: !override []
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}

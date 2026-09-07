@@ -30,6 +30,7 @@ need are the ones in your `.env`; `.env.example` documents every variable.
 | Redis (`redis_data`) | token blacklist, rate-limit counters | Yes — losing it un-blacklists logged-out tokens until they expire, and resets rate limits |
 | Grafana (`grafana_data`) | dashboards | Yes — provisioned from `tools/grafana/` |
 | Prometheus | metrics history | Yes, and not worth backing up |
+| Loki (`loki_data`) | two weeks of container and Caddy logs | Yes, and not worth backing up |
 
 So: **the database and the bucket**. Redis, Prometheus and Grafana are all reconstructible, and a
 restore that omits them is a complete restore.
