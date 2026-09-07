@@ -71,6 +71,14 @@ export class ProfileComponent implements OnInit {
       dateOfBirth: ['', Validators.required],
       gender: [''],
       specialRequirements: [''],
+      // GH-239. Not `Validators.required` here, unlike profile-setup: this screen has to be
+      // editable by students who created their profile before the field existed, and marking the
+      // whole form invalid would lock them out of changing anything else. The backend's
+      // submitApplication gate is what makes it required.
+      emergencyContactName: ['', [Validators.maxLength(150)]],
+      emergencyContactRelationship: ['', [Validators.maxLength(50)]],
+      emergencyContactPhone: ['', [Validators.pattern(/^$|^\+?[0-9 ()\-]{7,20}$/)]],
+      emergencyContactEmail: ['', [Validators.email]],
     });
   }
 
@@ -111,6 +119,10 @@ export class ProfileComponent implements OnInit {
             dateOfBirth: dateOfBirth,
             gender: normalizedGender,
             specialRequirements: profile.specialRequirements || '',
+            emergencyContactName: profile.emergencyContactName || '',
+            emergencyContactRelationship: profile.emergencyContactRelationship || '',
+            emergencyContactPhone: profile.emergencyContactPhone || '',
+            emergencyContactEmail: profile.emergencyContactEmail || '',
           });
           this.cdr.markForCheck();
         },
@@ -217,6 +229,10 @@ export class ProfileComponent implements OnInit {
         dateOfBirth: dateOfBirth,
         gender: this.studentProfile.gender || '',
         specialRequirements: this.studentProfile.specialRequirements || '',
+        emergencyContactName: this.studentProfile.emergencyContactName || '',
+        emergencyContactRelationship: this.studentProfile.emergencyContactRelationship || '',
+        emergencyContactPhone: this.studentProfile.emergencyContactPhone || '',
+        emergencyContactEmail: this.studentProfile.emergencyContactEmail || '',
       });
     }
   }
@@ -245,6 +261,13 @@ export class ProfileComponent implements OnInit {
         dateOfBirth: dateOfBirth,
         gender: formValue.gender || undefined,
         specialRequirements: formValue.specialRequirements || undefined,
+        // Sent as '' rather than undefined when cleared: the backend reads null as "not sent,
+        // leave alone" and an empty string as "remove it". This is someone else's data, so it
+        // has to be withdrawable (GH-239).
+        emergencyContactName: formValue.emergencyContactName ?? '',
+        emergencyContactRelationship: formValue.emergencyContactRelationship ?? '',
+        emergencyContactPhone: formValue.emergencyContactPhone ?? '',
+        emergencyContactEmail: formValue.emergencyContactEmail ?? '',
       };
 
       this.studentService.updateStudentProfile(updateRequest).subscribe({

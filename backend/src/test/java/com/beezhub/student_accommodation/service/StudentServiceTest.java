@@ -362,4 +362,74 @@ class StudentServiceTest {
         // Assert
         verify(studentRepository).delete(student1);
     }
+
+    // ── GH-239: the emergency contact ───────────────────────────────────────────────────────
+
+    /**
+     * The contact is someone else's personal data, so it has to be removable. Every other field on
+     * this method treats null as "not sent, leave alone"; if blank were treated the same way, a
+     * contact could never be withdrawn once set.
+     */
+    @Test
+    void updateStudent_blankEmergencyContact_clearsItRatherThanLeavingItInPlace() {
+        student1.setEmergencyContactName("Thandi Mokoena");
+        student1.setEmergencyContactRelationship("Mother");
+        student1.setEmergencyContactPhone("+27 82 123 4567");
+        student1.setEmergencyContactEmail("thandi@example.com");
+
+        StudentRequest request = new StudentRequest();
+        request.setEmergencyContactName("");
+        request.setEmergencyContactRelationship("");
+        request.setEmergencyContactPhone("");
+        request.setEmergencyContactEmail("");
+
+        when(authService.getCurrentUser()).thenReturn(appUser1);
+        when(studentRepository.findStudentWithDetailsByUserId(1L)).thenReturn(Optional.of(student1));
+        when(studentRepository.save(any(Student.class))).thenAnswer(i -> i.getArgument(0));
+        when(studentMapper.toResponse(any())).thenReturn(response1);
+
+        studentService.updateStudent(1L, request);
+
+        assertNull(student1.getEmergencyContactName());
+        assertNull(student1.getEmergencyContactRelationship());
+        assertNull(student1.getEmergencyContactPhone());
+        assertNull(student1.getEmergencyContactEmail());
+    }
+
+    @Test
+    void updateStudent_newEmergencyContact_isStoredTrimmed() {
+        StudentRequest request = new StudentRequest();
+        request.setEmergencyContactName("  Thandi Mokoena  ");
+        request.setEmergencyContactPhone(" +27 82 123 4567 ");
+
+        when(authService.getCurrentUser()).thenReturn(appUser1);
+        when(studentRepository.findStudentWithDetailsByUserId(1L)).thenReturn(Optional.of(student1));
+        when(studentRepository.save(any(Student.class))).thenAnswer(i -> i.getArgument(0));
+        when(studentMapper.toResponse(any())).thenReturn(response1);
+
+        studentService.updateStudent(1L, request);
+
+        assertEquals("Thandi Mokoena", student1.getEmergencyContactName());
+        assertEquals("+27 82 123 4567", student1.getEmergencyContactPhone());
+    }
+
+    /** A field not sent at all is untouched, matching every other field on this method. */
+    @Test
+    void updateStudent_omittedEmergencyContact_leavesTheExistingOneAlone() {
+        student1.setEmergencyContactName("Thandi Mokoena");
+        student1.setEmergencyContactPhone("+27 82 123 4567");
+
+        StudentRequest request = new StudentRequest();
+        request.setGender("Female");
+
+        when(authService.getCurrentUser()).thenReturn(appUser1);
+        when(studentRepository.findStudentWithDetailsByUserId(1L)).thenReturn(Optional.of(student1));
+        when(studentRepository.save(any(Student.class))).thenAnswer(i -> i.getArgument(0));
+        when(studentMapper.toResponse(any())).thenReturn(response1);
+
+        studentService.updateStudent(1L, request);
+
+        assertEquals("Thandi Mokoena", student1.getEmergencyContactName());
+        assertEquals("+27 82 123 4567", student1.getEmergencyContactPhone());
+    }
 }

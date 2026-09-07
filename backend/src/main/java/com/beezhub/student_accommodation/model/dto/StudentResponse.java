@@ -13,6 +13,12 @@ public class StudentResponse {
     private Date registrationDate;
     private String gender;
     private String specialRequirements;
+    // GH-239. Returned to the student on their own profile and to admins through the paths that
+    // already reach a student record; it is not added to any list response.
+    private String emergencyContactName;
+    private String emergencyContactRelationship;
+    private String emergencyContactPhone;
+    private String emergencyContactEmail;
     private Long institutionId;
     private Long yearOfStudyId;
     private Long userId;

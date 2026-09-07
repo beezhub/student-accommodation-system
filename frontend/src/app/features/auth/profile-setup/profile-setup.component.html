@@ -82,6 +82,58 @@
             </mat-form-field>
           </div>
 
+          <!-- Emergency Contact Section (GH-239) -->
+          <div class="form-section">
+            <span class="section-label">Emergency Contact</span>
+            <p class="section-help">
+              Who should we call if something happens to you while you are living with us?
+            </p>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Full Name</mat-label>
+                <input matInput formControlName="emergencyContactName" autocomplete="off"
+                  placeholder="e.g. Thandi Mokoena">
+                @if (profileForm.get('emergencyContactName')?.hasError('required')) {
+                  <mat-error>An emergency contact name is required</mat-error>
+                }
+                @if (profileForm.get('emergencyContactName')?.hasError('maxlength')) {
+                  <mat-error>Name must be at most 150 characters</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Relationship <span class="optional-tag">(Optional)</span></mat-label>
+                <input matInput formControlName="emergencyContactRelationship"
+                  placeholder="e.g. Mother, Guardian, Sibling">
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Phone Number</mat-label>
+                <input matInput formControlName="emergencyContactPhone" autocomplete="off"
+                  placeholder="e.g. +27 82 123 4567">
+                <mat-hint>Include the country code if they are outside South Africa</mat-hint>
+                @if (profileForm.get('emergencyContactPhone')?.hasError('required')) {
+                  <mat-error>An emergency contact phone number is required</mat-error>
+                }
+                @if (profileForm.get('emergencyContactPhone')?.hasError('pattern')) {
+                  <mat-error>Enter 7-20 digits, optionally starting with +</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Email <span class="optional-tag">(Optional)</span></mat-label>
+                <input matInput type="email" formControlName="emergencyContactEmail"
+                  placeholder="e.g. thandi@example.com">
+                @if (profileForm.get('emergencyContactEmail')?.hasError('email')) {
+                  <mat-error>Enter a valid email address</mat-error>
+                }
+              </mat-form-field>
+            </div>
+          </div>
+
         </div>
 
         <div class="step-card-footer">

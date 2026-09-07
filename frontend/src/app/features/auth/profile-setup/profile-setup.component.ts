@@ -61,6 +61,17 @@ export class ProfileSetupComponent implements OnInit {
       institution: ['', [Validators.required]],
       yearOfStudy: ['', [Validators.required]],
       specialRequirements: [''],
+      // GH-239. Required here, where the profile is first built, because the backend refuses an
+      // application without a name and a phone — collecting them now means the student is not
+      // stopped later by a form they have already left behind. Relationship and email are not
+      // required: neither affects whether anyone can be reached.
+      emergencyContactName: ['', [Validators.required, Validators.maxLength(150)]],
+      emergencyContactRelationship: ['', [Validators.maxLength(50)]],
+      emergencyContactPhone: [
+        '',
+        [Validators.required, Validators.pattern(/^\+?[0-9 ()\-]{7,20}$/)],
+      ],
+      emergencyContactEmail: ['', [Validators.email]],
     });
   }
 
@@ -113,6 +124,10 @@ export class ProfileSetupComponent implements OnInit {
         institutionId: this.profileForm.get('institution')?.value,
         yearOfStudyId: this.profileForm.get('yearOfStudy')?.value,
         specialRequirements: this.profileForm.get('specialRequirements')?.value,
+        emergencyContactName: this.profileForm.get('emergencyContactName')?.value,
+        emergencyContactRelationship: this.profileForm.get('emergencyContactRelationship')?.value,
+        emergencyContactPhone: this.profileForm.get('emergencyContactPhone')?.value,
+        emergencyContactEmail: this.profileForm.get('emergencyContactEmail')?.value,
         // User.id is a string, StudentRequest.userId a number. The `any` hid the mismatch; the
         // request happened to work only because the backend coerced the quoted value (GH-158).
         userId: Number(user.id),

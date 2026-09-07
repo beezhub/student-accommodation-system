@@ -108,6 +108,19 @@ public class ApplicationCoreService {
                 if (student.getGender() == null || student.getGender().isBlank()) {
                         missingFields.add("gender");
                 }
+                // GH-239. Enforced here rather than as a NOT NULL column: existing students have no
+                // value and none can be invented for them. This makes it required going forward,
+                // for exactly the students it matters for, and the error already reads well.
+                // Name and phone only — a relationship or an email with no one to call is not a
+                // contact, but a contact without them still is.
+                if (student.getEmergencyContactName() == null
+                                || student.getEmergencyContactName().isBlank()) {
+                        missingFields.add("emergency contact name");
+                }
+                if (student.getEmergencyContactPhone() == null
+                                || student.getEmergencyContactPhone().isBlank()) {
+                        missingFields.add("emergency contact phone");
+                }
                 if (!missingFields.isEmpty()) {
                         throw new IllegalArgumentException(
                                         "Student profile is incomplete. Missing: " + String.join(", ", missingFields)
