@@ -367,19 +367,22 @@ describe('DashboardComponent', () => {
     expect(component.waitlistPosition).toEqual({ position: 2 } as never);
   });
 
-  it('loadResponseTimeSetting_valuePresent_quotesTheNumberOfDays', () => {
-    component.loadResponseTimeSetting();
-
-    expect(component.responseTimeMessage).toContain('5 business days');
-  });
-
-  it('loadResponseTimeSetting_noValue_fallsBackToAGenericMessage', () => {
-    systemSettingsService.getPublicSetting.and.returnValue(of(null as never));
-
+  /**
+   * GH-152: the dashboard used to quote `application_review_response_days` — "an update within N
+   * business days". Nothing in the backend read that setting, so it was a service level with no
+   * mechanism behind it. The setting is gone and so is the number.
+   */
+  it('loadResponseTimeSetting_promisesNoTurnaroundTheSystemCannotKeep', () => {
     component.loadResponseTimeSetting();
 
     expect(component.responseTimeMessage).toContain('being reviewed');
     expect(component.responseTimeMessage).not.toContain('business days');
+  });
+
+  it('loadResponseTimeSetting_asksForNoSetting', () => {
+    component.loadResponseTimeSetting();
+
+    expect(systemSettingsService.getPublicSetting).not.toHaveBeenCalled();
   });
 
   // ------------------------------------------------------------------ misc
@@ -399,7 +402,7 @@ describe('DashboardComponent', () => {
 
     expect(documentService.getUploadedDocuments).toHaveBeenCalled();
     expect(applicationService.getMyApplications).toHaveBeenCalled();
-    expect(systemSettingsService.getPublicSetting).toHaveBeenCalled();
+    expect(component.responseTimeMessage).toBeTruthy();
   });
 
   it('logout_signsOutAndReturnsToLogin', () => {

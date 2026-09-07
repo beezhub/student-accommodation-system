@@ -34,7 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * GH-160: {@code TenantFilterIntegrationTest} covered four entities — AcademicYear, Building,
- * IntakePeriod, CustomApplicationField and RequiredDocumentType — and left the ones that carry the
+ * IntakePeriod and RequiredDocumentType — and left the ones that carry the
  * money and the people uncovered.
  *
  * <p>This covers Room, Application, RoomAllocation and SystemSetting, and pins down the one thing

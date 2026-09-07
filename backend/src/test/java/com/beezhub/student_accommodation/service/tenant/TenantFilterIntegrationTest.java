@@ -2,12 +2,10 @@ package com.beezhub.student_accommodation.service.tenant;
 
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
 import com.beezhub.student_accommodation.model.entity.Building;
-import com.beezhub.student_accommodation.model.entity.CustomApplicationField;
 import com.beezhub.student_accommodation.model.entity.IntakePeriod;
 import com.beezhub.student_accommodation.model.entity.RequiredDocumentType;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
-import com.beezhub.student_accommodation.repository.CustomApplicationFieldRepository;
 import com.beezhub.student_accommodation.repository.IntakePeriodRepository;
 import com.beezhub.student_accommodation.repository.RequiredDocumentTypeRepository;
 import com.beezhub.student_accommodation.AbstractJpaTest;
@@ -67,9 +65,6 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
 
     @Autowired
     private IntakePeriodRepository intakePeriodRepository;
-
-    @Autowired
-    private CustomApplicationFieldRepository customApplicationFieldRepository;
 
     @Autowired
     private RequiredDocumentTypeRepository requiredDocumentTypeRepository;
@@ -277,31 +272,6 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
     }
 
     // ────────────────────────────────────────────────────────────
-    // CustomApplicationField — tenant isolation
-    // ────────────────────────────────────────────────────────────
-
-    @Test
-    @DisplayName("customApplicationFieldRecord_notVisibleToCrossTenantQuery")
-    void customApplicationFieldRecord_notVisibleToCrossTenantQuery() {
-        // Arrange: one custom field per tenant's building
-        Building building1 = saveBuilding("Building A Fields", TENANT_1_ID);
-        Building building2 = saveBuilding("Building B Fields", TENANT_2_ID);
-        saveCustomApplicationField("ID Number", building1, TENANT_1_ID);
-        saveCustomApplicationField("Proof of Income", building2, TENANT_2_ID);
-        entityManager.flush();
-        entityManager.clear();
-
-        // Act: filter scoped to tenant 2
-        enableTenantFilter(TENANT_2_ID);
-        List<CustomApplicationField> results = customApplicationFieldRepository.findAll();
-
-        // Assert: only tenant 2's custom field is visible
-        assertThat(results).hasSize(1);
-        assertThat(results.get(0).getFieldLabel()).isEqualTo("Proof of Income");
-        assertThat(results.get(0).getTenantId()).isEqualTo(TENANT_2_ID);
-    }
-
-    // ────────────────────────────────────────────────────────────
     // RequiredDocumentType — tenant isolation
     // ────────────────────────────────────────────────────────────
 
@@ -385,19 +355,6 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
                 .tenantId(tenantId)
                 .build();
         return intakePeriodRepository.save(period);
-    }
-
-    /**
-     * Persists a {@link CustomApplicationField} for the given building and tenant.
-     */
-    private CustomApplicationField saveCustomApplicationField(String label, Building building, Long tenantId) {
-        CustomApplicationField field = CustomApplicationField.builder()
-                .fieldLabel(label)
-                .fieldType("TEXT")
-                .building(building)
-                .tenantId(tenantId)
-                .build();
-        return customApplicationFieldRepository.save(field);
     }
 
     /**
