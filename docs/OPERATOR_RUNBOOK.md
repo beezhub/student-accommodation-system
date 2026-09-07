@@ -13,11 +13,19 @@ here in the order it is needed, so nothing hides inside an implementation issue.
 Work top to bottom. Several steps wait on DNS or domain verification, so start section 0 and steps
 1–2 early even if you are not deploying yet.
 
-**Standing constraint: the domain already hosts live email.** It is registered with SADomains with
-mailboxes on the same provider, so the apex DNS zone is not ours to move or rewrite. DigitalOcean is
-delegated the two host subdomains only (step 2), and every mail-related record — `MX`, `SPF`, `DKIM`
-— stays at SADomains (step 4). Any instruction anywhere in the programme that says to point the
-domain's nameservers at DigitalOcean is superseded by step 2 here.
+**Standing constraint: the domain and its email hosting already exist, at SADomains, and are already
+paid for.** Two consequences run through everything below:
+
+- The apex DNS zone is not ours to move or rewrite — it holds working `MX`, `SPF` and `DKIM` records
+  for real mailboxes. DigitalOcean is delegated the two host subdomains only (step 2). Any
+  instruction elsewhere in the programme to point the domain's nameservers at DigitalOcean is
+  superseded by step 2 here.
+- The application sends through that existing mailbox hosting (step 4), not a separate transactional
+  provider. No mail-related DNS record changes at all.
+
+GH-244's cost table lists SMTP at $0.00 on a free transactional tier. That figure does not change —
+mailbox SMTP is $0.00 too, being already bought — so this is a decision about vendor count and
+sending limits, not about monthly spend. Step 4.2 is where the limit gets checked.
 
 ## What you do NOT do
 
@@ -141,52 +149,99 @@ Mail records are added in step 4, and they go to **SADomains**, not DigitalOcean
    the form `https://<account-id>.r2.cloudflarestorage.com`). Password manager. These become
    `BACKUP_S3_*` values in GH-248.
 
-## 4. SMTP provider (Brevo) — **blocks PROD entirely**
+## 4. SMTP — the existing SADomains mailbox hosting — **blocks PROD entirely**
 
-Without this the backend refuses to start (`docker-compose.prod.yml` fail-fasts on `MAIL_HOST`) and
-no student can register: MailHog is scaled to zero outside development, and email verification gates
-application submission.
+Without working SMTP the backend refuses to start (`docker-compose.prod.yml` fail-fasts on
+`MAIL_HOST`) and no student can register: MailHog is scaled to zero outside development, and email
+verification gates application submission.
 
-**Brevo sends only the application's mail.** The existing email hosting keeps every human mailbox,
-including `APP_SUPPORT_EMAIL`, and its `MX` records are not touched at any point in this step. The
-two coexist: `MX` governs mail *arriving*, `SPF` and `DKIM` govern mail *leaving*, and only the
-second pair is being extended.
+**Use the email hosting already being paid for.** A separate transactional provider would be a
+second vendor for a capability already bought, and it buys less than it looks like it does — the
+free tiers that make it sound costless cap at around 300 messages a day, which is the same order as
+a shared-hosting cap. At any volume large enough to break mailbox SMTP, the free tier breaks too and
+the alternative is a paid plan on top of the hosting bill. No DNS changes are needed either: the
+domain's `SPF` already authorises its own host, so step 2's decision to leave the apex zone alone
+holds here too.
 
-Brevo was chosen over the existing host's SMTP because mailbox hosting typically caps sending at a
-few hundred a day and throttles bursts — which is precisely deadline day, when every student submits
-at once — and because a bounce and spam dashboard matters when a verification link failing to arrive
-silently blocks an application.
+The sizing check in 4.2 is what decides whether that stays true. Do it before PROD, not after.
 
-1. Sign up at Brevo, free tier (300 emails/day). If a deadline is expected to push a single day over
-   300 recipients, price the paid tier before that day rather than during it.
-2. **Senders & IP → Domains → Add a domain**: enter your domain. Brevo shows a set of DNS records —
-   typically a DKIM `TXT` at `brevo._domainkey`, a `TXT` verification code at the apex, and an SPF
-   `include:spf.brevo.com`.
-3. **Add them in the SADomains DNS editor, not DigitalOcean.** These are apex-zone records, and the
-   apex zone was deliberately left at SADomains in step 2. Two rules:
+### 4.1 Create a dedicated sending mailbox
 
-   - **The SPF record already exists**, because the domain already sends mail. Do not add a second
-     one — a domain with two `TXT` SPF records fails SPF entirely, which breaks the *existing*
-     mailboxes as well as Brevo. Edit the existing record and add the include before the `~all` or
-     `-all`:
+In the SADomains control panel create a mailbox for the application — `noreply@<domain>` — with its
+own password.
 
-     ```
-     v=spf1 include:<existing-host> include:spf.brevo.com ~all
-     ```
+Do not reuse a human mailbox. Its password ends up in the deployment configuration, so rotating a
+person's password would silently stop every application email, and a compromise of the application
+host would hand over a real person's inbox.
 
-   - **Do not change the `MX` records.** If Brevo's wizard suggests routing mail to it, decline;
-     you are authenticating a sending domain, not migrating a mailbox.
-4. Back in Brevo, click **Authenticate** and wait for all records to show green. If they do not
-   within an hour, the record name or type is wrong. SADomains may append the domain to record names
-   automatically — check you have not created `brevo._domainkey.<domain>.<domain>`.
-5. **SMTP & API → SMTP**: note the server (`smtp-relay.brevo.com`), port (587), your login, and
-   generate an SMTP key. These are `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`.
-6. **Test it before moving on:** send one email from Brevo's interface to a Gmail address and
-   confirm it arrives in the inbox, not spam. Then open the message, "Show original", and confirm
-   `SPF: PASS` and `DKIM: PASS`.
-7. **Then confirm you did not break the mailboxes you already had:** send a message from an existing
-   mailbox on the domain to the same Gmail address, and check `SPF: PASS` on that one too. A
-   malformed SPF merge shows up here and nowhere else.
+`APP_SUPPORT_EMAIL` from section 0.1 stays a *separate*, human-read mailbox. `noreply@` sends;
+`APP_SUPPORT_EMAIL` receives the replies.
+
+### 4.2 Find the sending limit, and check it against the peak
+
+Get the outbound limit from the control panel or from SADomains support, per hour and per day, and
+write it down next to the other decided values. Shared mailbox hosting is commonly 200–500 an hour.
+
+Then compare it against the two bursts this application actually produces:
+
+| Burst | Size | Bounded by |
+| --- | --- | --- |
+| Scheduled batch allocation | **50 per run** | `app.allocation.batch-size`, `BATCH_SIZE`, default 50 |
+| Registration on the day the portal opens | **one verification email per student who signs up** | nothing — student behaviour |
+
+The allocation burst is bounded by configuration and fits comfortably under any plausible cap. The
+registration burst is the one to size: it is roughly the number of students you expect to sign up on
+the busiest day, and it is not throttled by the application.
+
+The application absorbs a short overrun on its own. Failed sends are persisted and retried with
+exponential backoff (`NotificationRetryService`, up to 3 attempts, 200 rows a pass), so brief
+throttling drains over the following passes rather than losing mail. What it does not survive is a
+*daily* cap hit mid-morning: three retries all fail before midnight, the rows reach
+`PERMANENTLY_FAILED`, and those students never receive a verification link and cannot apply.
+
+So: **if the expected peak day exceeds the daily limit, this decision has to be revisited before
+that day**, not during it. Compare paid transactional tiers at that point — the free ones will not
+help at that volume either.
+
+### 4.3 Collect the settings
+
+From the control panel's mail configuration, typically:
+
+| Variable | Value |
+| --- | --- |
+| `MAIL_HOST` | `mail.<domain>` — confirm the exact hostname in the panel |
+| `MAIL_PORT` | `587` |
+| `MAIL_USERNAME` | the **full address**, `noreply@<domain>`, not the local part |
+| `MAIL_PASSWORD` | that mailbox's password |
+
+`docker-compose.prod.yml` already sets `MAIL_SMTP_AUTH=true` and `MAIL_STARTTLS_ENABLE=true`, which
+matches port 587. If the panel offers only implicit TLS on 465, say so — that needs a different
+property and is not what the overlay is configured for.
+
+### 4.4 Confirm DKIM is on
+
+Shared hosts frequently leave DKIM off by default. Find the DKIM or "email authentication" section
+of the control panel and enable it for the domain; the host publishes its own selector record. Then
+verify from the outside rather than trusting the panel:
+
+- Send one message from `noreply@<domain>` to a Gmail address.
+- Open it, **Show original**, and confirm `SPF: PASS` and `DKIM: PASS`.
+- Confirm it arrived in the inbox, not spam.
+
+If DKIM cannot be enabled, stop and reconsider the provider. Verification mail that lands in spam
+fails silently and looks exactly like an application bug.
+
+### 4.5 Know the one risk you are accepting
+
+Shared mailbox hosting sends from an IP shared with the host's other customers, so their sending
+behaviour affects your deliverability and you cannot see or control it. The signal that this has
+become a problem is verification emails starting to land in spam without any change on your side.
+`SmtpHealthIndicator` covers connectivity, not reputation, so this needs the periodic Gmail check in
+4.4 rather than a dashboard.
+
+That risk is worth taking to avoid a second vendor at this scale. It stops being worth it if
+students begin reporting missing verification emails — at which point a dedicated sending domain,
+not just a dedicated provider, is the fix.
 
 ## 5. Free monitoring accounts
 
@@ -255,15 +310,18 @@ recovery copy.
 - [ ] `dig NS nonprod.<domain>` and `dig NS app.<domain>` return DigitalOcean nameservers, and
       `dig NS <domain>` still returns SADomains
 - [ ] `dig MX <domain>` is unchanged from before any of this started
-- [ ] Brevo shows the domain authenticated, and a test email arrived in a Gmail inbox with SPF and
-      DKIM passing
-- [ ] a message sent from an *existing* mailbox on the domain also still passes SPF
+- [ ] a `noreply@<domain>` mailbox exists, separate from any human mailbox, and DKIM is enabled for
+      the domain
+- [ ] a test message from `noreply@<domain>` reached a Gmail **inbox** with `SPF: PASS` and
+      `DKIM: PASS` on "Show original"
+- [ ] the outbound sending limit is written down, and the expected busiest registration day fits
+      under the daily figure
 - [ ] `APP_SUPPORT_EMAIL` is a mailbox someone reads, not a send-only address
 - [ ] the R2 bucket exists and its token is stored
 - [ ] both GitHub environments exist, `production` has a required reviewer, and each holds its
       `SSH_PRIVATE_KEY`, `DEPLOY_HOST` and `DEPLOY_USER`
-- [ ] the DigitalOcean API token, R2 token, Brevo SMTP key and Healthchecks ping URL are in the
-      password manager
+- [ ] the DigitalOcean API token, R2 token, `noreply@` mailbox password and Healthchecks ping URL
+      are in the password manager
 - [ ] a full set of application secrets (section 0.2) exists per environment, NONPROD and PROD
       sharing none of them
 
