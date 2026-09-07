@@ -106,6 +106,9 @@ Now, both the backend and frontend servers should be running. Access the applica
 - Submission endpoint: `POST /api/applications/submit` accepts `ApplicationRequest` with the above preference fields only.
 
 ## Operations
+- [Operator runbook](docs/OPERATOR_RUNBOOK.md) — every account, domain, DNS record, credential and
+  GitHub setting the deployment needs from a person, in the order it is needed. Start here before
+  any deployment work.
 - [Backup and restore runbook](docs/BACKUP_AND_RESTORE.md) — PostgreSQL and MinIO backup, restore
   ordering, and the document retention rule (twelve months after a student's last application
   closes and last tenancy ends). Read it before turning retention off dry-run mode.
