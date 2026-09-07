@@ -105,8 +105,29 @@ public class WaitingListService {
                 });
     }
 
+    /**
+     * How many offers a student may decline before their application is closed.
+     *
+     * <p>The decline dialog has always told students this: "You have declined N of 2 offers", and
+     * on the last one, "This is your final decline. Your application will be closed and removed
+     * from the waiting list." Nothing enforced it — {@code reQueueStudent} put the student back on
+     * the list on every decline, whatever the count — so the warning promised something the system
+     * did not do, and one student could cycle through offers other applicants were waiting for
+     * (GH-160 recorded the discrepancy; this is the decision).
+     *
+     * <p>Three, because the dialog offers two declines "remaining" from a count of zero: declines
+     * one and two re-queue, and the third closes.
+     */
+    public static final int MAX_DECLINES = 3;
+
+    /**
+     * Applies the consequence of a decline: back on the waiting list, or the application closed
+     * once {@link #MAX_DECLINES} is reached.
+     *
+     * <p>Was {@code reQueueStudent}, which only ever did the first of those.
+     */
     @Transactional
-    public void reQueueStudent(RoomAllocation allocation, int totalDeclineCount) {
+    public void handleDeclineOutcome(RoomAllocation allocation, int totalDeclineCount) {
         Application application = allocation.getApplication();
         Student student = allocation.getStudent();
 
@@ -115,11 +136,16 @@ public class WaitingListService {
             return;
         }
 
-        log.info("Re-queueing student {} after decline {}", student.getId(), totalDeclineCount);
-
-        // The event fires either way: the student declined, and the notification and audit for
-        // that are owed regardless of whether they go back on the list.
+        // The event fires on every path below: the student declined, and the notification and
+        // audit for that are owed whether or not they go back on the list.
         eventPublisher.publishEvent(new AllocationDeclinedEvent(allocation, totalDeclineCount));
+
+        if (totalDeclineCount >= MAX_DECLINES) {
+            closeApplicationAfterFinalDecline(application, student, totalDeclineCount);
+            return;
+        }
+
+        log.info("Re-queueing student {} after decline {}", student.getId(), totalDeclineCount);
 
         // The whole re-queue is guarded, not just the status write. A rejected application that
         // is then declined would otherwise leave a permanent WAITING row that the batch allocator
@@ -139,6 +165,41 @@ public class WaitingListService {
         if (!waitingListRepository.existsByStudent_IdAndStatus(student.getId(), "WAITING")) {
             enqueueWaitingList(student, application);
         }
+    }
+
+    /**
+     * Closes the application after the final decline, and takes the student off the waiting list.
+     *
+     * <p>Both halves matter. Leaving a WAITING entry behind would have the batch allocator keep
+     * offering rooms to a student whose application is closed — the same shape of orphaned-row bug
+     * GH-137 fixed for rejected applications.
+     *
+     * <p>CANCELLED rather than REJECTED: the student ended this, not an administrator.
+     */
+    private void closeApplicationAfterFinalDecline(Application application, Student student,
+                                                   int totalDeclineCount) {
+        log.info("action=applicationClosedAfterFinalDecline applicationId={} declines={}",
+                application.getId(), totalDeclineCount);
+
+        waitingListRepository.findByStudent_IdAndStatus(student.getId(), "WAITING")
+                .ifPresent(entry -> {
+                    entry.setStatus("CANCELLED");
+                    waitingListRepository.save(entry);
+                });
+
+        // Guarded the same way the re-queue is: an application already in a terminal status has
+        // nothing to close, and forcing a transition would throw rather than no-op.
+        if (!ApplicationStatusValidator.canApply(application, ApplicationStatus.CANCELLED)) {
+            log.info("action=closeSkipped applicationId={} from={}",
+                    application.getId(), application.getStatus());
+            return;
+        }
+
+        application.setStatus(ApplicationStatus.CANCELLED);
+        application.setRemarks(String.format(
+                "Declined offer %d. Maximum of %d declines reached; application closed.",
+                totalDeclineCount, MAX_DECLINES));
+        applicationRepository.save(application);
     }
 
     /**

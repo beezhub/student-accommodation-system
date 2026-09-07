@@ -92,8 +92,7 @@ class AllocationCheckInServiceTest {
      * reserves it.
      */
     @ParameterizedTest
-    @EnumSource(value = AllocationStatus.class, names = {"ACCEPTED", "ACTIVE"},
-            mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = AllocationStatus.class, names = {"ACCEPTED"}, mode = EnumSource.Mode.EXCLUDE)
     void checkIn_fromAnyStatusButAccepted_isRefusedAndNothingChanges(AllocationStatus status) {
         Long id = 1L;
         RoomAllocation allocation = new RoomAllocation();
@@ -111,17 +110,14 @@ class AllocationCheckInServiceTest {
     }
 
     /**
-     * ACTIVE is excluded from the case above because it is not refused: {@code canTransitionTo}
-     * permits a self-transition, and {@code confirmCheckIn} does not check {@code isTerminal}
-     * the way GH-138's note says repeat-sensitive callers must.
+     * A second check-in is now refused (GH-160 recorded the gap; this is the decision).
      *
-     * <p>So checking in an already-checked-in student succeeds and overwrites {@code checkInDate}
-     * with the second attempt's timestamp — the record of when they actually moved in is lost.
-     * Asserted as current behaviour rather than changed here, so the loss is visible and a
-     * decision about it is a deliberate one.
+     * <p>{@code canTransitionTo} permits a self-transition, so ACTIVE -> ACTIVE used to pass and
+     * the second attempt re-stamped {@code checkInDate} — losing the record of when the student
+     * actually moved in, which is the one fact a check-in exists to record.
      */
     @Test
-    void checkIn_onAnAlreadyActiveAllocation_succeedsAndOverwritesTheCheckInDate() {
+    void checkIn_onAnAlreadyActiveAllocation_isRefusedAndKeepsTheOriginalDate() {
         Long id = 1L;
         RoomAllocation allocation = new RoomAllocation();
         allocation.setId(id);
@@ -130,13 +126,47 @@ class AllocationCheckInServiceTest {
         java.time.LocalDateTime originalCheckIn = java.time.LocalDateTime.now().minusDays(30);
         allocation.setCheckInDate(originalCheckIn);
         when(roomAllocationRepository.findByIdWithDetails(id)).thenReturn(Optional.of(allocation));
-        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(allocation);
-        when(roomAllocationMapper.toResponse(any())).thenReturn(new RoomAllocationResponse());
 
-        allocationCheckInService.confirmCheckIn(id, false);
+        assertThrows(InvalidAllocationStatusTransitionException.class,
+                () -> allocationCheckInService.confirmCheckIn(id, false));
 
-        assertEquals(AllocationStatus.ACTIVE, allocation.getStatus());
-        assertNotEquals(originalCheckIn, allocation.getCheckInDate());
+        assertEquals(originalCheckIn, allocation.getCheckInDate());
+        verify(roomAllocationRepository, never()).save(any());
+    }
+
+    /** The message says when, so staff can tell a double-click from a genuine mistake. */
+    @Test
+    void checkIn_onAnAlreadyActiveAllocation_saysWhenItHappened() {
+        Long id = 1L;
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(id);
+        allocation.setStatus(AllocationStatus.ACTIVE);
+        allocation.setApplication(new Application());
+        allocation.setCheckInDate(java.time.LocalDateTime.of(2026, 2, 1, 9, 30));
+        when(roomAllocationRepository.findByIdWithDetails(id)).thenReturn(Optional.of(allocation));
+
+        InvalidAllocationStatusTransitionException thrown = assertThrows(
+                InvalidAllocationStatusTransitionException.class,
+                () -> allocationCheckInService.confirmCheckIn(id, false));
+
+        assertTrue(thrown.getMessage().contains("already checked in"));
+        assertTrue(thrown.getMessage().contains("2026-02-01"));
+    }
+
+    /** The override is for a late check-in, not for one that is not legal at all. */
+    @Test
+    void checkIn_onAnAlreadyActiveAllocation_isRefusedEvenWithTheOverride() {
+        Long id = 1L;
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(id);
+        allocation.setStatus(AllocationStatus.ACTIVE);
+        allocation.setApplication(new Application());
+        when(roomAllocationRepository.findByIdWithDetails(id)).thenReturn(Optional.of(allocation));
+
+        assertThrows(InvalidAllocationStatusTransitionException.class,
+                () -> allocationCheckInService.confirmCheckIn(id, true));
+
+        verify(roomAllocationRepository, never()).save(any());
     }
 
     /** The override is for a late check-in, not for a check-in that was never legal. */

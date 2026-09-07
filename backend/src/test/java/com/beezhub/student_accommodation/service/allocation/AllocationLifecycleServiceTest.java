@@ -384,11 +384,15 @@ class AllocationLifecycleServiceTest {
         assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.DECLINED);
         verify(roomOccupancyManager).syncOccupancy(room);
         verify(roomAllocationRepository).save(allocation);
-        verify(waitingListService).reQueueStudent(any(), eq(1));
+        verify(waitingListService).handleDeclineOutcome(any(), eq(1));
     }
 
+    /**
+     * The name was left over from a behaviour that had been removed: this asserts a re-queue, not
+     * a cancellation. Renamed to say what it checks (GH-160).
+     */
     @Test
-    void declineOffer_secondDecline_applicationAutoCancelled() {
+    void declineOffer_secondDecline_isPassedOnAsDeclineNumberTwo() {
         RoomAllocation allocation = new RoomAllocation();
         allocation.setId(1L);
         allocation.setStatus(AllocationStatus.OFFERED);
@@ -408,11 +412,11 @@ class AllocationLifecycleServiceTest {
 
         // Check delegation
         verify(roomOccupancyManager).syncOccupancy(room);
-        verify(waitingListService).reQueueStudent(any(), eq(2));
+        verify(waitingListService).handleDeclineOutcome(any(), eq(2));
     }
 
     @Test
-    void declineOffer_thirdDecline_shouldReQueueUnlimited() {
+    void declineOffer_thirdDecline_isPassedOnAsTheFinalDecline() {
         RoomAllocation allocation = new RoomAllocation();
         allocation.setId(1L);
         allocation.setStatus(AllocationStatus.OFFERED);
@@ -431,9 +435,10 @@ class AllocationLifecycleServiceTest {
 
         allocationLifecycleService.declineOffer(1L, request);
 
-        // Verify no cancellation — student is re-queued regardless of decline count
+        // What happens to the application at three declines is WaitingListService's decision and
+        // is tested there; this asserts only that the count reaches it correctly (GH-160).
         verify(roomOccupancyManager).syncOccupancy(room);
-        verify(waitingListService).reQueueStudent(any(), eq(3));
+        verify(waitingListService).handleDeclineOutcome(any(), eq(3));
         // Refill is delegated to the AFTER_COMMIT listener, never run inside this transaction
         verify(eventPublisher).publishEvent(new RoomVacatedEvent(1L, room.getId(), AllocationStatus.DECLINED));
     }

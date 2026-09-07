@@ -55,6 +55,18 @@ public class AllocationCheckInService {
         log.info("Confirming check-in for allocation with id: {}", id);
         RoomAllocation allocation = getAllocation(id);
 
+        // Before the transition check, because AllocationStatus.canTransitionTo permits a
+        // self-transition: ACTIVE -> ACTIVE passed, so a second check-in succeeded and re-stamped
+        // checkInDate with the later attempt — losing the record of when the student actually
+        // moved in. GH-138's note says repeat-sensitive callers must test this explicitly; this
+        // one did not.
+        if (allocation.getStatus() == AllocationStatus.ACTIVE) {
+            throw new InvalidAllocationStatusTransitionException(
+                    "This student is already checked in"
+                            + (allocation.getCheckInDate() == null
+                                    ? "." : " (since " + allocation.getCheckInDate() + ")."));
+        }
+
         AllocationStatusValidator.validate(allocation, AllocationStatus.ACTIVE);
         boolean pastDeadline = assertWithinCheckInDeadline(allocation, overrideDeadline);
         // After the allocation guard, so an illegal allocation transition still reports as such
