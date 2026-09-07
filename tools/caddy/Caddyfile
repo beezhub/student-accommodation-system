@@ -1,0 +1,50 @@
+# TLS terminator for the deployed stack.
+#
+# Runs on the host rather than in compose, for two reasons: it needs ports 80 and 443 on the
+# machine, and its certificate store must survive `docker compose down`. Re-issuing certificates on
+# every redeploy would exhaust Let's Encrypt's rate limit within a week.
+#
+# Install:
+#   sudo apt install caddy
+#   sudo cp tools/caddy/Caddyfile /etc/caddy/Caddyfile
+#   sudo systemctl edit caddy      # set APP_HOSTNAME and ACME_EMAIL, see below
+#   sudo systemctl restart caddy   # restart, not `enable --now`: apt already started it with the
+#                                  # packaged default Caddyfile, and enable --now leaves a running
+#                                  # service alone, so the config below is never loaded
+#
+# Both variables are required and deliberately have no defaults. A wrong or empty hostname does not
+# fail loudly — Caddy falls back to serving plain HTTP on port 80 and logs only
+# "server is listening only on the HTTP port, so no automatic HTTPS will be applied":
+#
+#   [Service]
+#   Environment=APP_HOSTNAME=nonprod.example.co.za
+#   Environment=ACME_EMAIL=accommodation@example.co.za
+#
+# Certificates are issued over HTTP-01 on port 80, so port 80 must stay open even though nothing is
+# served over it — see operator runbook 2.4, where both the cloud firewall and the host iptables
+# have to allow it.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_HOSTNAME} {
+	encode zstd gzip
+
+	# Everything goes to the frontend container. It serves the Angular bundle and proxies /api/ to
+	# the backend itself (frontend/nginx.conf), so exactly one place knows the backend's address.
+	reverse_proxy 127.0.0.1:8081
+
+	header {
+		# Caddy redirects http to https on its own; this stops the browser trying http at all.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Access logs go to stderr, which systemd captures into the journal. Deliberately not a file:
+	# nothing on the host rotates one, and an unbounded access log is exactly the problem GH-249
+	# exists to fix. Read them with `journalctl -u caddy`; journald handles rotation.
+	log {
+		format json
+	}
+}

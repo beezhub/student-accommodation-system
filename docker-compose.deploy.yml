@@ -1,0 +1,50 @@
+# Deployment overlay. Adds what a server needs and neither the laptop file nor the production
+# overlay provides: the frontend service, and a fixed address for it so the backend can name it as
+# a trusted proxy.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml \
+#     up -d
+#
+# TLS is not here. Caddy runs on the host (tools/caddy/Caddyfile): it needs ports 80 and 443 on the
+# machine itself, and its certificate store has to survive a compose recreate. The frontend is
+# published on loopback only, so the host proxy is the single way in.
+#
+# Partial against GH-246. Still outstanding from that issue:
+#   - registry image digests for backend and frontend with `build: !reset null`, once GH-243 pushes
+#     them. This file still builds from the tree: wrong for a server, right for a POC with no
+#     registry.
+#   - GH-246's managed-database section is obsolete. It was written for DigitalOcean Managed
+#     PostgreSQL; the deployment now runs Postgres in a container on Oracle Cloud, so `db` stays.
+
+services:
+  frontend:
+    container_name: student-accommodation-frontend
+    image: student-accommodation-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    # Loopback only. Nothing about this service should be reachable from outside the machine;
+    # Caddy on the host is what the internet talks to.
+    ports:
+      - "127.0.0.1:8081:80"
+    depends_on:
+      student-accommodation-back-end:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      app-network:
+        # Fixed address so APP_SECURITY_TRUSTED_PROXIES can name it. GH-252: the backend compares
+        # trusted proxies by exact string rather than by CIDR, so a DHCP-assigned container address
+        # would silently disable per-client rate limiting for every request through the proxy —
+        # every caller would share one bucket.
+        ipv4_address: 172.28.0.10
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+networks:
+  app-network:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
