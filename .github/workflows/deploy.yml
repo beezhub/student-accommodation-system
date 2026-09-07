@@ -17,7 +17,7 @@ name: Deploy NONPROD
 
 on:
   push:
-    branches: [develop, "feature/TASK-243-deploy-nonprod-on-develop"]  # TEMP: removed before merge
+    branches: [develop]
   workflow_dispatch:
 
 # Never let two deploys touch the host at once. Cancel-in-progress is deliberately off: a deploy
