@@ -252,8 +252,10 @@ rules that matter most:
   messages, PR text, code comments, or docs.
 - Commit under the configured `user.name` and `user.email`. Never
   override them with `--author`, `GIT_AUTHOR_*`, or `GIT_COMMITTER_*`.
-- Name branches with the project convention, `feature/TASK-{id}-{slug}`
-  from `develop`. Never put an agent, model, or tool name in a branch.
+- Name branches with the project convention, `feature/TASK-{id}-{slug}`.
+  Never put an agent, model, or tool name in a branch.
+- Always branch from `develop` and open the pull request back against
+  `develop`. One issue per pull request, no bundled or drive-by changes.
 - Write Conventional Commits with an imperative subject of 72
   characters or less. The body says what changed and why, not that a
   tool made it.

@@ -34,8 +34,9 @@ Never include an agent, model, or tool name in a branch:
     ai-fix-tests               # wrong
     bot/refactor               # wrong
 
-Feature branches merge into `develop` via pull request, and `develop`
-merges into `main`. Never commit directly to `main` or `develop`.
+Always branch from `develop`, never from `main`. Feature branches merge
+back into `develop` via pull request, and `develop` merges into `main`.
+Never commit directly to `main` or `develop`.
 
 ## Commit messages
 
@@ -48,6 +49,11 @@ merges into `main`. Never commit directly to `main` or `develop`.
 
 ## Pull requests
 
+- Open the pull request against `develop`.
+- One issue per pull request. Do not bundle unrelated issues, and do not
+  fold drive-by fixes or refactors into a pull request that is about
+  something else. Open a second branch and a second pull request
+  instead.
 - Title and description describe the change only.
 - No tooling disclosure section, no "how this was made" notes.
 - Fill in the repository PR template as a human contributor would.
