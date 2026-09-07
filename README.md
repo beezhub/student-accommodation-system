@@ -147,6 +147,8 @@ student-accommodation-system/
 
 ## Contributing
 Contributions are welcome! Please fork the repository and submit a pull request.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first for the branch naming, commit
+message, and attribution rules.
 
 ## License
 This project is licensed under the MIT License.

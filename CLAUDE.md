@@ -240,3 +240,27 @@ applied migration. Enums are stored as strings; no soft deletes.
 - `frontend/.github/instructions/student-accomodation.instructions.md` is an aspirational Copilot spec (microservices,
   NgRx, Cypress). Follow the code, not that file, except for strict TypeScript, ESLint + Prettier, Conventional Commits.
 - `dummy.pdf` at the root is a 17-byte placeholder with no references in code.
+
+## Contribution rules
+
+Read `CONTRIBUTING.md` before committing or opening a pull request. The
+rules that matter most:
+
+- Do not identify a contribution as agent-generated anywhere in the
+  repository or its history: no `Co-Authored-By:` trailers naming a
+  model or tool, no "Generated with" footers, no AI markers in commit
+  messages, PR text, code comments, or docs.
+- Commit under the configured `user.name` and `user.email`. Never
+  override them with `--author`, `GIT_AUTHOR_*`, or `GIT_COMMITTER_*`.
+- Name branches with the project convention, `feature/TASK-{id}-{slug}`.
+  Never put an agent, model, or tool name in a branch.
+- Always branch from `develop` and open the pull request back against
+  `develop`. One issue per pull request, no bundled or drive-by changes.
+- Write Conventional Commits with an imperative subject of 72
+  characters or less. The body says what changed and why, not that a
+  tool made it.
+- Do not use em dashes, and do not use en dashes as sentence
+  punctuation.
+
+Before pushing, confirm `git log --format='%an <%ae>%n%b'
+origin/develop..HEAD` and `git rev-parse --abbrev-ref HEAD` are clean.
