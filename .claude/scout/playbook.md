@@ -77,6 +77,7 @@ List open issues, newest activity first. Work down this order of preference:
 **Skip an issue if any of this is true:**
 
 - It has `scout:hands-off`, `scout:working`, `scout:needs-input`, or `scout:needs-human` already.
+- It carries any `forager:` label. That issue is Forager's, whatever else it says.
 - It is assigned to a person.
 - A pull request already mentions it.
 - The title or body says it is blocked, waiting, or up for discussion.
@@ -122,6 +123,11 @@ further or go to Step 6 and ask.
 database schema, an API the frontend depends on, login, tenancy, money, or personal data;
 if it is spreading past about five files; if the issue can be read two ways; if you cannot
 reproduce it; or if the fix means deleting or migrating data.
+
+If the reason you are stopping is only the width, and the change is the same one repeated
+at every site, say so when you hand back. That is a route card waiting to be written, and
+Forager exists to fly it. See `.claude/forager/route-cards.md`. Do not write the card
+yourself: deciding the shape of the change is the part that belongs to a person.
 
 ---
 

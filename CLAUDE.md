@@ -280,3 +280,28 @@ language, whenever a decision belongs to a person.
 
 Scout never merges, never pushes to `main` or `develop`, and never touches secrets or
 existing migrations.
+
+## Forager (sweep agent)
+
+Forager is the counterpart to Scout. It works one *route card* per run: a change a person
+has already specified, applied at every site the card names, in a single pull request.
+Scout explores and stops at about five files; Forager takes the wide mechanical change
+Scout is forbidden to make, and is allowed it only because the judgement was made by a
+person before the run started.
+
+It will not start without an issue labelled `forager:route` that answers four questions:
+the sites, the change, the check, and what done means. An incomplete card is handed back,
+never filled in by the agent. A site that does not fit the change is skipped and listed in
+the pull request, never improvised.
+
+- Fly one route: `/forager:run` (or `/forager:run 301` for a specific card)
+- See the queue: `/forager:status`
+- What a route card must contain: `.claude/forager/route-cards.md`
+- Definition and rules: `.claude/agents/forager.md`
+- Run procedure: `.claude/forager/playbook.md`
+- Setup, labels, and the off switch: `.claude/forager/setup.md`
+- Overview for humans: `docs/forager-agent.md`
+
+The two agents never share an issue: Scout skips anything carrying a `forager:` label,
+Forager skips anything carrying a `scout:` label, and neither removes the other's. Forager
+has the same hard limits as Scout, plus one of its own: it never chooses its own work.
