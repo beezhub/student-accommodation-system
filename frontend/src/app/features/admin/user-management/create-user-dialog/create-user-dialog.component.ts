@@ -80,7 +80,11 @@ export class CreateUserDialogComponent {
 
     if (this.isPlatformAdmin) {
       this.createUserForm.addControl('tenantId', this.fb.control(null, [Validators.required]));
-      this.tenantService.getAllTenants().subscribe({
+      // Active companies only. This list was unfiltered, so a TENANT_ADMIN or BUILDING_STAFF
+      // account could be created against a deactivated company through this dialog while the
+      // tenant-admin screen refused exactly that (GH-267). This dialog only creates, so no
+      // already-assigned company has to be kept in the options.
+      this.tenantService.getActiveTenants().subscribe({
         next: (tenants) => (this.tenants = tenants),
         error: () => this.snackBar.open('Failed to load tenants', 'Close', { duration: 3000 }),
       });

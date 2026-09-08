@@ -41,8 +41,24 @@ export class TenantService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/admin/tenants`;
 
+  /**
+   * Every tenant, active and inactive. This is what the tenant administration screen needs: it is
+   * the only place a deactivated company can be switched back on, so it has to keep listing them.
+   */
   getAllTenants(): Observable<Tenant[]> {
     return this.http.get<Tenant[]>(this.apiUrl);
+  }
+
+  /**
+   * Only companies that may still be given new records. For dropdowns that assign a building or a
+   * staff account to a company, where offering a deactivated one lets an admin go on attaching
+   * records to a company that has been switched off (GH-267).
+   *
+   * <p>The backend refuses the same thing, because filtering here alone is cosmetic: the API still
+   * accepts the id.
+   */
+  getActiveTenants(): Observable<Tenant[]> {
+    return this.http.get<Tenant[]>(this.apiUrl, { params: { activeOnly: true } });
   }
 
   getTenantById(id: number): Observable<Tenant> {

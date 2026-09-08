@@ -7,8 +7,8 @@ import com.beezhub.student_accommodation.model.dto.UserData;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
-import com.beezhub.student_accommodation.repository.TenantRepository;
-import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+import com.beezhub.student_accommodation.exceptions.InactiveTenantException;
+import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,7 +46,7 @@ class UserManagementServiceRoleValidationTest {
     private AppUserRepository userRepository;
 
     @Mock
-    private TenantRepository tenantRepository;
+    private com.beezhub.student_accommodation.service.tenant.TenantService tenantService;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -115,7 +115,6 @@ class UserManagementServiceRoleValidationTest {
         when(appUserMapper.toEntityFromAdminRequest(any(), anyString())).thenReturn(savedUser);
         when(userRepository.save(any())).thenReturn(savedUser);
         when(appUserMapper.toUserData(any())).thenReturn(new UserData());
-        when(tenantRepository.existsById(any())).thenReturn(true);
     }
 
     @Test
@@ -167,10 +166,28 @@ class UserManagementServiceRoleValidationTest {
     @DisplayName("Creating a user for an unknown tenant is rejected")
     void createUser_unknownTenant_throws() {
         stubPasswordEncoder();
-        when(tenantRepository.existsById(99L)).thenReturn(false);
+        when(tenantService.requireTenantAcceptingNewRecords(99L))
+                .thenThrow(new TenantNotFoundException("Property company not found with id: 99"));
 
         assertThatThrownBy(() -> userManagementService.createUser(buildRequest("Building_Staff", 99L)))
-                .isInstanceOf(ResourceNotFoundException.class);
+                .isInstanceOf(TenantNotFoundException.class);
+        verify(userRepository, never()).save(any());
+    }
+
+    /**
+     * This route created staff against a switched-off company while TenantAdminService, the other
+     * route to the same thing, refused it. The two disagreed about whether it was allowed at all
+     * (GH-267).
+     */
+    @Test
+    @DisplayName("Creating a user for a deactivated tenant is rejected")
+    void createUser_deactivatedTenant_throws() {
+        stubPasswordEncoder();
+        when(tenantService.requireTenantAcceptingNewRecords(7L))
+                .thenThrow(new InactiveTenantException("Property company 'Gone Ltd' is deactivated"));
+
+        assertThatThrownBy(() -> userManagementService.createUser(buildRequest("Building_Staff", 7L)))
+                .isInstanceOf(InactiveTenantException.class);
         verify(userRepository, never()).save(any());
     }
 

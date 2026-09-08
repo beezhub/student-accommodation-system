@@ -520,8 +520,13 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
   }
 
   loadCompanies(): void {
+    // Active companies only. A deactivated one stayed in this dropdown, so a new building could
+    // still be created under a company that had been switched off (GH-267). Only reached when
+    // showCompanySelector is true, which is create mode for a platform admin, so there is no
+    // already-assigned value to preserve here: the backend refuses to move a building between
+    // companies on edit, and the selector is not rendered then.
     this.tenantService
-      .getAllTenants()
+      .getActiveTenants()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (companies) => {

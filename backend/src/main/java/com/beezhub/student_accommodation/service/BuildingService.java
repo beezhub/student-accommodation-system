@@ -2,7 +2,6 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
-import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.mapper.BuildingMapper;
 import com.beezhub.student_accommodation.mapper.RoomMapper;
@@ -17,10 +16,10 @@ import com.beezhub.student_accommodation.repository.BuildingAttributesRepository
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.InstitutionRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
-import com.beezhub.student_accommodation.repository.TenantRepository;
 import com.beezhub.student_accommodation.specification.BuildingBrowseSpecification;
 import com.beezhub.student_accommodation.specification.BuildingSpecification;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
+import com.beezhub.student_accommodation.service.tenant.TenantService;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +50,7 @@ public class BuildingService {
     private final RoomMapper roomMapper;
     private final BuildingImageService buildingImageService;
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
-    private final TenantRepository tenantRepository;
+    private final TenantService tenantService;
 
     public List<BuildingResponse> getAllBuildings() {
         log.info("Fetching all buildings");
@@ -201,6 +200,10 @@ public class BuildingService {
                 throw new UnauthorizedAccessException(
                         "You can only create buildings for your own property company");
             }
+            // Checked on this branch too. A tenant admin whose own company has been deactivated
+            // must not go on adding buildings to it, and their id never passes through the
+            // request at all (GH-267).
+            tenantService.requireTenantAcceptingNewRecords(callerTenantId);
             return callerTenantId;
         }
 
@@ -210,9 +213,9 @@ public class BuildingService {
                     "A property company must be chosen for the building. The platform tenant cannot "
                             + "own buildings, and a building stamped with it is invisible to every company.");
         }
-        if (!tenantRepository.existsById(requested)) {
-            throw new TenantNotFoundException("Property company not found with id: " + requested);
-        }
+        // Existence and active status in one call, shared with user creation. Filtering the
+        // dropdown alone would be cosmetic: the API still accepts the id (GH-267).
+        tenantService.requireTenantAcceptingNewRecords(requested);
         return requested;
     }
 

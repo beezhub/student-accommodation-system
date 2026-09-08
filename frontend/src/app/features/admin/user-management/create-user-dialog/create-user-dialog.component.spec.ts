@@ -20,7 +20,16 @@ describe('CreateUserDialogComponent tenant scoping', () => {
     { id: 7, name: 'Northgate' },
   ];
 
+  let tenantServiceStub: {
+    getAllTenants: jasmine.Spy;
+    getActiveTenants: jasmine.Spy;
+  };
+
   function build(): CreateUserDialogComponent {
+    tenantServiceStub = {
+      getAllTenants: jasmine.createSpy('getAllTenants').and.returnValue(of(tenants)),
+      getActiveTenants: jasmine.createSpy('getActiveTenants').and.returnValue(of(tenants)),
+    };
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [CreateUserDialogComponent],
@@ -32,7 +41,7 @@ describe('CreateUserDialogComponent tenant scoping', () => {
         { provide: AuthService, useValue: { currentUserValue: { tenantId: 0 } } },
         {
           provide: TenantService,
-          useValue: { getAllTenants: () => of(tenants) },
+          useValue: tenantServiceStub,
         },
         { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
       ],
@@ -58,6 +67,18 @@ describe('CreateUserDialogComponent tenant scoping', () => {
 
   it('availableTenantsForRole_neverOffersThePlatformTenant', () => {
     expect(build().availableTenantsForRole.map((t) => t.id)).toEqual([7]);
+  });
+
+  /**
+   * GH-267: this list was unfiltered, so a deactivated company stayed selectable and a new
+   * TENANT_ADMIN or BUILDING_STAFF could be attached to it. The full list is for the tenant
+   * administration screen, which has to keep showing deactivated companies to switch them back on.
+   */
+  it('tenantOptions_comeFromTheActiveOnlyList', () => {
+    build();
+
+    expect(tenantServiceStub.getActiveTenants).toHaveBeenCalled();
+    expect(tenantServiceStub.getAllTenants).not.toHaveBeenCalled();
   });
 
   it('showTenantField_platformAdminRole_isHidden', () => {

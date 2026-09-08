@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.tenant;
 
+import com.beezhub.student_accommodation.exceptions.InactiveTenantException;
 import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
 import com.beezhub.student_accommodation.model.dto.TenantRequestDto;
 import com.beezhub.student_accommodation.model.dto.TenantResponseDto;
@@ -31,13 +32,31 @@ public class TenantService {
     private final TenantRepository tenantRepository;
 
     /**
-     * Returns all tenants in the system.
+     * Returns all tenants in the system, active and inactive.
      * Safe to call regardless of current {@link TenantContext} value because the
      * {@code tenantFilter} Hibernate filter is not applied to the {@code tenant} table.
      */
     @Transactional(readOnly = true)
     public List<TenantResponseDto> getAllTenants() {
-        return tenantRepository.findAll().stream()
+        return getAllTenants(false);
+    }
+
+    /**
+     * Two callers want two different lists, and conflating them is the trap in GH-267.
+     *
+     * <p>The administration screen needs every company with its status shown, because it is the
+     * only place a deactivated one can be switched back on. Every dropdown that <em>assigns</em>
+     * something to a company needs the active ones only. Filtering unconditionally here would
+     * serve the second and break the first, leaving no route back from deactivation.
+     *
+     * @param activeOnly when true, omit deactivated companies
+     */
+    @Transactional(readOnly = true)
+    public List<TenantResponseDto> getAllTenants(boolean activeOnly) {
+        List<Tenant> tenants = activeOnly
+                ? tenantRepository.findByIsActiveTrue()
+                : tenantRepository.findAll();
+        return tenants.stream()
                 .map(this::toResponseDto)
                 .toList();
     }
@@ -52,6 +71,33 @@ public class TenantService {
         return tenantRepository.findByName(DEFAULT_TENANT_NAME)
                 .orElseThrow(() -> new TenantNotFoundException(
                         "Default tenant not found — ensure the backfill migration has been applied"));
+    }
+
+    /**
+     * Loads a company that is allowed to receive a new building or a new staff account.
+     *
+     * <p>The one place {@code isActive} was consulted before GH-267 lived in
+     * {@code TenantAdminService} and threw {@code DuplicateResourceException}, which the handler
+     * answers with 409. Every other creation path ignored the flag entirely, so the two routes to
+     * creating a tenant admin disagreed about whether it was even allowed. This is the single
+     * implementation all three now share, so the status, the wording and the rule cannot drift.
+     *
+     * <p>Frontend filtering alone would be cosmetic: the API still accepts the id.
+     *
+     * @throws TenantNotFoundException if no tenant with that ID exists
+     * @throws InactiveTenantException if it exists but has been deactivated
+     */
+    @Transactional(readOnly = true)
+    public Tenant requireTenantAcceptingNewRecords(Long tenantId) {
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new TenantNotFoundException(
+                        "Property company not found with id: " + tenantId));
+        if (Boolean.FALSE.equals(tenant.getIsActive())) {
+            throw new InactiveTenantException(
+                    "Property company '" + tenant.getName() + "' is deactivated and cannot be "
+                            + "given new records. Reactivate it first.");
+        }
+        return tenant;
     }
 
     /**

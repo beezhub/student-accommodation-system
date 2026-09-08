@@ -6,10 +6,10 @@ import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
 import com.beezhub.student_accommodation.model.dto.TenantAdminRequestDto;
 import com.beezhub.student_accommodation.model.dto.TenantAdminResponseDto;
 import com.beezhub.student_accommodation.model.entity.AppUser;
-import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.TenantRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +27,7 @@ public class TenantAdminService {
 
     private final AppUserRepository appUserRepository;
     private final TenantRepository tenantRepository;
+    private final TenantService tenantService;
     private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
     private final TokenBlacklistService tokenBlacklistService;
@@ -36,12 +37,11 @@ public class TenantAdminService {
 
     @Transactional
     public TenantAdminResponseDto createTenantAdmin(Long tenantId, TenantAdminRequestDto request) {
-        Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new TenantNotFoundException("Tenant not found with id: " + tenantId));
-
-        if (!tenant.getIsActive()) {
-            throw new DuplicateResourceException("Cannot add admin to an inactive tenant: " + tenant.getName());
-        }
+        // Was a local check throwing DuplicateResourceException, which the handler answers with
+        // 409 although nothing is duplicated, and which the other route to creating a tenant admin
+        // did not perform at all (GH-267). One implementation now, shared with building and user
+        // creation, so the two routes cannot disagree.
+        tenantService.requireTenantAcceptingNewRecords(tenantId);
 
         if (appUserRepository.existsByEmail(request.email())) {
             throw new DuplicateResourceException("Email already in use: " + request.email());
