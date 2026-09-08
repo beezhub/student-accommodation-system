@@ -135,6 +135,21 @@ export class AuthService {
     this.institutionService.clearCache();
     this.yearOfStudyService.clearCache();
   }
+
+  /**
+   * Ends the local session right after a successful `changePassword` call.
+   *
+   * `changePassword` blacklists the token that was presented to authenticate it, so the copy
+   * still sitting in the browser is already dead. Calling `logout()` here would ask the backend
+   * to blacklist that same dead token a second time, which answers 401 and drags the caller
+   * through the same "session expired" redirect this method exists to avoid (GH-291). There is
+   * nothing left to tell the backend, so this only clears the local copy.
+   */
+  endSessionAfterPasswordChange(): void {
+    this.notificationService.stopNotifications();
+    this.clearLocalSession();
+  }
+
   // Login a user
   login(data: LoginData): Observable<User> {
     return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/login`, data).pipe(

@@ -49,6 +49,16 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
     });
+
+    // Landing here straight after a password change is the expected outcome, not a dropped
+    // session, so say so plainly instead of letting an unrelated 401 announce it as an expiry
+    // (GH-291).
+    if (this.route.snapshot.queryParamMap.get('passwordChanged') === 'true') {
+      this.snackBar.open('Your password was changed. Please sign in again.', 'Close', {
+        duration: 5000,
+        panelClass: ['success-snackbar'],
+      });
+    }
   }
   onSubmit(): void {
     if (this.loginForm.valid) {
