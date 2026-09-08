@@ -3,8 +3,31 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'test-cases/**'
+      - 'ux-research/**'
   pull_request:
     branches: [main, develop]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'test-cases/**'
+      - 'ux-research/**'
+
+# One in-flight run per ref (or per pull request), so pushing a fixup commit cancels the run it
+# supersedes instead of letting both finish (GH-284).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# PR #104 is a permanently open develop -> main pull request, so every push to develop also fires
+# this workflow's pull_request trigger on the same commit the push trigger just built. The
+# concurrency group above does not catch that, since a push and a pull_request event get different
+# group keys. Every job below carries
+# `if: github.event_name != 'pull_request' || github.head_ref != 'develop'` to skip that one case;
+# the push-triggered run on develop already tested the commit (GH-284).
 
 jobs:
   # No secrets scan. gitleaks-action requires a GITLEAKS_LICENSE for organisation-owned
@@ -19,6 +42,7 @@ jobs:
   backend:
     name: Backend Build & Test
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.head_ref != 'develop'
     defaults:
       run:
         working-directory: backend
@@ -69,6 +93,7 @@ jobs:
   frontend:
     name: Frontend Lint & Test
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.head_ref != 'develop'
     defaults:
       run:
         working-directory: frontend
