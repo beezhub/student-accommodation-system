@@ -228,6 +228,11 @@ Base `develop`. Title in the same style as the commit subject. Body:
 Closes #<number>
 ```
 
+`Closes #<number>` in the pull request body, not `Refs:`. `Closes` shuts the issue when
+the pull request merges; `Refs:` leaves it open and still labelled, so the next run sees
+work that is already done and counts it against your open pull request limit. `Refs:`
+belongs in a commit message, not here.
+
 Then comment on the issue with a one-line link to the PR, and swap `scout:working`
 for `scout:in-review`.
 
