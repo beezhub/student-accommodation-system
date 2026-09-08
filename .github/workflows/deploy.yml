@@ -47,6 +47,47 @@ jobs:
           printf '%s\n' "${{ vars.SSH_KNOWN_HOSTS }}" > "$RUNNER_TEMP/.ssh/known_hosts"
           chmod 644 "$RUNNER_TEMP/.ssh/known_hosts"
 
+      # Compose resolves the entire configuration, secrets included, before it does anything, so a
+      # key missing from the host .env aborts `docker compose up -d` partway through and leaves the
+      # stack half recreated — one container removed and its replacement created but never started
+      # (GH-274). The host .env is edited by hand and does not learn about new keys on its own, so
+      # this compares it against what the compose files actually require and stops here, before
+      # anything is synced, rebuilt or torn down.
+      #
+      # Only key names cross the wire; no value ever leaves the host.
+      - name: Preflight the host environment
+        run: |
+          F="docker-compose.yml docker-compose.prod.yml docker-compose.deploy.yml"
+          # Required means compose has no fallback: ${VAR} written without a `:-` default, plus
+          # every variable an `environment:` secret is built from. An environment secret is the
+          # stricter of the two — compose aborts on an unset one even where the service reading it
+          # tolerates an empty value, which is exactly how GH-274 happened. Anything carrying a
+          # `:-` default degrades on its own and is deliberately not checked.
+          REQUIRED=$(
+            {
+              grep -hoE '\$\{[A-Z0-9_]+\}' $F | tr -d '${}'
+              grep -hoE '^[[:space:]]+environment:[[:space:]]+[A-Z0-9_]+[[:space:]]*$' $F | awk '{print $2}'
+            } | sort -u
+          )
+          PRESENT=$(ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+            "test -f /opt/sas/.env && sed -nE 's/^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=.*/\2/p' /opt/sas/.env | sort -u") || {
+              echo "::error::/opt/sas/.env is missing or unreadable on ${{ vars.DEPLOY_HOST }}"
+              exit 1
+            }
+          MISSING=$(comm -23 <(printf '%s\n' "$REQUIRED") <(printf '%s\n' "$PRESENT") | tr '\n' ' ')
+          if [ -n "${MISSING// /}" ]; then
+            echo "::error::/opt/sas/.env is missing keys the compose files require: $MISSING"
+            echo "Deploying now would abort partway through 'docker compose up -d' and leave the stack"
+            echo "half recreated (GH-274). Nothing has been changed on the host."
+            echo ""
+            echo "Add each key to /opt/sas/.env and re-run this workflow. .env.example documents every"
+            echo "one of them, including where an empty value is a valid choice rather than an omission."
+            exit 1
+          fi
+          echo "host .env carries all $(printf '%s\n' "$REQUIRED" | wc -l | tr -d ' ') required keys"
+
       - name: Record the pre-deploy schema version
         id: schema
         run: |

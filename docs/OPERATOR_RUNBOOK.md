@@ -324,6 +324,25 @@ Until GH-250 lands, keep everything above in a password manager. Once SOPS is se
 the encrypted `secrets.<env>.yaml` files in the repository and the password manager copy becomes the
 recovery copy.
 
+### 9.1 Keeping the host `.env` current
+
+`/opt/sas/.env` is edited by hand on each host. The deploy syncs the repository tree but never
+writes that file, so a key added to `.env.example` does not reach a running host until someone puts
+it there. Compose resolves its whole configuration, secrets included, before it acts, so a missing
+key does not degrade — it aborts `docker compose up -d` partway through and leaves the stack half
+recreated (GH-274).
+
+The `Preflight the host environment` step in `.github/workflows/deploy.yml` now catches this first,
+before anything is synced or rebuilt, and names the missing keys. When a deploy fails there:
+
+```bash
+ssh <deploy-user>@<host>
+${EDITOR:-nano} /opt/sas/.env   # add each key the run named, values per .env.example
+```
+
+Then re-run the workflow. Where `.env.example` says an empty value is a valid choice, the key still
+has to be present — `KEY=` is a setting, an absent line is not.
+
 ---
 
 ## Done when
