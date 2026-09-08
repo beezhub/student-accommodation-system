@@ -38,7 +38,7 @@ they read that way.
 - It never touches secrets, keys, or `.env` files.
 - It never edits an existing database migration, and never deletes or migrates live data.
 - It never deletes or skips a test to get a green build.
-- It never keeps more than three of its own pull requests open. At three it stops taking
+- It never keeps more than five of its own pull requests open. At five it stops taking
   new work and spends its runs getting the existing ones over the line.
 
 ## What it stops and asks about
