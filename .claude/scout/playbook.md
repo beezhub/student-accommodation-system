@@ -48,7 +48,7 @@ For every open PR you opened:
 - **Merge conflict?** Merge `develop` into your branch and resolve it. Never force-push.
 - **Green and approved and nothing left to do?** Leave it. Merging is a human's call.
 
-If you already have three open pull requests, the run ends here. Say so in your report.
+If you already have five open pull requests, the run ends here. Say so in your report.
 A pile of unmerged work helps nobody.
 
 ---
