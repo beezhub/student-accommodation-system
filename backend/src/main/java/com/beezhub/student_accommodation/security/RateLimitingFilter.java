@@ -11,10 +11,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
+import org.springframework.security.web.util.matcher.IpAddressMatcher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -49,13 +51,32 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     @Value("${app.security.rate-limit.requests-per-minute:30}")
     private int maxRequestsPerMinute;
 
+    /**
+     * Built once from {@link #trustedProxies}. {@link IpAddressMatcher} accepts a plain address as
+     * an exact match and a {@code /}-suffixed value as a CIDR range, so a single matcher type covers
+     * both forms {@code .env.example} documents (GH-252).
+     */
+    private List<IpAddressMatcher> trustedProxyMatchers = List.of();
+
     @PostConstruct
     void warnIfProxiesAreNotConfigured() {
         if (trustedProxies == null || trustedProxies.isEmpty()) {
             log.warn("action=rateLimitProxyUnconfigured app.security.trusted-proxies is empty. "
                     + "Behind a reverse proxy every client shares the proxy's address and therefore one "
                     + "rate-limit bucket. Set APP_SECURITY_TRUSTED_PROXIES to the proxy addresses.");
+            return;
         }
+
+        List<IpAddressMatcher> matchers = new ArrayList<>();
+        for (String trustedProxy : trustedProxies) {
+            try {
+                matchers.add(new IpAddressMatcher(trustedProxy));
+            } catch (IllegalArgumentException e) {
+                log.warn("action=rateLimitProxyInvalid value={} is not a valid address or CIDR range "
+                        + "and will never be trusted. Check APP_SECURITY_TRUSTED_PROXIES.", trustedProxy);
+            }
+        }
+        trustedProxyMatchers = matchers;
     }
 
     @Override
@@ -98,13 +119,24 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     private String getClientIp(HttpServletRequest request) {
         // Only trust X-Forwarded-For when the request comes from a known reverse proxy
-        if (trustedProxies != null && !trustedProxies.isEmpty()
-                && trustedProxies.contains(request.getRemoteAddr())) {
+        if (isTrustedProxy(request.getRemoteAddr())) {
             String xForwardedFor = request.getHeader("X-Forwarded-For");
             if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                // Leftmost value only. That is client-controllable unless the trusted proxy
+                // replaces the header rather than appending to it, which the code here cannot
+                // enforce; it depends on the proxy being configured to overwrite X-Forwarded-For.
                 return xForwardedFor.split(",")[0].trim();
             }
         }
         return request.getRemoteAddr();
+    }
+
+    private boolean isTrustedProxy(String remoteAddr) {
+        for (IpAddressMatcher matcher : trustedProxyMatchers) {
+            if (matcher.matches(remoteAddr)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

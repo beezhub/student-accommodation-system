@@ -96,7 +96,7 @@ class RateLimitingFilterTest {
 
     @Test
     void trustedProxy_keysOnTheForwardedClientAddress() throws Exception {
-        ReflectionTestUtils.setField(filter, "trustedProxies", List.of(PROXY_IP));
+        setTrustedProxies(PROXY_IP);
 
         filter.doFilter(request("/api/auth/login", PROXY_IP, CLIENT_IP + ", 10.0.0.5"),
                 new MockHttpServletResponse(), chain);
@@ -111,6 +111,46 @@ class RateLimitingFilterTest {
                 new MockHttpServletResponse(), chain);
 
         verify(valueOperations).increment("rate_limit:ip:198.51.100.9");
+    }
+
+    /**
+     * GH-252: a CIDR range in APP_SECURITY_TRUSTED_PROXIES never matched, because the check was
+     * an exact List.contains, so a deployment configured exactly as .env.example documents left
+     * every request keyed on the proxy's own address.
+     */
+    @Test
+    void trustedProxyRange_matchesByCidr() throws Exception {
+        setTrustedProxies("172.18.0.0/16");
+
+        filter.doFilter(request("/api/auth/login", "172.18.4.9", CLIENT_IP),
+                new MockHttpServletResponse(), chain);
+
+        verify(valueOperations).increment("rate_limit:ip:" + CLIENT_IP);
+    }
+
+    @Test
+    void addressOutsideTheTrustedRange_isNotTrusted() throws Exception {
+        setTrustedProxies("172.18.0.0/16");
+
+        filter.doFilter(request("/api/auth/login", "203.0.113.50", CLIENT_IP),
+                new MockHttpServletResponse(), chain);
+
+        verify(valueOperations).increment("rate_limit:ip:203.0.113.50");
+    }
+
+    @Test
+    void invalidTrustedProxyEntry_isIgnoredRatherThanCrashingStartup() throws Exception {
+        setTrustedProxies("not-an-address", PROXY_IP);
+
+        filter.doFilter(request("/api/auth/login", PROXY_IP, CLIENT_IP),
+                new MockHttpServletResponse(), chain);
+
+        verify(valueOperations).increment("rate_limit:ip:" + CLIENT_IP);
+    }
+
+    private void setTrustedProxies(String... proxies) {
+        ReflectionTestUtils.setField(filter, "trustedProxies", List.of(proxies));
+        filter.warnIfProxiesAreNotConfigured();
     }
 
     /**
