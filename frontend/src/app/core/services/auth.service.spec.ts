@@ -220,6 +220,21 @@ describe('AuthService', () => {
     });
   });
 
+  describe('endSessionAfterPasswordChange', () => {
+    it('endSessionAfterPasswordChange_clearsSessionWithoutCallingBackend', () => {
+      localStorage.setItem('currentUser', JSON.stringify(mockUser));
+      tokenStorageSpy.getToken.and.returnValue('a.b.c');
+
+      service.endSessionAfterPasswordChange();
+
+      expect(tokenStorageSpy.removeToken).toHaveBeenCalled();
+      expect(localStorage.getItem('currentUser')).toBeNull();
+      expect(service.currentUserValue).toBeNull();
+      expect(notificationServiceSpy.stopNotifications).toHaveBeenCalled();
+      httpMock.expectNone(`${apiUrl}/logout`);
+    });
+  });
+
   describe('forgotPassword', () => {
     it('forgotPassword_sendsEmailToBackend', () => {
       let result: unknown;

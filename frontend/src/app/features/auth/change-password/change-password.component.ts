@@ -90,17 +90,14 @@ export class ChangePasswordComponent implements OnInit {
       this.authService.changePassword(currentPassword, newPassword).subscribe({
         next: () => {
           this.isSubmitting = false;
-          this.snackBar.open('Password changed successfully!', 'Close', {
-            duration: 3000,
-            panelClass: ['success-snackbar'],
-          });
 
-          // Navigate based on user role after successful password change
-          if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
-            this.router.navigate(['/admin']);
-          } else {
-            this.router.navigate(['/dashboard']);
-          }
+          // The backend blacklists the token used to authenticate this call, so the copy the
+          // browser is still holding is already dead. Signing out here and sending the user back
+          // to a fresh login is what actually keeps the session alive again, rather than letting
+          // the first 401 from the next admin page do it by accident with a confusing message
+          // (GH-291).
+          this.authService.endSessionAfterPasswordChange();
+          this.router.navigate(['/login'], { queryParams: { passwordChanged: 'true' } });
         },
         error: (error: { error: { message: string; errors: string[] } }) => {
           this.isSubmitting = false;

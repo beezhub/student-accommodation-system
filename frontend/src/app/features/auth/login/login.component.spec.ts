@@ -3,6 +3,7 @@ import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { of } from 'rxjs';
 
 import { LoginComponent } from './login.component';
@@ -121,5 +122,56 @@ describe('LoginComponent returnUrl handling', () => {
     expect(navigate).toHaveBeenCalledWith(['/change-password'], {
       queryParams: { forced: 'true' },
     });
+  });
+});
+
+/**
+ * GH-291: after a password change the app sends the user back here with `passwordChanged=true`
+ * rather than letting a stray 401 announce a successful change as a dropped session.
+ */
+describe('LoginComponent passwordChanged message', () => {
+  let authService: jasmine.SpyObj<AuthService>;
+  let roleService: jasmine.SpyObj<RoleService>;
+
+  beforeEach(() => {
+    authService = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
+    roleService = jasmine.createSpyObj<RoleService>('RoleService', [
+      'isPlatformAdmin',
+      'isTenantAdmin',
+    ]);
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([{ path: 'login', component: LoginComponent }]),
+        provideLocationMocks(),
+        provideNoopAnimations(),
+        { provide: AuthService, useValue: authService },
+        { provide: RoleService, useValue: roleService },
+      ],
+    });
+  });
+
+  it('passwordChanged_true_showsAClearMessage', async () => {
+    // The routed component ends up with its own MatSnackBar instance rather than the one
+    // TestBed.inject would hand back beforehand, so spy on the prototype instead of an instance.
+    const open = spyOn(MatSnackBar.prototype, 'open').and.callThrough();
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/login?passwordChanged=true', LoginComponent);
+
+    expect(open).toHaveBeenCalledWith(
+      'Your password was changed. Please sign in again.',
+      'Close',
+      jasmine.any(Object)
+    );
+  });
+
+  it('noPasswordChangedParam_saysNothing', async () => {
+    const open = spyOn(MatSnackBar.prototype, 'open').and.callThrough();
+
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/login', LoginComponent);
+
+    expect(open).not.toHaveBeenCalled();
   });
 });
