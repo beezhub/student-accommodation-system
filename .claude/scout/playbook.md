@@ -77,6 +77,8 @@ List open issues, newest activity first. Work down this order of preference:
 **Skip an issue if any of this is true:**
 
 - It has `scout:hands-off`, `scout:working`, `scout:needs-input`, or `scout:needs-human` already.
+- It has `forager:found` and not `scout:ready`. Forager filed it and no person has looked
+  at it yet. A person releases it by adding `scout:ready` or removing `forager:found`.
 - It is assigned to a person.
 - A pull request already mentions it.
 - The title or body says it is blocked, waiting, or up for discussion.

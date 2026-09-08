@@ -59,6 +59,7 @@ picks it up on its next run.
 |---|---|
 | Scout to do this issue next | Add the label `scout:ready` |
 | Scout to stay away from an issue | Add the label `scout:hands-off` |
+| Scout to take an issue Forager filed | Add `scout:ready`, or remove `forager:found` (see `docs/forager-agent.md`) |
 | To know what Scout is doing | Run `/scout:status` in Claude Code |
 | One run right now | Run `/scout:run` in Claude Code |
 | One specific issue, right now | Run `/scout:run 268` |
