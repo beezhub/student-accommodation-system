@@ -43,34 +43,43 @@ To see what it is up to without changing anything:
 /scout:status
 ```
 
-## 3. Running Scout every hour
+## 3. Running Scout on a schedule
 
-Pick one of these. Do not run two at once, they will fight over the same issues.
+**Read this before you try.** Running Scout by hand with `/scout:run` is the default, and
+it is what produces work today. Scheduling is possible but only one route actually works,
+and two obvious-looking ones do not.
 
-### Option A: a scheduled session (simplest)
+### What does not work
 
-In Claude Code on the web, ask for a Routine that runs `/scout:run` on the hour.
-Each run is a fresh session, which is exactly what Scout is built for.
+**A Routine created by asking Claude to make one.** A Routine created through the agent
+tooling cannot have a repository attached to it. Each firing gets an empty container, so
+Scout wakes with no repo, no way to read its own instructions, and no way to reach the
+code. It either stalls on a permission prompt nobody is there to answer, or runs, searches
+for a repo, finds none, and exits. Six of these fired overnight once and did nothing at
+all. The permissions file in this repo does not rescue it either: that file lives inside
+the repository the session has not cloned, so it cannot authorise the clone that would
+fetch it.
 
-### Option B: your own machine
+### What works
 
-```
-/loop 1h /scout:run
-```
+**A Routine created in the Routines UI on claude.ai**, with
+`beezhub/student-accommodation-system` attached as a source on `develop`. The container
+then arrives with the repo already on disk. This is the only scheduled route that works,
+and only you can create it, from the web UI. It bills against your Claude subscription.
 
-Runs while that Claude Code session is open. Good for a day of supervised running.
-Closing the session stops it.
+**GitHub Actions**, using `.github/workflows/scout.yml`. `actions/checkout` puts the repo
+in place natively. Two things to know: GitHub only honours a cron schedule from the
+**default branch**, so `scout.yml` has to be on `main`, not just `develop`; and it needs
+an `ANTHROPIC_API_KEY`, which is pay-per-token API billing on top of your plan rather
+than subscription usage.
 
-### Option C: GitHub Actions
+### Pick the cadence deliberately
 
-`.github/workflows/scout.yml` is in this repository and already set to run hourly,
-but it is switched off until you turn it on:
-
-1. Add a repository secret `ANTHROPIC_API_KEY`.
-2. Add a repository variable `SCOUT_ENABLED` set to `true`.
-
-Take the variable away and Scout stops, without deleting anything.
-You can also run it by hand from the Actions tab at any time.
+Hourly is almost certainly wrong. Scout takes one issue per run and stops at three open
+pull requests, so against a backlog of a dozen issues it reaches that ceiling in three
+runs and then pays, every hour, to work out that it should do nothing. One measured empty
+run cost about $0.29. Once each weekday morning keeps pace with a backlog this size at a
+fraction of the cost.
 
 ## 4. Turning Scout off
 

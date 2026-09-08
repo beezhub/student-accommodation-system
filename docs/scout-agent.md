@@ -70,12 +70,17 @@ are its only memory, so leave them be.
 
 ## Turning it on
 
-Full instructions in `.claude/scout/setup.md`. In short: create the five labels, then
-either ask for an hourly Routine in Claude Code on the web, or set the `ANTHROPIC_API_KEY`
-secret and the `SCOUT_ENABLED` repository variable to run the hourly GitHub Actions
-workflow at `.github/workflows/scout.yml`.
+Create the five labels, then run `/scout:run` when you want a pass. Running it by hand is
+the normal way to use it and needs no further setup.
 
-Watch two or three runs before you leave it alone.
+If you want it scheduled, read `.claude/scout/setup.md` first. Only one scheduled route
+works: a Routine created in the Routines UI on claude.ai with the repository attached as
+a source. Asking Claude to create a Routine for you does not work, because a Routine made
+that way gets no repository and Scout wakes up unable to find the code. GitHub Actions
+works too, but the workflow has to be on the default branch and it bills through an API
+key rather than your subscription.
+
+Whatever you choose, watch two or three runs before you leave it alone.
 
 ## The files behind it
 
