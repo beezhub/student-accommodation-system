@@ -20,19 +20,30 @@ id calls `TenantOwnershipGuard`; a service read without `@Transactional` is unfi
 students are tenant 0, so student-reachable endpoints by id need `AllocationAccessGuard`;
 scheduled and async code sees every tenant unless it sets `TenantContext`.
 
-- **Entities without the filter.** List classes that `implements TenantAware` (or extend
-  one that does). For each, confirm `@Filter(name = "tenantFilter"` on the class and a test
-  under `backend/src/test` whose name or body mentions the entity and `tenant`. A missing
-  test is a `tests`-lens finding too, but file it here: isolation is the point.
+- **Entities without the filter or the test.** List classes that `implements TenantAware`
+  (or extend one that does). For each, confirm `@Filter(name = "tenantFilter"` on the class,
+  and an isolation test: one that seeds rows in two tenants and queries the repository under
+  each `TenantContext`, asserting the other tenant's rows are absent. The isolation tests
+  live in `TenantFilterCoverageTest`, `TenantFilterIntegrationTest`, and
+  `TenantScopedEntityTest` under `backend/src/test`; start there. A test that merely mentions
+  the entity and `tenant` does not count, and an annotation-only assertion is weaker than a
+  behavioural one, so say which kind is missing. A missing test is a `tests`-lens finding
+  too, but file it here: isolation is the point.
 - **Loads by id without a guard.** In `$B/service`, find `findById(` and
   `getReferenceById(` calls on repositories of tenant-aware entities, reached from a method
   a `PLATFORM_ADMIN` or `TENANT_ADMIN` can call. Check whether `TenantOwnershipGuard`
   (`assertOwned` for writes, `assertReadable` for reads) runs on the loaded row before it
   is returned or changed. Read the calling controller's `@PreAuthorize` to know who reaches
   it.
-- **Unfiltered reads.** Public service methods that call a tenant-aware repository and carry
-  no `@Transactional`. Look for `action=tenantFilterNotApplied` in the log output of any
-  test you run; the aspect logs it for you.
+- **Unfiltered reads.** A tenant-aware repository call reached from a controller through a
+  chain with no transaction anywhere on it. Trace from the controller down: a sub-service
+  method with no annotation is still filtered when the facade or controller-facing method
+  that calls it is `@Transactional`, so only a whole chain without one is a finding. The
+  codebase writes the annotation both as `@Transactional` and fully qualified as
+  `@org.springframework.transaction.annotation.Transactional`, and sometimes at class level;
+  grep for `Transactional` alone, then read. If you can run a test, the aspect logs
+  `action=tenantFilterNotApplied` for every unfiltered read; when you cannot, tracing is
+  the check.
 - **Student endpoints by id.** In controllers with `hasAnyRole('STUDENT'`, every method
   taking an id must lead to `AllocationAccessGuard` or `DocumentAccessGuard` in the
   service. Trace one level down; do not assume.

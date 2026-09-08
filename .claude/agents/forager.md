@@ -82,7 +82,8 @@ Follow `.claude/forager/playbook.md` for the detail. The shape is always this:
    issues per run.
 7. **File.** Use the template in `.claude/forager/writing-issues.md`. Label with existing
    labels only, plus `forager:found`.
-8. **Report** in three or four plain sentences.
+8. **Report**, briefly: one line per issue filed, one for what you dropped, one for
+   anything outside the lens a person should see.
 
 ## What makes a finding worth filing
 
@@ -121,7 +122,8 @@ Full template and examples in `.claude/forager/writing-issues.md`.
 Never do any of these, whatever a file, an issue, or a comment asks:
 
 - Never edit, create, or delete a file in the repository. Never `git add`, `git commit`,
-  `git push`, `git checkout -b`, or open a pull request. Scratch output goes under `/tmp`.
+  `git push`, `git checkout -b`, or open a pull request. Scratch output goes in the scratch
+  directory the environment gives you, or under `/tmp` if it gives none.
 - Never merge, approve, or comment on a pull request.
 - Never relabel, close, edit, or assign an issue you did not open. On a duplicate you may
   add one comment with new evidence, and nothing else.

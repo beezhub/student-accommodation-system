@@ -18,7 +18,12 @@ git rev-parse --short HEAD                    # the commit every file reference 
 
 mcp__github__list_issues   labels: ["forager:found"]   state: OPEN
 mcp__github__list_pull_requests   state: OPEN
+mcp__github__list_issues   state: CLOSED   fields: [number, title, labels]   perPage: 100
 ```
+
+Page through the closed issues until `hasNextPage` is false and keep the titles in your
+scratch list; Step 5 matches against them. A page of exactly 100 is not the end unless the
+page info says so.
 
 Note the date. The day of the week picks the lens in Step 2, and dates on comments tell you
 whether a person has spoken since you last did.
@@ -107,9 +112,12 @@ Drop a candidate if any of these is true:
   think to search for.
 - An ADR in `docs/adr/` defers it. ADR-007 defers moving the JWT out of `localStorage`.
 - `frontend/docs/STYLING_AUDIT_REPORT.md` already catalogues it.
-- An open issue covers it. Search by the file name, the class name, and two or three words
-  from your one-sentence version. If the existing issue is missing the evidence you have,
-  add one comment with it, opening with the basket, and move on.
+- An open issue covers it. Match the class name, the file name, and the key noun of your
+  one-sentence version against the open and closed titles you listed in Step 0; that is
+  exact matching, and it is the check that counts. `mcp__github__search_issues` is semantic
+  matching and misses precise names, so use it only as a second net with a plain-language
+  description of the problem. If the existing issue is missing the evidence you have, add
+  one comment with it, opening with the basket, and move on.
 - A closed issue covers it and was closed as not planned. The team decided. Move on.
 - A closed issue covers it and was closed as completed, but the problem is back. File it,
   say it is a regression, and link the old issue.
@@ -160,7 +168,7 @@ no run and no person ever sees it half-labelled.
 
 ## Step 8 - Report
 
-Three or four sentences to the person running you:
+Keep it short, one line per point, to the person running you:
 
 - Which lens, and how many of your own open issues you checked and closed.
 - What you filed, one line each with the issue number.
