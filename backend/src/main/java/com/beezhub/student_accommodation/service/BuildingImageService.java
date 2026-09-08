@@ -4,6 +4,7 @@ import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.config.MinioConfig;
+import com.beezhub.student_accommodation.model.dto.BuildingImageContentResponse;
 import com.beezhub.student_accommodation.model.dto.BuildingImageResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.BuildingImage;
@@ -17,14 +18,14 @@ import io.minio.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -172,8 +173,39 @@ public class BuildingImageService {
     @Transactional(readOnly = true)
     public String getPrimaryImageUrl(Long buildingId) {
         return buildingImageRepository.findByBuilding_IdAndPrimaryTrue(buildingId)
-                .map(image -> getPresignedUrl(image.getObjectPath()))
+                .map(image -> buildContentPath(buildingId, image.getId()))
                 .orElse(null);
+    }
+
+    /**
+     * Streams a building image's bytes through the backend rather than handing the browser a
+     * presigned MinIO URL. A presigned URL is signed against {@code MINIO_ENDPOINT}, which is the
+     * compose-internal hostname in every deployed environment, and MinIO's API port is not
+     * published on top of that, so no presigned URL for this bucket can ever resolve from a
+     * browser outside a developer's own machine (GH-268).
+     */
+    @Transactional(readOnly = true)
+    public BuildingImageContentResponse getImageContent(Long buildingId, Long imageId) {
+        BuildingImage image = buildingImageRepository.findById(imageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Image not found with id: " + imageId));
+
+        if (!image.getBuilding().getId().equals(buildingId)) {
+            // 404 rather than a mismatch error, matching deleteImage/setPrimaryImage: from the
+            // caller's side that image does not exist under that building.
+            throw new ResourceNotFoundException(
+                    "Image " + imageId + " not found for building " + buildingId);
+        }
+
+        // The stored type, not a fresh read of object storage: uploadImages already ran the bytes
+        // through ImageUploadValidator and wrote the resolved type to this column (GH-219). The
+        // clamp still runs here so a row written before that fix cannot be served as anything but
+        // one of the four allowed image types.
+        String contentType = ImageContentTypes.clamp(image.getContentType());
+        InputStream stream = downloadFileFromMinio(image.getObjectPath());
+        return BuildingImageContentResponse.builder()
+                .resource(new InputStreamResource(stream))
+                .contentType(contentType)
+                .build();
     }
 
     /** Returns the content type read from the file's bytes, or throws if it is not a valid image. */
@@ -220,45 +252,26 @@ public class BuildingImageService {
         }
     }
 
-    private String getPresignedUrl(String objectPath) {
+    private InputStream downloadFileFromMinio(String objectPath) {
         String bucketName = minioConfig.getBucketName();
         try {
-            // A presigned URL is served straight by object storage, so the type it was stored with
-            // is the type the browser sees. Overriding it clamps objects written before this
-            // change, which carry whatever the uploader declared, without a re-upload (GH-219).
-            //
-            // inline, not attachment: these are gallery images meant to render in an <img>. The
-            // clamp is what makes that safe — the type can only ever be one of four image types,
-            // never text/html.
-            Map<String, String> responseOverrides = Map.of(
-                    "response-content-type", ImageContentTypes.clamp(storedContentType(objectPath)),
-                    "response-content-disposition", "inline");
-
-            return minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
+            return minioClient.getObject(
+                    GetObjectArgs.builder()
                             .bucket(bucketName)
                             .object(objectPath)
-                            .method(Http.Method.GET)
-                            .extraQueryParams(responseOverrides)
                             .build());
         } catch (Exception e) {
-            log.error("Error generating presigned URL for: {}", objectPath, e);
-            return null;
+            throw new FileStorageException("Error downloading image: " + objectPath, e);
         }
     }
 
-    /** The type object storage holds for the object, or null when it cannot be read. */
-    private String storedContentType(String objectPath) {
-        try {
-            return minioClient.statObject(
-                    StatObjectArgs.builder()
-                            .bucket(minioConfig.getBucketName())
-                            .object(objectPath)
-                            .build()).contentType();
-        } catch (Exception e) {
-            log.warn("Could not read stored content type for {}: {}", objectPath, e.getMessage());
-            return null;
-        }
+    /**
+     * The path the frontend should request the image from, relative to the API root (no
+     * {@code /api} prefix — {@code environment.apiUrl} in the frontend already supplies that, the
+     * same way it does for every other building endpoint).
+     */
+    private String buildContentPath(Long buildingId, Long imageId) {
+        return String.format("/building/%d/images/%d/content", buildingId, imageId);
     }
 
     private BuildingImageResponse toResponse(BuildingImage image) {
@@ -266,7 +279,7 @@ public class BuildingImageService {
         response.setId(image.getId());
         response.setBuildingId(image.getBuilding().getId());
         response.setFileName(image.getFileName());
-        response.setImageUrl(getPresignedUrl(image.getObjectPath()));
+        response.setImageUrl(buildContentPath(image.getBuilding().getId(), image.getId()));
         response.setIsPrimary(image.getPrimary());
         response.setDisplayOrder(image.getDisplayOrder());
         response.setCreatedAt(image.getCreatedAt());

@@ -1,12 +1,13 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.config.MinioConfig;
+import com.beezhub.student_accommodation.model.dto.BuildingImageContentResponse;
 import com.beezhub.student_accommodation.model.dto.BuildingImageResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.BuildingImage;
 import com.beezhub.student_accommodation.repository.BuildingImageRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
-import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
@@ -68,6 +69,7 @@ class BuildingImageServiceTest {
         image1.setId(101L);
         image1.setBuilding(building);
         image1.setObjectPath("path1");
+        image1.setContentType("image/jpeg");
         image1.setPrimary(true);
         image1.setDisplayOrder(0);
 
@@ -75,6 +77,7 @@ class BuildingImageServiceTest {
         image2.setId(102L);
         image2.setBuilding(building);
         image2.setObjectPath("path2");
+        image2.setContentType("image/png");
         image2.setPrimary(false);
         image2.setDisplayOrder(1);
 
@@ -102,10 +105,6 @@ class BuildingImageServiceTest {
         return bytes;
     }
 
-    private void mockPresignedUrl() throws Exception {
-        when(minioClient.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class))).thenReturn("http://presigned.url");
-    }
-
     @Test
     void uploadImages_ValidFile_ReturnsResponses() throws Exception {
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
@@ -116,12 +115,14 @@ class BuildingImageServiceTest {
             saved.setId(100L);
             return saved;
         });
-        mockPresignedUrl();
 
         List<BuildingImageResponse> responses = service.uploadImages(1L, List.of(validFile));
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).getIsPrimary()).isTrue();
+        // A path relative to the API root, not a presigned MinIO URL the browser can never reach
+        // in a deployed environment (GH-268).
+        assertThat(responses.get(0).getImageUrl()).isEqualTo("/building/1/images/100/content");
         verify(buildingImageRepository).save(any(BuildingImage.class));
     }
 
@@ -158,7 +159,6 @@ class BuildingImageServiceTest {
         // Declares image/png; the bytes are a JPEG. The stored type must be what the file is.
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
         when(buildingImageRepository.save(any(BuildingImage.class))).thenAnswer(i -> i.getArgument(0));
-        mockPresignedUrl();
         MockMultipartFile mislabelled =
                 new MockMultipartFile("file", "test.jpg", "image/png", jpegBytes());
 
@@ -200,30 +200,59 @@ class BuildingImageServiceTest {
     void uploadImages_pngIsAccepted() throws Exception {
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
         when(buildingImageRepository.save(any(BuildingImage.class))).thenAnswer(i -> i.getArgument(0));
-        mockPresignedUrl();
         MockMultipartFile png = new MockMultipartFile("file", "test.png", "image/png", pngBytes());
 
         assertThat(service.uploadImages(1L, List.of(png))).hasSize(1);
     }
 
+    // ── Streaming image content (GH-268) ────────────────────────────────────────────────────
+
     @Test
-    void presignedUrl_clampsTheTypeItIsServedAs() throws Exception {
-        // Objects written before this change carry whatever the uploader declared. The override
-        // means such a row cannot be served as text/html even so.
-        when(buildingImageRepository.findByBuilding_IdAndPrimaryTrue(1L)).thenReturn(Optional.of(image1));
-        when(minioClient.statObject(any(io.minio.StatObjectArgs.class)))
-                .thenThrow(new RuntimeException("legacy object, type unreadable"));
-        mockPresignedUrl();
+    void getImageContent_Exists_ReturnsResourceAndContentType() throws Exception {
+        when(buildingImageRepository.findById(101L)).thenReturn(Optional.of(image1));
+        when(minioClient.getObject(any(GetObjectArgs.class))).thenReturn(fakeObjectResponse());
 
-        service.getPrimaryImageUrl(1L);
+        BuildingImageContentResponse content = service.getImageContent(1L, 101L);
 
-        ArgumentCaptor<GetPresignedObjectUrlArgs> args =
-                ArgumentCaptor.forClass(GetPresignedObjectUrlArgs.class);
-        verify(minioClient).getPresignedObjectUrl(args.capture());
-        assertThat(args.getValue().extraQueryParams().getFirst("response-content-type"))
-                .isEqualTo("application/octet-stream");
-        assertThat(args.getValue().extraQueryParams().getFirst("response-content-disposition"))
-                .isEqualTo("inline");
+        assertThat(content.getContentType()).isEqualTo("image/jpeg");
+        assertThat(content.getResource()).isNotNull();
+        ArgumentCaptor<GetObjectArgs> args = ArgumentCaptor.forClass(GetObjectArgs.class);
+        verify(minioClient).getObject(args.capture());
+        assertThat(args.getValue().object()).isEqualTo("path1");
+    }
+
+    @Test
+    void getImageContent_clampsALegacyOrMissingContentType() throws Exception {
+        // Rows written before GH-219 may carry no content type, or one it never validated.
+        image1.setContentType(null);
+        when(buildingImageRepository.findById(101L)).thenReturn(Optional.of(image1));
+        when(minioClient.getObject(any(GetObjectArgs.class))).thenReturn(fakeObjectResponse());
+
+        BuildingImageContentResponse content = service.getImageContent(1L, 101L);
+
+        assertThat(content.getContentType()).isEqualTo("application/octet-stream");
+    }
+
+    /** A minimal {@code GetObjectResponse}; the constructor needs headers, but no test reads them. */
+    private static io.minio.GetObjectResponse fakeObjectResponse() {
+        return new io.minio.GetObjectResponse(
+                new okhttp3.Headers.Builder().build(),
+                "test-bucket", "us-east-1", "path1",
+                new ByteArrayInputStream("bytes".getBytes()));
+    }
+
+    @Test
+    void getImageContent_WrongBuilding_ThrowsException() {
+        when(buildingImageRepository.findById(101L)).thenReturn(Optional.of(image1));
+
+        assertThrows(RuntimeException.class, () -> service.getImageContent(2L, 101L));
+    }
+
+    @Test
+    void getImageContent_NotFound_ThrowsException() {
+        when(buildingImageRepository.findById(101L)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> service.getImageContent(1L, 101L));
     }
 
     @Test
@@ -244,11 +273,12 @@ class BuildingImageServiceTest {
     @Test
     void getImages_ReturnsResponses() throws Exception {
         when(buildingImageRepository.findByBuilding_IdOrderByDisplayOrderAsc(1L)).thenReturn(List.of(image1, image2));
-        mockPresignedUrl();
 
         List<BuildingImageResponse> responses = service.getImages(1L);
 
         assertThat(responses).hasSize(2);
+        assertThat(responses.get(0).getImageUrl()).isEqualTo("/building/1/images/101/content");
+        assertThat(responses.get(1).getImageUrl()).isEqualTo("/building/1/images/102/content");
     }
 
     @Test
@@ -304,7 +334,6 @@ class BuildingImageServiceTest {
         when(buildingImageRepository.findById(102L)).thenReturn(Optional.of(image2));
         when(buildingImageRepository.findByBuilding_IdAndPrimaryTrue(1L)).thenReturn(Optional.of(image1));
         when(buildingImageRepository.save(image2)).thenReturn(image2);
-        mockPresignedUrl();
 
         BuildingImageResponse response = service.setPrimaryImage(1L, 102L);
 
@@ -330,28 +359,17 @@ class BuildingImageServiceTest {
     }
 
     @Test
-    void getPrimaryImageUrl_Exists_ReturnsUrl() throws Exception {
+    void getPrimaryImageUrl_Exists_ReturnsUrl() {
         when(buildingImageRepository.findByBuilding_IdAndPrimaryTrue(1L)).thenReturn(Optional.of(image1));
-        mockPresignedUrl();
 
         String url = service.getPrimaryImageUrl(1L);
 
-        assertThat(url).isEqualTo("http://presigned.url");
+        assertThat(url).isEqualTo("/building/1/images/101/content");
     }
 
     @Test
     void getPrimaryImageUrl_NotExists_ReturnsNull() {
         when(buildingImageRepository.findByBuilding_IdAndPrimaryTrue(1L)).thenReturn(Optional.empty());
-
-        String url = service.getPrimaryImageUrl(1L);
-
-        assertThat(url).isNull();
-    }
-    
-    @Test
-    void getPrimaryImageUrl_MinioError_ReturnsNull() throws Exception {
-        when(buildingImageRepository.findByBuilding_IdAndPrimaryTrue(1L)).thenReturn(Optional.of(image1));
-        when(minioClient.getPresignedObjectUrl(any(GetPresignedObjectUrlArgs.class))).thenThrow(new RuntimeException("Minio Error"));
 
         String url = service.getPrimaryImageUrl(1L);
 
@@ -377,7 +395,6 @@ class BuildingImageServiceTest {
             saved.setId(200L);
             return saved;
         });
-        mockPresignedUrl();
 
         List<MultipartFile> files = List.of(validFile, validFile, validFile);
         List<BuildingImageResponse> responses = service.uploadImages(1L, files);
@@ -402,7 +419,6 @@ class BuildingImageServiceTest {
             saved.setId(201L);
             return saved;
         });
-        mockPresignedUrl();
 
         List<BuildingImageResponse> responses = service.uploadImages(1L, List.of(validFile));
 

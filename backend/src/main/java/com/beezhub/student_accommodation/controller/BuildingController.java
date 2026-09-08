@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.model.dto.BuildingImageContentResponse;
 import com.beezhub.student_accommodation.model.dto.BuildingImageResponse;
 import com.beezhub.student_accommodation.model.dto.BuildingRequest;
 import com.beezhub.student_accommodation.model.dto.BuildingResponse;
@@ -11,15 +12,19 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.List;
 
 @RestController
@@ -151,11 +156,29 @@ public class BuildingController {
     }
 
     @GetMapping("/{buildingId}/images")
-    @Operation(summary = "Get building images", description = "Returns all images for a building with presigned URLs")
+    @Operation(summary = "Get building images", description = "Returns all images for a building")
     public ResponseEntity<List<BuildingImageResponse>> getBuildingImages(@PathVariable Long buildingId) {
         log.info("Fetching images for building {}", buildingId);
         List<BuildingImageResponse> images = buildingImageService.getImages(buildingId);
         return ResponseEntity.ok(images);
+    }
+
+    @GetMapping("/{buildingId}/images/{imageId}/content")
+    @Operation(summary = "Get building image content",
+            description = "Streams the image bytes through the backend. Public, like the rest of building browsing: "
+                    + "MinIO itself is never reachable from a browser.")
+    public ResponseEntity<Resource> getBuildingImageContent(
+            @PathVariable Long buildingId,
+            @PathVariable Long imageId) {
+        BuildingImageContentResponse content = buildingImageService.getImageContent(buildingId, imageId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(content.getContentType()))
+                // Building photos change rarely and only through an admin action that mints a new
+                // imageId, so a day-long cache is safe and saves re-streaming the same bytes on
+                // every browse-grid render.
+                .cacheControl(CacheControl.maxAge(Duration.ofDays(1)).cachePublic())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(content.getResource());
     }
 
     @DeleteMapping("/{buildingId}/images/{imageId}")
