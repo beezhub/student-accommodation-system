@@ -14,11 +14,19 @@ You remember nothing from last time. Rebuild the picture from GitHub:
 # what am I already involved in?
 mcp__github__list_issues        labels: ["scout:needs-input"]   state: OPEN
 mcp__github__list_issues        labels: ["scout:working"]       state: OPEN
+mcp__github__list_issues        labels: ["scout:in-review"]     state: OPEN
 mcp__github__list_pull_requests state: OPEN
 ```
 
 Note the current date and time. You will need it to judge whether a human has replied
 since your last question.
+
+For each issue labelled `scout:in-review`, check whether the pull request that closes it
+has already merged into `develop`. This repository's default branch is `main`, so a
+`Closes #<number>` line in a pull request body does not auto-close anything when the
+pull request merges into `develop` instead; the issue is left open and mislabelled even
+though the work is done. If the merge already happened, close the issue with a short
+comment saying so and drop the label, before doing anything else.
 
 ---
 
@@ -228,10 +236,21 @@ Base `develop`. Title in the same style as the commit subject. Body:
 Closes #<number>
 ```
 
-`Closes #<number>` in the pull request body, not `Refs:`. `Closes` shuts the issue when
-the pull request merges; `Refs:` leaves it open and still labelled, so the next run sees
-work that is already done and counts it against your open pull request limit. `Refs:`
-belongs in a commit message, not here.
+`Closes #<number>` in the pull request body, not `Refs:`. `Refs:` belongs in a commit
+message, not here.
+
+Use `Closes` even though it will not auto-close anything here: this repository's default
+branch is `main`, and GitHub only acts on a `Closes` line when the pull request merges
+into the default branch. Every Scout branch merges into `develop`, so the issue stays
+open and `scout:in-review` stays on it no matter what the pull request body says. `Closes`
+is still worth writing, since it links the two and is what a human reviewer expects to
+see, but it will not do the closing for you.
+
+So at the start of every run, before anything else, check issues labelled
+`scout:in-review`: if the pull request that closes one has already merged into `develop`,
+close the issue yourself with a short comment saying so, and drop the label. Otherwise
+that issue sits there forever looking unfinished, and a future run wastes time on work
+that is already done.
 
 Then comment on the issue with a one-line link to the PR, and swap `scout:working`
 for `scout:in-review`.
