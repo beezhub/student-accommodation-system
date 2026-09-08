@@ -96,12 +96,3 @@ Watch two or three runs before you leave it alone.
 
 If you want Scout to behave differently, edit the playbook. If you want it to talk
 differently, edit the asking-for-help file. Those two do most of the work.
-
-## The other agent
-
-Scout is deliberately stopped by width: past about five files it hands the work back. When
-the reason is only width, and the change is the same one repeated at every site, the work
-belongs to Forager instead. See `docs/forager-agent.md`.
-
-The two never share an issue. Scout skips anything carrying a `forager:` label, Forager
-skips anything carrying a `scout:` label, and neither removes the other's.
