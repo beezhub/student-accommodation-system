@@ -77,24 +77,51 @@
 }
 
 // Responsiveness
-@mixin responsive($breakpoint) {
-  @if $breakpoint == tablet {
-    @media (max-width: vars.$breakpoint-desktop) {
-      @content;
-    }
+// $direction: max (default) narrows down from a desktop baseline, the way most of this
+// codebase is written today. $direction: min widens up from a mobile baseline for
+// components written mobile-first. A min boundary is set one pixel above the max
+// breakpoint it replaces, so the two never overlap or leave a gap at the exact
+// breakpoint width itself.
+@mixin responsive($breakpoint, $direction: max) {
+  @if $direction == max {
+    @if $breakpoint == tablet {
+      @media (max-width: vars.$breakpoint-desktop) {
+        @content;
+      }
 
-    // < 1024px
-  } @else if $breakpoint == mobile {
-    @media (max-width: vars.$breakpoint-tablet) {
-      @content;
-    }
+      // < 1024px
+    } @else if $breakpoint == mobile {
+      @media (max-width: vars.$breakpoint-tablet) {
+        @content;
+      }
 
-    // < 768px
-  } @else if $breakpoint == small-mobile {
-    @media (max-width: vars.$breakpoint-mobile) {
-      @content;
-    }
+      // < 768px
+    } @else if $breakpoint == small-mobile {
+      @media (max-width: vars.$breakpoint-mobile) {
+        @content;
+      }
 
-    // < 480px
+      // < 480px
+    }
+  } @else if $direction == min {
+    @if $breakpoint == tablet {
+      @media (min-width: vars.$breakpoint-desktop + 1) {
+        @content;
+      }
+
+      // >= 1025px
+    } @else if $breakpoint == mobile {
+      @media (min-width: vars.$breakpoint-tablet + 1) {
+        @content;
+      }
+
+      // >= 769px
+    } @else if $breakpoint == small-mobile {
+      @media (min-width: vars.$breakpoint-mobile + 1) {
+        @content;
+      }
+
+      // >= 481px
+    }
   }
 }

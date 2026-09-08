@@ -46,6 +46,11 @@ interface ProcessStep {
   styles: [
     `
       @use '../../../../styles/variables' as vars;
+      @use '../../../../styles/mixins' as mixins;
+
+      // Written mobile-first: base declarations are the narrowest layout, then
+      // @include mixins.responsive(mobile, min) widens the layout for tablet and up
+      // (>= 769px, one pixel above the $breakpoint-tablet cutoff this used to key off).
 
       // ── HOST ──────────────────────────────────────────────────────────────────
       :host {
@@ -56,30 +61,30 @@ interface ProcessStep {
       // ── SECTION ───────────────────────────────────────────────────────────────
       .how-it-works {
         background: vars.$slate-50;
-        padding: 0 vars.$space-10;
+        padding: 0 vars.$space-5;
 
-        @media (max-width: vars.$breakpoint-tablet) {
-          padding: 0 vars.$space-5;
+        @include mixins.responsive(mobile, min) {
+          padding: 0 vars.$space-10;
         }
       }
 
       .how-it-works__inner {
         max-width: 1200px;
         margin: 0 auto;
-        padding: vars.$space-12 * 1.5 0 vars.$space-12;
+        padding: vars.$space-12 0 vars.$space-10;
 
-        @media (max-width: vars.$breakpoint-tablet) {
-          padding: vars.$space-12 0 vars.$space-10;
+        @include mixins.responsive(mobile, min) {
+          padding: vars.$space-12 * 1.5 0 vars.$space-12;
         }
       }
 
       // ── HEADER ────────────────────────────────────────────────────────────────
       .how-it-works__header {
         text-align: center;
-        margin-bottom: vars.$space-12;
+        margin-bottom: vars.$space-10;
 
-        @media (max-width: vars.$breakpoint-tablet) {
-          margin-bottom: vars.$space-10;
+        @include mixins.responsive(mobile, min) {
+          margin-bottom: vars.$space-12;
         }
       }
 
@@ -105,12 +110,12 @@ interface ProcessStep {
       // ── STEP GRID ─────────────────────────────────────────────────────────────
       .how-it-works__grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: vars.$space-6;
+        grid-template-columns: 1fr;
+        gap: vars.$space-5;
 
-        @media (max-width: vars.$breakpoint-tablet) {
-          grid-template-columns: 1fr;
-          gap: vars.$space-5;
+        @include mixins.responsive(mobile, min) {
+          grid-template-columns: repeat(2, 1fr);
+          gap: vars.$space-6;
         }
       }
 
@@ -120,7 +125,7 @@ interface ProcessStep {
         background: white;
         border: 1px solid vars.$slate-200;
         border-radius: vars.$radius-md;
-        padding: vars.$space-8 vars.$space-6;
+        padding: vars.$space-6 vars.$space-5;
         box-shadow: vars.$shadow-subtle;
         transition: box-shadow vars.$motion-fast ease, border-color vars.$motion-fast ease;
 
@@ -129,8 +134,8 @@ interface ProcessStep {
           border-color: vars.$slate-300;
         }
 
-        @media (max-width: vars.$breakpoint-tablet) {
-          padding: vars.$space-6 vars.$space-5;
+        @include mixins.responsive(mobile, min) {
+          padding: vars.$space-8 vars.$space-6;
         }
       }
 
@@ -183,19 +188,21 @@ interface ProcessStep {
       // ── DATA ASSURANCE BAR ────────────────────────────────────────────────────
       .data-assurance {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: vars.$space-3;
+        text-align: center;
+        gap: vars.$space-2;
         margin-top: vars.$space-10;
-        padding: vars.$space-5 vars.$space-6;
+        padding: vars.$space-5;
         background: vars.$slate-100;
         border: 1px solid vars.$slate-200;
         border-radius: vars.$radius-sm;
 
-        @media (max-width: vars.$breakpoint-tablet) {
-          flex-direction: column;
-          text-align: center;
-          padding: vars.$space-5;
-          gap: vars.$space-2;
+        @include mixins.responsive(mobile, min) {
+          flex-direction: row;
+          text-align: left;
+          gap: vars.$space-3;
+          padding: vars.$space-5 vars.$space-6;
         }
       }
 
