@@ -141,9 +141,12 @@ app:
     rate-limit:
       requests-per-minute: ${AUTH_RATE_LIMIT_PER_MINUTE:30}
   admin-bootstrap:
-    # Creates or resets the first PLATFORM_ADMIN at startup; leave blank once the admin has signed in.
+    # Creates the first PLATFORM_ADMIN at startup. Idempotent: once that account has changed its
+    # password, a later startup with these still set leaves it alone. Set force=true to reset a
+    # lost password on purpose.
     email: ${ADMIN_BOOTSTRAP_EMAIL:}
     password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+    force: ${ADMIN_BOOTSTRAP_FORCE:false}
   geocoding:
     google:
       # Blank disables address lookup entirely: no requests are made, /api/geocoding/search returns
