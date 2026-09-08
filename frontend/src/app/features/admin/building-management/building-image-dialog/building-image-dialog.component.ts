@@ -1,5 +1,10 @@
-import { Component, Inject, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { Component, OnInit, inject } from '@angular/core';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -11,6 +16,7 @@ import {
   BuildingImageResponse,
   BuildingResponse,
 } from '../../../../core/services/building.service';
+import { confirmAction } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-building-image-dialog',
@@ -28,17 +34,28 @@ import {
   ],
 })
 export class BuildingImageDialogComponent implements OnInit {
+  private buildingService = inject(BuildingService);
+  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+  dialogRef = inject<MatDialogRef<BuildingImageDialogComponent>>(MatDialogRef);
+  data = inject<{
+    building: BuildingResponse;
+  }>(MAT_DIALOG_DATA);
+
+  static readonly MAX_IMAGES = 10;
+
   images: BuildingImageResponse[] = [];
   isLoading = false;
   isUploading = false;
   selectedFiles: File[] = [];
 
-  constructor(
-    private buildingService: BuildingService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<BuildingImageDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { building: BuildingResponse }
-  ) {}
+  get imageCount(): number {
+    return this.images.length;
+  }
+
+  get atImageCap(): boolean {
+    return this.images.length >= BuildingImageDialogComponent.MAX_IMAGES;
+  }
 
   ngOnInit(): void {
     this.loadImages();
@@ -73,11 +90,9 @@ export class BuildingImageDialogComponent implements OnInit {
     this.isUploading = true;
     this.buildingService.uploadBuildingImages(this.data.building.id, this.selectedFiles).subscribe({
       next: (newImages) => {
-        this.snackBar.open(
-          `${newImages.length} image(s) uploaded successfully`,
-          'Close',
-          { duration: 3000 }
-        );
+        this.snackBar.open(`${newImages.length} image(s) uploaded successfully`, 'Close', {
+          duration: 3000,
+        });
         this.selectedFiles = [];
         this.loadImages();
         this.isUploading = false;
@@ -108,17 +123,23 @@ export class BuildingImageDialogComponent implements OnInit {
   }
 
   deleteImage(image: BuildingImageResponse): void {
-    if (!confirm('Are you sure you want to delete this image?')) return;
-
-    this.buildingService.deleteBuildingImage(this.data.building.id, image.id).subscribe({
-      next: () => {
-        this.snackBar.open('Image deleted successfully', 'Close', { duration: 2000 });
-        this.loadImages();
-      },
-      error: (error) => {
-        console.error('Error deleting image:', error);
-        this.snackBar.open('Failed to delete image', 'Close', { duration: 3000 });
-      },
+    confirmAction(this.dialog, {
+      title: 'Delete this image?',
+      message: 'It is removed from the building permanently.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.buildingService.deleteBuildingImage(this.data.building.id, image.id).subscribe({
+        next: () => {
+          this.snackBar.open('Image deleted successfully', 'Close', { duration: 2000 });
+          this.loadImages();
+        },
+        error: (error) => {
+          console.error('Error deleting image:', error);
+          this.snackBar.open('Failed to delete image', 'Close', { duration: 3000 });
+        },
+      });
     });
   }
 

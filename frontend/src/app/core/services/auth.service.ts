@@ -10,10 +10,27 @@ import { Router } from '@angular/router';
 import { NotificationService } from './notification.service';
 import { TokenStorageService } from './token-storage.service';
 
+/** What the login form sends. Was `any`, so a typo in a field name compiled (GH-158). */
+export interface LoginData {
+  email: string;
+  password: string;
+}
+
+/** The `{ message }` body the backend returns from commands that have nothing else to say. */
+export interface MessageResponse {
+  message: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
+  private http = inject(HttpClient);
+  private institutionService = inject(InstitutionService);
+  private yearOfStudyService = inject(YearOfStudyService);
+  private router = inject(Router);
+  private notificationService = inject(NotificationService);
+
   private tokenStorage = inject(TokenStorageService);
 
   isLoggedIn(): boolean {
@@ -23,26 +40,34 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser = this.currentUserSubject.asObservable();
 
-  constructor(
-    private http: HttpClient,
-    private institutionService: InstitutionService,
-    private yearOfStudyService: YearOfStudyService,
-    private router: Router,
-    private notificationService: NotificationService
-  ) {
+  constructor() {
     // Initialize from localStorage on app start
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
-      try {
-        this.currentUserSubject.next(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem('currentUser');
+      if (!this.tokenStorage.isTokenValid()) {
+        // The stored user used to be emitted whatever the token said, so an expired session
+        // still rendered the signed-in toolbar until the guard redirect resolved, and the name,
+        // email and role stayed in localStorage indefinitely (GH-151).
+        this.clearLocalSession();
+      } else {
+        try {
+          this.currentUserSubject.next(JSON.parse(storedUser));
+          // Re-initialize notification stream on page refresh if user is already logged in
+          this.notificationService.initializeNotifications();
+        } catch {
+          this.clearLocalSession();
+        }
       }
     }
 
     window.addEventListener('storage', (event) => {
       if (event.key === 'currentUser') {
-        const updatedUser = event.newValue ? JSON.parse(event.newValue) : null;
+        let updatedUser = null;
+        try {
+          updatedUser = event.newValue ? JSON.parse(event.newValue) : null;
+        } catch {
+          // Ignore malformed JSON from other tabs
+        }
         this.currentUserSubject.next(updatedUser);
       }
     });
@@ -55,6 +80,10 @@ export class AuthService {
   signup(data: SignupData): Observable<User> {
     return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/signup`, data).pipe(
       map((response) => {
+        const tenantId = this.extractTenantIdFromToken(response.token);
+        if (tenantId !== undefined) {
+          response.user.tenantId = tenantId;
+        }
         this.tokenStorage.setToken(response.token);
         localStorage.setItem('currentUser', JSON.stringify(response.user));
         this.currentUserSubject.next(response.user);
@@ -67,29 +96,53 @@ export class AuthService {
     );
   }
 
-  uploadDocuments(files: FormData): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/documents/upload-multiple`, files);
+  uploadDocuments(files: FormData): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(
+      `${environment.apiUrl}/documents/upload-multiple`,
+      files
+    );
   }
-
-  submitApplication(applicationData: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/submit-application`, applicationData);
+  submitApplication(applicationData: unknown): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/submit-application`, applicationData);
   }
 
   logout(): void {
     // Stop notifications before logout
     this.notificationService.stopNotifications();
 
+    // Tell the backend to blacklist this token, otherwise a stolen copy stays valid for the
+    // rest of its lifetime. Local state is cleared either way, so a failed call cannot strand
+    // the user in a half-logged-out state.
+    const hadToken = !!this.tokenStorage.getToken();
+    if (hadToken) {
+      this.http
+        .post(`${this.apiUrl}/logout`, {}, { headers: { 'X-Silent-Error': 'true' } })
+        .subscribe({
+          error: (err) =>
+            console.error('Logout request failed; clearing local session anyway', err),
+        });
+    }
+
+    this.clearLocalSession();
+    this.router.navigate(['/home']);
+  }
+
+  /** Drops every trace of the session held in the browser. */
+  private clearLocalSession(): void {
     localStorage.removeItem('currentUser');
     this.tokenStorage.removeToken();
     this.currentUserSubject.next(null);
     this.institutionService.clearCache();
     this.yearOfStudyService.clearCache();
-    this.router.navigate(['/home']);
   }
   // Login a user
-  login(data: any): Observable<User> {
+  login(data: LoginData): Observable<User> {
     return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/login`, data).pipe(
       map((response) => {
+        const tenantId = this.extractTenantIdFromToken(response.token);
+        if (tenantId !== undefined) {
+          response.user.tenantId = tenantId;
+        }
         this.tokenStorage.setToken(response.token);
         localStorage.setItem('currentUser', JSON.stringify(response.user));
         this.currentUserSubject.next(response.user);
@@ -102,13 +155,23 @@ export class AuthService {
     );
   }
 
+  private extractTenantIdFromToken(token: string): number | undefined {
+    try {
+      const payload = token.split('.')[1];
+      const decoded = JSON.parse(atob(payload));
+      return decoded.tenantId;
+    } catch {
+      return undefined;
+    }
+  }
+
   isTokenExpired(): boolean {
     return !this.tokenStorage.isTokenValid();
   }
 
-  changePassword(currentPassword: string, newPassword: string): Observable<any> {
+  changePassword(currentPassword: string, newPassword: string): Observable<MessageResponse> {
     return this.http
-      .post(`${this.apiUrl}/change-password`, {
+      .post<MessageResponse>(`${this.apiUrl}/change-password`, {
         currentPassword,
         newPassword,
       })
@@ -117,17 +180,17 @@ export class AuthService {
           // Update the user in localStorage to clear mustChangePassword flag
           const currentUser = this.currentUserValue;
           if (currentUser) {
-            currentUser.mustChangePassword = false;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            this.currentUserSubject.next(currentUser);
+            const updated = { ...currentUser, mustChangePassword: false };
+            localStorage.setItem('currentUser', JSON.stringify(updated));
+            this.currentUserSubject.next(updated);
           }
           return response;
         })
       );
   }
 
-  deleteAccount(password: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/delete-account`, { password });
+  deleteAccount(password: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/delete-account`, { password });
   }
 
   resendVerificationEmail(email: string): Observable<{ message: string }> {
@@ -146,9 +209,9 @@ export class AuthService {
   updateEmailVerificationStatus(verified: boolean): void {
     const currentUser = this.currentUserValue;
     if (currentUser) {
-      currentUser.emailVerified = verified;
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      this.currentUserSubject.next(currentUser);
+      const updated = { ...currentUser, emailVerified: verified };
+      localStorage.setItem('currentUser', JSON.stringify(updated));
+      this.currentUserSubject.next(updated);
     }
   }
 
@@ -158,10 +221,16 @@ export class AuthService {
   }
 
   verifyResetToken(token: string): Observable<{ valid: boolean; message: string }> {
-    return this.http.post<{ valid: boolean; message: string }>(`${this.apiUrl}/verify-reset-token`, { token });
+    return this.http.post<{ valid: boolean; message: string }>(
+      `${this.apiUrl}/verify-reset-token`,
+      { token }
+    );
   }
 
   resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/reset-password`, { token, newPassword });
+    return this.http.post<{ message: string }>(`${this.apiUrl}/reset-password`, {
+      token,
+      newPassword,
+    });
   }
 }

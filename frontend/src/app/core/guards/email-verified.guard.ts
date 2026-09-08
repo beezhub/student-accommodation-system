@@ -1,32 +1,26 @@
-import { Injectable } from '@angular/core';
-import { Router } from '@angular/router';
+import { Injectable, inject } from '@angular/core';
+import { ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class EmailVerifiedGuard {
-  constructor(private router: Router) {}
+  private router = inject(Router);
+  private authService = inject(AuthService);
 
-  canActivate(): boolean {
-    const currentUser = localStorage.getItem('currentUser');
+  canActivate(_route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
+    const user = this.authService.currentUserValue;
 
-    if (!currentUser) {
-      this.router.navigate(['/login']);
+    if (!user) {
+      this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
       return false;
     }
 
-    try {
-      const user = JSON.parse(currentUser);
-
-      if (user.emailVerified === true) {
-        return true;
-      } else {
-        // Redirect to email verification required page
-        this.router.navigate(['/email-verification-required']);
-        return false;
-      }
-    } catch {
-      this.router.navigate(['/login']);
+    if (user.emailVerified === true) {
+      return true;
+    } else {
+      this.router.navigate(['/email-verification-required']);
       return false;
     }
   }

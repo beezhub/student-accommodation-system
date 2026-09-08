@@ -17,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -87,8 +90,17 @@ public class DocumentController {
             Authentication authentication
     ) {
         var documentDownloadResponse = documentService.downloadDocument(documentId, authentication.getName());
+        // Built rather than concatenated. The filename is the client-supplied original, so a
+        // quote in it used to terminate the quoted string early, and non-Latin-1 characters were
+        // mangled by the header writer (GH-144).
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(documentDownloadResponse.getFilename(), StandardCharsets.UTF_8)
+                .build();
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=\"" + documentDownloadResponse.getFilename() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                // Belt and braces with the clamp in DocumentQueryService: even if a stored type
+                // were wrong, the browser must not re-interpret the bytes as something else.
+                .header("X-Content-Type-Options", "nosniff")
                 .contentType(MediaType.parseMediaType(documentDownloadResponse.getContentType()))
                 .body(documentDownloadResponse.getResource());
     }
@@ -148,7 +160,7 @@ public class DocumentController {
 
     @Operation(summary = "Update document status (admin)", description = "Admin-only endpoint to update document verification status. Optionally include a rejection comment when setting status to REJECTED.")
     @ApiResponse(responseCode = "200", description = "Status updated")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @PutMapping("/update-status/{documentId}")
     public ResponseEntity<DocumentResponse> updateDocumentStatus(
             @PathVariable Long documentId,
@@ -176,7 +188,7 @@ public class DocumentController {
             description = "Admin endpoint to search all documents with filters: name, studentName, studentId, documentTypeId, status, date range"
     )
     @ApiResponse(responseCode = "200", description = "Search results returned")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @GetMapping("/search")
     public ResponseEntity<PageResponse<DocumentResponse>> searchDocuments(
             @RequestParam(required = false) String documentName,
@@ -221,7 +233,7 @@ public class DocumentController {
     @ApiResponse(responseCode = "200", description = "Comment added successfully")
     @ApiResponse(responseCode = "403", description = "User lacks permission")
     @ApiResponse(responseCode = "404", description = "Document not found")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @PostMapping("/{documentId}/comments")
     public ResponseEntity<DocumentCommentResponse> addComment(
             @PathVariable Long documentId,
@@ -248,7 +260,7 @@ public class DocumentController {
     @ApiResponse(responseCode = "204", description = "Comment deleted successfully")
     @ApiResponse(responseCode = "403", description = "User lacks permission")
     @ApiResponse(responseCode = "404", description = "Comment not found")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @DeleteMapping("/comments/{commentId}")
     public ResponseEntity<Void> deleteComment(
             @PathVariable Long commentId,

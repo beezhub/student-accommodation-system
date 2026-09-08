@@ -1,6 +1,8 @@
 package com.beezhub.student_accommodation.service.notification;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.model.dto.UserNotificationResponse;
+import com.beezhub.student_accommodation.repository.AppUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,7 +17,15 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class SseService {
 
+    private final AppUserRepository appUserRepository;
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
+
+    public SseEmitter subscribeByEmail(String email) {
+        Long userId = appUserRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"))
+                .getId();
+        return subscribe(userId);
+    }
 
     public SseEmitter subscribe(Long userId) {
         // Set timeout to 30 minutes

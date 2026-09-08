@@ -1,25 +1,77 @@
-<div class="verify-email-container">
-  <mat-card class="verify-email-card">
-    <mat-card-header>
-      <mat-card-title>Email Verification</mat-card-title>
-    </mat-card-header>
+<div class="verify-email-page">
 
-    <mat-card-content>
+  <!-- ── Brand panel (left) ─────────────────────────────────────────────── -->
+  <aside class="brand-panel">
+    <div class="brand-inner">
+
+      <div class="brand-logo">
+        <mat-icon class="logo-icon">home_work</mat-icon>
+        <span class="logo-text">BeeZhub</span>
+      </div>
+
+      <div class="brand-copy">
+        <!-- Verifying state -->
+        @if (isVerifying) {
+          <div class="brand-icon-wrap">
+            <mat-icon class="brand-icon">mark_email_unread</mat-icon>
+          </div>
+          <h1 class="brand-headline">Checking your link…</h1>
+          <p class="brand-subline">Hold on while we verify your email address.</p>
+        }
+
+        <!-- Success state -->
+        @if (!isVerifying && verificationSuccess) {
+          <div class="brand-icon-wrap">
+            <mat-icon class="brand-icon">verified</mat-icon>
+          </div>
+          <h1 class="brand-headline">You're verified!</h1>
+          <p class="brand-subline">Your email address has been confirmed. You can now access your dashboard.</p>
+        }
+
+        <!-- Error state -->
+        @if (!isVerifying && !verificationSuccess) {
+          <div class="brand-icon-wrap">
+            <mat-icon class="brand-icon">link_off</mat-icon>
+          </div>
+          <h1 class="brand-headline">Link expired or invalid</h1>
+          <p class="brand-subline">Verification links are single-use and expire after a short time. Request a new one to continue.</p>
+        }
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ── Content panel (right) ─────────────────────────────────────────── -->
+  <main class="content-panel">
+    <div class="content-inner">
+
       <!-- Verifying state -->
       @if (isVerifying) {
-        <div class="verifying-state">
-          <mat-spinner diameter="48"></mat-spinner>
-          <p>Verifying your email address...</p>
+        <div class="state-block">
+          <div class="spinner-wrap">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+          <div class="content-header">
+            <span class="content-eyebrow">Please wait</span>
+            <h2 class="content-title">Verifying your email</h2>
+            <p class="content-subtitle">We're confirming your email address. This only takes a moment.</p>
+          </div>
         </div>
       }
 
       <!-- Success state -->
       @if (!isVerifying && verificationSuccess) {
-        <div class="success-state">
-          <mat-icon class="status-icon success">check_circle</mat-icon>
-          <h2>Email Verified!</h2>
-          <p>Your email address has been successfully verified. You can now submit applications.</p>
-          <button mat-raised-button color="primary" (click)="goToDashboard()">
+        <div class="state-block">
+          <div class="status-ring success-ring">
+            <mat-icon class="status-ring-icon">check</mat-icon>
+          </div>
+          <div class="content-header">
+            <span class="content-eyebrow">All done</span>
+            <h2 class="content-title">Email verified</h2>
+            <p class="content-subtitle">Your account is now active. Head to your dashboard to complete your application.</p>
+          </div>
+          <button mat-flat-button class="primary-btn" (click)="goToDashboard()">
+            <mat-icon>grid_view</mat-icon>
             Go to Dashboard
           </button>
         </div>
@@ -27,20 +79,28 @@
 
       <!-- Error state -->
       @if (!isVerifying && !verificationSuccess) {
-        <div class="error-state">
-          <mat-icon class="status-icon error">error</mat-icon>
-          <h2>Verification Failed</h2>
-          <p>{{ errorMessage }}</p>
-          <div class="action-buttons">
-            <button mat-raised-button color="primary" (click)="resendVerification()">
+        <div class="state-block">
+          <div class="status-ring error-ring">
+            <mat-icon class="status-ring-icon">close</mat-icon>
+          </div>
+          <div class="content-header">
+            <span class="content-eyebrow">Verification failed</span>
+            <h2 class="content-title">Couldn't verify your email</h2>
+            <p class="content-subtitle">{{ errorMessage }}</p>
+          </div>
+          <div class="button-stack">
+            <button mat-flat-button class="primary-btn" (click)="resendVerification()">
+              <mat-icon>send</mat-icon>
               Resend Verification Email
             </button>
-            <button mat-stroked-button (click)="goToLogin()">
-              Go to Login
+            <button mat-stroked-button class="secondary-btn" (click)="goToLogin()">
+              Back to Login
             </button>
           </div>
         </div>
       }
-    </mat-card-content>
-  </mat-card>
+
+    </div>
+  </main>
+
 </div>

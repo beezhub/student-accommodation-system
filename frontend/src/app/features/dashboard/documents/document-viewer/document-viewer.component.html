@@ -19,28 +19,28 @@
               <mat-icon>description</mat-icon>
               <span class="info-label">Document Name</span>
             </div>
-            <p class="info-value">{{document.name}}</p>
+            <p class="info-value">{{ document?.name }}</p>
           </div>
           <div class="info-item">
             <div class="info-label-row">
               <mat-icon>flag</mat-icon>
               <span class="info-label">Status</span>
             </div>
-            <app-modern-status-badge [status]="document.status" size="sm"></app-modern-status-badge>
+            <app-modern-status-badge [status]="document?.status ?? ''" size="sm"></app-modern-status-badge>
           </div>
           <div class="info-item">
             <div class="info-label-row">
               <mat-icon>calendar_today</mat-icon>
               <span class="info-label">Upload Date</span>
             </div>
-            <p class="info-value">{{document.uploadDate | date}}</p>
+            <p class="info-value">{{ document?.uploadDate | date }}</p>
           </div>
           <div class="info-item">
             <div class="info-label-row">
               <mat-icon>data_usage</mat-icon>
               <span class="info-label">File Size</span>
             </div>
-            <p class="info-value">{{document.size || 'Unknown'}}</p>
+            <p class="info-value">{{ document?.size || 'Unknown' }}</p>
           </div>
         </div>
       </div>
@@ -96,7 +96,7 @@
 
     <div class="dialog-footer">
       <button mat-stroked-button (click)="onClose()">Close</button>
-      <button mat-raised-button color="primary" (click)="downloadDocument()">
+      <button mat-flat-button class="download-btn" (click)="downloadDocument()">
         <mat-icon>download</mat-icon>
         Download
       </button>

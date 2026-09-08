@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -13,12 +13,19 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
 import { WaitingListEntry } from '../../../core/models/allocation.models';
 import { AdminService } from '../../../core/services/admin.service';
 import { Router } from '@angular/router';
+import {
+  AllocationChoiceDialogComponent,
+  AllocationChoiceDialogData,
+} from '../application-review/allocation-choice-dialog/allocation-choice-dialog.component';
 
 @Component({
   selector: 'app-waiting-list-dashboard',
@@ -37,36 +44,47 @@ import { Router } from '@angular/router';
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatDialogModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
   templateUrl: './waiting-list-dashboard.component.html',
-  styleUrls: ['./waiting-list-dashboard.component.scss']
+  styleUrls: ['./waiting-list-dashboard.component.scss'],
 })
-export class WaitingListDashboardComponent implements OnInit {
+export class WaitingListDashboardComponent implements OnInit, AfterViewInit {
+  private fb = inject(FormBuilder);
+  private stagedAllocationService = inject(StagedAllocationService);
+  private buildingService = inject(BuildingService);
+  private adminService = inject(AdminService);
+  private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
+
   filterForm: FormGroup;
   buildings: BuildingResponse[] = [];
-  
-  displayedColumns: string[] = ['position', 'studentName', 'priorityScore', 'preferredBuilding', 'applicationDate', 'actions'];
+
+  displayedColumns: string[] = [
+    'position',
+    'studentName',
+    'priorityScore',
+    'preferredBuilding',
+    'applicationDate',
+    'actions',
+  ];
   dataSource: MatTableDataSource<WaitingListEntry>;
-  
+
   isLoading = false;
   isRescoring = false;
 
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  constructor(
-    private fb: FormBuilder,
-    private stagedAllocationService: StagedAllocationService,
-    private buildingService: BuildingService,
-    private adminService: AdminService, // For future detail view
-    private snackBar: MatSnackBar,
-    private router: Router
-  ) {
+  constructor() {
     this.dataSource = new MatTableDataSource<WaitingListEntry>([]);
-    
+
     this.filterForm = this.fb.group({
-      buildingId: ['']
+      buildingId: [''],
     });
   }
 
@@ -86,8 +104,8 @@ export class WaitingListDashboardComponent implements OnInit {
 
   loadBuildings(): void {
     this.buildingService.getAllBuildingsNoPagination().subscribe({
-      next: (data) => this.buildings = data,
-      error: (err) => console.error('Failed to load buildings', err)
+      next: (data) => (this.buildings = data),
+      error: (err) => console.error('Failed to load buildings', err),
     });
   }
 
@@ -98,7 +116,7 @@ export class WaitingListDashboardComponent implements OnInit {
     this.stagedAllocationService.getWaitingList(buildingId || undefined).subscribe({
       next: (entries) => {
         // Assign position based on score (assuming backend returns sorted, but we re-sort to be safe or rely on MatSort)
-        // Backend usually returns sorted by Score DESC. 
+        // Backend usually returns sorted by Score DESC.
         // We can add a temporary index property if needed for display.
         this.dataSource.data = entries;
         this.isLoading = false;
@@ -107,7 +125,7 @@ export class WaitingListDashboardComponent implements OnInit {
         console.error('Failed to load waiting list', err);
         this.isLoading = false;
         this.snackBar.open('Error loading waiting list', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
@@ -123,17 +141,42 @@ export class WaitingListDashboardComponent implements OnInit {
         console.error('Rescore failed', err);
         this.isRescoring = false;
         this.snackBar.open('Failed to rescore waiting list', 'Close', { duration: 3000 });
-      }
+      },
     });
   }
 
-  // Helper for "Allocate Now"
+  // ── UI helpers ──────────────────────────────────────────────
+
+  getRank(index: number): number {
+    return index + 1 + (this.paginator?.pageIndex ?? 0) * (this.paginator?.pageSize ?? 10);
+  }
+
+  getWLInitials(entry: WaitingListEntry): string {
+    const parts = (entry.studentName ?? '').trim().split(/\s+/);
+    const f = parts[0]?.[0] ?? '';
+    const l = parts[1]?.[0] ?? '';
+    return (f + l).toUpperCase();
+  }
+
+  getScoreRingStyle(score: number): { [key: string]: string } {
+    const maxScore = 200;
+    const pct = Math.min(100, Math.round((score / maxScore) * 100));
+    const color = score >= 140 ? '#10b981' : score >= 70 ? '#f59e0b' : '#ef4444';
+    return { '--score-pct': `${pct}`, '--ring-color': color };
+  }
+
   openAllocation(entry: WaitingListEntry): void {
-     // Navigate to a detail view or open dialog?
-     // For now, let's just show a not implemented or navigate to application review
-     // Ideally, we would open the AllocationChoiceDialog here directly if we had the full ApplicationResponse.
-     // But WaitingListEntry is a summary.
-     // So let's navigate to application review with a filter.
-     this.router.navigate(['/admin/applications'], { queryParams: { applicationCode: entry.applicationCode } });
+    const dialogRef = this.dialog.open(AllocationChoiceDialogComponent, {
+      width: '900px',
+      data: {
+        applicationId: entry.applicationId,
+        studentId: entry.studentId,
+      } as AllocationChoiceDialogData,
+    });
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result?.action === 'allocated' || result?.action === 'waitlisted') {
+        this.loadWaitingList();
+      }
+    });
   }
 }

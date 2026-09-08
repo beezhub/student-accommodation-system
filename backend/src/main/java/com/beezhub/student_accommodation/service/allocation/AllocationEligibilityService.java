@@ -8,7 +8,7 @@ import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAttributes;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,10 +26,12 @@ public class AllocationEligibilityService {
     private final ApplicationRepository applicationRepository;
     private final BuildingRepository buildingRepository;
     private final RoomAttributesRepository roomAttributesRepository;
-    private final AllocationScoringService allocationScoringService;
+    private final LegacyScoringStrategy allocationScoringService;
+    private final AllocationAccessGuard allocationAccessGuard;
 
     public AllocationEligibilityResponse checkStudentEligibility(Long studentId) {
         log.info("Checking allocation eligibility for student: {}", studentId);
+        allocationAccessGuard.assertCanAccessStudent(studentId);
 
         studentRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException("Student not found with id: " + studentId));

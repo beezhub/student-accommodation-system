@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { AdminGuard } from './core/guards/admin.guard';
+import { PlatformAdminGuard } from './core/guards/platform-admin.guard';
+import { MustChangePasswordGuard } from './core/guards/must-change-password.guard';
 import { StudentGuard } from './core/guards/student.guard';
 import { EmailVerifiedGuard } from './core/guards/email-verified.guard';
 
@@ -153,7 +155,11 @@ export const routes: Routes = [
   // Component preserved at features/student/room-browser/ for future use
   {
     path: 'admin',
-    canActivate: [AuthGuard, AdminGuard],
+    canActivate: [AuthGuard, AdminGuard, MustChangePasswordGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-layout/admin-layout.component').then(
+        (m) => m.AdminLayoutComponent
+      ),
     children: [
       {
         path: '',
@@ -178,6 +184,7 @@ export const routes: Routes = [
       },
       {
         path: 'users',
+        canActivate: [PlatformAdminGuard],
         loadComponent: () =>
           import('./features/admin/user-management/user-management.component').then(
             (m) => m.UserManagementComponent
@@ -206,6 +213,11 @@ export const routes: Routes = [
       },
       {
         path: 'activity-logs',
+        // No PlatformAdminGuard: the backend allows TENANT_ADMIN on both of these
+        // (SystemSettingController and ActivityLogController), and guarding them platform-only
+        // made system-settings' own tenant read-only branch unreachable (GH-158). The parent
+        // /admin route's AdminGuard still applies.
+
         loadComponent: () =>
           import('./features/admin/activity-logs/activity-logs.component').then(
             (m) => m.ActivityLogsComponent
@@ -241,17 +253,15 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
+        // No PlatformAdminGuard: the backend allows TENANT_ADMIN on both of these
+        // (SystemSettingController and ActivityLogController), and guarding them platform-only
+        // made system-settings' own tenant read-only branch unreachable (GH-158). The parent
+        // /admin route's AdminGuard still applies.
+
         loadComponent: () =>
           import('./features/admin/system-settings/system-settings.component').then(
             (m) => m.SystemSettingsComponent
           ),
-      },
-      {
-        path: 'allocation-rules',
-        loadComponent: () =>
-          import(
-            './features/admin/allocation-rule-management/allocation-rule-management.component'
-          ).then((m) => m.AllocationRuleManagementComponent),
       },
       {
         path: 'accommodation-types',
@@ -270,11 +280,41 @@ export const routes: Routes = [
       {
         path: 'waiting-list',
         loadComponent: () =>
-          import(
-            './features/admin/waiting-list-dashboard/waiting-list-dashboard.component'
-          ).then((m) => m.WaitingListDashboardComponent),
+          import('./features/admin/waiting-list-dashboard/waiting-list-dashboard.component').then(
+            (m) => m.WaitingListDashboardComponent
+          ),
+      },
+      {
+        path: 'feature-flags',
+        canActivate: [PlatformAdminGuard],
+        loadComponent: () =>
+          import('./features/admin/feature-flag-management/feature-flag-management.component').then(
+            (m) => m.FeatureFlagManagementComponent
+          ),
+      },
+      {
+        path: 'tenants',
+        canActivate: [PlatformAdminGuard],
+        loadComponent: () =>
+          import('./features/admin/tenant-management/tenant-management.component').then(
+            (m) => m.TenantManagementComponent
+          ),
       },
     ],
+  },
+  {
+    path: 'buildings',
+    loadComponent: () =>
+      import('./features/buildings/building-browse/building-browse.component').then(
+        (m) => m.BuildingBrowseComponent
+      ),
+  },
+  {
+    path: 'buildings/:id',
+    loadComponent: () =>
+      import('./features/buildings/building-detail/building-detail.component').then(
+        (m) => m.BuildingDetailComponent
+      ),
   },
   { path: '**', redirectTo: '/home' },
 ];

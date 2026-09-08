@@ -1,40 +1,22 @@
 package com.beezhub.student_accommodation.service.notification;
 
 import com.beezhub.student_accommodation.model.entity.Room;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EmailContentBuilderTest {
 
-    @Mock
-    private SpringTemplateEngine templateEngine;
-
     @InjectMocks
     private EmailContentBuilder emailContentBuilder;
-
-    @BeforeEach
-    void setUp() {
-        ReflectionTestUtils.setField(emailContentBuilder, "supportEmail", "test@test.com");
-        ReflectionTestUtils.setField(emailContentBuilder, "universityName", "Test Uni");
-    }
 
     @Test
     void extractFloorNumber_validRoomNumber_returnsFloor() {
@@ -90,23 +72,5 @@ class EmailContentBuilderTest {
         String json = "Invalid JSON";
         List<String> result = emailContentBuilder.parseWarnings(json);
         assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void buildDocumentCommentEmailContent_validData_callsTemplateEngine() {
-        when(templateEngine.process(eq("email/document-comment"), any(Context.class))).thenReturn("<html></html>");
-        
-        emailContentBuilder.buildDocumentCommentEmailContent("Student", "Doc", "Type", "Ref", "Comment", "Url");
-        
-        verify(templateEngine).process(eq("email/document-comment"), any(Context.class));
-    }
-
-    @Test
-    void buildPasswordResetEmailContent_validData_callsTemplateEngine() {
-        when(templateEngine.process(eq("email/password-reset"), any(Context.class))).thenReturn("<html></html>");
-
-        emailContentBuilder.buildPasswordResetEmailContent("Student", "Url");
-
-        verify(templateEngine).process(eq("email/password-reset"), any(Context.class));
     }
 }

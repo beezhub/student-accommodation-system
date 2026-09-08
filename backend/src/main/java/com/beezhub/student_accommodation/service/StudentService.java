@@ -1,5 +1,9 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
+import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
+import com.beezhub.student_accommodation.exceptions.InstitutionNotFoundException;
 import com.beezhub.student_accommodation.mapper.StudentMapper;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.dto.StudentRequest;
@@ -44,11 +48,11 @@ public class StudentService {
     public StudentResponse getStudentByUserId(Long userId) {
         var current = authService.getCurrentUser();
         // Allow access if admin or requesting own profile
-        if (!current.getId().equals(userId) && current.getUserRole() != UserRole.ADMIN) {
-            throw new RuntimeException("Unauthorized to access this student");
+        if (!current.getId().equals(userId) && !current.getUserRole().isAdmin()) {
+            throw new UnauthorizedAccessException("Unauthorized to access this student");
         }
         Student student = studentRepository.findStudentWithDetailsByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Student not found with user ID: " + userId));
+                .orElseThrow(() -> new StudentNotFoundException("Student not found with user ID: " + userId));
         return studentMapper.toResponse(student);
     }
 
@@ -56,18 +60,18 @@ public class StudentService {
     public StudentResponse getMyProfile() {
         var current = authService.getCurrentUser();
         Student student = studentRepository.findStudentWithDetailsByUserId(current.getId())
-                .orElseThrow(() -> new RuntimeException("Student profile not found for current user"));
+                .orElseThrow(() -> new StudentNotFoundException("Student profile not found for current user"));
         return studentMapper.toResponse(student);
     }
 
     @Transactional
     public StudentResponse updateStudent(Long userId, StudentRequest request) {
         var current = authService.getCurrentUser();
-        if (!current.getId().equals(userId) && current.getUserRole() != UserRole.ADMIN) {
-            throw new RuntimeException("Unauthorized to update this student");
+        if (!current.getId().equals(userId) && !current.getUserRole().isAdmin()) {
+            throw new UnauthorizedAccessException("Unauthorized to update this student");
         }
         Student student = studentRepository.findStudentWithDetailsByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Student not found with user ID: " + userId));
+                .orElseThrow(() -> new StudentNotFoundException("Student not found with user ID: " + userId));
 
         // Update Student fields
         if (request.getStudentNumber() != null) student.setStudentNumber(request.getStudentNumber());
@@ -76,17 +80,33 @@ public class StudentService {
         if (request.getGender() != null) student.setGender(request.getGender());
         if (request.getSpecialRequirements() != null) student.setSpecialRequirements(request.getSpecialRequirements());
 
+        // GH-239. Null means "not sent, leave alone", matching every field above; an empty string
+        // is how a student clears one they had entered. Treating both as "leave alone" would make
+        // a contact impossible to remove once set, and this is someone else's data to withdraw.
+        if (request.getEmergencyContactName() != null) {
+            student.setEmergencyContactName(blankToNull(request.getEmergencyContactName()));
+        }
+        if (request.getEmergencyContactRelationship() != null) {
+            student.setEmergencyContactRelationship(blankToNull(request.getEmergencyContactRelationship()));
+        }
+        if (request.getEmergencyContactPhone() != null) {
+            student.setEmergencyContactPhone(blankToNull(request.getEmergencyContactPhone()));
+        }
+        if (request.getEmergencyContactEmail() != null) {
+            student.setEmergencyContactEmail(blankToNull(request.getEmergencyContactEmail()));
+        }
+
         // Update Institution if changed
         if (request.getInstitutionId() != null) {
             var institution = institutionRepository.findById(request.getInstitutionId())
-                    .orElseThrow(() -> new RuntimeException("Institution not found"));
+                    .orElseThrow(() -> new InstitutionNotFoundException("Institution not found"));
             student.setInstitution(institution);
         }
 
         // Update Year of Study if changed
         if (request.getYearOfStudyId() != null) {
             var yearOfStudy = yearOfStudyRepository.findById(request.getYearOfStudyId())
-                    .orElseThrow(() -> new RuntimeException("Year of study not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Year of study not found"));
             student.setYearOfStudy(yearOfStudy);
         }
 
@@ -135,5 +155,10 @@ public class StudentService {
 
     public void deleteStudentByUserId(Long userId) {
         studentRepository.findByAppUser_Id(userId).ifPresent(studentRepository::delete);
+    }
+
+    /** Stores a cleared field as NULL rather than as an empty string, so "absent" has one form. */
+    private static String blankToNull(String value) {
+        return value.isBlank() ? null : value.trim();
     }
 }

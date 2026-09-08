@@ -1,6 +1,13 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -20,7 +27,7 @@ import {
 } from '../../../../core/services/room-allocation.service';
 import { RoomService, RoomResponse } from '../../../../core/services/room.service';
 import { AdminService, ApplicationResponse } from '../../../../core/services/admin.service';
-import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 @Component({
   selector: 'app-allocate-dialog',
@@ -51,25 +58,27 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
               (blur)="checkEligibility()"
             />
             @if (allocateForm.get('studentId')?.hasError('required')) {
-              <mat-error>Student ID is required</mat-error>
-            }
-            @if (allocateForm.get('studentId')?.hasError('min')) {
-              <mat-error>Invalid student ID</mat-error>
+            <mat-error>Student ID is required</mat-error>
+            } @if (allocateForm.get('studentId')?.hasError('min')) {
+            <mat-error>Invalid student ID</mat-error>
             }
           </mat-form-field>
 
           <!-- Eligibility Status -->
           @if (eligibilityChecked) {
-            <div class="status-message" [class.success]="eligibility?.isEligible" [class.error]="!eligibility?.isEligible">
-              @if (eligibility?.isEligible) {
-                <mat-icon>check_circle</mat-icon>
-                <span>Student is eligible for room allocation</span>
-              }
-              @if (!eligibility?.isEligible) {
-                <mat-icon>error</mat-icon>
-                <span>{{ eligibility?.reason || 'Student is not eligible' }}</span>
-              }
-            </div>
+          <div
+            class="status-message"
+            [class.success]="eligibility?.isEligible"
+            [class.error]="!eligibility?.isEligible"
+          >
+            @if (eligibility?.isEligible) {
+            <mat-icon>check_circle</mat-icon>
+            <span>Student is eligible for room allocation</span>
+            } @if (!eligibility?.isEligible) {
+            <mat-icon>error</mat-icon>
+            <span>{{ eligibility?.reason || 'Student is not eligible' }}</span>
+            }
+          </div>
           }
 
           <!-- Room Selection -->
@@ -77,32 +86,49 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
             <mat-label>Room</mat-label>
             <mat-icon matPrefix>meeting_room</mat-icon>
             <mat-select formControlName="roomId" required (selectionChange)="checkAvailability()">
-              @for (room of availableRooms; track room.id) {
-                <mat-option [value]="room.id">
-                  <div class="room-option">
-                    <span class="room-name">{{ room.roomNumber }} - {{ room.buildingName }}</span>
-                    <span class="room-capacity">({{ room.currentOccupancy }}/{{ room.capacity }})</span>
-                  </div>
-                </mat-option>
+              <div class="option-search" (click)="$event.stopPropagation()">
+                <input
+                  matInput
+                  [formControl]="roomSearch"
+                  placeholder="Search by room number"
+                  aria-label="Search rooms"
+                />
+              </div>
+              @if (moreRoomsExist) {
+              <div class="option-hint">
+                Showing the first {{ optionPageSize }}. Search to narrow.
+              </div>
+              } @for (room of availableRooms; track room.id) {
+              <mat-option [value]="room.id">
+                <div class="room-option">
+                  <span class="room-name">{{ room.roomNumber }} - {{ room.buildingName }}</span>
+                  <span class="room-capacity"
+                    >({{ room.currentOccupancy }}/{{ room.capacity }})</span
+                  >
+                </div>
+              </mat-option>
               }
             </mat-select>
             @if (allocateForm.get('roomId')?.hasError('required')) {
-              <mat-error>Room is required</mat-error>
+            <mat-error>Room is required</mat-error>
             }
           </mat-form-field>
 
           <!-- Room Availability Status -->
           @if (availabilityChecked) {
-            <div class="status-message" [class.success]="availability?.isAvailable" [class.error]="!availability?.isAvailable">
-              @if (availability?.isAvailable) {
-                <mat-icon>check_circle</mat-icon>
-                <span>Room is available ({{ availability?.availableSpots }} spots remaining)</span>
-              }
-              @if (!availability?.isAvailable) {
-                <mat-icon>error</mat-icon>
-                <span>Room is not available ({{ availability?.status }})</span>
-              }
-            </div>
+          <div
+            class="status-message"
+            [class.success]="availability?.isAvailable"
+            [class.error]="!availability?.isAvailable"
+          >
+            @if (availability?.isAvailable) {
+            <mat-icon>check_circle</mat-icon>
+            <span>Room is available ({{ availability?.availableSpots }} spots remaining)</span>
+            } @if (!availability?.isAvailable) {
+            <mat-icon>error</mat-icon>
+            <span>Room is not available ({{ availability?.status }})</span>
+            }
+          </div>
           }
 
           <!-- Application Selection (Optional) -->
@@ -110,14 +136,29 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
             <mat-label>Application (Optional)</mat-label>
             <mat-icon matPrefix>description</mat-icon>
             <mat-select formControlName="applicationId" (selectionChange)="onApplicationSelected()">
+              <div class="option-search" (click)="$event.stopPropagation()">
+                <input
+                  matInput
+                  [formControl]="applicationSearch"
+                  placeholder="Search by application code"
+                  aria-label="Search applications"
+                />
+              </div>
+              @if (moreApplicationsExist) {
+              <div class="option-hint">
+                Showing the first {{ optionPageSize }}. Search to narrow.
+              </div>
+              }
               <mat-option value="">No Application</mat-option>
               @for (app of studentApplications; track app.id) {
-                <mat-option [value]="app.id">
-                  <div class="app-option">
-                    <span class="app-code">{{ app.applicationCode }}</span>
-                    <span class="app-status" [class]="app.status.toLowerCase()">{{ app.status }}</span>
-                  </div>
-                </mat-option>
+              <mat-option [value]="app.id">
+                <div class="app-option">
+                  <span class="app-code">{{ app.applicationCode }}</span>
+                  <span class="app-status" [class]="app.status.toLowerCase()">{{
+                    app.status
+                  }}</span>
+                </div>
+              </mat-option>
               }
             </mat-select>
             <mat-hint>
@@ -134,32 +175,37 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
             <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
             <mat-datepicker #picker></mat-datepicker>
             @if (allocateForm.get('allocationDate')?.hasError('required')) {
-              <mat-error>Allocation date is required</mat-error>
+            <mat-error>Allocation date is required</mat-error>
             }
           </mat-form-field>
 
           <!-- Information Panel -->
           @if (allocateForm.get('studentId')?.value) {
-            <div class="info-panel">
-              <mat-icon>lightbulb</mat-icon>
-              <div class="info-content">
-                <strong>Allocation Process</strong>
-                <ul>
-                  <li>Student eligibility will be verified</li>
-                  <li>Room availability will be checked</li>
-                  <li>Allocation will be created with ACTIVE status</li>
-                  @if (allocateForm.get('applicationId')?.value) {
-                    <li>Application status will be updated</li>
-                  }
-                </ul>
-              </div>
+          <div class="info-panel">
+            <mat-icon>lightbulb</mat-icon>
+            <div class="info-content">
+              <strong>Allocation Process</strong>
+              <ul>
+                <li>Student eligibility will be verified</li>
+                <li>Room availability will be checked</li>
+                <li>Allocation will be created with ACTIVE status</li>
+                @if (allocateForm.get('applicationId')?.value) {
+                <li>Application status will be updated</li>
+                }
+              </ul>
             </div>
+          </div>
           }
         </form>
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+        <button
+          mat-stroked-button
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+          class="cancel-btn"
+        >
           Cancel
         </button>
         <button
@@ -170,13 +216,10 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
           class="submit-btn"
         >
           @if (isSubmitting) {
-            <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            Allocating...
-          }
-          @if (!isSubmitting) {
-            <mat-icon>assignment_turned_in</mat-icon>
-            Allocate Room
-          }
+          <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+          Allocating... } @if (!isSubmitting) {
+          <mat-icon>assignment_turned_in</mat-icon>
+          Allocate Room }
         </button>
       </mat-dialog-actions>
     </div>
@@ -185,6 +228,25 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
     `
       .dialog-container {
         min-width: 550px;
+      }
+
+      /* Search inside the option lists: these are server-side searches, not client filters. */
+      .option-search {
+        padding: 8px 16px;
+        border-bottom: 1px solid rgb(0 0 0 / 12%);
+      }
+      .option-search input {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        font: inherit;
+        color: inherit;
+      }
+      .option-hint {
+        padding: 4px 16px;
+        font-size: 0.75rem;
+        opacity: 0.7;
       }
 
       /* Dialog Header */
@@ -490,25 +552,33 @@ import { debounceTime, distinctUntilChanged, switchMap, of } from 'rxjs';
   ],
 })
 export class AllocateDialogComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+  private fb = inject(FormBuilder);
+  private allocationService = inject(RoomAllocationService);
+  private roomService = inject(RoomService);
+  private adminService = inject(AdminService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<AllocateDialogComponent>>(MatDialogRef);
+  data = inject(MAT_DIALOG_DATA);
+
   allocateForm: FormGroup;
   isSubmitting = false;
   availableRooms: RoomResponse[] = [];
   studentApplications: ApplicationResponse[] = [];
+
+  /** Options fetched per search. Small on purpose: these feed a dropdown, not a report. */
+  readonly optionPageSize = 25;
+  moreRoomsExist = false;
+  moreApplicationsExist = false;
+  readonly roomSearch = new FormControl('');
+  readonly applicationSearch = new FormControl('');
 
   eligibility: AllocationEligibilityResponse | null = null;
   eligibilityChecked = false;
   availability: RoomAvailabilityResponse | null = null;
   availabilityChecked = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private allocationService: RoomAllocationService,
-    private roomService: RoomService,
-    private adminService: AdminService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<AllocateDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {
+  constructor() {
     this.allocateForm = this.fb.group({
       studentId: ['', [Validators.required, Validators.min(1)]],
       roomId: ['', Validators.required],
@@ -520,33 +590,57 @@ export class AllocateDialogComponent implements OnInit {
   ngOnInit(): void {
     this.loadAvailableRooms();
     this.loadApplications();
+
+    this.roomSearch.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe((term) => this.loadAvailableRooms(term ?? ''));
+
+    this.applicationSearch.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe((term) => this.loadApplications(term ?? ''));
   }
 
-  loadAvailableRooms(): void {
-    // Load rooms that are not full
-    this.roomService.searchRooms({ page: 0, size: 1000 }).subscribe({
-      next: (response) => {
-        this.availableRooms = response.content.filter(
-          (room) => room.status === 'AVAILABLE' || room.status === 'OCCUPIED'
-        );
-      },
-      error: (error) => {
-        console.error('Failed to load rooms:', error);
-        this.snackBar.open('Failed to load available rooms', 'Close', { duration: 3000 });
-      },
-    });
+  /**
+   * One page of rooms, narrowed by what the admin types.
+   *
+   * <p>Both dropdowns used to ask for 1000 rows up front (GH-157). That is a large payload for a
+   * select, and it truncates rather than pages: room 1001 simply could not be chosen. Searching
+   * server-side keeps the payload small and makes every room reachable.
+   */
+  loadAvailableRooms(roomNumber?: string): void {
+    this.roomService
+      .searchRooms({ page: 0, size: this.optionPageSize, roomNumber: roomNumber || undefined })
+      .subscribe({
+        next: (response) => {
+          this.availableRooms = response.content.filter(
+            (room) => room.status === 'AVAILABLE' || room.status === 'OCCUPIED'
+          );
+          this.moreRoomsExist = response.totalElements > response.content.length;
+        },
+        error: (error) => {
+          console.error('Failed to load rooms:', error);
+          this.snackBar.open('Failed to load available rooms', 'Close', { duration: 3000 });
+        },
+      });
   }
 
-  loadApplications(): void {
-    // Load approved applications for linking to allocations
-    this.adminService.searchApplications({ status: 'APPROVED', page: 0, size: 1000 }).subscribe({
-      next: (response) => {
-        this.studentApplications = response.content;
-      },
-      error: (error) => {
-        console.error('Failed to load applications:', error);
-      },
-    });
+  loadApplications(applicationCode?: string): void {
+    this.adminService
+      .searchApplications({
+        status: 'APPROVED',
+        page: 0,
+        size: this.optionPageSize,
+        applicationCode: applicationCode || undefined,
+      })
+      .subscribe({
+        next: (response) => {
+          this.studentApplications = response.content;
+          this.moreApplicationsExist = response.totalElements > response.content.length;
+        },
+        error: (error) => {
+          console.error('Failed to load applications:', error);
+        },
+      });
   }
 
   checkEligibility(): void {
@@ -609,7 +703,6 @@ export class AllocateDialogComponent implements OnInit {
     const applicationId = this.allocateForm.get('applicationId')?.value;
     if (applicationId) {
       // If an application is selected, we can use the allocateByApplication endpoint
-      console.log('Application selected:', applicationId);
     }
   }
 

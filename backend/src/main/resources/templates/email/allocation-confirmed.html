@@ -1,49 +1,12 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room Allocation Confirmed</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: #ffffff;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .success-icon {
-            text-align: center;
-            font-size: 60px;
-            margin: 20px 0;
-        }
-        .message {
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        .room-details {
+        .room-highlight {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: #ffffff;
             padding: 20px;
@@ -51,14 +14,8 @@
             border-radius: 8px;
             text-align: center;
         }
-        .room-details h2 {
-            margin: 0 0 10px 0;
-            font-size: 36px;
-        }
-        .room-details p {
-            margin: 5px 0;
-            font-size: 18px;
-        }
+        .room-highlight h2 { margin: 0 0 10px 0; font-size: 36px; }
+        .room-highlight p { margin: 5px 0; font-size: 18px; }
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -71,179 +28,81 @@
             border-radius: 5px;
             border-left: 3px solid #28a745;
         }
-        .info-item strong {
-            display: block;
-            color: #28a745;
-            margin-bottom: 5px;
-        }
-        .confirmation-box {
-            background-color: #d4edda;
-            border-left: 4px solid #28a745;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .confirmation-box h3 {
-            margin-top: 0;
-            color: #155724;
-        }
-        .dates-box {
-            background-color: #d1ecf1;
-            border-left: 4px solid #17a2b8;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .dates-box h3 {
-            margin-top: 0;
-            color: #0c5460;
-        }
-        .dates-box p {
-            margin: 5px 0;
-        }
-        .next-steps-box {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .next-steps-box h3 {
-            margin-top: 0;
-            color: #856404;
-        }
-        .next-steps-box ul {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        .next-steps-box li {
-            margin: 8px 0;
-        }
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: #ffffff;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-        }
-        .contact-info {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e9ecef;
-            border-radius: 5px;
-        }
-        .contact-info h4 {
-            margin-top: 0;
-            color: #495057;
-        }
-        .contact-info p {
-            margin: 5px 0;
-        }
-        @media screen and (max-width: 600px) {
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        .info-item strong { display: block; color: #28a745; margin-bottom: 5px; }
+        @media screen and (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Allocation Confirmed!</h1>
+
+<h1 layout:fragment="email-title">Allocation Confirmed!</h1>
+<span layout:fragment="email-subtitle">Welcome to your new home away from home</span>
+
+<div layout:fragment="email-content">
+    <p style="text-align:center; font-size: 60px; margin: 20px 0;">&#9989;</p>
+
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <p>Congratulations! Your room allocation has been officially confirmed.
+       Welcome to your new home away from home!</p>
+
+    <div class="room-highlight">
+        <h2 th:text="${roomNumber}">Room 204</h2>
+        <p th:text="${buildingName}">Building A</p>
+        <p th:if="${floorNumber != null}">Floor <span th:text="${floorNumber}">2</span></p>
+    </div>
+
+    <div class="success-box">
+        <h3>Confirmed!</h3>
+        <p>Your room assignment is now official. This allocation is final and has been recorded in our system.</p>
+        <p th:if="${allocationId != null}"><strong>Allocation Reference:</strong> <span th:text="${allocationId}">ALLOC-2025-001</span></p>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item">
+            <strong>Building</strong>
+            <span th:text="${buildingName}">Building A</span>
         </div>
-
-        <div class="content">
-            <div class="success-icon">✅</div>
-
-            <p class="message">Dear <span th:text="${studentName}">Student</span>,</p>
-
-            <p class="message">
-                Congratulations! Your room allocation has been officially confirmed.
-                Welcome to your new home away from home!
-            </p>
-
-            <div class="room-details">
-                <h2 th:text="${roomNumber}">Room 204</h2>
-                <p th:text="${buildingName}">Building A</p>
-                <p th:if="${floorNumber != null}">Floor <span th:text="${floorNumber}">2</span></p>
-            </div>
-
-            <div class="confirmation-box">
-                <h3>🎉 Confirmed!</h3>
-                <p>Your room assignment is now official. This allocation is final and has been recorded in our system.</p>
-                <p th:if="${allocationId != null}"><strong>Allocation Reference:</strong> <span th:text="${allocationId}">ALLOC-2025-001</span></p>
-            </div>
-
-            <div class="info-grid">
-                <div class="info-item">
-                    <strong>Building</strong>
-                    <span th:text="${buildingName}">Building A</span>
-                </div>
-                <div class="info-item">
-                    <strong>Room Number</strong>
-                    <span th:text="${roomNumber}">204</span>
-                </div>
-                <div class="info-item" th:if="${floorNumber != null}">
-                    <strong>Floor</strong>
-                    <span th:text="${floorNumber}">2</span>
-                </div>
-                <div class="info-item" th:if="${roomType != null}">
-                    <strong>Room Type</strong>
-                    <span th:text="${roomType}">Single</span>
-                </div>
-            </div>
-
-            <div class="dates-box">
-                <h3>📅 Important Dates</h3>
-                <p th:if="${moveInDate != null}"><strong>Move-In Date:</strong> <span th:text="${moveInDate}">2025-02-01</span></p>
-                <p th:if="${startDate != null}"><strong>Tenancy Start:</strong> <span th:text="${startDate}">2025-02-01</span></p>
-                <p th:if="${endDate != null}"><strong>Tenancy End:</strong> <span th:text="${endDate}">2025-11-30</span></p>
-            </div>
-
-            <div class="next-steps-box">
-                <h3>📋 Next Steps</h3>
-                <ul>
-                    <li>Complete any outstanding payment requirements</li>
-                    <li>Prepare required documents for check-in</li>
-                    <li>Review the accommodation rules and regulations</li>
-                    <li>Report to the accommodation office on your move-in date</li>
-                    <li>Bring your student ID and this confirmation email</li>
-                    <li>Attend the mandatory orientation session</li>
-                </ul>
-            </div>
-
-            <center>
-                <a href="#" th:href="${portalUrl}" class="cta-button">View Allocation Details</a>
-            </center>
-
-            <div class="contact-info">
-                <h4>Contact Information</h4>
-                <p><strong>Email:</strong> <span th:text="${supportEmail}">accommodation@university.edu</span></p>
-                <p th:if="${contactPhone != null}"><strong>Phone:</strong> <span th:text="${contactPhone}">+27 (0) 11 234 5678</span></p>
-                <p><strong>Office Hours:</strong> Monday - Friday, 8:00 AM - 5:00 PM</p>
-            </div>
-
-            <p class="message" style="margin-top: 30px; font-style: italic;">
-                We look forward to welcoming you. Have a wonderful stay!
-            </p>
+        <div class="info-item">
+            <strong>Room Number</strong>
+            <span th:text="${roomNumber}">204</span>
         </div>
-
-        <div class="footer">
-            <p>This is an automated message from the Student Accommodation System.</p>
-            <p>&copy; 2025 Student Accommodation System. All rights reserved.</p>
-            <p style="margin-top: 10px; font-size: 12px;">
-                <a href="#" style="color: #28a745; text-decoration: none;">Privacy Policy</a> |
-                <a href="#" style="color: #28a745; text-decoration: none;">Notification Preferences</a> |
-                <a href="#" style="color: #28a745; text-decoration: none;">Contact Support</a>
-            </p>
+        <div class="info-item" th:if="${floorNumber != null}">
+            <strong>Floor</strong>
+            <span th:text="${floorNumber}">2</span>
+        </div>
+        <div class="info-item" th:if="${roomType != null}">
+            <strong>Room Type</strong>
+            <span th:text="${roomType}">Single</span>
         </div>
     </div>
+
+    <div class="info-box">
+        <h3>Important Dates</h3>
+        <p th:if="${moveInDate != null}"><strong>Move-In Date:</strong> <span th:text="${moveInDate}">2025-02-01</span></p>
+        <p th:if="${startDate != null}"><strong>Tenancy Start:</strong> <span th:text="${startDate}">2025-02-01</span></p>
+        <p th:if="${endDate != null}"><strong>Tenancy End:</strong> <span th:text="${endDate}">2025-11-30</span></p>
+    </div>
+
+    <div class="warning-box">
+        <h3>Next Steps</h3>
+        <ul>
+            <li>Complete any outstanding payment requirements</li>
+            <li>Prepare required documents for check-in</li>
+            <li>Review the accommodation rules and regulations</li>
+            <li>Report to the accommodation office on your move-in date</li>
+            <li>Bring your student ID and this confirmation email</li>
+            <li>Attend the mandatory orientation session</li>
+        </ul>
+    </div>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">View Allocation Details</a>
+    </div>
+
+    <p style="margin-top: 30px; font-style: italic;">
+        We look forward to welcoming you. Have a wonderful stay!
+    </p>
+</div>
+
 </body>
 </html>

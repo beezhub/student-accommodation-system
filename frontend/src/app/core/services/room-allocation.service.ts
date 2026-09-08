@@ -1,7 +1,9 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 export enum DeclineReason {
   WRONG_LOCATION = 'WRONG_LOCATION',
@@ -9,7 +11,7 @@ export enum DeclineReason {
   FOUND_ALTERNATIVE = 'FOUND_ALTERNATIVE',
   ACCESSIBILITY_ISSUES = 'ACCESSIBILITY_ISSUES',
   PERSONAL_REASONS = 'PERSONAL_REASONS',
-  OTHER = 'OTHER'
+  OTHER = 'OTHER',
 }
 
 export interface DeclineOfferRequest {
@@ -42,6 +44,11 @@ export interface RoomAllocationResponse {
   checkInExpiryDate?: string;
   declineReason?: DeclineReason;
   declineReasonText?: string;
+  /**
+   * Times this allocation's application has already been declined. Sent on single-allocation
+   * reads so a student can be warned before declining again; absent on list responses.
+   */
+  previousDeclineCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -70,21 +77,13 @@ export interface AllocateByApplicationRequest {
   roomId: number;
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-}
-
 @Injectable({
   providedIn: 'root',
 })
 export class RoomAllocationService {
-  private apiUrl = `${environment.apiUrl}/room-allocation`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/room-allocation`;
 
   getAllAllocations(
     page: number = 0,
@@ -142,7 +141,9 @@ export class RoomAllocationService {
   }
 
   getActiveAllocationByStudentId(studentId: number): Observable<RoomAllocationResponse> {
-    return this.http.get<RoomAllocationResponse>(`${this.apiUrl}/student/${studentId}/active`);
+    return this.http.get<RoomAllocationResponse>(`${this.apiUrl}/student/${studentId}/active`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   createAllocation(allocation: RoomAllocationRequest): Observable<RoomAllocationResponse> {
@@ -185,17 +186,63 @@ export class RoomAllocationService {
     );
   }
 
-
   acceptOffer(id: number, expectedCheckInDate: string): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/accept`, { expectedCheckInDate });
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/accept`, {
+      expectedCheckInDate,
+    });
   }
 
+  /**
+   * Silent because the dashboard renders its own message for both the max-declines 403 and the
+   * generic failure. Without this the interceptor stacked a second, vaguer snackbar on top of it
+   * (GH-150). Matches getActiveAllocationByStudentId above.
+   */
   declineOffer(id: number, request: DeclineOfferRequest): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/decline`, request);
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/decline`, request, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
-  checkIn(id: number): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/check-in`, {});
+  /**
+   * Moves an outstanding offer's response deadline, so a student who missed it can still accept.
+   *
+   * <p>Admin only, and recorded against the allocation with the reason given. Refused once the
+   * expiry sweep has flipped the offer to EXPIRED, because the room has been released by then
+   * (GH-198).
+   *
+   * <p>Silent because the caller decides what to say: the backend's refusals are specific and
+   * worth showing verbatim rather than behind a generic snackbar.
+   */
+  extendOffer(
+    id: number,
+    newExpiryDate: string,
+    reason: string
+  ): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(
+      `${this.apiUrl}/${id}/extend-offer`,
+      { newExpiryDate, reason },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
+  }
+
+  /**
+   * Confirms a student's arrival.
+   *
+   * <p>Refused with 409 once the check-in deadline has passed. Pass overrideDeadline to check the
+   * student in anyway; the backend records that against the allocation's audit trail (GH-197).
+   *
+   * <p>Silent because the caller decides what to say: a passed deadline is a question to put to
+   * the admin, not an error to flash at them.
+   */
+  checkIn(id: number, overrideDeadline = false): Observable<RoomAllocationResponse> {
+    const params = overrideDeadline
+      ? new HttpParams().set('overrideDeadline', 'true')
+      : new HttpParams();
+    return this.http.post<RoomAllocationResponse>(
+      `${this.apiUrl}/${id}/check-in`,
+      {},
+      { params, headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   checkOut(id: number): Observable<RoomAllocationResponse> {

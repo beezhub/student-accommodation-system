@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -20,6 +20,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { DecimalPipe } from '@angular/common';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-institution-management',
@@ -40,9 +44,17 @@ import { MatMenuModule } from '@angular/material/menu';
     MatSnackBarModule,
     MatTooltipModule,
     MatMenuModule,
+    EmptyStateComponent,
+    SkeletonLoaderComponent,
+    DecimalPipe,
   ],
 })
 export class InstitutionManagementComponent implements OnInit {
+  private institutionService = inject(InstitutionService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   institutions: InstitutionResponse[] = [];
   displayedColumns: string[] = ['name', 'address', 'phoneNumber', 'emailAddress', 'actions'];
 
@@ -50,15 +62,20 @@ export class InstitutionManagementComponent implements OnInit {
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
+  filtersVisible = false;
 
   filterForm: FormGroup;
 
-  constructor(
-    private institutionService: InstitutionService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  get activeFilterCount(): number {
+    const v = this.filterForm.value;
+    return [v.name, v.address, v.contactEmail].filter((x: string) => x && x.trim() !== '').length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
+
+  constructor() {
     this.filterForm = this.fb.group({
       name: [''],
       address: [''],
@@ -140,11 +157,13 @@ export class InstitutionManagementComponent implements OnInit {
   }
 
   deleteInstitution(institution: InstitutionResponse): void {
-    if (
-      confirm(
-        `Are you sure you want to delete institution "${institution.name}"? This action cannot be undone.`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Delete this institution?',
+      message: `"${institution.name}" is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.institutionService.deleteInstitution(institution.id).subscribe({
         next: () => {
           this.snackBar.open('Institution deleted successfully', 'Close', { duration: 3000 });
@@ -159,6 +178,6 @@ export class InstitutionManagementComponent implements OnInit {
           );
         },
       });
-    }
+    });
   }
 }

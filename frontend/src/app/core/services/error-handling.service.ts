@@ -1,9 +1,17 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 
-export type ErrorType = 'network' | 'server' | 'validation' | 'notfound' | 'unauthorized' | 'forbidden' | 'conflict' | 'general';
+export type ErrorType =
+  | 'network'
+  | 'server'
+  | 'validation'
+  | 'notfound'
+  | 'unauthorized'
+  | 'forbidden'
+  | 'conflict'
+  | 'general';
 
 export interface ParsedError {
   type: ErrorType;
@@ -24,16 +32,14 @@ export interface ErrorDisplayOptions {
   providedIn: 'root',
 })
 export class ErrorHandlingService {
+  private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
+
   private defaultOptions: ErrorDisplayOptions = {
     showSnackbar: true,
     snackbarDuration: 5000,
     navigateOnUnauthorized: true,
   };
-
-  constructor(
-    private snackBar: MatSnackBar,
-    private router: Router
-  ) {}
 
   /**
    * Parse an HTTP error response into a standardized format
@@ -87,7 +93,8 @@ export class ErrorHandlingService {
           return {
             type: 'validation',
             title: 'Applications Closed',
-            message: 'Sorry, applications are currently closed. Please check back during the application window.',
+            message:
+              'Sorry, applications are currently closed. Please check back during the application window.',
             canRetry: false,
             statusCode,
           };
@@ -241,7 +248,10 @@ export class ErrorHandlingService {
     }
 
     if (opts.navigateOnUnauthorized && parsed.type === 'unauthorized') {
-      this.router.navigate(['/login']);
+      // This runs in the component error callback, after errorInterceptor has already navigated
+      // to /login with a returnUrl in the same tick. A bare navigate here supersedes it and
+      // silently strips the returnUrl, so it has to carry one too (GH-150).
+      this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
     }
 
     return parsed;
@@ -258,6 +268,7 @@ export class ErrorHandlingService {
       panelClass: ['error-snackbar'],
       horizontalPosition: 'end',
       verticalPosition: 'top',
+      politeness: 'assertive',
     });
   }
 
@@ -270,6 +281,7 @@ export class ErrorHandlingService {
       panelClass: ['success-snackbar'],
       horizontalPosition: 'end',
       verticalPosition: 'top',
+      politeness: 'polite',
     });
   }
 
@@ -282,6 +294,7 @@ export class ErrorHandlingService {
       panelClass: ['warning-snackbar'],
       horizontalPosition: 'end',
       verticalPosition: 'top',
+      politeness: 'polite',
     });
   }
 
@@ -294,6 +307,7 @@ export class ErrorHandlingService {
       panelClass: ['info-snackbar'],
       horizontalPosition: 'end',
       verticalPosition: 'top',
+      politeness: 'polite',
     });
   }
 

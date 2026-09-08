@@ -1,13 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
   BuildingService,
   BuildingResponse,
-  BuildingRequest,
   PageResponse,
 } from '../../../core/services/building.service';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -22,6 +22,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-building-management',
@@ -31,7 +33,6 @@ import { MatMenuModule } from '@angular/material/menu';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    RouterModule,
     MatCardModule,
     MatTableModule,
     MatPaginatorModule,
@@ -44,26 +45,36 @@ import { MatMenuModule } from '@angular/material/menu';
     MatSnackBarModule,
     MatTooltipModule,
     MatMenuModule,
+    MatDividerModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class BuildingManagementComponent implements OnInit {
+  private buildingService = inject(BuildingService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
   buildings: BuildingResponse[] = [];
-  displayedColumns: string[] = ['name', 'address', 'institutions', 'totalFloors', 'createdAt', 'actions'];
+  displayedColumns: string[] = [
+    'name',
+    'address',
+    'institutions',
+    'totalFloors',
+    'createdAt',
+    'actions',
+  ];
 
   isLoading = false;
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
 
+  filtersVisible = false;
+
   filterForm: FormGroup;
 
-  constructor(
-    private buildingService: BuildingService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar,
-    private router: Router
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       name: [''],
       address: [''],
@@ -146,11 +157,13 @@ export class BuildingManagementComponent implements OnInit {
   }
 
   deleteBuilding(building: BuildingResponse): void {
-    if (
-      confirm(
-        `Are you sure you want to delete building "${building.name}"? This action cannot be undone.`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Delete this building?',
+      message: `"${building.name}" is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.buildingService.deleteBuilding(building.id).subscribe({
         next: () => {
           this.snackBar.open('Building deleted successfully', 'Close', { duration: 3000 });
@@ -163,14 +176,25 @@ export class BuildingManagementComponent implements OnInit {
           });
         },
       });
-    }
+    });
   }
 
-  navigateToAllocationRules(buildingId: number): void {
-    // Navigate to allocation rules page with the building pre-selected
-    this.router.navigate(['/admin/allocation-rules'], {
-      queryParams: { buildingId: buildingId }
-    });
+  // ── UI helpers ──────────────────────────────────────────────
+
+  get activeFilterCount(): number {
+    const v = this.filterForm.value;
+    return [v.name, v.address].filter((x) => x !== null && x !== '' && x !== undefined).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
+
+  getBuildingInitials(building: BuildingResponse): string {
+    const words = (building.name ?? '').trim().split(/\s+/);
+    const f = words[0]?.[0] ?? '';
+    const l = words[1]?.[0] ?? '';
+    return (f + l).toUpperCase();
   }
 
   openImageDialog(building: BuildingResponse): void {

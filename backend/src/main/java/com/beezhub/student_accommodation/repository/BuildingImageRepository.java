@@ -13,4 +13,6 @@ public interface BuildingImageRepository extends JpaRepository<BuildingImage, Lo
     List<BuildingImage> findByBuilding_IdOrderByDisplayOrderAsc(Long buildingId);
 
     Optional<BuildingImage> findByBuilding_IdAndPrimaryTrue(Long buildingId);
+
+    boolean existsByObjectPath(String objectPath);
 }

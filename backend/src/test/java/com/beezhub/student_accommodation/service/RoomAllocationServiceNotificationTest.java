@@ -52,7 +52,7 @@ class RoomAllocationServiceNotificationTest {
     private ApplicationRepository applicationRepository;
 
     @Mock
-    private AllocationScoringService allocationScoringService;
+    private LegacyScoringStrategy allocationScoringService;
 
     @Mock
     private SystemSettingService systemSettingService;

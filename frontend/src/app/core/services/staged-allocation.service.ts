@@ -1,25 +1,23 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { StagedAllocation, BatchAllocationProposal, WaitingListEntry } from '../models/allocation.models';
+import {
+  StagedAllocation,
+  BatchAllocationProposal,
+  WaitingListEntry,
+} from '../models/allocation.models';
 import { RoomAllocationResponse } from './room-allocation.service';
-
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-}
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class StagedAllocationService {
-  private apiUrl = `${environment.apiUrl}/admin/allocation`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/admin/allocation`;
 
   proposeAllocation(studentIds: number[], batchId: string): Observable<BatchAllocationProposal> {
     return this.http.post<BatchAllocationProposal>(`${this.apiUrl}/propose-batch`, {
@@ -43,7 +41,19 @@ export class StagedAllocationService {
       params = params.set('status', status);
     }
 
-    return this.http.get<PageResponse<StagedAllocation>>(this.apiUrl, { params });
+    return this.http.get<PageResponse<StagedAllocation>>(`${this.apiUrl}/staged`, { params });
+  }
+
+  getExistingProposals(
+    status: string = 'PROPOSED',
+    page: number = 0,
+    size: number = 100
+  ): Observable<PageResponse<StagedAllocation>> {
+    const params = new HttpParams()
+      .set('status', status)
+      .set('page', page.toString())
+      .set('size', size.toString());
+    return this.http.get<PageResponse<StagedAllocation>>(`${this.apiUrl}/staged`, { params });
   }
 
   confirmAllocation(stagedId: number): Observable<RoomAllocationResponse> {
@@ -51,7 +61,9 @@ export class StagedAllocationService {
   }
 
   rejectAllocation(stagedId: number, reason: string): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/staged/${stagedId}/reject`, { reason });
+    return this.http.post<{ success: boolean }>(`${this.apiUrl}/staged/${stagedId}/reject`, {
+      reason,
+    });
   }
 
   confirmBatch(

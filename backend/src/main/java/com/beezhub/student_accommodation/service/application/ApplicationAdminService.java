@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.application;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
@@ -54,6 +55,18 @@ public class ApplicationAdminService {
     private final RoomAllocationService roomAllocationService;
     private final ApplicationDocumentService applicationDocumentService;
     private final ApplicationQueryService applicationQueryService;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+
+    /**
+     * Application statuses that end the application. Reaching one of these releases any allocation
+     * the application still holds (GH-223).
+     *
+     * <p>Student-initiated cancellation is not routed through here and does not need to be: it is
+     * only permitted from PENDING, UNDER_REVIEW and CHANGES_REQUESTED, none of which can hold an
+     * offer.
+     */
+    private static final java.util.Set<ApplicationStatus> TERMINAL_STATUSES =
+            java.util.EnumSet.of(REJECTED, EXPIRED, CANCELLED);
 
     /**
      * Updates application status with validation and notifications.
@@ -71,9 +84,10 @@ public class ApplicationAdminService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         ApplicationStatus oldStatus = application.getStatus();
-        ApplicationStatus newStatus = ApplicationStatus.valueOf(request.getStatus().toUpperCase());
+        ApplicationStatus newStatus = parseStatus(request.getStatus());
 
         // Validate status transition
         validateStatusTransition(application, newStatus);
@@ -108,6 +122,24 @@ public class ApplicationAdminService {
             }
         }
 
+        // An application that is over must not leave an offer standing. GH-137 stopped a rejected
+        // application being resurrected by an accept or a check-in, but left the state that made
+        // that possible: the OFFERED or ACCEPTED allocation stayed alive, so the room read as
+        // occupied until the hourly sweep and the student kept seeing an offer that would now fail
+        // if they acted on it (GH-223).
+        //
+        // Not wrapped in a try/catch like the notification below: this is part of the decision, not
+        // a side effect of it. If the room cannot be released the status change should not commit
+        // either, rather than leaving the two halves disagreeing.
+        if (newStatus != oldStatus && TERMINAL_STATUSES.contains(newStatus)) {
+            int released = roomAllocationService.releaseOutstandingAllocations(
+                    applicationId, "application " + newStatus);
+            if (released > 0) {
+                log.info("action=allocationsReleasedOnTerminalStatus applicationId={} status={} count={}",
+                        applicationId, newStatus, released);
+            }
+        }
+
         // Attempt auto-allocation if approved
         if (newStatus == APPROVED) {
             try {
@@ -139,6 +171,7 @@ public class ApplicationAdminService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         validateStatusTransition(application, UNDER_REVIEW);
 
@@ -163,6 +196,7 @@ public class ApplicationAdminService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         ApplicationStatus oldStatus = application.getStatus();
         validateStatusTransition(application, CHANGES_REQUESTED);
@@ -215,6 +249,7 @@ public class ApplicationAdminService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         // Validate current status is APPROVED
         if (application.getStatus() != APPROVED) {
@@ -270,9 +305,9 @@ public class ApplicationAdminService {
 
         // Get admin user
         AppUser admin = appUserRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
 
-        if (!admin.getUserRole().equals(UserRole.ADMIN)) {
+        if (!admin.getUserRole().isAdmin()) {
             throw new UnauthorizedAccessException("Only admins can move applications to allocation phase");
         }
 
@@ -293,13 +328,14 @@ public class ApplicationAdminService {
 
         // Verify admin access
         AppUser currentUser = authService.getCurrentUser();
-        if (!currentUser.getUserRole().equals(UserRole.ADMIN)) {
+        if (!currentUser.getUserRole().isAdmin()) {
             throw new UnauthorizedAccessException("Only admins can access full application details");
         }
 
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         ApplicationResponse response = applicationMapper.toResponse(application);
 
@@ -375,6 +411,22 @@ public class ApplicationAdminService {
      * @param username      The username of the requesting user
      * @return ApplicationFullDetailsResponse with all details
      */
+    /**
+     * The bare valueOf leaked the enum fully-qualified class name to the caller, because its
+     * IllegalArgumentException reached the conflict handler which echoed the message (GH-149). It
+     * also threw NullPointerException on a null status rather than saying what was wrong.
+     */
+    private static ApplicationStatus parseStatus(String status) {
+        if (status == null || status.isBlank()) {
+            throw new InvalidStatusException("A status is required");
+        }
+        try {
+            return ApplicationStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidStatusException("Invalid application status: " + status);
+        }
+    }
+
     public ApplicationFullDetailsResponse getApplicationFullDetailsEnhanced(Long applicationId, String username) {
         return applicationQueryService.getApplicationFullDetailsEnhanced(applicationId, username);
     }

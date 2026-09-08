@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.exceptions.ScheduledJobException;
 import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -71,7 +73,7 @@ public class OfferExpiryService {
                 roomAllocationRepository.save(current);
 
                 // Free the room
-                roomOccupancyManager.updateOccupancy(current.getRoom(), -1);
+                roomOccupancyManager.syncOccupancy(current.getRoom());
 
                 // Cancel application
                 cancelApplicationAfterOfferExpiry(current);
@@ -90,9 +92,15 @@ public class OfferExpiryService {
 
                 log.info("Successfully expired offer for allocation {}", current.getId());
                 return null;
+            } catch (OptimisticLockingFailureException e) {
+                // Someone changed this allocation while the sweep was working on it — the student
+                // accepting, most likely. Rethrown as itself rather than wrapped, so the caller can
+                // tell a lost race from a real failure and skip it quietly (GH-196).
+                status.setRollbackOnly();
+                throw e;
             } catch (Exception e) {
                 status.setRollbackOnly();
-                throw new RuntimeException("Failed to expire offer for allocation " + allocation.getId(), e);
+                throw new ScheduledJobException("Failed to expire offer for allocation " + allocation.getId(), e);
             }
         });
     }
@@ -110,6 +118,13 @@ public class OfferExpiryService {
                 application.getId(), student.getId());
 
         // Update application status to CANCELLED
+        if (!ApplicationStatusValidator.canApply(application, ApplicationStatus.CANCELLED)) {
+            // An admin has already decided this application. Expiring the offer must not
+            // overwrite that decision (GH-137).
+            log.info("action=applicationCancelSkipped applicationId={} from={}",
+                    application.getId(), application.getStatus());
+            return;
+        }
         application.setStatus(ApplicationStatus.CANCELLED);
         String remarks = "Application cancelled: Room offer expired without response within " + offerExpiryDays
                 + " days.";

@@ -1,0 +1,132 @@
+@use '../../../../styles/variables' as vars;
+
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-4;
+  width: 100%;
+}
+
+.skeleton-item {
+  width: 100%;
+}
+
+// Common Shimmer Animation
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+%skeleton-element {
+  background: vars.$slate-200;
+  background-image: linear-gradient(
+    90deg,
+    vars.$slate-200 0,
+    vars.$slate-100 40px,
+    vars.$slate-200 80px
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+  border-radius: vars.$radius-sm;
+}
+
+.skeleton-line {
+  @extend %skeleton-element;
+
+  height: 16px;
+  margin-bottom: vars.$space-2;
+  width: 100%;
+
+  &.short {
+    width: 60%;
+  }
+
+  &.title {
+    height: 20px;
+    width: 40%;
+  }
+
+  &.subtitle {
+    height: 14px;
+    width: 30%;
+  }
+}
+
+.skeleton-avatar {
+  @extend %skeleton-element;
+
+  border-radius: vars.$radius-pill;
+  width: 48px;
+  height: 48px;
+
+  &.small {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.skeleton-btn {
+  @extend %skeleton-element;
+
+  height: 36px;
+  width: 100%;
+  border-radius: vars.$radius-md;
+}
+
+// Card Specific
+.skeleton-card {
+  border: 1px solid vars.$slate-200;
+  border-radius: vars.$radius-xl;
+  padding: vars.$space-4;
+  background: white;
+
+  .skeleton-header {
+    display: flex;
+    align-items: center;
+    gap: vars.$space-3;
+    margin-bottom: vars.$space-4;
+
+    .skeleton-title-lines {
+      flex: 1;
+    }
+  }
+}
+
+// Table Row Specific
+.skeleton-table-row {
+  display: flex;
+  align-items: center;
+  padding: vars.$space-3 vars.$space-4;
+  border-bottom: 1px solid vars.$slate-100;
+
+  .skeleton-cell {
+    flex: 1;
+    padding: 0 vars.$space-2;
+
+    .skeleton-line {
+      margin-bottom: 0;
+    }
+  }
+
+  .avatar-cell {
+    flex: 0 0 48px;
+  }
+
+  .action-cell {
+    flex: 0 0 100px;
+  }
+}
+
+// OS Prefers Reduced Motion
+@media (prefers-reduced-motion: reduce) {
+  %skeleton-element {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

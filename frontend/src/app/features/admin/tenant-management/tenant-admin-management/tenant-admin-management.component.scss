@@ -1,0 +1,258 @@
+@use '../../../../../styles/variables' as vars;
+@use '../../../../../styles/mixins' as mixins;
+
+// ─────────────────────────────────────────────────────────────
+// Section wrapper
+// ─────────────────────────────────────────────────────────────
+.admin-mgmt-section {
+  padding: 1.5rem 0 0;
+  border-top: 1px solid vars.$slate-200;
+  margin-top: 1.5rem;
+
+  &.dialog-mode {
+    padding: 0 1.5rem 1.5rem;
+    border-top: none;
+    margin-top: 0;
+  }
+}
+
+.dialog-close-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 0 0;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Section header
+// ─────────────────────────────────────────────────────────────
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: vars.$radius-sm;
+  background: linear-gradient(135deg, vars.$accent-purple-light 0%, vars.$accent-purple-dark 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    color: white;
+    font-size: 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+.section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: vars.$slate-900;
+  letter-spacing: -0.01em;
+}
+
+.section-subtitle {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: vars.$slate-500;
+}
+
+.add-btn {
+  border-radius: vars.$radius-md !important;
+  background: vars.$accent-purple-dark !important;
+  color: white !important;
+  font-weight: 600;
+  height: 36px;
+  flex-shrink: 0;
+
+  &:hover {
+    background: vars.$accent-purple-light !important;
+  }
+
+  mat-icon {
+    font-size: 1.0625rem;
+    width: 1.0625rem;
+    height: 1.0625rem;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Loading
+// ─────────────────────────────────────────────────────────────
+.loading-container {
+  padding: 0.5rem 0;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Table
+// ─────────────────────────────────────────────────────────────
+.table-container {
+  overflow-x: auto;
+  border: 1px solid vars.$slate-200;
+  border-radius: vars.$radius-md;
+}
+
+.admins-table {
+  width: 100%;
+
+  th.mat-header-cell {
+    background: vars.$slate-50;
+    color: vars.$slate-500;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid vars.$slate-200;
+    white-space: nowrap;
+  }
+
+  td.mat-cell {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid vars.$slate-100;
+    color: vars.$slate-700;
+    font-size: 0.875rem;
+    vertical-align: middle;
+  }
+
+  tr.data-row {
+    transition: background vars.$motion-fast ease;
+
+    &:hover td.mat-cell {
+      background: #f5f3ff;
+    }
+
+    &:last-child td.mat-cell {
+      border-bottom: none;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// User cell
+// ─────────────────────────────────────────────────────────────
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: vars.$radius-sm;
+  background: linear-gradient(135deg, vars.$accent-purple-light 0%, vars.$accent-purple-dark 100%);
+  color: white;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  letter-spacing: 0.02em;
+}
+
+.user-name {
+  font-weight: 600;
+  color: vars.$slate-900;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.cell-text {
+  color: vars.$slate-600;
+  font-size: 0.875rem;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Status chip
+// ─────────────────────────────────────────────────────────────
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.2rem 0.625rem;
+  border-radius: vars.$radius-sm;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+
+  &.active {
+    background: rgba(vars.$success, 0.1);
+    color: vars.$success;
+  }
+
+  &.locked {
+    background: rgba(vars.$error, 0.1);
+    color: vars.$error;
+  }
+}
+
+.status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+
+  .status-chip.active & {
+    background: vars.$success;
+  }
+
+  .status-chip.locked & {
+    background: vars.$error;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Flag chip (password state)
+// ─────────────────────────────────────────────────────────────
+.flag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.625rem;
+  border-radius: vars.$radius-sm;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &.pending {
+    background: rgba(vars.$warning, 0.12);
+    color: vars.$warning;
+  }
+
+  &.ok {
+    background: rgba(vars.$slate-400, 0.12);
+    color: vars.$slate-500;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Actions cell
+// ─────────────────────────────────────────────────────────────
+.actions-cell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  transition: all vars.$motion-fast ease !important;
+
+  &.deactivate:hover:not([disabled]) {
+    background: rgba(vars.$error, 0.1);
+    color: vars.$error;
+  }
+}

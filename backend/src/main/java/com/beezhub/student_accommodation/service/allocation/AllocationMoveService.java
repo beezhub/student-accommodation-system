@@ -1,5 +1,7 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.exceptions.InvalidAllocationStatusTransitionException;
+import com.beezhub.student_accommodation.exceptions.AllocationConstraintViolationException;
 import com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.RoomCapacityExceededException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
@@ -13,7 +15,7 @@ import com.beezhub.student_accommodation.model.enums.AllocationAuditActionType;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.model.event.AllocationMovedEvent;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import org.springframework.context.ApplicationEventPublisher;
@@ -31,7 +33,7 @@ public class AllocationMoveService {
     private final RoomAllocationRepository roomAllocationRepository;
     private final RoomRepository roomRepository;
     private final RoomAllocationMapper roomAllocationMapper;
-    private final AllocationScoringService allocationScoringService;
+    private final LegacyScoringStrategy allocationScoringService;
     private final AppUserRepository appUserRepository;
     private final AllocationAuditService allocationAuditService;
     private final ApplicationEventPublisher eventPublisher;
@@ -55,11 +57,13 @@ public class AllocationMoveService {
         validateRoomCapacity(newRoom);
         validateHardConstraints(allocation.getStudent(), newRoom);
 
-        roomOccupancyManager.updateOccupancy(oldRoom, -1);
-        roomOccupancyManager.updateOccupancy(newRoom, 1);
-
         allocation.setRoom(newRoom);
         RoomAllocation updated = roomAllocationRepository.save(allocation);
+
+        // Both rooms, after the move. Syncing before it would count the allocation against the
+        // room it is leaving and not yet against the one it is joining (GH-136).
+        roomOccupancyManager.syncOccupancy(oldRoom);
+        roomOccupancyManager.syncOccupancy(newRoom);
 
         AppUser admin = appUserRepository.findById(adminId).orElse(null);
         allocationAuditService.logAuditAction(allocation, AllocationAuditActionType.MOVE, admin, reason, oldRoom,
@@ -74,7 +78,7 @@ public class AllocationMoveService {
 
     private void validateMoveEligibility(RoomAllocation allocation) {
         if (!"ACTIVE".equals(allocation.getStatus().name())) {
-            throw new RuntimeException("Can only move ACTIVE allocations");
+            throw new InvalidAllocationStatusTransitionException("Can only move ACTIVE allocations");
         }
     }
 
@@ -90,7 +94,8 @@ public class AllocationMoveService {
 
     private void validateHardConstraints(Student student, Room room) {
         if (!allocationScoringService.validateHardConstraints(student, room, false)) {
-            throw new RuntimeException("New room does not meet hard constraints for student");
+            throw new AllocationConstraintViolationException(
+                    "New room does not meet hard constraints for student");
         }
     }
 

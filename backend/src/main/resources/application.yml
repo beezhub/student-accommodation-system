@@ -3,46 +3,63 @@ spring:
     name: student-accommodation
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
-    username: ${USER_DB:localadmin}
-    password: ${PASSWORD_DB:admin}
+    # No defaults: a missing credential must fail startup rather than silently using a dev account.
+    username: ${USER_DB}
+    password: ${PASSWORD_DB}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: student-accommodation-pool
-      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
-      minimum-idle: ${HIKARI_MIN_IDLE:5}
-      idle-timeout: 600000
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:25}
+      minimum-idle: ${HIKARI_MIN_IDLE:10}
+      idle-timeout: 300000         # 5 min — recycle idle connections before Postgres drops them
       connection-timeout: 30000
-      max-lifetime: 1800000
+      max-lifetime: 600000          # 10 min — safely below typical Postgres tcp_keepalive timeout
+      keepalive-time: 120000        # 2 min — periodic ping to prevent Postgres from closing idle connections
       leak-detection-threshold: 60000
       connection-test-query: SELECT 1
   jpa:
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         hbm2ddl:
-          auto: update
+          auto: validate
   flyway:
     baseline-on-migrate: true
+    baseline-version: ${FLYWAY_BASELINE_VERSION:2026.02.19.2100}
     enabled: true
-    password: ${PASSWORD_DB:admin}
-    user: ${USER_DB:localadmin}
+    password: ${PASSWORD_DB}
+    user: ${USER_DB}
     url: ${DB_URL:jdbc:postgresql://localhost:5432/studentaccommodationlocaldb}
     locations: classpath:db/migration
-    out-of-order: true
-    ignore-missing-migrations: true
-    validate-on-migrate: false
+    out-of-order: false
+    validate-on-migrate: true
+    placeholders:
+      # true keeps the seeded demo administrator usable; anything else disables it (see
+      # V2026_09_05_1000__disable_seeded_admin.sql). Never set this in NONPROD or PROD.
+      demoSeed: ${DEMO_SEED:false}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      timeout: 60000
+      # Empty locally; set wherever Redis requires auth.
+      password: ${REDIS_PASSWORD:}
+      # Two seconds, not sixty. Redis is on the request path for token-blacklist checks and auth
+      # rate limiting, and both fail open, so a stalled server should be given up on quickly
+      # rather than holding a request thread for a minute per call (GH-162).
+      timeout: ${REDIS_TIMEOUT_MS:2000}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT_MS:1000}
       lettuce:
         pool:
           max-active: 8
           max-idle: 8
           min-idle: 0
-          max-wait: -1ms
+          # Bounded, not -1ms. An unlimited wait means a pool exhausted by a slow Redis blocks
+          # every subsequent caller indefinitely instead of failing open.
+          max-wait: ${REDIS_POOL_MAX_WAIT_MS:1000}ms
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
@@ -51,9 +68,15 @@ spring:
     properties:
       mail:
         smtp:
-          auth: false
+          auth: ${MAIL_SMTP_AUTH:false}
           starttls:
-            enable: false
+            enable: ${MAIL_STARTTLS_ENABLE:false}
+          # Without these a hung SMTP host blocks a notificationExecutor thread forever, and with
+          # 20 threads the whole notification pipeline stops (GH-132). JavaMail defaults to
+          # waiting indefinitely.
+          connectiontimeout: ${MAIL_CONNECT_TIMEOUT_MS:5000}
+          timeout: ${MAIL_READ_TIMEOUT_MS:5000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT_MS:5000}
     default-encoding: UTF-8
   servlet:
     multipart:
@@ -69,25 +92,22 @@ springdoc:
     tags-sorter: alpha
     disable-swagger-default-url: true
 jwt:
-  secret: ${JWT_SECRET:jCiWx+J9UALsCG/0E4elPktfQpDd7EpipyN1AGrCE2HNAjf826VSFMklA76gqBf23ZP8P1kq9DmC95dSolXknQ==}
+  secret: ${JWT_SECRET}
   expiration-time-ms: ${JWT_EXPIRATION:36000000}
   admin-expiration-time-ms: ${JWT_ADMIN_EXPIRATION:14400000}
 minio:
   endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
-  access-key: ${MINIO_ACCESS_KEY:minioadmin}
-  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  access-key: ${MINIO_ACCESS_KEY}
+  secret-key: ${MINIO_SECRET_KEY}
   bucket-name: ${MINIO_BUCKET:student-accommodation-bucket}
-google:
-  maps:
-    api-key: ${GOOGLE_MAPS_API_KEY:}
-    frontend:
-      api-key: ${GOOGLE_MAPS_FRONTEND_API_KEY:}
-    geocoding:
-      enabled: ${GEOCODING_ENABLED:true}
+  connect-timeout-s: ${MINIO_CONNECT_TIMEOUT_S:30}
+  read-timeout-s: ${MINIO_READ_TIMEOUT_S:30}
+  write-timeout-s: ${MINIO_WRITE_TIMEOUT_S:30}
 app:
-  base-url: ${APP_BASE_URL:http://localhost:4200}
+  base-url: ${APP_BASE_URL}
   support-email: ${APP_SUPPORT_EMAIL:accommodation@university.edu}
   university-name: ${APP_UNIVERSITY_NAME:University}
+  contact-phone: ${APP_CONTACT_PHONE:+27 (0) 11 000 0000}
   notification:
     retry-delay-minutes: ${NOTIFICATION_RETRY_DELAY_MINUTES:5}
     retry-check-interval-ms: ${NOTIFICATION_RETRY_CHECK_INTERVAL_MS:300000}
@@ -100,19 +120,98 @@ app:
     batch-interval-ms: ${BATCH_INTERVAL_MS:21600000}  # 6 hours
     batch-size: ${BATCH_SIZE:50}
     batch-on-expiry: ${BATCH_ON_EXPIRY:true}
-  features:
-    auto-allocation:
-      enabled: ${AUTO_ALLOCATION_ENABLED:true}
+  # No app.features block: the auto-allocation flag lives in ff4j_features and is toggled through
+  # /api/admin/features. A property that overwrote it on every boot silently reverted admin
+  # changes at the next restart (GH-142).
+  documents:
+    # Per-document limit, enforced by AllowListFileValidationService and returning 422. The
+    # servlet multipart limit is the outer bound and rejects the request before it reaches the
+    # application. Defaults to the same 10MB so this is behaviour-neutral (GH-144).
+    max-file-size-bytes: ${DOCUMENT_MAX_FILE_SIZE_BYTES:10485760}
+  security:
+    # Browser origins allowed to call the API. No default: an unset value must fail startup rather
+    # than silently falling back to localhost, which would block the real front end (GH-135).
+    allowed-origins: ${ALLOWED_ORIGINS}
+    # Object-storage origin the browser loads presigned document and image URLs from; used in the CSP.
+    storage-public-origin: ${STORAGE_PUBLIC_ORIGIN:http://localhost:9000}
+    # Addresses of reverse proxies whose X-Forwarded-For may be trusted. Leave empty when the app is
+    # reached directly. Unset behind a proxy, every client shares the proxy's address and therefore
+    # one rate-limit bucket, which throttles the whole deployment.
+    trusted-proxies: ${APP_SECURITY_TRUSTED_PROXIES:}
+    rate-limit:
+      requests-per-minute: ${AUTH_RATE_LIMIT_PER_MINUTE:30}
+  admin-bootstrap:
+    # Creates or resets the first PLATFORM_ADMIN at startup; leave blank once the admin has signed in.
+    email: ${ADMIN_BOOTSTRAP_EMAIL:}
+    password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+  geocoding:
+    google:
+      # Blank disables address lookup entirely: no requests are made, /api/geocoding/search returns
+      # 503, and buildings/maps-config reports enabled=false so the form disables its autocomplete.
+      # Backend-only on purpose — a geocoding key handed to the browser is one anyone can spend.
+      api-key: ${GOOGLE_MAPS_API_KEY:}
+      # Overridable so a test can point at a stub instead of the live API.
+      base-url: ${GOOGLE_GEOCODING_BASE_URL:https://maps.googleapis.com/maps/api/geocode/json}
   storage:
     cleanup:
       cron: ${STORAGE_CLEANUP_CRON:0 0 3 * * *}
+      # Objects written more recently than this are never treated as orphans; the DB row commits after the object write
+      grace-period-minutes: ${STORAGE_CLEANUP_GRACE_MINUTES:60}
+    retention:
+      cron: ${DOCUMENT_RETENTION_CRON:0 30 3 * * *}
+      # How long a student's document pack is kept after their last application closes and their
+      # last tenancy ends. The clock is the student's history, not the upload date: a pack is
+      # reused across applications to different companies, so a live application or a held bed
+      # anywhere keeps everything (GH-235).
+      document-months: ${DOCUMENT_RETENTION_MONTHS:12}
+      # Reporting only until an operator turns this off. Deletion is irreversible and the first run
+      # on an existing deployment acts on the whole backlog at once, so the job logs what it would
+      # delete and deletes nothing. See docs/BACKUP_AND_RESTORE.md before flipping it.
+      dry-run: ${DOCUMENT_RETENTION_DRY_RUN:true}
 async:
   core-pool-size: ${ASYNC_CORE_POOL_SIZE:10}
   max-pool-size: ${ASYNC_MAX_POOL_SIZE:20}
   queue-capacity: ${ASYNC_QUEUE_CAPACITY:500}
 
+server:
+  # In-flight requests finish instead of being cut off mid-transaction on SIGTERM.
+  shutdown: graceful
+
+spring.lifecycle.timeout-per-shutdown-phase: 20s
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      # Never leak component detail to an unauthenticated caller of /actuator/health.
+      show-details: never
+      # Boot only turns these on when it detects Kubernetes or Cloud Foundry, so without this
+      # the aggregate /actuator/health is the only surface, and it runs every contributor:
+      # SMTP opens a socket, MinIO checks the bucket, Redis pings, and Boot adds a full mail
+      # connection test. Any one of them DOWN made the whole probe 503 and the container
+      # unhealthy, so an SMTP outage restarted a perfectly healthy application (GH-147).
+      probes:
+        enabled: true
+      group:
+        # Liveness answers one question: is this JVM broken beyond recovery. Nothing external
+        # belongs here, because a restart cannot fix someone else's outage.
+        liveness:
+          include: livenessState
+        # Readiness adds the database, the one dependency the application cannot serve without.
+        #
+        # Redis is deliberately excluded: token blacklist checks fail open and the rate-limit
+        # filter swallows Redis errors, so an outage keeps traffic flowing with revocation and
+        # auth rate limiting disabled. That is an availability-over-security choice, taken
+        # knowingly. SMTP and MinIO are excluded because neither blocks serving a request.
+        readiness:
+          include: readinessState,db
+  metrics:
+    scrape:
+      # HTTP basic credentials Prometheus uses for /actuator/prometheus. With the password empty the
+      # endpoint stays PLATFORM_ADMIN-only; setting it registers a scrape-only account that can read
+      # nothing else. Never expose the actuator port publicly.
+      username: ${PROMETHEUS_SCRAPE_USER:prometheus}
+      password: ${PROMETHEUS_SCRAPE_PASSWORD:}

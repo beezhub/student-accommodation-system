@@ -3,9 +3,13 @@ package com.beezhub.student_accommodation.service;
 import com.beezhub.student_accommodation.exceptions.*;
 import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.*;
+import com.beezhub.student_accommodation.model.entity.Room;
+import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.EmailVerificationToken;
 import com.beezhub.student_accommodation.model.entity.PasswordResetToken;
 import com.beezhub.student_accommodation.repository.*;
+import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
+import com.beezhub.student_accommodation.util.SecureTokenHasher;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.EmailVerificationTokenRepository;
 import com.beezhub.student_accommodation.repository.PasswordResetTokenRepository;
@@ -18,8 +22,10 @@ import com.beezhub.student_accommodation.repository.UserNotificationRepository;
 import com.beezhub.student_accommodation.repository.ActivityLogRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
 import com.beezhub.student_accommodation.security.user.AppUserDetails;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +41,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -54,15 +63,19 @@ public class AuthService {
     private final ApplicationRepository applicationRepository;
     private final DocumentRepository documentRepository;
     private final RoomAllocationRepository roomAllocationRepository;
+    private final RoomOccupancyManager roomOccupancyManager;
     private final WaitingListRepository waitingListRepository;
     private final UserNotificationRepository userNotificationRepository;
     private final ActivityLogRepository activityLogRepository;
     private final TokenBlacklistService tokenBlacklistService;
     private final LoginAttemptService loginAttemptService;
     private final TenantService tenantService;
+    private final UserAnonymizationService userAnonymizationService;
     private final MeterRegistry meterRegistry;
 
-    @Value("${app.base-url:http://localhost:3000}")
+    // No default: app.base-url is required, and this one disagreed with application.yml (:4200),
+    // so password-reset links pointed at the wrong port whenever it was unset (GH-135).
+    @Value("${app.base-url}")
     private String baseUrl;
 
     @Value("${app.password-reset.expiry-hours:24}")
@@ -72,23 +85,25 @@ public class AuthService {
     private int emailVerificationExpiryHours;
 
     @Transactional
+    @Timed(value = "service.auth.signup", percentiles = {0.5, 0.95, 0.99})
     public LoginResponse signup(SignupRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new EmailAlreadyRegisteredException("Email already registered");
         }
         var user = appUserMapper.toEntity(request, passwordEncoder.encode(request.getPassword()));
-        // Assign the default tenant so the NOT NULL constraint on tenant_id is
-        // satisfied.
-        // During public sign-up there is no JWT, so TenantContext is empty and
-        // TenantListener cannot auto-populate the field.
-        user.setTenantId(tenantService.getDefaultTenant().getId());
+        // Public signup always creates STUDENT accounts (see AppUserMapper.toEntity).
+        // Students are platform-level entities (ADR-001) and must not be scoped to any
+        // building-owner tenant.  Assign the PLATFORM sentinel (id=0) so the Hibernate
+        // tenant filter is bypassed for this user — student data access is enforced by
+        // student_id / user_id ownership instead.
+        user.setTenantId(TenantContext.PLATFORM_TENANT_ID);
         var save = userRepository.save(user);
 
         try {
             sendVerificationEmail(save.getEmail());
             log.info("Verification email sent to new user: {}", save.getEmail());
         } catch (Exception e) {
-            log.error("Failed to send verification email during signup to: {}", save.getEmail(), e);
+            log.error("action=signupVerificationEmailFailed userId={}", save.getId(), e);
         }
 
         var userData = appUserMapper.toUserData(save);
@@ -100,6 +115,16 @@ public class AuthService {
         return new LoginResponse(token, userData);
     }
 
+    /**
+     * Authenticates a user and maintains the failed-attempt counters.
+     *
+     * <p>{@code noRollbackFor} is load-bearing: the failure branch saves the incremented
+     * {@code failed_login_attempts} and {@code account_locked_until}, then rethrows. Without this,
+     * Spring rolled that save back with the transaction and the database lockout never took effect,
+     * leaving brute-force protection entirely dependent on Redis (GH-117).
+     */
+    @Transactional(noRollbackFor = BadCredentialsException.class)
+    @Timed(value = "service.auth.login", percentiles = {0.5, 0.95, 0.99})
     public LoginResponse validateLogin(String username, String password) {
         // 1. Check if user exists first to check lock status
         var userOpt = userRepository.findByEmail(username);
@@ -135,7 +160,7 @@ public class AuthService {
                 userRepository.save(user);
             }
 
-            String token = jwtUtil.generateToken(userDetails);
+            String token = jwtUtil.generateToken(userDetails, Boolean.TRUE.equals(user.getMustChangePassword()));
             var userData = appUserMapper.toUserData(user);
 
             meterRegistry.counter("sas.auth.login.success", "tenant", String.valueOf(user.getTenantId())).increment();
@@ -187,14 +212,42 @@ public class AuthService {
         return appUserMapper.toUserData(user);
     }
 
+    /**
+     * Issues a fresh JWT for the caller and retires the one they presented.
+     *
+     * <p>{@code JwtAuthenticationFilter} puts the username (a {@code String}) in the principal, so
+     * the previous cast to {@code UserDetails} always threw and this endpoint never worked. The
+     * user is re-read from the database rather than trusted from the old token, so a role change,
+     * a tenant move or a lock takes effect on refresh instead of persisting for the token's
+     * lifetime, and the old jti is blacklisted so refreshing cannot be used to keep two live
+     * tokens.
+     */
+    @Transactional
     public LoginResponse refreshToken(Authentication authentication) {
-        // Re-issue a new JWT for the authenticated principal
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String token = jwtUtil.generateToken(userDetails);
-        var user = userRepository.findByEmail(userDetails.getUsername())
+        if (authentication == null || authentication.getName() == null) {
+            throw new UserNotFoundException("No authenticated user found");
+        }
+        AppUser user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-        var userData = appUserMapper.toUserData(user);
-        return new LoginResponse(token, userData);
+
+        if (Boolean.TRUE.equals(user.getIsAnonymized())) {
+            throw new UserNotFoundException("User not found");
+        }
+        if (user.getAccountLockedUntil() != null && user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
+            // 401, matching validateLogin. AccountLockedException is reused by the rate limiter and
+            // maps to 429, which would be misleading here.
+            log.warn("action=refreshRejected reason=accountLocked userId={}", user.getId());
+            throw new BadCredentialsException("Account is locked");
+        }
+
+        // Retire the presented token before handing out its replacement.
+        blacklistCurrentToken(authentication);
+
+        AppUserDetails userDetails = new AppUserDetails(
+                user.getEmail(), user.getUserPassword(), user.getUserRole().name(), user.getTenantId());
+        String token = jwtUtil.generateToken(userDetails, Boolean.TRUE.equals(user.getMustChangePassword()));
+        log.info("action=tokenRefreshed userId={}", user.getId());
+        return new LoginResponse(token, appUserMapper.toUserData(user));
     }
 
     public void logout(Authentication authentication) {
@@ -242,8 +295,20 @@ public class AuthService {
             var student = studentOpt.get();
             log.info("Deleting related data for student: {}", student.getId());
 
-            // Delete room allocations
+            // Delete room allocations. The rooms they occupied have to be recomputed afterwards:
+            // this is a hard delete of OFFERED, ACCEPTED and ACTIVE rows, and without a sync the
+            // room keeps the departed student in its occupancy for ever. A capacity-one room lands
+            // on FULL, which the scoring strategies exclude, so it can never receive another
+            // allocation and nothing later triggers a recount (GH-136).
+            List<Room> affectedRooms = roomAllocationRepository.findByStudent_Id(student.getId()).stream()
+                    .map(RoomAllocation::getRoom)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toMap(Room::getId, room -> room, (a, b) -> a))
+                    .values().stream().toList();
+
             roomAllocationRepository.deleteByStudent(student);
+            roomAllocationRepository.flush();
+            affectedRooms.forEach(roomOccupancyManager::syncOccupancy);
             log.info("Deleted room allocations");
 
             // Delete waiting list entries
@@ -285,6 +350,21 @@ public class AuthService {
         log.info("Account deleted successfully for user: {}", authentication.getName());
     }
 
+    /**
+     * Anonymises a user account identified by userId (admin-only operation).
+     * Replaces all PII with placeholder values and invalidates the user's credentials.
+     * The account record is retained for referential integrity; the user cannot log in
+     * after anonymisation.
+     *
+     * @param userId the ID of the user to anonymise
+     */
+    @Transactional
+    public void anonymizeAccount(Long userId) {
+        log.info("Admin-initiated anonymisation for userId: {}", userId);
+        userAnonymizationService.anonymizeUser(userId);
+        log.info("Account anonymised successfully for userId: {}", userId);
+    }
+
     private void blacklistCurrentToken(Authentication authentication) {
         Object credentials = authentication.getCredentials();
         if (credentials instanceof String) {
@@ -315,21 +395,37 @@ public class AuthService {
         return getCurrentUser().getId();
     }
 
+    /**
+     * Always reports the same outcome, whether the account exists, the send succeeded, or the
+     * mail server was down.
+     *
+     * <p>It already returned the same message for an unknown email, but then threw a 500 when the
+     * send failed — which only happens for an account that exists. That difference was an
+     * enumeration oracle: a caller could tell a real address from a fake one by knocking the mail
+     * server over, or simply by observing a transient failure (GH-154).
+     */
     @Transactional
     public MessageResponse requestPasswordReset(String email) {
-        log.info("Password reset requested for email: {}", email);
+        log.info("action=passwordResetRequested");
 
-        AppUser user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+        var userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            // Deliberately indistinguishable from the success path.
+            log.info("action=passwordResetRequestedForUnknownAccount");
+            return new MessageResponse("Password reset instructions have been sent to your email");
+        }
+
+        AppUser user = userOpt.get();
 
         passwordResetTokenRepository.deleteByUserId(user.getId());
 
-        // Generate new token
+        // The plaintext goes in the email; only its hash is stored. Plaintext at rest meant a
+        // database read handed over every live reset token (GH-154).
         String token = UUID.randomUUID().toString();
         LocalDateTime expiryDate = LocalDateTime.now().plusHours(passwordResetExpiryHours);
 
         PasswordResetToken resetToken = PasswordResetToken.builder()
-                .token(token)
+                .token(SecureTokenHasher.hash(token))
                 .user(user)
                 .expiryDate(expiryDate)
                 .used(false)
@@ -351,10 +447,10 @@ public class AuthService {
                             "If you did not request this, please ignore this email.\n\n" +
                             "Best regards,\n" +
                             "Student Accommodation Team");
-            log.info("Password reset email sent successfully to: {}", email);
+            log.info("action=passwordResetEmailSent userId={}", user.getId());
         } catch (Exception e) {
-            log.error("Failed to send password reset email to: {}", email, e);
-            throw new RuntimeException("Failed to send password reset email");
+            // Logged, not rethrown. Throwing here reveals that the account exists.
+            log.error("action=passwordResetEmailFailed userId={}", user.getId(), e);
         }
 
         return new MessageResponse("Password reset instructions have been sent to your email");
@@ -364,7 +460,8 @@ public class AuthService {
     public TokenValidationResponse verifyResetToken(String token) {
         log.info("Verifying reset token");
 
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+        PasswordResetToken resetToken = passwordResetTokenRepository
+                .findByToken(SecureTokenHasher.hash(token))
                 .orElse(null);
 
         if (resetToken == null) {
@@ -386,7 +483,8 @@ public class AuthService {
     public MessageResponse resetPassword(String token, String newPassword) {
         log.info("Attempting to reset password with token");
 
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+        PasswordResetToken resetToken = passwordResetTokenRepository
+                .findByToken(SecureTokenHasher.hash(token))
                 .orElseThrow(() -> new InvalidTokenException("Invalid password reset token"));
 
         if (resetToken.isUsed()) {
@@ -411,15 +509,28 @@ public class AuthService {
 
     // ==================== Email Verification Methods ====================
 
+    /**
+     * Always reports the same outcome, whether the account exists, is already verified, or the
+     * send failed.
+     *
+     * <p>It previously returned 404 for an unknown address and a distinct error for an already
+     * verified one, so an unauthenticated caller could enumerate registered accounts and learn
+     * which had completed verification (GH-154).
+     */
     @Transactional
     public MessageResponse sendVerificationEmail(String email) {
-        log.info("Sending verification email to: {}", email);
+        log.info("action=verificationEmailRequested");
 
-        AppUser user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+        var userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            log.info("action=verificationEmailRequestedForUnknownAccount");
+            return new MessageResponse("Verification email has been sent to your email address");
+        }
 
+        AppUser user = userOpt.get();
         if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new EmailAlreadyVerifiedException("Email is already verified");
+            log.info("action=verificationEmailSkipped reason=alreadyVerified userId={}", user.getId());
+            return new MessageResponse("Verification email has been sent to your email address");
         }
 
         // Delete any existing verification tokens for this user
@@ -429,8 +540,9 @@ public class AuthService {
         String token = UUID.randomUUID().toString();
         LocalDateTime expiryDate = LocalDateTime.now().plusHours(emailVerificationExpiryHours);
 
+        // Hashed at rest for the same reason as the reset token (GH-154).
         EmailVerificationToken verificationToken = EmailVerificationToken.builder()
-                .token(token)
+                .token(SecureTokenHasher.hash(token))
                 .user(user)
                 .expiryDate(expiryDate)
                 .used(false)
@@ -451,10 +563,10 @@ public class AuthService {
                             "If you did not register, please ignore this email.\n\n" +
                             "Best regards,\n" +
                             "Student Accommodation Team");
-            log.info("Verification email sent successfully to: {}", email);
+            log.info("action=verificationEmailSent userId={}", user.getId());
         } catch (Exception e) {
-            log.error("Failed to send verification email to: {}", email, e);
-            throw new RuntimeException("Failed to send verification email");
+            // Logged, not rethrown: throwing reveals that the account exists.
+            log.error("action=verificationEmailFailed userId={}", user.getId(), e);
         }
 
         return new MessageResponse("Verification email has been sent to your email address");
@@ -464,7 +576,8 @@ public class AuthService {
     public MessageResponse verifyEmail(String token) {
         log.info("Attempting to verify email with token");
 
-        EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
+        EmailVerificationToken verificationToken = emailVerificationTokenRepository
+                .findByToken(SecureTokenHasher.hash(token))
                 .orElseThrow(() -> new InvalidTokenException("Invalid verification token"));
 
         if (verificationToken.isUsed()) {

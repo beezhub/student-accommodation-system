@@ -40,3 +40,10 @@ out/
 .env
 .env.local
 *.env
+
+### Build/test scratch output ###
+*.log
+build_log*.txt
+startup_log*.txt
+test_output*.txt
+test_results.txt

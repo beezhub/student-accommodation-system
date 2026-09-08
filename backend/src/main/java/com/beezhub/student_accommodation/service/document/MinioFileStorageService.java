@@ -4,12 +4,12 @@ import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
-import io.minio.http.Method;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.stream.Stream;
@@ -31,7 +31,7 @@ public class MinioFileStorageService implements FileStorageService {
                     PutObjectArgs.builder()
                             .bucket(bucketName)
                             .object(key)
-                            .stream(content, size, -1)
+                            .stream(content, size, -1L)
                             .contentType(contentType)
                             .build());
             return key;
@@ -89,15 +89,39 @@ public class MinioFileStorageService implements FileStorageService {
     }
 
     @Override
+    public String getContentType(String key) {
+        String bucketName = minioConfig.getBucketName();
+        try {
+            return minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(key)
+                            .build()).contentType();
+        } catch (Exception e) {
+            log.warn("Could not determine content type for key {}: {}", key, e.getMessage());
+            return "application/octet-stream";
+        }
+    }
+
+    @Override
     public String generatePresignedUrl(String key, Duration expiry) {
         String bucketName = minioConfig.getBucketName();
         try {
+            // The stored type is clamped here too, not only on the download endpoint. A presigned
+            // URL is served straight by object storage, so without these overrides an object
+            // stored before GH-144 would still be delivered as whatever type the client claimed.
+            // attachment stops the browser rendering it inline whatever the type says.
+            Map<String, String> responseOverrides = Map.of(
+                    "response-content-type", DocumentContentTypes.clamp(getContentType(key)),
+                    "response-content-disposition", "attachment");
+
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .bucket(bucketName)
                             .object(key)
-                            .method(Method.GET)
+                            .method(Http.Method.GET)
                             .expiry((int) expiry.toSeconds())
+                            .extraQueryParams(responseOverrides)
                             .build());
         } catch (Exception e) {
             throw new FileStorageException("Error generating presigned URL for key: " + key, e);
@@ -105,21 +129,26 @@ public class MinioFileStorageService implements FileStorageService {
     }
 
     @Override
-    public Stream<String> listObjects() {
+    public Stream<StoredObject> listObjects(String prefix) {
         String bucketName = minioConfig.getBucketName();
         Iterable<Result<Item>> results = minioClient.listObjects(
                 ListObjectsArgs.builder()
                         .bucket(bucketName)
+                        .prefix(prefix == null ? "" : prefix)
                         .recursive(true)
                         .build());
 
         return StreamSupport.stream(results.spliterator(), false)
                 .map(itemResult -> {
                     try {
-                        return itemResult.get().objectName();
+                        return itemResult.get();
                     } catch (Exception e) {
                         throw new FileStorageException("Error listing objects from MinIO", e);
                     }
-                });
+                })
+                .filter(item -> !item.isDir())
+                .map(item -> new StoredObject(
+                        item.objectName(),
+                        item.lastModified() == null ? null : item.lastModified().toInstant()));
     }
 }

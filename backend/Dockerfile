@@ -1,23 +1,31 @@
 # Build stage
-FROM gradle:8.11.1-jdk17-alpine AS build
+FROM eclipse-temurin:21-jdk-alpine AS build
 
 WORKDIR /app
 
-# Copy Gradle files for dependency caching
-COPY build.gradle settings.gradle gradlew ./
+# Set a stable, predictable Gradle cache directory inside the image layer.
+# This ensures the "resolve dependencies" step is correctly cached by Docker.
+ENV GRADLE_USER_HOME=/app/.gradle
+
+# Copy wrapper first — needed to run ./gradlew
 COPY gradle ./gradle
+COPY gradlew ./
+RUN chmod +x gradlew
 
-# Download dependencies (this layer will be cached if dependencies don't change)
-RUN gradle dependencies --no-daemon || true
+# Copy only the dependency descriptors so this layer is invalidated only when
+# dependencies actually change, not when source code changes.
+COPY build.gradle settings.gradle ./
 
-# Copy source code
+# Pre-resolve all compile + runtime dependencies.
+# --no-daemon avoids leaving a daemon process running inside the image layer.
+RUN ./gradlew dependencies --no-daemon --quiet
+
+# Copy source code and build the fat JAR (tests run in CI, not here)
 COPY src ./src
-
-# Build the application (skip tests for faster builds, run tests in CI/CD)
 RUN ./gradlew bootJar --no-daemon -x test
 
-# Runtime stage
-FROM eclipse-temurin:17-jre-alpine
+# Runtime stage — use JRE only for a smaller image
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
@@ -27,18 +35,26 @@ RUN addgroup -S spring && adduser -S spring -G spring
 # Copy the built JAR from the build stage
 COPY --from=build /app/build/libs/*.jar app.jar
 
-# Change ownership to the spring user
 RUN chown spring:spring app.jar
 
-# Switch to non-root user
 USER spring:spring
 
-# Expose the application port
 EXPOSE 8080
 
-# Health check
+# Readiness, not the aggregate: the aggregate runs every health contributor, so an SMTP or
+# object-storage outage marked a healthy container unhealthy and had it restarted (GH-147).
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health/readiness || exit 1
 
-# Run the application
+# Without MaxRAMPercentage the JVM takes its own default share of the container limit, which is
+# 25% -- about 256MB under the 1G limit in docker-compose. ExitOnOutOfMemoryError makes the
+# orchestrator restart the container rather than leaving a JVM thrashing after a heap exhaustion.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0 -XX:+ExitOnOutOfMemoryError"
+
+# Every timestamp column is TIMESTAMP without time zone and the application writes them with
+# LocalDateTime.now() in the JVM default zone, so the zone has to be pinned rather than inherited
+# from the base image. Set through the environment rather than a JVM system property, so a
+# deployment can override it; a system property would win and make APP_TIMEZONE inert.
+ENV TZ=UTC
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

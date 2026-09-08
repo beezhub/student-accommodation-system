@@ -1,0 +1,91 @@
+# Grafana Alerting Rule: Permanently Failed Notifications
+# Triggers when sas.notifications.permanently_failed counter is incremented.
+# This means a notification exhausted all retries and can no longer be delivered.
+# Refs: TASK-3.05, ARCH 6.4, ARCH RISK-008
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: notification-failures
+    folder: SAS Alerts
+    interval: 1m
+    rules:
+      - uid: sas-notification-perm-failed-alert
+        title: Notification Permanently Failed
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: increase(sas_notifications_permanently_failed_total[5m]) > 0
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: []
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 0s
+        annotations:
+          summary: One or more notifications have been permanently failed in the last 5 minutes.
+          description: >
+            A notification exceeded max retry attempts and has been marked PERMANENTLY_FAILED.
+            Students may not have received critical system emails (offer, check-in, etc.).
+            Investigate the notification table and email delivery logs.
+        labels:
+          severity: critical
+          team: platform

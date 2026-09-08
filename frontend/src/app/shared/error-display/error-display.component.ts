@@ -52,7 +52,8 @@ export class ErrorDisplayComponent {
     network: {
       icon: 'cloud_off',
       title: 'Connection Error',
-      message: 'Unable to connect to the server. Please check your internet connection and try again.',
+      message:
+        'Unable to connect to the server. Please check your internet connection and try again.',
       color: 'warn',
     },
     server: {
@@ -112,7 +113,10 @@ export class ErrorDisplayComponent {
   }
 
   get showRetryButton(): boolean {
-    return this.showRetry && (this.type === 'network' || this.type === 'server' || this.type === 'general');
+    return (
+      this.showRetry &&
+      (this.type === 'network' || this.type === 'server' || this.type === 'general')
+    );
   }
 
   onRetry(): void {

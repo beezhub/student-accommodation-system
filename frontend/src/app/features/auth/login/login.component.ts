@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { RoleService } from '../../../core/services/role.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -12,6 +13,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -31,32 +33,22 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class LoginComponent {
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
+  private roleService = inject(RoleService);
+  private snackBar = inject(MatSnackBar);
+
   loginForm: FormGroup;
   isSubmitting = false;
   errorMessage: string = '';
   hidePassword = true;
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
     });
-  }
-
-  passwordMatchValidator(g: FormGroup) {
-    const password = g.get('password')?.value;
-    const confirmPassword = g.get('confirmPassword')?.value;
-
-    if (password === confirmPassword) {
-      return null;
-    }
-
-    g.get('confirmPassword')?.setErrors({ mismatch: true });
-    return { mismatch: true };
   }
   onSubmit(): void {
     if (this.loginForm.valid) {
@@ -84,19 +76,28 @@ export class LoginComponent {
               duration: 3000,
               panelClass: ['success-snackbar'],
             });
+            // Back to whatever the guard interrupted, if anything.
+            const target = this.safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
+            if (target) {
+              // navigateByUrl, so a returnUrl carrying its own query string or fragment survives.
+              this.router.navigateByUrl(target);
+              return;
+            }
+
             // Redirect based on user role
-            if (user.userRole === 'ADMIN') {
+            if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
               this.router.navigate(['/admin']);
             } else {
               this.router.navigate(['/dashboard']);
             }
           }
         },
-        error: (error: any) => {
+        error: (error: HttpErrorResponse) => {
           this.isSubmitting = false;
           this.errorMessage =
             error?.error?.message || error?.message || 'Login failed. Please try again.';
           this.snackBar.open(this.errorMessage, 'Close', {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             duration: 5000,
             panelClass: ['error-snackbar'],
           });
@@ -113,5 +114,21 @@ export class LoginComponent {
 
   togglePasswordVisibility(): void {
     this.hidePassword = !this.hidePassword;
+  }
+
+  /**
+   * Deny-by-default check on the returnUrl query parameter.
+   *
+   * <p>Angular routing cannot navigate off-origin, so this is defence in depth rather than the
+   * thing standing between a user and an open redirect. It also stops a redirect loop back to the
+   * login page, which is the failure a tester would actually hit.
+   */
+  private safeReturnUrl(raw: string | null): string | null {
+    if (!raw || !raw.startsWith('/')) return null;
+    if (raw.startsWith('//') || raw.startsWith('/\\')) return null;
+    if (raw.includes('://')) return null;
+    const path = raw.split(/[?#]/)[0];
+    if (path === '/login' || path === '/') return null;
+    return raw;
   }
 }

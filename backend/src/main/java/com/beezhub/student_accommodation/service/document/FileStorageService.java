@@ -49,9 +49,18 @@ public interface FileStorageService {
     String generatePresignedUrl(String key, Duration expiry);
 
     /**
-     * Lists all object keys in the storage.
+     * Returns the content type of a stored object.
      *
-     * @return A stream of object keys
+     * @param key The object key
+     * @return The MIME content type, or "application/octet-stream" if unknown
      */
-    Stream<String> listObjects();
+    String getContentType(String key);
+
+    /**
+     * Lists objects whose key starts with the given prefix.
+     *
+     * @param prefix The key prefix to list under; an empty string lists the whole bucket
+     * @return A stream of stored objects (keys and last-modified timestamps)
+     */
+    Stream<StoredObject> listObjects(String prefix);
 }

@@ -2,102 +2,126 @@
 
 // Typography Mixins
 @mixin page-title {
-    font-size: vars.$font-size-h1;
-    font-weight: vars.$font-weight-h1;
-    color: vars.$slate-800;
-    // Optional: Add gradient support if usually needed, but adhering to base text for now
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  font-size: vars.$font-size-h1;
+  font-weight: vars.$font-weight-h1;
+  color: vars.$slate-800;
+
+  // Optional: Add gradient support if usually needed, but adhering to base text for now
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 @mixin page-subtitle {
-    color: vars.$slate-500;
-    font-size: 15px; // Custom size from audit
-    font-weight: 500;
-    margin: 0;
+  color: vars.$slate-500;
+  font-size: 15px; // Custom size from audit
+  font-weight: 500;
+  margin: 0;
 }
 
 @mixin section-title {
-    font-size: vars.$font-size-title;
-    font-weight: vars.$font-weight-title;
-    color: vars.$slate-800;
+  font-size: vars.$font-size-title;
+  font-weight: vars.$font-weight-title;
+  color: vars.$slate-800;
 }
 
 // Component Mixins
 @mixin status-badge($bg-color, $text-color, $border-color) {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: vars.$radius-pill;
-    font-size: vars.$font-size-badge;
-    font-weight: vars.$font-weight-badge;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    background: $bg-color;
-    color: $text-color;
-    border: 1px solid $border-color;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: vars.$radius-pill;
+  font-size: vars.$font-size-badge;
+  font-weight: vars.$font-weight-badge;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: $bg-color;
+  color: $text-color;
+  border: 1px solid $border-color;
 
-    mat-icon {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
-    }
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
 }
 
 @mixin card-base {
-    border-radius: vars.$radius-xl; // 24px as per audit for table cards
-    border: 1px solid rgba(vars.$slate-200, 0.6);
-    box-shadow: vars.$shadow-medium;
-    background: white;
-    overflow: hidden;
+  border-radius: vars.$radius-xl; // 24px as per audit for table cards
+  border: 1px solid rgba(vars.$slate-200, 0.6);
+  box-shadow: vars.$shadow-medium;
+  background: white;
+  overflow: hidden;
 }
 
 @mixin filter-card-base {
-    border-radius: vars.$radius-lg; // 20px
-    border: 1px solid rgba(vars.$slate-200, 0.8);
-    box-shadow: vars.$shadow-subtle;
-    background: linear-gradient(180deg, #ffffff 0%, vars.$slate-50 100%);
-    margin-bottom: 24px;
+  border-radius: vars.$radius-lg; // 20px
+  border: 1px solid rgba(vars.$slate-200, 0.8);
+  box-shadow: vars.$shadow-subtle;
+  background: linear-gradient(180deg, #fff 0%, vars.$slate-50 100%);
+  margin-bottom: 24px;
 }
 
 @mixin action-button {
-    height: 48px;
-    border-radius: vars.$radius-md; // 10px
-    font-weight: 600;
-    padding: 0 20px;
-    transition: all 0.2s ease;
+  height: 48px;
+  border-radius: vars.$radius-md; // 10px
+  font-weight: 600;
+  padding: 0 20px;
+  transition: all 0.2s ease;
 
-    &:hover {
-        transform: scale(1.02); // Standardize hover effect
-    }
+  &:hover {
+    transform: scale(1.02); // Standardize hover effect
+  }
 }
 
 // Responsiveness
-@mixin responsive($breakpoint) {
-    @if $breakpoint ==tablet {
-        @media (max-width: vars.$breakpoint-desktop) {
-            @content;
-        }
+// $direction: max (default) narrows down from a desktop baseline, the way most of this
+// codebase is written today. $direction: min widens up from a mobile baseline for
+// components written mobile-first. A min boundary is set one pixel above the max
+// breakpoint it replaces, so the two never overlap or leave a gap at the exact
+// breakpoint width itself.
+@mixin responsive($breakpoint, $direction: max) {
+  @if $direction == max {
+    @if $breakpoint == tablet {
+      @media (max-width: vars.$breakpoint-desktop) {
+        @content;
+      }
 
-        // < 1024px
+      // < 1024px
+    } @else if $breakpoint == mobile {
+      @media (max-width: vars.$breakpoint-tablet) {
+        @content;
+      }
+
+      // < 768px
+    } @else if $breakpoint == small-mobile {
+      @media (max-width: vars.$breakpoint-mobile) {
+        @content;
+      }
+
+      // < 480px
     }
+  } @else if $direction == min {
+    @if $breakpoint == tablet {
+      @media (min-width: vars.$breakpoint-desktop + 1) {
+        @content;
+      }
 
-    @else if $breakpoint ==mobile {
-        @media (max-width: vars.$breakpoint-tablet) {
-            @content;
-        }
+      // >= 1025px
+    } @else if $breakpoint == mobile {
+      @media (min-width: vars.$breakpoint-tablet + 1) {
+        @content;
+      }
 
-        // < 768px
+      // >= 769px
+    } @else if $breakpoint == small-mobile {
+      @media (min-width: vars.$breakpoint-mobile + 1) {
+        @content;
+      }
+
+      // >= 481px
     }
-
-    @else if $breakpoint ==small-mobile {
-        @media (max-width: vars.$breakpoint-mobile) {
-            @content;
-        }
-
-        // < 480px
-    }
+  }
 }

@@ -54,6 +54,11 @@ class UserAnonymizationServiceTest {
         student.setStudentNumber("S12345");
         student.setPhoneNumber("555-0199");
         student.setSpecialRequirements("Vegan");
+        // GH-239: someone else's name and phone number, held on this student's record.
+        student.setEmergencyContactName("Thandi Mokoena");
+        student.setEmergencyContactRelationship("Mother");
+        student.setEmergencyContactPhone("+27 82 123 4567");
+        student.setEmergencyContactEmail("thandi@example.com");
 
         when(appUserRepository.findById(userId)).thenReturn(Optional.of(user));
         when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
@@ -81,6 +86,14 @@ class UserAnonymizationServiceTest {
         assertEquals("DEL-123", savedStudent.getStudentNumber());
         assertNull(savedStudent.getPhoneNumber());
         assertNull(savedStudent.getSpecialRequirements());
+        // GH-239. The emergency contact is a third party who never signed up and never consented
+        // to being in this system. Leaving them behind after the student has been anonymised keeps
+        // precisely the data anonymisation exists to remove — the omission the issue calls the
+        // single most likely one.
+        assertNull(savedStudent.getEmergencyContactName());
+        assertNull(savedStudent.getEmergencyContactRelationship());
+        assertNull(savedStudent.getEmergencyContactPhone());
+        assertNull(savedStudent.getEmergencyContactEmail());
     }
 
     @Test
@@ -97,5 +110,42 @@ class UserAnonymizationServiceTest {
 
         verify(appUserRepository, never()).save(any());
         verify(studentRepository, never()).save(any());
+    }
+
+    @Test
+    void anonymize_userCannotLogin() {
+        // Arrange — a verified, active user
+        Long userId = 456L;
+        AppUser user = AppUser.builder()
+                .id(userId)
+                .firstName("Alice")
+                .lastName("Smith")
+                .email("alice@example.com")
+                .userRole(UserRole.STUDENT)
+                .isAnonymized(false)
+                .emailVerified(true)
+                .build();
+
+        when(appUserRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(studentRepository.findByAppUser(user)).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("bcrypt-random-hash");
+
+        // Act
+        service.anonymizeUser(userId);
+
+        // Assert — saved user has properties that prevent login
+        ArgumentCaptor<AppUser> captor = ArgumentCaptor.forClass(AppUser.class);
+        verify(appUserRepository).save(captor.capture());
+        AppUser saved = captor.getValue();
+
+        // Email is scrambled — login by original email no longer works
+        assertEquals("deleted_456@anonymized.local", saved.getEmail());
+        // Email verification revoked — even if email were known, it cannot log in
+        assertFalse(saved.getEmailVerified());
+        // isAnonymized flag set — application layer can also gate on this
+        assertTrue(saved.getIsAnonymized());
+        // Password replaced with an unguessable random hash
+        verify(passwordEncoder).encode(anyString());
+        assertEquals("bcrypt-random-hash", saved.getUserPassword());
     }
 }

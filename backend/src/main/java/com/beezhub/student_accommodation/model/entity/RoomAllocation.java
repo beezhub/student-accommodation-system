@@ -22,6 +22,21 @@ public class RoomAllocation implements TenantAware {
     @Column(name = "tenant_id")
     private Long tenantId;
 
+    /**
+     * GH-196: accept and the hourly offer-expiry sweep could interleave, leaving an ACCEPTED
+     * allocation on a room whose occupancy had already been released — an undercount that lets the
+     * room be over-allocated. Enforcing the deadline on the accept path (GH-139) shrank that window
+     * to milliseconds but did not close it, because the accept path reads through a plain JOIN
+     * FETCH with no lock mode.
+     *
+     * <p>With a version, the second writer's UPDATE matches no row and fails instead of overwriting.
+     * Preferred to a pessimistic read: the accept path is student-facing and should be told to
+     * reload rather than made to wait on a lock held by a batch job.
+     */
+    @Version
+    @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    private Long version = 0L;
+
     @Column(name = "allocation_date", nullable = false)
     private LocalDateTime allocationDate;
 
@@ -71,8 +86,14 @@ public class RoomAllocation implements TenantAware {
     @Column(name = "offer_expiry_date")
     private LocalDateTime offerExpiryDate;
 
+    @Column(name = "reminder_24h_sent", nullable = false)
+    private boolean reminder24hSent = false;
+
     @Column(name = "check_in_expiry_date")
     private LocalDateTime checkInExpiryDate;
+
+    @Column(name = "checkin_reminder_24h_sent", nullable = false)
+    private boolean checkInReminder24hSent = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

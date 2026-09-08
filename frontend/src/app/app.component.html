@@ -1,19 +1,16 @@
 <div class="app-container">
-  <!-- Modern Material Toolbar with Apple aesthetics -->
-  <mat-toolbar class="app-toolbar" color="primary">
-    <div class="toolbar-content">
-      <a class="brand-link" routerLink="/home" mat-button>
-        <mat-icon>home</mat-icon>
-        <span class="brand-text">Student Housing</span>
-      </a>
+  <!-- Toolbar: hidden on admin routes and unauthenticated auth pages -->
+  @if (!isAdminRoute && !isHomePage) {
+    <mat-toolbar class="app-toolbar" color="primary">
+      <div class="toolbar-content">
+        <app-brand-logo variant="toolbar" />
 
-      <div class="nav-spacer"></div>
+        <div class="nav-spacer"></div>
 
-      @if (!isHomePage) {
         <app-nav-menu (logout)="logout()"></app-nav-menu>
-      }
-    </div>
-  </mat-toolbar>
+      </div>
+    </mat-toolbar>
+  }
   <!-- Main Content Area -->
   <main class="main-content">
     <router-outlet></router-outlet>

@@ -1,48 +1,11 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room Change Notification</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #fd7e14 0%, #e65100 100%);
-            color: #ffffff;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .change-icon {
-            text-align: center;
-            font-size: 60px;
-            margin: 20px 0;
-        }
-        .message {
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
         .room-comparison {
             display: flex;
             justify-content: space-between;
@@ -64,31 +27,12 @@
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: #ffffff;
         }
-        .room-box h3 {
-            margin: 0 0 5px 0;
-            font-size: 14px;
-            text-transform: uppercase;
-        }
-        .room-box.old h3 {
-            color: #6c757d;
-        }
-        .room-box h2 {
-            margin: 10px 0 5px 0;
-            font-size: 24px;
-        }
-        .room-box.old h2 {
-            color: #6c757d;
-            text-decoration: line-through;
-        }
-        .room-box p {
-            margin: 5px 0;
-            font-size: 14px;
-        }
-        .arrow {
-            font-size: 30px;
-            color: #fd7e14;
-            flex-shrink: 0;
-        }
+        .room-box h3 { margin: 0 0 5px 0; font-size: 14px; text-transform: uppercase; }
+        .room-box.old h3 { color: #6c757d; }
+        .room-box h2 { margin: 10px 0 5px 0; font-size: 24px; }
+        .room-box.old h2 { color: #6c757d; text-decoration: line-through; }
+        .room-box p { margin: 5px 0; font-size: 14px; }
+        .arrow { font-size: 30px; color: #fd7e14; flex-shrink: 0; }
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -101,203 +45,92 @@
             border-radius: 5px;
             border-left: 3px solid #fd7e14;
         }
-        .info-item strong {
-            display: block;
-            color: #fd7e14;
-            margin-bottom: 5px;
-        }
-        .effective-date-box {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .effective-date-box h3 {
-            margin-top: 0;
-            color: #856404;
-        }
-        .effective-date-box p {
-            margin: 5px 0;
-            color: #856404;
-        }
-        .effective-date-box .date {
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .reason-box {
-            background-color: #d1ecf1;
-            border-left: 4px solid #17a2b8;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .reason-box h3 {
-            margin-top: 0;
-            color: #0c5460;
-        }
-        .reason-box p {
-            color: #0c5460;
-            margin: 5px 0;
-        }
-        .action-box {
-            background-color: #d4edda;
-            border-left: 4px solid #28a745;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .action-box h3 {
-            margin-top: 0;
-            color: #155724;
-        }
-        .action-box ul {
-            margin: 10px 0;
-            padding-left: 20px;
-            color: #155724;
-        }
-        .action-box li {
-            margin: 8px 0;
-        }
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #fd7e14 0%, #e65100 100%);
-            color: #ffffff;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-        }
-        .contact-info {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e9ecef;
-            border-radius: 5px;
-        }
-        .contact-info h4 {
-            margin-top: 0;
-            color: #495057;
-        }
-        .contact-info p {
-            margin: 5px 0;
-        }
+        .info-item strong { display: block; color: #fd7e14; margin-bottom: 5px; }
         @media screen and (max-width: 600px) {
-            .room-comparison {
-                flex-direction: column;
-            }
-            .arrow {
-                transform: rotate(90deg);
-            }
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
+            .room-comparison { flex-direction: column; }
+            .arrow { transform: rotate(90deg); }
+            .info-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Room Change Notification</h1>
+
+<h1 layout:fragment="email-title">Room Change Notification</h1>
+<span layout:fragment="email-subtitle">Your room allocation has been updated</span>
+
+<div layout:fragment="email-content">
+    <p style="text-align:center; font-size: 60px; margin: 20px 0;">&#128260;</p>
+
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <p>This is to notify you that your room allocation has been changed.
+       Please review the details below and take note of your new room assignment.</p>
+
+    <div class="room-comparison">
+        <div class="room-box old">
+            <h3>Previous Room</h3>
+            <h2 th:text="${oldRoomNumber}">Room 204</h2>
+            <p th:text="${oldBuildingName}">Building A</p>
+            <p th:if="${oldFloorNumber != null}">Floor <span th:text="${oldFloorNumber}">2</span></p>
         </div>
-
-        <div class="content">
-            <div class="change-icon">🔄</div>
-
-            <p class="message">Dear <span th:text="${studentName}">Student</span>,</p>
-
-            <p class="message">
-                This is to notify you that your room allocation has been changed.
-                Please review the details below and take note of your new room assignment.
-            </p>
-
-            <div class="room-comparison">
-                <div class="room-box old">
-                    <h3>Previous Room</h3>
-                    <h2 th:text="${oldRoomNumber}">Room 204</h2>
-                    <p th:text="${oldBuildingName}">Building A</p>
-                    <p th:if="${oldFloorNumber != null}">Floor <span th:text="${oldFloorNumber}">2</span></p>
-                </div>
-                <div class="arrow">➡️</div>
-                <div class="room-box new">
-                    <h3>New Room</h3>
-                    <h2 th:text="${newRoomNumber}">Room 305</h2>
-                    <p th:text="${newBuildingName}">Building B</p>
-                    <p th:if="${newFloorNumber != null}">Floor <span th:text="${newFloorNumber}">3</span></p>
-                </div>
-            </div>
-
-            <div class="effective-date-box">
-                <h3>📅 Effective Date</h3>
-                <p class="date" th:text="${effectiveDate}">2025-03-01</p>
-                <p>Please ensure you complete the room change by this date.</p>
-            </div>
-
-            <div class="info-grid">
-                <div class="info-item">
-                    <strong>New Building</strong>
-                    <span th:text="${newBuildingName}">Building B</span>
-                </div>
-                <div class="info-item">
-                    <strong>New Room Number</strong>
-                    <span th:text="${newRoomNumber}">305</span>
-                </div>
-                <div class="info-item" th:if="${newFloorNumber != null}">
-                    <strong>New Floor</strong>
-                    <span th:text="${newFloorNumber}">3</span>
-                </div>
-                <div class="info-item" th:if="${newRoomType != null}">
-                    <strong>Room Type</strong>
-                    <span th:text="${newRoomType}">Single</span>
-                </div>
-            </div>
-
-            <div class="reason-box" th:if="${reason != null}">
-                <h3>📝 Reason for Change</h3>
-                <p th:text="${reason}">Room reassignment due to maintenance requirements.</p>
-            </div>
-
-            <div class="action-box">
-                <h3>✅ Required Actions</h3>
-                <ul>
-                    <li>Complete checkout from your current room by the effective date</li>
-                    <li>Collect your new room key from the accommodation office</li>
-                    <li>Report any issues with your new room within 24 hours of moving in</li>
-                    <li>Update your contact details if necessary</li>
-                    <li>Return your old room key to avoid additional charges</li>
-                </ul>
-            </div>
-
-            <center>
-                <a href="#" th:href="${portalUrl}" class="cta-button">View Room Details</a>
-            </center>
-
-            <div class="contact-info">
-                <h4>Questions About Your Room Change?</h4>
-                <p><strong>Email:</strong> <span th:text="${supportEmail}">accommodation@university.edu</span></p>
-                <p th:if="${contactPhone != null}"><strong>Phone:</strong> <span th:text="${contactPhone}">+27 (0) 11 234 5678</span></p>
-                <p><strong>Office Hours:</strong> Monday - Friday, 8:00 AM - 5:00 PM</p>
-            </div>
-
-            <p class="message" style="margin-top: 30px; font-style: italic;">
-                We apologize for any inconvenience this may cause. Our team is available
-                to assist you with the transition.
-            </p>
-        </div>
-
-        <div class="footer">
-            <p>This is an automated message from the Student Accommodation System.</p>
-            <p>&copy; 2025 Student Accommodation System. All rights reserved.</p>
-            <p style="margin-top: 10px; font-size: 12px;">
-                <a href="#" style="color: #fd7e14; text-decoration: none;">Privacy Policy</a> |
-                <a href="#" style="color: #fd7e14; text-decoration: none;">Notification Preferences</a> |
-                <a href="#" style="color: #fd7e14; text-decoration: none;">Contact Support</a>
-            </p>
+        <div class="arrow">&#10145;</div>
+        <div class="room-box new">
+            <h3>New Room</h3>
+            <h2 th:text="${newRoomNumber}">Room 305</h2>
+            <p th:text="${newBuildingName}">Building B</p>
+            <p th:if="${newFloorNumber != null}">Floor <span th:text="${newFloorNumber}">3</span></p>
         </div>
     </div>
+
+    <div class="warning-box">
+        <h3>Effective Date</h3>
+        <p style="font-size: 18px; font-weight: bold;" th:text="${effectiveDate}">2025-03-01</p>
+        <p>Please ensure you complete the room change by this date.</p>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item">
+            <strong>New Building</strong>
+            <span th:text="${newBuildingName}">Building B</span>
+        </div>
+        <div class="info-item">
+            <strong>New Room Number</strong>
+            <span th:text="${newRoomNumber}">305</span>
+        </div>
+        <div class="info-item" th:if="${newFloorNumber != null}">
+            <strong>New Floor</strong>
+            <span th:text="${newFloorNumber}">3</span>
+        </div>
+        <div class="info-item" th:if="${newRoomType != null}">
+            <strong>Room Type</strong>
+            <span th:text="${newRoomType}">Single</span>
+        </div>
+    </div>
+
+    <div class="info-box" th:if="${reason != null}">
+        <h3>Reason for Change</h3>
+        <p th:text="${reason}">Room reassignment due to maintenance requirements.</p>
+    </div>
+
+    <div class="success-box">
+        <h3>Required Actions</h3>
+        <ul>
+            <li>Complete checkout from your current room by the effective date</li>
+            <li>Collect your new room key from the accommodation office</li>
+            <li>Report any issues with your new room within 24 hours of moving in</li>
+            <li>Update your contact details if necessary</li>
+            <li>Return your old room key to avoid additional charges</li>
+        </ul>
+    </div>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">View Room Details</a>
+    </div>
+
+    <p style="margin-top: 30px; font-style: italic;">
+        We apologize for any inconvenience this may cause. Our team is available to assist you with the transition.
+    </p>
+</div>
+
 </body>
 </html>

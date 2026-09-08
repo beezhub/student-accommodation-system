@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -42,6 +43,22 @@ public class JwtUtil {
         return null;
     }
 
+    /** Administrative roles share the shorter token lifetime. */
+    private static boolean isAdminRole(String authority) {
+        String role = authority.startsWith("ROLE_") ? authority.substring(5) : authority;
+        try {
+            return com.beezhub.student_accommodation.model.enums.UserRole.valueOf(role).isAdmin();
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /** When the token was issued; used to honour per-user revocation cutoffs. */
+    public Instant extractIssuedAt(String token) {
+        Date issuedAt = extractClaim(token, Claims::getIssuedAt);
+        return issuedAt == null ? null : issuedAt.toInstant();
+    }
+
     public String extractJti(String token) {
         return extractClaim(token, Claims::getId);
     }
@@ -52,38 +69,57 @@ public class JwtUtil {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
+        return Jwts.parser()
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    /** Claim carrying the forced-password-change flag; read by {@code MustChangePasswordFilter}. */
+    public static final String CLAIM_MUST_CHANGE_PASSWORD = "mustChangePassword";
+
+    /**
+     * Whether the token was issued to a user who still has to change their password. Tokens issued
+     * before this claim existed report {@code false}.
+     */
+    public boolean extractMustChangePassword(String token) {
+        Object value = extractAllClaims(token).get(CLAIM_MUST_CHANGE_PASSWORD);
+        return Boolean.TRUE.equals(value) || "true".equals(String.valueOf(value));
     }
 
     public String generateToken(UserDetails userDetails) {
+        return generateToken(userDetails, false);
+    }
+
+    public String generateToken(UserDetails userDetails, boolean mustChangePassword) {
         var roles = userDetails.getAuthorities().stream()
             .map(GrantedAuthority::getAuthority)
             .collect(Collectors.toList());
 
         // Determine expiration based on role
         long expirationMs;
-        if (roles.contains("ROLE_ADMIN")) {
+        // Every administrative role gets the shorter admin lifetime; only PLATFORM_ADMIN did before,
+        // so tenant admins and building staff held 10-hour tokens (GH-122).
+        if (roles.stream().anyMatch(JwtUtil::isAdminRole)) {
             expirationMs = Long.parseLong(jwtConfig.getAdminExpirationTime());
         } else {
             expirationMs = Long.parseLong(jwtConfig.getExpirationTime());
         }
         
         Long tenantId = null;
-        if (userDetails instanceof AppUserDetails) {
-            tenantId = ((AppUserDetails) userDetails).getTenantId();
+        if (userDetails instanceof AppUserDetails appUserDetails) {
+            tenantId = appUserDetails.getTenantId();
         }
 
         return Jwts.builder()
-            .setId(java.util.UUID.randomUUID().toString())
-            .setSubject(userDetails.getUsername())
+            .id(java.util.UUID.randomUUID().toString())
+            .subject(userDetails.getUsername())
             .claim("roles", roles)
             .claim("tenantId", tenantId)
-            .setIssuedAt(new Date())
-            .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
+            .claim(CLAIM_MUST_CHANGE_PASSWORD, mustChangePassword)
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + expirationMs))
             .signWith(key)
             .compact();
     }

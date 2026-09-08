@@ -40,7 +40,7 @@ describe('TokenStorageService', () => {
     const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
     const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) - 3600 }));
     const token = `${header}.${payload}.signature`;
-    
+
     localStorage.setItem('token', token);
     expect(service.isTokenValid()).toBeFalse();
   });
@@ -50,7 +50,7 @@ describe('TokenStorageService', () => {
     const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
     const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 }));
     const token = `${header}.${payload}.signature`;
-    
+
     localStorage.setItem('token', token);
     expect(service.isTokenValid()).toBeTrue();
   });

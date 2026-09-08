@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.config;
 
+import com.beezhub.student_accommodation.util.SecureTokenHasher;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -26,7 +27,13 @@ import java.util.UUID;
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
     private static final String MDC_KEY_REQUEST_ID = "requestId";
-    private static final String MDC_KEY_USER_ID = "userId";
+    /**
+     * Named userRef, not userId. It used to be keyed "userId" while holding the authenticated
+     * email address, so every log line of every request carried PII, against the house rule
+     * (GH-154). It now holds a stable one-way pseudonym, which keeps log lines groupable by user
+     * without the logs holding an email.
+     */
+    private static final String MDC_KEY_USER_REF = "userRef";
     private static final String MDC_KEY_TENANT_ID = "tenantId";
     private static final String HEADER_REQUEST_ID = "X-Request-ID";
 
@@ -55,7 +62,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication != null && authentication.isAuthenticated()
                     && !"anonymousUser".equals(authentication.getPrincipal())) {
-                MDC.put(MDC_KEY_USER_ID, authentication.getName());
+                MDC.put(MDC_KEY_USER_REF, SecureTokenHasher.pseudonym(authentication.getName()));
             }
 
             filterChain.doFilter(request, response);

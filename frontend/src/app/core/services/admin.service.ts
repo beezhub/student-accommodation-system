@@ -1,14 +1,18 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { BuildingPreferenceResponse } from './application.service';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 export interface CreateUserRequest {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
-  userRole: string; // 'ADMIN' or 'LANDLORD'
+  userRole: string; // Role must be PLATFORM_ADMIN, BUILDING_OWNER, or BUILDING_STAFF
+  tenantId?: number;
 }
 
 export interface AdminUser {
@@ -41,6 +45,7 @@ export interface ApplicationResponse {
   requiresAccessibility?: boolean;
   specialRequirements?: string;
   courseName?: string;
+  preferredBuildings?: BuildingPreferenceResponse[];
   createdAt: string;
   updatedAt: string;
 }
@@ -59,14 +64,6 @@ export interface DocumentResponse {
   applicationId?: number;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
 }
 
 export interface DashboardStats {
@@ -127,23 +124,29 @@ export interface BulkStatusUpdateRequest {
   providedIn: 'root',
 })
 export class AdminService {
+  private http = inject(HttpClient);
+
   private userApiUrl = `${environment.apiUrl}/admin/users`;
   private applicationApiUrl = `${environment.apiUrl}/applications`;
   private documentApiUrl = `${environment.apiUrl}/documents`;
-
-  constructor(private http: HttpClient) {}
 
   // User Management
   createUser(userData: CreateUserRequest): Observable<AdminUser> {
     return this.http.post<AdminUser>(this.userApiUrl, userData);
   }
 
-  getAllUsers(): Observable<AdminUser[]> {
-    return this.http.get<AdminUser[]>(this.userApiUrl);
+  /**
+   * One page of users. Was unpaged, so the admin screen fetched every account in the deployment
+   * on each visit and the response grew without limit (GH-157).
+   */
+  getAllUsers(page = 0, size = 25): Observable<PageResponse<AdminUser>> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get<PageResponse<AdminUser>>(this.userApiUrl, { params });
   }
 
-  getUsersByRole(role: string): Observable<AdminUser[]> {
-    return this.http.get<AdminUser[]>(`${this.userApiUrl}/role/${role}`);
+  getUsersByRole(role: string, page = 0, size = 25): Observable<PageResponse<AdminUser>> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get<PageResponse<AdminUser>>(`${this.userApiUrl}/role/${role}`, { params });
   }
 
   deleteUser(userId: number): Observable<void> {
@@ -182,7 +185,8 @@ export class AdminService {
     if (filters.studentName) params = params.set('studentName', filters.studentName);
     if (filters.status) params = params.set('status', filters.status);
     if (filters.allocationStatus) params = params.set('allocationStatus', filters.allocationStatus);
-    if (filters.preferredBuilding) params = params.set('preferredBuilding', filters.preferredBuilding);
+    if (filters.preferredBuilding)
+      params = params.set('preferredBuilding', filters.preferredBuilding);
     if (filters.startDate) params = params.set('startDate', filters.startDate);
     if (filters.endDate) params = params.set('endDate', filters.endDate);
 
@@ -222,7 +226,8 @@ export class AdminService {
       .set('size', (filters.size || 20).toString());
 
     if (filters.studentName) params = params.set('studentName', filters.studentName);
-    if (filters.documentTypeId) params = params.set('documentTypeId', filters.documentTypeId.toString());
+    if (filters.documentTypeId)
+      params = params.set('documentTypeId', filters.documentTypeId.toString());
     if (filters.status) params = params.set('status', filters.status);
 
     return this.http.get<PageResponse<DocumentResponse>>(`${this.documentApiUrl}/search`, {

@@ -6,8 +6,9 @@ export enum ApplicationStatus {
   REJECTED = 'REJECTED',
   AWAITING_ALLOCATION = 'AWAITING_ALLOCATION',
   ALLOCATED = 'ALLOCATED',
+  CHECKED_IN = 'CHECKED_IN',
   EXPIRED = 'EXPIRED',
-  CANCELLED = 'CANCELLED'
+  CANCELLED = 'CANCELLED',
 }
 
 export enum AllocationStatus {
@@ -19,5 +20,5 @@ export enum AllocationStatus {
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
   TERMINATED = 'TERMINATED',
-  CANCELLED = 'CANCELLED'
+  CANCELLED = 'CANCELLED',
 }

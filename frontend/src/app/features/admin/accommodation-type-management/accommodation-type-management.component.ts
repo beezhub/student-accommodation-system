@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -22,6 +22,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
+import { DecimalPipe } from '@angular/common';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-accommodation-type-management',
@@ -44,9 +48,17 @@ import { MatChipsModule } from '@angular/material/chips';
     MatTooltipModule,
     MatMenuModule,
     MatChipsModule,
+    EmptyStateComponent,
+    SkeletonLoaderComponent,
+    DecimalPipe,
   ],
 })
 export class AccommodationTypeManagementComponent implements OnInit {
+  private accommodationTypeService = inject(AccommodationTypeService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   accommodationTypes: AccommodationType[] = [];
   displayedColumns: string[] = ['name', 'description', 'isActive', 'actions'];
 
@@ -54,15 +66,20 @@ export class AccommodationTypeManagementComponent implements OnInit {
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
+  filtersVisible = false;
 
   filterForm: FormGroup;
 
-  constructor(
-    private accommodationTypeService: AccommodationTypeService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  get activeFilterCount(): number {
+    const v = this.filterForm.value;
+    return [v.name].filter((x: string) => x && x.trim() !== '').length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
+
+  constructor() {
     this.filterForm = this.fb.group({
       name: [''],
     });
@@ -107,44 +124,52 @@ export class AccommodationTypeManagementComponent implements OnInit {
   }
 
   openCreateDialog(): void {
-    import('./accommodation-type-form-dialog/accommodation-type-form-dialog.component').then((m) => {
-      const dialogRef = this.dialog.open(m.AccommodationTypeFormDialogComponent, {
-        width: '500px',
-        data: { mode: 'create' },
-      });
+    import('./accommodation-type-form-dialog/accommodation-type-form-dialog.component').then(
+      (m) => {
+        const dialogRef = this.dialog.open(m.AccommodationTypeFormDialogComponent, {
+          width: '500px',
+          data: { mode: 'create' },
+        });
 
-      dialogRef.afterClosed().subscribe((result) => {
-        if (result) {
-          this.loadAccommodationTypes();
-        }
-      });
-    });
+        dialogRef.afterClosed().subscribe((result) => {
+          if (result) {
+            this.loadAccommodationTypes();
+          }
+        });
+      }
+    );
   }
 
   openEditDialog(accommodationType: AccommodationType): void {
-    import('./accommodation-type-form-dialog/accommodation-type-form-dialog.component').then((m) => {
-      const dialogRef = this.dialog.open(m.AccommodationTypeFormDialogComponent, {
-        width: '500px',
-        data: { mode: 'edit', accommodationType },
-      });
+    import('./accommodation-type-form-dialog/accommodation-type-form-dialog.component').then(
+      (m) => {
+        const dialogRef = this.dialog.open(m.AccommodationTypeFormDialogComponent, {
+          width: '500px',
+          data: { mode: 'edit', accommodationType },
+        });
 
-      dialogRef.afterClosed().subscribe((result) => {
-        if (result) {
-          this.loadAccommodationTypes();
-        }
-      });
-    });
+        dialogRef.afterClosed().subscribe((result) => {
+          if (result) {
+            this.loadAccommodationTypes();
+          }
+        });
+      }
+    );
   }
 
   deleteAccommodationType(accommodationType: AccommodationType): void {
-    if (
-      confirm(
-        `Are you sure you want to delete accommodation type "${accommodationType.name}"? This action cannot be undone.`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Delete this accommodation type?',
+      message: `"${accommodationType.name}" is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.accommodationTypeService.delete(accommodationType.id).subscribe({
         next: () => {
-          this.snackBar.open('Accommodation type deleted successfully', 'Close', { duration: 3000 });
+          this.snackBar.open('Accommodation type deleted successfully', 'Close', {
+            duration: 3000,
+          });
           this.loadAccommodationTypes();
         },
         error: (error) => {
@@ -156,6 +181,6 @@ export class AccommodationTypeManagementComponent implements OnInit {
           );
         },
       });
-    }
+    });
   }
 }

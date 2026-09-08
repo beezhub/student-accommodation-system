@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.model.entity;
 
 import com.beezhub.student_accommodation.model.enums.AllocationAuditActionType;
+import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -46,6 +47,14 @@ public class AllocationAuditLog {
 
     @Column(name = "constraint_bypassed", length = 255)
     private String constraintBypassed;
+
+    @Column(name = "previous_status", length = 50)
+    @Enumerated(EnumType.STRING)
+    private AllocationStatus previousStatus;
+
+    @Column(name = "new_status", length = 50)
+    @Enumerated(EnumType.STRING)
+    private AllocationStatus newStatus;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

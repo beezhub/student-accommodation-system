@@ -19,6 +19,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.context.annotation.Import;
 import com.beezhub.student_accommodation.config.SecurityConfig;
 import com.beezhub.student_accommodation.security.RateLimitingFilter;
+import com.beezhub.student_accommodation.exceptions.RestResponseExceptionHandler;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -31,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 @WebMvcTest(AuthController.class)
-@Import(SecurityConfig.class)
+@Import({ SecurityConfig.class, RestResponseExceptionHandler.class })
 @AutoConfigureMockMvc
 class AuthControllerTest {
 
@@ -52,6 +55,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private RateLimitingFilter rateLimitingFilter;
+
+    @MockitoBean
+    private com.beezhub.student_accommodation.security.MustChangePasswordFilter mustChangePasswordFilter;
 
     private LoginRequest loginRequest;
     private LoginResponse loginResponse;
@@ -78,7 +84,7 @@ class AuthControllerTest {
         signupRequest.setEmail("newuser@example.com");
         signupRequest.setFirstName("New");
         signupRequest.setLastName("User");
-        signupRequest.setPassword("password123");
+        signupRequest.setPassword("Str0ng!Passw0rd");
 
         // Message response
         messageResponse = new MessageResponse("Success");
@@ -96,6 +102,12 @@ class AuthControllerTest {
                 chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
                 return null;
             }).when(rateLimitingFilter).doFilter(any(), any(), any());
+
+        org.mockito.Mockito.doAnswer(invocation -> {
+            jakarta.servlet.FilterChain passThrough = invocation.getArgument(2);
+            passThrough.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(mustChangePasswordFilter).doFilter(any(), any(), any());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -118,6 +130,51 @@ class AuthControllerTest {
         // .andExpect(jsonPath("$.user.email").value("test@example.com"));
 
         verify(authService).validateLogin(eq("test@example.com"), eq("password123"));
+    }
+
+    /**
+     * GH-149: this is a dispatch test, not a handler test. The handler unit tests call methods
+     * directly and so prove nothing about which handler Spring selects. What matters here is that
+     * InternalAuthenticationServiceException reaches its own handler rather than the general
+     * AuthenticationException one, which echoes messages into a 401 body. Its message carries JPA
+     * and connection detail, and the login endpoint is reachable unauthenticated.
+     */
+    @Test
+    @DisplayName("POST /api/auth/login - infrastructure failure does not leak JPA detail")
+    void login_authenticationInfrastructureFailure_returnsGenericServerError() throws Exception {
+        when(authService.validateLogin(anyString(), anyString()))
+                .thenThrow(new InternalAuthenticationServiceException(
+                        "Could not open JPA EntityManager for transaction; jdbc:postgresql://db:5432/sas"));
+
+        mockMvc.perform(post("/api/auth/login")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.errors[0]").value(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("jdbc"))))
+                .andExpect(jsonPath("$.errors[0]").value(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("EntityManager"))));
+    }
+
+    /**
+     * The other half of the dispatch question: a framework exception must land on the runtime
+     * catch-all, which now sanitises, rather than on the conflict handler, which still echoes.
+     */
+    @Test
+    @DisplayName("POST /api/auth/login - framework exception does not leak SQL")
+    void login_frameworkException_returnsGenericServerError() throws Exception {
+        when(authService.validateLogin(anyString(), anyString()))
+                .thenThrow(new InvalidDataAccessResourceUsageException(
+                        "could not prepare statement [select a1_0.id from app_user a1_0]"));
+
+        mockMvc.perform(post("/api/auth/login")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.errors[0]").value(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("select"))));
     }
 
     @Test
@@ -227,7 +284,7 @@ class AuthControllerTest {
         // Arrange
         ChangePasswordRequest request = new ChangePasswordRequest();
         request.setCurrentPassword("oldPassword123");
-        request.setNewPassword("newPassword123");
+        request.setNewPassword("Str0ng!Passw0rd");
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/change-password")
@@ -245,7 +302,7 @@ class AuthControllerTest {
         // Arrange
         ChangePasswordRequest request = new ChangePasswordRequest();
         request.setCurrentPassword("oldPassword123");
-        request.setNewPassword("newPassword123");
+        request.setNewPassword("Str0ng!Passw0rd");
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/change-password")
@@ -353,7 +410,7 @@ class AuthControllerTest {
         // Arrange
         ResetPasswordRequest request = new ResetPasswordRequest();
         request.setToken("reset-token-123");
-        request.setNewPassword("newPassword123");
+        request.setNewPassword("Str0ng!Passw0rd");
 
         when(authService.resetPassword(anyString(), anyString())).thenReturn(messageResponse);
 
@@ -365,7 +422,7 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Success"));
 
-        verify(authService).resetPassword(eq("reset-token-123"), eq("newPassword123"));
+        verify(authService).resetPassword(eq("reset-token-123"), eq("Str0ng!Passw0rd"));
     }
 
     @Test
@@ -404,7 +461,6 @@ class AuthControllerTest {
         verify(authService).verifyEmail(eq("email-verification-token-123"));
     }
 
-    @Disabled("Validation test failing with 200 OK. Investigating.")
     @Test
     @DisplayName("POST /api/auth/verify-email - Should return 400 for empty token")
     void verifyEmail_WithEmptyToken_ShouldReturnBadRequest() throws Exception {
@@ -417,6 +473,7 @@ class AuthControllerTest {
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 

@@ -1,34 +1,54 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { RouterModule } from '@angular/router';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentViewerComponent } from './document-viewer/document-viewer.component';
-import { DocumentService, isNoActiveApplicationError } from '../../../core/services/document.service';
+import { DocumentService } from '../../../core/services/document.service';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { DocumentType } from '../../../core/models/document-type.model';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
-import { ApplicationService } from '../../../core/services/application.service';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 // Material imports
-import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
-import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatTableDataSource } from '@angular/material/table';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { User } from '../../../core/models/user.model';
+import { DocumentData, DocumentPreview } from '../../../core/models/document.model';
+import { contentOf } from '../../../core/models/page-response.model';
+
+/** Merged view of a document type slot — either empty or populated by an uploaded document. */
+export interface DocumentSlot {
+  typeId: number;
+  typeName: string;
+  isRequired: boolean;
+  documentId: number | null;
+  documentName: string | null;
+  status: 'NOT_UPLOADED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  uploadDate: string | null;
+  fileSize: string | null;
+}
 
 @Component({
   selector: 'app-documents',
@@ -40,22 +60,21 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
     ReactiveFormsModule,
     DocumentViewerComponent,
     // Material modules
-    MatToolbarModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
-    MatTableModule,
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatSelectModule,
     MatInputModule,
     MatChipsModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
     MatDividerModule,
     MatProgressBarModule,
+    MatTooltipModule,
     ModernStatusBadgeComponent,
     ErrorDisplayComponent,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -65,35 +84,31 @@ export class DocumentsComponent implements OnInit {
   private readonly documentService = inject(DocumentService);
   private readonly documentTypeService = inject(DocumentTypeService);
   private readonly errorService = inject(ErrorHandlingService);
-  private readonly applicationService = inject(ApplicationService);
-  private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
-  currentUser: any;
-  selectedDocument: any = null;
+  private readonly dialog = inject(MatDialog);
+
+  currentUser: User | null = null;
+  selectedDocument: DocumentPreview | null = null;
   isUploading = false;
+  isLoading = true;
+
   showUploadModal = false;
   selectedFile: File | null = null;
   uploadForm: FormGroup;
+  /** The slot being targeted for upload/replace. */
+  activeSlot: DocumentSlot | null = null;
 
   // Error state
   loadError: ParsedError | null = null;
   uploadError: ParsedError | null = null;
-  fileValidationErrors: string[] = []; // Array for detailed file validation errors
-  isRetrying = false;
+  fileValidationErrors: string[] = [];
 
   // Upload progress
   uploadProgress = 0;
   uploadStatus: 'idle' | 'validating' | 'uploading' | 'complete' | 'error' = 'idle';
 
-  documents: any[] = [];
-
-  // Material table configuration
-  readonly displayedColumns: readonly string[] = ['name', 'type', 'uploadDate', 'status', 'size', 'actions'] as const;
-  dataSource = new MatTableDataSource<any>([]);
-
-  // Application check state
-  hasActiveApplication = false;
-  isCheckingApplication = true;
+  /** Merged pack view — one entry per document type. */
+  slots: DocumentSlot[] = [];
 
   allDocumentTypes: DocumentType[] = [];
 
@@ -105,116 +120,88 @@ export class DocumentsComponent implements OnInit {
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
-    this.checkActiveApplication();
+    this.loadPack();
   }
 
-  /**
-   * Checks if user has an active application before allowing document operations.
-   * Redirects to application creation if no active application exists.
-   */
-  private checkActiveApplication(): void {
-    this.isCheckingApplication = true;
-
-    this.applicationService.hasActiveApplication().subscribe({
-      next: (hasActive) => {
-        this.isCheckingApplication = false;
-        this.hasActiveApplication = hasActive;
-
-        if (!hasActive) {
-          this.errorService.showWarning('Please create an application before uploading documents');
-          this.router.navigate(['/applications/new']);
-        } else {
-          this.loadDocuments();
-          this.loadDocumentTypes();
-        }
-        this.cdr.markForCheck(); // Trigger change detection
-      },
-      error: () => {
-        this.isCheckingApplication = false;
-        this.hasActiveApplication = false;
-        this.errorService.showWarning('Unable to verify application status. Please create an application first.');
-        this.router.navigate(['/applications/new']);
-        this.cdr.markForCheck(); // Trigger change detection
-      },
-    });
-  }
-
-  loadDocuments(): void {
+  /** Load document types and uploaded documents, then merge into slots. */
+  loadPack(): void {
+    this.isLoading = true;
     this.loadError = null;
-    this.isRetrying = true;
 
-    this.documentService.getUploadedDocuments().subscribe({
-      next: (docs) => {
-        this.isRetrying = false;
-        console.log('Documents received from API:', docs);
-        this.documents = docs.map((doc) => ({
-          id: String(doc.id),
-          name: doc.documentName,
-          type: doc.documentTypeName,
-          uploadDate: doc.uploadDate,
-          status: doc.documentStatus,
-          size: doc.fileSize ? this.formatFileSize(doc.fileSize) : 'Unknown',
-          fileUrl: doc.fileUrl,
-        }));
-        console.log('Mapped documents:', this.documents);
-        this.dataSource.data = this.documents;
-        this.cdr.markForCheck(); // Trigger change detection
-      },
-      error: (err) => {
-        this.isRetrying = false;
-        console.error('Failed to fetch documents:', err);
-        this.loadError = this.errorService.parseError(err);
-        this.cdr.markForCheck(); // Trigger change detection
-        this.loadError = this.errorService.parseError(err);
-      },
-    });
-  }
-
-  loadDocumentTypes(): void {
     this.documentTypeService.getAllDocumentTypes().subscribe({
-      next: (types: any) => {
-        // Handle both array and paginated response formats
-        if (Array.isArray(types)) {
-          this.allDocumentTypes = types;
-        } else if (types && Array.isArray(types.content)) {
-          this.allDocumentTypes = types.content;
-        } else {
-          this.allDocumentTypes = [];
-        }
-        console.log('Document types loaded:', this.allDocumentTypes);
-        this.cdr.markForCheck(); // Trigger change detection
+      next: (types) => {
+        this.allDocumentTypes = contentOf(types);
+
+        // Now load uploaded documents
+        this.documentService.getUploadedDocuments().subscribe({
+          next: (docs) => {
+            this.isLoading = false;
+            this.buildSlots(docs);
+            this.cdr.markForCheck();
+          },
+          error: (err) => {
+            this.isLoading = false;
+            this.loadError = this.errorService.parseError(err);
+            this.cdr.markForCheck();
+          },
+        });
       },
       error: (err) => {
-        console.error('Failed to load document types', err);
-        this.allDocumentTypes = [];
-        // Show a warning but don't block the page
-        this.errorService.showWarning('Failed to load document types. Please try refreshing.');
+        this.isLoading = false;
+        this.loadError = this.errorService.parseError(err);
         this.cdr.markForCheck();
       },
     });
   }
 
-  retryLoadDocuments(): void {
-    this.loadDocuments();
-    this.loadDocumentTypes();
-  }
-
-  getStatusClass(status: string): string {
-    switch (status.toLowerCase()) {
-      case 'verified':
-        return 'status-verified';
-      case 'pending':
-        return 'status-pending';
-      case 'rejected':
-        return 'status-rejected';
-      default:
-        return 'status-default';
+  private buildSlots(uploadedDocs: DocumentData[]): void {
+    // Index uploaded docs by documentTypeId. Coerce to Number — the document-type
+    // API returns ids as strings while the documents API returns them as numbers.
+    const docByTypeId = new Map<number, DocumentData>();
+    for (const doc of uploadedDocs) {
+      const key = doc.documentTypeId != null ? Number(doc.documentTypeId) : null;
+      if (key != null) {
+        docByTypeId.set(key, doc);
+      }
     }
+
+    // Build a slot per document type
+    this.slots = this.allDocumentTypes.map((type) => {
+      const uploaded = docByTypeId.get(Number(type.id));
+      if (uploaded) {
+        return {
+          typeId: type.id,
+          typeName: type.name,
+          isRequired: type.isRequired ?? false,
+          documentId: uploaded.id,
+          documentName: uploaded.documentName,
+          status: (uploaded.documentStatus as DocumentSlot['status']) ?? 'PENDING',
+          uploadDate: uploaded.uploadDate ?? null,
+          fileSize: uploaded.fileSize ? this.formatFileSize(uploaded.fileSize) : null,
+        } as DocumentSlot;
+      }
+      return {
+        typeId: type.id,
+        typeName: type.name,
+        isRequired: type.isRequired ?? false,
+        documentId: null,
+        documentName: null,
+        status: 'NOT_UPLOADED',
+        uploadDate: null,
+        fileSize: null,
+      } as DocumentSlot;
+    });
   }
 
-  openUploadModal() {
+  retryLoad(): void {
+    this.loadPack();
+  }
+
+  /** Open the upload modal targeting a specific slot (upload or replace). */
+  openUploadModal(slot: DocumentSlot): void {
+    this.activeSlot = slot;
     this.showUploadModal = true;
-    this.uploadForm.reset();
+    this.uploadForm.patchValue({ documentType: slot.typeId });
     this.selectedFile = null;
     this.uploadError = null;
     this.fileValidationErrors = [];
@@ -222,10 +209,11 @@ export class DocumentsComponent implements OnInit {
     this.uploadStatus = 'idle';
   }
 
-  closeUploadModal() {
+  closeUploadModal(): void {
     this.showUploadModal = false;
     this.uploadForm.reset();
     this.selectedFile = null;
+    this.activeSlot = null;
     this.uploadError = null;
     this.fileValidationErrors = [];
     this.uploadProgress = 0;
@@ -236,16 +224,15 @@ export class DocumentsComponent implements OnInit {
     this.uploadError = null;
   }
 
-  onFileSelected(event: any) {
-    const file = event.target.files[0];
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
     if (file) {
       this.uploadStatus = 'validating';
       this.fileValidationErrors = [];
       this.uploadError = null;
 
-      // Use document service's validation
       const validation = this.documentService.validateFile(file);
-
       if (!validation.valid) {
         this.fileValidationErrors = validation.errors;
         this.selectedFile = null;
@@ -253,92 +240,85 @@ export class DocumentsComponent implements OnInit {
         return;
       }
 
-      this.fileValidationErrors = [];
       this.selectedFile = file;
       this.uploadStatus = 'idle';
     }
   }
 
-  uploadDocument() {
-    if (this.uploadForm.valid && this.selectedFile) {
-      this.isUploading = true;
-      this.uploadError = null;
-      this.fileValidationErrors = [];
-      this.uploadProgress = 0;
-      this.uploadStatus = 'uploading';
+  uploadDocument(): void {
+    if (!this.uploadForm.valid || !this.selectedFile) return;
 
-      const selectedTypeId: number = this.uploadForm.get('documentType')?.value;
-      const fileName = this.selectedFile.name;
-      const fileSize = this.selectedFile.size;
+    this.isUploading = true;
+    this.uploadError = null;
+    this.fileValidationErrors = [];
+    this.uploadProgress = 0;
+    this.uploadStatus = 'uploading';
 
-      this.documentService.uploadSingleDocumentWithProgress(this.selectedFile, selectedTypeId).subscribe({
+    const selectedTypeId: number = this.uploadForm.get('documentType')?.value;
+
+    this.documentService
+      .uploadSingleDocumentWithProgress(this.selectedFile, selectedTypeId)
+      .subscribe({
         next: (progress) => {
           this.uploadProgress = progress.progress;
-
           if (progress.status === 'complete') {
             this.isUploading = false;
             this.uploadStatus = 'complete';
             this.errorService.showSuccess('Document uploaded successfully!');
-
-            // Optimistically add new doc to the list with basic info
-            const typeName =
-              this.allDocumentTypes.find((t) => t.id === selectedTypeId)?.name ||
-              String(selectedTypeId);
-            const newDoc = {
-              id: String(Date.now()),
-              name: fileName,
-              type: typeName,
-              uploadDate: new Date().toISOString(),
-              status: 'Pending',
-              size: this.formatFileSize(fileSize),
-            };
-            this.documents.unshift(newDoc);
-            this.dataSource.data = this.documents;
-
-            // Refresh from server to show accurate data
-            this.documentService.getUploadedDocuments().subscribe({
-              next: (docs) => {
-                this.documents = docs.map((doc) => ({
-                  id: String(doc.id),
-                  name: doc.documentName,
-                  type: doc.documentTypeName,
-                  uploadDate: doc.uploadDate,
-                  status: doc.documentStatus,
-                  size: doc.fileSize ? this.formatFileSize(doc.fileSize) : 'Unknown',
-                  fileUrl: doc.fileUrl,
-                }));
-                this.dataSource.data = this.documents;
-                this.cdr.markForCheck();
-              },
-              error: (err) => console.error('Failed to refresh documents:', err),
-            });
-
-            // Close modal after a brief delay to show completion
-            setTimeout(() => this.closeUploadModal(), 500);
+            setTimeout(() => {
+              this.closeUploadModal();
+              this.loadPack();
+            }, 500);
           }
         },
         error: (error) => {
           this.isUploading = false;
           this.uploadStatus = 'error';
           this.uploadProgress = 0;
-          console.error('Upload error:', error);
-
-          // Check if error is due to no active application
-          if (isNoActiveApplicationError(error)) {
-            this.closeUploadModal();
-            this.errorService.showWarning('Please create an application before uploading documents');
-            this.router.navigate(['/applications/new']);
-            return;
-          }
-
           this.uploadError = this.errorService.parseError(error);
+          this.cdr.markForCheck();
         },
       });
-    }
   }
 
   retryUpload(): void {
     this.uploadDocument();
+  }
+
+  deleteDocument(slot: DocumentSlot): void {
+    if (!slot.documentId) return;
+    confirmAction(this.dialog, {
+      title: 'Delete this document?',
+      message: `Your "${slot.typeName}" upload is removed. You can upload it again at any time.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.documentService.deleteDocument(slot.documentId!).subscribe({
+        next: () => {
+          this.errorService.showSuccess('Document deleted.');
+          this.loadPack();
+        },
+        error: (err) => {
+          this.errorService.showErrorSnackbar(this.errorService.parseError(err));
+          this.cdr.markForCheck();
+        },
+      });
+    });
+  }
+
+  viewDocument(slot: DocumentSlot): void {
+    if (!slot.documentId) return;
+    this.selectedDocument = {
+      id: slot.documentId,
+      name: slot.documentName ?? 'Document',
+      type: slot.typeName,
+      status: slot.status,
+    };
+  }
+
+  closeViewer(): void {
+    this.selectedDocument = null;
   }
 
   formatFileSize(bytes: number): string {
@@ -349,25 +329,11 @@ export class DocumentsComponent implements OnInit {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   }
 
-  viewDocument(document: any) {
-    // Convert id back to number for the viewer component
-    this.selectedDocument = {
-      ...document,
-      id: Number(document.id)
-    };
-    console.log('Viewing document:', this.selectedDocument);
+  get uploadedCount(): number {
+    return this.slots.filter((s) => s.status !== 'NOT_UPLOADED').length;
   }
 
-  closeViewer() {
-    this.selectedDocument = null;
-  }
-
-  deleteDocument(documentId: string) {
-    if (confirm('Are you sure you want to delete this document?')) {
-      // Here you would typically call your service to delete the document
-      this.documents = this.documents.filter((doc) => doc.id !== documentId);
-      // keep dataSource in sync
-      this.dataSource.data = this.documents;
-    }
+  get requiredMissingCount(): number {
+    return this.slots.filter((s) => s.isRequired && s.status === 'NOT_UPLOADED').length;
   }
 }

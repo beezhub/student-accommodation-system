@@ -1,53 +1,43 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
 <head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 20px auto; background: #fff;
-                    border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-                 color: #fff; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { padding: 30px; }
-        .alert-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; }
-        .info-box { background: #f8f9fa; border-left: 4px solid #6c757d; padding: 15px; margin: 20px 0; }
-        .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                 color: #fff; padding: 12px 30px; text-decoration: none;
-                 border-radius: 5px; margin: 20px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center;
-                 font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
-    </style>
+    <title>Application Cancelled</title>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Application Closed</h1>
-        </div>
-        <div class="content">
-            <p>Dear <span th:text="${studentName}">Student</span>,</p>
-            <div class="alert-box">
-                <strong>⛔ Maximum Decline Limit Reached</strong>
-                <p>You have declined <strong th:text="|${totalDeclineCount} room offers|">2 room offers</strong>, which is the maximum allowed.</p>
-                <p>As a result, your application (<strong th:text="${applicationCode}">APP123</strong>) has been <strong>CANCELLED</strong> and you have been removed from the waiting list.</p>
-            </div>
-            <div class="info-box">
-                <strong>What This Means:</strong>
-                <ul>
-                    <li>Your current application is now closed</li>
-                    <li>You will not receive any further room offers for this application</li>
-                    <li>You may submit a new application in the next application period</li>
-                </ul>
-            </div>
-            <p>If you have any questions or would like to discuss alternative accommodation options, please contact our accommodation office.</p>
-            <center>
-                <a th:href="${portalUrl}" class="button">View Application</a>
-            </center>
-        </div>
-        <div class="footer">
-            <p>This is an automated message from the Student Accommodation System.</p>
-            <p>For assistance, please contact our support team at <span th:text="${supportEmail}">support@university.edu</span></p>
-            <p>&copy; 2025 <span th:text="${universityName}">University</span> Student Accommodation System. All rights reserved.</p>
-        </div>
+
+<h1 layout:fragment="email-title">Application Cancelled</h1>
+<span layout:fragment="email-subtitle">Maximum offer declines reached</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <div class="danger-box">
+        <h3>Maximum Decline Limit Reached</h3>
+        <p>You have declined <strong th:text="|${totalDeclineCount} room offers|">2 room offers</strong>,
+           which is the maximum allowed.</p>
+        <p>As a result, your application (<strong th:text="${applicationCode}">APP123</strong>) has been
+           <strong>CANCELLED</strong> and you have been removed from the waiting list.</p>
     </div>
+
+    <div class="neutral-box">
+        <strong>What This Means:</strong>
+        <ul>
+            <li>Your current application is now closed</li>
+            <li>You will not receive any further room offers for this application</li>
+            <li>You may submit a new application in the next application period</li>
+        </ul>
+    </div>
+
+    <p>If you have any questions or would like to discuss alternative accommodation options,
+       please contact our accommodation office.</p>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">View Application</a>
+    </div>
+</div>
+
 </body>
 </html>

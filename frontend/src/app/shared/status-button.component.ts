@@ -9,7 +9,9 @@ import { MatIconModule } from '@angular/material/icon';
   imports: [CommonModule, MatButtonModule, MatIconModule],
   template: `
     <button mat-raised-button [ngClass]="statusClass" class="status-btn">
-      <mat-icon *ngIf="icon">{{ icon }}</mat-icon>
+      @if (icon) {
+      <mat-icon>{{ icon }}</mat-icon>
+      }
       {{ status }}
     </button>
   `,

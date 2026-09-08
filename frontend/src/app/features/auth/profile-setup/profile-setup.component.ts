@@ -5,6 +5,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { InstitutionService } from '../../../core/services/institution.service';
 import { YearOfStudyService } from '../../../core/services/year-of-study.service';
 import { StudentService } from '../../../core/services/student.service';
+import { ErrorHandlingService } from '../../../core/services/error-handling.service';
 import { Institution } from '../../../core/models/institution.model';
 import { YearOfStudy } from '../../../core/models/year-of-study.model';
 import { MatCardModule } from '@angular/material/card';
@@ -16,9 +17,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { MatDividerModule } from '@angular/material/divider';
+import { User } from '../../../core/models/user.model';
+import { contentOf } from '../../../core/models/page-response.model';
 
 @Component({
   selector: 'app-profile-setup',
@@ -35,8 +36,6 @@ import { MatDividerModule } from '@angular/material/divider';
     MatProgressSpinnerModule,
     MatStepperModule,
     MatIconModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
     MatDividerModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,29 +47,31 @@ export class ProfileSetupComponent implements OnInit {
   private readonly institutionService = inject(InstitutionService);
   private readonly yearOfStudyService = inject(YearOfStudyService);
   private readonly studentService = inject(StudentService);
+  private readonly errorService = inject(ErrorHandlingService);
 
   profileForm: FormGroup;
   isSubmitting = false;
-  currentUser: any;
+  currentUser: User | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   institutions: Institution[] = [];
   yearsOfStudy: YearOfStudy[] = [];
 
-  readonly genderOptions = [
-    { value: 'male', viewValue: 'Male' },
-    { value: 'female', viewValue: 'Female' },
-    { value: 'other', viewValue: 'Other' },
-    { value: 'prefer-not-to-say', viewValue: 'Prefer not to say' },
-  ] as const;
-
   constructor() {
     this.profileForm = this.fb.group({
-      studentNumber: ['', [Validators.required]],
-      phoneNumber: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
-      dateOfBirth: ['', [Validators.required]],
       institution: ['', [Validators.required]],
       yearOfStudy: ['', [Validators.required]],
-      gender: ['', [Validators.required]],
       specialRequirements: [''],
+      // GH-239. Required here, where the profile is first built, because the backend refuses an
+      // application without a name and a phone — collecting them now means the student is not
+      // stopped later by a form they have already left behind. Relationship and email are not
+      // required: neither affects whether anyone can be reached.
+      emergencyContactName: ['', [Validators.required, Validators.maxLength(150)]],
+      emergencyContactRelationship: ['', [Validators.maxLength(50)]],
+      emergencyContactPhone: [
+        '',
+        [Validators.required, Validators.pattern(/^\+?[0-9 ()\-]{7,20}$/)],
+      ],
+      emergencyContactEmail: ['', [Validators.email]],
     });
   }
 
@@ -82,34 +83,22 @@ export class ProfileSetupComponent implements OnInit {
 
     this.institutionService.getInstitutions().subscribe({
       next: (institutions) => {
-        console.log('Institutions API response:', institutions);
-        if (institutions && Array.isArray((institutions as any).content)) {
-          this.institutions = (institutions as any).content;
-        } else if (Array.isArray(institutions)) {
-          this.institutions = institutions;
-        } else {
-          this.institutions = [];
-        }
+        this.institutions = contentOf(institutions);
       },
       error: (error) => {
         console.error('Error fetching institutions:', error);
+        this.errorService.showWarning('Could not load institutions. Please refresh the page.');
         this.institutions = [];
       },
     });
 
     this.yearOfStudyService.getYearsOfStudy().subscribe({
       next: (yearOfStudy) => {
-        console.log('YearsOfStudy API response:', yearOfStudy);
-        if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
-          this.yearsOfStudy = (yearOfStudy as any).content;
-        } else if (Array.isArray(yearOfStudy)) {
-          this.yearsOfStudy = yearOfStudy;
-        } else {
-          this.yearsOfStudy = [];
-        }
+        this.yearsOfStudy = contentOf(yearOfStudy);
       },
       error: (error) => {
         console.error('Error fetching years of study:', error);
+        this.errorService.showWarning('Could not load years of study. Please refresh the page.');
         this.yearsOfStudy = [];
       },
     });
@@ -117,30 +106,42 @@ export class ProfileSetupComponent implements OnInit {
 
   onSubmit() {
     if (this.profileForm.valid) {
+      const user = this.currentUser;
+      if (!user) {
+        // Reachable: the form renders before the user resolves, and the submit handler read
+        // through `any`, so a missing user threw on property access instead of being handled.
+        this.errorService.showErrorSnackbar(
+          'Your session has expired. Sign in again to finish setting up.'
+        );
+        return;
+      }
       this.isSubmitting = true;
 
       const studentData = {
-        firstName: this.currentUser.firstName,
-        lastName: this.currentUser.lastName,
-        email: this.currentUser.email,
-        studentNumber: this.profileForm.get('studentNumber')?.value,
-        phoneNumber: this.profileForm.get('phoneNumber')?.value,
-        dateOfBirth: this.profileForm.get('dateOfBirth')?.value,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
         institutionId: this.profileForm.get('institution')?.value,
         yearOfStudyId: this.profileForm.get('yearOfStudy')?.value,
-        gender: this.profileForm.get('gender')?.value,
         specialRequirements: this.profileForm.get('specialRequirements')?.value,
-        userId: this.currentUser.id,
+        emergencyContactName: this.profileForm.get('emergencyContactName')?.value,
+        emergencyContactRelationship: this.profileForm.get('emergencyContactRelationship')?.value,
+        emergencyContactPhone: this.profileForm.get('emergencyContactPhone')?.value,
+        emergencyContactEmail: this.profileForm.get('emergencyContactEmail')?.value,
+        // User.id is a string, StudentRequest.userId a number. The `any` hid the mismatch; the
+        // request happened to work only because the backend coerced the quoted value (GH-158).
+        userId: Number(user.id),
       };
 
       this.studentService.createStudentProfile(studentData).subscribe({
         next: () => {
           this.isSubmitting = false;
-          this.router.navigate(['/application-submission']);
+          this.router.navigate(['/document-upload']);
         },
         error: (error) => {
           this.isSubmitting = false;
           console.error('Error updating profile:', error);
+          this.errorService.showErrorSnackbar(this.errorService.parseError(error));
         },
       });
     } else {

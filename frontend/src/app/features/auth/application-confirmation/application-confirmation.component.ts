@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -7,10 +7,10 @@ import { Application } from '../../../core/models/application.model';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 
 // Material imports
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { User } from '../../../core/models/user.model';
 
 @Component({
   selector: 'app-application-confirmation',
@@ -20,25 +20,22 @@ import { MatDividerModule } from '@angular/material/divider';
   imports: [
     CommonModule,
     RouterModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatDividerModule,
+    MatSnackBarModule,
     ModernStatusBadgeComponent,
   ],
 })
 export class ApplicationConfirmationComponent implements OnInit {
-  currentUser: any;
-  currentDate: Date = new Date();
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
+  private applicationService = inject(ApplicationService);
+  private snackBar = inject(MatSnackBar);
+
+  currentUser: User | null = null;
   application: Application | null = null;
   applicationId: number | null = null;
-
-  constructor(
-    private router: Router,
-    private route: ActivatedRoute,
-    private authService: AuthService,
-    private applicationService: ApplicationService
-  ) {}
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
@@ -47,7 +44,6 @@ export class ApplicationConfirmationComponent implements OnInit {
     }
     const idParam = this.route.snapshot.paramMap.get('applicationId');
     this.applicationId = idParam !== null && !isNaN(Number(idParam)) ? Number(idParam) : null;
-    console.log('Application ID:', this.applicationId);
 
     if (this.applicationId && this.applicationId > 0) {
       this.applicationService.getApplicationById(this.applicationId).subscribe({
@@ -56,11 +52,23 @@ export class ApplicationConfirmationComponent implements OnInit {
         },
         error: (err) => {
           console.error('Failed to load application', err);
+          this.snackBar.open('Could not load application details.', 'Close', {
+            duration: 3000,
+            panelClass: ['error-snackbar'],
+          });
           this.router.navigate(['/dashboard']);
         },
       });
     } else {
       console.error('No valid application ID found in route');
+      this.snackBar.open(
+        'We could not find that application. Redirecting to your dashboard.',
+        'Close',
+        {
+          duration: 4000,
+          panelClass: ['error-snackbar'],
+        }
+      );
       this.router.navigate(['/dashboard']);
     }
   }

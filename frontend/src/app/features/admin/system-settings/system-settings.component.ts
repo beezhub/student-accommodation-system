@@ -1,12 +1,11 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { SystemSettingsService } from '../../../core/services/system-settings.service';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { RoleService } from '../../../core/services/role.service';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -22,19 +21,31 @@ import { FormsModule } from '@angular/forms';
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatSlideToggleModule,
-    MatSnackBarModule
+    MatTooltipModule,
   ],
 })
-export class SystemSettingsComponent implements OnInit {
-  private readonly systemSettingsService = inject(SystemSettingsService);
-  private readonly snackBar = inject(MatSnackBar);
-  private readonly cdr = inject(ChangeDetectorRef);
+export class SystemSettingsComponent {
+  protected readonly roleService = inject(RoleService);
 
-  autoAllocationEnabled = false;
-  loading = false;
+  /**
+   * The auto-allocation switch is an FF4j feature flag, and that screen is platform-admin only.
+   * A tenant admin is told who owns it rather than shown a link they cannot follow.
+   *
+   * <p>This card used to be a toggle writing the `auto_allocation_enabled` setting, which gated
+   * only the per-application path while the feature flag gated the batch path (GH-207).
+   */
+  get canManageFeatureFlags(): boolean {
+    return this.roleService.isPlatformAdmin();
+  }
 
-  settingsCategories = [
+  settingsCategories: {
+    title: string;
+    description: string;
+    icon: string;
+    route: string;
+    class: string;
+    platformOnly?: boolean;
+  }[] = [
     {
       title: 'Accommodation Types',
       description: 'Manage accommodation type options',
@@ -63,47 +74,22 @@ export class SystemSettingsComponent implements OnInit {
       route: '/admin/year-of-study',
       class: 'years',
     },
+    {
+      title: 'Feature Flags',
+      description: 'Toggle FF4J feature flags for the system',
+      icon: 'toggle_on',
+      route: '/admin/feature-flags',
+      class: 'feature-flags',
+      // Its route is PlatformAdminGuard-protected, so a tenant admin who clicked this would be
+      // bounced straight back here. Now that they can reach this page, do not offer it (GH-158).
+      platformOnly: true,
+    },
   ];
 
-  ngOnInit(): void {
-    this.loadSettings();
-  }
-
-  loadSettings(): void {
-    this.loading = true;
-    this.cdr.markForCheck();
-    this.systemSettingsService.getSettings().subscribe({
-      next: (settings) => {
-        this.autoAllocationEnabled = settings['auto_allocation_enabled'] === 'true';
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        console.error('Error loading settings', err);
-        this.loading = false;
-        this.cdr.markForCheck();
-        this.snackBar.open('Failed to load system settings', 'Close', { duration: 3000 });
-      }
-    });
-  }
-
-  toggleAutoAllocation(): void {
-    const newValue = (!this.autoAllocationEnabled).toString();
-    // Optimistic update
-    this.autoAllocationEnabled = !this.autoAllocationEnabled;
-    this.cdr.markForCheck();
-
-    this.systemSettingsService.updateSetting('auto_allocation_enabled', newValue).subscribe({
-      next: () => {
-        this.snackBar.open('Setting updated successfully', 'Close', { duration: 2000 });
-      },
-      error: (err) => {
-        console.error('Error updating setting', err);
-        // Revert on error
-        this.autoAllocationEnabled = !this.autoAllocationEnabled;
-        this.cdr.markForCheck();
-        this.snackBar.open('Failed to update setting', 'Close', { duration: 3000 });
-      }
-    });
+  /** The cards this admin can actually open. */
+  get visibleSettingsCategories() {
+    return this.settingsCategories.filter(
+      (category) => !category.platformOnly || this.roleService.isPlatformAdmin()
+    );
   }
 }

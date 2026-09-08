@@ -1,11 +1,11 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
+import { Location } from '@angular/common';
 
 import { AuthService } from './core/services/auth.service';
 import { IconService } from './core/services/icon.service';
 import { User } from './core/models/user.model';
 import { Subscription } from 'rxjs';
-import { routes } from './app-routing.module';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -17,6 +17,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { AppNavMenuComponent } from './shared/app-nav-menu.component';
+import { BrandLogoComponent } from './shared/components/brand-logo/brand-logo.component';
 
 @Component({
   selector: 'app-root',
@@ -33,28 +34,56 @@ import { AppNavMenuComponent } from './shared/app-nav-menu.component';
     MatSidenavModule,
     MatListModule,
     AppNavMenuComponent,
+    BrandLogoComponent,
   ],
   providers: [],
 })
 export class AppComponent implements OnInit, OnDestroy {
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private location = inject(Location);
+  private breakpointObserver = inject(BreakpointObserver);
+  private iconService = inject(IconService);
+
   title = 'Student Accommodation Management';
   currentUser: User | null = null;
   private userSub!: Subscription;
   isMobile = false;
   isHomePage = false;
-  constructor(
-    private authService: AuthService,
-    private router: Router,
-    private breakpointObserver: BreakpointObserver,
-    private iconService: IconService
-  ) {
+  isAdminRoute = false;
+
+  private static readonly TOOLBAR_HIDDEN_ROUTES = [
+    '/home',
+    '/login',
+    '/signup',
+    '/verify-email',
+    '/forgot-password',
+    '/reset-password',
+    '/profile-setup',
+    '/document-upload',
+    '/application-submission',
+    '/application-review',
+    '/application-confirmation',
+  ];
+
+  constructor() {
     this.isMobile = this.breakpointObserver.isMatched(Breakpoints.Handset);
+    // Initialize immediately so the toolbar is hidden on the first render
+    this.updateRouteFlags(this.location.path() || '/');
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
-        this.isHomePage =
-          event.urlAfterRedirects === '/home' || event.urlAfterRedirects === '/login';
+        this.updateRouteFlags(event.urlAfterRedirects);
       }
     });
+  }
+
+  private updateRouteFlags(url: string): void {
+    this.isAdminRoute = url.startsWith('/admin');
+    this.isHomePage =
+      url.startsWith('/buildings') ||
+      AppComponent.TOOLBAR_HIDDEN_ROUTES.some(
+        (route) => url === route || url.startsWith(route + '?')
+      );
   }
 
   ngOnInit() {

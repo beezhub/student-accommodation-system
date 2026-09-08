@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
+import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomMapper;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
@@ -9,6 +10,7 @@ import com.beezhub.student_accommodation.model.dto.RoomResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.specification.RoomSpecification;
@@ -22,7 +24,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,9 +38,11 @@ import java.util.stream.Collectors;
 public class RoomService {
 
     private final RoomRepository roomRepository;
+    private final RoomOccupancyManager roomOccupancyManager;
     private final BuildingRepository buildingRepository;
     private final RoomAllocationRepository roomAllocationRepository;
     private final RoomMapper roomMapper;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     public List<RoomResponse> getAllRooms() {
         log.info("Fetching all rooms");
@@ -83,6 +91,7 @@ public class RoomService {
         log.info("Fetching room with id: {}", id);
         Room room = roomRepository.findByIdWithAttributes(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
+        tenantOwnershipGuard.assertReadable(room, "Room", id);
         return roomMapper.toResponse(room);
     }
 
@@ -92,13 +101,24 @@ public class RoomService {
         room.setRoomNumber(request.getRoomNumber());
         room.setCapacity(request.getCapacity());
         room.setCurrentOccupancy(0);
-        room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+        room.setStatus(normaliseRequestedStatus(request.getStatus()));
+        room.setMonthlyRate(request.getMonthlyRate());
 
         if (request.getBuildingId() != null) {
             Building building = buildingRepository.findById(request.getBuildingId())
                     .orElseThrow(() -> new BuildingNotFoundException(
                             "Building not found with id: " + request.getBuildingId()));
+            tenantOwnershipGuard.assertOwned(building, "Building", request.getBuildingId());
+            if (roomRepository.existsByRoomNumberAndBuilding_Id(request.getRoomNumber(), request.getBuildingId())) {
+                throw new DuplicateResourceException(
+                        "A room with this number already exists in this building");
+            }
             room.setBuilding(building);
+            // From the building, not the acting context. Room creation is open to platform
+            // admins, and TenantListener would otherwise stamp the room with tenant 0. Every
+            // allocation and staged proposal derives its own tenant from the room, so a room
+            // stamped 0 propagates the defect to everything built on it (GH-146).
+            room.setTenantId(building.getTenantId());
         }
 
         Room saved = roomRepository.save(room);
@@ -110,7 +130,23 @@ public class RoomService {
         log.info("Bulk creating {} rooms", requests.size());
 
         // Cache building lookups to avoid repeated queries
-        java.util.Map<Long, Building> buildingCache = new java.util.HashMap<>();
+        Map<Long, Building> buildingCache = new HashMap<>();
+
+        // Batch duplicate detection: group requested room numbers by buildingId and query in bulk
+        Map<Long, List<String>> roomNumbersByBuilding = requests.stream()
+                .filter(r -> r.getBuildingId() != null)
+                .collect(Collectors.groupingBy(
+                        RoomRequest::getBuildingId,
+                        Collectors.mapping(RoomRequest::getRoomNumber, Collectors.toList())));
+
+        Map<Long, Set<String>> existingByBuilding = new HashMap<>();
+        for (Map.Entry<Long, List<String>> entry : roomNumbersByBuilding.entrySet()) {
+            existingByBuilding.put(entry.getKey(),
+                    roomRepository.findRoomNumbersByBuildingIdAndRoomNumberIn(entry.getKey(), entry.getValue()));
+        }
+
+        // Track room numbers added within this batch to detect intra-batch duplicates
+        Map<Long, Set<String>> addedInBatch = new HashMap<>();
 
         List<RoomResponse> responses = new java.util.ArrayList<>();
         for (RoomRequest request : requests) {
@@ -118,14 +154,28 @@ public class RoomService {
             room.setRoomNumber(request.getRoomNumber());
             room.setCapacity(request.getCapacity());
             room.setCurrentOccupancy(0);
-            room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+            room.setStatus(normaliseRequestedStatus(request.getStatus()));
+            room.setMonthlyRate(request.getMonthlyRate());
 
             if (request.getBuildingId() != null) {
                 Building building = buildingCache.computeIfAbsent(request.getBuildingId(),
-                        id -> buildingRepository.findById(id)
-                                .orElseThrow(() -> new BuildingNotFoundException(
-                                        "Building not found with id: " + id)));
+                        id -> {
+                            Building found = buildingRepository.findById(id)
+                                    .orElseThrow(() -> new BuildingNotFoundException(
+                                            "Building not found with id: " + id));
+                            tenantOwnershipGuard.assertOwned(found, "Building", id);
+                            return found;
+                        });
+                Set<String> existing = existingByBuilding.getOrDefault(request.getBuildingId(), Set.of());
+                Set<String> inBatch = addedInBatch.computeIfAbsent(request.getBuildingId(), k -> new HashSet<>());
+                if (existing.contains(request.getRoomNumber()) || inBatch.contains(request.getRoomNumber())) {
+                    throw new DuplicateResourceException(
+                            "A room with this number already exists in this building");
+                }
+                inBatch.add(request.getRoomNumber());
                 room.setBuilding(building);
+                // Same reason as createRoom above (GH-146).
+                room.setTenantId(building.getTenantId());
             }
 
             Room saved = roomRepository.save(room);
@@ -140,11 +190,13 @@ public class RoomService {
         log.info("Updating room with id: {} and buildingId: {}", id, request.getBuildingId());
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(room, "Room", id);
 
         // Update basic fields
         room.setRoomNumber(request.getRoomNumber());
         room.setCapacity(request.getCapacity());
-        room.setStatus(request.getStatus() != null ? request.getStatus() : "AVAILABLE");
+        room.setStatus(normaliseRequestedStatus(request.getStatus()));
+        room.setMonthlyRate(request.getMonthlyRate());
 
         // Handle building relationship
         if (request.getBuildingId() != null) {
@@ -152,6 +204,12 @@ public class RoomService {
             Building building = buildingRepository.findById(request.getBuildingId())
                     .orElseThrow(() -> new BuildingNotFoundException(
                             "Building not found with id: " + request.getBuildingId()));
+            tenantOwnershipGuard.assertOwned(building, "Building", request.getBuildingId());
+            if (roomRepository.existsByRoomNumberAndBuilding_IdAndIdNot(
+                    request.getRoomNumber(), request.getBuildingId(), id)) {
+                throw new DuplicateResourceException(
+                        "A room with this number already exists in this building");
+            }
             room.setBuilding(building);
             log.info("Building set to: {}", building.getName());
         } else {
@@ -159,15 +217,33 @@ public class RoomService {
             room.setBuilding(null);
         }
 
+        // Derived rather than taken from the request. This endpoint wrote capacity and status
+        // straight through and never reconciled either against the live allocation count, so a
+        // full room could be published as AVAILABLE and capacity cut below the number of students
+        // already in it (GH-136).
+        roomOccupancyManager.syncOccupancy(room);
+
         Room updated = roomRepository.save(room);
         log.info("Successfully updated room with id: {}, room number: {}", updated.getId(), updated.getRoomNumber());
         return roomMapper.toResponse(updated);
+    }
+
+    /**
+     * The only status an admin sets directly is MAINTENANCE. Everything else is a statement about
+     * how many students are in the room, which is derived.
+     *
+     * <p>Anything else maps to AVAILABLE rather than being rejected, which is what lets an admin
+     * clear maintenance: sending any other status hands the room back to the derivation.
+     */
+    private static String normaliseRequestedStatus(String requested) {
+        return "MAINTENANCE".equalsIgnoreCase(requested) ? "MAINTENANCE" : "AVAILABLE";
     }
 
     public void deleteRoom(Long id) {
         log.info("Deleting room with id: {}", id);
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(room, "Room", id);
         roomRepository.delete(room);
         log.info("Successfully deleted room with id: {}", id);
     }

@@ -1,8 +1,19 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Institution } from '../models/institution.model';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
+
+/** The query these paged endpoints accept. Was `any`, which typed nothing (GH-158). */
+export interface InstitutionFilters {
+  page?: number;
+  size?: number;
+  name?: string;
+  address?: string;
+  contactEmail?: string;
+}
 
 export interface InstitutionResponse {
   id: number;
@@ -21,25 +32,14 @@ export interface InstitutionRequest {
   emailAddress: string;
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  pageNumber: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
-}
-
 @Injectable({
   providedIn: 'root',
 })
 export class InstitutionService {
+  private http = inject(HttpClient);
+
   private apiUrl = `${environment.apiUrl}/institution`;
   private institutions: Institution[] | null = null;
-
-  constructor(private http: HttpClient) {}
 
   getInstitutions(): Observable<Institution[]> {
     if (this.institutions) {
@@ -51,7 +51,7 @@ export class InstitutionService {
       .pipe(tap((data) => (this.institutions = data)));
   }
 
-  getAllInstitutions(filters: any): Observable<PageResponse<InstitutionResponse>> {
+  getAllInstitutions(filters: InstitutionFilters): Observable<PageResponse<InstitutionResponse>> {
     const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
@@ -59,7 +59,7 @@ export class InstitutionService {
     return this.http.get<PageResponse<InstitutionResponse>>(this.apiUrl, { params });
   }
 
-  searchInstitutions(filters: any): Observable<PageResponse<InstitutionResponse>> {
+  searchInstitutions(filters: InstitutionFilters): Observable<PageResponse<InstitutionResponse>> {
     let params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');

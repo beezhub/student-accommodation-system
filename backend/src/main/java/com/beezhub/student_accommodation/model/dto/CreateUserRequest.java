@@ -17,8 +17,11 @@ public class CreateUserRequest {
     private String email;
 
     @NotBlank(message = "Password is required")
+    @com.beezhub.student_accommodation.validation.StrongPassword
     private String password;
 
     @NotBlank(message = "Role is required")
-    private String userRole; // Will be validated to only allow ADMIN/LANDLORD
+    private String userRole; // Will be validated to only allow PLATFORM_ADMIN or BUILDING_STAFF
+
+    private Long tenantId; // Optional tenant assignment
 }

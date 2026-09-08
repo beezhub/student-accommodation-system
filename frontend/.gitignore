@@ -13,3 +13,9 @@ npm-debug.log
 !/.github/
 .vscode
 package-lock.json
+
+# Playwright output
+playwright-report/
+test-results/
+*.log
+coverage/

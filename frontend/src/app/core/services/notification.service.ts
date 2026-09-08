@@ -10,6 +10,8 @@ import { TokenStorageService } from './token-storage.service';
   providedIn: 'root',
 })
 export class NotificationService {
+  private http = inject(HttpClient);
+
   private apiUrl = `${environment.apiUrl}/notifications`;
   private notificationsSubject = new BehaviorSubject<Notification[]>([]);
   private unreadCountSubject = new BehaviorSubject<number>(0);
@@ -22,8 +24,6 @@ export class NotificationService {
 
   public notifications$ = this.notificationsSubject.asObservable();
   public unreadCount$ = this.unreadCountSubject.asObservable();
-
-  constructor(private http: HttpClient) {}
 
   /**
    * Initialize notifications (try SSE, fallback to polling)
@@ -39,20 +39,28 @@ export class NotificationService {
       return;
     }
 
-    this.connectToSse(token);
+    this.connectToSse();
   }
 
   /**
-   * Connect to Server-Sent Events endpoint
+   * Connect to Server-Sent Events endpoint.
+   * Note: SSE does not support custom headers, so we pass the token as a query param.
+   * For production, consider a ticket-based approach (exchange JWT for short-lived opaque ticket).
    */
-  private connectToSse(token: string): void {
-    const url = `${this.apiUrl}/stream?token=${token}`;
-    
+  private connectToSse(_token?: string): void {
+    const freshToken = this.tokenStorage.getToken();
+    if (!freshToken) {
+      console.warn('Cannot connect SSE: no valid token');
+      return;
+    }
+    const url = `${this.apiUrl}/stream?token=${freshToken}`;
+
     this.eventSource = new EventSource(url);
 
     this.eventSource.onopen = () => {
-      console.log('SSE connection opened');
       this.reconnectAttempts = 0;
+      // Load existing notifications immediately after connection is established
+      this.fetchNotifications().subscribe();
     };
 
     this.eventSource.addEventListener('notification', (event: MessageEvent) => {
@@ -66,19 +74,14 @@ export class NotificationService {
       });
     });
 
-    this.eventSource.addEventListener('connected', () => {
-      console.log('SSE connected confirmed by server');
-    });
-
     this.eventSource.onerror = (error) => {
       this.ngZone.run(() => {
         console.error('SSE error:', error);
         this.eventSource?.close();
-        
+
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++;
-          console.log(`Retrying SSE connection in 5s (Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-          setTimeout(() => this.connectToSse(token), 5000);
+          setTimeout(() => this.connectToSse(), 5000);
         } else {
           console.warn('Max SSE reconnect attempts reached. Falling back to polling.');
           this.startPolling();
@@ -90,7 +93,8 @@ export class NotificationService {
   /**
    * Handle incoming notification from SSE
    */
-  private handleNewNotification(notification: any): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private handleNewNotification(_notification: any): void {
     // Refresh full list to keep sync (simplest approach for now)
     // Or optimize by appending to list
     this.fetchNotifications().subscribe();
@@ -103,8 +107,7 @@ export class NotificationService {
     if (this.pollingSubscription) {
       return;
     }
-    
-    console.log('Starting notification polling fallback');
+
     this.pollingSubscription = interval(30000) // Poll every 30 seconds
       .pipe(
         startWith(0), // Start immediately
@@ -126,10 +129,7 @@ export class NotificationService {
         this.unreadCountSubject.next(response.unreadCount);
       }),
       catchError((error) => {
-        console.warn(
-          'Failed to fetch notifications:',
-          error.message
-        );
+        console.warn('Failed to fetch notifications:', error.message);
         return of({ notifications: [], unreadCount: 0, totalCount: 0 });
       })
     );
@@ -201,6 +201,16 @@ export class NotificationService {
       PAYMENT_DUE: 'payment',
       SYSTEM_ANNOUNCEMENT: 'campaign',
       INFO: 'info',
+      ALLOCATION_CONFIRMED: 'home',
+      ALLOCATION_PROPOSED: 'pending_actions',
+      ALLOCATION_REJECTED: 'block',
+      CHECK_IN_CONFIRMED: 'how_to_reg',
+      CHECK_IN_EXPIRED: 'event_busy',
+      CHECK_IN_REMINDER: 'event',
+      OFFER_EXPIRED: 'timer_off',
+      OFFER_EXPIRY_REMINDER: 'timer',
+      ROOM_MOVED: 'swap_horiz',
+      WAITING_LIST: 'queue',
     };
     return iconMap[type] || 'notifications';
   }
@@ -218,6 +228,16 @@ export class NotificationService {
       PAYMENT_DUE: 'accent',
       SYSTEM_ANNOUNCEMENT: 'primary',
       INFO: 'primary',
+      ALLOCATION_CONFIRMED: 'success',
+      ALLOCATION_PROPOSED: 'primary',
+      ALLOCATION_REJECTED: 'warn',
+      CHECK_IN_CONFIRMED: 'success',
+      CHECK_IN_EXPIRED: 'warn',
+      CHECK_IN_REMINDER: 'accent',
+      OFFER_EXPIRED: 'warn',
+      OFFER_EXPIRY_REMINDER: 'accent',
+      ROOM_MOVED: 'primary',
+      WAITING_LIST: 'accent',
     };
     return colorMap[type] || 'primary';
   }

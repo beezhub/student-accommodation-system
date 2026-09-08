@@ -16,9 +16,18 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@org.hibernate.annotations.Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
-@EntityListeners(com.beezhub.student_accommodation.model.listener.TenantListener.class)
-public class Document implements TenantAware {
+/**
+ * A student's uploaded document.
+ *
+ * <p>Documents are <strong>student-owned, not tenant-owned</strong>: one pack of documents is
+ * reused across every application a student makes, including applications to different tenants.
+ * The entity therefore carries no {@code tenantFilter} — filtering by the uploader's tenant hid
+ * every student upload from tenant admins, because students are platform-tenant users.
+ * {@code tenant_id} stays as the platform tenant for schema compatibility and is not a scope.
+ * Tenant scoping for admins is explicit instead: see {@code DocumentAccessGuard}, which grants a
+ * tenant admin access only to students who have an application in that admin's tenant.
+ */
+public class Document {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -47,11 +56,13 @@ public class Document implements TenantAware {
     @JoinColumn(name = "student_id", referencedColumnName = "id", nullable = false)
     private Student student;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "application_id", nullable = false)
-    private Application application;
-
-    @OneToOne
+    // @ManyToOne, not @OneToOne. The real constraint is uq_document_student_type — one slot per
+    // student per type (V2026_03_19_0004) — but @OneToOne told Hibernate the column was unique on
+    // its own, so the schema it derives allows a single document of each type in the whole table.
+    // Production never saw it, because the Flyway schema is authoritative there and hbm2ddl
+    // validate does not check unique constraints; JPA slice tests, which build from the mappings,
+    // did (GH-235).
+    @ManyToOne
     @JoinColumn(name = "document_type_id", referencedColumnName = "id", nullable = false)
     private DocumentType documentType;
 

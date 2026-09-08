@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Room Offer Expiring Soon</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Room Offer Expiring Soon</h1>
+<span layout:fragment="email-subtitle">Action required — respond before the deadline</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <div class="warning-box">
+        <h3>Your room offer expires soon</h3>
+        <p>Your offer for <strong>Room <span th:text="${roomNumber}">101</span></strong>
+           in <strong th:text="${buildingName}">Building A</strong> will expire on
+           <strong th:text="${expiryDate}">01 January 2026</strong>.</p>
+        <p>Please log in to your portal and <strong>Accept</strong> or <strong>Decline</strong>
+           the offer before the deadline to avoid losing your room.</p>
+    </div>
+
+    <div class="neutral-box">
+        <strong>What happens if you do not respond?</strong>
+        <ul>
+            <li>Your offer will automatically expire</li>
+            <li>The room will be released to other students</li>
+            <li>Your application will be cancelled</li>
+        </ul>
+    </div>
+
+    <p>If you have already responded, please disregard this reminder.</p>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">Respond to Offer Now</a>
+    </div>
+</div>
+
+</body>
+</html>

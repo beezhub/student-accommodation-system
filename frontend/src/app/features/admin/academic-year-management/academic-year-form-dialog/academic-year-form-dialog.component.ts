@@ -1,11 +1,7 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  MAT_DIALOG_DATA,
-  MatDialogModule,
-  MatDialogRef,
-} from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,6 +10,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
 
 import { AcademicYearService } from '../../../../core/services/academic-year.service';
 import { AcademicYear, AcademicYearRequest } from '../../../../core/models/academic-year.model';
@@ -40,20 +37,23 @@ export interface AcademicYearDialogData {
     MatCheckboxModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    MatIconModule,
   ],
 })
 export class AcademicYearFormDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private academicYearService = inject(AcademicYearService);
+  private dialogRef = inject<MatDialogRef<AcademicYearFormDialogComponent>>(MatDialogRef);
+  private snackBar = inject(MatSnackBar);
+  data = inject<AcademicYearDialogData>(MAT_DIALOG_DATA);
+
   form: FormGroup;
   isSubmitting = false;
   isEditMode = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private academicYearService: AcademicYearService,
-    private dialogRef: MatDialogRef<AcademicYearFormDialogComponent>,
-    private snackBar: MatSnackBar,
-    @Inject(MAT_DIALOG_DATA) public data: AcademicYearDialogData
-  ) {
+  constructor() {
+    const data = this.data;
+
     this.isEditMode = data.mode === 'edit';
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.maxLength(50)]],
@@ -73,7 +73,9 @@ export class AcademicYearFormDialogComponent implements OnInit {
         startDate: year.startDate ? new Date(year.startDate) : null,
         endDate: year.endDate ? new Date(year.endDate) : null,
         applicationOpenDate: year.applicationOpenDate ? new Date(year.applicationOpenDate) : null,
-        applicationCloseDate: year.applicationCloseDate ? new Date(year.applicationCloseDate) : null,
+        applicationCloseDate: year.applicationCloseDate
+          ? new Date(year.applicationCloseDate)
+          : null,
         isCurrent: year.isCurrent,
       });
     }
@@ -87,7 +89,7 @@ export class AcademicYearFormDialogComponent implements OnInit {
 
     this.isSubmitting = true;
     const formValue = this.form.value;
-    
+
     const request: AcademicYearRequest = {
       name: formValue.name,
       startDate: this.formatDateForApi(formValue.startDate),

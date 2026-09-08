@@ -1,0 +1,29 @@
+<div class="waitlist-card">
+  <div class="waitlist-card__badge">
+    <mat-icon>hourglass_empty</mat-icon>
+    <span class="waitlist-card__badge-number">#{{ position.position }}</span>
+  </div>
+
+  <div class="waitlist-card__body">
+    <p class="waitlist-card__heading">You're #{{ position.position }} in the queue</p>
+    <p class="waitlist-card__depth">
+      Position #{{ position.position }} of {{ position.totalInQueue }} students waiting
+    </p>
+
+    @if (position.estimatedWaitDays !== null) {
+      <p class="waitlist-card__estimate">
+        Estimated wait: approximately {{ position.estimatedWaitDays }}
+        {{ position.estimatedWaitDays === 1 ? 'day' : 'days' }}
+      </p>
+    } @else {
+      <p class="waitlist-card__estimate waitlist-card__estimate--unavailable">
+        Estimated wait time unavailable — allocations are processed regularly
+      </p>
+    }
+
+    <p class="waitlist-card__promise">
+      <mat-icon>mail_outline</mat-icon>
+      You'll be notified by email as soon as a room becomes available for you
+    </p>
+  </div>
+</div>

@@ -1,5 +1,7 @@
 # Student Accommodation System
 
+[![CI](https://github.com/your-org/student-accommodation-system/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/student-accommodation-system/actions/workflows/ci.yml)
+
 A web application to help students find, book, and manage accommodation easily. This project consists of a backend (Spring Boot) and a frontend (Angular).
 
 ## Features
@@ -103,6 +105,36 @@ Now, both the backend and frontend servers should be running. Access the applica
 - Meal plans and student-paid budgets are not collected; bursaries cover accommodation costs. Related columns are dropped and not exposed via API.
 - Submission endpoint: `POST /api/applications/submit` accepts `ApplicationRequest` with the above preference fields only.
 
+## Operations
+- [Operator runbook](docs/OPERATOR_RUNBOOK.md) — every account, domain, DNS record, credential and
+  GitHub setting the deployment needs from a person, in the order it is needed. Start here before
+  any deployment work.
+- [Backup and restore runbook](docs/BACKUP_AND_RESTORE.md) — PostgreSQL and MinIO backup, restore
+  ordering, and the document retention rule (twelve months after a student's last application
+  closes and last tenancy ends). Read it before turning retention off dry-run mode.
+- **Logs.** On a deployed host every container's output and the Caddy journal are shipped by
+  Alloy to Loki and kept for two weeks (`tools/alloy/config.alloy`, `tools/loki/loki.yml`). Grafana
+  is published on the host's loopback only, so open a tunnel and use Explore with the Loki
+  datasource:
+
+  ```bash
+  ssh -L 3000:127.0.0.1:3000 ubuntu@nonprod.beezhub.co.za
+  # then http://localhost:3000/explore, datasource Loki
+  ```
+
+  Useful queries: `{service="student-accommodation-back-end", level="ERROR"}` for backend errors,
+  `{service="student-accommodation-back-end"} | requestId="<id>"` to follow one request by the
+  `x-request-id` the API returns, `{unit="caddy.service"}` for the TLS proxy's access log, and
+  `{service="frontend"}` for nginx. The backend's level is a label; its logger, request id and
+  tenant id are structured metadata and filter with `| logger=~"...Service"`. Without a tunnel,
+  `docker compose logs` on the host still works, but only holds the last 30 MB per container.
+- **Metrics and alerts.** Prometheus scrapes the backend every 15 seconds and keeps 30 days on
+  its own volume; the dashboards under `tools/grafana/dashboards` read from it through the same
+  tunnel. Scraping needs `PROMETHEUS_SCRAPE_PASSWORD` set in `.env`, which feeds both the backend
+  and Prometheus. Provisioned alerts email `GRAFANA_ALERT_EMAIL` (default `APP_SUPPORT_EMAIL`)
+  through the `MAIL_*` account. Check `up{job="student-accommodation-backend"}` in Explore first:
+  `0` means the scrape is failing, and the usual cause is that password.
+
 ## Folder Structure
 ```
 student-accommodation-system/
@@ -115,6 +147,8 @@ student-accommodation-system/
 
 ## Contributing
 Contributions are welcome! Please fork the repository and submit a pull request.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first for the branch naming, commit
+message, and attribution rules.
 
 ## License
 This project is licensed under the MIT License.

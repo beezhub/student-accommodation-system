@@ -1,0 +1,318 @@
+@use '../../../../styles/variables' as vars;
+@use '../../../../styles/mixins' as mixins;
+
+.feature-flag-page {
+  min-height: 100vh;
+  background: vars.$slate-50;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Hero header band  (slate = settings / flags module)
+// ─────────────────────────────────────────────────────────────
+.page-hero {
+  background: vars.$slate-900;
+  padding: 2rem 1.5rem 1.75rem;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #475569 0%, #94a3b8 100%);
+  }
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    padding: 2.5rem 2.5rem 2.25rem;
+  }
+
+  @media (min-width: vars.$breakpoint-large) {
+    padding: 2.5rem 3rem 2.25rem;
+  }
+}
+
+.hero-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+}
+
+.hero-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hero-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: vars.$radius-md;
+  background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    color: white;
+    font-size: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+.hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.hero-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.01em;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    font-size: 1.875rem;
+  }
+}
+
+.hero-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: vars.$slate-400;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    font-size: 0.9375rem;
+  }
+}
+
+.hero-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero-metrics {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.metric-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.625rem 1rem;
+  background: rgb(255 255 255 / 7%);
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: vars.$radius-md;
+  min-width: 72px;
+
+  &:hover {
+    background: rgb(255 255 255 / 11%);
+  }
+}
+
+.metric-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+}
+
+.metric-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: vars.$slate-400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.refresh-btn {
+  border-radius: vars.$radius-md !important;
+  border-color: rgb(255 255 255 / 20%) !important;
+  color: vars.$slate-300 !important;
+  font-weight: 600;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  &:hover {
+    background: rgb(255 255 255 / 7%) !important;
+    border-color: rgb(255 255 255 / 35%) !important;
+    color: white !important;
+  }
+
+  mat-icon {
+    font-size: 1.125rem;
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Page content wrapper
+// ─────────────────────────────────────────────────────────────
+.page-content {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 2rem;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    padding: 1.5rem 2.5rem 2rem;
+  }
+
+  @media (min-width: vars.$breakpoint-large) {
+    padding: 1.5rem 3rem 2rem;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Table card
+// ─────────────────────────────────────────────────────────────
+.table-card {
+  @include mixins.card-base;
+
+  mat-card-content {
+    padding: 0 !important;
+  }
+}
+
+.loading-container {
+  padding: 2rem 1.25rem;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.flags-table {
+  width: 100%;
+
+  th.mat-header-cell {
+    background: vars.$slate-50;
+    color: vars.$slate-500;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid vars.$slate-200;
+    white-space: nowrap;
+  }
+
+  td.mat-cell {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid vars.$slate-100;
+    color: vars.$slate-700;
+    font-size: 0.875rem;
+    vertical-align: middle;
+  }
+
+  tr.data-row {
+    transition: background vars.$motion-fast ease;
+
+    &:hover td.mat-cell {
+      background: vars.$slate-50;
+    }
+
+    &:last-child td.mat-cell {
+      border-bottom: none;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Flag ID cell
+// ─────────────────────────────────────────────────────────────
+.flag-id-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.flag-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: vars.$slate-300;
+  flex-shrink: 0;
+  transition: background vars.$motion-fast ease;
+
+  &.enabled {
+    background: vars.$success;
+    box-shadow: 0 0 0 3px rgba(vars.$success, 0.15);
+  }
+}
+
+.flag-uid {
+  font-family: 'Fira Mono', Consolas, monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: vars.$slate-800;
+  background: vars.$slate-100;
+  padding: 0.125rem 0.5rem;
+  border-radius: vars.$radius-sm;
+}
+
+.flag-description {
+  color: vars.$slate-500;
+  font-size: 0.875rem;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Group badge
+// ─────────────────────────────────────────────────────────────
+.group-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1875rem 0.625rem;
+  border-radius: vars.$radius-pill;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: vars.$slate-100;
+  color: vars.$slate-600;
+  border: 1px solid vars.$slate-200;
+  white-space: nowrap;
+}
+
+.no-group {
+  color: vars.$slate-300;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Status cell
+// ─────────────────────────────────────────────────────────────
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.status-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: vars.$slate-400;
+  text-transform: uppercase;
+
+  &.enabled {
+    color: vars.$success;
+  }
+}

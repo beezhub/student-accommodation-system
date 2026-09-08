@@ -81,7 +81,7 @@ public class ApplicationController {
                         @ApiResponse(responseCode = "404", description = "Application not found")
         })
         @GetMapping("/{applicationId}")
-        @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
+        @PreAuthorize("hasAnyRole('STUDENT', 'PLATFORM_ADMIN')")
         public ResponseEntity<ApplicationResponse> getApplicationById(
                         @Parameter(description = "ID of the application to retrieve", required = true) @PathVariable("applicationId") Long applicationId) {
                 ApplicationResponse response = applicationService.getApplicationById(applicationId);
@@ -95,7 +95,7 @@ public class ApplicationController {
                         @ApiResponse(responseCode = "404", description = "Student not found")
         })
         @GetMapping("/student/{studentId}")
-        @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
+        @PreAuthorize("hasAnyRole('STUDENT', 'PLATFORM_ADMIN')")
         public ResponseEntity<List<ApplicationResponse>> getApplicationsByStudentId(
                         @Parameter(description = "ID of the student to retrieve applications for", required = true) @PathVariable("studentId") Long studentId) {
                 return ResponseEntity.ok(applicationService.getApplicationsByStudentId(studentId));
@@ -104,7 +104,7 @@ public class ApplicationController {
         @Operation(summary = "Get all applications", description = "Retrieves all applications in the system. Admin only. Supports pagination with query params: page, size, sort")
         @ApiResponse(responseCode = "200", description = "Applications retrieved successfully")
         @GetMapping
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         public ResponseEntity<?> getAllApplications(
                         @PageableDefault(size = 20, sort = "applicationDate") Pageable pageable) {
                 PageResponse<ApplicationResponse> page = applicationSearchService.getAllApplications(pageable);
@@ -114,7 +114,7 @@ public class ApplicationController {
         @Operation(summary = "Search applications", description = "Search and filter applications by code, student name, status, allocation status, preferred building, or date range. Admin only.")
         @ApiResponse(responseCode = "200", description = "Applications retrieved successfully")
         @GetMapping("/search")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         public ResponseEntity<PageResponse<ApplicationResponse>> searchApplications(
                         @RequestParam(required = false) String applicationCode,
                         @RequestParam(required = false) String studentName,
@@ -124,9 +124,20 @@ public class ApplicationController {
                         @RequestParam(required = false) @Parameter(description = "Start date in format YYYY-MM-DD") String startDate,
                         @RequestParam(required = false) @Parameter(description = "End date in format YYYY-MM-DD") String endDate,
                         @PageableDefault(size = 20, sort = "applicationDate") Pageable pageable) {
-                LocalDate start = startDate != null ? LocalDate.parse(startDate) : null;
-                LocalDate end = endDate != null ? LocalDate.parse(endDate) : null;
-                ApplicationStatus statusEnum = status != null ? valueOf(status) : null;
+                LocalDate start;
+                LocalDate end;
+                ApplicationStatus statusEnum;
+                try {
+                        start = startDate != null ? LocalDate.parse(startDate) : null;
+                        end = endDate != null ? LocalDate.parse(endDate) : null;
+                } catch (java.time.format.DateTimeParseException e) {
+                        return ResponseEntity.badRequest().build();
+                }
+                try {
+                        statusEnum = status != null ? valueOf(status) : null;
+                } catch (IllegalArgumentException e) {
+                        return ResponseEntity.badRequest().build();
+                }
                 PageResponse<ApplicationResponse> page = applicationSearchService.searchApplications(
                                 applicationCode, studentName, statusEnum, allocationStatus, preferredBuilding, start,
                                 end, pageable);
@@ -139,7 +150,7 @@ public class ApplicationController {
                         @ApiResponse(responseCode = "400", description = "Invalid status")
         })
         @GetMapping("/status/{status}")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         public ResponseEntity<List<ApplicationResponse>> getApplicationsByStatus(
                         @Parameter(description = "Status of the applications to retrieve (PENDING, APPROVED, REJECTED)", required = true) @PathVariable("status") String status) {
                 return ResponseEntity.ok(applicationSearchService.getApplicationsByStatus(status));
@@ -152,7 +163,7 @@ public class ApplicationController {
                         @ApiResponse(responseCode = "404", description = "Application not found")
         })
         @PatchMapping("/{applicationId}/status")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         public ResponseEntity<ApplicationResponse> updateApplicationStatus(
                         @Parameter(description = "ID of the application to update", required = true) @PathVariable("applicationId") Long applicationId,
                         @Valid @RequestBody ApplicationStatusUpdateRequest request) {
@@ -162,7 +173,7 @@ public class ApplicationController {
         }
 
         @PostMapping("/{applicationId}/mark-under-review")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Mark application as under review", description = "Moves application to UNDER_REVIEW status. Admin only.")
         public ResponseEntity<ApplicationResponse> markUnderReview(
                         @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId) {
@@ -170,7 +181,7 @@ public class ApplicationController {
         }
 
         @PostMapping("/{applicationId}/request-changes")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         @Operation(summary = "Request changes for application", description = "Moves application to CHANGES_REQUESTED status with a reason. Admin only.")
         public ResponseEntity<ApplicationResponse> requestChanges(
                         @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId,
@@ -210,7 +221,7 @@ public class ApplicationController {
                         @ApiResponse(responseCode = "404", description = "Application not found")
         })
         @GetMapping("/{applicationId}/full-details")
-        @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
+        @PreAuthorize("hasAnyRole('STUDENT', 'PLATFORM_ADMIN')")
         public ResponseEntity<ApplicationFullDetailsResponse> getApplicationFullDetails(
                         @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId,
                         Authentication authentication) {
@@ -229,7 +240,7 @@ public class ApplicationController {
                         @ApiResponse(responseCode = "404", description = "Application or document not found")
         })
         @PostMapping("/{applicationId}/save-review-progress")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         public ResponseEntity<ReviewProgressResponse> saveReviewProgress(
                         @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId,
                         @Valid @RequestBody ReviewProgressRequest request,
@@ -249,7 +260,7 @@ public class ApplicationController {
                         @ApiResponse(responseCode = "404", description = "Application not found")
         })
         @PostMapping("/{applicationId}/move-to-allocation")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
         public ResponseEntity<ApplicationResponse> moveToAllocationPhase(
                         @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId,
                         Authentication authentication) {

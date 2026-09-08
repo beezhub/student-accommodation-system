@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Check-In Deadline Reminder</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Check-In Deadline Approaching</h1>
+<span layout:fragment="email-subtitle">Action required — check in before the deadline</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <div class="warning-box">
+        <h3>Your check-in deadline is approaching</h3>
+        <p>You must check in to <strong>Room <span th:text="${roomNumber}">101</span></strong>
+           in <strong th:text="${buildingName}">Building A</strong> by
+           <strong th:text="${deadlineDate}">01 January 2026</strong>.</p>
+        <p>Please proceed to your assigned room and complete the check-in process before the deadline
+           to keep your room allocation active.</p>
+    </div>
+
+    <div class="neutral-box">
+        <strong>What happens if you do not check in?</strong>
+        <ul>
+            <li>Your room allocation will automatically expire</li>
+            <li>The room will be released to other students</li>
+            <li>Your application will be cancelled</li>
+        </ul>
+    </div>
+
+    <p>If you have already checked in, please disregard this reminder.</p>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">View My Allocation</a>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,7 +1,10 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.model.dto.*;
+import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
+import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.service.RoomAllocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,10 +28,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Staged Allocation Management", description = "Batch allocation proposal and confirmation workflows")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
 public class StagedAllocationController {
 
         private final RoomAllocationService roomAllocationService;
+        private final AppUserRepository appUserRepository;
 
         /**
          * Proposes allocation for a batch of students.
@@ -230,27 +234,43 @@ public class StagedAllocationController {
          * Extracts admin user ID from authentication context.
          */
         private Long extractAdminId(Authentication auth) {
-                // Extract from UserDetails or custom authentication object
-                // This is a placeholder - adjust based on your security implementation
-                return 1L; // TODO: Extract actual admin ID from authentication
+                AppUser user = appUserRepository.findByEmail(auth.getName())
+                        .orElseThrow(() -> new UserNotFoundException("Admin user not found: " + auth.getName()));
+                return user.getId();
         }
 
         /**
-         * Gets waiting list with priority scores.
+         * Gets the waiting list with priority scores.
+         *
+         * <p>Ordered by queue position, which is the order the batch job consumes the list in.
+         * The scores are informational: they describe how well a student matches the available
+         * rooms, not when that student will be served. Ranking the display by score meant the
+         * student shown at position 1 could lose the last free room to an earlier applicant
+         * (GH-140).
          *
          * @param buildingId Optional building filter
-         * @param sortBy     Sort field
+         * @param sortBy     Display order: "queue" (default) or "score". Position always stays the
+         *                   queue position, so it can never contradict the job.
          * @return List of waiting list entries with scores
          */
         @GetMapping("/waiting-list")
-        @Operation(summary = "Get waiting list with scores", description = "Returns the waiting list with priority scores calculated using the latest allocation rules. Sorted by score descending.")
+        @Operation(summary = "Get waiting list with scores", description = "Returns the waiting list with priority scores calculated using the latest allocation rules. Ordered by queue position, which is the order the allocation job serves. Pass sortBy=score to view by score; the position column still shows the queue position.")
         public ResponseEntity<java.util.List<WaitingListEntryResponse>> getWaitingListWithScores(
                         @RequestParam(required = false) Long buildingId,
-                        @RequestParam(required = false, defaultValue = "score") String sortBy) {
+                        @RequestParam(required = false, defaultValue = "queue") String sortBy) {
 
-                log.info("Getting waiting list with scores for buildingId: {}", buildingId);
+                log.info("Getting waiting list with scores for buildingId: {} sortBy: {}", buildingId, sortBy);
                 java.util.List<WaitingListEntryResponse> response = roomAllocationService
                                 .getWaitingListWithScores(buildingId);
+
+                if ("score".equalsIgnoreCase(sortBy)) {
+                        // A view, not a re-ranking. Each row keeps the queue position it was given,
+                        // so sorting by score cannot make the screen disagree with the job.
+                        response = new java.util.ArrayList<>(response);
+                        response.sort(java.util.Comparator
+                                        .comparing(WaitingListEntryResponse::getPriorityScore,
+                                                        java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
+                }
                 return ResponseEntity.ok(response);
         }
 

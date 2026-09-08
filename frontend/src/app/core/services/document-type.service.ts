@@ -1,14 +1,25 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DocumentType } from '../models/document-type.model';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
+
+/** The query these paged endpoints accept. Was `any`, which typed nothing (GH-158). */
+export interface DocumentTypeFilters {
+  page?: number;
+  size?: number;
+  name?: string;
+  isRequired?: boolean;
+}
 
 export interface DocumentTypeResponse {
   id: number;
   typeName: string;
   description?: string;
   isRequired: boolean;
+  isPlatformDefault?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,42 +30,38 @@ export interface DocumentTypeRequest {
   isRequired: boolean;
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  pageNumber: number;
-  pageSize: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-  empty: boolean;
-}
-
 @Injectable({
   providedIn: 'root',
 })
 export class DocumentTypeService {
-  private apiUrl = `${environment.apiUrl}/document-type`;
+  private http = inject(HttpClient);
 
-  constructor(private http: HttpClient) {}
+  private apiUrl = `${environment.apiUrl}/document-type`;
 
   getAllDocumentTypes(): Observable<DocumentType[]> {
     return this.http.get<DocumentType[]>(this.apiUrl);
   }
 
-  getRequiredDocumentTypes(): Observable<DocumentType[]> {
-    return this.http.get<DocumentType[]>(`${this.apiUrl}/required`);
+  getRequiredDocumentTypes(tenantId?: number): Observable<DocumentType[]> {
+    let params = new HttpParams();
+    if (tenantId != null) {
+      params = params.set('tenantId', tenantId.toString());
+    }
+    return this.http.get<DocumentType[]>(`${this.apiUrl}/required`, { params });
   }
 
-  getAllDocumentTypesPaginated(filters: any): Observable<PageResponse<DocumentTypeResponse>> {
+  getAllDocumentTypesPaginated(
+    filters: DocumentTypeFilters
+  ): Observable<PageResponse<DocumentTypeResponse>> {
     const params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
 
     return this.http.get<PageResponse<DocumentTypeResponse>>(this.apiUrl, { params });
   }
-
-  searchDocumentTypes(filters: any): Observable<PageResponse<DocumentTypeResponse>> {
+  searchDocumentTypes(
+    filters: DocumentTypeFilters
+  ): Observable<PageResponse<DocumentTypeResponse>> {
     let params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
@@ -62,11 +69,9 @@ export class DocumentTypeService {
     if (filters.name) {
       params = params.set('name', filters.name);
     }
-    if (
-      filters.isRequired !== undefined &&
-      filters.isRequired !== null &&
-      filters.isRequired !== ''
-    ) {
+    // The `!== ''` arm here was unreachable once the parameter had a type: isRequired is a
+    // boolean, and comparing it to a string never matched (GH-158).
+    if (filters.isRequired !== undefined && filters.isRequired !== null) {
       params = params.set('isRequired', filters.isRequired.toString());
     }
 

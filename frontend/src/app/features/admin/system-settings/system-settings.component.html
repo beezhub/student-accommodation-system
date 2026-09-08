@@ -1,77 +1,101 @@
-<div class="system-settings-container">
-  <div class="page-header">
-    <div class="header-content">
-      <h1>
-        <mat-icon>settings</mat-icon>
-        System Settings
-      </h1>
-      <p class="subtitle">Configure system-wide settings and master data</p>
-    </div>
-    <div class="header-stats">
-      <div class="stat-item">
-        <span class="stat-value">{{ settingsCategories.length }}</span>
-        <span class="stat-label">Categories</span>
+<div class="system-settings-page">
+  <!-- ══════════════════════════════════════════════════════
+       HERO HEADER BAND
+  ══════════════════════════════════════════════════════ -->
+  <div class="page-hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-icon-wrap" aria-hidden="true">
+          <mat-icon>settings</mat-icon>
+        </div>
+        <div class="hero-text">
+          <h1 class="hero-title">System Settings</h1>
+          <p class="hero-subtitle">Configure system-wide settings and master data</p>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="hero-metrics" role="list" aria-label="Settings summary">
+          <div class="metric-chip" role="listitem">
+            <span class="metric-value">{{ visibleSettingsCategories.length }}</span>
+            <span class="metric-label">Categories</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Feature Flags / Global Settings -->
-  <div class="global-settings-section">
-    <mat-card class="settings-card feature-flag-card">
-        <mat-card-content>
-            <div class="card-icon">
-                <mat-icon>toggle_on</mat-icon>
-            </div>
-            <div class="card-info">
-                <h2>Auto-Allocation</h2>
-                <p>Enable automatic room allocation for approved applications.</p>
-            </div>
-            <div class="card-action">
-                <mat-slide-toggle
-                    [checked]="autoAllocationEnabled"
-                    (change)="toggleAutoAllocation()"
-                    color="primary">
-                    {{ autoAllocationEnabled ? 'Enabled' : 'Disabled' }}
-                </mat-slide-toggle>
-            </div>
-        </mat-card-content>
-    </mat-card>
-  </div>
+  <div class="page-content">
+    <!-- ══════════════════════════════════════════════════════
+         AUTO-ALLOCATION POINTER CARD
 
-  <div class="settings-grid">
-    @for (category of settingsCategories; track category.route) {
-      <mat-card class="settings-card" [class]="category.class" [routerLink]="category.route">
-        <mat-card-content>
-          <div class="card-icon">
-            <mat-icon>{{ category.icon }}</mat-icon>
+         This was a toggle writing the `auto_allocation_enabled` setting, which gated only the
+         per-application path while the FF4j flag gated the batch path. Enabling one left the
+         other silently off and neither screen said so (GH-207). One switch now, and it lives on
+         the Feature Flags screen; this card says where rather than leaving admins hunting for a
+         toggle that used to be here.
+    ══════════════════════════════════════════════════════ -->
+    <div class="toggle-section">
+      <div class="toggle-card">
+        <div class="toggle-icon-wrap" aria-hidden="true">
+          <mat-icon>autorenew</mat-icon>
+        </div>
+        <div class="toggle-info">
+          <h2 class="toggle-title">Auto-Allocation</h2>
+          <p class="toggle-desc">
+            Automatically assign rooms to approved applications. Managed as a feature flag, which
+            covers both the scheduled batch cycle and per-application allocation on approval.
+          </p>
+        </div>
+        <div class="toggle-action">
+          @if (canManageFeatureFlags) {
+          <a mat-stroked-button color="primary" routerLink="/admin/feature-flags">
+            <mat-icon>toggle_on</mat-icon>
+            Feature Flags
+          </a>
+          } @else {
+          <div class="toggle-state-label" matTooltip="Managed by platform administrator">
+            Platform-managed
           </div>
-          <div class="card-info">
-            <h2>{{ category.title }}</h2>
-            <p>{{ category.description }}</p>
-          </div>
-          <div class="card-action">
-            <span class="manage-text">Manage</span>
-            <div class="arrow-circle">
-              <mat-icon>arrow_forward</mat-icon>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    }
-  </div>
+          }
+        </div>
+      </div>
+    </div>
 
-  <!-- Info Section -->
-  <div class="info-section">
-    <mat-card class="info-card">
-      <mat-card-content>
-        <div class="info-icon">
-          <mat-icon>info</mat-icon>
+    <!-- ══════════════════════════════════════════════════════
+         SETTINGS CATEGORY GRID
+    ══════════════════════════════════════════════════════ -->
+    <div class="settings-grid">
+      @for (category of visibleSettingsCategories; track category.route) {
+      <a
+        [class]="'settings-card ' + category.class"
+        [routerLink]="category.route"
+        role="link"
+        [attr.aria-label]="'Navigate to ' + category.title + ': ' + category.description"
+      >
+        <div class="card-icon-wrap">
+          <mat-icon>{{ category.icon }}</mat-icon>
         </div>
-        <div class="info-content">
-          <h3>About System Settings</h3>
-          <p>Use these settings to configure master data that affects how the student accommodation system operates. Changes here will be reflected across all relevant modules.</p>
+        <div class="card-info">
+          <h2 class="card-title">{{ category.title }}</h2>
+          <p class="card-desc">{{ category.description }}</p>
         </div>
-      </mat-card-content>
-    </mat-card>
+        <div class="card-arrow" aria-hidden="true">
+          <mat-icon>chevron_right</mat-icon>
+        </div>
+      </a>
+      }
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         INFO NOTE
+    ══════════════════════════════════════════════════════ -->
+    <div class="info-note" role="note">
+      <mat-icon aria-hidden="true">info_outline</mat-icon>
+      <span
+        >Changes to master data settings are reflected across all relevant modules
+        immediately.</span
+      >
+    </div>
   </div>
 </div>

@@ -1,17 +1,39 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { PageResponse } from '../models/page-response.model';
 import { StudentRequest, StudentResponse } from '../models/student.model';
 import { AuthService } from './auth.service';
+
+/** The query the student list endpoints accept. Was `any`, which typed nothing (GH-158). */
+export interface StudentFilters {
+  page?: number;
+  size?: number;
+  studentNumber?: string;
+  name?: string;
+  institutionId?: number;
+}
+
+/** Drops undefined entries, which HttpParams would otherwise send as the string "undefined". */
+function toHttpParams(filters?: StudentFilters): HttpParams {
+  let params = new HttpParams();
+  for (const [key, value] of Object.entries(filters ?? {})) {
+    if (value !== undefined && value !== null && value !== '') {
+      params = params.set(key, String(value));
+    }
+  }
+  return params;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class StudentService {
-  private apiUrl = `${environment.apiUrl}/student`;
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
 
-  constructor(private http: HttpClient, private authService: AuthService) {}
+  private apiUrl = `${environment.apiUrl}/student`;
 
   createStudentProfile(studentData: StudentRequest): Observable<StudentResponse> {
     return this.http.post<StudentResponse>(`${this.apiUrl}`, studentData);
@@ -28,5 +50,21 @@ export class StudentService {
     }
 
     return this.http.put<StudentResponse>(`${this.apiUrl}/${userId}`, studentData);
+  }
+
+  getAllStudents(params?: StudentFilters): Observable<PageResponse<StudentResponse>> {
+    return this.http.get<PageResponse<StudentResponse>>(`${this.apiUrl}`, {
+      params: toHttpParams(params),
+    });
+  }
+
+  searchStudents(params?: StudentFilters): Observable<PageResponse<StudentResponse>> {
+    return this.http.get<PageResponse<StudentResponse>>(`${this.apiUrl}/search`, {
+      params: toHttpParams(params),
+    });
+  }
+
+  deleteStudent(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }

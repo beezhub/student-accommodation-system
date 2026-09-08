@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.model.dto.NotificationsResponse;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.service.UserNotificationService;
@@ -105,7 +106,7 @@ public class UserNotificationController {
     private Long getUserIdFromAuth(Authentication authentication) {
         String email = authentication.getName();
         return appUserRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"))
+                .orElseThrow(() -> new UserNotFoundException("User not found"))
                 .getId();
     }
 }

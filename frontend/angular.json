@@ -22,13 +22,32 @@
               "namedChunks": false,
               "optimization": true,
               "outputHashing": "all",
-              "sourceMap": false
+              "sourceMap": false,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1mb",
+                  "maximumError": "1.5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "8kb",
+                  "maximumError": "20kb"
+                }
+              ]
             }
           },
           "options": {
             "assets": [],
             "index": "src/index.html",
             "browser": "src/main.ts",
+            "inlineStyleLanguage": "scss",
             "outputPath": "dist/demo",
             "polyfills": [
               "zone.js"
@@ -38,7 +57,8 @@
               "src/styles.scss"
             ],
             "tsConfig": "tsconfig.app.json"
-          }
+          },
+          "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
@@ -61,10 +81,13 @@
             ],
             "tsConfig": "tsconfig.spec.json",
             "assets": [],
+            "inlineStyleLanguage": "scss",
             "styles": [
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "codeCoverage": true,
+            "karmaConfig": "karma.conf.js"
           }
         }
       },

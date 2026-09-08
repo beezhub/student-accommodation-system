@@ -35,6 +35,7 @@ public class DocumentStatusService {
     private final ApplicationDocumentCoordinator applicationDocumentCoordinator;
     private final AppUserRepository appUserRepository;
     private final DocumentMapper documentMapper;
+    private final com.beezhub.student_accommodation.service.document.DocumentAccessGuard documentAccessGuard;
 
     @Transactional
     @LogActivity(action = "UPDATE", entityType = "DOCUMENT", description = "Updated document {0} status to {1}", entityIdParamIndex = 0)
@@ -45,14 +46,16 @@ public class DocumentStatusService {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
-        if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new UnauthorizedAccessException("Unauthorized access to document");
-        }
+        documentAccessGuard.assertCanAccessDocument(document, user);
 
         DocumentStatus oldStatus = document.getDocumentStatus();
         DocumentStatus newStatus = parseDocumentStatus(status);
 
-        Application application = applicationDocumentCoordinator.findApprovedApplication(document.getStudent().getId());
+        // Scoped to the reviewing admin's company. Unscoped, this returned whichever approved
+        // application the database happened to hand back, which for a platform admin could belong
+        // to a different company from the one reviewing the document (GH-231).
+        Application application = applicationDocumentCoordinator.findReviewableApplication(
+                document.getStudent().getId(), documentAccessGuard.tenantScopeOf(user));
 
         document.setDocumentStatus(newStatus);
         Document updatedDocument;

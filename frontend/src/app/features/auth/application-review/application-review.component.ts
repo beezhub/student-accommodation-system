@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -13,12 +19,19 @@ import { MatChipsModule } from '@angular/material/chips';
 import { AuthService } from '../../../core/services/auth.service';
 import { User } from '../../../core/models/user.model';
 import { StudentService } from '../../../core/services/student.service';
-import { StudentResponse } from '../../../core/models/student.model';
+import { StudentRequest, StudentResponse } from '../../../core/models/student.model';
 import { YearOfStudy } from '../../../core/models/year-of-study.model';
 import { InstitutionService } from '../../../core/services/institution.service';
 import { YearOfStudyService } from '../../../core/services/year-of-study.service';
 import { Institution } from '../../../core/models/institution.model';
-import { ApplicationService, ApplicationDocument } from '../../../core/services/application.service';
+import { ApplicationService } from '../../../core/services/application.service';
+import {
+  ApplicationDraftService,
+  ApplicationDraft,
+} from '../../../core/services/application-draft.service';
+import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
+import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import { contentOf } from '../../../core/models/page-response.model';
 
 @Component({
   selector: 'app-application-review',
@@ -36,6 +49,7 @@ import { ApplicationService, ApplicationDocument } from '../../../core/services/
     MatProgressSpinnerModule,
     MatDividerModule,
     MatChipsModule,
+    ErrorDisplayComponent,
   ],
 })
 export class ApplicationReviewComponent implements OnInit {
@@ -45,15 +59,18 @@ export class ApplicationReviewComponent implements OnInit {
   private readonly yearOfStudyService = inject(YearOfStudyService);
   private readonly institutionService = inject(InstitutionService);
   private readonly applicationService = inject(ApplicationService);
+  private readonly draftService = inject(ApplicationDraftService);
+  private readonly errorService = inject(ErrorHandlingService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   isSubmitting = false;
   termsAccepted = false;
   currentUser: User | null = null;
   studentProfile: StudentResponse | null = null;
-  documents: ApplicationDocument[] = [];
   yearOfStudy: readonly YearOfStudy[] = [];
   institutions: readonly Institution[] = [];
-  currentApplication: any = null;
+  draft: ApplicationDraft | null = null;
+  submitError: ParsedError | null = null;
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
@@ -62,98 +79,133 @@ export class ApplicationReviewComponent implements OnInit {
       return;
     }
 
-    this.currentUser = this.authService.currentUserValue;
+    // Load draft — if none, redirect back to application form
+    this.draft = this.draftService.getDraft();
+    if (!this.draft) {
+      this.errorService.showWarning(
+        'No application data found. Please fill in the application form first.'
+      );
+      this.router.navigate(['/application-submission']);
+      return;
+    }
+
     this.studentService.getStudentProfile().subscribe({
       next: (student) => {
         this.studentProfile = student;
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Failed to load student profile', err);
-        this.router.navigate(['/login']);
+        this.errorService.showWarning('Could not load your profile. Please try again.');
+        this.router.navigate(['/application-submission']);
       },
     });
 
     this.yearOfStudyService.getYearsOfStudy().subscribe({
       next: (yearOfStudy) => {
-        if (yearOfStudy && Array.isArray((yearOfStudy as any).content)) {
-          this.yearOfStudy = (yearOfStudy as any).content;
-        } else if (Array.isArray(yearOfStudy)) {
-          this.yearOfStudy = yearOfStudy;
-        } else {
-          this.yearOfStudy = [];
-        }
+        this.yearOfStudy = contentOf(yearOfStudy);
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Failed to load year of study', err);
+        this.errorService.showWarning('Could not load year of study data.');
       },
     });
 
     this.institutionService.getInstitutions().subscribe({
       next: (institutions) => {
-        if (institutions && Array.isArray((institutions as any).content)) {
-          this.institutions = (institutions as any).content;
-        } else if (Array.isArray(institutions)) {
-          this.institutions = institutions;
-        } else {
-          this.institutions = [];
-        }
+        this.institutions = contentOf(institutions);
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Failed to load institutions', err);
-      },
-    });
-
-    // Load application data
-    this.applicationService.getMyApplications().subscribe({
-      next: (applications) => {
-        if (applications && applications.length > 0) {
-          this.currentApplication = applications[0];
-          console.log('Application data loaded:', this.currentApplication);
-          
-          // Load documents for this specific application
-          if (this.currentApplication.id) {
-            this.applicationService.getApplicationDocuments(this.currentApplication.id).subscribe({
-              next: (docsInfo) => {
-                this.documents = docsInfo;
-                console.log('Application documents loaded:', docsInfo);
-              },
-              error: (err) => console.error('Failed to load application documents', err),
-            });
-          }
-        }
-      },
-      error: (err) => {
-        console.error('Failed to load application', err);
+        this.errorService.showWarning('Could not load institution data.');
       },
     });
   }
 
   onSubmit() {
+    if (!this.draft || !this.termsAccepted) return;
+
+    const institutionId = this.studentProfile?.institutionId;
+    const yearOfStudyId = this.studentProfile?.yearOfStudyId;
+    if (institutionId == null || yearOfStudyId == null) {
+      this.errorService.showWarning(
+        'Your profile is missing institution details. Please complete profile setup first.'
+      );
+      return;
+    }
+
     this.isSubmitting = true;
+    this.submitError = null;
 
-    // Get the most recent application for this student
-    this.applicationService.getMyApplications().subscribe({
-      next: (applications) => {
-        console.log('Applications retrieved:', applications);
-        this.isSubmitting = false;
+    // Step 1: Update student profile with deferred fields
+    const dob = this.draft.dateOfBirth;
+    const profileUpdate: StudentRequest = {
+      firstName: this.currentUser!.firstName,
+      lastName: this.currentUser!.lastName,
+      email: this.currentUser!.email,
+      studentNumber: this.draft.studentNumber,
+      phoneNumber: this.draft.phoneNumber,
+      dateOfBirth: dob instanceof Date ? dob.toISOString() : dob,
+      gender: this.draft.gender,
+      specialRequirements: this.draft.specialRequirements ?? undefined,
+      institutionId,
+      yearOfStudyId,
+    };
 
-        if (applications && applications.length > 0) {
-          // Navigate to the most recent application's confirmation page
-          const latestApplication = applications[0];
-          this.router.navigate([`/application-confirmation/${latestApplication.id}`]);
-        } else {
-          // No application found, redirect to dashboard
-          console.warn('No application found for student');
-          this.router.navigate(['/dashboard']);
-        }
+    this.studentService.updateStudentProfile(profileUpdate).subscribe({
+      next: () => {
+        // Step 2: Submit the application
+        this.submitApplication();
       },
-      error: (err) => {
-        console.error('Failed to retrieve applications', err);
+      error: (error) => {
         this.isSubmitting = false;
-        // On error, just navigate to dashboard
-        this.router.navigate(['/dashboard']);
+        console.error('Error updating profile:', error);
+        this.submitError = this.errorService.parseError(error);
+        this.errorService.showErrorSnackbar(this.submitError);
+        this.cdr.markForCheck();
       },
     });
+  }
+
+  private submitApplication(): void {
+    const applicationData = {
+      studentId: this.draft!.studentId,
+      requiresAccessibility: this.draft!.requiresAccessibility,
+      preferredBuildingIds: this.draft!.preferredBuildingIds?.length
+        ? this.draft!.preferredBuildingIds
+        : null,
+      specialRequirements: this.draft!.specialRequirements || null,
+      institutionName: this.draft!.institutionName,
+      courseName: this.draft!.courseName,
+    };
+
+    this.applicationService.createApplication(applicationData).subscribe({
+      next: (created) => {
+        this.isSubmitting = false;
+        this.draftService.clearDraft();
+        this.errorService.showSuccess('Application submitted successfully!');
+        this.router.navigate(['/application-confirmation', created.id]);
+      },
+      error: (error) => {
+        this.isSubmitting = false;
+        console.error('Error submitting application:', error);
+        this.submitError = this.errorService.parseError(error);
+        if (this.submitError.type !== 'validation') {
+          this.errorService.showErrorSnackbar(this.submitError);
+        }
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  dismissError(): void {
+    this.submitError = null;
+  }
+
+  retrySubmit(): void {
+    this.onSubmit();
   }
 
   getInstitutionName(): string {

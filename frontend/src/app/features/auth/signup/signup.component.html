@@ -1,177 +1,157 @@
-<div class="signup-container">
-  <div class="progress-indicator">
-    <div class="step active">
-      <div class="step-number">1</div>
-      <div class="step-label">Sign Up</div>
-    </div>
-    <div class="step-line"></div>
-    <div class="step">
-      <div class="step-number">2</div>
-      <div class="step-label">Profile Setup</div>
-    </div>
-    <div class="step-line"></div>
-    <div class="step">
-      <div class="step-number">3</div>
-      <div class="step-label">Application</div>
-    </div>
-    <div class="step-line"></div>
-    <div class="step">
-      <div class="step-number">4</div>
-      <div class="step-label">Documents</div>
-    </div>
-  </div>
+<div class="signup-page">
 
-  <mat-card class="signup-card">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon>person_add</mat-icon>
-        Create Your Account
-      </mat-card-title>
-      <mat-card-subtitle>
-        Join us to manage your student accommodation
-      </mat-card-subtitle>
-    </mat-card-header>
+  <!-- ── Brand panel (left) ─────────────────────────────────────────────── -->
+  <aside class="brand-panel">
+    <div class="brand-inner">
 
-    <mat-divider></mat-divider>
+      <div class="brand-logo">
+        <mat-icon class="logo-icon">home_work</mat-icon>
+        <span class="logo-text">BeeZhub</span>
+      </div>
 
-    <mat-card-content>
-      <form [formGroup]="signupForm" (ngSubmit)="onSubmit()">
+      <div class="brand-copy">
+        <h1 class="brand-headline">Join<br>BeeZhub.</h1>
+        <p class="brand-subline">It only takes a few minutes to get started.</p>
+      </div>
 
-        <!-- Name Fields Row -->
-        <div class="name-row">
-          <mat-form-field appearance="outline" class="form-field name-field">
-            <mat-label>First Name</mat-label>
-            <input matInput type="text" formControlName="firstName" placeholder="Enter your first name"
-              autocomplete="given-name">
-              <mat-icon matSuffix>person</mat-icon>
-              @if (signupForm.get('firstName')?.hasError('required')) {
-                <mat-error>
-                  First name is required
-                </mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="form-field name-field">
-              <mat-label>Last Name</mat-label>
-              <input matInput type="text" formControlName="lastName" placeholder="Enter your last name"
-                autocomplete="family-name">
-                <mat-icon matSuffix>person_outline</mat-icon>
-                @if (signupForm.get('lastName')?.hasError('required')) {
-                  <mat-error>
-                    Last name is required
-                  </mat-error>
-                }
-              </mat-form-field>
-            </div>
-
-            <!-- Email Field -->
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Email Address</mat-label>
-              <input matInput type="email" formControlName="email" placeholder="name@example.com" autocomplete="email">
-              <mat-icon matSuffix>email</mat-icon>
-              @if (signupForm.get('email')?.hasError('required')) {
-                <mat-error>
-                  Email is required
-                </mat-error>
-              }
-              @if (signupForm.get('email')?.hasError('email')) {
-                <mat-error>
-                  Please enter a valid email address
-                </mat-error>
-              }
-            </mat-form-field>
-
-            <!-- Password Field -->
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Password</mat-label>
-              <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password"
-                placeholder="Create a password" autocomplete="new-password">
-                <button mat-icon-button matSuffix type="button" (click)="togglePasswordVisibility()"
-                  [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hidePassword">
-                  <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
-                </button>
-                @if (signupForm.get('password')?.hasError('required')) {
-                  <mat-error>
-                    Password is required
-                  </mat-error>
-                }
-                @if (signupForm.get('password')?.hasError('minlength')) {
-                  <mat-error>
-                    Password must be at least 8 characters
-                  </mat-error>
-                }
-              </mat-form-field>
-
-              <!-- Confirm Password Field -->
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Confirm Password</mat-label>
-                <input matInput [type]="hideConfirmPassword ? 'password' : 'text'" formControlName="confirmPassword"
-                  placeholder="Confirm your password" autocomplete="new-password">
-                  <button mat-icon-button matSuffix type="button" (click)="toggleConfirmPasswordVisibility()"
-                    [attr.aria-label]="'Hide confirm password'" [attr.aria-pressed]="hideConfirmPassword">
-                    <mat-icon>{{hideConfirmPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
-                  </button>
-                  @if (signupForm.get('confirmPassword')?.hasError('required')) {
-                    <mat-error>
-                      Please confirm your password
-                    </mat-error>
-                  }
-                  @if (signupForm.hasError('mismatch')) {
-                    <mat-error>
-                      Passwords do not match
-                    </mat-error>
-                  }
-                </mat-form-field>
-
-                <!-- Terms Agreement -->
-                <div class="terms-section">
-                  <mat-checkbox formControlName="agreeTerms" class="terms-checkbox">
-                    I agree to the
-                    <a href="#" class="terms-link">Terms of Service</a>
-                    and
-                    <a href="#" class="terms-link">Privacy Policy</a>
-                  </mat-checkbox>
-                  @if (signupForm.get('agreeTerms')?.hasError('required') && signupForm.get('agreeTerms')?.touched) {
-                    <mat-error
-                      class="terms-error">
-                      You must agree to the terms and conditions
-                    </mat-error>
-                  }
-                </div>
-
-                <mat-divider></mat-divider>
-
-                <!-- Action Buttons -->
-                <mat-card-actions class="action-buttons">
-                  <div class="login-link-section">
-                    <p class="login-text">
-                      Already have an account?
-                      <a mat-button routerLink="/login" class="login-link">Log in</a>
-                    </p>
-                  </div>
-
-                  <button mat-raised-button color="primary" type="submit" class="submit-button"
-                    [disabled]="isSubmitting || signupForm.invalid">
-                    @if (isSubmitting) {
-                      <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-                    }
-                    @if (!isSubmitting) {
-                      <mat-icon>arrow_forward</mat-icon>
-                    }
-                    @if (!isSubmitting) {
-                      <span>Create Account</span>
-                    }
-                    @if (isSubmitting) {
-                      <span>Creating Account...</span>
-                    }
-                  </button>
-                </mat-card-actions>
-              </form>
-            </mat-card-content>
-          </mat-card>
-
-          <div class="help-text">
-            <mat-icon>info</mat-icon>
-            <p>After creating your account, you'll complete your profile and submit your accommodation preferences.</p>
-          </div>
+      <div class="brand-steps">
+        <div class="brand-step">
+          <div class="brand-step-num">1</div>
+          <span class="brand-step-lbl">Create your account</span>
         </div>
+        <div class="brand-step">
+          <div class="brand-step-num">2</div>
+          <span class="brand-step-lbl">Complete your profile</span>
+        </div>
+        <div class="brand-step">
+          <div class="brand-step-num">3</div>
+          <span class="brand-step-lbl">Submit your application</span>
+        </div>
+      </div>
+
+      <div class="brand-stats">
+        <div class="stat-row">
+          <span class="stat-val">5,000+</span>
+          <span class="stat-lbl">Students housed</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-val">200+</span>
+          <span class="stat-lbl">Rooms available</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-val">48h</span>
+          <span class="stat-lbl">Average response time</span>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ── Form panel (right) ─────────────────────────────────────────────── -->
+  <main class="form-panel">
+    <div class="form-inner">
+
+      <div class="form-header">
+        <span class="form-eyebrow">Student Housing Portal</span>
+        <h2 class="form-title">Create your account</h2>
+        <p class="form-subtitle">Join us to manage your student accommodation</p>
+      </div>
+
+      <form [formGroup]="signupForm" (ngSubmit)="onSubmit()" class="signup-form">
+
+        <div class="name-row">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>First Name</mat-label>
+            <input matInput type="text" formControlName="firstName" placeholder="First name"
+              autocomplete="given-name">
+            @if (signupForm.get('firstName')?.hasError('required')) {
+              <mat-error>First name is required</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Last Name</mat-label>
+            <input matInput type="text" formControlName="lastName" placeholder="Last name"
+              autocomplete="family-name">
+            @if (signupForm.get('lastName')?.hasError('required')) {
+              <mat-error>Last name is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Email Address</mat-label>
+          <input matInput type="email" formControlName="email" placeholder="name@example.com" autocomplete="email">
+          @if (signupForm.get('email')?.hasError('required')) {
+            <mat-error>Email is required</mat-error>
+          }
+          @if (signupForm.get('email')?.hasError('email')) {
+            <mat-error>Please enter a valid email address</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Password</mat-label>
+          <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password"
+            placeholder="Create a password" autocomplete="new-password">
+          <button mat-icon-button matSuffix type="button" (click)="togglePasswordVisibility()"
+            [attr.aria-label]="'Hide password'" [attr.aria-pressed]="hidePassword">
+            <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+          @if (signupForm.get('password')?.hasError('required')) {
+            <mat-error>Password is required</mat-error>
+          }
+          @if (signupForm.get('password')?.hasError('minlength')) {
+            <mat-error>Password must be at least 8 characters</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Confirm Password</mat-label>
+          <input matInput [type]="hideConfirmPassword ? 'password' : 'text'" formControlName="confirmPassword"
+            placeholder="Confirm your password" autocomplete="new-password">
+          <button mat-icon-button matSuffix type="button" (click)="toggleConfirmPasswordVisibility()"
+            [attr.aria-label]="'Hide confirm password'" [attr.aria-pressed]="hideConfirmPassword">
+            <mat-icon>{{hideConfirmPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+          @if (signupForm.get('confirmPassword')?.hasError('required')) {
+            <mat-error>Please confirm your password</mat-error>
+          }
+          @if (signupForm.hasError('mismatch')) {
+            <mat-error>Passwords do not match</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="terms-section">
+          <mat-checkbox formControlName="agreeTerms" class="terms-checkbox">
+            I agree to the
+            <a href="#" class="terms-link">Terms of Service</a>
+            and
+            <a href="#" class="terms-link">Privacy Policy</a>
+          </mat-checkbox>
+          @if (signupForm.get('agreeTerms')?.hasError('required') && signupForm.get('agreeTerms')?.touched) {
+            <mat-error class="terms-error">You must agree to the terms and conditions</mat-error>
+          }
+        </div>
+
+        <button mat-flat-button type="submit" class="submit-btn"
+          [disabled]="isSubmitting || signupForm.invalid">
+          @if (isSubmitting) {
+            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            <span>Creating Account...</span>
+          } @else {
+            <span>Create Account</span>
+          }
+        </button>
+
+      </form>
+
+      <div class="form-footer">
+        <span class="footer-text">Already have an account?</span>
+        <a routerLink="/login" class="existing-link">Sign in</a>
+      </div>
+
+    </div>
+  </main>
+
+</div>

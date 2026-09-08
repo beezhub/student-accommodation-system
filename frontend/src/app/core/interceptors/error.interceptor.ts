@@ -1,17 +1,46 @@
 import { inject } from '@angular/core';
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { throwError } from 'rxjs';
+import { throwError, Observable } from 'rxjs';
 import { catchError, retry } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TokenStorageService } from '../services/token-storage.service';
+import { isOurApiRequest } from './api-request';
 
 export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const router = inject(Router);
   const snackBar = inject(MatSnackBar);
   const tokenStorage = inject(TokenStorageService);
 
+  // Endpoints reachable without a session. A 401 from one of these is a credential failure, so the
+  // session-expired handling must not run.
+  const PUBLIC_AUTH_PATHS = [
+    '/api/auth/login',
+    '/api/auth/signup',
+    '/api/auth/forgot-password',
+    '/api/auth/verify-reset-token',
+    '/api/auth/reset-password',
+    '/api/auth/verify-email',
+    '/api/auth/resend-verification',
+  ];
+  const isPublicAuthRequest = PUBLIC_AUTH_PATHS.some((path) => request.url.includes(path));
+
+  // Someone else's service is not ours to retry, redirect on, or report in our own snackbars.
+  // The retry doubled third-party traffic against the OpenStreetMap usage policy, and a failure
+  // there surfaced as "You do not have permission to perform this action".
+  if (!isOurApiRequest(request.url)) {
+    return next(request);
+  }
+
   const getServerErrorMessage = (error: HttpErrorResponse): string => {
+    // The backend's ErrorResponse carries its message in `errors`, and nothing here read that
+    // field, so every handled backend error fell through to the generic message for its status
+    // code and the specific reason never reached the user (GH-204).
+    const errors: unknown = error.error?.errors;
+    if (Array.isArray(errors) && errors.length > 0 && typeof errors[0] === 'string') {
+      return errors[0];
+    }
+
     // Try to extract error message from different response formats
     if (error.error?.message) {
       return error.error.message;
@@ -53,6 +82,12 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const handleSpecificErrors = (error: HttpErrorResponse): void => {
     switch (error.status) {
       case 401:
+        // A 401 from a public auth endpoint means the credentials were wrong, not that a session
+        // expired. Treating it as an expiry cleared storage, showed "Your session has expired" and
+        // bounced the user to /login?returnUrl=/login on top of the login page's own message.
+        if (isPublicAuthRequest) {
+          break;
+        }
         // Unauthorized - redirect to login
         localStorage.removeItem('currentUser');
         tokenStorage.removeToken();
@@ -62,8 +97,18 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
         break;
 
       case 403:
-        // Forbidden - redirect to unauthorized page
-        router.navigate(['/unauthorized']);
+        // Deliberately does not navigate. Route-level authorization is already enforced by
+        // AdminGuard, PlatformAdminGuard and StudentGuard, which redirect somewhere sensible, so
+        // a 403 reaching here is a refused action rather than a forbidden page. Navigating tore
+        // the user off the page mid-edit, and since this runs before the X-Silent-Error check a
+        // background poll could evict them with no message at all. There was no /unauthorized
+        // route either, so the wildcard dropped them on the public landing page (GH-150).
+        //
+        // Caveat: the backend also returns 403 for a required password change and an unverified
+        // email, which are remediable states with their own routes. ErrorResponse carries no
+        // machine-readable code, so this cannot tell them apart. Routing those needs a backend
+        // discriminator and is out of scope here.
+        console.warn('Forbidden:', error.url);
         break;
 
       case 404:
@@ -92,14 +137,25 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
       horizontalPosition: 'right',
       verticalPosition: 'top',
       panelClass: ['error-snackbar'],
+      politeness: 'assertive',
     });
   };
 
   return next(request).pipe(
-    // Retry failed requests once (except for POST, PUT, DELETE)
+    // Retry failed GET requests once, but only for server errors (5xx) and network errors
     retry({
       count: request.method === 'GET' ? 1 : 0,
-      delay: 1000,
+      delay: (error: HttpErrorResponse) => {
+        // Only retry on 5xx or network errors (status 0), not on 4xx client errors
+        if (error.status === 0 || error.status >= 500) {
+          return new Observable((subscriber) => {
+            // The retry stream carries no value; T is whatever the caller's response type is, and
+            // `undefined` is the marker the operator ignores.
+            setTimeout(() => subscriber.next(undefined as never), 1000);
+          });
+        }
+        throw error;
+      },
     }),
     catchError((error: HttpErrorResponse) => {
       let errorMessage = 'An error occurred';
@@ -115,8 +171,10 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
       // Handle specific error codes
       handleSpecificErrors(error);
 
-      // Display error message to user (except for silent errors)
-      if (!request.headers.has('X-Silent-Error')) {
+      // Display error message to user (except for silent errors). A rejected sign-in is reported
+      // by the login page itself, so the interceptor stays quiet and the user sees one message.
+      const credentialFailure = isPublicAuthRequest && error.status === 401;
+      if (!request.headers.has('X-Silent-Error') && !credentialFailure) {
         showError(errorMessage);
       }
 

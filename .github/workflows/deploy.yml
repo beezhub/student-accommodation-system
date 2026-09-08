@@ -1,0 +1,171 @@
+# Deploys NONPROD on every merge to develop.
+#
+# GH-243 says not to deploy from develop, on the grounds that main is the release branch and
+# NONPROD should run the exact artifact PROD will get. That argument assumes a PROD, and there is
+# not one yet: until GH-251 lands, NONPROD is where work is looked at rather than a rehearsal of a
+# release, and waiting for a develop -> main PR before anything is visible is slow for no return.
+# Revisit when PROD exists — at that point NONPROD should probably track main again.
+#
+# Builds happen ON THE HOST rather than pulling images, which GH-243 and GH-246 both want instead.
+# The reason is architecture: the NONPROD instance is Oracle Ampere (aarch64) and GitHub's standard
+# runners are amd64, so images built by docker-build.yml today cannot run on it at all. The options
+# are multi-arch builds under QEMU (30-60 minutes for the Angular and Gradle builds), GitHub's ARM
+# runners (billed on private repositories), or building on the host (~10 minutes, no emulation).
+# Registry digests remain the right destination; see GH-246.
+
+name: Deploy NONPROD
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+# Never let two deploys touch the host at once. Cancel-in-progress is deliberately off: a deploy
+# interrupted midway through docker compose up leaves the stack in a state nobody chose.
+concurrency:
+  group: deploy-nonprod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to NONPROD
+    runs-on: ubuntu-latest
+    if: vars.NONPROD_ACTIVE == 'true'
+    environment: nonprod
+    steps:
+      - uses: actions/checkout@v4
+
+      # Plain ssh rather than a marketplace action: this channel can change what runs on the
+      # server, and an action receives the private key and the whole step environment. The inline
+      # equivalent is a few auditable lines. StrictHostKeyChecking=yes with a known_hosts from a
+      # repository variable, so a substituted host fails closed instead of being trusted silently.
+      - name: Configure SSH
+        run: |
+          install -m 700 -d "$RUNNER_TEMP/.ssh"
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > "$RUNNER_TEMP/.ssh/id_ed25519"
+          chmod 600 "$RUNNER_TEMP/.ssh/id_ed25519"
+          printf '%s\n' "${{ vars.SSH_KNOWN_HOSTS }}" > "$RUNNER_TEMP/.ssh/known_hosts"
+          chmod 644 "$RUNNER_TEMP/.ssh/known_hosts"
+
+      # Compose resolves the entire configuration, secrets included, before it does anything, so a
+      # key missing from the host .env aborts `docker compose up -d` partway through and leaves the
+      # stack half recreated — one container removed and its replacement created but never started
+      # (GH-274). The host .env is edited by hand and does not learn about new keys on its own, so
+      # this compares it against what the compose files actually require and stops here, before
+      # anything is synced, rebuilt or torn down.
+      #
+      # Only key names cross the wire; no value ever leaves the host.
+      - name: Preflight the host environment
+        run: |
+          F="docker-compose.yml docker-compose.prod.yml docker-compose.deploy.yml"
+          # Required means compose has no fallback: ${VAR} written without a `:-` default, plus
+          # every variable an `environment:` secret is built from. An environment secret is the
+          # stricter of the two — compose aborts on an unset one even where the service reading it
+          # tolerates an empty value, which is exactly how GH-274 happened. Anything carrying a
+          # `:-` default degrades on its own and is deliberately not checked.
+          REQUIRED=$(
+            {
+              grep -hoE '\$\{[A-Z0-9_]+\}' $F | tr -d '${}'
+              grep -hoE '^[[:space:]]+environment:[[:space:]]+[A-Z0-9_]+[[:space:]]*$' $F | awk '{print $2}'
+            } | sort -u
+          )
+          PRESENT=$(ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+            "test -f /opt/sas/.env && sed -nE 's/^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=.*/\2/p' /opt/sas/.env | sort -u") || {
+              echo "::error::/opt/sas/.env is missing or unreadable on ${{ vars.DEPLOY_HOST }}"
+              exit 1
+            }
+          MISSING=$(comm -23 <(printf '%s\n' "$REQUIRED") <(printf '%s\n' "$PRESENT") | tr '\n' ' ')
+          if [ -n "${MISSING// /}" ]; then
+            echo "::error::/opt/sas/.env is missing keys the compose files require: $MISSING"
+            echo "Deploying now would abort partway through 'docker compose up -d' and leave the stack"
+            echo "half recreated (GH-274). Nothing has been changed on the host."
+            echo ""
+            echo "Add each key to /opt/sas/.env and re-run this workflow. .env.example documents every"
+            echo "one of them, including where an empty value is a valid choice rather than an omission."
+            exit 1
+          fi
+          echo "host .env carries all $(printf '%s\n' "$REQUIRED" | wc -l | tr -d ' ') required keys"
+
+      - name: Record the pre-deploy schema version
+        id: schema
+        run: |
+          # POSTGRES_USER and POSTGRES_DB are set inside the db container, so the query does not
+          # need the deploy user's shell to know any database credentials.
+          BEFORE=$(ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+            'docker exec student-accommodation-local-db sh -c '"'"'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select max(version) from flyway_schema_history"'"'"' 2>/dev/null || echo unknown')
+          echo "before=$BEFORE" >> "$GITHUB_OUTPUT"
+          # Rolling the image back is only safe if this deploy applied no migration: hbm2ddl.auto
+          # is validate, out-of-order is false and there are no down-migrations, so an older image
+          # against a newer schema crash-loops. GH-243 spells this out.
+          echo "Schema before deploy: $BEFORE"
+
+      # tar over the ssh channel, not git clone on the host: a clone needs a repository credential
+      # on the server and lets host state drift from the commit that produced this run.
+      - name: Sync the tree to the host
+        run: |
+          tar --exclude='.git' \
+              --exclude='frontend/node_modules' \
+              -cf - . \
+            | ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+                -o StrictHostKeyChecking=yes -o BatchMode=yes \
+                "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+                'tar -x -C /opt/sas'
+
+      - name: Build and start
+        run: |
+          ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/sas
+          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml"
+          docker compose $F build
+          docker compose $F up -d --remove-orphans
+          REMOTE
+
+      # Readiness, not /actuator/health. The aggregate includes the SMTP, MinIO and Redis
+      # indicators, so a mail outage would fail an otherwise good deploy — backend/Dockerfile made
+      # the same choice for the same reason (GH-147). It has to run on the host and inside the
+      # compose network: the prod overlay unpublishes the backend port and nginx proxies only
+      # /api/, so readiness is unreachable from outside by construction.
+      - name: Smoke check
+        run: |
+          ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" 'bash -se' <<'REMOTE'
+          set -uo pipefail
+          NET=$(docker inspect student-accommodation-back-end \
+                  --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+          # Generous: Flyway applies migrations in-process at startup, so a first boot or a large
+          # migration takes far longer than a restart.
+          for i in $(seq 1 60); do
+            if docker run --rm --network "$NET" curlimages/curl:latest \
+                 -fsS -m 5 http://student-accommodation-back-end:8080/actuator/health/readiness >/dev/null 2>&1; then
+              echo "readiness OK after $((i*5))s"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::readiness never came up"
+          cd /opt/sas
+          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml"
+          docker compose $F ps
+          docker compose $F logs --tail=200
+          exit 1
+          REMOTE
+
+      - name: Report
+        if: always()
+        run: |
+          echo "### NONPROD deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- schema before: \`${{ steps.schema.outputs.before }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- result: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "There is no automatic rollback. If the schema version changed, redeploying the" >> "$GITHUB_STEP_SUMMARY"
+          echo "previous commit will crash-loop against a schema it does not know (GH-243)." >> "$GITHUB_STEP_SUMMARY"

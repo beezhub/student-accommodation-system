@@ -1,6 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
-import com.beezhub.student_accommodation.aspect.LogActivity;
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.model.dto.AllocationRuleRequest;
@@ -12,9 +12,7 @@ import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.repository.AllocationRuleRepository;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
-import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,154 +22,114 @@ import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
-@Deprecated(since = "2.0", forRemoval = true)
 public class AllocationRuleService {
 
     private final AllocationRuleRepository allocationRuleRepository;
     private final BuildingRepository buildingRepository;
     private final AppUserRepository appUserRepository;
     private final AuthService authService;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
-    private static final BigDecimal HUNDRED = new BigDecimal("100");
-
-    /**
-     * Gets all allocation rules for a building or global rules (buildingId = null).
-     *
-     * @param buildingId The building ID (null for global rules)
-     * @param pageable   Pagination parameters
-     * @return PageResponse of AllocationRuleResponse
-     */
+    @Transactional(readOnly = true)
     public PageResponse<AllocationRuleResponse> getRulesByBuilding(Long buildingId, Pageable pageable) {
-        log.info("Getting allocation rules for buildingId: {}", buildingId);
-
-        Page<AllocationRule> rulesPage;
+        Page<AllocationRule> page;
         if (buildingId == null) {
-            rulesPage = allocationRuleRepository.findByBuildingIsNull(pageable);
+            page = allocationRuleRepository.findByBuildingIsNull(pageable);
         } else {
-            // Verify building exists
             if (!buildingRepository.existsById(buildingId)) {
-                throw new ResourceNotFoundException("Building not found with ID: " + buildingId);
+                throw new ResourceNotFoundException("Building not found with id: " + buildingId);
             }
-            rulesPage = allocationRuleRepository.findByBuilding_Id(buildingId, pageable);
+            page = allocationRuleRepository.findByBuilding_Id(buildingId, pageable);
+        }
+        return toPageResponse(page);
+    }
+
+    @Transactional(readOnly = true)
+    public AllocationRuleResponse getRuleById(Long id) {
+        AllocationRule rule = allocationRuleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with id: " + id));
+        tenantOwnershipGuard.assertReadable(rule, "Allocation rule", id);
+        return toResponse(rule);
+    }
+
+    @Transactional
+    public AllocationRuleResponse createRule(AllocationRuleRequest request, String adminEmail) {
+        validateWeights(request);
+
+        if (request.getBuildingId() != null) {
+            if (allocationRuleRepository.existsByBuilding_IdAndRuleName(request.getBuildingId(), request.getRuleName())) {
+                throw new DuplicateResourceException("Rule with name '" + request.getRuleName()
+                        + "' already exists for building id: " + request.getBuildingId());
+            }
+        } else {
+            if (allocationRuleRepository.existsByBuildingIsNullAndRuleName(request.getRuleName())) {
+                throw new DuplicateResourceException("Global rule with name '" + request.getRuleName() + "' already exists");
+            }
         }
 
-        Page<AllocationRuleResponse> responsePage = rulesPage.map(this::mapToResponse);
-        log.info("Found {} rules for buildingId: {}", rulesPage.getTotalElements(), buildingId);
-
-        return PageMapper.toPageResponse(responsePage);
-    }
-
-    /**
-     * Gets a single allocation rule by ID.
-     *
-     * @param ruleId The rule ID
-     * @return AllocationRuleResponse
-     */
-    public AllocationRuleResponse getRuleById(Long ruleId) {
-        log.info("Getting allocation rule with ID: {}", ruleId);
-
-        AllocationRule rule = allocationRuleRepository.findById(ruleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with ID: " + ruleId));
-
-        return mapToResponse(rule);
-    }
-
-    /**
-     * Creates a new allocation rule.
-     *
-     * @param request  The rule request
-     * @param username The admin username
-     * @return AllocationRuleResponse
-     */
-    @Transactional
-    @LogActivity(action = "CREATE", entityType = "ALLOCATION_RULE", description = "Created allocation rule {0}", entityIdParamIndex = -1)
-    public AllocationRuleResponse createRule(AllocationRuleRequest request, String username) {
-        log.info("Creating allocation rule '{}' for buildingId: {}", request.getRuleName(), request.getBuildingId());
-
-        // Validate weights sum to 100%
-        validateWeightsSum(request);
-
-        // Check for duplicate rule name
-        checkDuplicateRuleName(request.getBuildingId(), request.getRuleName(), null);
-
-        // Get building if specified
         Building building = null;
         if (request.getBuildingId() != null) {
             building = buildingRepository.findById(request.getBuildingId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Building not found with ID: " + request.getBuildingId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Building not found with id: " + request.getBuildingId()));
+            tenantOwnershipGuard.assertOwned(building, "Building", request.getBuildingId());
         }
 
-        // Get current user
-        AppUser admin = appUserRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        AppUser createdBy = appUserRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + adminEmail));
 
-        // Create rule
         AllocationRule rule = AllocationRule.builder()
                 .building(building)
                 .ruleName(request.getRuleName())
-                .preferenceMatchWeight(request.getPreferenceMatchWeight() != null ?
-                        request.getPreferenceMatchWeight() : BigDecimal.ONE)
-                .desirabilityWeight(request.getDesirabilityWeight() != null ?
-                        request.getDesirabilityWeight() : BigDecimal.ONE)
-                .accessibilityWeight(request.getAccessibilityWeight() != null ?
-                        request.getAccessibilityWeight() : BigDecimal.ONE)
+                .preferenceMatchWeight(request.getPreferenceMatchWeight())
+                .desirabilityWeight(request.getDesirabilityWeight())
+                .accessibilityWeight(request.getAccessibilityWeight())
                 .active(request.getActive() != null ? request.getActive() : true)
                 .priority(request.getPriority() != null ? request.getPriority() : 0)
-                .createdBy(admin)
+                .createdBy(createdBy)
                 .build();
 
-        AllocationRule savedRule = allocationRuleRepository.save(rule);
-        log.info("Created allocation rule with ID: {}", savedRule.getId());
-
-        return mapToResponse(savedRule);
+        return toResponse(allocationRuleRepository.save(rule));
     }
 
-    /**
-     * Updates an existing allocation rule.
-     *
-     * @param ruleId   The rule ID
-     * @param request  The rule request
-     * @param username The admin username
-     * @return AllocationRuleResponse
-     */
     @Transactional
-    @LogActivity(action = "UPDATE", entityType = "ALLOCATION_RULE", description = "Updated allocation rule {0}", entityIdParamIndex = 0)
-    public AllocationRuleResponse updateRule(Long ruleId, AllocationRuleRequest request, String username) {
-        log.info("Updating allocation rule with ID: {}", ruleId);
+    public AllocationRuleResponse updateRule(Long id, AllocationRuleRequest request, String adminEmail) {
+        AllocationRule rule = allocationRuleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(rule, "Allocation rule", id);
 
-        AllocationRule rule = allocationRuleRepository.findById(ruleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with ID: " + ruleId));
-
-        // Validate weights sum to 100%
-        validateWeightsSum(request);
-
-        // Check for duplicate rule name (excluding current rule)
+        // Only check duplicate name if name changed
         if (!rule.getRuleName().equals(request.getRuleName())) {
-            checkDuplicateRuleName(request.getBuildingId(), request.getRuleName(), ruleId);
+            if (request.getBuildingId() != null) {
+                if (allocationRuleRepository.existsByBuilding_IdAndRuleName(request.getBuildingId(), request.getRuleName())) {
+                    // allow if it's the same rule
+                    allocationRuleRepository.findByBuilding_IdAndRuleName(request.getBuildingId(), request.getRuleName())
+                            .filter(existing -> !existing.getId().equals(id))
+                            .ifPresent(existing -> {
+                                throw new DuplicateResourceException("Rule with name '" + request.getRuleName()
+                                        + "' already exists for building id: " + request.getBuildingId());
+                            });
+                    // If findByBuilding_IdAndRuleName returns empty, there's a stale check — still treat as duplicate
+                    if (allocationRuleRepository.findByBuilding_IdAndRuleName(request.getBuildingId(), request.getRuleName()).isEmpty()) {
+                        throw new DuplicateResourceException("Rule with name '" + request.getRuleName()
+                                + "' already exists for building id: " + request.getBuildingId());
+                    }
+                }
+            }
         }
 
-        // Update building if changed
         if (request.getBuildingId() != null) {
             Building building = buildingRepository.findById(request.getBuildingId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Building not found with ID: " + request.getBuildingId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Building not found with id: " + request.getBuildingId()));
+            tenantOwnershipGuard.assertOwned(building, "Building", request.getBuildingId());
             rule.setBuilding(building);
         } else {
             rule.setBuilding(null);
         }
 
-        // Update fields
         rule.setRuleName(request.getRuleName());
-
-        if (request.getPreferenceMatchWeight() != null) {
-            rule.setPreferenceMatchWeight(request.getPreferenceMatchWeight());
-        }
-        if (request.getDesirabilityWeight() != null) {
-            rule.setDesirabilityWeight(request.getDesirabilityWeight());
-        }
-        if (request.getAccessibilityWeight() != null) {
-            rule.setAccessibilityWeight(request.getAccessibilityWeight());
-        }
+        rule.setPreferenceMatchWeight(request.getPreferenceMatchWeight());
+        rule.setDesirabilityWeight(request.getDesirabilityWeight());
+        rule.setAccessibilityWeight(request.getAccessibilityWeight());
         if (request.getActive() != null) {
             rule.setActive(request.getActive());
         }
@@ -179,107 +137,30 @@ public class AllocationRuleService {
             rule.setPriority(request.getPriority());
         }
 
-        AllocationRule updatedRule = allocationRuleRepository.save(rule);
-        log.info("Updated allocation rule with ID: {}", updatedRule.getId());
-
-        return mapToResponse(updatedRule);
+        return toResponse(allocationRuleRepository.save(rule));
     }
 
-    /**
-     * Soft deletes an allocation rule by setting active = false.
-     *
-     * @param ruleId   The rule ID
-     * @param username The admin username
-     */
     @Transactional
-    @LogActivity(action = "DELETE", entityType = "ALLOCATION_RULE", description = "Deactivated allocation rule {0}", entityIdParamIndex = 0)
-    public void deleteRule(Long ruleId, String username) {
-        log.info("Soft deleting allocation rule with ID: {}", ruleId);
-
-        AllocationRule rule = allocationRuleRepository.findById(ruleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with ID: " + ruleId));
-
+    public void deleteRule(Long id, String adminEmail) {
+        AllocationRule rule = allocationRuleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(rule, "Allocation rule", id);
         rule.setActive(false);
         allocationRuleRepository.save(rule);
-
-        log.info("Soft deleted (deactivated) allocation rule with ID: {}", ruleId);
     }
 
-    /**
-     * Activates an allocation rule by setting active = true.
-     *
-     * @param ruleId   The rule ID
-     * @param username The admin username
-     * @return AllocationRuleResponse
-     */
     @Transactional
-    @LogActivity(action = "UPDATE", entityType = "ALLOCATION_RULE", description = "Activated allocation rule {0}", entityIdParamIndex = 0)
-    public AllocationRuleResponse activateRule(Long ruleId, String username) {
-        log.info("Activating allocation rule with ID: {}", ruleId);
-
-        AllocationRule rule = allocationRuleRepository.findById(ruleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with ID: " + ruleId));
-
+    public AllocationRuleResponse activateRule(Long id, String adminEmail) {
+        AllocationRule rule = allocationRuleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Allocation rule not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(rule, "Allocation rule", id);
         rule.setActive(true);
-        AllocationRule updatedRule = allocationRuleRepository.save(rule);
-
-        log.info("Activated allocation rule with ID: {}", updatedRule.getId());
-
-        return mapToResponse(updatedRule);
+        return toResponse(allocationRuleRepository.save(rule));
     }
 
-    /**
-     * Validates that weights sum to 100%.
-     */
-    private void validateWeightsSum(AllocationRuleRequest request) {
-        BigDecimal preferenceWeight = request.getPreferenceMatchWeight() != null ?
-                request.getPreferenceMatchWeight() : BigDecimal.ONE;
-        BigDecimal desirabilityWeight = request.getDesirabilityWeight() != null ?
-                request.getDesirabilityWeight() : BigDecimal.ONE;
-        BigDecimal accessibilityWeight = request.getAccessibilityWeight() != null ?
-                request.getAccessibilityWeight() : BigDecimal.ONE;
+    // --- Mapping helpers ---
 
-        BigDecimal sum = preferenceWeight.add(desirabilityWeight).add(accessibilityWeight);
-
-        if (sum.compareTo(HUNDRED) != 0) {
-            throw new IllegalArgumentException(
-                    "Weights must sum to 100%. Current sum: " + sum +
-                    " (preference: " + preferenceWeight +
-                    ", desirability: " + desirabilityWeight +
-                    ", accessibility: " + accessibilityWeight + ")");
-        }
-    }
-
-    /**
-     * Checks for duplicate rule name within the same building scope.
-     */
-    private void checkDuplicateRuleName(Long buildingId, String ruleName, Long excludeRuleId) {
-        boolean exists;
-        if (buildingId == null) {
-            exists = allocationRuleRepository.existsByBuildingIsNullAndRuleName(ruleName);
-        } else {
-            exists = allocationRuleRepository.existsByBuilding_IdAndRuleName(buildingId, ruleName);
-        }
-
-        if (exists) {
-            // If updating, check if it's the same rule
-            if (excludeRuleId != null) {
-                AllocationRule existingRule = allocationRuleRepository
-                        .findByBuilding_IdAndRuleName(buildingId, ruleName)
-                        .orElse(null);
-                if (existingRule != null && existingRule.getId().equals(excludeRuleId)) {
-                    return; // Same rule, no conflict
-                }
-            }
-            throw new DuplicateResourceException(
-                    "A rule with name '" + ruleName + "' already exists for this building");
-        }
-    }
-
-    /**
-     * Maps AllocationRule entity to AllocationRuleResponse DTO.
-     */
-    private AllocationRuleResponse mapToResponse(AllocationRule rule) {
+    private AllocationRuleResponse toResponse(AllocationRule rule) {
         return AllocationRuleResponse.builder()
                 .id(rule.getId())
                 .buildingId(rule.getBuilding() != null ? rule.getBuilding().getId() : null)
@@ -288,12 +169,44 @@ public class AllocationRuleService {
                 .preferenceMatchWeight(rule.getPreferenceMatchWeight())
                 .desirabilityWeight(rule.getDesirabilityWeight())
                 .accessibilityWeight(rule.getAccessibilityWeight())
+                .fcfsWeight(rule.getFcfsWeight())
+                .nsfasPriorityWeight(rule.getNsfasPriorityWeight())
+                .universityPrefWeight(rule.getUniversityPrefWeight())
+                .priorityInstitutionIds(rule.getPriorityInstitutionIds())
                 .active(rule.getActive())
                 .priority(rule.getPriority())
                 .createdAt(rule.getCreatedAt())
                 .updatedAt(rule.getUpdatedAt())
-                .createdByName(rule.getCreatedBy() != null ?
-                        rule.getCreatedBy().getFirstName() + " " + rule.getCreatedBy().getLastName() : null)
                 .build();
+    }
+
+    private PageResponse<AllocationRuleResponse> toPageResponse(Page<AllocationRule> page) {
+        return PageResponse.<AllocationRuleResponse>builder()
+                .content(page.getContent().stream().map(this::toResponse).toList())
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .empty(page.isEmpty())
+                .build();
+    }
+
+    private void validateWeights(AllocationRuleRequest request) {
+        BigDecimal total = BigDecimal.ZERO;
+        if (request.getPreferenceMatchWeight() != null) {
+            total = total.add(request.getPreferenceMatchWeight());
+        }
+        if (request.getDesirabilityWeight() != null) {
+            total = total.add(request.getDesirabilityWeight());
+        }
+        if (request.getAccessibilityWeight() != null) {
+            total = total.add(request.getAccessibilityWeight());
+        }
+        if (total.compareTo(new BigDecimal("100")) > 0) {
+            throw new IllegalArgumentException(
+                    "Sum of preferenceMatchWeight, desirabilityWeight, and accessibilityWeight must not exceed 100. Got: " + total);
+        }
     }
 }

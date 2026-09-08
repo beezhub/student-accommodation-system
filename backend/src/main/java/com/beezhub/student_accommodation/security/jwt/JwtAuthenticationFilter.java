@@ -12,7 +12,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.servlet.HandlerExceptionResolver;
+import com.beezhub.student_accommodation.security.FilterErrorResponseWriter;
 
 import java.io.IOException;
 import java.util.stream.Collectors;
@@ -21,9 +21,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    /** EventSource cannot send an Authorization header, so this one path may carry ?token=. */
+    static final String SSE_STREAM_PATH = "/api/notifications/stream";
+
     private final JwtUtil jwtUtil;
     private final com.beezhub.student_accommodation.service.TokenBlacklistService tokenBlacklistService;
-    private final HandlerExceptionResolver handlerExceptionResolver;
+    private final FilterErrorResponseWriter errorResponseWriter;
 
     @Override
     protected void doFilterInternal(
@@ -38,8 +41,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
                 jwt = authorizationHeader.substring(7);
-            } else if (request.getParameter("token") != null) {
-                // Support token in query param for SSE (EventSource)
+            } else if (isEventStreamRequest(request) && request.getParameter("token") != null) {
+                // EventSource cannot set headers, so the notification stream is the one endpoint
+                // allowed to carry the token in the query string. Accepting it everywhere put JWTs
+                // into proxy access logs and browser history (GH-123).
                 jwt = request.getParameter("token");
             }
 
@@ -50,6 +55,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     throw new BadCredentialsException("Token is blacklisted");
                 }
                 username = jwtUtil.extractUsername(jwt);
+
+                // Deactivating an account only sets account_locked_until, which an already-issued
+                // token never consults, so a deactivated admin kept working until expiry. A
+                // revocation cutoff recorded per user retires those tokens (GH-122).
+                if (tokenBlacklistService.isRevoked(username, jwtUtil.extractIssuedAt(jwt))) {
+                    throw new BadCredentialsException("Token has been revoked");
+                }
             }
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -78,11 +90,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
 
         } catch (Exception e) {
-            // Delegate exception handling to the global exception resolver
-            // (RestResponseExceptionHandler)
-            handlerExceptionResolver.resolveException(request, response, null, e);
+            // This used to delegate to the shared HandlerExceptionResolver with a null handler, but
+            // RestResponseExceptionHandler is a @ControllerAdvice with basePackages, and
+            // ControllerAdviceBean.isApplicableToBeanType(null) is false for any advice carrying
+            // selectors. So nothing handled it and the request fell through to the container error
+            // page, whose body shape the frontend cannot read. Write the ErrorResponse here
+            // instead (GH-204).
+            errorResponseWriter.write(request, response, e);
         } finally {
             com.beezhub.student_accommodation.service.tenant.TenantContext.clear();
         }
+    }
+
+    /** The notification stream is the only endpoint permitted to carry a token in the query string. */
+    private static boolean isEventStreamRequest(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        if (path == null) {
+            return false;
+        }
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isEmpty() && path.startsWith(contextPath)) {
+            path = path.substring(contextPath.length());
+        }
+        return SSE_STREAM_PATH.equals(path);
     }
 }

@@ -1,7 +1,5 @@
 package com.beezhub.student_accommodation.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,8 +12,6 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class AllocationRuleResponse {
 
     private Long id;
@@ -25,9 +21,12 @@ public class AllocationRuleResponse {
     private BigDecimal preferenceMatchWeight;
     private BigDecimal desirabilityWeight;
     private BigDecimal accessibilityWeight;
+    private BigDecimal fcfsWeight;
+    private BigDecimal nsfasPriorityWeight;
+    private BigDecimal universityPrefWeight;
+    private String priorityInstitutionIds;
     private Boolean active;
     private Integer priority;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private String createdByName;
 }

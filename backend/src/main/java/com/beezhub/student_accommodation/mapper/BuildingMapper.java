@@ -16,6 +16,13 @@ import java.util.stream.Collectors;
 public interface BuildingMapper {
 
     @Mapping(target = "institutions", source = "institutions", qualifiedByName = "institutionsToResponseList")
+    @Mapping(target = "rooms", ignore = true)
+    @Mapping(target = "images", ignore = true)
+    @Mapping(target = "primaryImageUrl", ignore = true)
+    @Mapping(target = "minMonthlyRate", ignore = true)
+    @Mapping(target = "maxMonthlyRate", ignore = true)
+    @Mapping(target = "availableRoomCount", ignore = true)
+    @Mapping(target = "accessibilityFeatures", ignore = true)
     BuildingResponse toResponse(Building building);
 
     List<BuildingResponse> toResponseList(List<Building> buildings);

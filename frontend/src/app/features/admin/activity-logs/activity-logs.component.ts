@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivityLogService } from '../../../core/services/activity-log.service';
@@ -19,6 +19,8 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-activity-logs',
@@ -42,9 +44,15 @@ import { MatChipsModule } from '@angular/material/chips';
     MatTooltipModule,
     MatChipsModule,
     MatSnackBarModule,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class ActivityLogsComponent implements OnInit {
+  private activityLogService = inject(ActivityLogService);
+  private fb = inject(FormBuilder);
+  private snackBar = inject(MatSnackBar);
+
   displayedColumns: string[] = [
     'timestamp',
     'user',
@@ -59,8 +67,18 @@ export class ActivityLogsComponent implements OnInit {
   totalElements = 0;
   pageSize = 20;
   currentPage = 0;
+  filtersVisible = false;
 
   filterForm: FormGroup;
+
+  get activeFilterCount(): number {
+    const v = this.filterForm?.value ?? {};
+    return [v.userRole, v.action, v.entityType, v.startDate, v.endDate].filter(Boolean).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
 
   actions: ActivityAction[] = [
     'CREATE',
@@ -86,13 +104,9 @@ export class ActivityLogsComponent implements OnInit {
     'SYSTEM',
   ];
 
-  userRoles: string[] = ['ADMIN', 'STUDENT', 'LANDLORD'];
+  userRoles: string[] = ['PLATFORM_ADMIN', 'BUILDING_OWNER', 'BUILDING_STAFF', 'STUDENT'];
 
-  constructor(
-    private activityLogService: ActivityLogService,
-    private fb: FormBuilder,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       userRole: [''],
       action: [''],

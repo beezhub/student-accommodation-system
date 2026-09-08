@@ -2,16 +2,25 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
+import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.mapper.BuildingMapper;
+import com.beezhub.student_accommodation.mapper.RoomMapper;
 import com.beezhub.student_accommodation.model.dto.BuildingRequest;
 import com.beezhub.student_accommodation.model.dto.BuildingResponse;
-import com.beezhub.student_accommodation.model.dto.GeocodingResult;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
+import com.beezhub.student_accommodation.model.dto.RoomResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Institution;
+import com.beezhub.student_accommodation.model.entity.Room;
+import com.beezhub.student_accommodation.repository.BuildingAttributesRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.InstitutionRepository;
+import com.beezhub.student_accommodation.repository.RoomRepository;
+import com.beezhub.student_accommodation.repository.TenantRepository;
+import com.beezhub.student_accommodation.specification.BuildingBrowseSpecification;
 import com.beezhub.student_accommodation.specification.BuildingSpecification;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +31,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -33,16 +44,21 @@ import java.util.Set;
 public class BuildingService {
 
     private final BuildingRepository buildingRepository;
+    private final BuildingAttributesRepository buildingAttributesRepository;
     private final InstitutionRepository institutionRepository;
+    private final RoomRepository roomRepository;
     private final BuildingMapper buildingMapper;
+    private final RoomMapper roomMapper;
     private final BuildingImageService buildingImageService;
-    private final GoogleMapsService googleMapsService;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+    private final TenantRepository tenantRepository;
 
     public List<BuildingResponse> getAllBuildings() {
         log.info("Fetching all buildings");
         List<Building> buildings = buildingRepository.findAll();
         List<BuildingResponse> buildingResponses = buildingMapper.toResponseList(buildings);
         buildingResponses.forEach(this::enrichWithPrimaryImage);
+        enrichWithPricingAndAvailability(buildingResponses);
         log.info("Found {} buildings", buildingResponses.size());
         return buildingResponses;
     }
@@ -55,6 +71,8 @@ public class BuildingService {
             enrichWithPrimaryImage(response);
             return response;
         });
+        List<BuildingResponse> content = responsePage.getContent();
+        enrichWithPricingAndAvailability(content);
         log.info("Found {} buildings in page", buildings.getNumberOfElements());
         return PageMapper.toPageResponse(responsePage);
     }
@@ -68,7 +86,29 @@ public class BuildingService {
             enrichWithPrimaryImage(response);
             return response;
         });
+        List<BuildingResponse> content = responsePage.getContent();
+        enrichWithPricingAndAvailability(content);
         log.info("Found {} buildings matching criteria", buildings.getNumberOfElements());
+        return PageMapper.toPageResponse(responsePage);
+    }
+
+    public PageResponse<BuildingResponse> browseBuildings(
+            BigDecimal minPrice, BigDecimal maxPrice,
+            Boolean available, Long institutionId, String search,
+            Pageable pageable) {
+        log.info("Browsing buildings with filters - minPrice: {}, maxPrice: {}, available: {}, institutionId: {}, search: {}",
+                minPrice, maxPrice, available, institutionId, search);
+        Specification<Building> spec = BuildingBrowseSpecification.filterBy(
+                minPrice, maxPrice, available, institutionId, search);
+        Page<Building> buildings = buildingRepository.findAll(spec, pageable);
+        Page<BuildingResponse> responsePage = buildings.map(building -> {
+            BuildingResponse response = buildingMapper.toResponse(building);
+            enrichWithPrimaryImage(response);
+            return response;
+        });
+        List<BuildingResponse> content = responsePage.getContent();
+        enrichWithPricingAndAvailability(content);
+        log.info("Found {} buildings matching browse criteria", buildings.getNumberOfElements());
         return PageMapper.toPageResponse(responsePage);
     }
 
@@ -79,6 +119,19 @@ public class BuildingService {
         BuildingResponse response = buildingMapper.toResponse(building);
         enrichWithPrimaryImage(response);
         response.setImages(buildingImageService.getImages(id));
+
+        // Enrich with room summaries for detail view
+        List<Room> rooms = roomRepository.findByBuildingIdWithAttributes(id);
+        response.setRooms(roomMapper.toResponseList(rooms));
+
+        // Enrich single building with pricing/availability
+        enrichSingleBuildingWithPricingAndAvailability(response, rooms);
+
+        // Enrich with accessibility features from building attributes
+        buildingAttributesRepository.findByBuilding_Id(id).ifPresent(attrs -> {
+            response.setAccessibilityFeatures(attrs.getAccessibilityFeatures());
+        });
+
         return response;
     }
 
@@ -91,6 +144,7 @@ public class BuildingService {
         List<Building> buildings = buildingRepository.findByInstitutionId(institutionId);
         List<BuildingResponse> buildingResponses = buildingMapper.toResponseList(buildings);
         buildingResponses.forEach(this::enrichWithPrimaryImage);
+        enrichWithPricingAndAvailability(buildingResponses);
         log.info("Found {} buildings for institution {}", buildings.size(), institutionId);
         return buildingResponses;
     }
@@ -98,41 +152,98 @@ public class BuildingService {
     public BuildingResponse createBuilding(BuildingRequest request) {
         log.info("Creating new building with name: {}", request.getName());
         Building building = new Building();
+        building.setTenantId(resolveOwningTenant(request));
         building.setName(request.getName());
         building.setAddress(request.getAddress());
         building.setDescription(request.getDescription());
         building.setTotalFloors(request.getTotalFloors());
 
-        // Geocode the address
-        geocodeAndSetLocation(building, request);
+        // Use coordinates directly from frontend
+        if (request.getLatitude() != null && request.getLongitude() != null) {
+            building.setLatitude(BigDecimal.valueOf(request.getLatitude()));
+            building.setLongitude(BigDecimal.valueOf(request.getLongitude()));
+            building.setPlaceId(request.getPlaceId());
+        }
 
         // Handle institution IDs
         if (request.getInstitutionIds() != null && !request.getInstitutionIds().isEmpty()) {
-            Set<Institution> institutions = new HashSet<>(institutionRepository.findAllById(request.getInstitutionIds()));
+            Set<Institution> institutions = new HashSet<>(
+                    institutionRepository.findAllById(request.getInstitutionIds()));
             building.setInstitutions(institutions);
             log.info("Assigned {} institutions to building", institutions.size());
         }
 
         Building saved = buildingRepository.save(building);
-        log.info("Successfully created building with id: {}", saved.getId());
+        log.info("action=buildingCreated buildingId={} tenantId={}", saved.getId(), saved.getTenantId());
         return buildingMapper.toResponse(saved);
+    }
+
+    /**
+     * The property company a new building belongs to.
+     *
+     * <p>This used to be left to {@code TenantListener}, which copies the acting context. Building
+     * creation is open to PLATFORM_ADMIN, whose context is the platform tenant (0), so a building
+     * created by a platform admin was stamped 0 and became invisible to the company that owns it.
+     * Unlike the rows PR #211 repaired, a building has no parent to derive from, so nothing could
+     * back-fill it afterwards (GH-213).
+     *
+     * <p>A platform admin must therefore say which company they are creating for. A tenant admin
+     * may only create in their own, and passing a different one is refused rather than ignored, so
+     * a mistaken id fails loudly instead of quietly creating in the wrong place.
+     */
+    private Long resolveOwningTenant(BuildingRequest request) {
+        Long callerTenantId = TenantContext.getTenantId();
+        boolean callerIsPlatform = callerTenantId == null
+                || TenantContext.PLATFORM_TENANT_ID.equals(callerTenantId);
+
+        if (!callerIsPlatform) {
+            if (request.getTenantId() != null && !request.getTenantId().equals(callerTenantId)) {
+                throw new UnauthorizedAccessException(
+                        "You can only create buildings for your own property company");
+            }
+            return callerTenantId;
+        }
+
+        Long requested = request.getTenantId();
+        if (requested == null || TenantContext.PLATFORM_TENANT_ID.equals(requested)) {
+            throw new IllegalArgumentException(
+                    "A property company must be chosen for the building. The platform tenant cannot "
+                            + "own buildings, and a building stamped with it is invisible to every company.");
+        }
+        if (!tenantRepository.existsById(requested)) {
+            throw new TenantNotFoundException("Property company not found with id: " + requested);
+        }
+        return requested;
     }
 
     public BuildingResponse updateBuilding(Long id, BuildingRequest request) {
         log.info("Updating building with id: {}", id);
         Building building = buildingRepository.findById(id)
                 .orElseThrow(() -> new BuildingNotFoundException("Building not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(building, "Building", id);
+        // Refused rather than ignored. Moving a building between companies would re-home every
+        // room, allocation and application beneath it, so it is not something an edit does by
+        // quietly accepting a field (GH-213).
+        if (request.getTenantId() != null && !request.getTenantId().equals(building.getTenantId())) {
+            throw new UnauthorizedAccessException(
+                    "A building cannot be moved to another property company by editing it");
+        }
         building.setName(request.getName());
         building.setAddress(request.getAddress());
         building.setDescription(request.getDescription());
         building.setTotalFloors(request.getTotalFloors());
 
-        // Geocode the address
-        geocodeAndSetLocation(building, request);
+        // Use coordinates directly from frontend
+        if (request.getLatitude() != null && request.getLongitude() != null) {
+            building.setLatitude(BigDecimal.valueOf(request.getLatitude()));
+            building.setLongitude(BigDecimal.valueOf(request.getLongitude()));
+            building.setPlaceId(request.getPlaceId());
+        }
 
         // Handle institution IDs
         if (request.getInstitutionIds() != null) {
-            Set<Institution> institutions = new HashSet<>(institutionRepository.findAllById(request.getInstitutionIds()));
+            Set<Institution> institutions = new HashSet<>(
+                    institutionRepository.findAllById(request.getInstitutionIds()));
             building.setInstitutions(institutions);
             log.info("Updated building with {} institutions", institutions.size());
         } else {
@@ -148,6 +259,7 @@ public class BuildingService {
         log.info("Deleting building with id: {}", id);
         Building building = buildingRepository.findById(id)
                 .orElseThrow(() -> new BuildingNotFoundException("Building not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(building, "Building", id);
         buildingRepository.delete(building);
         log.info("Successfully deleted building with id: {}", id);
     }
@@ -160,43 +272,69 @@ public class BuildingService {
     }
 
     /**
-     * Geocodes the address and sets location data on the building entity.
-     * Gracefully handles geocoding failures by logging warnings and continuing.
+     * Batch-enriches a list of building responses with pricing and availability summary.
+     * Uses two bulk queries to avoid N+1 problem.
      */
-    private void geocodeAndSetLocation(Building building, BuildingRequest request) {
-        GeocodingResult result = null;
+    private void enrichWithPricingAndAvailability(List<BuildingResponse> responses) {
+        if (responses.isEmpty()) return;
 
-        // If place ID is provided (from autocomplete), use it for geocoding
-        if (request.getPlaceId() != null && !request.getPlaceId().isEmpty()) {
-            log.info("Geocoding building using place ID: {}", request.getPlaceId());
-            result = googleMapsService.geocodePlaceId(request.getPlaceId());
+        // Batch query: pricing summaries
+        Map<Long, BigDecimal[]> pricingMap = new HashMap<>();
+        for (Object[] row : roomRepository.findPricingSummaryByBuilding()) {
+            Long buildingId = (Long) row[0];
+            BigDecimal min = (BigDecimal) row[1];
+            BigDecimal max = (BigDecimal) row[2];
+            pricingMap.put(buildingId, new BigDecimal[]{min, max});
         }
-        // Otherwise, if address is provided, geocode the address
-        else if (request.getAddress() != null && !request.getAddress().isEmpty()) {
-            log.info("Geocoding building using address: {}", request.getAddress());
-            result = googleMapsService.geocodeAddress(request.getAddress());
+
+        // Batch query: available room counts
+        Map<Long, Long> availabilityMap = new HashMap<>();
+        for (Object[] row : roomRepository.findAvailableRoomCountByBuilding()) {
+            Long buildingId = (Long) row[0];
+            Long count = (Long) row[1];
+            availabilityMap.put(buildingId, count);
         }
-        // If coordinates are provided directly (from frontend), use them
-        else if (request.getLatitude() != null && request.getLongitude() != null) {
-            log.info("Using coordinates provided from frontend");
-            building.setLatitude(BigDecimal.valueOf(request.getLatitude()));
-            building.setLongitude(BigDecimal.valueOf(request.getLongitude()));
-            if (request.getPlaceId() != null) {
-                building.setPlaceId(request.getPlaceId());
+
+        // Apply to each response
+        for (BuildingResponse response : responses) {
+            BigDecimal[] pricing = pricingMap.get(response.getId());
+            if (pricing != null) {
+                response.setMinMonthlyRate(pricing[0]);
+                response.setMaxMonthlyRate(pricing[1]);
             }
-            return;
+            Long availableCount = availabilityMap.getOrDefault(response.getId(), 0L);
+            response.setAvailableRoomCount(availableCount.intValue());
+        }
+    }
+
+    /**
+     * Enriches a single building response with pricing and availability.
+     *
+     * <p>Pricing comes from the rooms already loaded for the detail view. Availability does not:
+     * it used to count rooms whose status string was {@code AVAILABLE}, and that string is set by
+     * {@code RoomOccupancyManager.deriveStatus}, which says AVAILABLE only when a room is
+     * completely empty. A two-bed room with one occupant reads OCCUPIED, so every shared room with
+     * space was counted as having none (GH-221). The count now comes from the same live-allocation
+     * query the list view uses, so the two views agree.
+     */
+    private void enrichSingleBuildingWithPricingAndAvailability(BuildingResponse response, List<Room> rooms) {
+        BigDecimal min = null;
+        BigDecimal max = null;
+
+        for (Room room : rooms) {
+            if (room.getMonthlyRate() != null) {
+                if (min == null || room.getMonthlyRate().compareTo(min) < 0) {
+                    min = room.getMonthlyRate();
+                }
+                if (max == null || room.getMonthlyRate().compareTo(max) > 0) {
+                    max = room.getMonthlyRate();
+                }
+            }
         }
 
-        // If geocoding was successful, populate building fields
-        if (result != null && result.isSuccess()) {
-            building.setLatitude(BigDecimal.valueOf(result.getLatitude()));
-            building.setLongitude(BigDecimal.valueOf(result.getLongitude()));
-            building.setPlaceId(result.getPlaceId());
-            building.setFormattedAddress(result.getFormattedAddress());
-            building.setAddressComponents(result.getAddressComponents());
-            log.info("Successfully geocoded building: lat={}, lng={}", result.getLatitude(), result.getLongitude());
-        } else if (result != null) {
-            log.warn("Geocoding failed: {} - Building will be created without coordinates", result.getErrorMessage());
-        }
+        response.setMinMonthlyRate(min);
+        response.setMaxMonthlyRate(max);
+        response.setAvailableRoomCount(
+                (int) roomRepository.countAvailableRoomsByBuildingId(response.getId()));
     }
 }

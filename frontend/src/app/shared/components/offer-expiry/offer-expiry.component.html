@@ -1,0 +1,28 @@
+<div class="offer-expiry" [class]="urgencyLevel" aria-live="polite" aria-atomic="true">
+  @if (urgencyLevel === 'alarm') {
+    <div class="expiry-banner alarm">
+      <mat-icon>{{ icon }}</mat-icon>
+      <span class="expiry-label">{{ label }}</span>
+    </div>
+  } @else if (urgencyLevel === 'expired') {
+    <span class="expiry-chip expired">
+      <mat-icon>{{ icon }}</mat-icon>
+      <span class="expiry-label">{{ label }}</span>
+    </span>
+  } @else if (urgencyLevel === 'critical') {
+    <span class="expiry-chip critical">
+      <mat-icon>{{ icon }}</mat-icon>
+      <span class="expiry-label">{{ label }}</span>
+    </span>
+  } @else if (urgencyLevel === 'warning') {
+    <span class="expiry-chip warning">
+      <mat-icon>{{ icon }}</mat-icon>
+      <span class="expiry-label">{{ label }}</span>
+    </span>
+  } @else {
+    <span class="expiry-chip normal">
+      <mat-icon>{{ icon }}</mat-icon>
+      <span class="expiry-label">{{ label }}</span>
+    </span>
+  }
+</div>

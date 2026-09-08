@@ -1,7 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
+export { PageResponse } from '../models/page-response.model';
+import { PageResponse } from '../models/page-response.model';
 
 export interface BuildingRequest {
   name: string;
@@ -12,6 +14,12 @@ export interface BuildingRequest {
   description?: string;
   totalFloors?: number;
   institutionIds?: number[];
+  /**
+   * The property company that will own the building. Sent only by a platform admin, whose own
+   * tenant is the platform sentinel and cannot own buildings; a tenant admin's company is derived
+   * from their token (GH-213).
+   */
+  tenantId?: number;
 }
 
 export interface InstitutionSummary {
@@ -31,6 +39,7 @@ export interface BuildingImageResponse {
 
 export interface BuildingResponse {
   id: number;
+  tenantId?: number;
   name: string;
   address?: string;
   latitude?: number;
@@ -45,14 +54,26 @@ export interface BuildingResponse {
   images?: BuildingImageResponse[];
   createdAt: string;
   updatedAt: string;
+
+  // Pricing and availability summary (computed from rooms)
+  minMonthlyRate?: number | null;
+  maxMonthlyRate?: number | null;
+  availableRoomCount?: number;
+
+  // Room summaries (included in detail endpoint)
+  rooms?: RoomSummary[];
+
+  // Building attributes (included in detail endpoint)
+  accessibilityFeatures?: string | null;
 }
 
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
+export interface RoomSummary {
+  id: number;
+  roomNumber: string;
+  capacity: number;
+  currentOccupancy: number;
+  monthlyRate?: number | null;
+  status: string;
 }
 
 export interface MapsConfig {
@@ -64,9 +85,35 @@ export interface MapsConfig {
   providedIn: 'root',
 })
 export class BuildingService {
+  private http = inject(HttpClient);
+
   private apiUrl = `${environment.apiUrl}/building`;
 
-  constructor(private http: HttpClient) {}
+  /**
+   * The backend hands back image URLs relative to the API root (`/building/.../content`), not a
+   * host-qualified address, the same way every other building endpoint is only a path here and
+   * gets `environment.apiUrl` prepended. Resolving it in one place means every list, browse and
+   * detail response ends up pointing at wherever this app's own API is, in dev or in prod, instead
+   * of a MinIO URL the browser could never reach (GH-268).
+   */
+  private resolveImageUrl<T extends string | undefined>(url: T): T {
+    if (url && url.startsWith('/')) {
+      return `${environment.apiUrl}${url}` as T;
+    }
+    return url;
+  }
+
+  private resolveBuildingImageUrls(image: BuildingImageResponse): BuildingImageResponse {
+    return { ...image, imageUrl: this.resolveImageUrl(image.imageUrl) };
+  }
+
+  private resolveBuildingUrls(building: BuildingResponse): BuildingResponse {
+    return {
+      ...building,
+      primaryImageUrl: this.resolveImageUrl(building.primaryImageUrl),
+      images: building.images?.map((image) => this.resolveBuildingImageUrls(image)),
+    };
+  }
 
   getMapsConfig(): Observable<MapsConfig> {
     return this.http.get<MapsConfig>(`${this.apiUrl}/maps-config`);
@@ -74,11 +121,46 @@ export class BuildingService {
 
   getAllBuildings(page: number = 0, size: number = 20): Observable<PageResponse<BuildingResponse>> {
     const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
-    return this.http.get<PageResponse<BuildingResponse>>(this.apiUrl, { params });
+    return this.http.get<PageResponse<BuildingResponse>>(this.apiUrl, { params }).pipe(
+      map((response) => ({
+        ...response,
+        content: response.content.map((building) => this.resolveBuildingUrls(building)),
+      }))
+    );
   }
 
   getAllBuildingsNoPagination(): Observable<BuildingResponse[]> {
-    return this.http.get<BuildingResponse[]>(`${this.apiUrl}/all`);
+    return this.http
+      .get<BuildingResponse[]>(`${this.apiUrl}/all`)
+      .pipe(map((buildings) => buildings.map((building) => this.resolveBuildingUrls(building))));
+  }
+
+  browseBuildingsPaginated(filters: {
+    minPrice?: number;
+    maxPrice?: number;
+    available?: boolean;
+    institutionId?: number;
+    search?: string;
+    page?: number;
+    size?: number;
+  }): Observable<PageResponse<BuildingResponse>> {
+    let params = new HttpParams()
+      .set('page', (filters.page || 0).toString())
+      .set('size', (filters.size || 12).toString());
+
+    if (filters.minPrice != null) params = params.set('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice != null) params = params.set('maxPrice', filters.maxPrice.toString());
+    if (filters.available != null) params = params.set('available', filters.available.toString());
+    if (filters.institutionId != null)
+      params = params.set('institutionId', filters.institutionId.toString());
+    if (filters.search) params = params.set('search', filters.search);
+
+    return this.http.get<PageResponse<BuildingResponse>>(`${this.apiUrl}/browse`, { params }).pipe(
+      map((response) => ({
+        ...response,
+        content: response.content.map((building) => this.resolveBuildingUrls(building)),
+      }))
+    );
   }
 
   searchBuildings(filters: {
@@ -94,19 +176,30 @@ export class BuildingService {
     if (filters.name) params = params.set('name', filters.name);
     if (filters.address) params = params.set('address', filters.address);
 
-    return this.http.get<PageResponse<BuildingResponse>>(`${this.apiUrl}/search`, { params });
+    return this.http.get<PageResponse<BuildingResponse>>(`${this.apiUrl}/search`, { params }).pipe(
+      map((response) => ({
+        ...response,
+        content: response.content.map((building) => this.resolveBuildingUrls(building)),
+      }))
+    );
   }
 
   getBuildingById(id: number): Observable<BuildingResponse> {
-    return this.http.get<BuildingResponse>(`${this.apiUrl}/${id}`);
+    return this.http
+      .get<BuildingResponse>(`${this.apiUrl}/${id}`)
+      .pipe(map((building) => this.resolveBuildingUrls(building)));
   }
 
   createBuilding(building: BuildingRequest): Observable<BuildingResponse> {
-    return this.http.post<BuildingResponse>(this.apiUrl, building);
+    return this.http
+      .post<BuildingResponse>(this.apiUrl, building)
+      .pipe(map((response) => this.resolveBuildingUrls(response)));
   }
 
   updateBuilding(id: number, building: BuildingRequest): Observable<BuildingResponse> {
-    return this.http.put<BuildingResponse>(`${this.apiUrl}/${id}`, building);
+    return this.http
+      .put<BuildingResponse>(`${this.apiUrl}/${id}`, building)
+      .pipe(map((response) => this.resolveBuildingUrls(response)));
   }
 
   deleteBuilding(id: number): Observable<void> {
@@ -114,19 +207,25 @@ export class BuildingService {
   }
 
   getBuildingsByInstitution(institutionId: number): Observable<BuildingResponse[]> {
-    return this.http.get<BuildingResponse[]>(`${this.apiUrl}/by-institution/${institutionId}`);
+    return this.http
+      .get<BuildingResponse[]>(`${this.apiUrl}/by-institution/${institutionId}`)
+      .pipe(map((buildings) => buildings.map((building) => this.resolveBuildingUrls(building))));
   }
 
   // Building Image Methods
 
   getBuildingImages(buildingId: number): Observable<BuildingImageResponse[]> {
-    return this.http.get<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`);
+    return this.http
+      .get<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`)
+      .pipe(map((images) => images.map((image) => this.resolveBuildingImageUrls(image))));
   }
 
   uploadBuildingImages(buildingId: number, files: File[]): Observable<BuildingImageResponse[]> {
     const formData = new FormData();
-    files.forEach(file => formData.append('files', file));
-    return this.http.post<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`, formData);
+    files.forEach((file) => formData.append('files', file));
+    return this.http
+      .post<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`, formData)
+      .pipe(map((images) => images.map((image) => this.resolveBuildingImageUrls(image))));
   }
 
   deleteBuildingImage(buildingId: number, imageId: number): Observable<void> {
@@ -134,6 +233,8 @@ export class BuildingService {
   }
 
   setPrimaryImage(buildingId: number, imageId: number): Observable<BuildingImageResponse> {
-    return this.http.put<BuildingImageResponse>(`${this.apiUrl}/${buildingId}/images/${imageId}/primary`, {});
+    return this.http
+      .put<BuildingImageResponse>(`${this.apiUrl}/${buildingId}/images/${imageId}/primary`, {})
+      .pipe(map((image) => this.resolveBuildingImageUrls(image)));
   }
 }

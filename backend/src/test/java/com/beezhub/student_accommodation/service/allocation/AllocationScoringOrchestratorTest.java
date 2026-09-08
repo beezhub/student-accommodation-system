@@ -6,7 +6,7 @@ import com.beezhub.student_accommodation.model.dto.WaitingListEntryResponse;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.allocation.ScoringStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 class AllocationScoringOrchestratorTest {
 
         @Mock
-        private AllocationScoringService allocationScoringService;
+        private ScoringStrategy allocationScoringService;
         @Mock
         private RoomAllocationRepository roomAllocationRepository;
         @Mock
@@ -39,6 +39,15 @@ class AllocationScoringOrchestratorTest {
         private WaitingListRepository waitingListRepository;
         @Mock
         private BuildingRepository buildingRepository;
+
+        /**
+         * Real, not a mock: the waiting-list order is what GH-225 changed, and this test asserts
+         * that order. Backed by a rule repository with nothing in it, so the neutral weights apply.
+         */
+        @org.mockito.Spy
+        private ApplicantPriorityScorer applicantPriorityScorer =
+                new ApplicantPriorityScorer(org.mockito.Mockito.mock(
+                        com.beezhub.student_accommodation.repository.AllocationRuleRepository.class));
 
         @InjectMocks
         private AllocationScoringOrchestrator allocationScoringOrchestrator;
@@ -238,10 +247,8 @@ class AllocationScoringOrchestratorTest {
 
         @Test
         void getAvailableRoomsForBatch_returnsOnlyAvailable() {
-                // Arrange
-                when(roomRepository.findAll()).thenReturn(Arrays.asList(room1, room2));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L); // Available
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(2L)).thenReturn(1L); // Full (1/1)
+                // Arrange: repository now returns only rooms with available capacity
+                when(roomRepository.findRoomsWithAvailableCapacity()).thenReturn(Arrays.asList(room1));
 
                 // Act
                 List<Room> availableRooms = allocationScoringOrchestrator.getAvailableRoomsForBatch();

@@ -1,5 +1,4 @@
-import { Component, Inject, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,7 +9,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { CommonModule } from '@angular/common';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, takeUntil } from 'rxjs/operators';
 import {
   BuildingService,
   BuildingRequest,
@@ -18,21 +20,29 @@ import {
 } from '../../../../core/services/building.service';
 import { InstitutionService } from '../../../../core/services/institution.service';
 import { Institution } from '../../../../core/models/institution.model';
-import { GoogleMapsService } from '../../../../core/services/google-maps.service';
-import { GoogleMapsAlternativeService, AutocompleteHandle } from '../../../../core/services/google-maps-alternative.service';
-import { PlaceDetails } from '../../../../core/models/place-details.model';
+import { GeocodingService, AddressSuggestion } from '../../../../core/services/geocoding.service';
+import { TenantService, Tenant } from '../../../../core/services/tenant.service';
+import { RoleService } from '../../../../core/services/role.service';
 
 @Component({
   selector: 'app-building-form-dialog',
   template: `
     <div class="dialog-container">
       <div class="dialog-header">
-        <div class="header-icon">
+        <div class="header-icon-wrap" aria-hidden="true">
           <mat-icon>{{ data.mode === 'create' ? 'add_business' : 'edit' }}</mat-icon>
         </div>
         <div class="header-text">
-          <h2 mat-dialog-title>{{ data.mode === 'create' ? 'Add New Building' : 'Edit Building' }}</h2>
-          <p class="subtitle">{{ data.mode === 'create' ? 'Create a new accommodation building' : 'Update building information' }}</p>
+          <h2 mat-dialog-title>
+            {{ data.mode === 'create' ? 'Add New Building' : 'Edit Building' }}
+          </h2>
+          <p class="subtitle">
+            {{
+              data.mode === 'create'
+                ? 'Create a new accommodation building'
+                : 'Update building information'
+            }}
+          </p>
         </div>
       </div>
 
@@ -43,7 +53,7 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
             <mat-icon matPrefix>apartment</mat-icon>
             <input matInput formControlName="name" placeholder="e.g., North Hall" required />
             @if (buildingForm.get('name')?.hasError('required')) {
-              <mat-error>Building name is required</mat-error>
+            <mat-error>Building name is required</mat-error>
             }
           </mat-form-field>
 
@@ -51,15 +61,48 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
             <mat-label>Address</mat-label>
             <mat-icon matPrefix>location_on</mat-icon>
             <input
-              #addressInput
               matInput
               formControlName="address"
               placeholder="Start typing to search..."
+              [matAutocomplete]="addressAuto"
+              (input)="onAddressInput($event)"
             />
-            @if (mapsEnabled) {
-              <mat-hint>Google Places autocomplete enabled</mat-hint>
-            }
+            <mat-hint>Powered by OpenStreetMap</mat-hint>
+            <mat-autocomplete
+              #addressAuto="matAutocomplete"
+              [displayWith]="displayAddress"
+              (optionSelected)="onSuggestionSelected($event.option.value)"
+            >
+              @if (isSearching) {
+              <mat-option disabled>
+                <div class="searching-hint">
+                  <mat-spinner diameter="16"></mat-spinner>
+                  Searching...
+                </div>
+              </mat-option>
+              } @for (suggestion of addressSuggestions; track suggestion.placeId) {
+              <mat-option [value]="suggestion">
+                <mat-icon class="suggestion-icon">place</mat-icon>
+                <span class="suggestion-text">{{ suggestion.displayName }}</span>
+              </mat-option>
+              }
+            </mat-autocomplete>
           </mat-form-field>
+
+          @if (buildingForm.get('latitude')?.value) {
+          <div class="coords-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Latitude</mat-label>
+              <mat-icon matPrefix>my_location</mat-icon>
+              <input matInput formControlName="latitude" readonly />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Longitude</mat-label>
+              <mat-icon matPrefix>my_location</mat-icon>
+              <input matInput formControlName="longitude" readonly />
+            </mat-form-field>
+          </div>
+          }
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Total Floors</mat-label>
@@ -74,15 +117,32 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
             <mat-hint>Number of floors in the building</mat-hint>
           </mat-form-field>
 
+          @if (showCompanySelector) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Property Company</mat-label>
+            <mat-icon matPrefix>business</mat-icon>
+            <mat-select formControlName="tenantId">
+              @for (company of companies; track company.id) {
+              <mat-option [value]="company.id">{{ company.name }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>The company that will own this building</mat-hint>
+            @if (buildingForm.get('tenantId')?.hasError('required') &&
+            buildingForm.get('tenantId')?.touched) {
+            <mat-error>Choose the company that will own this building</mat-error>
+            }
+          </mat-form-field>
+          }
+
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Institutions Served</mat-label>
             <mat-icon matPrefix>school</mat-icon>
             <mat-select formControlName="institutionIds" multiple>
               @for (institution of institutions; track institution.id) {
-                <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
+              <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
               }
             </mat-select>
-            <mat-hint>Select which institutions this building serves (leave empty for all)</mat-hint>
+            <mat-hint>Leave empty to serve all institutions</mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
@@ -91,7 +151,7 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
             <textarea
               matInput
               formControlName="description"
-              rows="4"
+              rows="3"
               placeholder="Additional information about the building"
             ></textarea>
           </mat-form-field>
@@ -99,24 +159,26 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+        <button
+          mat-stroked-button
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+          class="cancel-btn"
+        >
           Cancel
         </button>
         <button
           mat-raised-button
-          color="primary"
           (click)="onSubmit()"
           [disabled]="!buildingForm.valid || isSubmitting"
           class="submit-btn"
         >
           @if (isSubmitting) {
-            <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            {{ data.mode === 'create' ? 'Creating...' : 'Updating...' }}
+          <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+          {{ data.mode === 'create' ? 'Creating...' : 'Updating...' }}
           } @else {
-            <ng-container>
-              <mat-icon>{{ data.mode === 'create' ? 'add' : 'check' }}</mat-icon>
-              {{ data.mode === 'create' ? 'Create Building' : 'Update Building' }}
-            </ng-container>
+          <mat-icon>{{ data.mode === 'create' ? 'add' : 'check' }}</mat-icon>
+          {{ data.mode === 'create' ? 'Create Building' : 'Update Building' }}
           }
         </button>
       </mat-dialog-actions>
@@ -124,343 +186,192 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
   `,
   styles: [
     `
-      /* ===== Mobile-first base styles ===== */
       .dialog-container {
         width: 100%;
       }
 
-      /* Dialog Header */
+      /* ── Header band ── */
       .dialog-header {
         display: flex;
-        align-items: flex-start;
-        gap: 14px;
-        padding: 16px 16px 0;
+        align-items: center;
+        gap: 0.875rem;
+        padding: 1.25rem 1.5rem 1.125rem;
+        background: #0f172a;
+        position: relative;
+        flex-shrink: 0;
       }
-
-      .header-icon {
+      .dialog-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #c2410c 0%, #f97316 100%);
+      }
+      .header-icon-wrap {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #f97316 0%, #c2410c 100%);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 48px;
-        height: 48px;
-        min-width: 48px;
-        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-        border-radius: 14px;
-        border: 1px solid #fed7aa;
-        box-shadow: 0 4px 12px rgba(234, 88, 12, 0.1);
+        flex-shrink: 0;
       }
-
-      .header-icon mat-icon {
-        font-size: 24px;
-        width: 24px;
-        height: 24px;
-        color: #ea580c;
+      .header-icon-wrap mat-icon {
+        color: white;
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
       }
-
       .header-text h2 {
-        margin: 0 0 4px 0;
-        font-size: 18px;
+        margin: 0 0 0.125rem 0;
+        font-size: 1.0625rem;
         font-weight: 700;
-        color: #1e293b;
-        background: linear-gradient(135deg, #1e293b 0%, #ea580c 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        color: white;
+        letter-spacing: -0.01em;
       }
-
       .header-text .subtitle {
         margin: 0;
-        font-size: 13px;
-        color: #64748b;
-        font-weight: 500;
+        font-size: 0.8125rem;
+        color: #94a3b8;
       }
 
-      /* Dialog Content */
+      /* ── Content ── */
       mat-dialog-content {
-        padding: 16px !important;
+        padding: 1.25rem 1.5rem !important;
         max-height: 65vh;
         overflow-y: auto;
       }
-
       .building-form {
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 0.875rem;
       }
-
       .full-width {
         width: 100%;
       }
-
-      mat-form-field {
-        margin-bottom: 4px;
+      .half-width {
+        flex: 1;
       }
-
-      mat-form-field.mat-form-field-outline {
-        border-radius: 12px;
+      .coords-row {
+        display: flex;
+        gap: 0.75rem;
       }
 
       mat-icon[matPrefix] {
         color: #94a3b8;
-        margin-right: 8px;
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
+        margin-right: 0.5rem;
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
       }
 
-      mat-hint {
+      .suggestion-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+        color: #ea580c;
+        margin-right: 0.5rem;
+        vertical-align: middle;
+      }
+      .suggestion-text {
+        font-size: 0.8125rem;
+        color: #1e293b;
+        white-space: normal;
+        line-height: 1.4;
+      }
+      .searching-hint {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
         color: #94a3b8;
-        font-size: 11px;
-        margin-top: 4px;
+        font-size: 0.8125rem;
       }
 
-      mat-error {
-        color: #dc2626;
-        font-size: 12px;
-        font-weight: 500;
-      }
-
-      /* Multi-select styling */
-      mat-select[multiple] {
-        padding: 4px 0;
-      }
-
-      /* Dialog Actions */
+      /* ── Actions ── */
       mat-dialog-actions {
-        flex-direction: column-reverse;
-        padding: 16px !important;
-        gap: 10px;
+        padding: 0.875rem 1.5rem 1.25rem !important;
+        gap: 0.75rem;
         border-top: 1px solid #f1f5f9;
-        margin-top: 8px;
+        flex-direction: column-reverse;
+        margin-top: 0;
       }
-
       .cancel-btn {
-        border-radius: 12px !important;
-        padding: 0 20px !important;
-        width: 100%;
+        border-radius: 8px !important;
         height: 44px;
+        width: 100%;
         color: #64748b;
         border-color: #e2e8f0 !important;
         font-weight: 600;
-        transition: all 0.2s ease;
       }
-
-      .cancel-btn:hover {
-        background-color: #f8fafc;
-        border-color: #cbd5e1 !important;
-        color: #475569;
-      }
-
       .submit-btn {
-        border-radius: 12px !important;
-        padding: 0 20px !important;
-        width: 100%;
+        border-radius: 8px !important;
         height: 44px;
+        width: 100%;
+        background: #ea580c !important;
+        color: white !important;
         font-weight: 700;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        transition: all 0.2s ease;
+        gap: 0.375rem;
       }
-
-      .submit-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+      .submit-btn:hover:not(:disabled) {
+        background: #f97316 !important;
       }
-
       .submit-btn:disabled {
-        transform: none;
-        box-shadow: none;
+        opacity: 0.6;
       }
-
       .submit-btn mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
       }
-
       .button-spinner {
         display: inline-block;
-        margin-right: 8px;
+        margin-right: 0.375rem;
       }
 
-      /* Google Places Autocomplete Element Styling — mobile-first */
-      ::ng-deep gmp-place-autocomplete {
-        width: 100%;
-        display: block;
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        padding: 10px 12px;
-        background-color: #fff;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        min-height: 44px;
-        box-sizing: border-box;
-      }
-
-      ::ng-deep gmp-place-autocomplete:hover {
-        border-color: #94a3b8;
-      }
-
-      ::ng-deep gmp-place-autocomplete:focus-within {
-        border-color: #ea580c;
-        box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.15);
-      }
-
-      /* Force through shadow DOM for autocomplete input */
-      ::ng-deep gmp-place-autocomplete input,
-      ::ng-deep gmp-place-autocomplete input[type="text"],
-      gmp-place-autocomplete input,
-      gmp-place-autocomplete input[type="text"] {
-        width: 100% !important;
-        border: none !important;
-        outline: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-        font-size: 14px !important;
-        line-height: 1.5 !important;
-        color: #1e293b !important;
-        background-color: transparent !important;
-        box-shadow: none !important;
-        -webkit-text-fill-color: #1e293b !important;
-        -webkit-appearance: none !important;
-      }
-
-      ::ng-deep gmp-place-autocomplete input::placeholder,
-      gmp-place-autocomplete input::placeholder {
-        color: #94a3b8 !important;
-        opacity: 1 !important;
-      }
-
-      /* ===== Tablet breakpoint (min-width: 480px) ===== */
+      /* ── Tablet+ ── */
       @media (min-width: 480px) {
         .dialog-header {
-          padding: 20px 20px 0;
-          gap: 16px;
+          padding: 1.5rem 1.75rem 1.375rem;
+          gap: 1rem;
         }
-
-        .header-icon {
-          width: 52px;
-          height: 52px;
-          min-width: 52px;
-          border-radius: 16px;
+        .header-icon-wrap {
+          width: 44px;
+          height: 44px;
         }
-
-        .header-icon mat-icon {
-          font-size: 26px;
-          width: 26px;
-          height: 26px;
-        }
-
         .header-text h2 {
-          font-size: 20px;
+          font-size: 1.125rem;
         }
-
-        .header-text .subtitle {
-          font-size: 14px;
-        }
-
         mat-dialog-content {
-          padding: 20px !important;
+          padding: 1.5rem 1.75rem !important;
         }
-
-        .building-form {
-          gap: 16px;
-        }
-
         mat-dialog-actions {
-          padding: 20px !important;
-          gap: 12px;
-        }
-
-        mat-icon[matPrefix] {
-          margin-right: 10px;
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
-        }
-
-        mat-hint {
-          font-size: 12px;
-        }
-
-        ::ng-deep gmp-place-autocomplete {
-          padding: 12px 14px;
+          padding: 1rem 1.75rem 1.5rem !important;
         }
       }
 
-      /* ===== Desktop breakpoint (min-width: 600px) ===== */
       @media (min-width: 600px) {
         .dialog-container {
           min-width: 520px;
           max-width: 600px;
         }
-
-        .dialog-header {
-          padding: 28px 28px 0;
-          gap: 18px;
-        }
-
-        .header-icon {
-          width: 60px;
-          height: 60px;
-          min-width: 60px;
-          border-radius: 18px;
-        }
-
-        .header-icon mat-icon {
-          font-size: 30px;
-          width: 30px;
-          height: 30px;
-        }
-
-        .header-text h2 {
-          margin-bottom: 6px;
-          font-size: 24px;
-        }
-
-        .header-text .subtitle {
-          font-size: 15px;
-        }
-
         mat-dialog-content {
-          padding: 28px !important;
+          max-height: 70vh;
         }
-
-        .building-form {
-          gap: 20px;
-        }
-
-        mat-icon[matPrefix] {
-          margin-right: 12px;
-        }
-
         mat-dialog-actions {
           flex-direction: row;
           justify-content: flex-end;
-          padding: 20px 28px 28px !important;
-          gap: 16px;
-          margin-top: 12px;
         }
-
-        .cancel-btn {
-          width: auto;
-          padding: 0 24px !important;
-          height: 48px;
-        }
-
+        .cancel-btn,
         .submit-btn {
           width: auto;
-          padding: 0 28px !important;
-          height: 48px;
-        }
-
-        .submit-btn mat-icon {
-          font-size: 22px;
-          width: 22px;
-          height: 22px;
+          padding: 0 1.5rem !important;
         }
       }
     `,
@@ -478,27 +389,40 @@ import { PlaceDetails } from '../../../../core/models/place-details.model';
     MatIconModule,
     MatSelectModule,
     MatChipsModule,
+    MatAutocompleteModule,
   ],
 })
-export class BuildingFormDialogComponent implements OnInit, AfterViewInit {
-  @ViewChild('addressInput') addressInput!: ElementRef<HTMLInputElement>;
+export class BuildingFormDialogComponent implements OnInit, OnDestroy {
+  private fb = inject(FormBuilder);
+  private buildingService = inject(BuildingService);
+  private institutionService = inject(InstitutionService);
+  private geocodingService = inject(GeocodingService);
+  private tenantService = inject(TenantService);
+  private roleService = inject(RoleService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<BuildingFormDialogComponent>>(MatDialogRef);
+  data = inject<{
+    mode: 'create' | 'edit';
+    building?: BuildingResponse;
+  }>(MAT_DIALOG_DATA);
 
   buildingForm: FormGroup;
   isSubmitting = false;
   institutions: Institution[] = [];
-  mapsEnabled = false;
-  private autocomplete: AutocompleteHandle | null = null;
+  companies: Tenant[] = [];
 
-  constructor(
-    private fb: FormBuilder,
-    private buildingService: BuildingService,
-    private institutionService: InstitutionService,
-    private googleMapsService: GoogleMapsService,
-    private googleMapsAlternativeService: GoogleMapsAlternativeService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<BuildingFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { mode: 'create' | 'edit'; building?: BuildingResponse }
-  ) {
+  /**
+   * A platform admin's own tenant is the platform sentinel, which cannot own buildings, so they
+   * must name the company. A tenant admin has exactly one and the backend derives it (GH-213).
+   */
+  readonly showCompanySelector = this.data.mode === 'create' && this.roleService.isPlatformAdmin();
+  addressSuggestions: AddressSuggestion[] = [];
+  isSearching = false;
+
+  private destroy$ = new Subject<void>();
+  private searchSubject = new Subject<string>();
+
+  constructor() {
     this.buildingForm = this.fb.group({
       name: ['', Validators.required],
       address: [''],
@@ -508,12 +432,21 @@ export class BuildingFormDialogComponent implements OnInit, AfterViewInit {
       totalFloors: [null],
       description: [''],
       institutionIds: [[]],
+      tenantId: [null],
     });
+
+    if (this.showCompanySelector) {
+      this.buildingForm.get('tenantId')?.addValidators(Validators.required);
+    }
   }
 
   ngOnInit(): void {
     this.loadInstitutions();
-    this.loadMapsConfig();
+    this.setupAddressSearch();
+
+    if (this.showCompanySelector) {
+      this.loadCompanies();
+    }
 
     if (this.data.mode === 'edit' && this.data.building) {
       this.buildingForm.patchValue({
@@ -524,67 +457,80 @@ export class BuildingFormDialogComponent implements OnInit, AfterViewInit {
         longitude: this.data.building.longitude,
         totalFloors: this.data.building.totalFloors,
         description: this.data.building.description,
-        institutionIds: this.data.building.institutions?.map(i => i.id) || [],
+        institutionIds: this.data.building.institutions?.map((i) => i.id) || [],
       });
     }
   }
 
-  ngAfterViewInit(): void {
-    // Autocomplete is initialized after Maps API loads (see loadMapsConfig)
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  loadMapsConfig(): void {
-    this.buildingService.getMapsConfig().subscribe({
-      next: (config) => {
-        if (config.enabled && config.apiKey) {
-          this.mapsEnabled = true;
-          // Use ALTERNATIVE service instead
-          this.googleMapsAlternativeService.loadGoogleMapsAPI(config.apiKey)
-            .then(() => {
-              // Initialize autocomplete after Maps API is loaded AND view is initialized
-              setTimeout(() => {
-                if (this.addressInput && this.addressInput.nativeElement) {
-                  this.initializeAutocomplete();
-                }
-              }, 500); // Increased timeout for API initialization
-            })
-            .catch((error) => {
-              console.error('Failed to load Google Maps API:', error);
-              this.mapsEnabled = false;
-            });
-        }
-      },
-      error: (error) => {
-        console.error('Error loading maps config:', error);
-        this.mapsEnabled = false;
-      }
-    });
+  private setupAddressSearch(): void {
+    this.searchSubject
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          if (!query || query.length < 3) {
+            this.addressSuggestions = [];
+            this.isSearching = false;
+            return [];
+          }
+          this.isSearching = true;
+          return this.geocodingService.search(query);
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (suggestions) => {
+          this.addressSuggestions = suggestions;
+          this.isSearching = false;
+        },
+        error: () => {
+          this.addressSuggestions = [];
+          this.isSearching = false;
+        },
+      });
   }
 
-  initializeAutocomplete(): void {
-    if (!this.addressInput || !this.addressInput.nativeElement) {
-      return;
+  onAddressInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    if (this.buildingForm.get('latitude')?.value) {
+      this.buildingForm.patchValue({ placeId: '', latitude: null, longitude: null });
     }
+    this.searchSubject.next(value);
+  }
 
-    this.autocomplete = this.googleMapsAlternativeService.initializeAutocomplete(
-      this.addressInput.nativeElement,
-      (placeDetails: PlaceDetails | null) => {
-        if (placeDetails) {
-          // Use setValue on individual controls to ensure Angular picks up the changes
-          this.buildingForm.get('address')?.setValue(placeDetails.formattedAddress);
-          this.buildingForm.get('placeId')?.setValue(placeDetails.placeId);
-          this.buildingForm.get('latitude')?.setValue(placeDetails.latitude);
-          this.buildingForm.get('longitude')?.setValue(placeDetails.longitude);
+  onSuggestionSelected(suggestion: AddressSuggestion): void {
+    this.buildingForm.patchValue({
+      address: suggestion.displayName,
+      placeId: suggestion.placeId,
+      latitude: suggestion.latitude,
+      longitude: suggestion.longitude,
+    });
+    this.addressSuggestions = [];
+  }
 
-          // Mark controls as dirty and touched
-          ['address', 'placeId', 'latitude', 'longitude'].forEach(field => {
-            this.buildingForm.get(field)?.markAsDirty();
-            this.buildingForm.get(field)?.markAsTouched();
-          });
-          this.buildingForm.updateValueAndValidity();
-        }
-      }
-    );
+  displayAddress(suggestion: AddressSuggestion | string | null): string {
+    if (!suggestion) return '';
+    if (typeof suggestion === 'string') return suggestion;
+    return suggestion.displayName;
+  }
+
+  loadCompanies(): void {
+    this.tenantService
+      .getAllTenants()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (companies) => {
+          this.companies = companies.filter((company) => company.id !== 0);
+        },
+        error: () => {
+          this.snackBar.open('Could not load property companies', 'Close', { duration: 5000 });
+        },
+      });
   }
 
   loadInstitutions(): void {
@@ -594,28 +540,37 @@ export class BuildingFormDialogComponent implements OnInit, AfterViewInit {
       },
       error: (error) => {
         console.error('Error loading institutions:', error);
-      }
+      },
     });
   }
 
-  async onSubmit(): Promise<void> {
+  onSubmit(): void {
     if (!this.buildingForm.valid) {
       return;
     }
 
     this.isSubmitting = true;
 
-    // Always resolve address from autocomplete before submitting
-    // This ensures updated addresses are synced from the autocomplete element
-    if (this.autocomplete) {
-      try {
-        await this.autocomplete.resolveAddress();
-      } catch {
-        // Address resolution failed, continue with available data
-      }
-    }
+    const formValue = this.buildingForm.value;
+    const buildingData: BuildingRequest = {
+      name: formValue.name,
+      address:
+        typeof formValue.address === 'object' && formValue.address
+          ? (formValue.address as AddressSuggestion).displayName
+          : formValue.address,
+      placeId: formValue.placeId,
+      latitude: formValue.latitude,
+      longitude: formValue.longitude,
+      totalFloors: formValue.totalFloors,
+      description: formValue.description,
+      institutionIds: formValue.institutionIds,
+    };
 
-    const buildingData: BuildingRequest = this.buildingForm.value;
+    // Only on create, and only from a platform admin. Sending it on an edit is refused by the
+    // backend, because moving a building between companies would re-home everything under it.
+    if (this.showCompanySelector) {
+      buildingData.tenantId = formValue.tenantId;
+    }
 
     const operation =
       this.data.mode === 'create'

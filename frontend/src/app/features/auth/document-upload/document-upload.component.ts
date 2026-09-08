@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -11,10 +17,10 @@ import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { DocumentType } from '../../../core/models/document-type.model';
-import { DocumentService, FileValidationResult, isNoActiveApplicationError } from '../../../core/services/document.service';
-import { ApplicationService } from '../../../core/services/application.service';
+import { DocumentService } from '../../../core/services/document.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import { User } from '../../../core/models/user.model';
 
 @Component({
   selector: 'app-document-upload',
@@ -37,15 +43,15 @@ import { ErrorDisplayComponent } from '../../../shared/error-display/error-displ
 export class DocumentUploadComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly authService = inject(AuthService);
   private readonly documentTypeService = inject(DocumentTypeService);
   private readonly documentService = inject(DocumentService);
   private readonly errorService = inject(ErrorHandlingService);
-  private readonly applicationService = inject(ApplicationService);
 
   uploadForm: FormGroup;
   isSubmitting = false;
-  currentUser: any;
+  currentUser: User | null = null;
   uploadedFiles: { [key: string]: File } = {};
 
   requiredDocuments: DocumentType[] = [];
@@ -60,10 +66,6 @@ export class DocumentUploadComponent implements OnInit {
   uploadProgress = 0;
   uploadStatus: 'idle' | 'uploading' | 'complete' | 'error' = 'idle';
 
-  // Application check state
-  hasActiveApplication = false;
-  isCheckingApplication = true;
-
   constructor() {
     this.uploadForm = this.fb.group({});
   }
@@ -74,55 +76,33 @@ export class DocumentUploadComponent implements OnInit {
       this.router.navigate(['/login']);
       return;
     }
-    this.checkActiveApplicationAndLoadTypes();
-  }
-
-  /**
-   * Checks if user has an active application before loading document types.
-   * If no active application, redirects to application submission (auth flow).
-   */
-  private checkActiveApplicationAndLoadTypes(): void {
-    this.isCheckingApplication = true;
-
-    this.applicationService.hasActiveApplication().subscribe({
-      next: (hasActive) => {
-        this.isCheckingApplication = false;
-        this.hasActiveApplication = hasActive;
-
-        if (!hasActive) {
-          this.errorService.showWarning('Please create an application before uploading documents');
-          this.router.navigate(['/application-submission']);
-        } else {
-          this.loadDocumentTypes();
-        }
-      },
-      error: () => {
-        this.isCheckingApplication = false;
-        this.hasActiveApplication = false;
-        this.errorService.showWarning('Unable to verify application status. Please create an application first.');
-        this.router.navigate(['/application-submission']);
-      },
-    });
+    this.loadDocumentTypes();
   }
 
   loadDocumentTypes(): void {
     this.isLoadingTypes = true;
     this.loadError = null;
+    this.cdr.markForCheck();
 
     this.documentTypeService.getRequiredDocumentTypes().subscribe({
-      next: (documentTypes: any[]) => {
+      next: (documentTypes: DocumentType[]) => {
         this.isLoadingTypes = false;
         this.requiredDocuments = documentTypes;
         documentTypes.forEach((doc) => {
-          if (!this.uploadForm.contains(doc.id)) {
-            this.uploadForm.addControl(doc.id, this.fb.control(null, Validators.required));
+          // Control names are strings; doc.id is a number. `any[]` let the number through, and
+          // `contains` then never matched, so a control was added on every load (GH-158).
+          const controlName = String(doc.id);
+          if (!this.uploadForm.contains(controlName)) {
+            this.uploadForm.addControl(controlName, this.fb.control(null, Validators.required));
           }
         });
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.isLoadingTypes = false;
         console.error('Failed to load required document types', err);
         this.loadError = this.errorService.parseError(err);
+        this.cdr.markForCheck();
       },
     });
   }
@@ -131,10 +111,10 @@ export class DocumentUploadComponent implements OnInit {
     this.loadDocumentTypes();
   }
 
-  onFileSelected(event: any, documentId: string) {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-
+  onFileSelected(event: Event, documentId: string) {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (file) {
       // Validate file
       const validation = this.documentService.validateFile(file);
 
@@ -143,6 +123,7 @@ export class DocumentUploadComponent implements OnInit {
         // Clear the file from form if validation fails
         this.uploadForm.patchValue({ [documentId]: null });
         delete this.uploadedFiles[documentId];
+        this.cdr.markForCheck();
         return;
       }
 
@@ -150,6 +131,7 @@ export class DocumentUploadComponent implements OnInit {
       delete this.fileValidationErrors[documentId];
       this.uploadedFiles[documentId] = file;
       this.uploadForm.patchValue({ [documentId]: file });
+      this.cdr.markForCheck();
     }
   }
 
@@ -196,12 +178,14 @@ export class DocumentUploadComponent implements OnInit {
             this.isSubmitting = false;
             this.uploadStatus = 'complete';
             this.errorService.showSuccess('All documents uploaded successfully!');
+            this.cdr.markForCheck();
 
             // Navigate after a brief delay to show completion
             setTimeout(() => {
-              this.router.navigate(['/application-review']);
+              this.router.navigate(['/application-submission']);
             }, 500);
           }
+          this.cdr.markForCheck();
         },
         error: (err) => {
           console.error('Upload error', err);
@@ -209,14 +193,8 @@ export class DocumentUploadComponent implements OnInit {
           this.uploadStatus = 'error';
           this.uploadProgress = 0;
 
-          // Check if error is due to no active application
-          if (isNoActiveApplicationError(err)) {
-            this.errorService.showWarning('Please create an application before uploading documents');
-            this.router.navigate(['/application-submission']);
-            return;
-          }
-
           this.submitError = this.errorService.parseError(err);
+          this.cdr.markForCheck();
         },
       });
     } else {
@@ -227,9 +205,22 @@ export class DocumentUploadComponent implements OnInit {
 
   dismissError(): void {
     this.submitError = null;
+    this.cdr.markForCheck();
   }
 
   retrySubmit(): void {
     this.onSubmit();
+  }
+
+  skipUpload(): void {
+    this.errorService.showWarning(
+      'You can upload documents later from your dashboard before submitting your application.'
+    );
+    this.router.navigate(['/dashboard']);
+  }
+
+  get uploadedCount(): number {
+    return Object.keys(this.uploadedFiles).filter((key) => !this.hasFileValidationError(key))
+      .length;
   }
 }

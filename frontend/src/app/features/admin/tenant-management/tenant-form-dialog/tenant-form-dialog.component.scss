@@ -1,0 +1,195 @@
+/* Tenant Form Dialog */
+.dialog-container {
+  min-width: 520px;
+}
+
+/* ── Dark header band ─────────────────────────────── */
+.dialog-header {
+  background: #0f172a;
+  padding: 1.25rem 1.5rem;
+  position: relative;
+}
+
+.dialog-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #7c3aed 0%, #8b5cf6 100%);
+}
+
+.dialog-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.header-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-icon-wrap mat-icon {
+  color: white;
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+}
+
+.dialog-subtitle {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+}
+
+/* ── Dialog content ───────────────────────────────── */
+mat-dialog-content {
+  padding: 1.5rem !important;
+  max-height: 60vh;
+}
+
+.tenant-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-field-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.field-label mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  color: #64748b;
+}
+
+.required-mark {
+  color: #dc2626;
+}
+
+.optional-mark {
+  font-weight: 400;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* ── Server error banner ──────────────────────────── */
+.server-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgb(220 38 38 / 7%);
+  border: 1px solid rgb(220 38 38 / 20%);
+  color: #b91c1c;
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+}
+
+/* ── Dialog actions ───────────────────────────────── */
+mat-dialog-actions {
+  padding: 16px 24px 24px !important;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cancel-btn {
+  height: 42px;
+  border-radius: 10px !important;
+  font-weight: 500;
+  color: #64748b;
+  border-color: #e2e8f0 !important;
+  padding: 0 20px !important;
+
+  &:hover {
+    background: #f8fafc !important;
+  }
+}
+
+.submit-btn {
+  height: 42px;
+  border-radius: 10px !important;
+  font-weight: 600;
+  padding: 0 20px !important;
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+  color: white !important;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  mat-spinner {
+    margin-right: 6px;
+  }
+}
+
+/* ── Responsive ───────────────────────────────────── */
+@media (width <= 600px) {
+  .dialog-container {
+    min-width: 100%;
+  }
+
+  mat-dialog-actions {
+    padding: 16px 20px 20px !important;
+    flex-direction: column-reverse;
+  }
+
+  .cancel-btn,
+  .submit-btn {
+    width: 100%;
+  }
+}

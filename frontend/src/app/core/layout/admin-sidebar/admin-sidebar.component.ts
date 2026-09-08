@@ -1,0 +1,135 @@
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatListModule } from '@angular/material/list';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { map, shareReplay } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
+import { ROLE } from '../../models/role.model';
+import { BrandLogoComponent } from '../../../shared/components/brand-logo/brand-logo.component';
+import { BreakpointState } from '@angular/cdk/layout';
+
+interface NavItem {
+  path: string;
+  icon: string;
+  label: string;
+  platformAdminOnly?: boolean;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+@Component({
+  selector: 'app-admin-sidebar',
+  standalone: true,
+  imports: [
+    AsyncPipe,
+    RouterModule,
+    MatSidenavModule,
+    MatListModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    BrandLogoComponent,
+  ],
+  templateUrl: './admin-sidebar.component.html',
+  styleUrls: ['./admin-sidebar.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class AdminSidebarComponent {
+  private breakpointObserver = inject(BreakpointObserver);
+  private authService = inject(AuthService);
+
+  currentUser$ = this.authService.currentUser;
+
+  isPlatformAdmin$ = this.authService.currentUser.pipe(
+    map((user) => user?.userRole?.toUpperCase() === ROLE.PLATFORM_ADMIN.toUpperCase())
+  );
+
+  logout(): void {
+    this.authService.logout();
+  }
+
+  isHandset$: Observable<boolean> = this.breakpointObserver.observe(Breakpoints.Handset).pipe(
+    map((result: BreakpointState) => result.matches),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    shareReplay()
+  );
+
+  navGroups: NavGroup[] = [
+    {
+      label: 'Overview',
+      items: [{ path: '/admin', icon: 'dashboard', label: 'Dashboard' }],
+    },
+    {
+      label: 'Applications',
+      items: [
+        { path: '/admin/applications', icon: 'assignment', label: 'Applications' },
+        { path: '/admin/room-allocations', icon: 'hotel', label: 'Allocations' },
+        { path: '/admin/allocations/staged', icon: 'pending_actions', label: 'Staged Allocations' },
+        { path: '/admin/waiting-list', icon: 'format_list_numbered', label: 'Waiting List' },
+      ],
+    },
+    {
+      label: 'Buildings & Rooms',
+      items: [
+        { path: '/admin/buildings', icon: 'apartment', label: 'Buildings' },
+        { path: '/admin/rooms', icon: 'meeting_room', label: 'Rooms' },
+      ],
+    },
+    {
+      label: 'Configuration',
+      items: [
+        { path: '/admin/accommodation-types', icon: 'category', label: 'Accomm. Types' },
+        { path: '/admin/institutions', icon: 'school', label: 'Institutions' },
+        { path: '/admin/year-of-study', icon: 'timeline', label: 'Years of Study' },
+        { path: '/admin/academic-years', icon: 'date_range', label: 'Academic Years' },
+        { path: '/admin/document-types', icon: 'folder', label: 'Doc Types' },
+        // Not platform-only: the backend allows TENANT_ADMIN, and the route dropped
+        // PlatformAdminGuard for exactly that reason (GH-158). The flag survived that fix and
+        // left the screen reachable only by typing the URL — including for the platform staff
+        // this surface is meant to serve (GH-238). The component renders a read-only branch for
+        // anyone who is not a platform admin.
+        {
+          path: '/admin/settings',
+          icon: 'settings',
+          label: 'System Settings',
+        },
+        {
+          path: '/admin/feature-flags',
+          icon: 'toggle_on',
+          label: 'Feature Flags',
+          platformAdminOnly: true,
+        },
+      ],
+    },
+    {
+      label: 'Administration',
+      items: [
+        { path: '/admin/users', icon: 'people', label: 'Users', platformAdminOnly: true },
+        {
+          path: '/admin/tenants',
+          icon: 'corporate_fare',
+          label: 'Tenants',
+          platformAdminOnly: true,
+        },
+        { path: '/admin/documents', icon: 'description', label: 'Documents' },
+        // Same mislabel as System Settings above: tenant-scoped for a tenant admin, whole-platform
+        // for a platform role, and @PreAuthorize'd for both.
+        {
+          path: '/admin/activity-logs',
+          icon: 'history',
+          label: 'Activity Logs',
+        },
+      ],
+    },
+  ];
+}

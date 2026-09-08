@@ -6,18 +6,6 @@ export interface DocumentComment {
   createdAt: Date;
 }
 
-export interface AllocationRule {
-  id: number;
-  buildingId?: number;
-  ruleName: string;
-  preferenceMatchWeight: number;
-  desirabilityWeight: number;
-  accessibilityWeight: number;
-  active: boolean;
-  priority: number;
-  createdAt: Date;
-}
-
 export interface BuildingAttributes {
   id: number;
   buildingId: number;
@@ -44,17 +32,32 @@ export interface RoomDetail {
 
 export interface StagedAllocation {
   id: number;
-  studentId: number;
-  roomId: number;
-  applicationId?: number;
   status: 'PROPOSED' | 'CONFIRMED' | 'REJECTED';
   score: number;
   warnings: string[];
-  proposedBy: number;
   batchId: string;
-  roomDetails: RoomDetail;
-  studentName: string;
   createdAt: Date;
+  // Student fields
+  studentId: number;
+  studentFirstName: string;
+  studentLastName: string;
+  studentEmail?: string;
+  studentGender?: string;
+  // Room fields
+  roomId: number;
+  roomNumber: string;
+  roomCapacity?: number;
+  currentOccupancy?: number;
+  // Building fields
+  buildingId?: number;
+  buildingName: string;
+  // Application fields
+  applicationId?: number;
+  applicationCode?: string;
+  applicationStatus?: string;
+  // Proposed by
+  proposedById?: number;
+  proposedByName?: string;
 }
 
 export interface BatchAllocationProposal {

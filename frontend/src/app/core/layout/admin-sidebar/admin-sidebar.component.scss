@@ -1,0 +1,203 @@
+@use '../../../../styles/variables' as vars;
+
+.sidenav-container {
+  height: 100vh;
+  width: 100%;
+}
+
+.sidenav {
+  width: 260px;
+  background-color: #0f172a;
+  border-right: none;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 24px rgb(0 0 0 / 15%);
+}
+
+/* Navigation */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 10%) transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgb(255 255 255 / 10%);
+    border-radius: 2px;
+  }
+}
+
+.nav-group {
+  margin-bottom: 0.25rem;
+}
+
+.nav-group-label {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 30%);
+  padding: 0.75rem 1.25rem 0.375rem;
+}
+
+mat-nav-list {
+  padding-top: 0;
+
+  a.mat-mdc-list-item {
+    margin: 1px 0.625rem;
+    border-radius: 8px;
+    height: 42px;
+    transition: background 0.15s ease;
+
+    // Pierce Material encapsulation for text color
+    ::ng-deep .mdc-list-item__primary-text {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: rgb(255 255 255 / 60%) !important;
+      transition: color 0.15s ease;
+    }
+
+    ::ng-deep .mat-mdc-list-item-unscoped-content {
+      color: rgb(255 255 255 / 60%);
+    }
+
+    mat-icon {
+      color: rgb(255 255 255 / 40%);
+      margin-right: 0.625rem;
+      font-size: 1.125rem;
+      width: 1.125rem;
+      height: 1.125rem;
+      transition: color 0.15s ease;
+    }
+
+    &.active {
+      background-color: rgb(167 139 250 / 15%);
+      border-left: none;
+      padding-left: 0;
+
+      ::ng-deep .mdc-list-item__primary-text {
+        font-weight: 600;
+        color: #c4b5fd !important;
+      }
+
+      mat-icon {
+        color: #a78bfa;
+      }
+    }
+
+    &:hover:not(.active) {
+      background-color: rgb(255 255 255 / 6%);
+
+      ::ng-deep .mdc-list-item__primary-text {
+        color: rgb(255 255 255 / 88%) !important;
+      }
+
+      mat-icon {
+        color: rgb(255 255 255 / 65%);
+      }
+    }
+  }
+}
+
+/* Sidebar footer / user + logout */
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem 0.875rem 1.25rem;
+  border-top: 1px solid rgb(255 255 255 / 6%);
+  flex-shrink: 0;
+  background-color: rgb(0 0 0 / 15%);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.user-avatar mat-icon {
+  font-size: 2rem;
+  width: 2rem;
+  height: 2rem;
+  color: rgb(255 255 255 / 35%);
+  flex-shrink: 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(255 255 255 / 85%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  font-size: 0.6875rem;
+  color: rgb(255 255 255 / 35%);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.logout-btn {
+  color: rgb(255 255 255 / 40%);
+  flex-shrink: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    color: #f87171;
+    background: rgb(248 113 113 / 10%);
+  }
+}
+
+/* Mobile top bar */
+.header-toolbar {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 vars.$space-4;
+  background-color: #0f172a;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  button {
+    color: rgb(255 255 255 / 70%);
+  }
+
+  span {
+    margin-left: vars.$space-2;
+    font-weight: 700;
+    font-size: 16px;
+    color: #f8fafc;
+    letter-spacing: -0.01em;
+  }
+}
+
+.content {
+  padding: 0;
+  height: 100%;
+  overflow-y: auto;
+  background: #f8fafc;
+}

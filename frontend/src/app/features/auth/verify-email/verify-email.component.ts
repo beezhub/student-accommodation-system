@@ -1,9 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -16,7 +15,6 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   standalone: true,
   imports: [
     RouterModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -24,16 +22,14 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
   ],
 })
 export class VerifyEmailComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private snackBar = inject(MatSnackBar);
+
   isVerifying = true;
   verificationSuccess = false;
   errorMessage = '';
-
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {}
 
   ngOnInit(): void {
     const token = this.route.snapshot.queryParamMap.get('token');

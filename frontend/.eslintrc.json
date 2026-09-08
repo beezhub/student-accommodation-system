@@ -1,15 +1,25 @@
 {
   "root": true,
-  "ignorePatterns": ["projects/**/*"],
+  "ignorePatterns": [
+    "projects/**/*"
+  ],
   "overrides": [
     {
-      "files": ["*.ts"],
+      "files": [
+        "*.ts"
+      ],
       "parser": "@typescript-eslint/parser",
       "parserOptions": {
-        "project": ["tsconfig.json"],
+        "project": [
+          "tsconfig.json"
+        ],
         "createDefaultProgram": true
       },
-      "plugins": ["@typescript-eslint", "@angular-eslint", "prettier"],
+      "plugins": [
+        "@typescript-eslint",
+        "@angular-eslint",
+        "prettier"
+      ],
       "extends": [
         "plugin:@angular-eslint/recommended",
         "plugin:@angular-eslint/template/process-inline-templates",
@@ -17,15 +27,33 @@
         "plugin:prettier/recommended"
       ],
       "rules": {
-        "prettier/prettier": ["error", {"endOfLine": "auto"}],
+        "prettier/prettier": [
+          "error",
+          {
+            "endOfLine": "auto"
+          }
+        ],
         "@typescript-eslint/explicit-function-return-type": "off",
-        "@typescript-eslint/no-explicit-any": "warn"
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-unused-vars": [
+          "error",
+          {
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^_"
+          }
+        ]
       }
     },
     {
-      "files": ["*.html"],
-      "plugins": ["@angular-eslint/template"],
-      "extends": ["plugin:@angular-eslint/template/recommended"],
+      "files": [
+        "*.html"
+      ],
+      "plugins": [
+        "@angular-eslint/template"
+      ],
+      "extends": [
+        "plugin:@angular-eslint/template/recommended"
+      ],
       "rules": {}
     }
   ]

@@ -1,0 +1,130 @@
+<div class="admin-mgmt-section" [class.dialog-mode]="dialogRef">
+
+  @if (dialogRef) {
+    <div class="dialog-close-row">
+      <button mat-icon-button (click)="dialogRef.close()" aria-label="Close dialog">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  <!-- Section header -->
+  <div class="section-header">
+    <div class="section-header-left">
+      <div class="section-icon" aria-hidden="true">
+        <mat-icon>manage_accounts</mat-icon>
+      </div>
+      <div>
+        <h2 class="section-title">Tenant Administrators</h2>
+        <p class="section-subtitle">Admin users with access to {{ tenantName || 'this tenant' }}'s dashboard</p>
+      </div>
+    </div>
+    <button
+      mat-raised-button
+      class="add-btn"
+      (click)="openCreateDialog()"
+      aria-label="Add admin user">
+      <mat-icon>person_add</mat-icon>
+      Add Admin
+    </button>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading) {
+    <div class="loading-container">
+      <app-skeleton-loader [type]="'table-row'" [count]="3"></app-skeleton-loader>
+    </div>
+  }
+
+  <!-- Table -->
+  @if (!isLoading) {
+    <div class="table-container">
+      <table mat-table [dataSource]="admins" class="admins-table" aria-label="Tenant admin users">
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Name</th>
+          <td mat-cell *matCellDef="let admin">
+            <div class="user-cell">
+              <div class="user-avatar" aria-hidden="true">
+                {{ admin.firstName?.charAt(0)?.toUpperCase() }}{{ admin.lastName?.charAt(0)?.toUpperCase() }}
+              </div>
+              <span class="user-name">{{ admin.firstName }} {{ admin.lastName }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Email Column -->
+        <ng-container matColumnDef="email">
+          <th mat-header-cell *matHeaderCellDef>Email</th>
+          <td mat-cell *matCellDef="let admin">
+            <span class="cell-text">{{ admin.email }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Created Column -->
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Created</th>
+          <td mat-cell *matCellDef="let admin">
+            <span class="cell-text">{{ admin.createdAt ? (admin.createdAt | date:'mediumDate') : '—' }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Must Change Password Column -->
+        <ng-container matColumnDef="mustChangePassword">
+          <th mat-header-cell *matHeaderCellDef>Password</th>
+          <td mat-cell *matCellDef="let admin">
+            @if (admin.mustChangePassword) {
+              <span class="flag-chip pending" matTooltip="User must set a new password on next login">
+                Change required
+              </span>
+            } @else {
+              <span class="flag-chip ok">Set</span>
+            }
+          </td>
+        </ng-container>
+
+        <!-- Account Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let admin">
+            <span class="status-chip" [class.active]="!isLocked(admin)" [class.locked]="isLocked(admin)">
+              <span class="status-dot" aria-hidden="true"></span>
+              {{ isLocked(admin) ? 'Locked' : 'Active' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let admin">
+            <div class="actions-cell">
+              <button
+                mat-icon-button
+                class="action-btn deactivate"
+                (click)="confirmDeactivate(admin)"
+                [disabled]="isLocked(admin)"
+                [matTooltip]="isLocked(admin) ? 'Account already locked' : 'Deactivate account'"
+                [attr.aria-label]="'Deactivate admin ' + admin.firstName + ' ' + admin.lastName">
+                <mat-icon>block</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
+      </table>
+    </div>
+
+    @if (admins.length === 0) {
+      <app-empty-state
+        icon="manage_accounts"
+        title="No Admin Users"
+        description="No administrators have been provisioned for this tenant yet.">
+      </app-empty-state>
+    }
+  }
+
+</div>

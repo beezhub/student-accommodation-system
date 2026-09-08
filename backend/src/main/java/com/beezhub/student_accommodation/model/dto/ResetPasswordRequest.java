@@ -9,6 +9,7 @@ public class ResetPasswordRequest {
     private String token;
 
     @NotBlank(message = "New password is required")
+    @com.beezhub.student_accommodation.validation.StrongPassword
     private String newPassword;
 }
 

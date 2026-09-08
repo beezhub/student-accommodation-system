@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import com.beezhub.student_accommodation.config.MinioConfig;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
@@ -34,7 +35,7 @@ public class MinioBucketService {
                 log.info("Bucket already exists: {}", bucketName);
             }
         } catch (Exception e) {
-            throw new RuntimeException("Error creating bucket: " + bucketName, e);
+            throw new FileStorageException("Error creating bucket: " + bucketName, e);
         }
     }
 }

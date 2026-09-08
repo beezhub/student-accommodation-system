@@ -10,6 +10,7 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
+import com.beezhub.student_accommodation.service.document.DocumentContentTypes;
 import com.beezhub.student_accommodation.service.document.FileStorageService;
 import com.beezhub.student_accommodation.specification.DocumentSpecification;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class DocumentQueryService {
     private final AppUserRepository appUserRepository;
     private final AuthService authService;
     private final FileStorageService fileStorageService;
+    private final com.beezhub.student_accommodation.service.document.DocumentAccessGuard documentAccessGuard;
 
     @Transactional(readOnly = true)
     public DocumentResponse getDocumentInfo(Long documentId, String username) {
@@ -62,21 +64,23 @@ public class DocumentQueryService {
 
         String objectPath = document.getDocumentPath();
 
+        // Clamped on the way out as well as on the way in. Objects stored before GH-144 carry
+        // whatever type the client claimed, and no migration re-stats them, so the read side is
+        // what actually neutralises existing rows.
+        String contentType = DocumentContentTypes.clamp(fileStorageService.getContentType(objectPath));
         InputStream response = fileStorageService.download(objectPath);
         var inputStreamResource = new InputStreamResource(response);
         return DocumentDownloadResponse.builder()
                 .filename(document.getDocumentName())
                 .resource(inputStreamResource)
-                .contentType("application/octet-stream")
+                .contentType(contentType)
                 .build();
     }
 
     @Transactional(readOnly = true)
     public List<DocumentResponse> getAllDocumentsByUserId(Long userId, String username) {
         var user = getUserByEmail(username);
-        if (!user.getId().equals(userId) && !user.getUserRole().isAdmin()) {
-            throw new UnauthorizedAccessException("Unauthorized access to documents for user ID: " + userId);
-        }
+        documentAccessGuard.assertCanAccessDocumentsOfUser(userId, user);
 
         List<Document> documents = documentRepository.findAllByStudent_AppUser_Id(userId);
         return documentMapper.toDocumentResponseList(documents);
@@ -102,6 +106,12 @@ public class DocumentQueryService {
         // If not admin, restrict to user's own documents
         if (!user.getUserRole().isAdmin()) {
             spec = spec.and(DocumentSpecification.belongsToUser(user.getId()));
+        } else {
+            // Tenant admins see only students who applied to their tenant; platform admins see all.
+            var tenantScope = documentAccessGuard.tenantScopeOf(user);
+            if (tenantScope.isPresent()) {
+                spec = spec.and(DocumentSpecification.studentHasApplicationInTenant(tenantScope.get()));
+            }
         }
 
         Page<Document> documentsPage = documentRepository.findAll(spec, pageable);
@@ -133,8 +143,6 @@ public class DocumentQueryService {
     }
 
     private void assertDocumentAccess(Document document, AppUser user) {
-        if (!document.getStudent().getAppUser().equals(user) && !user.getUserRole().isAdmin()) {
-            throw new UnauthorizedAccessException("Unauthorized access to document");
-        }
+        documentAccessGuard.assertCanAccessDocument(document, user);
     }
 }

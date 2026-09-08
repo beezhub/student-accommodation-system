@@ -1,4 +1,10 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -6,7 +12,10 @@ import { ApplicationService } from '../../../../core/services/application.servic
 import { StudentService } from '../../../../core/services/student.service';
 import { InstitutionService } from '../../../../core/services/institution.service';
 import { BuildingService, BuildingResponse } from '../../../../core/services/building.service';
-import { ErrorHandlingService, ParsedError } from '../../../../core/services/error-handling.service';
+import {
+  ErrorHandlingService,
+  ParsedError,
+} from '../../../../core/services/error-handling.service';
 
 // Material imports
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -23,6 +32,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { ErrorDisplayComponent } from '../../../../shared/error-display/error-display.component';
 import { BuildingGalleryComponent } from '../building-gallery/building-gallery.component';
+import { User } from '../../../../core/models/user.model';
+import { contentOf } from '../../../../core/models/page-response.model';
 
 @Component({
   selector: 'app-new-application',
@@ -61,7 +72,7 @@ export class NewApplicationComponent implements OnInit {
 
   applicationForm: FormGroup;
   isSubmitting = false;
-  currentUser: any;
+  currentUser: User | null = null;
   studentId: number | null = null;
   studentInstitutionId: number | null = null;
   institutionName = '';
@@ -73,7 +84,7 @@ export class NewApplicationComponent implements OnInit {
   constructor() {
     this.applicationForm = this.fb.group({
       requiresAccessibility: [false],
-      preferredBuildingId: [''],
+      preferredBuildingIds: [[] as number[]],
       specialRequirements: [''],
       courseName: ['', Validators.required],
     });
@@ -99,6 +110,9 @@ export class NewApplicationComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to load buildings for institution', error);
+          this.errorService.showWarning(
+            'Could not filter buildings by your institution. Showing all buildings instead.'
+          );
           // Fall back to all buildings
           this.loadAllBuildings();
         },
@@ -116,6 +130,9 @@ export class NewApplicationComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load buildings', error);
+        this.errorService.showWarning(
+          'Could not load available buildings. Please refresh the page.'
+        );
       },
     });
   }
@@ -133,15 +150,10 @@ export class NewApplicationComponent implements OnInit {
         // Get institution name and load buildings after we know the institution
         if (profile.institutionId) {
           this.institutionService.getInstitutions().subscribe({
-            next: (response: any) => {
-              const institutions = Array.isArray((response as any).content)
-                ? (response as any).content
-                : Array.isArray(response)
-                ? response
-                : [];
-
+            next: (response) => {
+              const institutions = contentOf(response);
               const institution = institutions.find(
-                (inst: any) => String(inst.id) === String(profile.institutionId)
+                (inst) => String(inst.id) === String(profile.institutionId)
               );
 
               if (institution) {
@@ -153,6 +165,9 @@ export class NewApplicationComponent implements OnInit {
             },
             error: (error) => {
               console.error('Error fetching institution:', error);
+              this.errorService.showWarning(
+                'Could not load your institution details. Building suggestions may be less relevant.'
+              );
               this.loadBuildings();
               this.cdr.markForCheck();
             },
@@ -185,7 +200,9 @@ export class NewApplicationComponent implements OnInit {
     this.submitError = null;
 
     if (!this.studentId) {
-      this.errorService.showWarning('Student profile not found. Please complete your profile first.');
+      this.errorService.showWarning(
+        'Student profile not found. Please complete your profile first.'
+      );
       this.router.navigate(['/profile']);
       return;
     }
@@ -198,7 +215,7 @@ export class NewApplicationComponent implements OnInit {
       const applicationData = {
         studentId: this.studentId,
         requiresAccessibility: formValue.requiresAccessibility || false,
-        preferredBuildingId: formValue.preferredBuildingId || null,
+        preferredBuildingIds: (formValue.preferredBuildingIds as number[]) || [],
         specialRequirements: formValue.specialRequirements || null,
         institutionName: this.institutionName || 'Not specified',
         courseName: formValue.courseName,
@@ -229,8 +246,25 @@ export class NewApplicationComponent implements OnInit {
     }
   }
 
-  onBuildingSelected(buildingId: number | null): void {
-    this.applicationForm.patchValue({ preferredBuildingId: buildingId });
+  onBuildingSearch(query: string): void {
+    if (!query) {
+      this.loadBuildings();
+      return;
+    }
+    this.buildingService.searchBuildings({ name: query, size: 10 }).subscribe({
+      next: (response) => {
+        this.buildings = response.content;
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.error('Building search failed', error);
+        this.errorService.showWarning('Building search failed. Please try again.');
+      },
+    });
+  }
+
+  onBuildingSelectionChanged(buildingIds: number[]): void {
+    this.applicationForm.patchValue({ preferredBuildingIds: buildingIds });
     this.cdr.markForCheck();
   }
 

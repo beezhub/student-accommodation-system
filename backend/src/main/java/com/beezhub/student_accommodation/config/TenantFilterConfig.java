@@ -1,67 +1,32 @@
 package com.beezhub.student_accommodation.config;
 
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.PersistenceContext;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.hibernate.Session;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.lang.NonNull;
-import org.springframework.web.servlet.HandlerInterceptor;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.core.Ordered;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
- * Registers the tenant filter interceptor that enables the Hibernate {@code tenantFilter}
- * for every incoming HTTP request when a tenant ID is present in the {@link TenantContext}.
+ * Guarantees the Hibernate {@code tenantFilter} is enabled inside the transaction, not beside it.
  *
- * <p>Works in conjunction with {@code @Filter} / {@code @FilterDef} annotations on
- * tenant-scoped entities and requires Spring Boot's Open Session in View (OSIV) — enabled
- * by default — so that the same Hibernate Session is shared across the request.
+ * <p>An earlier interceptor-based approach was removed because it enabled the filter in
+ * {@code HandlerInterceptor.preHandle()}, and with {@code spring.jpa.open-in-view=false} the
+ * {@code EntityManager} there is a throwaway instance created outside any transaction, so the
+ * filter had no effect on the sessions opened later by repository calls. That left this class
+ * empty, and {@link com.beezhub.student_accommodation.aspect.TenantFilterAspect} as the only
+ * enabler.
  *
- * <p>Scheduled jobs and {@code @Async} tasks intentionally run <em>without</em> the filter
- * because their thread-local {@link TenantContext} is empty; this means system-level jobs
- * can process data for all tenants.
+ * <p>The aspect has the same problem unless it runs <em>inside</em> the transaction. Both it and
+ * Spring's transaction advisor default to {@code LOWEST_PRECEDENCE}, so their relative order was
+ * undefined: whenever the aspect won, it unwrapped a session that was not the transactional one and
+ * the filter was silently ineffective (GH-124). Pinning the transaction advisor to the highest
+ * precedence makes it the outermost advice, so the aspect always runs with the transactional
+ * session bound to the thread.
  *
  * @see TenantContext
+ * @see com.beezhub.student_accommodation.aspect.TenantFilterAspect
  */
-@Slf4j
 @Configuration
-@ConditionalOnBean(EntityManagerFactory.class)
-public class TenantFilterConfig implements WebMvcConfigurer, HandlerInterceptor {
-
-    private static final String TENANT_FILTER_NAME = "tenantFilter";
-    private static final String TENANT_ID_PARAM = "tenantId";
-
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    @Override
-    public void addInterceptors(@NonNull InterceptorRegistry registry) {
-        registry.addInterceptor(this);
-    }
-
-    /**
-     * Enables the Hibernate {@code tenantFilter} before the request handler is invoked.
-     * If {@link TenantContext#getTenantId()} returns {@code null} (e.g. public endpoints,
-     * scheduled jobs) the filter is not enabled and all tenant data is visible — which is
-     * the correct behaviour for unauthenticated or system-level operations.
-     */
-    @Override
-    public boolean preHandle(@NonNull HttpServletRequest request,
-                             @NonNull HttpServletResponse response,
-                             @NonNull Object handler) {
-        Long tenantId = TenantContext.getTenantId();
-        if (tenantId != null) {
-            Session session = entityManager.unwrap(Session.class);
-            session.enableFilter(TENANT_FILTER_NAME)
-                    .setParameter(TENANT_ID_PARAM, tenantId);
-            log.debug("Tenant filter enabled: tenantId={}, path={}", tenantId, request.getRequestURI());
-        }
-        return true;
-    }
+@EnableTransactionManagement(order = Ordered.HIGHEST_PRECEDENCE)
+public class TenantFilterConfig {
+    // The annotation is the configuration; see the class javadoc for why the order matters.
 }

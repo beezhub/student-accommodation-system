@@ -1,14 +1,20 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
+import com.beezhub.student_accommodation.exceptions.RoomCapacityExceededException;
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+import com.beezhub.student_accommodation.exceptions.InvalidStatusException;
+import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
+import com.beezhub.student_accommodation.exceptions.AllocationConstraintViolationException;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
 import com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
-import com.beezhub.student_accommodation.mapper.StagedAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationProposalResponse;
 import com.beezhub.student_accommodation.model.dto.BatchAllocationRequest;
+import com.beezhub.student_accommodation.model.dto.BatchConfirmationResult;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationResponse;
 import com.beezhub.student_accommodation.model.dto.StagedAllocationResponse;
 import com.beezhub.student_accommodation.model.dto.ScoredRoom;
@@ -20,11 +26,12 @@ import com.beezhub.student_accommodation.model.event.StagedAllocationProposedEve
 import com.beezhub.student_accommodation.model.event.StagedAllocationRejectedEvent;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,28 +56,36 @@ public class StagedAllocationService {
     private final AppUserRepository appUserRepository;
     private final BuildingRepository buildingRepository;
 
-    private final AllocationScoringService allocationScoringService;
+    private final LegacyScoringStrategy allocationScoringService;
     private final AllocationAuditService allocationAuditService;
     private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
 
     private final StagedAllocationMapper stagedAllocationMapper;
     private final RoomAllocationMapper roomAllocationMapper;
+
+    @Value("${app.allocation.offer-expiry-days:7}")
+    private int offerExpiryDays;
     private final WaitingListService waitingListService;
     private final RoomOccupancyManager roomOccupancyManager;
+    private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     @Transactional
     public RoomAllocationResponse confirmAllocation(Long stagedAllocationId, Long adminId) {
         log.info("Confirming allocation {} by admin {}", stagedAllocationId, adminId);
         StagedAllocation staged = getStagedAllocation(stagedAllocationId);
         validateStagedStatus(staged, StagedAllocationStatus.PROPOSED);
+        validateStudentNotAlreadyAllocated(staged);
         validateRoomCapacity(staged.getRoom());
 
         RoomAllocation allocation = createConfirmedAllocation(staged);
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         updateStagedStatus(staged, StagedAllocationStatus.CONFIRMED);
-        roomOccupancyManager.updateOccupancy(staged.getRoom(), 1);
+        roomOccupancyManager.syncOccupancy(staged.getRoom());
+        // The manual path does this inside createRoomAllocation; without it a confirmed student
+        // stayed WAITING and could be offered a second room by the batch job (GH-128).
+        waitingListService.updateStatusToAllocated(staged.getStudent().getId());
 
         logConfirmationAudit(saved, staged, adminId);
         sendConfirmationNotification(saved);
@@ -153,11 +168,48 @@ public class StagedAllocationService {
         log.info("Batch {} confirmation complete: {} confirmed, {} failed", batchId, confirmed, failed);
     }
 
+    @Transactional
+    public BatchConfirmationResult confirmBatchAllocationsWithResult(String batchId, Long adminId) {
+        log.info("Confirming batch allocations with result for batch {} by admin {}", batchId, adminId);
+        List<StagedAllocation> proposals = stagedAllocationRepository.findByBatchIdAndStatus(batchId,
+                StagedAllocationStatus.PROPOSED);
+
+        List<Long> confirmedIds = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        int attempted = proposals.size();
+
+        for (StagedAllocation staged : proposals) {
+            try {
+                RoomAllocationResponse response = confirmAllocation(staged.getId(), adminId);
+                confirmedIds.add(response.getId());
+            } catch (Exception e) {
+                log.error("Failed to confirm allocation {} in batch {}: {}", staged.getId(), batchId, e.getMessage());
+                errors.add("Staged allocation " + staged.getId() + ": " + e.getMessage());
+            }
+        }
+
+        int successCount = confirmedIds.size();
+        int failureCount = errors.size();
+        log.info("Batch {} result: {}/{} confirmed", batchId, successCount, attempted);
+
+        return BatchConfirmationResult.builder()
+                .success(failureCount == 0)
+                .totalAttempted(attempted)
+                .successCount(successCount)
+                .failureCount(failureCount)
+                .errors(errors.isEmpty() ? null : errors)
+                .confirmedAllocationIds(confirmedIds.isEmpty() ? null : confirmedIds)
+                .processedAt(LocalDateTime.now())
+                .build();
+    }
+
     // ==================== Private Helpers ====================
 
     private StagedAllocation getStagedAllocation(Long id) {
-        return stagedAllocationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Staged allocation not found: " + id));
+        StagedAllocation staged = stagedAllocationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Staged allocation not found: " + id));
+        tenantOwnershipGuard.assertOwned(staged, "Staged allocation", id);
+        return staged;
     }
 
     private Student getStudent(Long id) {
@@ -166,25 +218,45 @@ public class StagedAllocationService {
     }
 
     private Room getRoom(Long id) {
-        return roomRepository.findById(id)
+        Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found: " + id));
+        tenantOwnershipGuard.assertOwned(room, "Room", id);
+        return room;
     }
 
     private AppUser getAdmin(Long id) {
         return appUserRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Admin not found: " + id));
+                .orElseThrow(() -> new UserNotFoundException("Admin not found: " + id));
     }
 
     private void validateStagedStatus(StagedAllocation staged, StagedAllocationStatus expected) {
         if (staged.getStatus() != expected) {
-            throw new RuntimeException("Invalid status: " + staged.getStatus() + ", expected: " + expected);
+            throw new InvalidStatusException(
+                    "Invalid status: " + staged.getStatus() + ", expected: " + expected);
         }
     }
 
     private void validateRoomCapacity(Room room) {
         long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
         if (activeAllocations >= room.getCapacity()) {
-            throw new RuntimeException("Room " + room.getRoomNumber() + " is at full capacity");
+            throw new RoomCapacityExceededException(
+                    "Room " + room.getRoomNumber() + " is at full capacity");
+        }
+    }
+
+    /**
+     * A proposal can sit in PROPOSED for a long time. In the meantime the batch job, a manual
+     * allocation or another confirmation in the same batch may already have offered this student a
+     * room, and confirming anyway produced two live OFFERED rows for one student. Capacity was
+     * re-checked here but this was not (GH-128).
+     */
+    private void validateStudentNotAlreadyAllocated(StagedAllocation staged) {
+        Long studentId = staged.getStudent().getId();
+        if (roomAllocationRepository.existsActiveAllocationByStudentId(studentId)) {
+            log.warn("action=stagedConfirmRejected reason=studentAlreadyAllocated stagedId={} studentId={}",
+                    staged.getId(), studentId);
+            throw new StudentAlreadyAllocatedException(
+                    "Student with ID " + studentId + " already has an active room allocation");
         }
     }
 
@@ -193,9 +265,20 @@ public class StagedAllocationService {
         allocation.setStudent(staged.getStudent());
         allocation.setRoom(staged.getRoom());
         allocation.setApplication(staged.getApplication());
+        if (staged.getApplication() != null) {
+            // See buildNewAllocation: without this the wait estimate has nothing to count
+            // (GH-140).
+            allocation.setAcademicYear(staged.getApplication().getAcademicYear());
+        }
+        // From the room, not the staged row: the room is the tenant-owned asset, so this also
+        // heals a legacy staged row that was itself stamped with the wrong tenant. Without it
+        // TenantListener copies the acting context, which is 0 for a platform admin, and the row
+        // becomes invisible to every filtered query the owning tenant runs (GH-146).
+        allocation.setTenantId(staged.getRoom().getTenantId());
         allocation.setAllocationDate(LocalDateTime.now());
         AllocationStatusValidator.validate(allocation, AllocationStatus.OFFERED);
         allocation.setStatus(AllocationStatus.OFFERED);
+        allocation.setOfferExpiryDate(LocalDateTime.now().plusDays(offerExpiryDays));
         allocation.setAllocationMethod(AllocationMethod.AUTO);
         return allocation;
     }
@@ -210,8 +293,10 @@ public class StagedAllocationService {
 
     private void logConfirmationAudit(RoomAllocation saved, StagedAllocation staged, Long adminId) {
         AppUser admin = appUserRepository.findById(adminId).orElse(null);
-        allocationAuditService.logAuditAction(saved, AllocationAuditActionType.FORCE_ALLOCATE, admin,
-                "Confirmed from staged allocation batch: " + staged.getBatchId(), null, staged.getRoom());
+        // Use in-current-transaction variant: saved allocation is not yet committed, so REQUIRES_NEW
+        // would open a separate transaction that cannot see it, causing an FK violation.
+        allocationAuditService.logAuditActionInCurrentTransaction(saved, AllocationAuditActionType.FORCE_ALLOCATE,
+                admin, "Confirmed from staged allocation batch: " + staged.getBatchId(), null, staged.getRoom());
     }
 
     private void sendConfirmationNotification(RoomAllocation saved) {
@@ -250,6 +335,7 @@ public class StagedAllocationService {
         return StagedAllocation.builder()
                 .student(student)
                 .room(room)
+                .tenantId(room.getTenantId())
                 .application(application)
                 .status(StagedAllocationStatus.PROPOSED)
                 .score(allocationScoringService.scoreSingleRoom(student, application, room).getTotalScore())
@@ -296,6 +382,16 @@ public class StagedAllocationService {
         int failCount = 0;
 
         for (Long studentId : request.getStudentIds()) {
+            if (stagedAllocationRepository.findByStudent_IdAndStatus(studentId, StagedAllocationStatus.PROPOSED)
+                    .isPresent()) {
+                log.info("Skipping student {} - already has a pending proposal", studentId);
+                String studentName = studentRepository.findById(studentId)
+                        .map(s -> s.getAppUser().getFirstName() + " " + s.getAppUser().getLastName())
+                        .orElse("Unknown");
+                response.addWarning("Student " + studentName + " (ID: " + studentId
+                        + ") already has a pending proposal — skipped");
+                continue;
+            }
             try {
                 StagedAllocationResponse proposal = createProposalForStudent(studentId, request.getBatchId(),
                         preferredBuilding, admin);
@@ -328,7 +424,8 @@ public class StagedAllocationService {
                 effectiveBuilding);
         if (scoredRooms.isEmpty()) {
             waitingListService.enqueueWaitingList(student, application);
-            throw new RuntimeException("No available rooms for student; added to waiting list");
+            throw new AllocationConstraintViolationException(
+                    "No available rooms for student; added to waiting list");
         }
 
         ScoredRoom bestRoom = scoredRooms.get(0);
@@ -337,6 +434,7 @@ public class StagedAllocationService {
         StagedAllocation staged = StagedAllocation.builder()
                 .student(student)
                 .room(room)
+                .tenantId(room.getTenantId())
                 .application(application)
                 .status(StagedAllocationStatus.PROPOSED)
                 .score(bestRoom.getTotalScore())
@@ -359,7 +457,7 @@ public class StagedAllocationService {
     private void validateNoPendingProposal(Long studentId) {
         if (stagedAllocationRepository.findByStudent_IdAndStatus(studentId, StagedAllocationStatus.PROPOSED)
                 .isPresent()) {
-            throw new RuntimeException("Student already has a pending proposal");
+            throw new DuplicateResourceException("Student already has a pending proposal");
         }
     }
 

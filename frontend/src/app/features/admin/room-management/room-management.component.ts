@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RoomService, RoomResponse, PageResponse } from '../../../core/services/room.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -19,12 +21,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SelectionModel } from '@angular/cdk/collections';
 
 // Modern UI Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
+import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-room-management',
@@ -47,12 +51,21 @@ import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/
     MatSnackBarModule,
     MatTooltipModule,
     MatMenuModule,
+    MatDividerModule,
     MatChipsModule,
     MatCheckboxModule,
     ModernStatusBadgeComponent,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class RoomManagementComponent implements OnInit {
+  private roomService = inject(RoomService);
+  private buildingService = inject(BuildingService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
   rooms: RoomResponse[] = [];
   buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
@@ -60,6 +73,7 @@ export class RoomManagementComponent implements OnInit {
     'roomNumber',
     'buildingName',
     'capacity',
+    'monthlyRate',
     'currentOccupancy',
     'attributes',
     'status',
@@ -71,6 +85,8 @@ export class RoomManagementComponent implements OnInit {
   pageSize = 20;
   currentPage = 0;
 
+  filtersVisible = false;
+
   filterForm: FormGroup;
 
   statuses = ['AVAILABLE', 'OCCUPIED', 'FULL', 'MAINTENANCE'];
@@ -78,13 +94,7 @@ export class RoomManagementComponent implements OnInit {
   // Selection model for bulk operations
   selection = new SelectionModel<RoomResponse>(true, []);
 
-  constructor(
-    private roomService: RoomService,
-    private buildingService: BuildingService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       roomNumber: [''],
       buildingId: [''],
@@ -196,11 +206,13 @@ export class RoomManagementComponent implements OnInit {
   }
 
   deleteRoom(room: RoomResponse): void {
-    if (
-      confirm(
-        `Are you sure you want to delete room "${room.roomNumber}"? This action cannot be undone.`
-      )
-    ) {
+    confirmAction(this.dialog, {
+      title: 'Delete this room?',
+      message: `Room "${room.roomNumber}" is removed permanently. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
       this.roomService.deleteRoom(room.id).subscribe({
         next: () => {
           this.snackBar.open('Room deleted successfully', 'Close', { duration: 3000 });
@@ -213,7 +225,7 @@ export class RoomManagementComponent implements OnInit {
           });
         },
       });
-    }
+    });
   }
 
   openAttributesDialog(room: RoomResponse): void {
@@ -224,8 +236,8 @@ export class RoomManagementComponent implements OnInit {
         data: {
           roomId: room.id,
           roomNumber: room.roomNumber,
-          buildingName: room.buildingName
-        }
+          buildingName: room.buildingName,
+        },
       });
 
       dialogRef.afterClosed().subscribe((result) => {
@@ -237,7 +249,18 @@ export class RoomManagementComponent implements OnInit {
     });
   }
 
+  // ── UI helpers ──────────────────────────────────────────────
 
+  get activeFilterCount(): number {
+    const v = this.filterForm.value;
+    return [v.roomNumber, v.buildingId, v.minCapacity, v.maxCapacity].filter(
+      (x) => x !== null && x !== '' && x !== undefined
+    ).length;
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
 
   getOccupancyText(room: RoomResponse): string {
     if (!room || room.currentOccupancy === undefined || room.capacity === undefined) {
@@ -264,7 +287,7 @@ export class RoomManagementComponent implements OnInit {
   getYearRestrictionTooltip(room: RoomResponse): string {
     const min = room.minYearOfStudy;
     const max = room.maxYearOfStudy;
-    
+
     if (min && max) {
       return `Year ${min} - ${max} students only`;
     } else if (min) {
@@ -290,7 +313,7 @@ export class RoomManagementComponent implements OnInit {
     if (this.isAllSelected()) {
       this.selection.clear();
     } else {
-      this.rooms.forEach(row => this.selection.select(row));
+      this.rooms.forEach((row) => this.selection.select(row));
     }
   }
 
@@ -309,12 +332,12 @@ export class RoomManagementComponent implements OnInit {
         width: '95vw',
         maxWidth: '600px',
         data: {
-          rooms: this.selection.selected.map(room => ({
+          rooms: this.selection.selected.map((room) => ({
             id: room.id,
             roomNumber: room.roomNumber,
-            buildingName: room.buildingName
-          }))
-        }
+            buildingName: room.buildingName,
+          })),
+        },
       });
 
       dialogRef.afterClosed().subscribe((result) => {

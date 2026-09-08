@@ -1,204 +1,157 @@
-<div class="profile-setup-container">
-  <div class="progress-indicator">
-    <div class="step completed">
-      <div class="step-number">1</div>
-      <div class="step-label">Sign Up</div>
-    </div>
-    <div class="step-line"></div>
-    <div class="step active">
-      <div class="step-number">2</div>
-      <div class="step-label">Profile Setup</div>
-    </div>
-    <div class="step-line"></div>
-    <div class="step">
-      <div class="step-number">3</div>
-      <div class="step-label">Application</div>
-    </div>
-    <div class="step-line"></div>
-    <div class="step">
-      <div class="step-number">4</div>
-      <div class="step-label">Documents</div>
+<div class="step-page">
+
+  <!-- Progress Strip -->
+  <div class="step-progress-strip">
+    <div class="strip-inner">
+      <div class="sp-step completed">
+        <div class="sp-bubble"><mat-icon>check</mat-icon></div>
+        <span class="sp-label">Account</span>
+      </div>
+      <div class="sp-line"></div>
+      <div class="sp-step active">
+        <div class="sp-bubble">2</div>
+        <span class="sp-label">Profile</span>
+      </div>
+      <div class="sp-line"></div>
+      <div class="sp-step">
+        <div class="sp-bubble">3</div>
+        <span class="sp-label">Documents</span>
+      </div>
+      <div class="sp-line"></div>
+      <div class="sp-step">
+        <div class="sp-bubble">4</div>
+        <span class="sp-label">Application</span>
+      </div>
     </div>
   </div>
 
-  <mat-card class="profile-card">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon>person</mat-icon>
-        Complete Your Profile
-      </mat-card-title>
-      <mat-card-subtitle>
-        Welcome, {{currentUser?.firstName}}! Let's set up your student profile
-      </mat-card-subtitle>
-    </mat-card-header>
+  <!-- Page Body -->
+  <div class="step-body">
+    <div class="step-card">
 
-    <mat-divider></mat-divider>
+      <div class="step-card-header">
+        <span class="step-eyebrow">Step 2 of 4</span>
+        <h2 class="step-title">Complete Your Profile</h2>
+        <p class="step-subtitle">Welcome, {{currentUser?.firstName}}! Tell us about your studies to get started.</p>
+      </div>
 
-    <mat-card-content>
-      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="step-card-form">
+        <div class="step-card-body">
 
-        <!-- Personal Information Section -->
-        <div class="form-section">
-          <h3 class="section-title">
-            <mat-icon>badge</mat-icon>
-            Personal Information
-          </h3>
+          <!-- Academic Information Section -->
+          <div class="form-section">
+            <span class="section-label">Academic Information</span>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Student Number</mat-label>
-              <input matInput formControlName="studentNumber" placeholder="e.g., STU123456">
-              <mat-icon matPrefix>badge</mat-icon>
-              @if (profileForm.get('studentNumber')?.hasError('required')) {
-                <mat-error>
-                  Student number is required
-                </mat-error>
-              }
-            </mat-form-field>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Institution</mat-label>
+                <mat-select formControlName="institution">
+                  @for (institution of institutions; track institution) {
+                    <mat-option [value]="institution.id">{{institution.name}}</mat-option>
+                  }
+                </mat-select>
+                @if (profileForm.get('institution')?.hasError('required')) {
+                  <mat-error>Institution is required</mat-error>
+                }
+              </mat-form-field>
 
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Phone Number</mat-label>
-              <input matInput type="tel" formControlName="phoneNumber" placeholder="e.g., 0123456789">
-              <mat-icon matPrefix>phone</mat-icon>
-              @if (profileForm.get('phoneNumber')?.hasError('required')) {
-                <mat-error>
-                  Phone number is required
-                </mat-error>
-              }
-              @if (profileForm.get('phoneNumber')?.hasError('pattern')) {
-                <mat-error>
-                  Please enter a valid 10-digit phone number
-                </mat-error>
-              }
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Year of Study</mat-label>
+                <mat-select formControlName="yearOfStudy">
+                  @for (year of yearsOfStudy; track year) {
+                    <mat-option [value]="year.id">{{year.yearOfStudy}}</mat-option>
+                  }
+                </mat-select>
+                @if (profileForm.get('yearOfStudy')?.hasError('required')) {
+                  <mat-error>Year of study is required</mat-error>
+                }
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- Special Requirements Section -->
+          <div class="form-section">
+            <span class="section-label">Special Requirements <span class="optional-tag">(Optional)</span></span>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Special Requirements or Accessibility Needs</mat-label>
+              <textarea matInput formControlName="specialRequirements"
+                rows="4"
+                placeholder="Please describe any special accommodation requirements"></textarea>
+              <mat-hint>Any additional information we should know</mat-hint>
             </mat-form-field>
           </div>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Date of Birth</mat-label>
-              <input matInput [matDatepicker]="dobPicker" formControlName="dateOfBirth" placeholder="Select your date of birth">
-              <mat-datepicker-toggle matSuffix [for]="dobPicker"></mat-datepicker-toggle>
-              <mat-datepicker #dobPicker></mat-datepicker>
-              <mat-icon matPrefix>cake</mat-icon>
-              @if (profileForm.get('dateOfBirth')?.hasError('required')) {
-                <mat-error>
-                  Date of birth is required
-                </mat-error>
-              }
-            </mat-form-field>
+          <!-- Emergency Contact Section (GH-239) -->
+          <div class="form-section">
+            <span class="section-label">Emergency Contact</span>
+            <p class="section-help">
+              Who should we call if something happens to you while you are living with us?
+            </p>
 
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Gender</mat-label>
-              <mat-select formControlName="gender">
-                @for (gender of genderOptions; track gender) {
-                  <mat-option [value]="gender.value">
-                    {{gender.viewValue}}
-                  </mat-option>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Full Name</mat-label>
+                <input matInput formControlName="emergencyContactName" autocomplete="off"
+                  placeholder="e.g. Thandi Mokoena">
+                @if (profileForm.get('emergencyContactName')?.hasError('required')) {
+                  <mat-error>An emergency contact name is required</mat-error>
                 }
-              </mat-select>
-              <mat-icon matPrefix>wc</mat-icon>
-              @if (profileForm.get('gender')?.hasError('required')) {
-                <mat-error>
-                  Gender is required
-                </mat-error>
-              }
-            </mat-form-field>
+                @if (profileForm.get('emergencyContactName')?.hasError('maxlength')) {
+                  <mat-error>Name must be at most 150 characters</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Relationship <span class="optional-tag">(Optional)</span></mat-label>
+                <input matInput formControlName="emergencyContactRelationship"
+                  placeholder="e.g. Mother, Guardian, Sibling">
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Phone Number</mat-label>
+                <input matInput formControlName="emergencyContactPhone" autocomplete="off"
+                  placeholder="e.g. +27 82 123 4567">
+                <mat-hint>Include the country code if they are outside South Africa</mat-hint>
+                @if (profileForm.get('emergencyContactPhone')?.hasError('required')) {
+                  <mat-error>An emergency contact phone number is required</mat-error>
+                }
+                @if (profileForm.get('emergencyContactPhone')?.hasError('pattern')) {
+                  <mat-error>Enter 7-20 digits, optionally starting with +</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Email <span class="optional-tag">(Optional)</span></mat-label>
+                <input matInput type="email" formControlName="emergencyContactEmail"
+                  placeholder="e.g. thandi@example.com">
+                @if (profileForm.get('emergencyContactEmail')?.hasError('email')) {
+                  <mat-error>Enter a valid email address</mat-error>
+                }
+              </mat-form-field>
+            </div>
           </div>
+
         </div>
 
-        <mat-divider></mat-divider>
-
-        <!-- Academic Information Section -->
-        <div class="form-section">
-          <h3 class="section-title">
-            <mat-icon>school</mat-icon>
-            Academic Information
-          </h3>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Institution</mat-label>
-              <mat-select formControlName="institution">
-                @for (institution of institutions; track institution) {
-                  <mat-option [value]="institution.id">
-                    {{institution.name}}
-                  </mat-option>
-                }
-              </mat-select>
-              <mat-icon matPrefix>location_city</mat-icon>
-              @if (profileForm.get('institution')?.hasError('required')) {
-                <mat-error>
-                  Institution is required
-                </mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Year of Study</mat-label>
-              <mat-select formControlName="yearOfStudy">
-                @for (year of yearsOfStudy; track year) {
-                  <mat-option [value]="year.id">
-                    {{year.yearOfStudy}}
-                  </mat-option>
-                }
-              </mat-select>
-              <mat-icon matPrefix>calendar_today</mat-icon>
-              @if (profileForm.get('yearOfStudy')?.hasError('required')) {
-                <mat-error>
-                  Year of study is required
-                </mat-error>
-              }
-            </mat-form-field>
-          </div>
-        </div>
-
-        <mat-divider></mat-divider>
-
-        <!-- Special Requirements Section -->
-        <div class="form-section">
-          <h3 class="section-title">
-            <mat-icon>accessible</mat-icon>
-            Special Requirements (Optional)
-          </h3>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Special Requirements or Accessibility Needs</mat-label>
-            <textarea matInput formControlName="specialRequirements"
-              rows="4"
-            placeholder="Please describe any special accommodation requirements"></textarea>
-            <mat-icon matPrefix>notes</mat-icon>
-            <mat-hint>Any additional information we should know</mat-hint>
-          </mat-form-field>
-        </div>
-
-        <mat-divider></mat-divider>
-
-        <!-- Action Buttons -->
-        <mat-card-actions class="action-buttons">
+        <div class="step-card-footer">
           <div></div>
-
-          <button mat-raised-button color="primary" type="submit" class="submit-button"
+          <button mat-flat-button type="submit" class="submit-btn"
             [disabled]="profileForm.invalid || isSubmitting">
             @if (isSubmitting) {
-              <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            }
-            @if (!isSubmitting) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              <span>Saving Profile...</span>
+            } @else {
+              <span>Continue</span>
               <mat-icon>arrow_forward</mat-icon>
             }
-            @if (!isSubmitting) {
-              <span>Continue</span>
-            }
-            @if (isSubmitting) {
-              <span>Saving Profile...</span>
-            }
           </button>
-        </mat-card-actions>
+        </div>
       </form>
-    </mat-card-content>
-  </mat-card>
 
-  <div class="help-text">
-    <mat-icon>info</mat-icon>
-    <p>Your profile information helps us match you with the most suitable accommodation options.</p>
+    </div>
   </div>
+
 </div>

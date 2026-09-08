@@ -7,7 +7,7 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.GenderRestriction;
 import com.beezhub.student_accommodation.repository.*;
-import com.beezhub.student_accommodation.service.AllocationScoringService;
+import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,7 +45,9 @@ class AllocationEligibilityServiceTest {
     @Mock
     private RoomAttributesRepository roomAttributesRepository;
     @Mock
-    private AllocationScoringService allocationScoringService;
+    private LegacyScoringStrategy allocationScoringService;
+    @Mock
+    private AllocationAccessGuard allocationAccessGuard;
 
     @InjectMocks
     private AllocationEligibilityService allocationEligibilityService;
@@ -101,6 +106,18 @@ class AllocationEligibilityServiceTest {
         application.setId(1L);
         application.setStudent(student);
         application.setStatus(ApplicationStatus.APPROVED);
+    }
+
+    @Test
+    void checkStudentEligibility_callerNotThatStudent_throwsBeforeLookup() {
+        doThrow(new com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException("not yours"))
+                .when(allocationAccessGuard).assertCanAccessStudent(1L);
+
+        assertThatThrownBy(() -> allocationEligibilityService.checkStudentEligibility(1L))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException.class);
+
+        verify(studentRepository, never()).findById(any());
+        verify(roomAllocationRepository, never()).existsActiveAllocationByStudentId(any());
     }
 
     @Test

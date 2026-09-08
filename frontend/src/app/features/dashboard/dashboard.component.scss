@@ -1,1195 +1,860 @@
-/* Modern Student Dashboard Design - Mobile First */
+@use 'sass:color';
 @use '../../../styles/variables' as vars;
 @use '../../../styles/mixins' as mixins;
 
-/* ==========================================================================
-   Base Styles (Mobile First - 320px+)
-   ========================================================================== */
+// ============================================================================
+// Page Shell
+// ============================================================================
 
-.dashboard-container {
+.dash-page {
+  min-height: calc(100vh - 64px);
+  background: vars.$slate-50;
   display: flex;
   flex-direction: column;
-  padding: 1rem;
-  min-height: calc(100vh - 64px);
-  box-sizing: border-box;
-  background: linear-gradient(135deg, vars.$slate-50 0%, vars.$slate-200 100%);
 }
 
-/* Welcome Section */
-.welcome-section {
-  margin-bottom: 1.5rem;
+// ============================================================================
+// Page Header — dark band
+// ============================================================================
+
+.dash-header {
+  background: vars.$slate-900;
 }
 
-.welcome-card {
-  background: linear-gradient(135deg, vars.$slate-900 0%, vars.$accent-cyan-dark 100%) !important;
-  color: white !important;
-  border-radius: vars.$radius-xl;
-  box-shadow: vars.$shadow-elevated !important;
-  overflow: hidden;
-  border: none !important;
+.dash-header-inner {
+  max-width: 1520px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+
+  @media (max-width: vars.$breakpoint-tablet) {
+    padding: 1.5rem 1.25rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.dash-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.dash-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 35%);
+}
+
+.dash-greeting {
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: rgb(255 255 255 / 85%);
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+
+  strong {
+    font-weight: 700;
+    color: white;
+  }
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    font-size: 1.4rem;
+  }
+}
+
+.dash-chips {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.dash-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 24px;
+  padding: 0 0.625rem;
+  background: rgb(255 255 255 / 7%);
+  color: rgb(255 255 255 / 55%);
+  border-radius: vars.$radius-pill;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgb(255 255 255 / 10%);
+
+  mat-icon {
+    font-size: 0.8125rem;
+    width: 0.8125rem;
+    height: 0.8125rem;
+  }
+
+  &--room {
+    background: rgba(vars.$accent-purple-light, 0.18);
+    color: color.adjust(vars.$accent-purple-light, $lightness: 15%);
+    border-color: rgba(vars.$accent-purple-light, 0.3);
+  }
+}
+
+.dash-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+
+  @media (max-width: vars.$breakpoint-tablet) {
+    width: 100%;
+
+    .dash-btn-ghost,
+    .dash-btn-solid {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}
+
+// ============================================================================
+// Buttons — dark-context (header)
+// ============================================================================
+
+.dash-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 40px;
+  padding: 0 1.125rem;
+  background: transparent;
+  color: rgb(255 255 255 / 70%);
+  border: 1.5px solid rgb(255 255 255 / 18%);
+  border-radius: vars.$radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color vars.$motion-fast ease, color vars.$motion-fast ease;
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &:hover {
+    border-color: rgb(255 255 255 / 40%);
+    color: white;
+  }
+}
+
+.dash-btn-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 40px;
+  padding: 0 1.25rem;
+  background: white;
+  color: vars.$slate-900;
+  border: none;
+  border-radius: vars.$radius-md;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background vars.$motion-fast ease;
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &:hover {
+    background: vars.$slate-100;
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Card-context dark button
+.dash-btn-dark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 38px;
+  padding: 0 1.125rem;
+  background: vars.$slate-900;
+  color: white;
+  border: none;
+  border-radius: vars.$radius-md;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background vars.$motion-fast ease;
+  white-space: nowrap;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &:hover {
+    background: vars.$slate-700;
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.dash-btn-sm {
+  height: 36px;
+  padding: 0 0.875rem;
+  font-size: 0.8125rem;
+
+  mat-icon {
+    font-size: 0.9375rem;
+    width: 0.9375rem;
+    height: 0.9375rem;
+  }
+}
+
+// ============================================================================
+// Content Area
+// ============================================================================
+
+.dash-content {
+  flex: 1;
+  max-width: 1520px;
   width: 100%;
-}
-
-.welcome-content {
+  margin: 0 auto;
+  padding: 2rem 2.5rem 3rem;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding: 1.5rem;
-  color: white !important;
+
+  @media (max-width: vars.$breakpoint-tablet) {
+    padding: 1.5rem 1.25rem 2rem;
+  }
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    padding: 1.25rem 1rem;
+  }
 }
 
-.welcome-title {
-  @include mixins.page-title;
-  color: white !important;
-  margin: 0 0 0.25rem;
-  font-size: 1.5rem;
-}
-
-.welcome-name {
-  font-size: 2rem;
-  font-weight: 800;
-  color: white !important;
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.02em;
-}
-
-.welcome-subtitle {
-  font-size: 0.9375rem;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9) !important;
-  line-height: 1.6;
-}
-
-.welcome-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.welcome-actions button {
-  width: 100%;
-  height: 48px !important;
-  border-radius: vars.$radius-lg !important;
-  font-weight: 600 !important;
-  font-size: 1rem !important;
-  text-transform: none !important;
-  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.25) !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  color: vars.$slate-900 !important;
+.dash-section-label {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  transition: all 0.2s ease;
-}
+  margin-bottom: -0.25rem;
 
-.welcome-actions button:hover:not([disabled]) {
-  background: white !important;
-  transform: translateY(-2px);
-}
-
-.welcome-actions mat-icon {
-  font-size: 1.25rem;
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-/* ==========================================================================
-   Tablet+ Styles (768px+)
-   ========================================================================== */
-
-@media (min-width: vars.$breakpoint-tablet) {
-  .dashboard-container {
-    padding: 1.5rem;
+  span {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: vars.$slate-400;
+    white-space: nowrap;
   }
 
-  .welcome-content {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 2rem;
-  }
-
-  .welcome-title {
-    font-size: 2rem;
-  }
-
-  .welcome-name {
-    font-size: 2.5rem;
-  }
-
-  .welcome-actions {
-    flex-direction: row;
-    width: auto;
-  }
-
-  .welcome-actions button {
-    width: auto;
-    min-width: 160px;
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: vars.$slate-200;
   }
 }
 
-/* ==========================================================================
-   Dashboard Grid - Mobile First
-   ========================================================================== */
+// ============================================================================
+// Grid
+// ============================================================================
 
-/* Two-column layout for dashboard - Mobile first (single column) */
-.two-column-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-}
-
-.two-column-layout .left-column,
-.two-column-layout .right-column {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/* Card base styles - content-driven height */
-.status-card,
-.actions-card,
-.documents-card,
-.history-card,
-.room-allocation-card {
-  display: flex;
-  flex-direction: column;
-  height: auto;
-  /* Content-driven */
-  border-radius: vars.$radius-xl !important;
-  box-shadow: vars.$shadow-medium !important;
-  background: white !important;
-  overflow: hidden;
-}
-
-/* Card content fills available space */
-.status-card .mat-mdc-card-content,
-.actions-card .mat-mdc-card-content,
-.documents-card .mat-mdc-card-content,
-.history-card .mat-mdc-card-content,
-.room-allocation-card .mat-mdc-card-content {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  padding: 1rem 1.25rem 1.25rem !important;
-}
-
-/* Tablet+ Layout (768px+) */
-@media (min-width: vars.$breakpoint-tablet) {
-  .two-column-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    align-items: start;
-  }
-
-  .status-card .mat-mdc-card-content,
-  .actions-card .mat-mdc-card-content,
-  .documents-card .mat-mdc-card-content,
-  .history-card .mat-mdc-card-content,
-  .room-allocation-card .mat-mdc-card-content {
-    padding: 1.5rem !important;
-  }
-}
-
-/* Desktop Layout (1024px+) */
-@media (min-width: vars.$breakpoint-desktop) {
-  .dashboard-container {
-    padding: 2rem;
-  }
-
-  .two-column-layout {
-    grid-template-columns: 360px 1fr;
-    gap: 2rem;
-  }
-}
-
-/* ==========================================================================
-   Card Header and Content Base Styles
-   ========================================================================== */
-
-.mat-mdc-card-header {
-  padding: 1rem 1.25rem 0.75rem !important;
-}
-
-.mat-mdc-card-content {
-  padding: 0 1.25rem 1.25rem !important;
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.mat-mdc-card-title {
-  @include mixins.section-title;
-  color: vars.$slate-800 !important;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.card-icon {
-  color: vars.$accent-cyan-dark !important;
-  font-size: 1.5rem !important;
-  width: 1.5rem !important;
-  height: 1.5rem !important;
-}
-
-/* Tablet+ card adjustments */
-@media (min-width: vars.$breakpoint-tablet) {
-  .mat-mdc-card-header {
-    padding: 1.5rem 1.5rem 1rem !important;
-  }
-
-  .mat-mdc-card-content {
-    padding: 0 1.5rem 1.5rem !important;
-  }
-
-  .card-icon {
-    font-size: 1.75rem !important;
-    width: 1.75rem !important;
-    height: 1.75rem !important;
-  }
-}
-
-/* Application Status Card */
-/* Removed empty .status-card ruleset to avoid lint warning */
-
-.application-status {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.status-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.status-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.application-year {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.application-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.status-progress {
-  border-radius: 4px !important;
-}
-
-.progress-text {
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.6);
-  margin: 0;
-}
-
-.room-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background-color: rgba(76, 175, 80, 0.1);
-  border-radius: 12px;
-  color: #388e3c;
-  font-weight: 500;
-}
-
-.application-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-/* Quick Actions Card */
-.quick-actions {
+.dash-grid {
   display: grid;
-  gap: 0.75rem;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+
+  @media (min-width: vars.$breakpoint-tablet) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (min-width: vars.$breakpoint-desktop) {
+    grid-template-columns: 3fr 2fr;
+  }
 }
 
-.action-button {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 1rem !important;
-  padding: 1.25rem 1.5rem !important;
-  border-radius: 16px !important;
-  text-align: left !important;
-  font-weight: 600 !important;
-  font-size: 0.9375rem !important;
-  width: 100% !important;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08) !important;
-}
-
-.action-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12) !important;
-}
-
-.document-action {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
-  color: #1e40af !important;
-  border: 1px solid #93c5fd !important;
-}
-
-.profile-action {
-  background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%) !important;
-  color: #6b21a8 !important;
-  border: 1px solid #c4b5fd !important;
-}
-
-.support-action {
-  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%) !important;
-  color: #c2410c !important;
-  border: 1px solid #fb923c !important;
-}
-
-/* Documents Card */
-.documents-list {
+.dash-secondary {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.25rem;
 }
 
-.document-item {
+// ============================================================================
+// Cards
+// ============================================================================
+
+.dash-card {
+  background: white;
+  border: 1px solid vars.$slate-100;
+  border-radius: vars.$radius-xl;
+  box-shadow: vars.$shadow-subtle;
   display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// ============================================================================
+// Room Hero Band — the primary visual moment
+// ============================================================================
+
+.room-hero-band {
+  background: vars.$slate-900;
+  padding: 2rem 1.75rem 1.75rem;
+  display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.25rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  transition: all 0.2s ease;
-}
-
-.document-item:hover {
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-  transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-}
-
-.document-info {
-  display: flex;
-  align-items: center;
   gap: 1rem;
+  min-height: 168px;
+
+  &--empty {
+    background: vars.$slate-800;
+  }
+
+  &--loading {
+    background: vars.$slate-900;
+  }
 }
 
-.document-icon {
-  color: #0891B2 !important;
-  font-size: 1.25rem !important;
-  width: 1.25rem !important;
-  height: 1.25rem !important;
-}
-
-.document-details {
+.room-hero-content {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.document-name {
-  font-weight: 600;
-  font-size: 0.9375rem;
-  color: #0F172A;
-}
-
-.document-date {
-  font-size: 0.8125rem;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.documents-divider {
-  margin: 1.5rem 0 !important;
-  border-top-color: #e2e8f0 !important;
-}
-
-.documents-actions {
-  display: flex;
-  justify-content: center;
-  padding-top: 0.5rem;
-}
-
-/* Previous Applications Card */
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.history-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  transition: all 0.2s ease;
-}
-
-.history-item:hover {
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-  transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-}
-
-.history-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-}
-
-.history-code {
+.room-eyebrow {
+  font-size: 0.6875rem;
   font-weight: 700;
-  font-size: 1rem;
-  color: #0F172A;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 35%);
 }
 
-.history-details {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-}
-
-.history-date {
-  font-size: 0.8125rem;
-  color: #64748b;
-  margin-left: 0.25rem;
-  font-weight: 500;
-}
-
-/* Application History Empty State */
-.no-applications,
-.no-application,
-.no-room {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2.5rem 1.5rem;
-  text-align: center;
-  gap: 1rem;
-}
-
-.no-applications-icon,
-.no-application-icon,
-.no-room-icon {
+.room-number {
   font-size: 3.5rem;
-  width: 3.5rem;
-  height: 3.5rem;
-  color: #cbd5e1;
-  margin-bottom: 0.5rem;
-}
-
-.no-applications p,
-.no-application p,
-.no-room p {
-  margin: 0;
-  color: #475569;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.no-applications-hint,
-.no-application-hint,
-.no-room-hint {
-  font-size: 0.875rem !important;
-  color: #64748b !important;
-  font-weight: 400 !important;
-  margin-bottom: 0.5rem !important;
-  line-height: 1.5;
-}
-
-.no-applications button,
-.no-application button,
-.no-room button {
-  margin-top: 0.5rem;
-}
-
-/* Application History Code Display */
-.history-code {
-  font-weight: 600;
-  font-size: 16px;
-  color: #1a1a1a;
+  font-weight: 800;
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
-  letter-spacing: 0.5px;
+  color: white;
+  line-height: 1;
+  letter-spacing: -0.04em;
+
+  &--placeholder {
+    color: rgb(255 255 255 / 20%);
+  }
+
+  &--loading {
+    color: rgb(255 255 255 / 15%);
+    font-weight: 400;
+    letter-spacing: 0.1em;
+  }
+
+  @media (max-width: vars.$breakpoint-mobile) {
+    font-size: 2.75rem;
+  }
 }
 
-.history-date {
-  font-size: 13px;
-  color: rgba(0, 0, 0, 0.6);
-  margin-left: 4px;
-}
-
-/* Loading Container */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1.5rem;
-  gap: 1.25rem;
-}
-
-.loading-container p {
-  margin: 0;
-  color: #64748b;
+.room-building {
   font-size: 0.9375rem;
   font-weight: 500;
+  color: rgb(255 255 255 / 50%);
+  letter-spacing: -0.01em;
 }
 
-/* Responsive Design */
-@media (max-width: 1000px) {
-  .dashboard-container {
-    min-height: 0;
-    padding: 1.5rem 1rem;
-  }
-
-  .two-column-layout {
-    height: auto;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    padding: 0;
-  }
-
-  .two-column-layout .left-column .mat-mdc-card,
-  .two-column-layout .right-column .documents-card {
-    flex: none;
-    min-height: 240px;
-  }
+.room-wait-icon {
+  font-size: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: rgb(255 255 255 / 20%);
 }
 
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding: 1rem;
-  }
+// ============================================================================
+// Card Header — simplified: title + right badge/count
+// ============================================================================
 
-  .welcome-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1.5rem;
-    padding: 2rem 1.5rem;
-  }
-
-  .welcome-title {
-    font-size: 1.625rem;
-  }
-
-  .welcome-name {
-    font-size: 2rem;
-  }
-
-  .welcome-subtitle {
-    font-size: 0.9375rem;
-  }
-
-  .welcome-actions {
-    flex-direction: column;
-    width: 100%;
-    gap: 0.75rem;
-  }
-
-  .welcome-actions button {
-    width: 100%;
-    min-width: unset;
-  }
-
-  .mat-mdc-card-header,
-  .mat-mdc-card-content {
-    padding: 1.25rem 1.5rem !important;
-  }
-
-  .two-column-layout {
-    gap: 1.25rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-container {
-    padding: 0.75rem;
-  }
-
-  .welcome-content {
-    padding: 1.5rem 1.25rem;
-  }
-
-  .welcome-title {
-    font-size: 1.5rem;
-  }
-
-  .welcome-name {
-    font-size: 1.75rem;
-  }
-
-  .mat-mdc-card-header {
-    padding: 1rem 1.25rem 0.75rem !important;
-  }
-
-  .mat-mdc-card-content {
-    padding: 0 1.25rem 1.25rem !important;
-  }
-
-  .mat-mdc-card-title {
-    font-size: 1.125rem !important;
-  }
-}
-
-.room-details {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.room-number,
-.building-name,
-.allocation-date {
+.dash-card-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border: 1px solid #bae6fd;
-  transition: all 0.2s ease;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid vars.$slate-100;
 }
 
-.room-number:hover,
-.building-name:hover,
-.allocation-date:hover {
-  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-  transform: translateX(4px);
+.dash-card-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: vars.$slate-800;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
-.room-number mat-icon,
-.building-name mat-icon,
-.allocation-date mat-icon {
-  font-size: 1.5rem;
-  width: 1.5rem;
-  height: 1.5rem;
-  color: #0891B2;
-  flex-shrink: 0;
-}
-
-.room-label,
-.building-label,
-.date-label {
-  font-size: 0.875rem;
-  color: #64748b;
-  font-weight: 600;
-  min-width: 90px;
-}
-
-.room-number strong,
-.building-name strong {
-  font-size: 1rem;
-  color: #0F172A;
+.dash-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.4rem;
+  background: vars.$slate-100;
+  color: vars.$slate-600;
+  border-radius: vars.$radius-pill;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
-.allocation-date span:last-child {
-  font-size: 0.9375rem;
-  color: #334155;
-  font-weight: 600;
-}
+// ============================================================================
+// Card Body & Footer
+// ============================================================================
 
-.allocation-status {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin-top: 0.5rem;
-}
-
-.room-actions {
-  margin-top: 16px;
-  padding-top: 16px;
-  display: flex;
-  justify-content: center;
-}
-
-.room-actions button {
-  width: 100%;
-}
-
-/* Room Empty State */
-.no-room {
+.dash-card-body {
+  padding: 1.25rem 1.5rem;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  text-align: center;
-  gap: 12px;
+  gap: 1rem;
+
+  &--flush {
+    padding: 0;
+    gap: 0;
+  }
 }
 
-.no-room-icon {
-  font-size: 48px;
-  width: 48px;
-  height: 48px;
-  color: rgba(0, 0, 0, 0.3);
-  margin-bottom: 8px;
-}
-
-.no-room p {
-  margin: 0;
-  color: rgba(0, 0, 0, 0.7);
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.no-room-hint {
-  font-size: 13px !important;
-  color: rgba(0, 0, 0, 0.5) !important;
-  font-weight: 400 !important;
-  margin-bottom: 8px !important;
-}
-
-.no-room button {
-  margin-top: 8px;
-}
-
-/* Application Status Card Specific Styles */
-.application-status {
+.dash-card-footer {
+  padding: 0.875rem 1.5rem;
+  border-top: 1px solid vars.$slate-100;
+  background: vars.$slate-50;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 1.25rem;
-  width: 100%;
-  min-width: 0;
+  flex-wrap: wrap;
 }
 
-.status-header {
+.dash-card-actions {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+// ============================================================================
+// Info Block
+// ============================================================================
+
+.info-block {
+  background: vars.$slate-50;
+  border: 1px solid vars.$slate-100;
+  border-radius: vars.$radius-lg;
+  overflow: hidden;
+}
+
+.info-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  width: 100%;
-  min-width: 0;
-  gap: 0.75rem;
-}
-
-.status-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-  width: 100%;
-  min-width: 0;
-}
-
-.application-code {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #0F172A;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
-  letter-spacing: 0.025em;
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
-
-.application-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.75rem 0;
-  width: 100%;
-  min-width: 0;
-}
-
-.detail-row {
-  display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: #64748b;
-  font-size: 0.9375rem;
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
+  padding: 0.6875rem 1.125rem;
+  border-bottom: 1px solid vars.$slate-100;
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
-.detail-row:hover {
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-  transform: translateX(2px);
-}
-
-.detail-row mat-icon {
-  font-size: 1.25rem;
-  width: 1.25rem;
-  height: 1.25rem;
-  color: #0891B2;
-  flex-shrink: 0;
-}
-
-.detail-row span {
-  color: #334155;
-  font-weight: 600;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  flex-shrink: 1;
-  min-width: 0;
-  white-space: normal;
-}
-
-.application-actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
-  margin-top: 0.5rem;
-}
-
-.application-actions button {
-  flex: 1 1 auto;
-  min-width: 100px;
-}
-
-/* Application Empty State */
-.no-application {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  text-align: center;
-  gap: 12px;
-}
-
-.no-application-icon {
-  font-size: 48px;
-  width: 48px;
-  height: 48px;
-  color: rgba(0, 0, 0, 0.3);
-  margin-bottom: 8px;
-}
-
-.no-application p {
-  margin: 0;
-  color: rgba(0, 0, 0, 0.7);
-  font-size: 15px;
+.info-label {
+  font-size: 0.875rem;
+  color: vars.$slate-500;
   font-weight: 500;
 }
 
-.no-application-hint {
-  font-size: 13px !important;
-  color: rgba(0, 0, 0, 0.5) !important;
-  font-weight: 400 !important;
-  margin-bottom: 8px !important;
-}
-
-.no-application button {
-  margin-top: 8px;
-}
-
-/* Status Chips */
-.mat-mdc-chip {
-  border-radius: 8px !important;
-  font-weight: 500 !important;
-  font-size: 12px !important;
-  padding: 4px 12px !important;
-  height: auto !important;
-}
-
-.status-approved,
-.document-status.status-approved {
-  background-color: rgba(76, 175, 80, 0.1) !important;
-  color: #388e3c !important;
-}
-
-.status-pending,
-.document-status.status-pending {
-  background-color: rgba(255, 193, 7, 0.2) !important;
-  color: #f57f17 !important;
-  border: 1px solid rgba(255, 193, 7, 0.4) !important;
-}
-
-.status-rejected,
-.document-status.status-rejected {
-  background-color: rgba(244, 67, 54, 0.2) !important;
-  color: #c62828 !important;
-  border: 1px solid rgba(244, 67, 54, 0.4) !important;
-}
-
-.status-verified,
-.document-status.status-verified {
-  background-color: rgba(76, 175, 80, 0.2) !important;
-  color: #2e7d32 !important;
-  border: 1px solid rgba(76, 175, 80, 0.4) !important;
-}
-
-/* Upload Documents Button */
-.upload-documents-btn {
-  min-width: 140px;
-  height: 40px;
-  border-radius: 10px !important;
+.info-value {
+  font-size: 0.875rem;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: none;
-  font-size: 0.85rem;
-  background: rgba(255, 255, 255, 0.85) !important;
-  color: #2563eb !important;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
-  transition: background 0.2s, box-shadow 0.2s;
+  color: vars.$slate-800;
+}
+
+.info-mono {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+  font-size: 0.8125rem;
+  letter-spacing: 0.03em;
+}
+
+.info-highlight {
+  color: vars.$warning;
+}
+
+// ============================================================================
+// Journey Track — horizontal step indicator in application card
+// ============================================================================
+
+.journey-track {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 9px;
+    left: 10px;
+    right: 10px;
+    height: 2px;
+    background: vars.$slate-100;
+    z-index: 0;
+  }
+}
+
+.journey-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.journey-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: vars.$slate-200;
+  border: 2px solid vars.$slate-200;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.upload-documents-btn:hover {
-  background: #e3f0ff !important;
-  color: #174ea6 !important;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15);
-}
-
-.upload-documents-btn mat-icon {
-  font-size: 22px;
-  margin-right: 6px;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding: 16px;
-  }
-
-  .welcome-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-  }
-
-  .welcome-actions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .welcome-title {
-    font-size: 28px;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-container {
-    padding: 12px;
-  }
-
-  .welcome-title {
-    font-size: 24px;
-  }
-
-  .mat-mdc-card-header,
-  .mat-mdc-card-content {
-    padding: 16px !important;
-  }
-}
-
-.progress {
-  border-radius: 10px;
-  background-color: var(--neutral-200);
-}
-
-.progress-bar {
-  background-color: var(--primary);
-  border-radius: 10px;
-}
-
-.table th {
-  font-weight: 600;
-  color: var(--neutral-700);
-}
-
-.badge {
-  padding: 0.5em 1em;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .main-content {
-    margin-top: 56px;
-    /* Adjusted for mobile */
-    padding: 1rem 0;
-  }
-}
-
-/* 8px grid system for spacing */
-.dashboard-grid,
-.mat-mdc-card-header,
-.mat-mdc-card-content,
-.welcome-actions,
-.quick-actions,
-.documents-list,
-.history-list {
-  gap: 8px;
-}
-
-/* Card content accessibility and contrast */
-.mat-mdc-card-title,
-.mat-mdc-card-content,
-.mat-mdc-card-header,
-.application-status,
-.quick-actions,
-.documents-list,
-.history-list {
-  color: #1a1a1a;
-  font-family: 'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial,
-    sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-}
-
-/* Subtle shadow and rounded corners for all cards */
-.status-card,
-.actions-card,
-.documents-card,
-.history-card,
-.room-allocation-card {
-  border-radius: 8px !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
-  background: rgba(255, 255, 255, 0.98) !important;
-  margin: 0;
-}
-
-.status-card,
-.actions-card,
-.documents-card,
-.history-card,
-.room-allocation-card {
-  height: 100%;
-  min-height: 320px;
-  display: flex;
-  flex-direction: column;
-}
-
-.status-card .mat-mdc-card-content,
-.actions-card .mat-mdc-card-content,
-.documents-card .mat-mdc-card-content,
-.history-card .mat-mdc-card-content,
-.room-allocation-card .mat-mdc-card-content {
-  padding: 32px 32px 28px 32px !important;
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
   justify-content: center;
+  transition: background vars.$motion-fast ease, border-color vars.$motion-fast ease;
+
+  mat-icon {
+    font-size: 0.6875rem;
+    width: 0.6875rem;
+    height: 0.6875rem;
+    color: white;
+  }
+
+  .journey-step--done & {
+    background: vars.$success;
+    border-color: vars.$success;
+  }
+
+  .journey-step--active & {
+    background: white;
+    border-color: vars.$accent-purple-dark;
+    border-width: 3px;
+    box-shadow: 0 0 0 3px rgba(vars.$accent-purple-dark, 0.12);
+  }
 }
 
-/* Ensure both dashboard-grid and dashboard-grid-custom do not conflict */
-.dashboard-grid-custom .status-card,
-.dashboard-grid-custom .actions-card,
-.dashboard-grid-custom .documents-card,
-.dashboard-grid-custom .history-card,
-.dashboard-grid-custom .room-allocation-card {
-  min-width: 0;
-  min-height: 260px;
-  width: 100%;
-  height: 100%;
+.journey-label {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: vars.$slate-400;
+  text-align: center;
+  line-height: 1.3;
+
+  .journey-step--done & {
+    color: vars.$success;
+  }
+
+  .journey-step--active & {
+    color: vars.$accent-purple-dark;
+  }
+}
+
+// ============================================================================
+// Response Time Hint
+// ============================================================================
+
+.response-time-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(vars.$info, 0.06);
+  border: 1px solid rgba(vars.$info, 0.15);
+  border-radius: vars.$radius-sm;
+  font-size: 0.8125rem;
+  color: vars.$slate-600;
+  line-height: 1.55;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    color: vars.$info;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+}
+
+// ============================================================================
+// Notice text — inline, no box
+// ============================================================================
+
+.dash-notice-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: vars.$slate-500;
+  line-height: 1.5;
   margin: 0;
-  border-radius: 12px !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
-  background: rgba(255, 255, 255, 0.98) !important;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    color: vars.$info;
+    flex-shrink: 0;
+    margin-top: 0.0625rem;
+  }
+}
+
+// ============================================================================
+// Action Links (footer/card)
+// ============================================================================
+
+.dash-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: vars.$slate-500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color vars.$motion-fast ease;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &:hover {
+    color: vars.$slate-800;
+  }
+}
+
+// ============================================================================
+// Offer Actions
+// ============================================================================
+
+.dash-offer-actions {
+  display: flex;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+
+.dash-btn-accept {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 38px;
+  padding: 0 1.125rem;
+  background: vars.$accent-purple-dark;
+  color: white;
+  border: none;
+  border-radius: vars.$radius-md;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background vars.$motion-fast ease;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &:hover:not([disabled]) {
+    background: vars.$accent-purple-light;
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.dash-btn-decline {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 1.125rem;
+  background: transparent;
+  color: vars.$slate-500;
+  border: 1.5px solid vars.$slate-200;
+  border-radius: vars.$radius-md;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color vars.$motion-fast ease, color vars.$motion-fast ease;
+
+  &:hover:not([disabled]) {
+    border-color: #fca5a5;
+    color: #dc2626;
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ============================================================================
+// Application History
+// ============================================================================
+
+.dash-history-list {
   display: flex;
   flex-direction: column;
-  justify-content: stretch;
-  align-items: stretch;
-  transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.dashboard-grid-custom .documents-card,
-.dashboard-grid-custom .history-card {
-  min-height: 320px;
-  max-height: none;
-  height: auto;
+.dash-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid vars.$slate-100;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background vars.$motion-fast ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: vars.$slate-50;
+  }
+
+  > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
 }
 
-.dashboard-grid-custom .documents-card .mat-mdc-card-content,
-.dashboard-grid-custom .history-card .mat-mdc-card-content {
-  padding: 24px 24px 20px 24px !important;
-  flex: 1 1 auto;
+.dash-history-code {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: vars.$slate-800;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+  letter-spacing: 0.02em;
+}
+
+.dash-history-date {
+  font-size: 0.8125rem;
+  color: vars.$slate-400;
+  font-weight: 500;
+}
+
+.dash-history-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  mat-icon {
+    font-size: 1.0625rem;
+    width: 1.0625rem;
+    height: 1.0625rem;
+    color: vars.$slate-300;
+  }
+}
+
+// ============================================================================
+// Document Row
+// ============================================================================
+
+.dash-doc-name {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    color: vars.$slate-400;
+    flex-shrink: 0;
+  }
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+}
+
+.dash-doc-date {
+  font-size: 0.75rem;
+  color: vars.$slate-400;
+}
+
+// ============================================================================
+// Loading
+// ============================================================================
+
+.dash-loading {
+  padding: 1rem;
+}
+
+// ============================================================================
+// Empty State
+// ============================================================================
+
+.dash-empty {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-}
+  align-items: center;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  gap: 0.375rem;
 
-.dashboard-grid-custom .mat-mdc-card:hover {
-  box-shadow: 0 8px 32px rgba(12, 140, 228, 0.18) !important;
-  transform: translateY(-2px) scale(1.01);
-}
-
-.dashboard-grid-custom .actions-card {
-  grid-column: 2 / 3;
-  justify-self: stretch;
-  max-width: none;
-  min-width: 0;
-  width: 100%;
-  align-self: stretch;
-}
-
-.dashboard-grid-custom .status-card {
-  grid-column: 1 / 2;
-  max-width: none;
-  min-width: 0;
-  width: 100%;
-  flex: 1 1 0%;
-  align-self: stretch;
-  min-height: 320px;
-  height: auto;
-}
-
-@media (max-width: 900px) {
-  .dashboard-grid-custom .actions-card {
-    justify-self: stretch;
-    max-width: 100%;
-    min-width: 0;
-    width: 100%;
-    align-self: stretch;
-  }
-}
-
-/* Responsive: always stack cards vertically on mobile */
-@media (max-width: 900px) {
-  .dashboard-row {
-    grid-template-columns: 1fr !important;
-    gap: 20px;
+  > mat-icon {
+    font-size: 2.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    color: vars.$slate-300;
+    margin-bottom: 0.25rem;
   }
 
-  .dashboard-grid-custom {
-    gap: 20px;
-    padding-left: 8px;
-    padding-right: 8px;
+  > p {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: vars.$slate-700;
   }
 
-  .dashboard-grid-custom .documents-card,
-  .dashboard-grid-custom .history-card {
-    min-height: 240px;
-    max-height: none;
-  }
-
-  .dashboard-grid-custom .documents-card .mat-mdc-card-content,
-  .dashboard-grid-custom .history-card .mat-mdc-card-content {
-    padding: 16px 8px 12px 8px !important;
+  > span {
+    font-size: 0.8125rem;
+    color: vars.$slate-400;
+    line-height: 1.5;
+    max-width: 260px;
+    margin-bottom: 0.5rem;
   }
 }

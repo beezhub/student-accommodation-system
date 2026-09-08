@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -18,7 +18,7 @@ import { BuildingResponse } from '../../../../core/services/building.service';
   template: `
     <div class="dialog-container">
       <div class="dialog-header">
-        <div class="header-icon">
+        <div class="header-icon-wrap" aria-hidden="true">
           <mat-icon>library_add</mat-icon>
         </div>
         <div class="header-text">
@@ -29,19 +29,16 @@ import { BuildingResponse } from '../../../../core/services/building.service';
 
       <mat-dialog-content>
         <form [formGroup]="bulkForm" class="bulk-form">
-          <!-- Building -->
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Building</mat-label>
             <mat-icon matPrefix>apartment</mat-icon>
             <mat-select formControlName="buildingId" required>
               @for (building of data.buildings; track building.id) {
-                <mat-option [value]="building.id">
-                  {{ building.name }}
-                </mat-option>
+              <mat-option [value]="building.id">{{ building.name }}</mat-option>
               }
             </mat-select>
             @if (bulkForm.get('buildingId')?.hasError('required')) {
-              <mat-error>Building is required</mat-error>
+            <mat-error>Building is required</mat-error>
             }
           </mat-form-field>
 
@@ -58,10 +55,9 @@ import { BuildingResponse } from '../../../../core/services/building.service';
               <mat-icon matPrefix>looks_one</mat-icon>
               <input matInput type="number" formControlName="startNumber" min="1" required />
               @if (bulkForm.get('startNumber')?.hasError('required')) {
-                <mat-error>Required</mat-error>
-              }
-              @if (bulkForm.get('startNumber')?.hasError('min')) {
-                <mat-error>Min 1</mat-error>
+              <mat-error>Required</mat-error>
+              } @if (bulkForm.get('startNumber')?.hasError('min')) {
+              <mat-error>Min 1</mat-error>
               }
             </mat-form-field>
           </div>
@@ -72,13 +68,11 @@ import { BuildingResponse } from '../../../../core/services/building.service';
               <mat-icon matPrefix>layers</mat-icon>
               <input matInput type="number" formControlName="count" min="1" max="100" required />
               @if (bulkForm.get('count')?.hasError('required')) {
-                <mat-error>Required</mat-error>
-              }
-              @if (bulkForm.get('count')?.hasError('min')) {
-                <mat-error>At least 1</mat-error>
-              }
-              @if (bulkForm.get('count')?.hasError('max')) {
-                <mat-error>Max 100</mat-error>
+              <mat-error>Required</mat-error>
+              } @if (bulkForm.get('count')?.hasError('min')) {
+              <mat-error>At least 1</mat-error>
+              } @if (bulkForm.get('count')?.hasError('max')) {
+              <mat-error>Max 100</mat-error>
               }
             </mat-form-field>
 
@@ -87,268 +81,260 @@ import { BuildingResponse } from '../../../../core/services/building.service';
               <mat-icon matPrefix>group</mat-icon>
               <input matInput type="number" formControlName="capacity" min="1" required />
               @if (bulkForm.get('capacity')?.hasError('required')) {
-                <mat-error>Required</mat-error>
-              }
-              @if (bulkForm.get('capacity')?.hasError('min')) {
-                <mat-error>At least 1</mat-error>
+              <mat-error>Required</mat-error>
+              } @if (bulkForm.get('capacity')?.hasError('min')) {
+              <mat-error>At least 1</mat-error>
               }
             </mat-form-field>
           </div>
 
           <!-- Preview -->
           @if (generatedRoomNumbers.length > 0) {
-            <div class="preview-section">
-              <div class="preview-header">
-                <mat-icon>preview</mat-icon>
-                <span>Preview ({{ generatedRoomNumbers.length }} rooms)</span>
-              </div>
-              <div class="preview-chips">
-                @for (roomNum of generatedRoomNumbers.slice(0, 12); track roomNum) {
-                  <span class="room-chip">{{ roomNum }}</span>
-                }
-                @if (generatedRoomNumbers.length > 12) {
-                  <span class="room-chip more">+{{ generatedRoomNumbers.length - 12 }} more</span>
-                }
-              </div>
+          <div class="preview-section">
+            <div class="preview-header">
+              <mat-icon>preview</mat-icon>
+              <span>Preview &mdash; {{ generatedRoomNumbers.length }} rooms</span>
             </div>
+            <div class="preview-chips">
+              @for (roomNum of generatedRoomNumbers.slice(0, 12); track roomNum) {
+              <span class="room-chip">{{ roomNum }}</span>
+              } @if (generatedRoomNumbers.length > 12) {
+              <span class="room-chip more">+{{ generatedRoomNumbers.length - 12 }} more</span>
+              }
+            </div>
+          </div>
           }
         </form>
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+        <button
+          mat-stroked-button
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+          class="cancel-btn"
+        >
           Cancel
         </button>
         <button
           mat-raised-button
-          color="primary"
           (click)="onSubmit()"
           [disabled]="!bulkForm.valid || isSubmitting || generatedRoomNumbers.length === 0"
           class="submit-btn"
         >
           @if (isSubmitting) {
-            <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            Creating...
-          }
-          @if (!isSubmitting) {
-            <mat-icon>add</mat-icon>
-            Create {{ generatedRoomNumbers.length }} Rooms
-          }
+          <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+          Creating... } @if (!isSubmitting) {
+          <mat-icon>add</mat-icon>
+          Create {{ generatedRoomNumbers.length }} Rooms }
         </button>
       </mat-dialog-actions>
     </div>
   `,
   styles: [
     `
-      /* Mobile-first base */
       .dialog-container {
         width: 100%;
       }
 
+      /* ── Header band (cyan = rooms) ── */
       .dialog-header {
         display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 16px 16px 0;
+        align-items: center;
+        gap: 0.875rem;
+        padding: 1.25rem 1.5rem 1.125rem;
+        background: #0f172a;
+        position: relative;
+        flex-shrink: 0;
       }
-
-      .header-icon {
+      .dialog-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #0891b2 0%, #06b6d4 100%);
+      }
+      .header-icon-wrap {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
-        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-        border-radius: 12px;
-        border: 1px solid #a7f3d0;
+        flex-shrink: 0;
       }
-
-      .header-icon mat-icon {
-        font-size: 22px;
-        width: 22px;
-        height: 22px;
-        color: #059669;
+      .header-icon-wrap mat-icon {
+        color: white;
+        font-size: 1.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
       }
-
       .header-text h2 {
-        margin: 0 0 4px 0;
-        font-size: 18px;
+        margin: 0 0 0.125rem 0;
+        font-size: 1.0625rem;
         font-weight: 700;
-        color: #1e293b;
+        color: white;
+        letter-spacing: -0.01em;
       }
-
       .header-text .subtitle {
         margin: 0;
-        font-size: 13px;
-        color: #64748b;
+        font-size: 0.8125rem;
+        color: #94a3b8;
       }
 
+      /* ── Content ── */
       mat-dialog-content {
-        padding: 16px !important;
+        padding: 1.25rem 1.5rem !important;
         max-height: 65vh;
         overflow-y: auto;
       }
-
       .bulk-form {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 0.25rem;
       }
-
       .form-row {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 4px;
+        gap: 0.25rem;
       }
-
       .form-field,
       .full-width {
         width: 100%;
       }
-
       mat-icon[matPrefix] {
         color: #94a3b8;
-        margin-right: 8px;
+        margin-right: 0.5rem;
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
       }
 
       /* Preview Section */
       .preview-section {
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
+        background: #ecfeff;
+        border: 1px solid #a5f3fc;
         border-radius: 10px;
-        padding: 12px;
-        margin-top: 4px;
+        padding: 0.875rem;
+        margin-top: 0.5rem;
       }
-
       .preview-header {
         display: flex;
         align-items: center;
-        gap: 6px;
-        margin-bottom: 10px;
-        font-size: 13px;
-        font-weight: 600;
-        color: #166534;
+        gap: 0.375rem;
+        margin-bottom: 0.625rem;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        color: #0e7490;
       }
-
       .preview-header mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-        color: #16a34a;
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
+        color: #0891b2;
       }
-
       .preview-chips {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 0.375rem;
       }
-
       .room-chip {
         display: inline-flex;
         align-items: center;
-        padding: 4px 10px;
+        padding: 0.1875rem 0.5rem;
         background: white;
-        border: 1px solid #d1fae5;
-        border-radius: 6px;
-        font-size: 12px;
+        border: 1px solid #cffafe;
+        border-radius: 5px;
+        font-size: 0.75rem;
         font-weight: 600;
-        color: #065f46;
+        color: #0891b2;
+        font-family: monospace;
       }
-
       .room-chip.more {
-        background: #dcfce7;
-        border-color: #a7f3d0;
-        color: #15803d;
+        background: #cffafe;
+        border-color: #a5f3fc;
+        color: #0e7490;
         font-style: italic;
+        font-family: inherit;
       }
 
-      /* Dialog Actions */
+      /* ── Actions ── */
       mat-dialog-actions {
-        padding: 12px 16px 16px !important;
-        gap: 10px;
+        padding: 0.875rem 1.5rem 1.25rem !important;
+        gap: 0.75rem;
         border-top: 1px solid #f1f5f9;
-        margin-top: 8px;
+        flex-direction: column-reverse;
+        margin-top: 0;
       }
-
       .cancel-btn {
-        border-radius: 10px !important;
-        padding: 0 16px !important;
+        border-radius: 8px !important;
         height: 44px;
+        width: 100%;
         color: #64748b;
         border-color: #e2e8f0 !important;
-        flex: 1;
-      }
-
-      .submit-btn {
-        border-radius: 10px !important;
-        padding: 0 16px !important;
-        height: 44px;
         font-weight: 600;
+      }
+      .submit-btn {
+        border-radius: 8px !important;
+        height: 44px;
+        width: 100%;
+        background: #0891b2 !important;
+        color: white !important;
+        font-weight: 700;
         display: flex;
         align-items: center;
-        gap: 6px;
-        flex: 1;
         justify-content: center;
+        gap: 0.375rem;
       }
-
+      .submit-btn:hover:not(:disabled) {
+        background: #06b6d4 !important;
+      }
+      .submit-btn:disabled {
+        opacity: 0.6;
+      }
       .submit-btn mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
       }
-
       .button-spinner {
         display: inline-block;
-        margin-right: 6px;
+        margin-right: 0.375rem;
       }
 
-      /* Tablet+ */
+      /* ── Tablet+ ── */
       @media (min-width: 480px) {
         .dialog-header {
-          gap: 16px;
-          padding: 24px 24px 0;
+          padding: 1.5rem 1.75rem 1.375rem;
+          gap: 1rem;
         }
-
-        .header-icon {
-          width: 56px;
-          height: 56px;
-          min-width: 56px;
-          border-radius: 16px;
+        .header-icon-wrap {
+          width: 44px;
+          height: 44px;
         }
-
-        .header-icon mat-icon {
-          font-size: 28px;
-          width: 28px;
-          height: 28px;
-        }
-
         .header-text h2 {
-          font-size: 22px;
+          font-size: 1.125rem;
         }
-
-        .header-text .subtitle {
-          font-size: 14px;
-        }
-
         mat-dialog-content {
-          padding: 24px !important;
+          padding: 1.25rem 1.75rem !important;
         }
-
         .form-row {
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          gap: 1rem;
         }
-
         mat-dialog-actions {
-          padding: 16px 24px 24px !important;
-          gap: 12px;
+          padding: 1rem 1.75rem 1.5rem !important;
+          flex-direction: row;
+          justify-content: flex-end;
         }
-
         .cancel-btn,
         .submit-btn {
-          flex: none;
-          padding: 0 24px !important;
+          width: auto;
+          padding: 0 1.5rem !important;
         }
       }
     `,
@@ -369,20 +355,19 @@ import { BuildingResponse } from '../../../../core/services/building.service';
   ],
 })
 export class BulkRoomFormDialogComponent {
+  private fb = inject(FormBuilder);
+  private roomService = inject(RoomService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<BulkRoomFormDialogComponent>>(MatDialogRef);
+  data = inject<{
+    buildings: BuildingResponse[];
+  }>(MAT_DIALOG_DATA);
+
   bulkForm: FormGroup;
   isSubmitting = false;
   generatedRoomNumbers: string[] = [];
 
-  constructor(
-    private fb: FormBuilder,
-    private roomService: RoomService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<BulkRoomFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA)
-    public data: {
-      buildings: BuildingResponse[];
-    }
-  ) {
+  constructor() {
     this.bulkForm = this.fb.group({
       buildingId: ['', Validators.required],
       prefix: [''],
@@ -391,7 +376,6 @@ export class BulkRoomFormDialogComponent {
       capacity: [2, [Validators.required, Validators.min(1)]],
     });
 
-    // Regenerate preview when inputs change
     this.bulkForm.valueChanges.subscribe(() => this.generatePreview());
     this.generatePreview();
   }

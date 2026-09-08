@@ -1,9 +1,18 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject, ChangeDetectorRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
-import { ApplicationService, ApplicationFullDetails } from '../../../../core/services/application.service';
+import { ApplicationService } from '../../../../core/services/application.service';
 import { AdminService, ApplicationResponse } from '../../../../core/services/admin.service';
+import { RoleService } from '../../../../core/services/role.service';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -25,6 +34,7 @@ import { MatInputModule } from '@angular/material/input';
 
 // Shared Components
 import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-badge/modern-status-badge.component';
+import { User } from '../../../../core/models/user.model';
 
 @Component({
   selector: 'app-application-details',
@@ -53,9 +63,11 @@ import { ModernStatusBadgeComponent } from '../../../../shared/modern-status-bad
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ApplicationDetailsComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly roleService = inject(RoleService);
   private readonly applicationService = inject(ApplicationService);
   private readonly adminService = inject(AdminService);
   private readonly breakpointObserver = inject(BreakpointObserver);
@@ -64,7 +76,7 @@ export class ApplicationDetailsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  currentUser: any;
+  currentUser: User | null = null;
   applicationId: number = 0;
   application: ApplicationResponse | null = null;
   isLoading = false;
@@ -93,9 +105,9 @@ export class ApplicationDetailsComponent implements OnInit {
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;
-    this.isAdmin = this.currentUser?.userRole === 'ADMIN';
+    this.isAdmin = this.roleService.isPlatformAdmin();
 
-    this.route.params.subscribe((params) => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.applicationId = +params['id'];
       if (this.applicationId) {
         this.loadApplicationDetails();
@@ -116,7 +128,6 @@ export class ApplicationDetailsComponent implements OnInit {
 
     this.applicationService.getApplicationFullDetails(this.applicationId).subscribe({
       next: (fullDetails) => {
-        console.log('Application full details loaded:', fullDetails);
         // Map ApplicationFullDetails to ApplicationResponse structure for compatibility
         this.application = {
           id: fullDetails.id,
@@ -130,6 +141,7 @@ export class ApplicationDetailsComponent implements OnInit {
           studentEmail: fullDetails.studentProfile.email,
           // Optional fields
           preferredBuildingName: fullDetails.preferredBuildingName,
+          preferredBuildings: fullDetails.preferredBuildings,
           requiresAccessibility: fullDetails.requiresAccessibility,
           specialRequirements: fullDetails.specialRequirements,
           courseName: fullDetails.courseName,
@@ -187,10 +199,12 @@ export class ApplicationDetailsComponent implements OnInit {
         icon: 'hourglass_empty',
       });
     } else if (this.application.status === 'ALLOCATED') {
-       this.timeline.push({
+      this.timeline.push({
         date: this.application.updatedAt || this.application.applicationDate,
         status: 'Room Allocated',
-        description: `Room allocation complete. Building: ${this.application.preferredBuildingName || 'Assigned Building'}`,
+        description: `Room allocation complete. Building: ${
+          this.application.preferredBuildingName || 'Assigned Building'
+        }`,
         icon: 'home',
       });
     }

@@ -55,6 +55,14 @@ public class UserAnonymizationService {
             student.setDateOfBirth(null);
             student.setGender(null);
             student.setSpecialRequirements(null);
+            // GH-239. The emergency contact is someone else's personal data — a third party who
+            // never signed up and never consented to being here. Leaving their name and phone
+            // number behind after the student has been anonymised would keep exactly the data
+            // anonymisation exists to remove.
+            student.setEmergencyContactName(null);
+            student.setEmergencyContactRelationship(null);
+            student.setEmergencyContactPhone(null);
+            student.setEmergencyContactEmail(null);
             studentRepository.save(student);
             log.info("Anonymized student record for user {}", userId);
         }

@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,6 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DocumentCommentService } from '../../../../core/services/document-comment.service';
 import { DocumentComment } from '../../../../core/models/allocation.models';
 import { AuthService } from '../../../../core/services/auth.service';
+import { RoleService } from '../../../../core/services/role.service';
 import { TimeagoPipe } from '../../../../shared/pipes/timeago.pipe';
 
 @Component({
@@ -30,6 +31,11 @@ import { TimeagoPipe } from '../../../../shared/pipes/timeago.pipe';
   styleUrls: ['./document-comment-section.component.css'],
 })
 export class DocumentCommentSectionComponent implements OnInit, OnChanges {
+  private documentCommentService = inject(DocumentCommentService);
+  private authService = inject(AuthService);
+  private roleService = inject(RoleService);
+  private snackBar = inject(MatSnackBar);
+
   @Input() documentId!: number;
   @Input() prefillRejectionMessage = false;
 
@@ -38,19 +44,10 @@ export class DocumentCommentSectionComponent implements OnInit, OnChanges {
   isSubmitting = false;
   isAdmin = false;
 
-  commentControl = new FormControl('', [
-    Validators.minLength(10),
-    Validators.maxLength(500),
-  ]);
+  commentControl = new FormControl('', [Validators.minLength(10), Validators.maxLength(500)]);
 
   private readonly DEFAULT_REJECTION_MESSAGE =
     'Your document has been rejected. Please review the requirements and submit a new document that meets the specified criteria.';
-
-  constructor(
-    private documentCommentService: DocumentCommentService,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {}
 
   ngOnInit(): void {
     this.checkAdminStatus();
@@ -69,8 +66,7 @@ export class DocumentCommentSectionComponent implements OnInit, OnChanges {
   }
 
   private checkAdminStatus(): void {
-    const currentUser = this.authService.currentUserValue;
-    this.isAdmin = currentUser?.userRole === 'ADMIN';
+    this.isAdmin = this.roleService.isPlatformAdmin();
   }
 
   loadComments(): void {

@@ -17,7 +17,17 @@ export type NotificationType =
   | 'APPLICATION_REJECTED'
   | 'PAYMENT_DUE'
   | 'SYSTEM_ANNOUNCEMENT'
-  | 'INFO';
+  | 'INFO'
+  | 'ALLOCATION_CONFIRMED'
+  | 'ALLOCATION_PROPOSED'
+  | 'ALLOCATION_REJECTED'
+  | 'CHECK_IN_CONFIRMED'
+  | 'CHECK_IN_EXPIRED'
+  | 'CHECK_IN_REMINDER'
+  | 'OFFER_EXPIRED'
+  | 'OFFER_EXPIRY_REMINDER'
+  | 'ROOM_MOVED'
+  | 'WAITING_LIST';
 
 export interface NotificationData {
   roomNumber?: string;
@@ -26,6 +36,8 @@ export interface NotificationData {
   applicationId?: number;
   dueDate?: string;
   amount?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 

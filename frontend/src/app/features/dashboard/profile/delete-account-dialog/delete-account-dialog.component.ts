@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../../core/services/auth.service';
+import { AbstractControl } from '@angular/forms';
 
 @Component({
   selector: 'app-delete-account-dialog',
@@ -174,24 +175,25 @@ import { AuthService } from '../../../../core/services/auth.service';
   ],
 })
 export class DeleteAccountDialogComponent {
+  private fb = inject(FormBuilder);
+  private dialogRef = inject<MatDialogRef<DeleteAccountDialogComponent>>(MatDialogRef);
+  private authService = inject(AuthService);
+
   deleteForm: FormGroup;
   hidePassword = true;
   isDeleting = false;
   errorMessage = '';
 
-  constructor(
-    private fb: FormBuilder,
-    private dialogRef: MatDialogRef<DeleteAccountDialogComponent>,
-    private authService: AuthService
-  ) {
+  constructor() {
     this.deleteForm = this.fb.group({
       confirmation: ['', [Validators.required, this.deleteConfirmationValidator]],
       password: ['', Validators.required],
     });
   }
 
-  deleteConfirmationValidator(control: any) {
+  deleteConfirmationValidator(control: AbstractControl) {
     return control.value === 'DELETE' ? null : { confirmationMismatch: true };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }
 
   onDelete() {

@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'student-accommodation-backend'
+    metrics_path: '/actuator/prometheus'
+    # /actuator/prometheus requires credentials: without them every scrape is rejected and the
+    # Grafana dashboards and alerts stay empty (GH-134). The password is read from a file that
+    # compose materialises from PROMETHEUS_SCRAPE_PASSWORD, the same variable the backend reads,
+    # so nothing is committed and the two sides cannot drift apart (GH-249).
+    basic_auth:
+      username: 'prometheus'
+      password_file: /run/secrets/prometheus_scrape_password
+    static_configs:
+      - targets: ['student-accommodation-back-end:8080']

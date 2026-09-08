@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -33,12 +34,13 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { SelectionModel } from '@angular/cdk/collections';
 
 // Modern UI Components
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
+import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import {
   ApplicationDetailDialogComponent,
   ApplicationDetailDialogData,
@@ -47,11 +49,14 @@ import {
 import {
   AllocationChoiceDialogComponent,
   AllocationChoiceDialogData,
+  AllocationChoiceResult,
 } from './allocation-choice-dialog/allocation-choice-dialog.component';
 import {
   PreferencesDialogComponent,
   PreferencesDialogData,
 } from './preferences-dialog/preferences-dialog.component';
+import { askForReason } from '../../../shared/components/reason-dialog/reason-dialog.component';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 
 @Component({
   selector: 'app-application-review',
@@ -83,14 +88,25 @@ import {
     MatNativeDateModule,
     ModernStatusBadgeComponent,
     ErrorDisplayComponent,
+    SkeletonLoaderComponent,
+    EmptyStateComponent,
   ],
 })
 export class ApplicationReviewComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
+  private adminService = inject(AdminService);
+  private applicationService = inject(ApplicationService);
+  private buildingService = inject(BuildingService);
+  private stagedAllocationService = inject(StagedAllocationService);
+  private fb = inject(FormBuilder);
+  private snackBar = inject(MatSnackBar);
+  private errorService = inject(ErrorHandlingService);
+  private dialog = inject(MatDialog);
+
   applications: ApplicationResponse[] = [];
   displayedColumns: string[] = [
-    'applicationCode',
     'studentName',
-    'studentEmail',
+    'applicationCode',
     'preferredBuilding',
     'allocationScore',
     'documentStatus',
@@ -105,46 +121,40 @@ export class ApplicationReviewComponent implements OnInit {
   pageSize = 20;
   currentPage = 0;
 
+  // Filter panel state
+  filtersVisible = false;
+  activeFilterCount = 0;
+
+  // Metric counts
+  counts = { total: 0, pending: 0, awaitingAllocation: 0, allocated: 0 };
+
   filterForm: FormGroup;
-  
-  // Dropdown options
+
   statuses = [
     { value: 'PENDING', label: 'Pending' },
     { value: 'APPROVED', label: 'Approved' },
     { value: 'REJECTED', label: 'Rejected' },
     { value: 'AWAITING_ALLOCATION', label: 'Awaiting Allocation' },
-    { value: 'ALLOCATED', label: 'Allocated' }
+    { value: 'ALLOCATED', label: 'Allocated' },
   ];
-  
+
   allocationStatuses = [
     { value: 'PENDING', label: 'Pending' },
     { value: 'ALLOCATED', label: 'Allocated' },
-    { value: 'REJECTED', label: 'Rejected' }
+    { value: 'REJECTED', label: 'Rejected' },
   ];
 
-  // Buildings for autocomplete
   buildings: BuildingResponse[] = [];
   filteredBuildings$!: Observable<BuildingResponse[]>;
 
-  // Error state
   loadError: ParsedError | null = null;
   isRetrying = false;
 
-  constructor(
-    private adminService: AdminService,
-    private applicationService: ApplicationService,
-
-    private buildingService: BuildingService,
-    private stagedAllocationService: StagedAllocationService,
-    private fb: FormBuilder,
-    private snackBar: MatSnackBar,
-    private errorService: ErrorHandlingService,
-    private dialog: MatDialog
-  ) {
+  constructor() {
     this.filterForm = this.fb.group({
       applicationCode: [''],
       studentName: [''],
-      status: [''],
+      status: ['PENDING'],
       allocationStatus: [''],
       preferredBuilding: [''],
       startDate: [''],
@@ -156,6 +166,47 @@ export class ApplicationReviewComponent implements OnInit {
     this.loadBuildings();
     this.setupBuildingAutocomplete();
     this.loadApplications();
+    this.loadCounts();
+    // valueChanges never completes, so without this the subscription outlives the component
+    // and keeps it, its form and its closures alive for the life of the app (GH-157).
+    this.filterForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.computeActiveFilterCount());
+  }
+
+  toggleFilters(): void {
+    this.filtersVisible = !this.filtersVisible;
+  }
+
+  computeActiveFilterCount(): void {
+    const v = this.filterForm.value;
+    let count = 0;
+    if (v.applicationCode) count++;
+    if (v.studentName) count++;
+    if (v.status) count++;
+    if (v.allocationStatus) count++;
+    if (v.preferredBuilding) count++;
+    if (v.startDate) count++;
+    if (v.endDate) count++;
+    this.activeFilterCount = count;
+  }
+
+  loadCounts(): void {
+    const fetch = (status: string) =>
+      this.adminService.searchApplications({ status, page: 0, size: 1 });
+
+    fetch('PENDING').subscribe({
+      next: (r) => (this.counts.pending = r.totalElements),
+      error: () => {},
+    });
+    fetch('AWAITING_ALLOCATION').subscribe({
+      next: (r) => (this.counts.awaitingAllocation = r.totalElements),
+      error: () => {},
+    });
+    fetch('ALLOCATED').subscribe({
+      next: (r) => (this.counts.allocated = r.totalElements),
+      error: () => {},
+    });
   }
 
   loadBuildings(): void {
@@ -165,7 +216,7 @@ export class ApplicationReviewComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load buildings:', error);
-      }
+      },
     });
   }
 
@@ -174,15 +225,13 @@ export class ApplicationReviewComponent implements OnInit {
       startWith(''),
       debounceTime(200),
       distinctUntilChanged(),
-      map(value => this.filterBuildings(value || ''))
+      map((value) => this.filterBuildings(value || ''))
     );
   }
 
   filterBuildings(value: string): BuildingResponse[] {
     const filterValue = value.toLowerCase();
-    return this.buildings.filter(building => 
-      building.name.toLowerCase().includes(filterValue)
-    );
+    return this.buildings.filter((building) => building.name.toLowerCase().includes(filterValue));
   }
 
   displayBuilding(building: BuildingResponse | string): string {
@@ -190,7 +239,7 @@ export class ApplicationReviewComponent implements OnInit {
     return building ? building.name : '';
   }
 
-  onBuildingSelected(event: any): void {
+  onBuildingSelected(event: MatAutocompleteSelectedEvent): void {
     const building = event.option.value;
     if (typeof building === 'object') {
       this.filterForm.get('preferredBuilding')!.setValue(building.name);
@@ -208,9 +257,10 @@ export class ApplicationReviewComponent implements OnInit {
       studentName: formValue.studentName,
       status: formValue.status,
       allocationStatus: formValue.allocationStatus || undefined,
-      preferredBuilding: formValue.preferredBuilding && typeof formValue.preferredBuilding === 'object' 
-        ? formValue.preferredBuilding.name 
-        : formValue.preferredBuilding || undefined,
+      preferredBuilding:
+        formValue.preferredBuilding && typeof formValue.preferredBuilding === 'object'
+          ? formValue.preferredBuilding.name
+          : formValue.preferredBuilding || undefined,
       startDate: formValue.startDate ? this.formatDate(formValue.startDate) : undefined,
       endDate: formValue.endDate ? this.formatDate(formValue.endDate) : undefined,
       page: this.currentPage,
@@ -221,6 +271,7 @@ export class ApplicationReviewComponent implements OnInit {
       next: (response: PageResponse<ApplicationResponse>) => {
         this.applications = response.content;
         this.totalElements = response.totalElements;
+        this.counts.total = response.totalElements;
         this.isLoading = false;
         this.isRetrying = false;
       },
@@ -236,7 +287,6 @@ export class ApplicationReviewComponent implements OnInit {
   retryLoadApplications(): void {
     this.loadApplications();
   }
-
   dismissLoadError(): void {
     this.loadError = null;
   }
@@ -247,7 +297,8 @@ export class ApplicationReviewComponent implements OnInit {
   }
 
   onClearFilters(): void {
-    this.filterForm.reset();
+    this.filterForm.reset({ status: 'PENDING' });
+    this.activeFilterCount = 0;
     this.currentPage = 0;
     this.loadApplications();
   }
@@ -265,7 +316,6 @@ export class ApplicationReviewComponent implements OnInit {
         this.loadApplications();
       },
       error: (error) => {
-        console.error('Failed to update status:', error);
         const parsedError = this.errorService.parseError(error);
         this.errorService.showErrorSnackbar(parsedError);
       },
@@ -276,14 +326,26 @@ export class ApplicationReviewComponent implements OnInit {
     return status.toLowerCase();
   }
 
+  getStudentInitials(app: ApplicationResponse): string {
+    const first = (app.studentFirstName || '').charAt(0).toUpperCase();
+    const last = (app.studentLastName || '').charAt(0).toUpperCase();
+    return first + last || '?';
+  }
+
+  getScoreRingStyle(score: number | null | undefined): Record<string, string> {
+    if (score === null || score === undefined) return {};
+    const pct = Math.min(100, Math.max(0, score));
+    const color = score >= 80 ? '#059669' : score >= 50 ? '#d97706' : '#dc2626';
+    return { '--score-pct': `${pct}`, '--ring-color': color };
+  }
+
   private formatDate(date: Date | string): string {
     if (!date) return '';
     if (typeof date === 'string') return date;
     const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate()
+    ).padStart(2, '0')}`;
   }
 
   getStatusIcon(status: string): string {
@@ -309,7 +371,10 @@ export class ApplicationReviewComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe((result: ApplicationDetailDialogResult | undefined) => {
-      if (result && (result.action === 'allocated' || result.action === 'rejected' || result.action === 'saved')) {
+      if (
+        result &&
+        (result.action === 'allocated' || result.action === 'rejected' || result.action === 'saved')
+      ) {
         this.loadApplications();
       }
     });
@@ -322,11 +387,11 @@ export class ApplicationReviewComponent implements OnInit {
       panelClass: 'allocation-choice-dialog',
       data: {
         applicationId: application.id,
-        studentId: application.studentId
+        studentId: application.studentId,
       } as AllocationChoiceDialogData,
     });
 
-    dialogRef.afterClosed().subscribe((result: any) => {
+    dialogRef.afterClosed().subscribe((result: AllocationChoiceResult | undefined) => {
       if (result && result.action === 'allocated') {
         this.loadApplications();
       }
@@ -349,35 +414,32 @@ export class ApplicationReviewComponent implements OnInit {
 
   runAutoAllocation(application: ApplicationResponse): void {
     if (application.status !== 'AWAITING_ALLOCATION') {
-      this.errorService.showWarning('Application must be in "Awaiting Allocation" status for auto-allocation.');
+      this.errorService.showWarning(
+        'Application must be in "Awaiting Allocation" status for auto-allocation.'
+      );
       return;
     }
 
     const batchId = `auto-${application.id}-${Date.now()}`;
-
     this.snackBar.open('Running auto-allocation...', 'Close', { duration: 2000 });
 
     this.stagedAllocationService.proposeAllocation([application.studentId], batchId).subscribe({
       next: (proposal) => {
         if (proposal.proposals && proposal.proposals.length > 0) {
-          const stagedAllocation = proposal.proposals[0];
-          // Auto-confirm the allocation
-          this.stagedAllocationService.confirmAllocation(stagedAllocation.id).subscribe({
+          this.stagedAllocationService.confirmAllocation(proposal.proposals[0].id).subscribe({
             next: () => {
               this.errorService.showSuccess('Room allocated successfully!');
               this.loadApplications();
             },
             error: (error) => {
-              console.error('Failed to confirm allocation:', error);
               this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-            }
+            },
           });
         } else {
           this.enqueueWaitingListForAutoAllocation(application);
         }
       },
       error: (error) => {
-        console.error('Failed to run auto-allocation:', error);
         const parsedError = this.errorService.parseError(error);
         if (
           parsedError.message.includes('No eligible') ||
@@ -388,23 +450,24 @@ export class ApplicationReviewComponent implements OnInit {
         } else {
           this.errorService.showErrorSnackbar(parsedError);
         }
-      }
+      },
     });
   }
 
   private enqueueWaitingListForAutoAllocation(application: ApplicationResponse): void {
-    this.stagedAllocationService.enqueueWaitingList(application.studentId, application.id).subscribe({
-      next: (res) => {
-        this.errorService.showWarning(
-          res.message || 'No suitable room found. Student added to waiting list.'
-        );
-        this.loadApplications();
-      },
-
-      error: () => {
-        this.errorService.showWarning('No suitable room found for auto-allocation.');
-      }
-    });
+    this.stagedAllocationService
+      .enqueueWaitingList(application.studentId, application.id)
+      .subscribe({
+        next: (res) => {
+          this.errorService.showWarning(
+            res.message || 'No suitable room found. Student added to waiting list.'
+          );
+          this.loadApplications();
+        },
+        error: () => {
+          this.errorService.showWarning('No suitable room found for auto-allocation.');
+        },
+      });
   }
 
   markUnderReview(application: ApplicationResponse): void {
@@ -414,27 +477,31 @@ export class ApplicationReviewComponent implements OnInit {
         this.loadApplications();
       },
       error: (error) => {
-        console.error('Failed to mark under review:', error);
         this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-      }
+      },
     });
   }
 
   requestChanges(application: ApplicationResponse): void {
-    const reason = prompt('Please enter the reason for requesting changes:');
-    if (!reason) return;
-
-    this.applicationService.requestChanges(application.id, reason).subscribe({
-      next: () => {
-        this.errorService.showSuccess('Changes requested successfully');
-        this.loadApplications();
-      },
-      error: (error) => {
-        console.error('Failed to request changes:', error);
-        this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-      }
+    // The reason reaches the student as the whole explanation of what to fix, so it is validated
+    // rather than accepted as whatever `prompt` returned — which included a single space (GH-157).
+    askForReason(this.dialog, {
+      title: 'Request changes',
+      message: 'The student sees this, and it is the only guidance they get on what to change.',
+      label: 'What needs to change?',
+      placeholder: 'e.g. The proof of registration is for the wrong academic year.',
+      confirmLabel: 'Request changes',
+    }).subscribe((reason) => {
+      if (!reason) return;
+      this.applicationService.requestChanges(application.id, reason).subscribe({
+        next: () => {
+          this.errorService.showSuccess('Changes requested successfully');
+          this.loadApplications();
+        },
+        error: (error) => {
+          this.errorService.showErrorSnackbar(this.errorService.parseError(error));
+        },
+      });
     });
   }
-
-
 }

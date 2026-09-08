@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RoomService, RoomResponse } from '../../../core/services/room.service';
@@ -53,13 +53,13 @@ export class RoomBrowserComponent implements OnInit {
     { value: 4, label: 'Quad (4+)' },
   ];
 
-  constructor(
-    private roomService: RoomService,
-    private buildingService: BuildingService,
-    private fb: FormBuilder,
-    private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {
+  private roomService = inject(RoomService);
+  private buildingService = inject(BuildingService);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
+  constructor() {
     this.filterForm = this.fb.group({
       buildingId: [''],
       capacity: [''],
@@ -82,13 +82,23 @@ export class RoomBrowserComponent implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load buildings:', error);
+        this.snackBar.open('Could not load buildings for filtering.', 'Close', {
+          duration: 3000,
+          panelClass: ['error-snackbar'],
+        });
       },
     });
   }
 
+  pageIndex = 0;
+  pageSize = 25;
+  totalRooms = 0;
+
   loadRooms(): void {
     this.isLoading = true;
-    this.roomService.searchRooms({ page: 0, size: 1000 }).subscribe({
+    // 25, not 1000: this feeds a browsable list, and asking for a thousand rows both moved a
+    // large payload and truncated silently past it (GH-157).
+    this.roomService.searchRooms({ page: this.pageIndex, size: this.pageSize }).subscribe({
       next: (response) => {
         // Only show available or partially occupied rooms
         this.rooms = response.content.filter(
@@ -96,6 +106,7 @@ export class RoomBrowserComponent implements OnInit {
             room.status === 'AVAILABLE' ||
             (room.status === 'OCCUPIED' && room.currentOccupancy < room.capacity)
         );
+        this.totalRooms = response.totalElements;
         this.applyFilters();
         this.isLoading = false;
       },

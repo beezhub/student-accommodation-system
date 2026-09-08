@@ -11,8 +11,10 @@ import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
+import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.service.DocumentTypeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,10 +56,16 @@ class ApplicationSearchServiceTest {
     private DocumentRepository documentRepository;
 
     @Mock
+    private DocumentTypeRepository documentTypeRepository;
+
+    @Mock
     private BuildingRepository buildingRepository;
 
     @Mock
     private StagedAllocationRepository stagedAllocationRepository;
+
+    @Mock
+    private DocumentTypeService documentTypeService;
 
     @InjectMocks
     private ApplicationSearchService applicationSearchService;
@@ -146,8 +154,9 @@ class ApplicationSearchServiceTest {
 
         pageable = PageRequest.of(0, 20);
 
-        // Mock documentRepository for enrichApplicationDetails
-        when(documentRepository.findByApplicationIdIn(any())).thenReturn(List.of());
+        // Mock document repository for enrichApplicationDetails
+        when(documentRepository.findAllByStudent_IdIn(any())).thenReturn(List.of());
+        when(documentTypeService.getEffectiveRequiredTypeNames(any())).thenReturn(java.util.Set.of());
         when(stagedAllocationRepository.findByApplication_IdIn(any())).thenReturn(List.of());
     }
 

@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class RoomRequest {
     @NotBlank(message = "Room number is required")
@@ -15,6 +17,9 @@ public class RoomRequest {
     private Integer capacity;
 
     private String status; // AVAILABLE, OCCUPIED, FULL, MAINTENANCE
+
+    @Min(value = 0, message = "Monthly rate must be zero or positive")
+    private BigDecimal monthlyRate;
 
     private Long buildingId;
 }

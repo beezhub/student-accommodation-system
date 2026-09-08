@@ -169,8 +169,8 @@ class RoomAllocationServiceTest {
 
     @Test
     void confirmCheckIn_shouldDelegateToCheckInService() {
-        roomAllocationService.confirmCheckIn(1L);
-        verify(allocationCheckInService).confirmCheckIn(1L);
+        roomAllocationService.confirmCheckIn(1L, false);
+        verify(allocationCheckInService).confirmCheckIn(1L, false);
     }
 
     @Test

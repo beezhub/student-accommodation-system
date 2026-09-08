@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -35,18 +35,20 @@ import { MatIconModule } from '@angular/material/icon';
   ],
 })
 export class DocumentTypeFormDialogComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private documentTypeService = inject(DocumentTypeService);
+  private snackBar = inject(MatSnackBar);
+  dialogRef = inject<MatDialogRef<DocumentTypeFormDialogComponent>>(MatDialogRef);
+  data = inject(MAT_DIALOG_DATA);
+
   documentTypeForm: FormGroup;
   isLoading = false;
   mode: 'create' | 'edit';
   documentType?: DocumentTypeResponse;
 
-  constructor(
-    private fb: FormBuilder,
-    private documentTypeService: DocumentTypeService,
-    private snackBar: MatSnackBar,
-    public dialogRef: MatDialogRef<DocumentTypeFormDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {
+  constructor() {
+    const data = this.data;
+
     this.mode = data.mode;
     this.documentType = data.documentType;
 
@@ -64,7 +66,14 @@ export class DocumentTypeFormDialogComponent implements OnInit {
         description: this.documentType.description,
         isRequired: this.documentType.isRequired,
       });
+    } else if (this.mode === 'create' && this.data.prefillName) {
+      this.documentTypeForm.patchValue({ name: this.data.prefillName });
     }
+  }
+
+  getTitle(): string {
+    if (this.data.shadow) return 'Override Platform Default';
+    return this.mode === 'create' ? 'Add New Document Type' : 'Edit Document Type';
   }
 
   onSubmit(): void {
@@ -100,11 +109,8 @@ export class DocumentTypeFormDialogComponent implements OnInit {
     this.dialogRef.close(false);
   }
 
-  getTitle(): string {
-    return this.mode === 'create' ? 'Add New Document Type' : 'Edit Document Type';
-  }
-
   getSubmitButtonText(): string {
+    if (this.data.shadow) return 'Create Override';
     return this.mode === 'create' ? 'Create' : 'Update';
   }
 }

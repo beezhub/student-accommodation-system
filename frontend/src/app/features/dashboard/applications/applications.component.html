@@ -14,9 +14,8 @@
     @if (isLoading) {
       <mat-card class="applications-card">
         <mat-card-content>
-          <div class="loading-container">
-            <mat-spinner diameter="50"></mat-spinner>
-            <p>Loading applications...</p>
+          <div class="loading-container" style="width: 100%;">
+            <app-skeleton-loader type="table-row" [count]="5"></app-skeleton-loader>
           </div>
         </mat-card-content>
       </mat-card>
@@ -100,6 +99,30 @@
                 </td>
               </ng-container>
 
+              <!-- Documents Column (task 11.2 + 11.3) -->
+              <ng-container matColumnDef="documents">
+                <th mat-header-cell *matHeaderCellDef> Required Docs </th>
+                <td mat-cell *matCellDef="let app">
+                  @if (getDocRequirements(app.id).length > 0) {
+                    <div class="doc-requirements">
+                      @for (req of getDocRequirements(app.id); track req.typeId) {
+                        <span
+                          class="doc-req-pill"
+                          [class.uploaded]="req.uploaded"
+                          [class.missing]="!req.uploaded"
+                          [matTooltip]="req.uploaded ? req.typeName + ' — uploaded' : req.typeName + ' — missing'"
+                          [attr.aria-label]="req.typeName + (req.uploaded ? ' uploaded' : ' missing')">
+                          <mat-icon>{{ req.uploaded ? 'check_circle' : 'upload_file' }}</mat-icon>
+                          @if (!req.uploaded) {
+                            <a [routerLink]="['/dashboard/documents']" [queryParams]="{ documentTypeId: req.typeId }" class="doc-upload-link">Upload</a>
+                          }
+                        </span>
+                      }
+                    </div>
+                  }
+                </td>
+              </ng-container>
+
               <!-- Submitted Date Column -->
               <ng-container matColumnDef="submittedDate">
                 <th mat-header-cell *matHeaderCellDef> Submitted Date </th>
@@ -137,17 +160,13 @@
     } @else {
       <mat-card class="applications-card">
         <mat-card-content>
-          <div class="no-applications">
-            <div class="no-applications-icon">
-              <mat-icon>inbox</mat-icon>
-            </div>
-            <h3>No Applications Yet</h3>
-            <p>Start your accommodation journey by creating your first application</p>
-            <button mat-flat-button class="no-applications-action" routerLink="/applications/new">
-              <mat-icon>add_circle</mat-icon>
-              Create Application
-            </button>
-          </div>
+          <app-empty-state
+            icon="inbox"
+            title="No Applications Yet"
+            description="Start your accommodation journey by creating your first application"
+            ctaLabel="Create Application"
+            ctaRoute="/applications/new">
+          </app-empty-state>
         </mat-card-content>
       </mat-card>
     }

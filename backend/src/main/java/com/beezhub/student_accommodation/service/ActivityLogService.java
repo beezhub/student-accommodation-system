@@ -1,5 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.ExternalServiceException;
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.model.dto.ActivityLogPageResponse;
 import com.beezhub.student_accommodation.model.dto.ActivityLogResponse;
 import com.beezhub.student_accommodation.model.entity.ActivityLog;
@@ -7,6 +9,7 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ActivityLogRepository;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,6 +41,7 @@ public class ActivityLogService {
     private final ActivityLogRepository activityLogRepository;
     private final AppUserRepository appUserRepository;
     private final ObjectMapper objectMapper;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
 
     /**
      * Get activity logs with filters and pagination
@@ -72,6 +76,24 @@ public class ActivityLogService {
                 .size(logPage.getSize())
                 .number(logPage.getNumber())
                 .build();
+    }
+
+    /**
+     * Get a specific activity log by ID
+     */
+    @Transactional(readOnly = true)
+    public ActivityLogResponse getActivityLogById(Long id) {
+        log.debug("Fetching activity log with ID: {}", id);
+
+        ActivityLog logEntry = activityLogRepository.findById(id)
+                .orElseThrow(() -> new com.beezhub.student_accommodation.exceptions.ResourceNotFoundException("ActivityLog not found with id: " + id));
+
+        // Hibernate's tenant filter does not apply to findById, so without this a tenant admin
+        // could read another tenant's audit entry by guessing an id. The list endpoint is
+        // filtered and always was; this by-id path was not (GH-158).
+        tenantOwnershipGuard.assertReadable(logEntry, "ActivityLog", id);
+
+        return mapToResponse(logEntry);
     }
 
     /**
@@ -112,7 +134,7 @@ public class ActivityLogService {
         log.debug("Logging activity - user: {}, action: {}, entityType: {}", userId, action, entityType);
 
         AppUser user = appUserRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         String metadataJson = null;
         if (metadata != null && !metadata.isEmpty()) {
@@ -149,7 +171,7 @@ public class ActivityLogService {
             HttpServletRequest request
     ) {
         AppUser user = appUserRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         String ipAddress = getClientIpAddress(request);
 
@@ -238,7 +260,7 @@ public class ActivityLogService {
             return baos.toByteArray();
         } catch (Exception e) {
             log.error("Failed to generate CSV", e);
-            throw new RuntimeException("Failed to generate CSV export", e);
+            throw new ExternalServiceException("Failed to generate CSV export", e);
         }
     }
 

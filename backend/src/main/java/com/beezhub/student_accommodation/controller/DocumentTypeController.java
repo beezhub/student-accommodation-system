@@ -22,7 +22,7 @@ import java.util.List;
 @RequestMapping("/api/document-type")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Document Type", description = "Endpoints for managing document types")
+@Tag(name = "Document Type", description = "Endpoints for managing document types. List endpoints return a merged view: platform defaults (tenant_id=0) plus the current tenant's overrides, with tenant rows winning on matching type names (shadow semantics). Each response includes isPlatformDefault=true for platform-level types.")
 public class DocumentTypeController {
 
     private final DocumentTypeService documentTypeService;
@@ -48,10 +48,14 @@ public class DocumentTypeController {
     }
 
     @GetMapping("/required")
-    @Operation(summary = "Get required document types", description = "Returns a list of required document types for student registration")
-    public ResponseEntity<List<DocumentTypeResponse>> getRequiredDocumentTypes() {
-        log.info("Fetching required document types");
-        List<DocumentTypeResponse> requiredDocumentTypes = documentTypeService.getRequiredDocumentTypes();
+    @Operation(summary = "Get required document types",
+            description = "Returns required document types using the tenant's merged view (platform defaults + tenant overrides, tenant wins on same name). " +
+                    "Pass ?tenantId= to get the effective required types for a specific tenant (e.g. application target tenant). " +
+                    "Omitting tenantId returns platform defaults only.")
+    public ResponseEntity<List<DocumentTypeResponse>> getRequiredDocumentTypes(
+            @RequestParam(required = false) Long tenantId) {
+        log.info("Fetching required document types for tenantId={}", tenantId);
+        List<DocumentTypeResponse> requiredDocumentTypes = documentTypeService.getRequiredDocumentTypes(tenantId);
         return ResponseEntity.ok(requiredDocumentTypes);
     }
 
@@ -62,23 +66,25 @@ public class DocumentTypeController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create document type", description = "Creates a new document type. Admin only.")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    @Operation(summary = "Create document type",
+            description = "Creates a document type scoped to the caller's tenant. TENANT_ADMIN creates a tenant-scoped type (tenant_id set from their account). PLATFORM_ADMIN creates a platform default (tenant_id=0). Use /api/platform/document-types for explicit platform management.")
     public ResponseEntity<DocumentTypeResponse> createDocumentType(@Valid @RequestBody DocumentTypeRequest request) {
         DocumentTypeResponse response = documentTypeService.createDocumentType(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update document type", description = "Updates an existing document type. Admin only.")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    @Operation(summary = "Update document type",
+            description = "Updates a document type. TENANT_ADMIN may only update types belonging to their own tenant (tenant_id != 0). Attempting to update a platform default (isPlatformDefault=true) as TENANT_ADMIN returns 403.")
     public ResponseEntity<DocumentTypeResponse> updateDocumentType(@PathVariable Long id,
                                                                    @Valid @RequestBody DocumentTypeRequest request) {
         return ResponseEntity.ok(documentTypeService.updateDocumentType(id, request));
     }
 
     @PatchMapping("/{id}/required")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Update required flag", description = "Updates the required flag for a document type. Admin only.")
     public ResponseEntity<DocumentTypeResponse> updateRequiredFlag(@PathVariable Long id,
                                                                    @RequestParam("required") boolean required) {
@@ -86,8 +92,9 @@ public class DocumentTypeController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete document type", description = "Deletes a document type. Admin only.")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    @Operation(summary = "Delete document type",
+            description = "Deletes a document type. TENANT_ADMIN may only delete types belonging to their own tenant. Attempting to delete a platform default (isPlatformDefault=true) as TENANT_ADMIN returns 403.")
     public ResponseEntity<Void> deleteDocumentType(@PathVariable Long id) {
         documentTypeService.deleteDocumentType(id);
         return ResponseEntity.noContent().build();

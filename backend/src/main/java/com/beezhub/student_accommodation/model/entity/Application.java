@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "application")
@@ -33,7 +35,7 @@ public class Application implements TenantAware {
     private Long version = 0L;
     @Column(unique = true, nullable = false, name = "application_code")
     private String applicationCode;
-    @Column(name = "applicant_date")
+    @Column(name = "application_date")
     private LocalDate applicationDate;
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
@@ -64,6 +66,11 @@ public class Application implements TenantAware {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "preferred_building_id")
     private Building preferredBuilding;
+
+    @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("preferenceOrder ASC")
+    @Builder.Default
+    private List<ApplicationBuildingPreference> buildingPreferences = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "academic_year_id")

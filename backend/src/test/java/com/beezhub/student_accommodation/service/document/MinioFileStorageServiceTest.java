@@ -4,7 +4,6 @@ import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
-import io.minio.http.Method;
 import io.minio.messages.ErrorResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -118,5 +117,38 @@ class MinioFileStorageServiceTest {
         doThrow(new RuntimeException("MinIO error")).when(minioClient).getObject(any(GetObjectArgs.class));
 
         assertThrows(FileStorageException.class, () -> minioFileStorageService.download(key));
+    }
+
+    @Test
+    void listObjects_withPrefix_passesPrefixAndMapsItemsSkippingDirectories() {
+        java.time.ZonedDateTime modified = java.time.ZonedDateTime.parse("2026-09-01T10:15:30Z");
+        io.minio.messages.Item file = mock(io.minio.messages.Item.class);
+        when(file.isDir()).thenReturn(false);
+        when(file.objectName()).thenReturn("Student/1/ID/a.pdf");
+        when(file.lastModified()).thenReturn(modified);
+        io.minio.messages.Item dir = mock(io.minio.messages.Item.class);
+        when(dir.isDir()).thenReturn(true);
+
+        org.mockito.ArgumentCaptor<ListObjectsArgs> args = org.mockito.ArgumentCaptor.forClass(ListObjectsArgs.class);
+        when(minioClient.listObjects(args.capture()))
+                .thenReturn(java.util.List.of(new Result<>(dir), new Result<>(file)));
+
+        java.util.List<StoredObject> result = minioFileStorageService.listObjects("Student/").toList();
+
+        assertEquals("test-bucket", args.getValue().bucket());
+        assertEquals("Student/", args.getValue().prefix());
+        assertTrue(args.getValue().recursive());
+        assertEquals(1, result.size());
+        assertEquals("Student/1/ID/a.pdf", result.get(0).key());
+        assertEquals(modified.toInstant(), result.get(0).lastModified());
+    }
+
+    @Test
+    void listObjects_nullPrefix_listsWholeBucket() {
+        org.mockito.ArgumentCaptor<ListObjectsArgs> args = org.mockito.ArgumentCaptor.forClass(ListObjectsArgs.class);
+        when(minioClient.listObjects(args.capture())).thenReturn(java.util.List.of());
+
+        assertEquals(0, minioFileStorageService.listObjects(null).count());
+        assertEquals("", args.getValue().prefix());
     }
 }
