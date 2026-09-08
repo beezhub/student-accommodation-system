@@ -28,8 +28,9 @@ Scout, or close it if it is not worth doing.
 should follow this.>
 
 ## Where
-<File and line on develop, as a permalink to the commit above. One line per place. For a
-pattern with many occurrences, list them all here and nowhere else.>
+<File and line at the commit above, as a permalink. One line per place. For a pattern with
+many occurrences, group by file: one permalink per file, then the line numbers after it.
+List them all here and nowhere else.>
 
 ## How I checked
 <The exact command, in a code block, and one sentence on what it printed. Anyone should be
@@ -56,7 +57,8 @@ how they relate. "None found" is a valid answer if you looked.>
 
 ## Rules
 
-- **Under about 300 words.** Link to a file; never paste more than five lines of it.
+- **Under about 300 words, not counting link URLs.** Link to a file; never paste more than
+  five lines of it. When the occurrence list is long, group by file rather than cutting it.
 - **One problem per issue.** One pattern in many places is one problem. Two different
   problems in one file are two issues.
 - **Every claim has a check.** If you cannot write "How I checked", you do not have a finding.
