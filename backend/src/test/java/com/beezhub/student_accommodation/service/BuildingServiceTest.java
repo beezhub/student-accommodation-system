@@ -58,7 +58,7 @@ class BuildingServiceTest {
     @Mock
     private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
     @Mock
-    private com.beezhub.student_accommodation.repository.TenantRepository tenantRepository;
+    private com.beezhub.student_accommodation.service.tenant.TenantService tenantService;
 
 
     @InjectMocks
@@ -140,7 +140,6 @@ class BuildingServiceTest {
     void createBuilding_asPlatformAdmin_withACompany_stampsThatCompany() {
         com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(0L);
         buildingRequest.setTenantId(OWNING_TENANT);
-        when(tenantRepository.existsById(OWNING_TENANT)).thenReturn(true);
         when(institutionRepository.findAllById(any())).thenReturn(Collections.singletonList(institution));
         when(buildingRepository.save(any(Building.class))).thenAnswer(inv -> inv.getArgument(0));
         when(buildingMapper.toResponse(any(Building.class))).thenReturn(new BuildingResponse());
@@ -156,10 +155,41 @@ class BuildingServiceTest {
     void createBuilding_asPlatformAdmin_namingAnUnknownCompany_isRefused() {
         com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(0L);
         buildingRequest.setTenantId(999L);
-        when(tenantRepository.existsById(999L)).thenReturn(false);
+        when(tenantService.requireTenantAcceptingNewRecords(999L)).thenThrow(
+                new com.beezhub.student_accommodation.exceptions.TenantNotFoundException(
+                        "Property company not found with id: 999"));
 
         assertThatThrownBy(() -> buildingService.createBuilding(buildingRequest))
                 .isInstanceOf(com.beezhub.student_accommodation.exceptions.TenantNotFoundException.class);
+    }
+
+    /**
+     * Frontend filtering alone is cosmetic: the dropdown can drop a deactivated company and the
+     * API still accepts its id (GH-267).
+     */
+    @Test
+    void createBuilding_asPlatformAdmin_namingADeactivatedCompany_isRefused() {
+        com.beezhub.student_accommodation.service.tenant.TenantContext.setTenantId(0L);
+        buildingRequest.setTenantId(999L);
+        when(tenantService.requireTenantAcceptingNewRecords(999L)).thenThrow(
+                new com.beezhub.student_accommodation.exceptions.InactiveTenantException(
+                        "Property company 'Gone Ltd' is deactivated"));
+
+        assertThatThrownBy(() -> buildingService.createBuilding(buildingRequest))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.InactiveTenantException.class);
+        verify(buildingRepository, never()).save(any(Building.class));
+    }
+
+    /** The caller's own company is never named in the request, so it needs its own check. */
+    @Test
+    void createBuilding_asTenantAdminOfADeactivatedCompany_isRefused() {
+        when(tenantService.requireTenantAcceptingNewRecords(OWNING_TENANT)).thenThrow(
+                new com.beezhub.student_accommodation.exceptions.InactiveTenantException(
+                        "Property company 'Gone Ltd' is deactivated"));
+
+        assertThatThrownBy(() -> buildingService.createBuilding(buildingRequest))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.InactiveTenantException.class);
+        verify(buildingRepository, never()).save(any(Building.class));
     }
 
     @Test

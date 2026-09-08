@@ -1,7 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.EmailAlreadyRegisteredException;
-import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.CreateUserRequest;
@@ -9,8 +8,8 @@ import com.beezhub.student_accommodation.model.dto.UserData;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
-import com.beezhub.student_accommodation.repository.TenantRepository;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
+import com.beezhub.student_accommodation.service.tenant.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,7 +27,7 @@ import java.util.stream.Collectors;
 public class UserManagementService {
 
     private final AppUserRepository userRepository;
-    private final TenantRepository tenantRepository;
+    private final TenantService tenantService;
     private final PasswordEncoder passwordEncoder;
     private final AppUserMapper appUserMapper;
 
@@ -147,10 +146,11 @@ public class UserManagementService {
                     "Tenant admins and building staff must be scoped to a specific institution tenant");
         }
         // tenant_id is NOT NULL behind a foreign key, and this is now the only source of the
-        // value, so an unknown id would surface as a 500 rather than a 404.
-        if (!tenantRepository.existsById(requestedTenantId)) {
-            throw new ResourceNotFoundException("Tenant not found with id: " + requestedTenantId);
-        }
+        // value, so an unknown id would surface as a 500 rather than a 404. The same call also
+        // refuses a company that has been deactivated: this route created TENANT_ADMIN and
+        // BUILDING_STAFF accounts against a switched-off company while the other route to the
+        // same thing, TenantAdminService, refused it (GH-267).
+        tenantService.requireTenantAcceptingNewRecords(requestedTenantId);
         return requestedTenantId;
     }
 }
