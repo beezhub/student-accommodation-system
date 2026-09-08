@@ -270,8 +270,51 @@ Sign up only; configuration happens in GH-248 and GH-249.
 
 - **Healthchecks.io** — create one check named `nightly-backup-prod`, schedule daily, grace period
   2 hours. Copy its ping URL.
-- **UptimeRobot** (or Better Stack) — nothing to create yet; the PROD monitor is added once PROD
-  exists.
+- **UptimeRobot** (or Better Stack) — create the account now. The monitor itself is added the day
+  PROD answers on its hostname, to the settings in 5.1 below.
+
+### 5.1 The PROD uptime monitor
+
+Everything else in this platform watches itself from inside the box it runs on. Prometheus,
+Grafana, Loki and Alloy are all containers on the same host as the application, so when that host
+dies they die with it and nobody is told. This monitor is the only component that survives the
+host, which makes it the highest value thing in the whole observability section and the one piece
+that cannot be committed to the repository.
+
+Create it against PROD only. NONPROD is ephemeral by design (GH-247) and would alert every time it
+is destroyed.
+
+| Setting | Value |
+|---|---|
+| Type | HTTPS |
+| URL | `https://app.<domain>/health/readiness` |
+| Interval | 5 minutes (the free tier's floor) |
+| Expected | HTTP 200, body contains `"status":"UP"` |
+| Alert after | 2 consecutive failures, so one dropped packet is not a page |
+| Contacts | the same mailbox as `APP_SUPPORT_EMAIL`, plus SMS or push if the tier allows |
+
+**Probe that path and no other.** `/` and `/health` are both served by nginx out of its own
+container and answer 200 with the backend and the database dead, so a monitor pointed at either
+reports a healthy site through a total outage. `/health/readiness` is proxied to the backend's
+readiness probe, so a 200 means Caddy, nginx, the application and the database are all answering.
+It deliberately excludes SMTP, MinIO and Redis: none of them stops a page being served, and
+including them would page you at 3am for a mail provider's outage (GH-147).
+
+Check it does what you think on the day you create it. From any machine that is not the host:
+
+```
+curl -i https://app.<domain>/health/readiness      # 200, {"status":"UP"}
+```
+
+Then stop the database on the host and confirm the monitor goes red within two intervals:
+
+```
+docker compose stop db && sleep 90
+curl -i https://app.<domain>/health/readiness      # 503, {"status":"DOWN"}
+docker compose start db
+```
+
+A monitor nobody has ever seen turn red is not evidence of anything.
 
 ## 6. Deploy SSH keys
 
@@ -367,6 +410,9 @@ has to be present — `KEY=` is a setting, an absent line is not.
       and Healthchecks ping URL are in the password manager
 - [ ] a full set of application secrets (section 0.2) exists per environment, NONPROD and PROD
       sharing none of them
+- [ ] the uptime monitoring account exists, and once PROD is serving, its monitor probes
+      `https://app.<domain>/health/readiness` (section 5.1), alerts a mailbox someone reads, and
+      has been watched going red once with the database stopped
 
 ## Related
 
