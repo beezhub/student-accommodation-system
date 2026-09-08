@@ -60,7 +60,7 @@ getting it wrong would affect records that already exist>.
 
 **What I would suggest:** <one or two sentences on the approach a person could take>.
 
-I have not changed any code. Removing my label and leaving this for a person.
+I have not changed any code. Labelling this `scout:needs-human` and leaving it for a person.
 ```
 
 ## Template: I cannot reproduce it

@@ -10,7 +10,8 @@ and how you tell it what to do. Create these once:
 | `scout:ready` | `#0e8a16` | You | Scout should prefer this issue over anything else. |
 | `scout:hands-off` | `#b60205` | You | Scout must never touch this issue. |
 | `scout:working` | `#fbca04` | Scout | Scout is on it right now. Do not start it yourself. |
-| `scout:needs-input` | `#d93f0b` | Scout | Scout has asked a question and is waiting for you. |
+| `scout:needs-input` | `#d93f0b` | Scout | Scout asked a question and will carry on once you answer. |
+| `scout:needs-human` | `#5319e7` | Scout | Too big or not Scout's call. A person has to take this one on. |
 | `scout:in-review` | `#1d76db` | Scout | Scout has opened a pull request for this. |
 
 Create them from the GitHub issue label screen, or:

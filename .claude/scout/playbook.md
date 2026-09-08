@@ -32,6 +32,9 @@ comment saying so and drop the label, before doing anything else.
 
 ## Step 1 - Answer humans before starting anything new
 
+Issues labelled `scout:needs-human` are not yours. Leave them alone, whatever anyone
+has commented. A person has to reshape the work before you can take it.
+
 For each issue labelled `scout:needs-input`:
 
 - Read the comments after your question.
@@ -73,7 +76,7 @@ List open issues, newest activity first. Work down this order of preference:
 
 **Skip an issue if any of this is true:**
 
-- It has `scout:hands-off`, `scout:working`, or `scout:needs-input` already.
+- It has `scout:hands-off`, `scout:working`, `scout:needs-input`, or `scout:needs-human` already.
 - It is assigned to a person.
 - A pull request already mentions it.
 - The title or body says it is blocked, waiting, or up for discussion.
@@ -124,9 +127,17 @@ reproduce it; or if the fix means deleting or migrating data.
 
 ## Step 6 - If you need a human, ask well and stop
 
-Use the templates in `.claude/scout/asking-for-help.md`. Then:
+Use the templates in `.claude/scout/asking-for-help.md`. Then pick the right label,
+because they mean different things to the person reading the issue list:
 
-- Swap the `scout:working` label for `scout:needs-input`.
+- **`scout:needs-input`** when you are waiting on an answer and will carry on once you
+  get one. You are mid-task. A reply of a sentence or two unblocks you.
+- **`scout:needs-human`** when the work is not yours to do at all: too big, or it changes
+  something the project treats as a person's call. You are handing it back for good.
+  Nothing they say will make you pick it up in its current shape, so do not imply you
+  are waiting.
+
+Swap the `scout:working` label for whichever of those two applies.
 - If you wrote code that is worth keeping, push the branch and open a **draft** PR so the
   work is not lost, and link it from your question.
 - End the run. Do not start a second issue to fill the time.
