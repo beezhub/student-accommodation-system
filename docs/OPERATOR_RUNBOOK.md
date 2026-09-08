@@ -79,6 +79,11 @@ openssl rand -base64 32   # ADMIN_BOOTSTRAP_PASSWORD — you change it at first 
 reuse a NONPROD value in PROD: NONPROD is destroyed and recreated, and its secrets pass through more
 hands.
 
+`ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD` can stay set in `.env` after the admin has
+signed in: the bootstrap is idempotent and leaves an account alone once its password has been
+changed, so a routine redeploy will not reset it. Set `ADMIN_BOOTSTRAP_FORCE=true` only to
+deliberately reset a lost platform admin password on the next startup, then clear it again.
+
 `.env.example` documents every variable the application reads, including the ones not listed here.
 
 > `docker-compose.prod.yml` and `CLAUDE.md` both point at a `CREDENTIAL_ROTATION.md` that is not in
