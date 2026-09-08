@@ -6,7 +6,10 @@ name: Scout
 
 on:
   schedule:
-    # Every hour, on the hour (UTC).
+    # Every hour, on the hour (UTC). Left off (SCOUT_ENABLED unset) until the repository has a
+    # separate Actions minutes budget for it: at 45 minutes per run this schedule alone could use
+    # the whole monthly allowance in a few days on top of ordinary CI (GH-284). Turning it on is a
+    # decision for whoever is watching the Actions usage page, not something to flip by default.
     - cron: "0 * * * *"
   workflow_dispatch:
     inputs:
