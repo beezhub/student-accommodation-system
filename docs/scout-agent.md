@@ -64,6 +64,11 @@ picks it up on its next run.
 | One specific issue, right now | Run `/scout:run 268` |
 | To stop it entirely | Set the `SCOUT_ENABLED` repository variable to `false` |
 
+When Scout stops, read which label it left. `scout:needs-input` means it is waiting on an
+answer from you and will continue. `scout:needs-human` means it has handed the work back:
+too big, or a decision it should not make alone. That one is a job to schedule, not a
+question to answer.
+
 Labels Scout sets for itself: `scout:working` while it is on an issue, `scout:needs-input`
 while it is waiting on you, and `scout:in-review` once a pull request is open. Those labels
 are its only memory, so leave them be.
