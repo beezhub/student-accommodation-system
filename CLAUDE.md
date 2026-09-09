@@ -280,3 +280,25 @@ language, whenever a decision belongs to a person.
 
 Scout never merges, never pushes to `main` or `develop`, and never touches secrets or
 existing migrations.
+
+Both agents run as Routines created at `claude.ai/code/routines` with this repository
+selected; a Routine created without a repository starts with no checkout. Both learn
+between runs through a `notebook` issue each (`.claude/notebook.md`): one lesson per
+comment, read at wake-up, folded into the playbooks by Scout when a person asks.
+
+## Forager (audit agent)
+
+Forager is the other half of Scout: it finds the work Scout fixes. Once a day it audits one
+lens of the codebase against the rules in this file, `CONTRIBUTING.md`, and `docs/adr/`,
+verifies each finding with a command, and files at most three issues labelled `forager:found`.
+It never changes code, never opens a pull request, and never touches an issue it did not open.
+
+- Run one pass: `/forager:run` (or `/forager:run tenancy` for a specific lens)
+- See what it has filed: `/forager:status`
+- Definition and rules: `.claude/agents/forager.md`
+- Run procedure and weekday lenses: `.claude/forager/playbook.md`, `.claude/forager/lenses.md`
+- Setup, the label, and the off switch: `.claude/forager/setup.md`
+- Overview for humans: `docs/forager-agent.md`
+
+Scout skips issues carrying `forager:found` until a person adds `scout:ready` or removes the
+label. That is the human break in the find-and-fix loop; keep it unless you decide otherwise.
