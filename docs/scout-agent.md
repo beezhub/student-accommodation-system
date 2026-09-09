@@ -63,7 +63,7 @@ picks it up on its next run.
 | To know what Scout is doing | Run `/scout:status` in Claude Code |
 | One run right now | Run `/scout:run` in Claude Code |
 | One specific issue, right now | Run `/scout:run 268` |
-| To stop it entirely | Set the `SCOUT_ENABLED` repository variable to `false` |
+| To stop it entirely | Stop the Routine or the `/loop` session that runs it |
 
 When Scout stops, read which label it left. `scout:needs-input` means it is waiting on an
 answer from you and will continue. `scout:needs-human` means it has handed the work back:
@@ -76,10 +76,9 @@ are its only memory, so leave them be.
 
 ## Turning it on
 
-Full instructions in `.claude/scout/setup.md`. In short: create the five labels, then
-either ask for an hourly Routine in Claude Code on the web, or set the `ANTHROPIC_API_KEY`
-secret and the `SCOUT_ENABLED` repository variable to run the hourly GitHub Actions
-workflow at `.github/workflows/scout.yml`.
+Full instructions in `.claude/scout/setup.md`. In short: create the five labels, then ask
+for an hourly Routine in Claude Code on the web, or run `/loop 1h /scout:run` on your own
+machine for a supervised day. Scout does not run on GitHub Actions; the minutes are metered.
 
 Watch two or three runs before you leave it alone.
 
@@ -93,7 +92,6 @@ Watch two or three runs before you leave it alone.
 | `.claude/scout/setup.md` | Labels, scheduling, and the off switch |
 | `.claude/commands/scout/run.md` | The `/scout:run` command |
 | `.claude/commands/scout/status.md` | The `/scout:status` command |
-| `.github/workflows/scout.yml` | The hourly runner, off by default |
 
 If you want Scout to behave differently, edit the playbook. If you want it to talk
 differently, edit the asking-for-help file. Those two do most of the work.
