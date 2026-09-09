@@ -44,12 +44,13 @@ To see what it is up to without changing anything:
 /scout:status
 ```
 
-## 3. Running Scout every hour
+## 3. Running Scout unattended
 
-Pick one of these. Do not run two at once, they will fight over the same issues.
+Pick one of these. Do not run two at once, they will fight over the same issues. The
+cadence is in section 3b.
 
 Scout does not run on GitHub Actions. A run takes up to 45 minutes and the repository's
-Actions minutes are metered and close to the monthly allowance (GH-284), so an hourly
+Actions minutes are metered and close to the monthly allowance (GH-284), so a scheduled
 workflow would spend the whole budget in days. The Routine below costs no minutes.
 
 ### Option A: a Routine (the way to run it unattended)
@@ -66,13 +67,48 @@ so Scout wakes up in an empty container and can do nothing. Create it from the w
    `main`; the playbook fetches `develop` itself.
 4. Pick your environment. Trusted network access is enough: GitHub and the package
    registries are on the default allowlist.
-5. Trigger: **Schedule**, hourly.
+5. Trigger: **Schedule**, weekdays. The form's presets allow one time a day; for the three
+   daily times in section 3b, set the cron `0 7,11,15 * * 1-5` with `/schedule update` from
+   a terminal, or create three Routines.
 6. Connectors: remove everything except GitHub. Scout needs nothing else.
 7. Create, then **Run now** and open the run. A green run means the session finished, not
    that Scout did anything useful; read the report at the end of the transcript.
 
 Commits from a Routine carry your GitHub user, which is what the contribution rules ask
 for. Routines count against a daily run allowance; the number is on the routines page.
+
+### Option A, from a phone
+
+The routines web form is not available in the mobile app. The same result can be built
+from any Claude Code session that has this repository open, by asking it to:
+
+1. Create a new cloud session with this repository as its source, checked out at
+   `develop`, titled `Scout: scheduled runs`. That session is Scout's home: it keeps the
+   repository and the GitHub tools between runs.
+2. Create a schedule that fires into that session, on the cadence in section 3b, with a
+   prompt that first runs `git fetch origin develop && git checkout -B develop
+   origin/develop` and then `/scout:run`.
+
+Each firing arrives as a new message in the home session, which shows up in the mobile
+app's session list like any other session, so runs can be read on the phone. The
+conversation in that session grows with every run; it is compacted automatically, and
+Scout rebuilds its state from GitHub anyway, so that is harmless. Once a month or so,
+archive it and create a fresh one to keep it quick.
+
+### 3b. Cadence
+
+Do not run Scout hourly once the backlog is short. Most runs would boot, find nothing, and
+count against the daily run allowance. Three runs on weekdays, placed after the times a
+person acts, is enough for a supply of a few issues a day:
+
+| When (SAST) | Why then |
+|---|---|
+| 09:00 | Picks up what was released or answered in the morning. |
+| 13:00 | Second issue of the day, plus any CI or review fixes from the morning. |
+| 17:00 | Handles review comments left during the day, so the pull request is mergeable by evening. |
+
+Cron, in UTC: `0 7,11,15 * * 1-5`. Nothing at weekends: nobody reviews then, and Scout
+stops at five open pull requests anyway. For a burst, run `/scout:run` by hand.
 
 ### Option B: your own machine
 

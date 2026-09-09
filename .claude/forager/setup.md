@@ -80,6 +80,13 @@ form:
 7. Create, then **Run now** on a weekday whose lens you want to see first, and read the
    report at the end of the run's transcript.
 
+From a phone, where the routines form is not available: ask any Claude Code session that
+has this repository open to create a cloud session with the repository as its source at
+`develop`, titled `Forager: scheduled runs`, and a daily schedule (`0 3 * * *` UTC is
+05:00 SAST) that fires into it with a prompt that runs `git fetch origin develop && git
+checkout -B develop origin/develop` and then `/forager:run`. Runs then appear in that
+session in the mobile app. The Scout setup guide describes the same route in more detail.
+
 Forager does not run on GitHub Actions, for the same reason Scout does not: the
 repository's Actions minutes are metered and near the allowance (GH-284), and a Routine
 costs none. The rule that Forager never pushes and never touches a pull request is
