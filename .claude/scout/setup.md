@@ -48,6 +48,10 @@ To see what it is up to without changing anything:
 
 Pick one of these. Do not run two at once, they will fight over the same issues.
 
+Scout does not run on GitHub Actions. A run takes up to 45 minutes and the repository's
+Actions minutes are metered and close to the monthly allowance (GH-284), so an hourly
+workflow would spend the whole budget in days. The Routine below costs no minutes.
+
 ### Option A: a scheduled session (simplest)
 
 In Claude Code on the web, ask for a Routine that runs `/scout:run` on the hour.
@@ -62,21 +66,10 @@ Each run is a fresh session, which is exactly what Scout is built for.
 Runs while that Claude Code session is open. Good for a day of supervised running.
 Closing the session stops it.
 
-### Option C: GitHub Actions
-
-`.github/workflows/scout.yml` is in this repository and already set to run hourly,
-but it is switched off until you turn it on:
-
-1. Add a repository secret `ANTHROPIC_API_KEY`.
-2. Add a repository variable `SCOUT_ENABLED` set to `true`.
-
-Take the variable away and Scout stops, without deleting anything.
-You can also run it by hand from the Actions tab at any time.
-
 ## 4. Turning Scout off
 
 - **One issue:** put `scout:hands-off` on it.
-- **Everything, right now:** set `SCOUT_ENABLED` to `false`, or stop the Routine or loop.
+- **Everything, right now:** stop the Routine or the loop.
 - **Permanently:** delete `.claude/agents/scout.md`.
 
 Scout never merges anything. Every change it makes waits for a person to approve it,

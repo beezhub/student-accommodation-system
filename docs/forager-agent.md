@@ -78,14 +78,13 @@ line in Scout's playbook and you can remove it.
 | To see what it has open | Run `/forager:status` |
 | It to stop filing about one kind of thing | Edit or remove that check in `.claude/forager/lenses.md` |
 | It to write issues differently | Edit `.claude/forager/writing-issues.md` |
-| To stop it entirely | Set the `FORAGER_ENABLED` repository variable to `false`, or stop the Routine |
+| To stop it entirely | Stop the Routine |
 
 ## Turning it on
 
 Full instructions in `.claude/forager/setup.md`. In short: create the `forager:found` label,
-run `/forager:run` by hand for a week and read what it files, then either ask for a daily
-Routine in Claude Code on the web or set `FORAGER_ENABLED` to `true` for the daily GitHub
-Actions workflow at `.github/workflows/forager.yml`.
+run `/forager:run` by hand for a week and read what it files, then ask for a daily Routine
+in Claude Code on the web. Forager does not run on GitHub Actions; the minutes are metered.
 
 ## The files behind it
 
@@ -98,7 +97,6 @@ Actions workflow at `.github/workflows/forager.yml`.
 | `.claude/forager/setup.md` | The label, scheduling, releasing issues to Scout, the off switch |
 | `.claude/commands/forager/run.md` | The `/forager:run` command |
 | `.claude/commands/forager/status.md` | The `/forager:status` command |
-| `.github/workflows/forager.yml` | The daily runner, off by default |
 
 If you want Forager to look for different things, edit the lenses. If you want it to write
 differently, edit the writing guide. Those two do most of the work.

@@ -65,29 +65,19 @@ One run a day is enough. The lens rotates with the weekday, so a daily run cover
 system every week. Do not run it hourly: the same lens would refile nothing and burn the
 budget doing it.
 
-### Option A: a scheduled session (simplest)
-
 In Claude Code on the web, ask for a Routine that runs `/forager:run` once a day, early
 morning UTC. Each run is a fresh session, which is what Forager is built for.
 
-### Option B: GitHub Actions
-
-`.github/workflows/forager.yml` runs daily at 05:00 UTC, but is off until you turn it on:
-
-1. Add the repository secret `ANTHROPIC_API_KEY` (shared with Scout if it is already there).
-2. Add a repository variable `FORAGER_ENABLED` set to `true`.
-
-The workflow's token can read code and write issues, and nothing else. It cannot push, and
-it cannot touch pull requests, however the agent is prompted.
-
-Actions minutes are metered (GH-284). A Forager run reads far more than it builds, so it
-is cheaper than a Scout run, but it is still a run a day. The Routine costs no minutes.
+Forager does not run on GitHub Actions, for the same reason Scout does not: the
+repository's Actions minutes are metered and near the allowance (GH-284), and a Routine
+costs none. The rule that Forager never pushes and never touches a pull request is
+enforced by its definition and its tool list, not by a workflow token.
 
 ## 5. Turning Forager off
 
 - **One lens:** delete or comment out its section in `.claude/forager/lenses.md`. The
   weekday table in the playbook then lands on an empty lens and the run reports nothing.
-- **Everything, right now:** set `FORAGER_ENABLED` to `false`, or stop the Routine.
+- **Everything, right now:** stop the Routine.
 - **Permanently:** delete `.claude/agents/forager.md`.
 
 Nothing Forager does needs unwinding. It has never pushed a commit, so turning it off
