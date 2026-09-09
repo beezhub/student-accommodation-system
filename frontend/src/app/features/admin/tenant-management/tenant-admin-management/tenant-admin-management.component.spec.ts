@@ -36,10 +36,7 @@ describe('TenantAdminManagementComponent', () => {
 
     TestBed.configureTestingModule({
       imports: [TenantAdminManagementComponent],
-      providers: [
-        provideNoopAnimations(),
-        { provide: TenantService, useValue: tenantService },
-      ],
+      providers: [provideNoopAnimations(), { provide: TenantService, useValue: tenantService }],
     });
     // The component imports MatDialogModule and MatSnackBarModule itself, and a standalone
     // component's own imports take precedence over TestBed providers, so these have to be
