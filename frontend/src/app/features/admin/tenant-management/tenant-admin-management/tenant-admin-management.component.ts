@@ -14,6 +14,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { DatePipe } from '@angular/common';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { SkeletonLoaderComponent } from '../../../../shared/components/skeleton-loader/skeleton-loader.component';
+import { confirmAction } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /** What the dialog form of this component is opened with. */
 interface TenantAdminDialogData {
@@ -101,23 +102,27 @@ export class TenantAdminManagementComponent implements OnInit {
   }
 
   confirmDeactivate(admin: TenantAdminUser): void {
-    const confirmed = window.confirm(
-      `Deactivate admin account for ${admin.firstName} ${admin.lastName} (${admin.email})?\n\nThis will lock their account.`
-    );
-    if (!confirmed) return;
+    confirmAction(this.dialog, {
+      title: 'Deactivate this admin?',
+      message: `Deactivate admin account for ${admin.firstName} ${admin.lastName} (${admin.email})? This will lock their account.`,
+      confirmLabel: 'Deactivate',
+      destructive: true,
+    }).subscribe((confirmed) => {
+      if (!confirmed) return;
 
-    this.tenantService.deactivateTenantAdmin(this.tenantId, admin.id).subscribe({
-      next: () => {
-        this.snackBar.open('Admin account deactivated', 'Close', {
-          duration: 3000,
-          panelClass: 'snack-success',
-        });
-        this.loadAdmins();
-      },
-      error: (err) => {
-        const msg = err?.error?.message || 'Failed to deactivate admin';
-        this.snackBar.open(msg, 'Close', { duration: 4000 });
-      },
+      this.tenantService.deactivateTenantAdmin(this.tenantId, admin.id).subscribe({
+        next: () => {
+          this.snackBar.open('Admin account deactivated', 'Close', {
+            duration: 3000,
+            panelClass: 'snack-success',
+          });
+          this.loadAdmins();
+        },
+        error: (err) => {
+          const msg = err?.error?.message || 'Failed to deactivate admin';
+          this.snackBar.open(msg, 'Close', { duration: 4000 });
+        },
+      });
     });
   }
 
