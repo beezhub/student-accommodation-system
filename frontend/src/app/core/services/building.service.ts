@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 export { PageResponse } from '../models/page-response.model';
@@ -129,9 +129,14 @@ export class BuildingService {
     );
   }
 
-  getAllBuildingsNoPagination(): Observable<BuildingResponse[]> {
+  // `silent` defaults to false: most callers only log to the console on failure and rely on
+  // the interceptor's own snackbar to tell the user, so silencing this unconditionally would
+  // leave those callers with no visible error at all. Pass true only where the caller shows
+  // its own message.
+  getAllBuildingsNoPagination(silent = false): Observable<BuildingResponse[]> {
+    const options = silent ? { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) } : undefined;
     return this.http
-      .get<BuildingResponse[]>(`${this.apiUrl}/all`)
+      .get<BuildingResponse[]>(`${this.apiUrl}/all`, options)
       .pipe(map((buildings) => buildings.map((building) => this.resolveBuildingUrls(building))));
   }
 
