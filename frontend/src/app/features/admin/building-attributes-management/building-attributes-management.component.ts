@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -71,6 +72,7 @@ export class BuildingAttributesManagementComponent implements OnInit {
   private buildingService = inject(BuildingService);
   private attributesService = inject(BuildingAttributesService);
   private snackBar = inject(MatSnackBar);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {
     this.buildingForm = this.fb.group({
@@ -90,12 +92,15 @@ export class BuildingAttributesManagementComponent implements OnInit {
   ngOnInit(): void {
     this.loadBuildings();
 
-    this.buildingForm.get('buildingId')?.valueChanges.subscribe((id) => {
-      if (id) {
-        this.selectedBuildingId = id;
-        this.loadAttributes(id);
-      }
-    });
+    this.buildingForm
+      .get('buildingId')
+      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((id) => {
+        if (id) {
+          this.selectedBuildingId = id;
+          this.loadAttributes(id);
+        }
+      });
   }
 
   loadBuildings(): void {
