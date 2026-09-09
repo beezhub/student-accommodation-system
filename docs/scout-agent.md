@@ -72,13 +72,28 @@ question to answer.
 
 Labels Scout sets for itself: `scout:working` while it is on an issue, `scout:needs-input`
 while it is waiting on you, and `scout:in-review` once a pull request is open. Those labels
-are its only memory, so leave them be.
+are its only memory of work, so leave them be.
+
+## How it learns
+
+Scout keeps a notebook: an open issue labelled `notebook` titled `Scout's notebook`. Each
+comment is one lesson, written by a run that got something wrong or was corrected in
+review, for the next run to read. It reads the notebook before it starts and adds at most
+one lesson per run, and only when the lesson would have changed that run. Lessons are
+about the job, never about a person, and never override the playbook.
+
+You can write a lesson into it yourself, in the same format, instead of editing a
+playbook. When the notebook passes about 25 lessons, run `/scout:run <notebook issue
+number>` and Scout folds the durable ones into its playbook by pull request. Details in
+`.claude/notebook.md`.
 
 ## Turning it on
 
-Full instructions in `.claude/scout/setup.md`. In short: create the five labels, then ask
-for an hourly Routine in Claude Code on the web, or run `/loop 1h /scout:run` on your own
-machine for a supervised day. Scout does not run on GitHub Actions; the minutes are metered.
+Full instructions in `.claude/scout/setup.md`. In short: create the labels, then create an
+hourly Routine at `claude.ai/code/routines` with this repository selected under
+**Select repositories**. That selection is what gives the run a checkout; a Routine made
+without it wakes up in an empty container. For a supervised day, `/loop 1h /scout:run` in
+an open session works too. Scout does not run on GitHub Actions; the minutes are metered.
 
 Watch two or three runs before you leave it alone.
 
@@ -90,6 +105,7 @@ Watch two or three runs before you leave it alone.
 | `.claude/scout/playbook.md` | The step-by-step run |
 | `.claude/scout/asking-for-help.md` | How it writes questions, with templates |
 | `.claude/scout/setup.md` | Labels, scheduling, and the off switch |
+| `.claude/notebook.md` | How Scout and Forager learn between runs |
 | `.claude/commands/scout/run.md` | The `/scout:run` command |
 | `.claude/commands/scout/status.md` | The `/scout:status` command |
 

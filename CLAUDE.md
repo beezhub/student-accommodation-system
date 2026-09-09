@@ -281,6 +281,11 @@ language, whenever a decision belongs to a person.
 Scout never merges, never pushes to `main` or `develop`, and never touches secrets or
 existing migrations.
 
+Both agents run as Routines created at `claude.ai/code/routines` with this repository
+selected; a Routine created without a repository starts with no checkout. Both learn
+between runs through a `notebook` issue each (`.claude/notebook.md`): one lesson per
+comment, read at wake-up, folded into the playbooks by Scout when a person asks.
+
 ## Forager (audit agent)
 
 Forager is the other half of Scout: it finds the work Scout fixes. Once a day it audits one

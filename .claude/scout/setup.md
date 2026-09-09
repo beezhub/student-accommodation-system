@@ -52,10 +52,27 @@ Scout does not run on GitHub Actions. A run takes up to 45 minutes and the repos
 Actions minutes are metered and close to the monthly allowance (GH-284), so an hourly
 workflow would spend the whole budget in days. The Routine below costs no minutes.
 
-### Option A: a scheduled session (simplest)
+### Option A: a Routine (the way to run it unattended)
 
-In Claude Code on the web, ask for a Routine that runs `/scout:run` on the hour.
-Each run is a fresh session, which is exactly what Scout is built for.
+A Routine only has a repository if you pick one when you create it. A Routine created
+without one, for example from inside a session, starts each run with no code checked out,
+so Scout wakes up in an empty container and can do nothing. Create it from the web form:
+
+1. Go to `claude.ai/code/routines` and click **New routine**.
+2. Name it `Scout`. Prompt: `/scout:run`. The command is committed in this repository, so
+   the run finds it as soon as the clone finishes.
+3. Under **Select repositories**, add `beezhub/student-accommodation-system`. This is the
+   step that is easy to miss and the one that matters. Every run clones it fresh from
+   `main`; the playbook fetches `develop` itself.
+4. Pick your environment. Trusted network access is enough: GitHub and the package
+   registries are on the default allowlist.
+5. Trigger: **Schedule**, hourly.
+6. Connectors: remove everything except GitHub. Scout needs nothing else.
+7. Create, then **Run now** and open the run. A green run means the session finished, not
+   that Scout did anything useful; read the report at the end of the transcript.
+
+Commits from a Routine carry your GitHub user, which is what the contribution rules ask
+for. Routines count against a daily run allowance; the number is on the routines page.
 
 ### Option B: your own machine
 
@@ -65,6 +82,14 @@ Each run is a fresh session, which is exactly what Scout is built for.
 
 Runs while that Claude Code session is open. Good for a day of supervised running.
 Closing the session stops it.
+
+## 3a. The notebook
+
+Scout learns between runs through a notebook issue, described in `.claude/notebook.md`.
+Create the `notebook` label once (the command is in that file); Scout creates the issue
+itself on its first run. Pin it. When it passes about 25 lessons, run
+`/scout:run <notebook issue number>` and Scout folds the durable lessons into its
+playbook by pull request.
 
 ## 4. Turning Scout off
 

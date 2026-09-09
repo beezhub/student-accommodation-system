@@ -21,6 +21,11 @@ mcp__github__list_pull_requests state: OPEN
 Note the current date and time. You will need it to judge whether a human has replied
 since your last question.
 
+Then read your notebook: the open issue labelled `notebook` titled `Scout's notebook`.
+Every comment is a lesson from a previous run or from a person. Keep them in mind for the
+whole run. If the issue does not exist, create it as `.claude/notebook.md` describes. A
+lesson fills a gap in this playbook and never overrides it.
+
 For each issue labelled `scout:in-review`, check whether the pull request that closes it
 has already merged into `develop`. This repository's default branch is `main`, so a
 `Closes #<number>` line in a pull request body does not auto-close anything when the
@@ -58,6 +63,9 @@ For every open PR you opened:
   reply with what you would do and wait. Do not push a large change nobody asked for.
 - **Merge conflict?** Merge `develop` into your branch and resolve it. Never force-push.
 - **Green and approved and nothing left to do?** Leave it. Merging is a human's call.
+- **Changes requested, or a pull request of yours closed unmerged?** That is the best
+  teacher you have. Read what was asked and why. If it would apply to other pull requests,
+  it becomes the lesson you write in Step 11.
 
 If you already have five open pull requests, the run ends here. Say so in your report.
 A pile of unmerged work helps nobody.
@@ -79,6 +87,9 @@ List open issues, newest activity first. Work down this order of preference:
 - It has `scout:hands-off`, `scout:working`, `scout:needs-input`, or `scout:needs-human` already.
 - It has `forager:found` and not `scout:ready`. Forager filed it and no person has looked
   at it yet. A person releases it by adding `scout:ready` or removing `forager:found`.
+- It has the `notebook` label. Notebooks are memory, not work. The one exception is a
+  person naming a notebook's number in `/scout:run`, which means: fold the lessons into
+  the playbook, as `.claude/notebook.md` describes.
 - It is assigned to a person.
 - A pull request already mentions it.
 - The title or body says it is blocked, waiting, or up for discussion.
@@ -276,9 +287,13 @@ the change was made. The change speaks for itself.
 
 ---
 
-## Step 11 - Report
+## Step 11 - Write down what you learned, then report
 
-Three or four sentences to the human running you:
+First the notebook. If this run taught you something that would have changed it, and
+`.claude/notebook.md` agrees it is a lesson, add one comment to your notebook in the
+format there. Most runs add nothing. A lesson about a person is never written.
+
+Then three or four sentences to the human running you:
 
 - Which issue you picked and why.
 - What you changed.

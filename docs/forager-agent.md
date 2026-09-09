@@ -41,6 +41,16 @@ Every issue and comment Forager writes opens with 🧺, so you can tell its voic
 colleague's and from Scout's 🔭 without reading the whole thing. Its issues also carry the
 `forager:found` label.
 
+## How it learns
+
+Forager keeps a notebook, an open issue labelled `notebook` titled `Forager's notebook`,
+with one lesson per comment. Its best lessons come from you: when you close one of its
+issues as not planned, the next run works out which check produced it and writes down
+what to exclude, so the pattern stops being filed. It reads the notebook before every run
+and never lets a lesson override the lens file. Forager cannot edit files, so when the
+notebook grows long you have Scout fold it into the lenses with `/scout:run <notebook
+issue number>`. Details in `.claude/notebook.md`.
+
 ## Nothing happens until you say so
 
 Forager writes issues. It does not decide they should be fixed. Scout skips anything
@@ -83,8 +93,10 @@ line in Scout's playbook and you can remove it.
 ## Turning it on
 
 Full instructions in `.claude/forager/setup.md`. In short: create the `forager:found` label,
-run `/forager:run` by hand for a week and read what it files, then ask for a daily Routine
-in Claude Code on the web. Forager does not run on GitHub Actions; the minutes are metered.
+run `/forager:run` by hand for a week and read what it files, then create a daily Routine
+at `claude.ai/code/routines` with this repository selected under **Select repositories**.
+Without that selection the run has no checkout and audits nothing. Forager does not run on
+GitHub Actions; the minutes are metered.
 
 ## The files behind it
 
@@ -95,6 +107,7 @@ in Claude Code on the web. Forager does not run on GitHub Actions; the minutes a
 | `.claude/forager/lenses.md` | What each day's lens checks, and the rule each check enforces |
 | `.claude/forager/writing-issues.md` | The issue template, the quality bar, and the labels |
 | `.claude/forager/setup.md` | The label, scheduling, releasing issues to Scout, the off switch |
+| `.claude/notebook.md` | How Scout and Forager learn between runs |
 | `.claude/commands/forager/run.md` | The `/forager:run` command |
 | `.claude/commands/forager/status.md` | The `/forager:status` command |
 
