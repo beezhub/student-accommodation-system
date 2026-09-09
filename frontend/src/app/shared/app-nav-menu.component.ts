@@ -6,6 +6,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { RouterModule } from '@angular/router';
 
 import { AuthService } from '../core/services/auth.service';
+import { RoleService } from '../core/services/role.service';
 import { NotificationsComponent } from './notifications/notifications.component';
 
 @Component({
@@ -122,6 +123,7 @@ import { NotificationsComponent } from './notifications/notifications.component'
 })
 export class AppNavMenuComponent {
   private authService = inject(AuthService);
+  private roleService = inject(RoleService);
 
   @Output() logout = new EventEmitter<void>();
 
@@ -141,11 +143,7 @@ export class AppNavMenuComponent {
     return this.authService.currentUserValue?.email ?? '';
   }
 
-  isAdmin(): boolean {
-    return this.authService.currentUserValue?.userRole === 'ADMIN';
-  }
-
   isStudent(): boolean {
-    return this.authService.currentUserValue?.userRole === 'STUDENT';
+    return this.roleService.isStudent();
   }
 }
