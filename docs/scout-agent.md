@@ -10,7 +10,7 @@ to report. That is the whole job.
 
 ## What a run looks like
 
-Once an hour, Scout wakes up with no memory of last time and does this:
+Three times a day on weekdays, Scout wakes up with no memory of last time and does this:
 
 1. Checks whether anyone answered a question it asked, and picks that work back up.
 2. Checks its own open pull requests, and fixes any that are failing or have comments.
@@ -89,11 +89,14 @@ number>` and Scout folds the durable ones into its playbook by pull request. Det
 
 ## Turning it on
 
-Full instructions in `.claude/scout/setup.md`. In short: create the labels, then create an
-hourly Routine at `claude.ai/code/routines` with this repository selected under
-**Select repositories**. That selection is what gives the run a checkout; a Routine made
-without it wakes up in an empty container. For a supervised day, `/loop 1h /scout:run` in
-an open session works too. Scout does not run on GitHub Actions; the minutes are metered.
+Full instructions in `.claude/scout/setup.md`. In short: create the labels, then create a
+Routine at `claude.ai/code/routines` with this repository selected under **Select
+repositories**, three times on weekdays. That selection is what gives the run a checkout; a
+Routine made without it wakes up in an empty container. From a phone, where that form is
+not available, a Claude Code session can instead create a home session with the repository
+attached and a schedule that fires into it; the setup guide has the steps. For a supervised
+day, `/loop 1h /scout:run` in an open session works too. Scout does not run on GitHub
+Actions; the minutes are metered.
 
 Watch two or three runs before you leave it alone.
 
