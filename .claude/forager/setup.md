@@ -65,13 +65,34 @@ One run a day is enough. The lens rotates with the weekday, so a daily run cover
 system every week. Do not run it hourly: the same lens would refile nothing and burn the
 budget doing it.
 
-In Claude Code on the web, ask for a Routine that runs `/forager:run` once a day, early
-morning UTC. Each run is a fresh session, which is what Forager is built for.
+Forager runs as a Routine. A Routine only has a repository if you pick one when you
+create it; one created without a repository, for example from inside a session, starts
+each run with nothing checked out and Forager can audit nothing. Create it from the web
+form:
+
+1. Go to `claude.ai/code/routines` and click **New routine**.
+2. Name it `Forager`. Prompt: `/forager:run`.
+3. Under **Select repositories**, add `beezhub/student-accommodation-system`. Every run
+   clones it fresh from `main`; the playbook checks out `develop` itself.
+4. Pick your environment. Trusted network access is enough.
+5. Trigger: **Schedule**, daily, early morning in your timezone.
+6. Connectors: remove everything except GitHub.
+7. Create, then **Run now** on a weekday whose lens you want to see first, and read the
+   report at the end of the run's transcript.
 
 Forager does not run on GitHub Actions, for the same reason Scout does not: the
 repository's Actions minutes are metered and near the allowance (GH-284), and a Routine
 costs none. The rule that Forager never pushes and never touches a pull request is
 enforced by its definition and its tool list, not by a workflow token.
+
+## 4a. The notebook
+
+Forager learns between runs through a notebook issue, described in `.claude/notebook.md`.
+It is the same `notebook` label Scout uses; Forager creates its own issue on first run.
+Its lessons are mostly about lens checks that over-reported. When you close a Forager
+issue as not planned, the next run writes down why, and stops filing that pattern. When
+the notebook passes about 25 lessons, have Scout fold them into the lens file with
+`/scout:run <notebook issue number>`.
 
 ## 5. Turning Forager off
 

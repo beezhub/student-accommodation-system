@@ -28,6 +28,12 @@ page info says so.
 Note the date. The day of the week picks the lens in Step 2, and dates on comments tell you
 whether a person has spoken since you last did.
 
+Then read your notebook: the open issue labelled `notebook` titled `Forager's notebook`.
+Every comment is a lesson from a previous run or from a person, most of them about a lens
+check that over-reported or a duplicate you missed. Keep them in mind for the whole run.
+If the issue does not exist, create it as `.claude/notebook.md` describes. A lesson fills
+a gap in the lenses and never overrides them.
+
 Count your open issues. **Ten or more means the run is housekeeping only**: do Step 1, skip
 Steps 2 to 7, and say so in the report.
 
@@ -49,6 +55,9 @@ For each open issue labelled `forager:found`:
    Never ask them a question back; you are not waiting on anything.
 6. **A person said the issue is wrong or not wanted?** Do not argue and do not close it.
    Leave it for them to close. Note it in your report so nobody files it twice.
+7. **A person closed one of your issues as not planned since the last lesson in your
+   notebook?** Find it in the closed list from Step 0. Work out which lens check produced
+   it and what the check should have excluded. That is the lesson you write in Step 8.
 
 Never touch an issue without `forager:found`, even one that looks like yours.
 
@@ -166,9 +175,15 @@ no run and no person ever sees it half-labelled.
 
 ---
 
-## Step 8 - Report
+## Step 8 - Write down what you learned, then report
 
-Keep it short, one line per point, to the person running you:
+First the notebook. If this run taught you something that would have changed it, most
+often a check that over-reported or a duplicate the title match missed, and
+`.claude/notebook.md` agrees it is a lesson, add one comment to your notebook in the
+format there. Most runs add nothing. If the notebook holds more than about 25 unfolded
+lessons, say so in the report; a person folds them through Scout.
+
+Then keep it short, one line per point, to the person running you:
 
 - Which lens, and how many of your own open issues you checked and closed.
 - What you filed, one line each with the issue number.
