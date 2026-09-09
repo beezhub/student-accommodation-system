@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 export { PageResponse } from '../models/page-response.model';
@@ -122,6 +122,9 @@ export class RoomService {
     if (buildingId) {
       params = params.set('buildingId', buildingId.toString());
     }
-    return this.http.get<EligibleRoomResponse[]>(url, { params });
+    return this.http.get<EligibleRoomResponse[]>(url, {
+      params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 }

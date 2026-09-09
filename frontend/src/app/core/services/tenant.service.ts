@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -44,9 +44,15 @@ export class TenantService {
   /**
    * Every tenant, active and inactive. This is what the tenant administration screen needs: it is
    * the only place a deactivated company can be switched back on, so it has to keep listing them.
+   *
+   * `silent` defaults to false because the user-management screen calls this with no error
+   * handler of its own and relies entirely on the interceptor's generic message.
    */
-  getAllTenants(): Observable<Tenant[]> {
-    return this.http.get<Tenant[]>(this.apiUrl);
+  getAllTenants(silent = false): Observable<Tenant[]> {
+    return this.http.get<Tenant[]>(
+      this.apiUrl,
+      silent ? { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) } : {}
+    );
   }
 
   /**
@@ -58,7 +64,10 @@ export class TenantService {
    * accepts the id.
    */
   getActiveTenants(): Observable<Tenant[]> {
-    return this.http.get<Tenant[]>(this.apiUrl, { params: { activeOnly: true } });
+    return this.http.get<Tenant[]>(this.apiUrl, {
+      params: { activeOnly: true },
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   getTenantById(id: number): Observable<Tenant> {
@@ -74,12 +83,18 @@ export class TenantService {
   }
 
   toggleTenantStatus(id: number, isActive: boolean): Observable<Tenant> {
-    return this.http.patch<Tenant>(`${this.apiUrl}/${id}/status`, { isActive });
+    return this.http.patch<Tenant>(
+      `${this.apiUrl}/${id}/status`,
+      { isActive },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   // Tenant Admin Management
   listTenantAdmins(tenantId: number): Observable<TenantAdminUser[]> {
-    return this.http.get<TenantAdminUser[]>(`${this.apiUrl}/${tenantId}/admins`);
+    return this.http.get<TenantAdminUser[]>(`${this.apiUrl}/${tenantId}/admins`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   createTenantAdmin(tenantId: number, request: TenantAdminRequest): Observable<TenantAdminUser> {
@@ -87,6 +102,8 @@ export class TenantService {
   }
 
   deactivateTenantAdmin(tenantId: number, userId: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${tenantId}/admins/${userId}`);
+    return this.http.delete<void>(`${this.apiUrl}/${tenantId}/admins/${userId}`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 }

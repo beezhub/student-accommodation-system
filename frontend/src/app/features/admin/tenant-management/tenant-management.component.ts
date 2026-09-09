@@ -50,7 +50,7 @@ export class TenantManagementComponent implements OnInit {
 
   loadTenants(): void {
     this.isLoading = true;
-    this.tenantService.getAllTenants().subscribe({
+    this.tenantService.getAllTenants(true).subscribe({
       next: (tenants) => {
         this.tenants = tenants;
         this.isLoading = false;
