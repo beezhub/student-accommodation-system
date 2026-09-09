@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, map, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { User } from '../models/user.model';
@@ -78,22 +78,26 @@ export class AuthService {
   }
 
   signup(data: SignupData): Observable<User> {
-    return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/signup`, data).pipe(
-      map((response) => {
-        const tenantId = this.extractTenantIdFromToken(response.token);
-        if (tenantId !== undefined) {
-          response.user.tenantId = tenantId;
-        }
-        this.tokenStorage.setToken(response.token);
-        localStorage.setItem('currentUser', JSON.stringify(response.user));
-        this.currentUserSubject.next(response.user);
-
-        // Start notification stream after successful signup
-        this.notificationService.initializeNotifications();
-
-        return response.user;
+    return this.http
+      .post<{ token: string; user: User }>(`${this.apiUrl}/signup`, data, {
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
       })
-    );
+      .pipe(
+        map((response) => {
+          const tenantId = this.extractTenantIdFromToken(response.token);
+          if (tenantId !== undefined) {
+            response.user.tenantId = tenantId;
+          }
+          this.tokenStorage.setToken(response.token);
+          localStorage.setItem('currentUser', JSON.stringify(response.user));
+          this.currentUserSubject.next(response.user);
+
+          // Start notification stream after successful signup
+          this.notificationService.initializeNotifications();
+
+          return response.user;
+        })
+      );
   }
 
   uploadDocuments(files: FormData): Observable<MessageResponse> {
@@ -152,22 +156,26 @@ export class AuthService {
 
   // Login a user
   login(data: LoginData): Observable<User> {
-    return this.http.post<{ token: string; user: User }>(`${this.apiUrl}/login`, data).pipe(
-      map((response) => {
-        const tenantId = this.extractTenantIdFromToken(response.token);
-        if (tenantId !== undefined) {
-          response.user.tenantId = tenantId;
-        }
-        this.tokenStorage.setToken(response.token);
-        localStorage.setItem('currentUser', JSON.stringify(response.user));
-        this.currentUserSubject.next(response.user);
-
-        // Start notification stream after successful login
-        this.notificationService.initializeNotifications();
-
-        return response.user;
+    return this.http
+      .post<{ token: string; user: User }>(`${this.apiUrl}/login`, data, {
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
       })
-    );
+      .pipe(
+        map((response) => {
+          const tenantId = this.extractTenantIdFromToken(response.token);
+          if (tenantId !== undefined) {
+            response.user.tenantId = tenantId;
+          }
+          this.tokenStorage.setToken(response.token);
+          localStorage.setItem('currentUser', JSON.stringify(response.user));
+          this.currentUserSubject.next(response.user);
+
+          // Start notification stream after successful login
+          this.notificationService.initializeNotifications();
+
+          return response.user;
+        })
+      );
   }
 
   private extractTenantIdFromToken(token: string): number | undefined {
@@ -186,10 +194,14 @@ export class AuthService {
 
   changePassword(currentPassword: string, newPassword: string): Observable<MessageResponse> {
     return this.http
-      .post<MessageResponse>(`${this.apiUrl}/change-password`, {
-        currentPassword,
-        newPassword,
-      })
+      .post<MessageResponse>(
+        `${this.apiUrl}/change-password`,
+        {
+          currentPassword,
+          newPassword,
+        },
+        { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+      )
       .pipe(
         map((response) => {
           // Update the user in localStorage to clear mustChangePassword flag
@@ -209,11 +221,19 @@ export class AuthService {
   }
 
   resendVerificationEmail(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/resend-verification`, { email });
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/resend-verification`,
+      { email },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   verifyEmail(token: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/verify-email`, { token });
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/verify-email`,
+      { token },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   isEmailVerified(): boolean {
@@ -232,20 +252,29 @@ export class AuthService {
 
   // Password Reset Methods
   forgotPassword(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/forgot-password`, { email });
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/forgot-password`,
+      { email },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   verifyResetToken(token: string): Observable<{ valid: boolean; message: string }> {
     return this.http.post<{ valid: boolean; message: string }>(
       `${this.apiUrl}/verify-reset-token`,
-      { token }
+      { token },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
     );
   }
 
   resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/reset-password`, {
-      token,
-      newPassword,
-    });
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/reset-password`,
+      {
+        token,
+        newPassword,
+      },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 }

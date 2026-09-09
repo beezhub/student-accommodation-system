@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, map, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -142,7 +142,9 @@ export class ApplicationService {
   }
 
   getApplicationById(applicationId: number): Observable<Application> {
-    return this.http.get<Application>(`${this.apiUrl}/${applicationId}`);
+    return this.http.get<Application>(`${this.apiUrl}/${applicationId}`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   getApplicationsByStudentId(studentId: number): Observable<Application[]> {
