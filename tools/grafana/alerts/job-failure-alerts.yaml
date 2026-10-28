@@ -20,7 +20,12 @@ groups:
               to: 0
             datasourceUid: prometheus
             model:
-              expr: increase(sas_jobs_allocation_batch_failures_total[5m]) > 0 or increase(sas_jobs_offer_reminder_failures_total[5m]) > 0 or increase(sas_jobs_notification_retry_failures_total[5m]) > 0
+              # ScheduledJobRunner names the counter after the job in camelCase
+              # (sas_jobs_batchAllocation_failures_total). This named three jobs in snake_case,
+              # none of which exist, so the rule could never fire. The regex covers every job,
+              # including ones added later. sum() is required: increase() drops the metric name,
+              # and the per-job series would otherwise collide and fail evaluation.
+              expr: sum(increase({__name__=~"sas_jobs_.+_failures_total"}[5m])) > 0
               intervalMs: 1000
               maxDataPoints: 43200
               refId: A

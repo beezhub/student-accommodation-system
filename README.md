@@ -113,24 +113,26 @@ Now, both the backend and frontend servers should be running. Access the applica
   ordering, and the document retention rule (twelve months after a student's last application
   closes and last tenancy ends). Read it before turning retention off dry-run mode.
 - **Logs.** On a deployed host every container's output and the Caddy journal are shipped by
-  Alloy to Loki and kept for two weeks (`tools/alloy/config.alloy`, `tools/loki/loki.yml`). Grafana
-  is published on the host's loopback only, so open a tunnel and use Explore with the Loki
-  datasource:
+  Alloy to Loki and kept for two weeks (`tools/alloy/config.alloy`, `tools/loki/loki.yml`). Caddy
+  serves Grafana at `/grafana`; sign in with `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` and
+  use Explore with the Loki datasource:
 
-  ```bash
-  ssh -L 3000:127.0.0.1:3000 ubuntu@nonprod.beezhub.co.za
-  # then http://localhost:3000/explore, datasource Loki
   ```
+  https://nonprod.beezhub.co.za/grafana/explore   # datasource Loki
+  ```
+
+  `GRAFANA_ROOT_URL` in the host `.env` must be that public address including `/grafana`, and the
+  host's `/etc/caddy/Caddyfile` must be the copy in `tools/caddy/`; the deploy updates neither.
 
   Useful queries: `{service="student-accommodation-back-end", level="ERROR"}` for backend errors,
   `{service="student-accommodation-back-end"} | requestId="<id>"` to follow one request by the
   `x-request-id` the API returns, `{unit="caddy.service"}` for the TLS proxy's access log, and
   `{service="frontend"}` for nginx. The backend's level is a label; its logger, request id and
-  tenant id are structured metadata and filter with `| logger=~"...Service"`. Without a tunnel,
-  `docker compose logs` on the host still works, but only holds the last 30 MB per container.
+  tenant id are structured metadata and filter with `| logger=~"...Service"`. Without Grafana,
+  `docker compose logs` on the host also works, but only holds the last 30 MB per container.
 - **Metrics and alerts.** Prometheus scrapes the backend every 15 seconds and keeps 30 days on
-  its own volume; the dashboards under `tools/grafana/dashboards` read from it through the same
-  tunnel. Scraping needs `PROMETHEUS_SCRAPE_PASSWORD` set in `.env`, which feeds both the backend
+  its own volume; the dashboards under `tools/grafana/dashboards` read from it in the same
+  Grafana. Scraping needs `PROMETHEUS_SCRAPE_PASSWORD` set in `.env`, which feeds both the backend
   and Prometheus. Provisioned alerts email `GRAFANA_ALERT_EMAIL` (default `APP_SUPPORT_EMAIL`)
   through the `MAIL_*` account. Check `up{job="student-accommodation-backend"}` in Explore first:
   `0` means the scrape is failing, and the usual cause is that password.
