@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -56,9 +56,16 @@ export class TenantService {
    *
    * <p>The backend refuses the same thing, because filtering here alone is cosmetic: the API still
    * accepts the id.
+   *
+   * <p>Silent because both callers (the building form's company selector and the create-user
+   * dialog) show their own message on failure; the interceptor's generic one only stacked a
+   * second toast on top of it.
    */
   getActiveTenants(): Observable<Tenant[]> {
-    return this.http.get<Tenant[]>(this.apiUrl, { params: { activeOnly: true } });
+    return this.http.get<Tenant[]>(this.apiUrl, {
+      params: { activeOnly: true },
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   getTenantById(id: number): Observable<Tenant> {

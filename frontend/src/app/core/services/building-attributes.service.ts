@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -50,13 +50,15 @@ export class BuildingAttributesService {
     return this.http.get<BuildingAttributes>(`${this.apiUrl}/buildings/${buildingId}/attributes`);
   }
 
+  /** Silent because the attributes screen shows its own message on save failure. */
   saveBuildingAttributes(
     buildingId: number,
     attributes: Partial<BuildingAttributes>
   ): Observable<BuildingAttributes> {
     return this.http.put<BuildingAttributes>(
       `${this.apiUrl}/buildings/${buildingId}/attributes`,
-      attributes
+      attributes,
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
     );
   }
 
@@ -66,10 +68,13 @@ export class BuildingAttributesService {
     );
   }
 
+  /** Silent for the same reason as saveBuildingAttributes above. */
   saveRoomAttributes(
     roomId: number,
     attributes: Partial<RoomAttributes>
   ): Observable<RoomAttributes> {
-    return this.http.put<RoomAttributes>(`${this.apiUrl}/rooms/${roomId}/attributes`, attributes);
+    return this.http.put<RoomAttributes>(`${this.apiUrl}/rooms/${roomId}/attributes`, attributes, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 }
