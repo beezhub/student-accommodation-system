@@ -142,7 +142,9 @@ export class ApplicationService {
   }
 
   getApplicationById(applicationId: number): Observable<Application> {
-    return this.http.get<Application>(`${this.apiUrl}/${applicationId}`);
+    return this.http.get<Application>(`${this.apiUrl}/${applicationId}`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   getApplicationsByStudentId(studentId: number): Observable<Application[]> {
