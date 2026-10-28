@@ -54,8 +54,10 @@ public abstract class AbstractIntegrationTest {
             new GenericContainer<>("redis:8")
                     .withExposedPorts(6379);
 
+    // minio/minio no longer exists on Docker Hub (pulls return 404). Chainguard's image runs as a
+    // non-root user, but its /data is world-writable, so the command below works unchanged.
     private static final GenericContainer<?> minio =
-            new GenericContainer<>("minio/minio")
+            new GenericContainer<>("cgr.dev/chainguard/minio:latest")
                     .withEnv("MINIO_ROOT_USER", "minioadmin")
                     .withEnv("MINIO_ROOT_PASSWORD", "minioadmin")
                     .withCommand("server /data --console-address :9001")

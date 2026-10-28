@@ -100,9 +100,27 @@ services:
         limits:
           memory: 1G
 
+  # The old minio/minio image ran as root, so a minio_data volume it wrote is owned by root. The
+  # Chainguard image runs as nonroot (65532) and cannot write there. This one-shot hands the volume
+  # to that user before MinIO starts; it is a no-op on a fresh volume and on every later boot.
+  minio-volume-permissions:
+    image: cgr.dev/chainguard/minio:latest@sha256:e70b2b1e74d79457f808710483bd726ff364529ca30736eaa15a6ab547d3a5a7
+    user: "0:0"
+    entrypoint: ["chown", "-R", "65532:65532", "/data"]
+    volumes:
+      - minio_data:/data
+    restart: "no"
+    networks:
+      - app-network
+
   minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    # minio/minio no longer exists on Docker Hub (pulls return 404) and quay.io/minio requires an
+    # account. Chainguard's free tier publishes only :latest, so the digest pins the exact build.
+    image: cgr.dev/chainguard/minio:latest@sha256:e70b2b1e74d79457f808710483bd726ff364529ca30736eaa15a6ab547d3a5a7
     container_name: student-accommodation-minio
+    depends_on:
+      minio-volume-permissions:
+        condition: service_completed_successfully
     ports:
       - "9000:9000"
       - "9001:9001"
