@@ -125,6 +125,9 @@ export class RoomService {
     if (buildingId) {
       params = params.set('buildingId', buildingId.toString());
     }
-    return this.http.get<EligibleRoomResponse[]>(url, { params });
+    return this.http.get<EligibleRoomResponse[]>(url, {
+      params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 }

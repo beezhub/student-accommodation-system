@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ActivityLog, ActivityLogFilters, ActivityLogResponse } from '../models/activity-log.model';
@@ -27,7 +27,10 @@ export class ActivityLogService {
     if (filters.startDate) params = params.set('startDate', filters.startDate);
     if (filters.endDate) params = params.set('endDate', filters.endDate);
 
-    return this.http.get<ActivityLogResponse>(this.apiUrl, { params });
+    return this.http.get<ActivityLogResponse>(this.apiUrl, {
+      params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   /**
@@ -53,6 +56,7 @@ export class ActivityLogService {
     return this.http.get(`${this.apiUrl}/export`, {
       params,
       responseType: 'blob',
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
     });
   }
 

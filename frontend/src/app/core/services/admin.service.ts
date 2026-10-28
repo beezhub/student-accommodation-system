@@ -132,7 +132,9 @@ export class AdminService {
 
   // User Management
   createUser(userData: CreateUserRequest): Observable<AdminUser> {
-    return this.http.post<AdminUser>(this.userApiUrl, userData);
+    return this.http.post<AdminUser>(this.userApiUrl, userData, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   /**
@@ -141,16 +143,24 @@ export class AdminService {
    */
   getAllUsers(page = 0, size = 25): Observable<PageResponse<AdminUser>> {
     const params = new HttpParams().set('page', page).set('size', size);
-    return this.http.get<PageResponse<AdminUser>>(this.userApiUrl, { params });
+    return this.http.get<PageResponse<AdminUser>>(this.userApiUrl, {
+      params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   getUsersByRole(role: string, page = 0, size = 25): Observable<PageResponse<AdminUser>> {
     const params = new HttpParams().set('page', page).set('size', size);
-    return this.http.get<PageResponse<AdminUser>>(`${this.userApiUrl}/role/${role}`, { params });
+    return this.http.get<PageResponse<AdminUser>>(`${this.userApiUrl}/role/${role}`, {
+      params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   deleteUser(userId: number): Observable<void> {
-    return this.http.delete<void>(`${this.userApiUrl}/${userId}`);
+    return this.http.delete<void>(`${this.userApiUrl}/${userId}`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   // Application Management
@@ -233,6 +243,7 @@ export class AdminService {
 
     return this.http.get<PageResponse<DocumentResponse>>(`${this.documentApiUrl}/search`, {
       params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
     });
   }
 
@@ -248,6 +259,7 @@ export class AdminService {
   downloadDocument(documentId: number): Observable<Blob> {
     return this.http.get(`${this.documentApiUrl}/download/${documentId}`, {
       responseType: 'blob',
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
     });
   }
 

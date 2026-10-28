@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
@@ -57,7 +57,11 @@ export class StagedAllocationService {
   }
 
   confirmAllocation(stagedId: number): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/staged/${stagedId}/confirm`, {});
+    return this.http.post<RoomAllocationResponse>(
+      `${this.apiUrl}/staged/${stagedId}/confirm`,
+      {},
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   rejectAllocation(stagedId: number, reason: string): Observable<{ success: boolean }> {
@@ -92,12 +96,16 @@ export class StagedAllocationService {
     reason: string,
     bypassConstraints: string[]
   ): Observable<StagedAllocation> {
-    return this.http.post<StagedAllocation>(`${this.apiUrl}/override`, {
-      studentId,
-      roomId,
-      reason,
-      bypassConstraints,
-    });
+    return this.http.post<StagedAllocation>(
+      `${this.apiUrl}/override`,
+      {
+        studentId,
+        roomId,
+        reason,
+        bypassConstraints,
+      },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   getWaitingList(buildingId?: number): Observable<WaitingListEntry[]> {
@@ -116,9 +124,13 @@ export class StagedAllocationService {
   }
 
   enqueueWaitingList(studentId: number, applicationId: number): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/waiting-list/enqueue`, {
-      studentId,
-      applicationId,
-    });
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/waiting-list/enqueue`,
+      {
+        studentId,
+        applicationId,
+      },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 }

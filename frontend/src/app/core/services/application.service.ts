@@ -224,7 +224,8 @@ export class ApplicationService {
   saveReviewProgress(request: ReviewProgressRequest): Observable<{ success: boolean }> {
     return this.http.post<{ success: boolean }>(
       `${this.apiUrl}/${request.applicationId}/save-review-progress`,
-      request
+      request,
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
     );
   }
 
@@ -234,7 +235,11 @@ export class ApplicationService {
    * @returns Observable<Application> Updated application
    */
   moveToAllocationPhase(applicationId: number): Observable<Application> {
-    return this.http.post<Application>(`${this.apiUrl}/${applicationId}/move-to-allocation`, {});
+    return this.http.post<Application>(
+      `${this.apiUrl}/${applicationId}/move-to-allocation`,
+      {},
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   /**
