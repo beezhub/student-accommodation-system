@@ -102,6 +102,14 @@
             <div class="actions-cell">
               <button
                 mat-icon-button
+                class="action-btn"
+                (click)="openMoveDialog(admin)"
+                matTooltip="Move to another tenant"
+                [attr.aria-label]="'Move admin ' + admin.firstName + ' ' + admin.lastName + ' to another tenant'">
+                <mat-icon>swap_horiz</mat-icon>
+              </button>
+              <button
+                mat-icon-button
                 class="action-btn deactivate"
                 (click)="confirmDeactivate(admin)"
                 [disabled]="isLocked(admin)"

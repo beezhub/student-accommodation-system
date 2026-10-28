@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.model.dto.MoveTenantAdminRequestDto;
 import com.beezhub.student_accommodation.model.dto.TenantAdminRequestDto;
 import com.beezhub.student_accommodation.model.dto.TenantAdminResponseDto;
 import com.beezhub.student_accommodation.service.TenantAdminService;
@@ -51,5 +52,21 @@ public class TenantAdminController {
             @PathVariable Long userId) {
         tenantAdminService.deactivateTenantAdmin(tenantId, userId);
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Move a tenant admin to another tenant",
+            description = "Changes the admin's tenant and revokes the tokens they already hold, "
+                    + "which still carry the old tenant claim.")
+    @ApiResponse(responseCode = "200", description = "Tenant admin moved")
+    @ApiResponse(responseCode = "400", description = "Target tenant missing or deactivated")
+    @ApiResponse(responseCode = "404", description = "Tenant or user not found")
+    @ApiResponse(responseCode = "409", description = "Target is the platform tenant or the current tenant")
+    @PostMapping("/{userId}/move")
+    public ResponseEntity<TenantAdminResponseDto> moveTenantAdmin(
+            @PathVariable Long tenantId,
+            @PathVariable Long userId,
+            @Valid @RequestBody MoveTenantAdminRequestDto request) {
+        return ResponseEntity.ok(
+                tenantAdminService.moveTenantAdmin(tenantId, userId, request.targetTenantId()));
     }
 }

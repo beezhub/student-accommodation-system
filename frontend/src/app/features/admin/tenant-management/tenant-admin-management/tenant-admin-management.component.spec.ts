@@ -88,4 +88,32 @@ describe('TenantAdminManagementComponent', () => {
       jasmine.objectContaining({ duration: 4000 })
     );
   });
+
+  it('openMoveDialog_moved_showsSuccessAndReloadsList', async () => {
+    dialog.open.and.returnValue({ afterClosed: () => of(true) } as never);
+    tenantService.listTenantAdmins.calls.reset();
+
+    await component.openMoveDialog(admin);
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      jasmine.anything(),
+      jasmine.objectContaining({ data: { tenantId: 1, tenantName: '', admin } })
+    );
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Admin moved. They will need to sign in again.',
+      'Close',
+      jasmine.objectContaining({ panelClass: 'snack-success' })
+    );
+    expect(tenantService.listTenantAdmins).toHaveBeenCalled();
+  });
+
+  it('openMoveDialog_cancelled_doesNotReload', async () => {
+    dialog.open.and.returnValue({ afterClosed: () => of(false) } as never);
+    tenantService.listTenantAdmins.calls.reset();
+
+    await component.openMoveDialog(admin);
+
+    expect(tenantService.listTenantAdmins).not.toHaveBeenCalled();
+    expect(snackBar.open).not.toHaveBeenCalled();
+  });
 });

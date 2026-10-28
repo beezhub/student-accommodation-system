@@ -178,4 +178,39 @@ class TenantAdminControllerTest {
         mockMvc.perform(delete("/api/admin/tenants/{id}/admins/{userId}", TENANT_ID, 10L))
                 .andExpect(status().isForbidden());
     }
+
+    // ── Move admin ───────────────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    @DisplayName("POST /api/admin/tenants/{id}/admins/{userId}/move — 200 for PLATFORM_ADMIN")
+    void moveAdmin_platformAdmin_returns200() throws Exception {
+        when(tenantAdminService.moveTenantAdmin(TENANT_ID, 10L, 5L)).thenReturn(sampleResponse());
+
+        mockMvc.perform(post("/api/admin/tenants/{id}/admins/{userId}/move", TENANT_ID, 10L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetTenantId\": 5}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("admin@tenant.com"));
+    }
+
+    @Test
+    @WithMockUser(roles = "TENANT_ADMIN")
+    @DisplayName("POST /api/admin/tenants/{id}/admins/{userId}/move — 403 for TENANT_ADMIN")
+    void moveAdmin_tenantAdmin_returns403() throws Exception {
+        mockMvc.perform(post("/api/admin/tenants/{id}/admins/{userId}/move", TENANT_ID, 10L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetTenantId\": 5}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "PLATFORM_ADMIN")
+    @DisplayName("POST /api/admin/tenants/{id}/admins/{userId}/move — 400 without a target tenant")
+    void moveAdmin_missingTarget_returns400() throws Exception {
+        mockMvc.perform(post("/api/admin/tenants/{id}/admins/{userId}/move", TENANT_ID, 10L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
 }

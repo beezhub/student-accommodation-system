@@ -89,4 +89,17 @@ export class TenantService {
   deactivateTenantAdmin(tenantId: number, userId: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${tenantId}/admins/${userId}`);
   }
+
+  /** X-Silent-Error: the move dialog shows the error inline, so the snackbar would repeat it. */
+  moveTenantAdmin(
+    tenantId: number,
+    userId: number,
+    targetTenantId: number
+  ): Observable<TenantAdminUser> {
+    return this.http.post<TenantAdminUser>(
+      `${this.apiUrl}/${tenantId}/admins/${userId}/move`,
+      { targetTenantId },
+      { headers: { 'X-Silent-Error': 'true' } }
+    );
+  }
 }
