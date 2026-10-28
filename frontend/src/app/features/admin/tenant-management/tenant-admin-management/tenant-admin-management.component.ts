@@ -101,6 +101,22 @@ export class TenantAdminManagementComponent implements OnInit {
     });
   }
 
+  async openMoveDialog(admin: TenantAdminUser): Promise<void> {
+    const m = await import('./move-tenant-admin-dialog/move-tenant-admin-dialog.component');
+    const dialogRef = this.dialog.open(m.MoveTenantAdminDialogComponent, {
+      width: '480px',
+      data: { tenantId: this.tenantId, tenantName: this.tenantName, admin },
+    });
+    dialogRef.afterClosed().subscribe((moved) => {
+      if (!moved) return;
+      this.snackBar.open('Admin moved. They will need to sign in again.', 'Close', {
+        duration: 3000,
+        panelClass: 'snack-success',
+      });
+      this.loadAdmins();
+    });
+  }
+
   confirmDeactivate(admin: TenantAdminUser): void {
     confirmAction(this.dialog, {
       title: 'Deactivate this admin?',

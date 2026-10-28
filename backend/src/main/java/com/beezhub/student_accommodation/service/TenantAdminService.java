@@ -9,6 +9,7 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.TenantRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -95,6 +96,44 @@ public class TenantAdminService {
                 admin.getEmail(), Instant.now(), TOKEN_REVOCATION_MARKER_TTL_SECONDS);
 
         log.info("Deactivated TENANT_ADMIN user {} for tenant {}", userId, tenantId);
+    }
+
+    /**
+     * Moves a tenant admin to another property company.
+     *
+     * <p>{@code UnassignedAdminService.assignTenant} only repairs accounts stranded on the platform
+     * tenant, so an admin created under the wrong company had no fix short of a SQL update. The
+     * account's existing tokens are revoked because each JWT carries the tenant claim it was issued
+     * with: without this the admin keeps the old company's data until the token expires.
+     */
+    @Transactional
+    public TenantAdminResponseDto moveTenantAdmin(Long tenantId, Long userId, Long targetTenantId) {
+        if (TenantContext.PLATFORM_TENANT_ID.equals(targetTenantId)) {
+            throw new IllegalArgumentException("Tenant admins cannot be moved to the platform tenant");
+        }
+        if (tenantId.equals(targetTenantId)) {
+            throw new IllegalArgumentException("User " + userId + " already belongs to tenant " + tenantId);
+        }
+
+        AppUser admin = appUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        if (!tenantId.equals(admin.getTenantId()) || admin.getUserRole() != UserRole.TENANT_ADMIN) {
+            throw new ResourceNotFoundException(
+                    "TENANT_ADMIN user " + userId + " not found for tenant " + tenantId);
+        }
+
+        tenantService.requireTenantAcceptingNewRecords(targetTenantId);
+
+        admin.setTenantId(targetTenantId);
+        AppUser saved = appUserRepository.save(admin);
+
+        tokenBlacklistService.revokeTokensIssuedBefore(
+                saved.getEmail(), Instant.now(), TOKEN_REVOCATION_MARKER_TTL_SECONDS);
+
+        log.info("action=tenantAdminMoved userId={} fromTenantId={} toTenantId={}",
+                userId, tenantId, targetTenantId);
+        return toResponse(saved);
     }
 
     private TenantAdminResponseDto toResponse(AppUser user) {

@@ -44,4 +44,15 @@ describe('TenantService', () => {
     expect(req.request.params.get('activeOnly')).toBe('true');
     req.flush([]);
   });
+
+  it('moveTenantAdmin_postsTargetTenant_andSilencesTheInterceptorSnackbar', () => {
+    service.moveTenantAdmin(1, 10, 5).subscribe();
+
+    const req = httpMock.expectOne(`${apiUrl}/1/admins/10/move`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ targetTenantId: 5 });
+    // The move dialog shows the error inline, so the interceptor's snackbar would be a duplicate.
+    expect(req.request.headers.has('X-Silent-Error')).toBeTrue();
+    req.flush({});
+  });
 });
