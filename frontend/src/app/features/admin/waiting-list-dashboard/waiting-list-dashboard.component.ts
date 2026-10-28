@@ -1,4 +1,5 @@
-import { Component, OnInit, ViewChild, AfterViewInit, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -60,6 +61,7 @@ export class WaitingListDashboardComponent implements OnInit, AfterViewInit {
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private dialog = inject(MatDialog);
+  private destroyRef = inject(DestroyRef);
 
   filterForm: FormGroup;
   buildings: BuildingResponse[] = [];
@@ -92,9 +94,12 @@ export class WaitingListDashboardComponent implements OnInit, AfterViewInit {
     this.loadBuildings();
     this.loadWaitingList();
 
-    this.filterForm.get('buildingId')?.valueChanges.subscribe(() => {
-      this.loadWaitingList();
-    });
+    this.filterForm
+      .get('buildingId')
+      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.loadWaitingList();
+      });
   }
 
   ngAfterViewInit() {

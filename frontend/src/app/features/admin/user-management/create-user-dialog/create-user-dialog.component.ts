@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -65,6 +66,7 @@ export class CreateUserDialogComponent {
 
   private authService = inject(AuthService);
   private tenantService = inject(TenantService);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {
     this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
@@ -92,17 +94,20 @@ export class CreateUserDialogComponent {
       // Without this, choosing a tenant and then switching to PLATFORM_ADMIN submits a stale
       // non-zero tenantId, which the backend now rejects (GH-146). The control keeps a value
       // that is no longer among the options, so the user cannot see what is wrong.
-      this.createUserForm.get('userRole')?.valueChanges.subscribe((role: string) => {
-        const tenantControl = this.createUserForm.get('tenantId');
-        if (!tenantControl) return;
-        tenantControl.reset(null);
-        if (this.isTenantScoped(role)) {
-          tenantControl.setValidators([Validators.required]);
-        } else {
-          tenantControl.clearValidators();
-        }
-        tenantControl.updateValueAndValidity();
-      });
+      this.createUserForm
+        .get('userRole')
+        ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((role: string) => {
+          const tenantControl = this.createUserForm.get('tenantId');
+          if (!tenantControl) return;
+          tenantControl.reset(null);
+          if (this.isTenantScoped(role)) {
+            tenantControl.setValidators([Validators.required]);
+          } else {
+            tenantControl.clearValidators();
+          }
+          tenantControl.updateValueAndValidity();
+        });
     }
   }
 
