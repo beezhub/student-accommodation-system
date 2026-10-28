@@ -17,8 +17,8 @@
 #     PostgreSQL; the deployment now runs Postgres in a container on Oracle Cloud, so `db` stays.
 #
 # Logs: every container's stdout/stderr and the host's Caddy journal are shipped by Alloy to Loki
-# and searched from Grafana's Explore page. Grafana is published on loopback only; reach it over
-# an SSH tunnel (README, Operations).
+# and searched from Grafana's Explore page. Grafana is published on loopback only, and the host's
+# Caddy serves it at https://<host>/grafana (README, Operations).
 
 # Same rotation the production overlay applies to the base services; the anchor cannot be shared
 # across files, so it is declared again here.
@@ -29,11 +29,21 @@ x-bounded-logs: &bounded-logs
     max-file: "3"
 
 services:
-  # Publish Grafana on loopback so `ssh -L 3000:127.0.0.1:3000 <host>` reaches it. Nothing else
-  # needs it and the prod overlay has already taken the base file's 0.0.0.0 publish away.
+  # Published on loopback for the host's Caddy, which serves it at /grafana (tools/caddy/Caddyfile).
+  # The prod overlay has already taken the base file's 0.0.0.0 publish away.
   grafana:
     ports:
       - "127.0.0.1:3000:3000"
+    environment:
+      # GRAFANA_ROOT_URL must be https://<host>/grafana. Without sub-path serving Grafana answers
+      # every /grafana request with a redirect to /grafana/login, which is itself under /grafana, so
+      # the login page loops forever and logs are unreachable.
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      # Reachable from the internet now: the session cookie must never travel over plain HTTP, and
+      # nobody may create their own account.
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
     depends_on:
       - prometheus
       - loki

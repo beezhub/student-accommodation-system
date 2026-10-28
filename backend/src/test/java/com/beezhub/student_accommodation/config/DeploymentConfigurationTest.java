@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 
@@ -7,8 +8,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
  * GH-162: the compose file publishes every backing service on the host, ships MailHog as the mail
@@ -64,6 +68,36 @@ class DeploymentConfigurationTest {
         assertThat(datasource)
                 .as("the datasource must not carry a hardcoded postgres/postgres fallback")
                 .doesNotContain("GRAFANA_DB_PASSWORD:-postgres");
+    }
+
+    /**
+     * A merge spliced two versions of three dashboards into one file each. Grafana skipped all three
+     * and logged the parse error every ten seconds; nothing else reported it.
+     */
+    @Test
+    void grafanaDashboards_areValidJson() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        try (Stream<Path> files = Files.list(REPO_ROOT.resolve("tools/grafana/dashboards"))) {
+            List<Path> dashboards = files.filter(p -> p.toString().endsWith(".json")).toList();
+
+            assertThat(dashboards).isNotEmpty();
+            for (Path dashboard : dashboards) {
+                assertThatCode(() -> mapper.readTree(dashboard.toFile()))
+                        .as(dashboard.getFileName().toString())
+                        .doesNotThrowAnyException();
+            }
+        }
+    }
+
+    /**
+     * Grafana builds its redirects from GRAFANA_ROOT_URL, which ends in /grafana. Without sub-path
+     * serving the login page redirects to itself forever; without the Caddy route /grafana reaches
+     * the frontend instead.
+     */
+    @Test
+    void deployOverlay_servesGrafanaUnderTheCaddyRoute() throws IOException {
+        assertThat(read("docker-compose.deploy.yml")).contains("GF_SERVER_SERVE_FROM_SUB_PATH=true");
+        assertThat(read("tools/caddy/Caddyfile")).contains("@grafana path /grafana /grafana/*");
     }
 
     @Test
