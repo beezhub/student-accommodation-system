@@ -27,6 +27,7 @@ FROM nginx:1.25-alpine
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx-security-headers.conf /etc/nginx/security-headers.conf
 
 # Create directory and set permissions
 RUN mkdir -p /usr/share/nginx/html && \
