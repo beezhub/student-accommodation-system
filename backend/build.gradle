@@ -24,6 +24,11 @@ repositories {
 	mavenCentral()
 }
 
+// Spring Boot 3.5.7 manages Testcontainers at 1.21.3, which cannot talk to Docker Engine 29
+// (now on ubuntu-latest and Docker Desktop): every container test fails with "Could not find a
+// valid Docker environment". 1.21.4 adds support. Drop this line once the Boot BOM ships >= 1.21.4.
+ext['testcontainers.version'] = '1.21.4'
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
