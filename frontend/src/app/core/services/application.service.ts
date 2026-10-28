@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, map, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -209,7 +209,9 @@ export class ApplicationService {
    * @returns Observable<ApplicationFullDetails> Full application details
    */
   getApplicationFullDetails(applicationId: number): Observable<ApplicationFullDetails> {
-    return this.http.get<ApplicationFullDetails>(`${this.apiUrl}/${applicationId}/full-details`);
+    return this.http.get<ApplicationFullDetails>(`${this.apiUrl}/${applicationId}/full-details`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   /**

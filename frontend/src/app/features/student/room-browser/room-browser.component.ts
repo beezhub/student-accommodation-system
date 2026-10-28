@@ -78,7 +78,7 @@ export class RoomBrowserComponent implements OnInit {
   }
 
   loadBuildings(): void {
-    this.buildingService.getAllBuildingsNoPagination().subscribe({
+    this.buildingService.getAllBuildingsNoPagination(true).subscribe({
       next: (buildings) => {
         this.buildings = buildings;
       },
