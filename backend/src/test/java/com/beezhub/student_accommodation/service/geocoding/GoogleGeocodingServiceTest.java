@@ -4,45 +4,48 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.beezhub.student_accommodation.exceptions.ExternalServiceException;
+import com.beezhub.student_accommodation.exceptions.ServiceNotConfiguredException;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 
 /**
- * GH-152: address lookup moved from the browser calling Nominatim directly to a backend service.
- *
- * <p>Driven against a local stub rather than the live Google API. That covers everything this class
- * actually decides — when it refuses, what it parses, what it drops, and what it never logs — but
- * not whether Google's real payloads match the shape assumed here. Those records are written from
- * the documented Geocoding API response, and the first run against a real key is what confirms it.
+ * Against a local stub of Places API (New), so the request shape and the parsing are both
+ * exercised without a key or a network.
  */
 class GoogleGeocodingServiceTest {
 
     private HttpServer server;
     private String baseUrl;
-    private final AtomicReference<String> lastQuery = new AtomicReference<>();
     private final AtomicInteger requestCount = new AtomicInteger();
+    private volatile String lastMethod;
+    private volatile String lastPath;
+    private volatile String lastQuery;
+    private volatile String lastBody;
+    private volatile String lastApiKey;
+    private volatile String lastFieldMask;
     private volatile String responseBody = "{}";
     private volatile int responseStatus = 200;
 
     @BeforeEach
     void startStub() throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/geocode", exchange -> {
+        server.createContext("/v1", exchange -> {
             requestCount.incrementAndGet();
-            // Raw, not decoded: whether a space actually reaches the wire as %20 is the thing
-            // worth asserting — an unencoded space would break the request.
-            lastQuery.set(exchange.getRequestURI().getRawQuery());
+            lastMethod = exchange.getRequestMethod();
+            lastPath = exchange.getRequestURI().getRawPath();
+            lastQuery = exchange.getRequestURI().getRawQuery();
+            lastBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            lastApiKey = exchange.getRequestHeaders().getFirst("X-Goog-Api-Key");
+            lastFieldMask = exchange.getRequestHeaders().getFirst("X-Goog-FieldMask");
             byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             exchange.sendResponseHeaders(responseStatus, body.length);
@@ -51,7 +54,7 @@ class GoogleGeocodingServiceTest {
             }
         });
         server.start();
-        baseUrl = "http://127.0.0.1:" + server.getAddress().getPort() + "/geocode";
+        baseUrl = "http://127.0.0.1:" + server.getAddress().getPort() + "/v1";
     }
 
     @AfterEach
@@ -60,7 +63,7 @@ class GoogleGeocodingServiceTest {
     }
 
     private GoogleGeocodingService serviceWithKey(String key) {
-        return new GoogleGeocodingService(RestClient.builder(), baseUrl, key);
+        return new GoogleGeocodingService(RestClient.builder(), baseUrl, key, "");
     }
 
     // ── Not configured ──────────────────────────────────────────────────────────────────────
@@ -70,160 +73,211 @@ class GoogleGeocodingServiceTest {
      * be quietly making requests, so no key means no calls at all rather than calls that fail.
      */
     @Test
-    void withNoApiKey_reportsUnconfiguredAndMakesNoRequest() {
+    void search_noApiKey_reportsUnconfiguredAndMakesNoRequest() {
         GoogleGeocodingService service = serviceWithKey("");
 
         assertThat(service.isConfigured()).isFalse();
-        assertThatThrownBy(() -> service.search("1 Main Road"))
-                .isInstanceOf(ExternalServiceException.class)
+        assertThatThrownBy(() -> service.search("1 Main Road", null))
+                .isInstanceOf(ServiceNotConfiguredException.class)
                 .hasMessageContaining("not configured");
+        assertThatThrownBy(() -> service.resolve("ChIJ1", null))
+                .isInstanceOf(ServiceNotConfiguredException.class);
         assertThat(requestCount.get()).isZero();
     }
 
     @Test
-    void aWhitespaceOnlyKeyIsNotAKey() {
+    void isConfigured_whitespaceOnlyKey_isFalse() {
         assertThat(serviceWithKey("   ").isConfigured()).isFalse();
     }
 
     @Test
-    void withAnApiKey_reportsConfigured() {
+    void isConfigured_withAnApiKey_isTrue() {
         assertThat(serviceWithKey("a-real-looking-key").isConfigured()).isTrue();
     }
 
-    // ── Queries not worth spending a request on ─────────────────────────────────────────────
+    // ── Search ──────────────────────────────────────────────────────────────────────────────
 
     @Test
-    void aQueryTooShortToBeAnAddress_makesNoRequest() {
+    void search_queryTooShortToBeAnAddress_makesNoRequest() {
         GoogleGeocodingService service = serviceWithKey("k");
 
-        assertThat(service.search("ab")).isEmpty();
-        assertThat(service.search(" ")).isEmpty();
-        assertThat(service.search(null)).isEmpty();
+        assertThat(service.search("ab", null)).isEmpty();
+        assertThat(service.search(" ", null)).isEmpty();
+        assertThat(service.search(null, null)).isEmpty();
         assertThat(requestCount.get()).isZero();
     }
 
-    // ── Parsing ─────────────────────────────────────────────────────────────────────────────
-
+    /** The reason for Places over Geocoding: a half-typed address still gets suggestions. */
     @Test
-    void aSuccessfulLookup_mapsPlaceIdAddressAndCoordinates() {
+    void search_placePredictions_mapToSuggestions() {
         responseBody = """
-                {"status":"OK","results":[
-                  {"place_id":"ChIJ1","formatted_address":"1 Main Road, Cape Town, South Africa",
-                   "geometry":{"location":{"lat":-33.9249,"lng":18.4241}}}
+                {"suggestions":[
+                  {"placePrediction":{"placeId":"EiQzMiBU","text":{"text":"32 Tsutsube Street, Soweto, South Africa"}}},
+                  {"placePrediction":{"placeId":"ChIJ2","text":{"text":"Tsutsube Street, Soweto, South Africa"}}}
                 ]}""";
 
-        List<AddressSuggestion> results = serviceWithKey("k").search("1 Main Road");
+        List<AddressSuggestion> results = serviceWithKey("k").search("32 Tsutsube", null);
 
-        assertThat(results).hasSize(1);
-        AddressSuggestion first = results.get(0);
-        assertThat(first.placeId()).isEqualTo("ChIJ1");
-        assertThat(first.displayName()).isEqualTo("1 Main Road, Cape Town, South Africa");
-        assertThat(first.latitude()).isEqualTo(-33.9249);
-        assertThat(first.longitude()).isEqualTo(18.4241);
+        assertThat(results).containsExactly(
+                new AddressSuggestion("EiQzMiBU", "32 Tsutsube Street, Soweto, South Africa"),
+                new AddressSuggestion("ChIJ2", "Tsutsube Street, Soweto, South Africa"));
     }
 
-    /** ZERO_RESULTS is an answer — the address matched nothing — not a provider failure. */
+    /** No match is an empty object from Places, not an error. */
     @Test
-    void zeroResults_isAnEmptyListRatherThanAnError() {
-        responseBody = "{\"status\":\"ZERO_RESULTS\",\"results\":[]}";
+    void search_noSuggestions_isAnEmptyList() {
+        responseBody = "{}";
 
-        assertThat(serviceWithKey("k").search("nowhere at all")).isEmpty();
+        assertThat(serviceWithKey("k").search("nowhere at all", null)).isEmpty();
     }
 
-    /** A result with no geometry cannot be placed on a map, so it is not offered as a choice. */
+    /** A query prediction is a search term, not a place, so there is nothing to put on a map. */
     @Test
-    void aResultWithoutCoordinates_isDropped() {
+    void search_queryPredictionsAndIncompleteEntries_areDropped() {
         responseBody = """
-                {"status":"OK","results":[
-                  {"place_id":"no-geo","formatted_address":"Somewhere"},
-                  {"place_id":"ok","formatted_address":"1 Main Road",
-                   "geometry":{"location":{"lat":1.0,"lng":2.0}}}
+                {"suggestions":[
+                  {"queryPrediction":{"text":{"text":"pizza near Soweto"}}},
+                  {"placePrediction":{"placeId":"no-text"}},
+                  {"placePrediction":{"placeId":"ok","text":{"text":"1 Main Road"}}}
                 ]}""";
 
-        List<AddressSuggestion> results = serviceWithKey("k").search("1 Main Road");
+        List<AddressSuggestion> results = serviceWithKey("k").search("1 Main Road", null);
 
         assertThat(results).extracting(AddressSuggestion::placeId).containsExactly("ok");
     }
 
     @Test
-    void moreResultsThanTheAutocompleteShows_areCapped() {
-        StringBuilder body = new StringBuilder("{\"status\":\"OK\",\"results\":[");
+    void search_moreSuggestionsThanTheAutocompleteShows_areCapped() {
+        StringBuilder body = new StringBuilder("{\"suggestions\":[");
         for (int i = 0; i < 12; i++) {
             body.append(i > 0 ? "," : "")
-                    .append("{\"place_id\":\"p").append(i)
-                    .append("\",\"formatted_address\":\"a").append(i)
-                    .append("\",\"geometry\":{\"location\":{\"lat\":1.0,\"lng\":2.0}}}");
+                    .append("{\"placePrediction\":{\"placeId\":\"p").append(i)
+                    .append("\",\"text\":{\"text\":\"a").append(i).append("\"}}}");
         }
         responseBody = body.append("]}").toString();
 
-        assertThat(serviceWithKey("k").search("main road")).hasSize(5);
+        assertThat(serviceWithKey("k").search("main road", null)).hasSize(5);
     }
 
-    /** Unknown fields are ignored, so Google adding one does not break the lookup. */
     @Test
-    void unknownFieldsInTheResponse_areIgnored() {
+    void search_unknownFieldsInTheResponse_areIgnored() {
         responseBody = """
-                {"status":"OK","plus_code":{"global_code":"x"},"results":[
-                  {"place_id":"ChIJ1","formatted_address":"1 Main Road","types":["street_address"],
-                   "geometry":{"location":{"lat":1.0,"lng":2.0},"location_type":"ROOFTOP"}}
-                ]}""";
+                {"suggestions":[{"placePrediction":{"place":"places/ChIJ1","placeId":"ChIJ1",
+                  "text":{"text":"1 Main Road","matches":[{"endOffset":4}]},"types":["street_address"]}}]}""";
 
-        assertThat(serviceWithKey("k").search("1 Main Road")).hasSize(1);
+        assertThat(serviceWithKey("k").search("1 Main Road", null)).hasSize(1);
+    }
+
+    @Test
+    void search_sendsTrimmedInputSessionAndKeyAsPlacesExpects() {
+        serviceWithKey("secret-key").search("  1 Main Road  ", "session-1");
+
+        assertThat(lastMethod).isEqualTo("POST");
+        assertThat(lastPath).isEqualTo("/v1/places:autocomplete");
+        assertThat(lastApiKey).isEqualTo("secret-key");
+        assertThat(lastFieldMask).contains("suggestions.placePrediction.placeId");
+        assertThat(lastBody).contains("\"input\":\"1 Main Road\"", "\"sessionToken\":\"session-1\"");
+        // The key goes in a header, never the URL, where proxies and access logs would keep it.
+        assertThat(lastQuery).isNull();
+    }
+
+    @Test
+    void search_noSessionOrRegion_leavesThemOutOfTheRequest() {
+        serviceWithKey("k").search("1 Main Road", null);
+
+        assertThat(lastBody).doesNotContain("sessionToken", "includedRegionCodes");
+    }
+
+    @Test
+    void search_regionCodeConfigured_limitsSuggestionsToThatCountry() {
+        new GoogleGeocodingService(RestClient.builder(), baseUrl, "k", " ZA ").search("1 Main Road", null);
+
+        assertThat(lastBody).contains("\"includedRegionCodes\":[\"za\"]");
+    }
+
+    // ── Resolve ─────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void resolve_placeDetails_mapToCoordinates() {
+        responseBody = """
+                {"id":"EiQzMiBU","location":{"latitude":-26.2485,"longitude":27.8540}}""";
+
+        ResolvedPlace place = serviceWithKey("k").resolve("EiQzMiBU", "session-1");
+
+        assertThat(place).isEqualTo(new ResolvedPlace("EiQzMiBU", -26.2485, 27.8540));
+        assertThat(lastMethod).isEqualTo("GET");
+        assertThat(lastPath).isEqualTo("/v1/places/EiQzMiBU");
+        assertThat(lastQuery).isEqualTo("sessionToken=session-1");
+        assertThat(lastFieldMask).isEqualTo("id,location");
+    }
+
+    @Test
+    void resolve_noSession_sendsNoQuery() {
+        responseBody = "{\"id\":\"ChIJ1\",\"location\":{\"latitude\":1.0,\"longitude\":2.0}}";
+
+        serviceWithKey("k").resolve("ChIJ1", null);
+
+        assertThat(lastQuery).isNull();
+    }
+
+    /** A place that cannot be put on a map is no use to the form. */
+    @Test
+    void resolve_noLocation_isAnExternalServiceFailure() {
+        responseBody = "{\"id\":\"ChIJ1\"}";
+
+        assertThatThrownBy(() -> serviceWithKey("k").resolve("ChIJ1", null))
+                .isInstanceOf(ExternalServiceException.class)
+                .hasMessageContaining("no location");
     }
 
     // ── Failures ────────────────────────────────────────────────────────────────────────────
 
-    /** REQUEST_DENIED, OVER_QUERY_LIMIT and friends: the provider answered, and said no. */
+    /** PERMISSION_DENIED is what a key without Places API (New) enabled gets back. */
     @Test
-    void aRefusedRequest_isAnExternalServiceFailure() {
-        responseBody = "{\"status\":\"REQUEST_DENIED\",\"error_message\":\"The provided API key is invalid.\"}";
+    void search_refusedRequest_isAnExternalServiceFailure() {
+        responseStatus = 403;
+        responseBody = """
+                {"error":{"code":403,"message":"Places API (New) has not been used","status":"PERMISSION_DENIED"}}""";
 
-        assertThatThrownBy(() -> serviceWithKey("k").search("1 Main Road"))
+        assertThatThrownBy(() -> serviceWithKey("k").search("1 Main Road", null))
+                .isInstanceOf(ExternalServiceException.class)
+                .hasMessageContaining("refused");
+    }
+
+    /**
+     * The handler logs the exception with its causes, and a chained HTTP exception's message is the
+     * whole response body. Only the status and reason belong in the log.
+     */
+    @Test
+    void search_refusedRequest_keepsTheResponseBodyOutOfTheException() {
+        responseStatus = 403;
+        responseBody = """
+                {"error":{"code":403,"message":"echo of 32 Tsutsube","status":"PERMISSION_DENIED",
+                  "details":[{"reason":"API_KEY_SERVICE_BLOCKED"}]}}""";
+
+        assertThatThrownBy(() -> serviceWithKey("k").search("32 Tsutsube", null))
+                .isInstanceOf(ExternalServiceException.class)
+                .hasNoCause()
+                .message().doesNotContain("Tsutsube");
+    }
+
+    @Test
+    void search_serverErrorWithAnUnreadableBody_isAnExternalServiceFailure() {
+        responseStatus = 500;
+        responseBody = "no";
+
+        assertThatThrownBy(() -> serviceWithKey("k").search("1 Main Road", null))
                 .isInstanceOf(ExternalServiceException.class)
                 .hasMessageContaining("refused");
     }
 
     @Test
-    void anUnreachableProvider_isAnExternalServiceFailure() {
+    void search_unreachableProvider_isAnExternalServiceFailure() {
         GoogleGeocodingService service =
-                new GoogleGeocodingService(RestClient.builder(), "http://127.0.0.1:1/geocode", "k");
+                new GoogleGeocodingService(RestClient.builder(), "http://127.0.0.1:1/v1", "k", "");
 
-        assertThatThrownBy(() -> service.search("1 Main Road"))
+        assertThatThrownBy(() -> service.search("1 Main Road", null))
                 .isInstanceOf(ExternalServiceException.class)
                 .hasMessageContaining("unreachable");
-    }
-
-    @Test
-    void aServerErrorFromTheProvider_isAnExternalServiceFailure() {
-        responseStatus = 500;
-        responseBody = "no";
-
-        assertThatThrownBy(() -> serviceWithKey("k").search("1 Main Road"))
-                .isInstanceOf(ExternalServiceException.class);
-    }
-
-    // ── What reaches the provider, and what does not ────────────────────────────────────────
-
-    @Test
-    void theQueryAndKeyAreSentAsParameters() {
-        responseBody = "{\"status\":\"ZERO_RESULTS\",\"results\":[]}";
-
-        serviceWithKey("secret-key").search("1 Main Road");
-
-        assertThat(lastQuery.get()).contains("address=1%20Main%20Road", "key=secret-key");
-    }
-
-    /**
-     * A trailing space in the box should not be a different query from the same address without
-     * one — it would be a second paid request for the same answer.
-     */
-    @Test
-    void theQueryIsTrimmedBeforeItIsSent() {
-        responseBody = "{\"status\":\"ZERO_RESULTS\",\"results\":[]}";
-
-        serviceWithKey("k").search("  1 Main Road  ");
-
-        assertThat(lastQuery.get()).contains("address=1%20Main%20Road");
-        assertThat(lastQuery.get()).doesNotContain("%20%20");
     }
 }

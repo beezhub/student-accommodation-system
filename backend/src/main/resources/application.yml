@@ -152,9 +152,13 @@ app:
       # Blank disables address lookup entirely: no requests are made, /api/geocoding/search returns
       # 503, and buildings/maps-config reports enabled=false so the form disables its autocomplete.
       # Backend-only on purpose — a geocoding key handed to the browser is one anyone can spend.
+      # The key needs Places API (New) enabled in the Google Cloud project.
       api-key: ${GOOGLE_MAPS_API_KEY:}
+      # Two-letter country code (za) that limits suggestions to one country. Blank means anywhere,
+      # biased toward wherever the server is, which is rarely where the buildings are.
+      region-code: ${GOOGLE_PLACES_REGION_CODE:}
       # Overridable so a test can point at a stub instead of the live API.
-      base-url: ${GOOGLE_GEOCODING_BASE_URL:https://maps.googleapis.com/maps/api/geocode/json}
+      base-url: ${GOOGLE_GEOCODING_BASE_URL:https://places.googleapis.com/v1}
   storage:
     cleanup:
       cron: ${STORAGE_CLEANUP_CRON:0 0 3 * * *}

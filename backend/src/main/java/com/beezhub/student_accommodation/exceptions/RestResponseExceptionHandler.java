@@ -587,6 +587,23 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
         }
 
         /**
+         * An optional integration this deployment has not configured. The same 503 as an outage,
+         * but logged at INFO with no stack trace: nothing failed, and the startup log already says
+         * which setting is missing.
+         */
+        @ExceptionHandler(ServiceNotConfiguredException.class)
+        public ResponseEntity<ErrorResponse> handleServiceNotConfigured(
+                        ServiceNotConfiguredException ex, WebRequest request) {
+                log.info("action=serviceNotConfigured path={} reason={}",
+                                request.getDescription(false), ex.getMessage());
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                                "This feature is not enabled on this deployment.",
+                                request.getDescription(false)), HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
+        /**
          * An allocation refused by a rule about rooms and students rather than by a status
          * transition. The message is written for the administrator who triggered it.
          */

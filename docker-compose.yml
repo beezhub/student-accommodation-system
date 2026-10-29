@@ -77,6 +77,10 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - APP_SUPPORT_EMAIL=${APP_SUPPORT_EMAIL:-accommodation@university.edu}
       - APP_UNIVERSITY_NAME=${APP_UNIVERSITY_NAME:-University}
+      # Read by application.yml, so it has to be forwarded: compose passes a container only the
+      # variables listed here, not the whole .env. Blank keeps address lookup off.
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+      - GOOGLE_PLACES_REGION_CODE=${GOOGLE_PLACES_REGION_CODE:-}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       # Addresses whose X-Forwarded-For may be trusted. Without this every client behind a proxy
