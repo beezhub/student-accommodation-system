@@ -448,6 +448,16 @@ class RestResponseExceptionHandlerTest {
         assertFalse(message.contains("postmaster"));
     }
 
+    /** A feature this deployment never configured is still unavailable to the caller. */
+    @Test
+    void handleServiceNotConfigured_isServiceUnavailable() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleServiceNotConfigured(
+                new ServiceNotConfiguredException("Geocoding is not configured"), webRequest);
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertTrue(response.getBody().getErrors().get(0).contains("not enabled"));
+    }
+
     /** Storage failures carry the object key and the driver's text; neither is the caller's business. */
     @Test
     void handleFileStorage_isServiceUnavailableAndHidesTheObjectKey() {
