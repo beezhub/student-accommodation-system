@@ -122,7 +122,10 @@ export class RoomAllocationService {
     if (filters.roomNumber) params = params.set('roomNumber', filters.roomNumber);
     if (filters.status) params = params.set('status', filters.status);
 
-    return this.http.get<PageResponse<RoomAllocationResponse>>(`${this.apiUrl}/search`, { params });
+    return this.http.get<PageResponse<RoomAllocationResponse>>(`${this.apiUrl}/search`, {
+      params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   getAllocationsByStatus(
@@ -147,13 +150,16 @@ export class RoomAllocationService {
   }
 
   createAllocation(allocation: RoomAllocationRequest): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(this.apiUrl, allocation);
+    return this.http.post<RoomAllocationResponse>(this.apiUrl, allocation, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   allocateByApplication(request: AllocateByApplicationRequest): Observable<RoomAllocationResponse> {
     return this.http.post<RoomAllocationResponse>(
       `${this.apiUrl}/allocate-by-application`,
-      request
+      request,
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
     );
   }
 
@@ -165,11 +171,19 @@ export class RoomAllocationService {
   }
 
   endAllocation(id: number): Observable<RoomAllocationResponse> {
-    return this.http.patch<RoomAllocationResponse>(`${this.apiUrl}/${id}/end`, {});
+    return this.http.patch<RoomAllocationResponse>(
+      `${this.apiUrl}/${id}/end`,
+      {},
+      {
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+      }
+    );
   }
 
   deleteAllocation(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   getRoomAvailability(roomId: number): Observable<RoomAvailabilityResponse> {
@@ -246,6 +260,12 @@ export class RoomAllocationService {
   }
 
   checkOut(id: number): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/check-out`, {});
+    return this.http.post<RoomAllocationResponse>(
+      `${this.apiUrl}/${id}/check-out`,
+      {},
+      {
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+      }
+    );
   }
 }

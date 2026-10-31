@@ -115,11 +115,14 @@ export class StagedAllocationComponent implements OnInit {
   loadApplications(): void {
     this.isLoadingApplications = true;
     this.adminService
-      .searchApplications({
-        status: 'AWAITING_ALLOCATION',
-        page: this.pageIndex,
-        size: this.pageSize,
-      })
+      .searchApplications(
+        {
+          status: 'AWAITING_ALLOCATION',
+          page: this.pageIndex,
+          size: this.pageSize,
+        },
+        true
+      )
       .subscribe({
         next: (page) => {
           this.availableApplications = page.content;

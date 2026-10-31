@@ -20,10 +20,14 @@ export class StagedAllocationService {
   private apiUrl = `${environment.apiUrl}/admin/allocation`;
 
   proposeAllocation(studentIds: number[], batchId: string): Observable<BatchAllocationProposal> {
-    return this.http.post<BatchAllocationProposal>(`${this.apiUrl}/propose-batch`, {
-      studentIds,
-      batchId,
-    });
+    return this.http.post<BatchAllocationProposal>(
+      `${this.apiUrl}/propose-batch`,
+      {
+        studentIds,
+        batchId,
+      },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   getProposals(
@@ -65,9 +69,13 @@ export class StagedAllocationService {
   }
 
   rejectAllocation(stagedId: number, reason: string): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/staged/${stagedId}/reject`, {
-      reason,
-    });
+    return this.http.post<{ success: boolean }>(
+      `${this.apiUrl}/staged/${stagedId}/reject`,
+      {
+        reason,
+      },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   confirmBatch(
@@ -75,7 +83,8 @@ export class StagedAllocationService {
   ): Observable<{ success: boolean; confirmed: number; failed: number }> {
     return this.http.post<{ success: boolean; confirmed: number; failed: number }>(
       `${this.apiUrl}/batch/${batchId}/confirm-all`,
-      {}
+      {},
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
     );
   }
 
@@ -84,10 +93,14 @@ export class StagedAllocationService {
     newRoomId: number,
     reason: string
   ): Observable<RoomAllocationResponse> {
-    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${allocationId}/move`, {
-      newRoomId,
-      reason,
-    });
+    return this.http.post<RoomAllocationResponse>(
+      `${this.apiUrl}/${allocationId}/move`,
+      {
+        newRoomId,
+        reason,
+      },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   overrideConstraints(
@@ -113,13 +126,17 @@ export class StagedAllocationService {
     if (buildingId) {
       params = params.set('buildingId', buildingId.toString());
     }
-    return this.http.get<WaitingListEntry[]>(`${this.apiUrl}/waiting-list`, { params });
+    return this.http.get<WaitingListEntry[]>(`${this.apiUrl}/waiting-list`, {
+      params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   rescoreWaitingList(): Observable<{ success: boolean; rescored: number }> {
     return this.http.post<{ success: boolean; rescored: number }>(
       `${this.apiUrl}/waiting-list/rescore`,
-      {}
+      {},
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
     );
   }
 
