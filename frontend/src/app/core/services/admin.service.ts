@@ -176,17 +176,20 @@ export class AdminService {
     return this.http.get<PageResponse<ApplicationResponse>>(this.applicationApiUrl, { params });
   }
 
-  searchApplications(filters: {
-    applicationCode?: string;
-    studentName?: string;
-    status?: string;
-    allocationStatus?: string;
-    preferredBuilding?: string;
-    startDate?: string;
-    endDate?: string;
-    page?: number;
-    size?: number;
-  }): Observable<PageResponse<ApplicationResponse>> {
+  searchApplications(
+    filters: {
+      applicationCode?: string;
+      studentName?: string;
+      status?: string;
+      allocationStatus?: string;
+      preferredBuilding?: string;
+      startDate?: string;
+      endDate?: string;
+      page?: number;
+      size?: number;
+    },
+    silent = false
+  ): Observable<PageResponse<ApplicationResponse>> {
     let params = new HttpParams()
       .set('page', (filters.page || 0).toString())
       .set('size', (filters.size || 20).toString());
@@ -202,6 +205,7 @@ export class AdminService {
 
     return this.http.get<PageResponse<ApplicationResponse>>(`${this.applicationApiUrl}/search`, {
       params,
+      headers: silent ? new HttpHeaders({ 'X-Silent-Error': 'true' }) : undefined,
     });
   }
 
