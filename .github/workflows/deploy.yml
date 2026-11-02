@@ -105,7 +105,12 @@ jobs:
 
       # tar over the ssh channel, not git clone on the host: a clone needs a repository credential
       # on the server and lets host state drift from the commit that produced this run.
-      - name: Sync the tree to the host
+      #
+      # Into a fresh staging directory, not straight over /opt/sas. Extracting only adds and
+      # overwrites, so every file ever renamed or deleted in the repository stayed on the host: the
+      # renames in #346 left the old Minio*.java classes behind, they no longer compiled, and the
+      # deploy failed (GH-347). The next step makes /opt/sas match the staged tree exactly.
+      - name: Stage the tree on the host
         run: |
           tar --exclude='.git' \
               --exclude='frontend/node_modules' \
@@ -113,7 +118,35 @@ jobs:
             | ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
                 -o StrictHostKeyChecking=yes -o BatchMode=yes \
                 "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
-                'tar -x -C /opt/sas'
+                'rm -rf "$HOME/sas-incoming" && mkdir "$HOME/sas-incoming" && tar -x -C "$HOME/sas-incoming"'
+
+      # Deletes every file under /opt/sas that this commit does not contain, then copies the commit
+      # in. rsync --delete would do the same, but the host does not have rsync. Kept: what only the
+      # host has and the repository never will, which is .env, its .env.bak-* copies and .backup-*
+      # folders, plus frontend/node_modules, which the tar above excludes.
+      - name: Sync the tree to the host
+        run: |
+          ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          stage="$HOME/sas-incoming"
+          # A truncated or empty stream must never decide what gets deleted.
+          if [ ! -f "$stage/docker-compose.yml" ]; then
+            echo "::error::the staged tree has no docker-compose.yml; nothing on the host was changed"
+            exit 1
+          fi
+          cd /opt/sas
+          find . -type f ! -path './.env' ! -path './.env.bak-*' ! -path './.backup-*' \
+               ! -path './frontend/node_modules/*' | sort > "$stage.host"
+          (cd "$stage" && find . -type f | sort) > "$stage.tree"
+          comm -23 "$stage.host" "$stage.tree" | while IFS= read -r stale; do
+            echo "removing $stale"
+            rm -f -- "$stale"
+          done
+          tar -C "$stage" -cf - . | tar -x -C /opt/sas
+          rm -rf "$stage" "$stage.host" "$stage.tree"
+          REMOTE
 
       - name: Build and start
         run: |
