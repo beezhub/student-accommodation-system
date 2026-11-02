@@ -59,7 +59,15 @@ dependencies {
 	testRuntimeOnly 'com.h2database:h2'
 	implementation 'org.mapstruct:mapstruct:1.6.3'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
-	implementation 'io.minio:minio:9.0.0'
+	// Amazon S3 on PROD, and the MinIO container locally and on NONPROD, which speaks the same API
+	// (GH-331). The URLConnection client instead of the SDK's default Apache and Netty clients: the
+	// only caller is synchronous and low-volume, and it adds no further dependencies.
+	implementation platform('software.amazon.awssdk:bom:2.56.0')
+	implementation('software.amazon.awssdk:s3') {
+		exclude group: 'software.amazon.awssdk', module: 'apache-client'
+		exclude group: 'software.amazon.awssdk', module: 'netty-nio-client'
+	}
+	implementation 'software.amazon.awssdk:url-connection-client'
 	implementation('org.ff4j:ff4j-spring-boot-starter:1.9') {
 		exclude group: 'org.springdoc'
 		// FF4j's own REST API (/api/ff4j/**) would let any authenticated user flip flags.

@@ -100,9 +100,12 @@ minio:
   access-key: ${MINIO_ACCESS_KEY}
   secret-key: ${MINIO_SECRET_KEY}
   bucket-name: ${MINIO_BUCKET:student-accommodation-bucket}
+  # Amazon S3 on PROD (GH-331): af-south-1, aws-instance-role, false. The defaults suit MinIO.
+  region: ${MINIO_REGION:}
+  credentials: ${MINIO_CREDENTIALS:static}
+  create-bucket: ${MINIO_CREATE_BUCKET:true}
   connect-timeout-s: ${MINIO_CONNECT_TIMEOUT_S:30}
   read-timeout-s: ${MINIO_READ_TIMEOUT_S:30}
-  write-timeout-s: ${MINIO_WRITE_TIMEOUT_S:30}
 app:
   base-url: ${APP_BASE_URL}
   support-email: ${APP_SUPPORT_EMAIL:accommodation@university.edu}

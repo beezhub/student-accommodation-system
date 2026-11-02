@@ -86,7 +86,7 @@ class HealthProbeConfigurationTest {
         String include = String.valueOf(at(applicationYml(), "management.endpoint.health.group.readiness.include"));
 
         assertThat(include).contains("readinessState").contains("db");
-        assertThat(include).doesNotContain("smtp").doesNotContain("minio")
+        assertThat(include).doesNotContain("smtp").doesNotContain("storage")
                 .doesNotContain("redis").doesNotContain("mail");
     }
 

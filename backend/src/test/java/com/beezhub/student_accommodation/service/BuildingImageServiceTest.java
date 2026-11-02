@@ -1,16 +1,12 @@
 package com.beezhub.student_accommodation.service;
 
-import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.model.dto.BuildingImageContentResponse;
 import com.beezhub.student_accommodation.model.dto.BuildingImageResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.BuildingImage;
 import com.beezhub.student_accommodation.repository.BuildingImageRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
-import io.minio.GetObjectArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
+import com.beezhub.student_accommodation.service.document.FileStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,21 +18,23 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BuildingImageServiceTest {
 
     @Mock
-    private MinioClient minioClient;
-    @Mock
-    private MinioConfig minioConfig;
+    private FileStorageService fileStorageService;
     @Mock
     private BuildingImageRepository buildingImageRepository;
     @Mock
@@ -85,7 +83,6 @@ class BuildingImageServiceTest {
         // accepted, because nothing looked past the multipart part header (GH-219).
         validFile = new MockMultipartFile("file", "test.jpg", "image/jpeg", jpegBytes());
 
-        lenient().when(minioConfig.getBucketName()).thenReturn("test-bucket");
     }
 
     /** A minimal file whose leading bytes are a real JPEG signature. */
@@ -109,7 +106,6 @@ class BuildingImageServiceTest {
     void uploadImages_ValidFile_ReturnsResponses() throws Exception {
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
         when(buildingImageRepository.findByBuilding_IdOrderByDisplayOrderAsc(1L)).thenReturn(List.of());
-        when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(null);
         when(buildingImageRepository.save(any(BuildingImage.class))).thenAnswer(i -> {
             BuildingImage saved = i.getArgument(0);
             saved.setId(100L);
@@ -168,10 +164,7 @@ class BuildingImageServiceTest {
         verify(buildingImageRepository).save(saved.capture());
         assertThat(saved.getValue().getContentType()).isEqualTo("image/jpeg");
 
-        ArgumentCaptor<PutObjectArgs> put = ArgumentCaptor.forClass(PutObjectArgs.class);
-        verify(minioClient).putObject(put.capture());
-        // contentType() is a rich type in this MinIO version, so compare its rendered form.
-        assertThat(put.getValue().contentType()).hasToString("image/jpeg");
+        verify(fileStorageService).upload(anyString(), any(InputStream.class), anyLong(), eq("image/jpeg"));
     }
 
     @Test
@@ -210,15 +203,13 @@ class BuildingImageServiceTest {
     @Test
     void getImageContent_Exists_ReturnsResourceAndContentType() throws Exception {
         when(buildingImageRepository.findById(101L)).thenReturn(Optional.of(image1));
-        when(minioClient.getObject(any(GetObjectArgs.class))).thenReturn(fakeObjectResponse());
+        when(fileStorageService.download("path1")).thenReturn(new ByteArrayInputStream("bytes".getBytes()));
 
         BuildingImageContentResponse content = service.getImageContent(1L, 101L);
 
         assertThat(content.getContentType()).isEqualTo("image/jpeg");
         assertThat(content.getResource()).isNotNull();
-        ArgumentCaptor<GetObjectArgs> args = ArgumentCaptor.forClass(GetObjectArgs.class);
-        verify(minioClient).getObject(args.capture());
-        assertThat(args.getValue().object()).isEqualTo("path1");
+        verify(fileStorageService).download("path1");
     }
 
     @Test
@@ -226,19 +217,11 @@ class BuildingImageServiceTest {
         // Rows written before GH-219 may carry no content type, or one it never validated.
         image1.setContentType(null);
         when(buildingImageRepository.findById(101L)).thenReturn(Optional.of(image1));
-        when(minioClient.getObject(any(GetObjectArgs.class))).thenReturn(fakeObjectResponse());
+        when(fileStorageService.download("path1")).thenReturn(new ByteArrayInputStream("bytes".getBytes()));
 
         BuildingImageContentResponse content = service.getImageContent(1L, 101L);
 
         assertThat(content.getContentType()).isEqualTo("application/octet-stream");
-    }
-
-    /** A minimal {@code GetObjectResponse}; the constructor needs headers, but no test reads them. */
-    private static io.minio.GetObjectResponse fakeObjectResponse() {
-        return new io.minio.GetObjectResponse(
-                new okhttp3.Headers.Builder().build(),
-                "test-bucket", "us-east-1", "path1",
-                new ByteArrayInputStream("bytes".getBytes()));
     }
 
     @Test
@@ -256,9 +239,10 @@ class BuildingImageServiceTest {
     }
 
     @Test
-    void uploadImages_MinioError_ThrowsException() throws Exception {
+    void uploadImages_StorageError_ThrowsException() throws Exception {
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
-        when(minioClient.putObject(any(PutObjectArgs.class))).thenThrow(new RuntimeException("Minio error"));
+        when(fileStorageService.upload(anyString(), any(InputStream.class), anyLong(), anyString()))
+                .thenThrow(new RuntimeException("Storage error"));
 
         assertThrows(RuntimeException.class, () -> service.uploadImages(1L, List.of(validFile)));
     }
@@ -289,7 +273,7 @@ class BuildingImageServiceTest {
         service.deleteImage(1L, 101L);
 
         verify(buildingImageRepository).delete(image1);
-        verify(minioClient).removeObject(any(RemoveObjectArgs.class));
+        verify(fileStorageService).delete("path1");
         verify(buildingImageRepository).save(image2);
         assertThat(image2.getPrimary()).isTrue();
     }
@@ -301,14 +285,14 @@ class BuildingImageServiceTest {
         service.deleteImage(1L, 102L);
 
         verify(buildingImageRepository).delete(image2);
-        verify(minioClient).removeObject(any(RemoveObjectArgs.class));
+        verify(fileStorageService).delete("path2");
         verify(buildingImageRepository, never()).save(any());
     }
 
     @Test
-    void deleteImage_MinioError_SwallowsException() throws Exception {
+    void deleteImage_StorageError_SwallowsException() throws Exception {
         when(buildingImageRepository.findById(102L)).thenReturn(Optional.of(image2));
-        doThrow(new RuntimeException("Minio error")).when(minioClient).removeObject(any(RemoveObjectArgs.class));
+        doThrow(new RuntimeException("Storage error")).when(fileStorageService).delete("path2");
 
         service.deleteImage(1L, 102L);
 
@@ -389,7 +373,6 @@ class BuildingImageServiceTest {
                 }).toList();
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
         when(buildingImageRepository.findByBuilding_IdOrderByDisplayOrderAsc(1L)).thenReturn(existing);
-        when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(null);
         when(buildingImageRepository.save(any(BuildingImage.class))).thenAnswer(i -> {
             BuildingImage saved = i.getArgument(0);
             saved.setId(200L);
@@ -413,7 +396,6 @@ class BuildingImageServiceTest {
                 }).toList();
         when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
         when(buildingImageRepository.findByBuilding_IdOrderByDisplayOrderAsc(1L)).thenReturn(existing);
-        when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(null);
         when(buildingImageRepository.save(any(BuildingImage.class))).thenAnswer(i -> {
             BuildingImage saved = i.getArgument(0);
             saved.setId(201L);

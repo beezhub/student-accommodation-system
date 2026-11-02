@@ -160,18 +160,21 @@ are enough, then buy both reservations. Set AWS Budgets alerts at $35 and $45.
 
 ### MinIO to S3
 
-The `io.minio` client speaks the S3 API, so the code mostly stays. What changes:
+Done in #331. The backend uses the AWS SDK for Java v2 (`S3Client`, `S3Presigner`) instead of the MinIO SDK.
+The MinIO container stays locally and on NONPROD, where the same client reaches it over the S3 API.
 
-| Where | Change |
+| Where | Result |
 |---|---|
-| `MinioConfig` | `minio.endpoint` set to `https://s3.af-south-1.amazonaws.com`, plus the region |
-| Credentials | Prefer the instance role. Check whether the MinIO SDK's `IamAwsProvider` works with IMDSv2; if not, use an IAM user's access key with S3 access to the one bucket, stored in SSM and rotated per `CREDENTIAL_ROTATION.md` |
-| `MinioBucketService` | Must not create buckets in PROD. Terraform owns the bucket |
-| `BuildingImageService` | Calls the MinIO client directly rather than through `FileStorageService`, and streams image bytes through the backend (GH-268). Only `putObject`, `removeObject` and `getObject` need to work against S3 |
-| `STORAGE_PUBLIC_ORIGIN` | `https://<bucket>.s3.af-south-1.amazonaws.com`, so the CSP allows presigned document URLs |
-| Bucket CORS rule | Only if the frontend fetches the document `fileUrl` with XHR rather than opening it as a link. Uploads go through the backend, so no upload rule |
+| `StorageConfig` | Builds the client. Path-style addressing for MinIO, virtual-hosted for `*.amazonaws.com` |
+| Settings | Keep their `MINIO_*` names, so existing `.env` files still work. PROD sets `MINIO_ENDPOINT=https://s3.af-south-1.amazonaws.com`, `MINIO_REGION=af-south-1`, `MINIO_CREDENTIALS=aws-instance-role`, `MINIO_CREATE_BUCKET=false` |
+| Credentials | `aws-instance-role` uses the SDK's instance profile provider with IMDSv2. From a container the instance needs a metadata hop limit of 2 (#335) |
+| `StorageBucketService` | Skips bucket creation when `MINIO_CREATE_BUCKET=false`. Terraform owns the bucket |
+| `BuildingImageService` | Goes through `FileStorageService` like documents, so `S3FileStorageService` is the only class that talks to storage |
+| Health | `StorageHealthIndicator`, reported as `storage` in `/actuator/health` |
+| Bucket CORS rule | Not needed. Documents download through `/api/documents/download` and building images stream through the backend (GH-268), so the browser never fetches from storage |
 | `OrphanFileCleanupJob` | Unchanged. Its `{role}/` and `buildings/` prefix rules apply to S3 keys the same way |
-| `MinioHealthIndicator` | Should work against S3 unchanged; verify on NONPROD |
+
+The first run against a real S3 bucket is a step in the first PROD deploy (#336).
 
 ### PostgreSQL to RDS
 

@@ -3,7 +3,6 @@ package com.beezhub.student_accommodation.service;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
-import com.beezhub.student_accommodation.config.MinioConfig;
 import com.beezhub.student_accommodation.model.dto.BuildingImageContentResponse;
 import com.beezhub.student_accommodation.model.dto.BuildingImageResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
@@ -11,10 +10,10 @@ import com.beezhub.student_accommodation.model.entity.BuildingImage;
 import com.beezhub.student_accommodation.exceptions.FileValidationException;
 import com.beezhub.student_accommodation.repository.BuildingImageRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
+import com.beezhub.student_accommodation.service.document.FileStorageService;
 import com.beezhub.student_accommodation.service.document.ValidationResult;
 import com.beezhub.student_accommodation.service.image.ImageContentTypes;
 import com.beezhub.student_accommodation.service.image.ImageUploadValidator;
-import io.minio.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BuildingImageService {
 
-    private final MinioClient minioClient;
-    private final MinioConfig minioConfig;
+    // The same storage documents use, under the buildings/ prefix that OrphanFileCleanupJob skips.
+    private final FileStorageService fileStorageService;
     private final BuildingImageRepository buildingImageRepository;
     private final BuildingRepository buildingRepository;
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
@@ -71,7 +71,7 @@ public class BuildingImageService {
             String contentType = validateImage(file);
 
             String objectPath = buildObjectPath(buildingId, file);
-            uploadFileToMinio(objectPath, file, contentType);
+            uploadFileToStorage(objectPath, file, contentType);
 
             BuildingImage image = new BuildingImage();
             image.setBuilding(building);
@@ -122,8 +122,8 @@ public class BuildingImageService {
         // Delete from database first
         buildingImageRepository.delete(image);
 
-        // Delete from Minio
-        deleteFileFromMinio(objectPath);
+        // Delete from storage
+        deleteFileFromStorage(objectPath);
 
         // If deleted image was primary, promote the next image
         if (wasPrimary) {
@@ -201,7 +201,7 @@ public class BuildingImageService {
         // clamp still runs here so a row written before that fix cannot be served as anything but
         // one of the four allowed image types.
         String contentType = ImageContentTypes.clamp(image.getContentType());
-        InputStream stream = downloadFileFromMinio(image.getObjectPath());
+        InputStream stream = fileStorageService.download(image.getObjectPath());
         return BuildingImageContentResponse.builder()
                 .resource(new InputStreamResource(stream))
                 .contentType(contentType)
@@ -223,45 +223,20 @@ public class BuildingImageService {
         return String.format("buildings/%d/%s_%s", buildingId, uuid, originalFilename);
     }
 
-    private void uploadFileToMinio(String objectPath, MultipartFile file, String contentType) {
-        String bucketName = minioConfig.getBucketName();
+    private void uploadFileToStorage(String objectPath, MultipartFile file, String contentType) {
         try (InputStream is = file.getInputStream()) {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .stream(is, file.getSize(), -1L)
-                            .contentType(contentType)
-                            .build());
-        } catch (Exception e) {
+            fileStorageService.upload(objectPath, is, file.getSize(), contentType);
+        } catch (IOException e) {
             throw new FileStorageException("Error uploading file: " + file.getOriginalFilename(), e);
         }
     }
 
-    private void deleteFileFromMinio(String objectPath) {
-        String bucketName = minioConfig.getBucketName();
+    private void deleteFileFromStorage(String objectPath) {
         try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .build());
+            fileStorageService.delete(objectPath);
         } catch (Exception e) {
-            log.error("Error deleting file from Minio: {}", objectPath, e);
+            log.error("Error deleting file from storage: {}", objectPath, e);
             // Don't throw exception - database deletion already succeeded
-        }
-    }
-
-    private InputStream downloadFileFromMinio(String objectPath) {
-        String bucketName = minioConfig.getBucketName();
-        try {
-            return minioClient.getObject(
-                    GetObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectPath)
-                            .build());
-        } catch (Exception e) {
-            throw new FileStorageException("Error downloading image: " + objectPath, e);
         }
     }
 

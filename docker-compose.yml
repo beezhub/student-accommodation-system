@@ -61,6 +61,10 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_BUCKET=${MINIO_BUCKET:-student-accommodation-bucket}
+      # Set only where storage is Amazon S3 rather than this MinIO container (GH-331).
+      - MINIO_REGION=${MINIO_REGION:-}
+      - MINIO_CREDENTIALS=${MINIO_CREDENTIALS:-static}
+      - MINIO_CREATE_BUCKET=${MINIO_CREATE_BUCKET:-true}
       - MAIL_HOST=mailhog
       - MAIL_PORT=1025
       - MAIL_USERNAME=${MAIL_USERNAME:-noreply@studentaccommodation.local}
