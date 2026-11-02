@@ -141,6 +141,106 @@ class DeploymentConfigurationTest {
         assertThat(read("docker-compose.prod.yml")).contains("SPRING_PROFILES_ACTIVE=prod");
     }
 
+    /** Checkouts on Windows carry CRLF; the multi-line assertions below are written with LF. */
+    private static String readLf(String relativePath) throws IOException {
+        return read(relativePath).replace("\r\n", "\n");
+    }
+
+    /**
+     * PROD runs on a 2 GB server with RDS and S3 (docs/PROD_ENVIRONMENT_PLAN.md). Anything the
+     * managed services replace, or that the server has no memory for, must not start there.
+     */
+    @Test
+    void awsOverlay_switchesOffEveryServiceThatDoesNotRunInProd() throws IOException {
+        String aws = readLf("docker-compose.aws.yml");
+
+        for (String service : List.of("db", "minio", "minio-volume-permissions", "prometheus",
+                "grafana", "loki")) {
+            assertThat(aws)
+                    .as(service + " must be scaled to zero behind an unused profile")
+                    .contains("  " + service + ":\n    deploy:\n      replicas: 0\n    profiles: [\"never\"]");
+        }
+    }
+
+    /**
+     * The base file makes the backend wait on db and minio being healthy, and a profile does not
+     * stop Compose starting a dependency, so the switched-off services would come up anyway
+     * (#246).
+     */
+    @Test
+    void awsOverlay_backendDependsOnRedisOnly() throws IOException {
+        String aws = readLf("docker-compose.aws.yml");
+        String backend = aws.substring(aws.indexOf("  student-accommodation-back-end:"),
+                aws.indexOf("  frontend:"));
+        String dependsOn = backend.substring(backend.indexOf("depends_on: !override"),
+                backend.indexOf("    environment:"));
+
+        assertThat(dependsOn).contains("redis:");
+        assertThat(dependsOn).doesNotContain("db:").doesNotContain("minio:");
+    }
+
+    /** PROD runs the image NONPROD ran, pulled by digest, and never builds from the tree. */
+    @Test
+    void awsOverlay_pullsImagesByDigestAndNeverBuilds() throws IOException {
+        String aws = read("docker-compose.aws.yml");
+
+        assertThat(aws).contains("image: ${BACKEND_IMAGE:?");
+        assertThat(aws).contains("image: ${FRONTEND_IMAGE:?");
+        assertThat(aws.split("build: !reset null", -1)).hasSize(3);
+    }
+
+    /** The base file's DB_URL names the db container, which does not exist in PROD. */
+    @Test
+    void awsOverlay_requiresAnExternalDatabaseUrl() throws IOException {
+        assertThat(read("docker-compose.aws.yml")).contains("- DB_URL=${DB_URL:?");
+    }
+
+    /**
+     * NONPROD and PROD share one log pipeline and differ only in where it writes. Alloy loads a
+     * whole directory, and /etc/alloy itself holds the image's example config.alloy, which turns on
+     * debug logging and exporters pointed at localhost.
+     */
+    @Test
+    void alloy_sharesTheLogPipelineAndLoadsOnlyItsOwnDirectory() throws IOException {
+        String deploy = readLf("docker-compose.deploy.yml");
+        String aws = readLf("docker-compose.aws.yml");
+
+        assertThat(deploy).contains("      - /etc/alloy/conf.d\n");
+        assertThat(deploy).contains("tools/alloy/logs.alloy:/etc/alloy/conf.d/logs.alloy:ro");
+        assertThat(deploy).contains("tools/alloy/loki-local.alloy:/etc/alloy/conf.d/loki-local.alloy:ro");
+        assertThat(aws).contains("tools/alloy/logs.alloy:/etc/alloy/conf.d/logs.alloy:ro");
+        assertThat(aws).contains("tools/alloy/grafana-cloud.alloy:/etc/alloy/conf.d/grafana-cloud.alloy:ro");
+        assertThat(aws).doesNotContain("tools/alloy/loki-local.alloy:");
+
+        assertThat(readLf("tools/alloy/logs.alloy"))
+                .as("the destination belongs to the per-host file, not the shared pipeline")
+                .doesNotContain("\nloki.write \"");
+        assertThat(read("tools/alloy/loki-local.alloy")).contains("loki.write \"default\"");
+        assertThat(read("tools/alloy/grafana-cloud.alloy")).contains("loki.write \"default\"");
+    }
+
+    /** Alloy does Prometheus's job in PROD, with the same credentials the backend checks. */
+    @Test
+    void awsOverlay_alloyScrapesTheBackendWithTheSharedSecret() throws IOException {
+        String aws = readLf("docker-compose.aws.yml");
+        String alloy = aws.substring(aws.indexOf("  alloy:"));
+
+        assertThat(alloy).contains("- prometheus_scrape_password");
+        assertThat(alloy).contains("- app-network");
+        assertThat(read("tools/alloy/grafana-cloud.alloy"))
+                .contains("password_file = \"/run/secrets/prometheus_scrape_password\"")
+                .contains("job_name        = \"student-accommodation-backend\"");
+    }
+
+    @Test
+    void awsOverlay_settingsAreDocumented() throws IOException {
+        String env = read(".env.example");
+
+        assertThat(env).contains("BACKEND_IMAGE=").contains("FRONTEND_IMAGE=");
+        assertThat(env).contains("GRAFANA_CLOUD_LOGS_URL=").contains("GRAFANA_CLOUD_METRICS_URL=")
+                .contains("GRAFANA_CLOUD_API_KEY=");
+    }
+
     @Test
     void newSettingsAreDocumented() throws IOException {
         String env = read(".env.example");
