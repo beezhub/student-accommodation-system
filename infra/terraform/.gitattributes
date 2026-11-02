@@ -1,0 +1,4 @@
+# user_data.sh runs on the Linux server as the first-boot script. With CRLF line endings, which a
+# Windows checkout would otherwise give it, the shebang becomes "#!/bin/bash\r" and cloud-init
+# cannot start it. The rest stays LF so a plan from Windows matches a plan from anywhere else.
+* text=auto eol=lf
