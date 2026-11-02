@@ -113,7 +113,7 @@ Now, both the backend and frontend servers should be running. Access the applica
   ordering, and the document retention rule (twelve months after a student's last application
   closes and last tenancy ends). Read it before turning retention off dry-run mode.
 - **Logs.** On a deployed host every container's output and the Caddy journal are shipped by
-  Alloy to Loki and kept for two weeks (`tools/alloy/config.alloy`, `tools/loki/loki.yml`). Caddy
+  Alloy to Loki and kept for two weeks (`tools/alloy/logs.alloy`, `tools/loki/loki.yml`). Caddy
   serves Grafana at `/grafana`; sign in with `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` and
   use Explore with the Loki datasource:
 

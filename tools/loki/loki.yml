@@ -1,5 +1,5 @@
 # Loki, single binary, local filesystem. Receives every container's stdout/stderr and the host's
-# Caddy journal from Alloy (tools/alloy/config.alloy) and is queried from Grafana's Explore page.
+# Caddy journal from Alloy (tools/alloy/logs.alloy) and is queried from Grafana's Explore page.
 #
 # Not published on any port: Alloy pushes to it and Grafana reads from it over monitoring-network.
 # Retention is two weeks. The compactor deletes older chunks in the background; there is no

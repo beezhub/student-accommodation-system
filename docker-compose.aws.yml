@@ -1,0 +1,126 @@
+# PROD overlay: the AWS Cape Town server in docs/PROD_ENVIRONMENT_PLAN.md. Layered on top of the
+# NONPROD deployment rather than written beside it, so PROD is NONPROD plus the differences below
+# and inherits everything NONPROD has already proven (hardening, the frontend service and its fixed
+# address, bounded logs, Alloy's log pipeline):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml \
+#     -f docker-compose.aws.yml up -d --no-build
+#
+# The differences, all forced by a 2 GB EC2 instance with managed services around it:
+#
+#   - PostgreSQL is RDS and documents are S3, so db, minio and its volume fix-up do not run.
+#   - Grafana, Prometheus and Loki do not run. Alloy ships logs and scrapes metrics straight to
+#     Grafana Cloud (tools/alloy/grafana-cloud.alloy).
+#   - Backend and frontend are pulled by digest and never built here: PROD runs the bytes NONPROD
+#     ran (#337).
+#
+# Compose interpolates every file before it merges them, so the `:?` checks in the earlier files
+# still apply to services this one switches off. GRAFANA_ADMIN_PASSWORD, MINIO_ACCESS_KEY and
+# MINIO_SECRET_KEY must therefore be set even though Grafana and MinIO do not run here. The MinIO
+# pair is also what the backend uses to reach S3 until #331 settles on the instance role.
+
+services:
+  # Scaled to zero with a profile nothing enables, the way docker-compose.prod.yml retires MailHog.
+  # Compose cannot delete a service an earlier file declares.
+  db:
+    deploy:
+      replicas: 0
+    profiles: ["never"]
+
+  minio:
+    deploy:
+      replicas: 0
+    profiles: ["never"]
+
+  minio-volume-permissions:
+    deploy:
+      replicas: 0
+    profiles: ["never"]
+
+  prometheus:
+    deploy:
+      replicas: 0
+    profiles: ["never"]
+
+  grafana:
+    deploy:
+      replicas: 0
+    profiles: ["never"]
+
+  loki:
+    deploy:
+      replicas: 0
+    profiles: ["never"]
+
+  student-accommodation-back-end:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be a registry reference by digest, repo@sha256:...}
+    # Never build on the server. `--no-build` is the second lock on the same door.
+    build: !reset null
+    # The base file waits on db and minio being healthy. A profile does not stop Compose starting a
+    # dependency, so without this override db and minio come up anyway and the backend waits on
+    # containers nobody wants (#246).
+    depends_on: !override
+      redis:
+        condition: service_healthy
+    environment:
+      # RDS for PostgreSQL 16 requires TLS by default, so the URL must ask for it:
+      # jdbc:postgresql://<endpoint>:5432/<database>?sslmode=require
+      - DB_URL=${DB_URL:?DB_URL must be set to the RDS endpoint with sslmode=require}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:?MINIO_ENDPOINT must be set to https://s3.af-south-1.amazonaws.com}
+      - MINIO_BUCKET=${MINIO_BUCKET:?MINIO_BUCKET must be set to the documents bucket}
+      # Presigned document URLs point at S3 itself, so the CSP must allow its origin.
+      - STORAGE_PUBLIC_ORIGIN=${STORAGE_PUBLIC_ORIGIN:?STORAGE_PUBLIC_ORIGIN must be set to the bucket origin}
+    # The JVM takes 70% of this (backend/Dockerfile). The limits on this server add up to about
+    # 1.6 GB, leaving room for the OS and Caddy on 2 GB, with 2 GB of swap behind it. #334 checks
+    # that holds under deadline-day load.
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE must be a registry reference by digest, repo@sha256:...}
+    build: !reset null
+    # nginx serving a static bundle uses a few MB.
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  redis:
+    # Holds only the token blacklist and rate-limit counters.
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  alloy:
+    # Swaps loki-local.alloy for Grafana Cloud. The log pipeline in logs.alloy is the same file
+    # NONPROD runs.
+    volumes: !override
+      - ./tools/alloy/logs.alloy:/etc/alloy/conf.d/logs.alloy:ro
+      - ./tools/alloy/grafana-cloud.alloy:/etc/alloy/conf.d/grafana-cloud.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log/journal:/var/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - alloy_data:/var/lib/alloy/data
+    # Loki is not running here.
+    depends_on: !reset []
+    environment:
+      - GRAFANA_CLOUD_LOGS_URL=${GRAFANA_CLOUD_LOGS_URL:?GRAFANA_CLOUD_LOGS_URL must be set}
+      - GRAFANA_CLOUD_LOGS_USER=${GRAFANA_CLOUD_LOGS_USER:?GRAFANA_CLOUD_LOGS_USER must be set}
+      - GRAFANA_CLOUD_METRICS_URL=${GRAFANA_CLOUD_METRICS_URL:?GRAFANA_CLOUD_METRICS_URL must be set}
+      - GRAFANA_CLOUD_METRICS_USER=${GRAFANA_CLOUD_METRICS_USER:?GRAFANA_CLOUD_METRICS_USER must be set}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY:?GRAFANA_CLOUD_API_KEY must be set}
+    # Alloy now does Prometheus's job, so it needs the backend's network and the scrape password.
+    secrets:
+      - prometheus_scrape_password
+    networks:
+      - monitoring-network
+      - app-network
+    # Above NONPROD's 256M, which Alloy already reaches with logs alone (#333); here it also
+    # scrapes and remote-writes metrics.
+    deploy:
+      resources:
+        limits:
+          memory: 384M
