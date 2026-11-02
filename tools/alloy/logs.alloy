@@ -1,4 +1,4 @@
-// Ships logs to Loki (tools/loki/loki.yml). Two sources:
+// Collects logs and hands them to loki.write "default". Two sources:
 //
 //   1. Every container in the compose stack, discovered over the Docker socket. Each line is
 //      labelled with the compose service name and the stream (stdout/stderr). The backend runs
@@ -6,6 +6,11 @@
 //      tenant id and logger become structured metadata; everything else stays as written.
 //   2. The host journal, filtered to caddy.service and docker.service. Caddy is the only thing
 //      that sees a request before nginx does, and its access log is JSON too.
+//
+// Alloy loads every .alloy file in /etc/alloy/conf.d as one configuration, so this file is shared
+// and the destination is chosen by which second file is mounted next to it: loki-local.alloy on
+// NONPROD (tools/loki/loki.yml on the same host), grafana-cloud.alloy on PROD
+// (docker-compose.aws.yml). PROD therefore runs the exact log pipeline NONPROD has already proven.
 //
 // Alloy runs as root in the container because the Docker socket and /var/log/journal are both
 // root-readable on the host. It replaces Promtail, which reached end of life in March 2026.
@@ -70,7 +75,7 @@ loki.process "containers" {
 		}
 	}
 
-	forward_to = [loki.write.local.receiver]
+	forward_to = [loki.write.default.receiver]
 }
 
 loki.relabel "journal" {
@@ -93,11 +98,5 @@ loki.source.journal "host" {
 	max_age       = "12h"
 	relabel_rules = loki.relabel.journal.rules
 	labels        = {job = "journal"}
-	forward_to    = [loki.write.local.receiver]
-}
-
-loki.write "local" {
-	endpoint {
-		url = "http://loki:3100/loki/api/v1/push"
-	}
+	forward_to    = [loki.write.default.receiver]
 }

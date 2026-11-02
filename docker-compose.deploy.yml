@@ -74,9 +74,14 @@ services:
       - run
       - --server.http.listen-addr=127.0.0.1:12345
       - --storage.path=/var/lib/alloy/data
-      - /etc/alloy/config.alloy
+      # A directory, not a file: Alloy loads every .alloy file in it as one configuration. The
+      # shared log pipeline plus this host's destination; docker-compose.aws.yml swaps the second
+      # file for Grafana Cloud. conf.d rather than /etc/alloy itself, which holds the image's own
+      # example config.alloy (debug logging, exporters pointed at localhost) that must not load.
+      - /etc/alloy/conf.d
     volumes:
-      - ./tools/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./tools/alloy/logs.alloy:/etc/alloy/conf.d/logs.alloy:ro
+      - ./tools/alloy/loki-local.alloy:/etc/alloy/conf.d/loki-local.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/log/journal:/var/log/journal:ro
       - /etc/machine-id:/etc/machine-id:ro
