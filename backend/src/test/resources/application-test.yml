@@ -34,6 +34,6 @@ app:
   security:
     allowed-origins: http://localhost:4200
     storage-public-origin: http://localhost:9000
-minio:
+s3:
   access-key: test-access-key
   secret-key: test-secret-key

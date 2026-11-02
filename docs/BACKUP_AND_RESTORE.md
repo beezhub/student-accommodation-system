@@ -130,7 +130,7 @@ onto a matching or older build.
 `mc mirror` copies the bucket to another location. Set an alias once:
 
 ```bash
-mc alias set sas http://localhost:9000 "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
+mc alias set sas http://localhost:9000 "$S3_ACCESS_KEY" "$S3_SECRET_KEY"
 mc mirror --overwrite sas/student-accommodation-bucket /srv/backup/minio/
 ```
 

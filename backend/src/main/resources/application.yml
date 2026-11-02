@@ -95,14 +95,17 @@ jwt:
   secret: ${JWT_SECRET}
   expiration-time-ms: ${JWT_EXPIRATION:36000000}
   admin-expiration-time-ms: ${JWT_ADMIN_EXPIRATION:14400000}
-minio:
-  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
-  access-key: ${MINIO_ACCESS_KEY}
-  secret-key: ${MINIO_SECRET_KEY}
-  bucket-name: ${MINIO_BUCKET:student-accommodation-bucket}
-  connect-timeout-s: ${MINIO_CONNECT_TIMEOUT_S:30}
-  read-timeout-s: ${MINIO_READ_TIMEOUT_S:30}
-  write-timeout-s: ${MINIO_WRITE_TIMEOUT_S:30}
+s3:
+  endpoint: ${S3_ENDPOINT:http://localhost:9000}
+  access-key: ${S3_ACCESS_KEY}
+  secret-key: ${S3_SECRET_KEY}
+  bucket-name: ${S3_BUCKET:student-accommodation-bucket}
+  # Amazon S3 on PROD (GH-331): af-south-1, aws-instance-role, false. The defaults suit the local container.
+  region: ${S3_REGION:}
+  credentials: ${S3_CREDENTIALS:static}
+  create-bucket: ${S3_CREATE_BUCKET:true}
+  connect-timeout-s: ${S3_CONNECT_TIMEOUT_S:30}
+  read-timeout-s: ${S3_READ_TIMEOUT_S:30}
 app:
   base-url: ${APP_BASE_URL}
   support-email: ${APP_SUPPORT_EMAIL:accommodation@university.edu}
@@ -197,7 +200,7 @@ management:
       show-details: never
       # Boot only turns these on when it detects Kubernetes or Cloud Foundry, so without this
       # the aggregate /actuator/health is the only surface, and it runs every contributor:
-      # SMTP opens a socket, MinIO checks the bucket, Redis pings, and Boot adds a full mail
+      # SMTP opens a socket, storage checks the bucket, Redis pings, and Boot adds a full mail
       # connection test. Any one of them DOWN made the whole probe 503 and the container
       # unhealthy, so an SMTP outage restarted a perfectly healthy application (GH-147).
       probes:
@@ -212,7 +215,7 @@ management:
         # Redis is deliberately excluded: token blacklist checks fail open and the rate-limit
         # filter swallows Redis errors, so an outage keeps traffic flowing with revocation and
         # auth rate limiting disabled. That is an availability-over-security choice, taken
-        # knowingly. SMTP and MinIO are excluded because neither blocks serving a request.
+        # knowingly. SMTP and storage are excluded because neither blocks serving a request.
         readiness:
           include: readinessState,db
   metrics:

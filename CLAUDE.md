@@ -50,8 +50,8 @@ npx playwright test            # e2e/; needs `npm start` running
 ### Full stack
 
 ```bash
-cp .env.example .env           # required first: JWT_SECRET (no default in application.yml), PASSWORD_DB, MINIO_ACCESS_KEY,
-                               # MINIO_SECRET_KEY, GRAFANA_ADMIN_PASSWORD; generate the JWT secret with `openssl rand -base64 64`
+cp .env.example .env           # required first: JWT_SECRET (no default in application.yml), PASSWORD_DB, S3_ACCESS_KEY,
+                               # S3_SECRET_KEY, GRAFANA_ADMIN_PASSWORD; generate the JWT secret with `openssl rand -base64 64`
 docker-compose up --build                  # db, backend, minio, mailhog, redis, prometheus, grafana (no frontend service)
 docker-compose up db minio mailhog redis   # backing services only, then run backend/frontend from source
 ```
@@ -71,7 +71,7 @@ HTTP status in `RestResponseExceptionHandler`; throw domain exceptions, never ge
 **Service decomposition.** Large domains are split into sub-packages with the original class kept as a thin facade:
 `service/allocation/` (batch, lifecycle, expiry, move, check-in, reminders, staged, waiting list, scoring orchestrator
 and the `ScoringStrategy` interface with `LegacyScoringStrategy` / `OwnerConfigurableScoringStrategy`),
-`service/application/`, `service/document/` (`FileStorageService` interface, MinIO implementation, `OrphanFileCleanupJob`, which only
+`service/application/`, `service/document/` (`FileStorageService` interface, `S3FileStorageService` (AWS SDK: S3 on PROD, MinIO elsewhere), `OrphanFileCleanupJob`, which only
 deletes under the `{role}/` document key prefixes and skips objects newer than `app.storage.cleanup.grace-period-minutes`;
 any new bucket writer must use a different prefix, as `BuildingImageService` does with `buildings/`),
 `service/notification/` (one `*Context` per email type consumed by `EmailContentBuilder`), `service/tenant/`. Put new

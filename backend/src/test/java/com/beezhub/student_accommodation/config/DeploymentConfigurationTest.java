@@ -189,6 +189,20 @@ class DeploymentConfigurationTest {
         assertThat(aws.split("build: !reset null", -1)).hasSize(3);
     }
 
+    /** PROD reaches S3 with the instance role and never creates the Terraform-owned bucket (#331). */
+    @Test
+    void awsOverlay_pinsTheS3StorageSettings() throws IOException {
+        assertThat(read("docker-compose.aws.yml"))
+                .contains("- S3_REGION=af-south-1")
+                .contains("- S3_CREDENTIALS=aws-instance-role")
+                .contains("- S3_CREATE_BUCKET=false");
+        assertThat(read("docker-compose.yml"))
+                .as("the base file must forward the settings for the overlay to override")
+                .contains("- S3_REGION=${S3_REGION:-}")
+                .contains("- S3_CREDENTIALS=${S3_CREDENTIALS:-static}")
+                .contains("- S3_CREATE_BUCKET=${S3_CREATE_BUCKET:-true}");
+    }
+
     /** The base file's DB_URL names the db container, which does not exist in PROD. */
     @Test
     void awsOverlay_requiresAnExternalDatabaseUrl() throws IOException {

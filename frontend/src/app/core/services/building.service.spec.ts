@@ -41,7 +41,7 @@ describe('BuildingService', () => {
     httpMock.verify();
   });
 
-  // GH-268: image URLs used to be presigned MinIO URLs the browser could never reach in a
+  // GH-268: image URLs used to be presigned storage URLs the browser could never reach in a
   // deployed environment. The backend now returns a path relative to the API root, and this
   // service is where that gets resolved into something an <img> tag can actually load.
 

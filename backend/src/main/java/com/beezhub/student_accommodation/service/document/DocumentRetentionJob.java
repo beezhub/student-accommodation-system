@@ -31,7 +31,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * <h2>Why this is a job and not a bucket lifecycle rule</h2>
  *
- * <p>The issue asks for a MinIO lifecycle policy. A lifecycle rule expires objects by age, prefix
+ * <p>The issue asks for a bucket lifecycle policy. A lifecycle rule expires objects by age, prefix
  * or tag — all properties of the object. "Twelve months after the application closes" is a
  * property of the database, and the same object may still be supporting a live application at
  * another company. No rule over object age can express that without deleting documents a student

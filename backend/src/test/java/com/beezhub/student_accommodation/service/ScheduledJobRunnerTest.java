@@ -161,7 +161,7 @@ class ScheduledJobRunnerTest {
 
     @Test
     void runOrphanFileCleanup_whenServiceThrows_failureCounterIncremented_noExceptionPropagated() {
-        when(orphanFileCleanupJob.cleanupOrphanedFiles()).thenThrow(new RuntimeException("MinIO unavailable"));
+        when(orphanFileCleanupJob.cleanupOrphanedFiles()).thenThrow(new RuntimeException("Storage unavailable"));
 
         assertThatCode(() -> scheduledJobRunner.runOrphanFileCleanup()).doesNotThrowAnyException();
 

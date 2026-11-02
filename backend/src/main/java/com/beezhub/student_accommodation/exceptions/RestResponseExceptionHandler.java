@@ -550,7 +550,7 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
          * Object storage failed. 503 rather than 500: the caller did nothing wrong and the request
          * may succeed later.
          *
-         * <p>The message is no longer echoed. These carry the object key and MinIO's own driver
+         * <p>The message is no longer echoed. These carry the object key and the storage SDK's own
          * text, which is internal detail the caller cannot act on (GH-205).
          */
         @ExceptionHandler(FileStorageException.class)
