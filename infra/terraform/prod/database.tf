@@ -9,9 +9,12 @@ resource "aws_db_parameter_group" "postgres16" {
   name   = "${var.name}-postgres16"
   family = "postgres16"
 
+  # AWS records this parameter as pending-reboot. Leaving Terraform's default of immediate gives a
+  # diff on every plan, though the value is 1 either way.
   parameter {
-    name  = "rds.force_ssl"
-    value = "1"
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"
   }
 }
 
