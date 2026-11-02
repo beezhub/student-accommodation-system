@@ -16,8 +16,8 @@
 #
 # Compose interpolates every file before it merges them, so the `:?` checks in the earlier files
 # still apply to services this one switches off. GRAFANA_ADMIN_PASSWORD, MINIO_ACCESS_KEY and
-# MINIO_SECRET_KEY must therefore be set even though Grafana and MinIO do not run here. The MinIO
-# pair is also what the backend uses to reach S3 until #331 settles on the instance role.
+# MINIO_SECRET_KEY must therefore be set even though Grafana and MinIO do not run here. The backend
+# ignores the pair: it reaches S3 with the instance role (MINIO_CREDENTIALS below, #331).
 
 services:
   # Scaled to zero with a profile nothing enables, the way docker-compose.prod.yml retires MailHog.
@@ -68,6 +68,11 @@ services:
       - DB_URL=${DB_URL:?DB_URL must be set to the RDS endpoint with sslmode=require}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT:?MINIO_ENDPOINT must be set to https://s3.af-south-1.amazonaws.com}
       - MINIO_BUCKET=${MINIO_BUCKET:?MINIO_BUCKET must be set to the documents bucket}
+      # Fixed rather than read from .env: on PROD the bucket belongs to Terraform, the instance role
+      # has no s3:CreateBucket, and no access key exists to fall back to (#331).
+      - MINIO_REGION=af-south-1
+      - MINIO_CREDENTIALS=aws-instance-role
+      - MINIO_CREATE_BUCKET=false
       # Presigned document URLs point at S3 itself, so the CSP must allow its origin.
       - STORAGE_PUBLIC_ORIGIN=${STORAGE_PUBLIC_ORIGIN:?STORAGE_PUBLIC_ORIGIN must be set to the bucket origin}
     # The JVM takes 70% of this (backend/Dockerfile). The limits on this server add up to about
