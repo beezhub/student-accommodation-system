@@ -1,0 +1,9 @@
+# Provider downloads and local state never belong in the repository. State lives in the S3 bucket
+# that bootstrap/ creates; the lock file (.terraform.lock.hcl) is committed.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+# Per-operator values such as the alarm email address.
+terraform.tfvars
