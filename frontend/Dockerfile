@@ -42,9 +42,11 @@ RUN ls -la /usr/share/nginx/html
 # Expose port 80
 EXPOSE 80
 
-# Health check (using root path)
+# Health check (using root path). 127.0.0.1, not localhost: in this Alpine image localhost
+# resolves to ::1 first, and nginx.conf listens on IPv4 only, so a localhost check is refused
+# every time while the site serves normally (GH-350).
 HEALTHCHECK --interval=30s --timeout=3s \
-    CMD wget --quiet --tries=1 --spider http://localhost:80/ || exit 1
+    CMD wget --quiet --tries=1 --spider http://127.0.0.1:80/ || exit 1
 
 # Start nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]
