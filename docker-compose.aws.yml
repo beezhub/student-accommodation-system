@@ -123,8 +123,11 @@ services:
     networks:
       - monitoring-network
       - app-network
-    # Above NONPROD's 256M, which Alloy already reaches with logs alone (#333); here it also
-    # scrapes and remote-writes metrics.
+    # Above NONPROD's 256M because here Alloy also scrapes metrics and buffers them for remote
+    # write. Logs alone use about 50 MB of anonymous memory on NONPROD. `docker stats` shows more
+    # (253 MB once), but most of that is reclaimable page cache from reading the journal, and the
+    # kernel has never OOM-killed Alloy there (#333). Judge the limit by `anon` in the container's
+    # memory.stat, not by `docker stats`.
     deploy:
       resources:
         limits:
