@@ -6,7 +6,7 @@ Status: proposed, 2026-11-02. Supersedes the DigitalOcean plan in #244 and #251,
 
 | Constraint | Value |
 |---|---|
-| Budget | $30 per month target; this plan is about $34 with 15% South African VAT, accepted for RDS |
+| Budget | $30 per month target; this plan is about $35 with 15% South African VAT, accepted for RDS |
 | Users | about 500 at most, light traffic |
 | Data | real student data (ID documents, personal details) from the first day |
 | Provider | AWS |
@@ -103,7 +103,7 @@ through SSM, and RDS has no public address: its security group accepts port 5432
 | Offsite DB copy | Weekly `pg_dump` to a separate S3 backup bucket | A copy outside RDS, in case the RDS instance and its snapshots are deleted by mistake |
 | Cache | Redis container | `appendonly yes`, as today |
 | Images | ECR, pulled by digest | The server never builds. PROD runs the exact bytes NONPROD ran |
-| Email | SES in `af-south-1` | Replaces Brevo's 300-a-day free plan. Needs SPF, DKIM, DMARC and production access (see launch checklist) |
+| Email | SES in `af-south-1` | Replaces Brevo's 300-a-day free plan. Domain verified and production access granted (#330). The backend sends over SMTP, which needs credentials from a send-only IAM user rather than the instance role; Terraform keeps them in SSM (`infra/terraform/prod/email.tf`) |
 | Secrets | SSM Parameter Store, standard tier | Free. The deploy writes `/opt/sas/.env` from it instead of hand edits |
 | Monitoring | Grafana Cloud free plan, fed by Alloy | Grafana, Prometheus and Loki do not run on the server |
 | Uptime | UptimeRobot free plan | Outside check, alerts by email |
@@ -126,9 +126,10 @@ are estimates for 500 users.
 | S3 documents and weekly dumps | ~15 GB at $0.0274/GB, plus requests | ~0.50 | ~0.50 |
 | Data out to the internet, including S3 downloads | ~10 GB; the first 100 GB a month is free across all regions, then $0.154/GB | 0.00 | 0.00 |
 | SES and CloudWatch alarms | | ~0.80 | ~0.80 |
+| Secrets Manager | the RDS master password, generated and rotated by RDS | 0.40 | 0.40 |
 | SSM Parameter Store, Grafana Cloud, UptimeRobot | free tiers | 0.00 | 0.00 |
-| **Total before VAT** | | **~$40.70** | **~$29.75** |
-| **Total with 15% VAT** | | **~$46.80** | **~$34.20** |
+| **Total before VAT** | | **~$41.10** | **~$30.15** |
+| **Total with 15% VAT** | | **~$47.30** | **~$34.70** |
 
 Cape Town costs more than other regions. Same setup, on demand, before VAT:
 
