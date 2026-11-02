@@ -20,16 +20,14 @@ import java.net.URI;
 import java.time.Duration;
 
 /**
- * Object storage through the AWS SDK: Amazon S3 on PROD, and the MinIO container locally and on
- * NONPROD, which speaks the same API (docs/PROD_ENVIRONMENT_PLAN.md, GH-331).
- *
- * <p>The properties keep their {@code minio.*} names and {@code MINIO_*} variables, so every
- * existing {@code .env} and compose file still configures the client unchanged.
+ * Object storage through the AWS SDK: Amazon S3 on PROD, and an S3-compatible container locally
+ * and on NONPROD (docs/PROD_ENVIRONMENT_PLAN.md, GH-331). Configured by the {@code s3.*}
+ * properties, which {@code S3_*} variables set.
  */
 @Configuration
 public class StorageConfig {
 
-    /** Access key and secret key from configuration. Right for MinIO, and for S3 with an IAM user. */
+    /** Access key and secret key from configuration: the local container, or S3 with an IAM user. */
     static final String CREDENTIALS_STATIC = "static";
 
     /**
@@ -40,42 +38,42 @@ public class StorageConfig {
      */
     static final String CREDENTIALS_AWS_INSTANCE_ROLE = "aws-instance-role";
 
-    /** MinIO ignores the region, but the SDK needs one to sign requests. */
-    static final String MINIO_SIGNING_REGION = "us-east-1";
+    /** The local container ignores the region, but the SDK needs one to sign requests. */
+    static final String LOCAL_SIGNING_REGION = "us-east-1";
 
-    @Value("${minio.endpoint}")
+    @Value("${s3.endpoint}")
     private String endpoint;
 
-    @Value("${minio.access-key}")
+    @Value("${s3.access-key}")
     private String accessKey;
 
-    @Value("${minio.secret-key}")
+    @Value("${s3.secret-key}")
     private String secretKey;
 
     @Getter
-    @Value("${minio.bucket-name}")
+    @Value("${s3.bucket-name}")
     private String bucketName;
 
-    /** The bucket's region on S3. Blank for MinIO. */
-    @Value("${minio.region:}")
+    /** The bucket's region on S3. Blank for the local container. */
+    @Value("${s3.region:}")
     private String region;
 
-    @Value("${minio.credentials:" + CREDENTIALS_STATIC + "}")
+    @Value("${s3.credentials:" + CREDENTIALS_STATIC + "}")
     private String credentials;
 
     /**
-     * Whether the application creates its bucket at startup. On for MinIO, where nothing else
-     * does. Off for S3, where the bucket and its versioning, encryption and public-access block
+     * Whether the application creates its bucket at startup. On for the local container, where
+     * nothing else does. Off for S3, where the bucket and its versioning, encryption and public-access block
      * belong to Terraform, and the instance role is deliberately not allowed to create buckets.
      */
     @Getter
-    @Value("${minio.create-bucket:true}")
+    @Value("${s3.create-bucket:true}")
     private boolean createBucket;
 
-    @Value("${minio.connect-timeout-s:30}")
+    @Value("${s3.connect-timeout-s:30}")
     private int connectTimeoutSeconds;
 
-    @Value("${minio.read-timeout-s:30}")
+    @Value("${s3.read-timeout-s:30}")
     private int readTimeoutSeconds;
 
     @Bean
@@ -90,7 +88,7 @@ public class StorageConfig {
                         .socketTimeout(Duration.ofSeconds(readTimeoutSeconds)))
                 // Since SDK 2.30 every upload carries a CRC checksum by default, sent as a trailer
                 // in aws-chunked encoding. Only when an operation requires one keeps uploads plain,
-                // which every S3-compatible server accepts, MinIO included.
+                // which every S3-compatible server accepts.
                 .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
                 .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
                 .build();
@@ -109,12 +107,12 @@ public class StorageConfig {
     }
 
     private Region signingRegion() {
-        return Region.of(region == null || region.isBlank() ? MINIO_SIGNING_REGION : region);
+        return Region.of(region == null || region.isBlank() ? LOCAL_SIGNING_REGION : region);
     }
 
     /**
-     * MinIO is addressed as {@code endpoint/bucket/key}: a hostname such as {@code minio:9000} has
-     * no per-bucket subdomain. S3 uses its own virtual-hosted style, {@code bucket.endpoint/key}.
+     * The local container is addressed as {@code endpoint/bucket/key}: a compose hostname has no
+     * per-bucket subdomain. S3 uses its own virtual-hosted style, {@code bucket.endpoint/key}.
      */
     private boolean usesPathStyle() {
         String host = URI.create(endpoint).getHost();
@@ -126,7 +124,7 @@ public class StorageConfig {
             case CREDENTIALS_STATIC -> StaticCredentialsProvider.create(
                     AwsBasicCredentials.create(accessKey, secretKey));
             case CREDENTIALS_AWS_INSTANCE_ROLE -> InstanceProfileCredentialsProvider.create();
-            default -> throw new IllegalArgumentException("minio.credentials must be '" + CREDENTIALS_STATIC
+            default -> throw new IllegalArgumentException("s3.credentials must be '" + CREDENTIALS_STATIC
                     + "' or '" + CREDENTIALS_AWS_INSTANCE_ROLE + "', not '" + credentials + "'");
         };
     }

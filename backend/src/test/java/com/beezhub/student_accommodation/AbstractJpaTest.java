@@ -11,7 +11,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
  *
  * <p>Use this class — not {@link AbstractIntegrationTest} — when the test exercises only the
  * JPA layer (repositories, Hibernate filters, entity-lifecycle callbacks, etc.) and does not
- * need the full application context or any non-JPA infrastructure (Redis, MinIO, mail).
+ * need the full application context or any non-JPA infrastructure (Redis, object storage, mail).
  *
  * <p>Like {@link AbstractIntegrationTest}, this class starts containers once per JVM and
  * injects connection details via {@link DynamicPropertySource}, so individual test classes

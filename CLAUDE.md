@@ -50,8 +50,8 @@ npx playwright test            # e2e/; needs `npm start` running
 ### Full stack
 
 ```bash
-cp .env.example .env           # required first: JWT_SECRET (no default in application.yml), PASSWORD_DB, MINIO_ACCESS_KEY,
-                               # MINIO_SECRET_KEY, GRAFANA_ADMIN_PASSWORD; generate the JWT secret with `openssl rand -base64 64`
+cp .env.example .env           # required first: JWT_SECRET (no default in application.yml), PASSWORD_DB, S3_ACCESS_KEY,
+                               # S3_SECRET_KEY, GRAFANA_ADMIN_PASSWORD; generate the JWT secret with `openssl rand -base64 64`
 docker-compose up --build                  # db, backend, minio, mailhog, redis, prometheus, grafana (no frontend service)
 docker-compose up db minio mailhog redis   # backing services only, then run backend/frontend from source
 ```

@@ -59,7 +59,7 @@ dependencies {
 	testRuntimeOnly 'com.h2database:h2'
 	implementation 'org.mapstruct:mapstruct:1.6.3'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
-	// Amazon S3 on PROD, and the MinIO container locally and on NONPROD, which speaks the same API
+	// Amazon S3 on PROD, and an S3-compatible container locally and on NONPROD
 	// (GH-331). The URLConnection client instead of the SDK's default Apache and Netty clients: the
 	// only caller is synchronous and low-volume, and it adds no further dependencies.
 	implementation platform('software.amazon.awssdk:bom:2.56.0')

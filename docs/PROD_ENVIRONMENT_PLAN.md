@@ -166,9 +166,9 @@ The MinIO container stays locally and on NONPROD, where the same client reaches 
 | Where | Result |
 |---|---|
 | `StorageConfig` | Builds the client. Path-style addressing for MinIO, virtual-hosted for `*.amazonaws.com` |
-| Settings | Keep their `MINIO_*` names, so existing `.env` files still work. PROD sets `MINIO_ENDPOINT=https://s3.af-south-1.amazonaws.com`, `MINIO_REGION=af-south-1`, `MINIO_CREDENTIALS=aws-instance-role`, `MINIO_CREATE_BUCKET=false` |
+| Settings | Keep their `MINIO_*` names, so existing `.env` files still work. PROD sets `S3_ENDPOINT=https://s3.af-south-1.amazonaws.com`, `S3_REGION=af-south-1`, `S3_CREDENTIALS=aws-instance-role`, `S3_CREATE_BUCKET=false` |
 | Credentials | `aws-instance-role` uses the SDK's instance profile provider with IMDSv2. From a container the instance needs a metadata hop limit of 2 (#335) |
-| `StorageBucketService` | Skips bucket creation when `MINIO_CREATE_BUCKET=false`. Terraform owns the bucket |
+| `StorageBucketService` | Skips bucket creation when `S3_CREATE_BUCKET=false`. Terraform owns the bucket |
 | `BuildingImageService` | Goes through `FileStorageService` like documents, so `S3FileStorageService` is the only class that talks to storage |
 | Health | `StorageHealthIndicator`, reported as `storage` in `/actuator/health` |
 | Bucket CORS rule | Not needed. Documents download through `/api/documents/download` and building images stream through the backend (GH-268), so the browser never fetches from storage |

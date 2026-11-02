@@ -193,14 +193,14 @@ class DeploymentConfigurationTest {
     @Test
     void awsOverlay_pinsTheS3StorageSettings() throws IOException {
         assertThat(read("docker-compose.aws.yml"))
-                .contains("- MINIO_REGION=af-south-1")
-                .contains("- MINIO_CREDENTIALS=aws-instance-role")
-                .contains("- MINIO_CREATE_BUCKET=false");
+                .contains("- S3_REGION=af-south-1")
+                .contains("- S3_CREDENTIALS=aws-instance-role")
+                .contains("- S3_CREATE_BUCKET=false");
         assertThat(read("docker-compose.yml"))
                 .as("the base file must forward the settings for the overlay to override")
-                .contains("- MINIO_REGION=${MINIO_REGION:-}")
-                .contains("- MINIO_CREDENTIALS=${MINIO_CREDENTIALS:-static}")
-                .contains("- MINIO_CREATE_BUCKET=${MINIO_CREATE_BUCKET:-true}");
+                .contains("- S3_REGION=${S3_REGION:-}")
+                .contains("- S3_CREDENTIALS=${S3_CREDENTIALS:-static}")
+                .contains("- S3_CREATE_BUCKET=${S3_CREATE_BUCKET:-true}");
     }
 
     /** The base file's DB_URL names the db container, which does not exist in PROD. */

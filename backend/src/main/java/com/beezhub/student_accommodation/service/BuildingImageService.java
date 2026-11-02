@@ -179,8 +179,8 @@ public class BuildingImageService {
 
     /**
      * Streams a building image's bytes through the backend rather than handing the browser a
-     * presigned MinIO URL. A presigned URL is signed against {@code MINIO_ENDPOINT}, which is the
-     * compose-internal hostname in every deployed environment, and MinIO's API port is not
+     * presigned storage URL. A presigned URL is signed against {@code S3_ENDPOINT}, which is the
+     * compose-internal hostname on NONPROD, and the storage container's API port is not
      * published on top of that, so no presigned URL for this bucket can ever resolve from a
      * browser outside a developer's own machine (GH-268).
      */

@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * The client works against MinIO locally and on NONPROD, and against Amazon S3 on PROD (GH-331).
+ * The client works against the local container and NONPROD, and against Amazon S3 on PROD (GH-331).
  * Presigning is local signing, so these run offline and pin how each target is addressed.
  */
 class StorageConfigTest {
@@ -25,8 +25,8 @@ class StorageConfigTest {
     void setUp() {
         storageConfig = new StorageConfig();
         ReflectionTestUtils.setField(storageConfig, "endpoint", "http://localhost:9000");
-        ReflectionTestUtils.setField(storageConfig, "accessKey", "minioadmin");
-        ReflectionTestUtils.setField(storageConfig, "secretKey", "minioadmin");
+        ReflectionTestUtils.setField(storageConfig, "accessKey", "localaccess");
+        ReflectionTestUtils.setField(storageConfig, "secretKey", "localsecret");
         ReflectionTestUtils.setField(storageConfig, "bucketName", "test-bucket");
         ReflectionTestUtils.setField(storageConfig, "region", "");
         ReflectionTestUtils.setField(storageConfig, "credentials", StorageConfig.CREDENTIALS_STATIC);
@@ -46,15 +46,15 @@ class StorageConfigTest {
     }
 
     @Test
-    void s3Client_minioDefaults_builds() {
+    void s3Client_localContainerDefaults_builds() {
         try (S3Client client = storageConfig.s3Client()) {
             assertThat(client).isNotNull();
         }
     }
 
-    /** minio:9000 has no per-bucket subdomain, so MinIO must be addressed path-style. */
+    /** A compose hostname has no per-bucket subdomain, so the local container is path-style. */
     @Test
-    void s3Presigner_minioEndpoint_usesPathStyleAndTheDefaultSigningRegion() {
+    void s3Presigner_localEndpoint_usesPathStyleAndTheDefaultSigningRegion() {
         String url = presign("test-bucket", "student/1/id.pdf");
 
         assertThat(url).startsWith("http://localhost:9000/test-bucket/student/1/id.pdf?");
@@ -69,7 +69,7 @@ class StorageConfigTest {
         String url = presign("sas-documents", "student/1/id.pdf");
 
         assertThat(url).startsWith("https://sas-documents.s3.af-south-1.amazonaws.com/student/1/id.pdf?");
-        assertThat(url).contains("X-Amz-Credential=minioadmin%2F");
+        assertThat(url).contains("X-Amz-Credential=localaccess%2F");
         assertThat(url).contains("%2Faf-south-1%2Fs3%2Faws4_request");
     }
 

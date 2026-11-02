@@ -142,7 +142,7 @@ class DocumentLifecycleServiceTest {
     }
 
     @Test
-    void uploadSingleDocument_dbFailure_minioFileDeleted() throws Exception {
+    void uploadSingleDocument_dbFailure_storedFileDeleted() throws Exception {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getOriginalFilename()).thenReturn("file.pdf");
         when(file.getSize()).thenReturn(10L);

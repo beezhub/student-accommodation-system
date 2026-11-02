@@ -127,7 +127,7 @@ jobs:
           docker compose $F up -d --remove-orphans
           REMOTE
 
-      # Readiness, not /actuator/health. The aggregate includes the SMTP, MinIO and Redis
+      # Readiness, not /actuator/health. The aggregate includes the SMTP, storage and Redis
       # indicators, so a mail outage would fail an otherwise good deploy — backend/Dockerfile made
       # the same choice for the same reason (GH-147). It has to run on the host and inside the
       # compose network: the prod overlay unpublishes the backend port and nginx proxies only

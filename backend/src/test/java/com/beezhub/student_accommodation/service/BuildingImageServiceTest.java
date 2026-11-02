@@ -116,7 +116,7 @@ class BuildingImageServiceTest {
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).getIsPrimary()).isTrue();
-        // A path relative to the API root, not a presigned MinIO URL the browser can never reach
+        // A path relative to the API root, not a presigned storage URL the browser can never reach
         // in a deployed environment (GH-268).
         assertThat(responses.get(0).getImageUrl()).isEqualTo("/building/1/images/100/content");
         verify(buildingImageRepository).save(any(BuildingImage.class));

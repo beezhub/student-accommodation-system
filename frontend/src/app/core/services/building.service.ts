@@ -94,7 +94,7 @@ export class BuildingService {
    * host-qualified address, the same way every other building endpoint is only a path here and
    * gets `environment.apiUrl` prepended. Resolving it in one place means every list, browse and
    * detail response ends up pointing at wherever this app's own API is, in dev or in prod, instead
-   * of a MinIO URL the browser could never reach (GH-268).
+   * of an object-storage URL the browser could never reach (GH-268).
    */
   private resolveImageUrl<T extends string | undefined>(url: T): T {
     if (url && url.startsWith('/')) {

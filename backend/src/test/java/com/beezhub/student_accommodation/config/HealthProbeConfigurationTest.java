@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * GH-147: the only health surface was the aggregate {@code /actuator/health}, which invokes every
- * registered contributor — SMTP opens a socket, MinIO checks the bucket, Redis pings, and Boot adds
+ * registered contributor: SMTP opens a socket, storage checks the bucket, Redis pings, and Boot adds
  * a full mail connection test. Any one DOWN made the aggregate 503, and the container HEALTHCHECK
  * pointed at it, so an SMTP outage restarted a perfectly healthy application.
  *

@@ -166,7 +166,7 @@ public class BuildingController {
     @GetMapping("/{buildingId}/images/{imageId}/content")
     @Operation(summary = "Get building image content",
             description = "Streams the image bytes through the backend. Public, like the rest of building browsing: "
-                    + "MinIO itself is never reachable from a browser.")
+                    + "Object storage itself is never reachable from a browser.")
     public ResponseEntity<Resource> getBuildingImageContent(
             @PathVariable Long buildingId,
             @PathVariable Long imageId) {

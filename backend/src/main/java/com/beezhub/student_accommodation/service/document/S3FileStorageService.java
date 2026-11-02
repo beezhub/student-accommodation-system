@@ -21,7 +21,7 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.util.stream.Stream;
 
-/** {@link FileStorageService} over the S3 API: Amazon S3 on PROD, MinIO elsewhere (GH-331). */
+/** {@link FileStorageService} over the S3 API: Amazon S3 on PROD, the local container elsewhere (GH-331). */
 @Service
 @RequiredArgsConstructor
 @Slf4j

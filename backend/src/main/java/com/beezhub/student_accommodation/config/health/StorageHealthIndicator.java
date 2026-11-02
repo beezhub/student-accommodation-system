@@ -8,14 +8,14 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 
-/** Reported as {@code storage} in /actuator/health: S3 on PROD, MinIO elsewhere (GH-331). */
+/** Reported as {@code storage} in /actuator/health: S3 on PROD, the local container elsewhere (GH-331). */
 @Component
 public class StorageHealthIndicator implements HealthIndicator {
 
     private final S3Client s3Client;
     private final String bucketName;
 
-    public StorageHealthIndicator(S3Client s3Client, @Value("${minio.bucket-name}") String bucketName) {
+    public StorageHealthIndicator(S3Client s3Client, @Value("${s3.bucket-name}") String bucketName) {
         this.s3Client = s3Client;
         this.bucketName = bucketName;
     }

@@ -7,7 +7,7 @@
 # for a laptop and wrong for anything reachable. This overlay closes each of those rather than
 # hardening the base file, so local development keeps working unchanged.
 #
-# Set these before using it: JWT_SECRET, PASSWORD_DB, MINIO_ACCESS_KEY, MINIO_SECRET_KEY,
+# Set these before using it: JWT_SECRET, PASSWORD_DB, S3_ACCESS_KEY, S3_SECRET_KEY,
 # GRAFANA_ADMIN_PASSWORD, REDIS_PASSWORD, MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD, ALLOWED_ORIGINS,
 # APP_BASE_URL, STORAGE_PUBLIC_ORIGIN. See CREDENTIAL_ROTATION.md before rotating any of them.
 
@@ -57,8 +57,8 @@ services:
     # The API stays internal. Publish the console deliberately, or reach it over a tunnel.
     ports: !override []
     environment:
-      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set}
-      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
+      - MINIO_ROOT_USER=${S3_ACCESS_KEY:?S3_ACCESS_KEY must be set}
+      - MINIO_ROOT_PASSWORD=${S3_SECRET_KEY:?S3_SECRET_KEY must be set}
 
   # MailHog is a development mail catcher. It accepts every message and delivers none, so it must
   # not run anywhere real. Scaled to zero rather than removed, because compose cannot delete a
