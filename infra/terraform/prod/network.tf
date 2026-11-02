@@ -93,6 +93,9 @@ resource "aws_route_table_association" "private_secondary" {
 }
 
 # The server: 80 and 443 from anywhere, nothing else. No port 22; access is SSM Session Manager.
+#
+# Rule descriptions accept only letters, digits, spaces and ._-:/()#,@[]+=&;{}!$*. An apostrophe
+# ("Let's Encrypt") is rejected by the EC2 API at apply time, not by terraform validate.
 resource "aws_security_group" "app" {
   name        = "${var.name}-app"
   description = "PROD server: HTTP and HTTPS in, anything out"
@@ -101,7 +104,7 @@ resource "aws_security_group" "app" {
 
 resource "aws_vpc_security_group_ingress_rule" "app_http" {
   security_group_id = aws_security_group.app.id
-  description       = "HTTP, for the Let's Encrypt HTTP-01 challenge and the redirect to HTTPS"
+  description       = "HTTP: Lets Encrypt HTTP-01 challenge and the redirect to HTTPS"
   ip_protocol       = "tcp"
   from_port         = 80
   to_port           = 80
@@ -119,7 +122,7 @@ resource "aws_vpc_security_group_ingress_rule" "app_https" {
 
 resource "aws_vpc_security_group_egress_rule" "app_all" {
   security_group_id = aws_security_group.app.id
-  description       = "ECR, S3, SES, SSM, Let's Encrypt, Grafana Cloud, Google Maps, OS updates"
+  description       = "ECR, S3, SES, SSM, Lets Encrypt, Grafana Cloud, Google Maps, OS updates"
   ip_protocol       = "-1"
   cidr_ipv4         = "0.0.0.0/0"
 }
