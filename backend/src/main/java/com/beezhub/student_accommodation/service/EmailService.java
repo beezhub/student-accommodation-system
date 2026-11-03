@@ -25,8 +25,17 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
 
+    /** The SMTP login. The From address only when {@link #mailFrom} is blank. */
     @Value("${spring.mail.username}")
     private String fromEmail;
+
+    /**
+     * The From address on every message. Blank falls back to the SMTP login, which is an email
+     * address with most providers. SES SMTP logs in with an IAM access key ID, which is not an
+     * address, and its IAM policy only allows no-reply@, so PROD sets MAIL_FROM (GH-356).
+     */
+    @Value("${app.mail.from:}")
+    private String mailFrom;
 
     @Value("${app.support-email:accommodation@university.edu}")
     private String supportEmail;
@@ -37,6 +46,10 @@ public class EmailService {
     @Value("${app.contact-phone:+27 (0) 11 000 0000}")
     private String contactPhone;
 
+    String sender() {
+        return mailFrom == null || mailFrom.isBlank() ? fromEmail : mailFrom;
+    }
+
     // ──────────────────────────────────────────────────────────────────────────────
     // Low-level senders (for internal/utility use only)
     // ──────────────────────────────────────────────────────────────────────────────
@@ -44,7 +57,7 @@ public class EmailService {
     public void sendSimpleEmail(String to, String subject, String text) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
+            message.setFrom(sender());
             message.setTo(to);
             message.setSubject(subject);
             message.setText(text);
@@ -60,7 +73,7 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail);
+            helper.setFrom(sender());
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlContent, true);
@@ -76,7 +89,7 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
-            helper.setFrom(fromEmail);
+            helper.setFrom(sender());
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(text);
@@ -117,7 +130,7 @@ public class EmailService {
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail);
+            helper.setFrom(sender());
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlContent, true);

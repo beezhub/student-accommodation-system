@@ -211,6 +211,10 @@ class DeploymentConfigurationTest {
                 .contains("- S3_REGION=af-south-1")
                 .contains("- S3_CREDENTIALS=aws-instance-role")
                 .contains("- S3_CREATE_BUCKET=false");
+        assertThat(read("docker-compose.aws.yml"))
+                .as("the SES SMTP login is an IAM key ID, not an address (GH-356)")
+                .contains("- MAIL_FROM=no-reply@beezhub.co.za");
+        assertThat(read("docker-compose.yml")).contains("- MAIL_FROM=${MAIL_FROM:-}");
         assertThat(read("docker-compose.yml"))
                 .as("the base file must forward the settings for the overlay to override")
                 .contains("- S3_REGION=${S3_REGION:-}")
