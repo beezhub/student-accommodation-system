@@ -1,0 +1,162 @@
+# Deploys PROD (#338): the exact commit and images that a NONPROD deploy of main already ran.
+#
+# Started by hand from Actions > Deploy PROD > Run workflow, with the run id of a green
+# "Deploy NONPROD" run on main (the number at the end of its URL). That manual start is the release
+# gate decided in #330: required reviewers are not available on this repository's plan.
+#
+# The commit and both image digests are read from that run's nonprod-release artifact, not typed in,
+# so PROD cannot be given an image NONPROD did not run. Deploying an older run is the rollback, with
+# the schema rule in docs/PROD_RUNBOOK.md.
+#
+# Everything on the server goes through SSM Run Command, with the sas-prod-github-deploy role
+# (infra/terraform/prod/iam.tf) assumed through OIDC from the production environment. No SSH key,
+# no AWS key in GitHub, no open port. The steps are the manual procedure in docs/PROD_RUNBOOK.md:
+# upload the tree, tools/prod/write-env.sh, then tools/prod/start.sh.
+
+name: Deploy PROD
+
+on:
+  workflow_dispatch:
+    inputs:
+      nonprod_run:
+        description: Run id of a successful "Deploy NONPROD" run on main
+        required: true
+        type: string
+
+# Never two deploys at once, and never cancel one midway through docker compose up.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to PROD
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      # Inputs reach the scripts through env only, never as ${{ }} inside a run block, so a crafted
+      # value cannot become shell code.
+      NONPROD_RUN: ${{ inputs.nonprod_run }}
+      BACKUPS_BUCKET: beezhub-sas-prod-backups
+      SITE: https://accommodation.beezhub.co.za
+    steps:
+      - name: Find the release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$*"; exit 1; }
+          # A readable error for the rule the deploy role enforces anyway (infra/terraform/prod/iam.tf).
+          [ "$GITHUB_REF" = refs/heads/main ] || fail "run this workflow from main, not $GITHUB_REF"
+          [[ "$NONPROD_RUN" =~ ^[0-9]+$ ]] || fail "nonprod_run must be a run id: digits only"
+
+          nonprod=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml" --jq .id)
+          read -r workflow branch conclusion sha < <(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$NONPROD_RUN" \
+            --jq '"\(.workflow_id) \(.head_branch) \(.conclusion) \(.head_sha)"')
+          [ "$workflow" = "$nonprod" ] || fail "run $NONPROD_RUN is not a Deploy NONPROD run"
+          [ "$branch" = main ] || fail "run $NONPROD_RUN deployed $branch; PROD only takes releases from main"
+          [ "$conclusion" = success ] || fail "run $NONPROD_RUN did not succeed ($conclusion)"
+
+          gh run download "$NONPROD_RUN" --repo "$GITHUB_REPOSITORY" --name nonprod-release --dir "$RUNNER_TEMP/release" \
+            || fail "run $NONPROD_RUN has no nonprod-release artifact (older than #338, or expired)"
+          value() { sed -n "s/^$1=//p" "$RUNNER_TEMP/release/release.env"; }
+          registry='428847003911\.dkr\.ecr\.af-south-1\.amazonaws\.com'
+          backend_re="^$registry/student-accommodation-backend@sha256:[0-9a-f]{64}$"
+          frontend_re="^$registry/student-accommodation-frontend@sha256:[0-9a-f]{64}$"
+          backend=$(value BACKEND_IMAGE)
+          frontend=$(value FRONTEND_IMAGE)
+          [ "$(value SHA)" = "$sha" ] || fail "the artifact's commit does not match the run's"
+          [[ "$backend" =~ $backend_re ]] || fail "the artifact's backend image is not an ECR digest"
+          [[ "$frontend" =~ $frontend_re ]] || fail "the artifact's frontend image is not an ECR digest"
+
+          {
+            echo "sha=$sha"
+            echo "short=${sha:0:7}"
+            echo "backend=$backend"
+            echo "frontend=$frontend"
+          } >> "$GITHUB_OUTPUT"
+          echo "release: ${sha:0:7} from NONPROD run $NONPROD_RUN"
+
+      # The scripts and compose files come from the release commit, so the tree on the server and
+      # the steps that put it there always belong together.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.sha }}
+
+      - name: AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::428847003911:role/sas-prod-github-deploy
+          aws-region: af-south-1
+
+      - name: Upload the tree
+        env:
+          SHORT: ${{ steps.release.outputs.short }}
+        run: |
+          set -euo pipefail
+          git archive --format=tar HEAD | aws s3 cp - "s3://$BACKUPS_BUCKET/deploy/$SHORT.tar" --only-show-errors
+          echo "uploaded deploy/$SHORT.tar"
+
+      # Fails, changing nothing on the server, if Parameter Store lacks a key the compose files need.
+      - name: Write the tree and .env on the server
+        env:
+          SHORT: ${{ steps.release.outputs.short }}
+          BACKEND_IMAGE: ${{ steps.release.outputs.backend }}
+          FRONTEND_IMAGE: ${{ steps.release.outputs.frontend }}
+        run: |
+          VARS="SHA=$SHORT BACKEND_IMAGE=$BACKEND_IMAGE FRONTEND_IMAGE=$FRONTEND_IMAGE" \
+            bash tools/prod/ssmrun.sh tools/prod/write-env.sh
+
+      - name: Pull and start
+        id: start
+        run: |
+          set -uo pipefail
+          bash tools/prod/ssmrun.sh tools/prod/start.sh | tee "$RUNNER_TEMP/start.log"
+          rc=${PIPESTATUS[0]}
+          # Kept even when start.sh fails: whether a migration ran decides how to roll back.
+          grep -E '^schema_(before|after)=' "$RUNNER_TEMP/start.log" >> "$GITHUB_OUTPUT" || true
+          exit "$rc"
+
+      # The way students reach it: through the Elastic IP, Caddy and nginx.
+      - name: Check from outside
+        run: |
+          for _ in $(seq 1 12); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -m 10 "$SITE/" || true)
+            [ "$code" = 200 ] && { echo "$SITE/ returned 200"; exit 0; }
+            sleep 5
+          done
+          echo "::error::$SITE/ returned $code"
+          exit 1
+
+      - name: Report
+        if: always()
+        env:
+          SHA: ${{ steps.release.outputs.sha }}
+          BACKEND_IMAGE: ${{ steps.release.outputs.backend }}
+          FRONTEND_IMAGE: ${{ steps.release.outputs.frontend }}
+          BEFORE: ${{ steps.start.outputs.schema_before }}
+          AFTER: ${{ steps.start.outputs.schema_after }}
+          RESULT: ${{ job.status }}
+        run: |
+          {
+            echo "### PROD deploy"
+            echo ""
+            echo "- from NONPROD run: [$NONPROD_RUN]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$NONPROD_RUN)"
+            echo "- commit: \`$SHA\`"
+            echo "- backend: \`$BACKEND_IMAGE\`"
+            echo "- frontend: \`$FRONTEND_IMAGE\`"
+            echo "- schema: \`${BEFORE:-unknown}\` before, \`${AFTER:-unknown}\` after"
+            echo "- result: $RESULT"
+            echo ""
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "$AFTER" ]; then
+              echo "This deploy applied a migration. Rolling back to an older run will not start: restore"
+              echo "RDS to a time before this deploy as well (docs/PROD_RUNBOOK.md, Rolling back)."
+            else
+              echo "No automatic rollback. To roll back, run this workflow with the previous NONPROD run."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

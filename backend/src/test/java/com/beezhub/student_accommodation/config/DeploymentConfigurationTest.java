@@ -318,4 +318,75 @@ class DeploymentConfigurationTest {
         assertThat(env).contains("APP_CONTACT_PHONE");
         assertThat(env).contains("REDIS_TIMEOUT_MS");
     }
+
+    /**
+     * NONPROD rehearses releases: it deploys main and records what passed its smoke check, which
+     * is the only thing deploy-prod.yml will promote (#338).
+     */
+    @Test
+    void nonprodDeploy_tracksMainAndRecordsTheRelease() throws IOException {
+        String deploy = readLf(".github/workflows/deploy.yml");
+
+        assertThat(deploy).contains("  push:\n    branches: [main]\n");
+        assertThat(deploy).contains("name: nonprod-release");
+        assertThat(deploy.indexOf("name: Record the release for PROD"))
+                .as("the release is recorded only after the smoke check passes")
+                .isGreaterThan(deploy.indexOf("name: Smoke check"));
+    }
+
+    /** PROD is started by a person, and only with a green NONPROD deploy of main (#338). */
+    @Test
+    void prodDeploy_isManualAndPromotesOnlyNonprodReleasesOfMain() throws IOException {
+        String prod = readLf(".github/workflows/deploy-prod.yml");
+
+        assertThat(prod).contains("on:\n  workflow_dispatch:");
+        assertThat(prod).doesNotContain("  push:").doesNotContain("  schedule:");
+        assertThat(prod).contains("environment: production");
+        assertThat(prod).contains("[ \"$GITHUB_REF\" = refs/heads/main ]");
+        assertThat(prod).contains("[ \"$branch\" = main ]").contains("[ \"$conclusion\" = success ]");
+        assertThat(prod).contains("--name nonprod-release");
+        assertThat(prod).contains("ref: ${{ steps.release.outputs.sha }}");
+    }
+
+    /**
+     * Run workflow can start any branch's copy of deploy-prod.yml. The workflow's own branch check
+     * can be edited away on that branch, so the deploy role itself only trusts runs from main.
+     */
+    @Test
+    void prodDeployRole_trustsOnlyRunsFromMain() throws IOException {
+        String iam = readLf("infra/terraform/prod/iam.tf");
+
+        assertThat(iam).contains("for_each = each.key == \"prod_deploy\" ? [\"refs/heads/main\"] : []");
+        assertThat(iam).contains("variable = \"${local.github_oidc_url}:ref\"");
+    }
+
+    /**
+     * The run id is typed by a person. Written as ${{ inputs.x }} inside a run block it would be
+     * pasted into the shell script before bash ever sees it, so it reaches the steps through env.
+     */
+    @Test
+    void prodDeploy_neverInterpolatesTheInputIntoAScript() throws IOException {
+        String prod = read(".github/workflows/deploy-prod.yml");
+
+        assertThat(prod.split("\\$\\{\\{ inputs\\.", -1)).hasSize(2);
+        assertThat(prod).contains("NONPROD_RUN: ${{ inputs.nonprod_run }}");
+    }
+
+    /**
+     * write-env.sh checks the new .env against the release's compose files before it touches
+     * /opt/sas (GH-274), and start.sh stops before `up` when the images cannot be pulled.
+     */
+    @Test
+    void prodScripts_stopBeforeChangingTheServer() throws IOException {
+        String writeEnv = read("tools/prod/write-env.sh");
+        String start = read("tools/prod/start.sh");
+
+        assertThat(writeEnv.indexOf("missing=$(comm -23"))
+                .isPositive()
+                .isLessThan(writeEnv.indexOf("find /opt/sas -mindepth 1"));
+        assertThat(start.indexOf("PULL FAILED"))
+                .isPositive()
+                .isLessThan(start.indexOf("docker compose $F up -d"));
+        assertThat(start).contains("echo \"schema_before=").contains("echo \"schema_after=");
+    }
 }

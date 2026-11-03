@@ -1,21 +1,20 @@
-# Deploys NONPROD on every merge to develop.
+# Deploys NONPROD on every merge to main, the release branch.
 #
-# GH-243 says not to deploy from develop, on the grounds that main is the release branch and
-# NONPROD should run the exact artifact PROD will get. That argument assumes a PROD, and there is
-# not one yet: until GH-251 lands, NONPROD is where work is looked at rather than a rehearsal of a
-# release, and waiting for a develop -> main PR before anything is visible is slow for no return.
-# Revisit when PROD exists — at that point NONPROD should probably track main again.
+# NONPROD tracked develop while there was no PROD to rehearse for. Now there is (#336), so it tracks
+# main again, as GH-243 asked: every release runs on NONPROD first, and deploy-prod.yml promotes
+# exactly what a green run here deployed (#338). A develop branch can still be put on NONPROD by
+# hand with Run workflow; PROD refuses those runs.
 #
 # Images are built once, on GitHub's ARM runners (images.yml), pushed to ECR, and pulled here by
 # digest (#337). The host used to build them itself, because it is Oracle Ampere (aarch64) and the
 # standard runners are amd64; GitHub's arm64 runners remove that reason (#287). Pulling by digest
-# means NONPROD runs exactly what was built, and PROD can later promote the same bytes (#338).
+# means NONPROD runs exactly what was built, and PROD promotes the same bytes.
 
 name: Deploy NONPROD
 
 on:
   push:
-    branches: [develop]
+    branches: [main]
   workflow_dispatch:
 
 # Never let two deploys touch the host at once. Cancel-in-progress is deliberately off: a deploy
@@ -230,6 +229,19 @@ jobs:
           exit 1
           REMOTE
 
+      # What deploy-prod.yml promotes: written only once the smoke check has passed, so a release
+      # that never came up on NONPROD cannot reach PROD.
+      - name: Record the release for PROD
+        run: |
+          printf 'SHA=%s\nBACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' \
+            "$GITHUB_SHA" "$BACKEND_IMAGE" "$FRONTEND_IMAGE" > "$RUNNER_TEMP/release.env"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nonprod-release
+          path: ${{ runner.temp }}/release.env
+          retention-days: 90
+
       - name: Report
         if: always()
         run: |
@@ -240,6 +252,9 @@ jobs:
           echo "- frontend: \`$FRONTEND_IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- schema before: \`${{ steps.schema.outputs.before }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- result: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ job.status }}" = success ] && [ "$GITHUB_REF" = refs/heads/main ]; then
+            echo "- to promote: run **Deploy PROD** with nonprod_run \`$GITHUB_RUN_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "There is no automatic rollback. If the schema version changed, redeploying the" >> "$GITHUB_STEP_SUMMARY"
           echo "previous commit will crash-loop against a schema it does not know (GH-243)." >> "$GITHUB_STEP_SUMMARY"

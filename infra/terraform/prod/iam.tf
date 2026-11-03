@@ -179,6 +179,19 @@ data "aws_iam_policy_document" "github_assume" {
       variable = "${local.github_oidc_url}:sub"
       values   = each.value
     }
+
+    # An environment job's sub names the environment but not the branch, and Run workflow can pick
+    # any branch's copy of deploy-prod.yml, including one edited to skip its own checks. The ref
+    # claim is the branch the run started from, so only main's copy can deploy PROD.
+    dynamic "condition" {
+      for_each = each.key == "prod_deploy" ? ["refs/heads/main"] : []
+
+      content {
+        test     = "StringEquals"
+        variable = "${local.github_oidc_url}:ref"
+        values   = [condition.value]
+      }
+    }
   }
 }
 
@@ -217,7 +230,7 @@ resource "aws_iam_role" "github_prod_deploy" {
   assume_role_policy = data.aws_iam_policy_document.github_assume["prod_deploy"].json
 }
 
-# Run a shell script on the PROD server and read its result. Nothing else.
+# Upload the release's tree, run a shell script on the PROD server and read its result. Nothing else.
 data "aws_iam_policy_document" "github_prod_deploy" {
   statement {
     actions = ["ssm:SendCommand"]
@@ -230,6 +243,14 @@ data "aws_iam_policy_document" "github_prod_deploy" {
   statement {
     actions   = ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations"]
     resources = ["*"]
+  }
+
+  # The repository is private, so the server cannot fetch a commit itself. The workflow puts the
+  # commit's tree here and write-env.sh reads it with the instance role (#338). Write only, and only
+  # under deploy/: this role cannot read, list or touch the database dumps.
+  statement {
+    actions   = ["s3:PutObject"]
+    resources = ["${local.backups_arn}/deploy/*"]
   }
 }
 
