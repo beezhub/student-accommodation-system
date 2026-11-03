@@ -101,8 +101,9 @@
           @if (signupForm.get('password')?.hasError('required')) {
             <mat-error>Password is required</mat-error>
           }
-          @if (signupForm.get('password')?.hasError('minlength')) {
-            <mat-error>Password must be at least 8 characters</mat-error>
+          <mat-hint>{{ passwordRulesHint }}</mat-hint>
+          @if (signupForm.get('password')?.getError('strongPassword'); as rule) {
+            <mat-error>Password needs {{ rule.missing.join(', ') }}</mat-error>
           }
         </mat-form-field>
 
