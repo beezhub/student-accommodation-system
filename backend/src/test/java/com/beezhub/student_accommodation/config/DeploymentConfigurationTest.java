@@ -226,6 +226,20 @@ class DeploymentConfigurationTest {
                 .contains("- S3_CREATE_BUCKET=${S3_CREATE_BUCKET:-true}");
     }
 
+    /**
+     * The document previews show PDFs in an iframe from a blob: URL. frame-src 'none' blocked every
+     * one of them while downloads worked (GH-362); other origins must stay refused.
+     */
+    @Test
+    void frontendCsp_allowsBlobFramesForDocumentPreviewsOnly() throws IOException {
+        String csp = read("frontend/nginx-security-headers.conf");
+
+        assertThat(csp).contains("frame-src 'self' blob:;");
+        assertThat(csp).contains("object-src 'self' blob:");
+        assertThat(csp).doesNotContain("frame-src 'none'").doesNotContain("frame-src *")
+                .doesNotContain("frame-src https:");
+    }
+
     /** The base file's DB_URL names the db container, which does not exist in PROD. */
     @Test
     void awsOverlay_requiresAnExternalDatabaseUrl() throws IOException {
