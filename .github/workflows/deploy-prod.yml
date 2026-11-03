@@ -51,6 +51,8 @@ jobs:
         run: |
           set -euo pipefail
           fail() { echo "::error::$*"; exit 1; }
+          # A readable error for the rule the deploy role enforces anyway (infra/terraform/prod/iam.tf).
+          [ "$GITHUB_REF" = refs/heads/main ] || fail "run this workflow from main, not $GITHUB_REF"
           [[ "$NONPROD_RUN" =~ ^[0-9]+$ ]] || fail "nonprod_run must be a run id: digits only"
 
           nonprod=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml" --jq .id)

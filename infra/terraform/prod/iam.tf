@@ -179,6 +179,19 @@ data "aws_iam_policy_document" "github_assume" {
       variable = "${local.github_oidc_url}:sub"
       values   = each.value
     }
+
+    # An environment job's sub names the environment but not the branch, and Run workflow can pick
+    # any branch's copy of deploy-prod.yml, including one edited to skip its own checks. The ref
+    # claim is the branch the run started from, so only main's copy can deploy PROD.
+    dynamic "condition" {
+      for_each = each.key == "prod_deploy" ? ["refs/heads/main"] : []
+
+      content {
+        test     = "StringEquals"
+        variable = "${local.github_oidc_url}:ref"
+        values   = [condition.value]
+      }
+    }
   }
 }
 

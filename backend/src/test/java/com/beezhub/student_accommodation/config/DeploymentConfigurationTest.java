@@ -342,9 +342,22 @@ class DeploymentConfigurationTest {
         assertThat(prod).contains("on:\n  workflow_dispatch:");
         assertThat(prod).doesNotContain("  push:").doesNotContain("  schedule:");
         assertThat(prod).contains("environment: production");
+        assertThat(prod).contains("[ \"$GITHUB_REF\" = refs/heads/main ]");
         assertThat(prod).contains("[ \"$branch\" = main ]").contains("[ \"$conclusion\" = success ]");
         assertThat(prod).contains("--name nonprod-release");
         assertThat(prod).contains("ref: ${{ steps.release.outputs.sha }}");
+    }
+
+    /**
+     * Run workflow can start any branch's copy of deploy-prod.yml. The workflow's own branch check
+     * can be edited away on that branch, so the deploy role itself only trusts runs from main.
+     */
+    @Test
+    void prodDeployRole_trustsOnlyRunsFromMain() throws IOException {
+        String iam = readLf("infra/terraform/prod/iam.tf");
+
+        assertThat(iam).contains("for_each = each.key == \"prod_deploy\" ? [\"refs/heads/main\"] : []");
+        assertThat(iam).contains("variable = \"${local.github_oidc_url}:ref\"");
     }
 
     /**
