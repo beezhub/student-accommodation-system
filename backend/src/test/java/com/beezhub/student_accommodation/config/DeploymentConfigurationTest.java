@@ -9,6 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -332,6 +335,126 @@ class DeploymentConfigurationTest {
         assertThat(deploy.indexOf("name: Record the release for PROD"))
                 .as("the release is recorded only after the smoke check passes")
                 .isGreaterThan(deploy.indexOf("name: Smoke check"));
+    }
+
+    /**
+     * After a hotfix, a workflow opens the main to develop pull request, so the fix cannot be
+     * stranded on main the way #288 was (#386). It asks whether merging main into develop would
+     * change develop, not whether their files differ: develop is usually ahead of main, so the
+     * files differ after every normal release too.
+     */
+    @Test
+    void backMerge_opensAPullRequestOnlyWhenDevelopLacksAChangeFromMain() throws IOException {
+        String workflow = readLf(".github/workflows/back-merge.yml");
+        String script = read("tools/ci/back-merge.sh");
+
+        assertThat(workflow).contains("on:\n  push:\n    branches: [main]\n");
+        assertThat(workflow).contains("permissions:\n  contents: read\n  pull-requests: write\n");
+        assertThat(workflow).contains("fetch-depth: 0").contains("run: bash tools/ci/back-merge.sh");
+        assertThat(script).contains("git merge-tree --write-tree");
+        assertThat(script).contains("gh pr list --base develop --head main --state open");
+        assertThat(script).contains("gh pr create --base develop --head main");
+    }
+
+    /**
+     * A hotfix is the one branch that starts from main, and a person decides on it (#386).
+     */
+    @Test
+    void hotfixRule_isWrittenWhereContributorsAndScoutLook() throws IOException {
+        assertThat(readLf("CONTRIBUTING.md")).contains("### Hotfixes")
+                .contains("Branch from `main` and name it `hotfix/TASK-{id}-{slug}`.");
+        assertThat(read(".claude/scout/playbook.md")).contains("Scout never opens one");
+    }
+
+    /**
+     * The first major version of each action that runs on Node 24 or later (#387). Older ones ran
+     * on Node 20 only because GitHub forced them onto Node 24, and stop working when it stops.
+     * Raise a number here when a workflow moves to a newer major; never lower one.
+     */
+    private static final Map<String, Integer> MINIMUM_ACTION_MAJOR = Map.of(
+            "actions/checkout", 7,
+            "actions/setup-java", 6,
+            "actions/setup-node", 7,
+            "actions/upload-artifact", 7,
+            "aws-actions/configure-aws-credentials", 6,
+            "aws-actions/amazon-ecr-login", 2,
+            "docker/build-push-action", 7,
+            "docker/setup-buildx-action", 4);
+
+    @Test
+    void workflows_useNoActionOlderThanItsNode24Major() throws IOException {
+        Pattern uses = Pattern.compile("uses: ([\\w.-]+/[\\w.-]+)@v(\\d+)");
+        int checked = 0;
+
+        try (Stream<Path> files = Files.list(REPO_ROOT.resolve(".github/workflows"))) {
+            for (Path file : files.filter(p -> p.toString().endsWith(".yml")).toList()) {
+                Matcher m = uses.matcher(Files.readString(file, StandardCharsets.UTF_8));
+                while (m.find()) {
+                    assertThat(MINIMUM_ACTION_MAJOR)
+                            .as(m.group(1) + " in " + file.getFileName() + " needs a minimum here")
+                            .containsKey(m.group(1));
+                    assertThat(Integer.parseInt(m.group(2)))
+                            .as(m.group(1) + " in " + file.getFileName())
+                            .isGreaterThanOrEqualTo(MINIMUM_ACTION_MAJOR.get(m.group(1)));
+                    checked++;
+                }
+            }
+        }
+        assertThat(checked).as("action references found").isGreaterThan(20);
+    }
+
+    /**
+     * A release pull request builds no images: every change in it built on its own pull request,
+     * and the push to main builds again for the deploy (#376). The deploy's call is not a pull
+     * request, so the condition never skips it.
+     */
+    @Test
+    void images_skipReleasePullRequestsOnly() throws IOException {
+        String images = readLf(".github/workflows/images.yml");
+        String skip = "    if: github.event_name != 'pull_request' || github.head_ref != 'develop'\n";
+
+        assertThat(images).contains("    name: Backend image (arm64)\n" + skip);
+        assertThat(images).contains("    name: Frontend image (arm64)\n" + skip);
+    }
+
+    /**
+     * CI runs on pull requests and the develop push, not on main: a release merges files develop
+     * already tested (#385). A hotfix pull request into main is still tested.
+     */
+    @Test
+    void ci_runsOnDevelopPushesAndOnPullRequestsOnly() throws IOException {
+        String ci = readLf(".github/workflows/ci.yml");
+
+        assertThat(ci).contains("  push:\n    branches: [develop]\n");
+        assertThat(ci).contains("  pull_request:\n    branches: [main, develop]\n");
+    }
+
+    /**
+     * With no CI on main, the NONPROD deploy checks that a successful CI run tested these files
+     * before it builds anything (#385), and PROD only promotes a green NONPROD run.
+     */
+    @Test
+    void nonprodDeploy_buildsOnlyAfterCiPassedOnTheseFiles() throws IOException {
+        String deploy = readLf(".github/workflows/deploy.yml");
+        String tested = deploy.substring(deploy.indexOf("  tested:"), deploy.indexOf("  images:"));
+
+        assertThat(tested).contains("run: bash tools/ci/ci-passed.sh \"$GITHUB_SHA\"");
+        assertThat(tested).contains("fetch-depth: 0").contains("actions: read");
+        assertThat(deploy).contains("  images:\n    name: Build images\n    needs: tested\n");
+    }
+
+    /**
+     * ci-passed.sh reads the ignored paths from the push trigger in ci.yml, one quoted entry per
+     * line. If that layout changes the script finds no ignored paths: safe, but every docs-only
+     * release would then be refused.
+     */
+    @Test
+    void ciPassedScript_readsTheIgnoredPathsFromCi() throws IOException {
+        String ci = readLf(".github/workflows/ci.yml");
+        String push = ci.substring(ci.indexOf("  push:"), ci.indexOf("  pull_request:"));
+
+        assertThat(push).contains("    paths-ignore:\n      - '**/*.md'\n      - 'docs/**'\n");
+        assertThat(read("tools/ci/ci-passed.sh")).contains("ci=.github/workflows/ci.yml");
     }
 
     /**

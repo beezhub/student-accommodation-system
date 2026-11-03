@@ -1,8 +1,11 @@
 name: CI
 
 on:
+  # Not main: a release merges files the develop push already tested, and a hotfix is tested on its
+  # pull request. Deploy NONPROD checks that one of those runs passed before it builds (#385).
+  # tools/ci/ci-passed.sh reads the push trigger's paths-ignore below, so keep the list here.
   push:
-    branches: [main, develop]
+    branches: [develop]
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
@@ -22,12 +25,11 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# PR #104 is a permanently open develop -> main pull request, so every push to develop also fires
-# this workflow's pull_request trigger on the same commit the push trigger just built. The
-# concurrency group above does not catch that, since a push and a pull_request event get different
-# group keys. Every job below carries
-# `if: github.event_name != 'pull_request' || github.head_ref != 'develop'` to skip that one case;
-# the push-triggered run on develop already tested the commit (GH-284).
+# While a release pull request (develop into main) is open, every push to develop also fires this
+# workflow's pull_request trigger on the same commit the push trigger just built. The concurrency
+# group above does not catch that, since a push and a pull_request event get different group keys.
+# Every job below carries `if: github.event_name != 'pull_request' || github.head_ref != 'develop'`
+# to skip that one case; the push-triggered run on develop already tested the commit (GH-284).
 
 jobs:
   # No secrets scan. gitleaks-action requires a GITLEAKS_LICENSE for organisation-owned
@@ -47,12 +49,12 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Must match JavaLanguageVersion in backend/build.gradle and the Temurin tags in
       # backend/Dockerfile. ToolchainVersionConsistencyTest asserts all three agree (GH-215).
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -76,14 +78,14 @@ jobs:
         if: always()
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-test-results
           path: backend/build/reports/tests/
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-coverage-report
@@ -98,10 +100,10 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: npm

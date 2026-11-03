@@ -159,7 +159,9 @@ Swap the `scout:working` label for whichever of those two applies.
 
 ## Step 7 - Make the change
 
-Branch from the latest `develop`:
+Branch from the latest `develop`, always, even for a bug that is live on PROD. A hotfix from
+`main` (`CONTRIBUTING.md`, "Hotfixes") is a person's decision: Scout never opens one. If an
+issue looks urgent enough for a hotfix, say so in the issue and carry on through `develop`.
 
 ```bash
 git fetch origin develop

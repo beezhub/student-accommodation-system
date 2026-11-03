@@ -1,0 +1,41 @@
+# Opens a pull request from main into develop when main holds a change develop lacks, which after a
+# hotfix it does (#386, docs/BRANCHING_STRATEGY.md "A hotfix"). A person still merges it.
+#
+# After a normal release it opens nothing: develop already has everything main has.
+# tools/ci/back-merge.sh decides, with an in-memory merge that touches no branch.
+#
+# A pull request opened with this workflow's token starts no other workflow, so CI does not run on
+# it. The changes passed CI on their own pull request, and merging into develop runs CI as a push.
+#
+# Needs the repository setting "Allow GitHub Actions to create and approve pull requests"
+# (Settings > Actions > General > Workflow permissions); without it `gh pr create` is refused.
+
+name: Back-merge main into develop
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# Two pushes to main close together must not open two pull requests.
+concurrency:
+  group: back-merge
+  cancel-in-progress: false
+
+jobs:
+  back-merge:
+    name: Merge main back into develop
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Both branches and their history, for the in-memory merge.
+          fetch-depth: 0
+
+      - name: Open the pull request if develop lacks a change from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/ci/back-merge.sh

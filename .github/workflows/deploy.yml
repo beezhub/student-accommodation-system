@@ -24,8 +24,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # CI does not run on main: a release has the same files the develop push already tested, and a
+  # hotfix was tested on its pull request (#385). So before anything is built, check that a
+  # successful CI run covered exactly these files, apart from the paths CI ignores. A release with
+  # red, cancelled or missing CI stops here, and PROD only promotes a green run of this workflow.
+  tested:
+    name: CI passed on these files
+    if: vars.NONPROD_ACTIVE == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The candidate commits CI tested are compared against this one with git diff.
+          fetch-depth: 0
+
+      - name: Find a CI run that tested these files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/ci/ci-passed.sh "$GITHUB_SHA"
+
   images:
     name: Build images
+    needs: tested
     if: vars.NONPROD_ACTIVE == 'true'
     uses: ./.github/workflows/images.yml
     permissions:
@@ -46,7 +69,7 @@ jobs:
       FRONTEND_IMAGE: ${{ needs.images.outputs.frontend }}
       REGISTRY: 428847003911.dkr.ecr.af-south-1.amazonaws.com
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Plain ssh rather than a marketplace action: this channel can change what runs on the
       # server, and an action receives the private key and the whole step environment. The inline
@@ -171,7 +194,7 @@ jobs:
       # hands the host an ECR login token, valid for 12 hours, over the ssh channel. No AWS key is
       # stored on the host or in GitHub.
       - name: AWS credentials through OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::428847003911:role/sas-nonprod-ecr-pull
           aws-region: af-south-1
@@ -269,7 +292,7 @@ jobs:
           printf 'SHA=%s\nBACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' \
             "$GITHUB_SHA" "$BACKEND_IMAGE" "$FRONTEND_IMAGE" > "$RUNNER_TEMP/release.env"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: nonprod-release
           path: ${{ runner.temp }}/release.env
