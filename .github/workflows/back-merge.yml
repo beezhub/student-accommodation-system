@@ -30,7 +30,7 @@ jobs:
     name: Merge main back into develop
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Both branches and their history, for the in-memory merge.
           fetch-depth: 0

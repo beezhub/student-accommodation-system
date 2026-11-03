@@ -84,12 +84,12 @@ jobs:
 
       # The scripts and compose files come from the release commit, so the tree on the server and
       # the steps that put it there always belong together.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.release.outputs.sha }}
 
       - name: AWS credentials through OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::428847003911:role/sas-prod-github-deploy
           aws-region: af-south-1
