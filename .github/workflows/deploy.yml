@@ -36,7 +36,7 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The candidate commits CI tested are compared against this one with git diff.
           fetch-depth: 0
@@ -69,7 +69,7 @@ jobs:
       FRONTEND_IMAGE: ${{ needs.images.outputs.frontend }}
       REGISTRY: 428847003911.dkr.ecr.af-south-1.amazonaws.com
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Plain ssh rather than a marketplace action: this channel can change what runs on the
       # server, and an action receives the private key and the whole step environment. The inline
@@ -194,7 +194,7 @@ jobs:
       # hands the host an ECR login token, valid for 12 hours, over the ssh channel. No AWS key is
       # stored on the host or in GitHub.
       - name: AWS credentials through OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::428847003911:role/sas-nonprod-ecr-pull
           aws-region: af-south-1
@@ -292,7 +292,7 @@ jobs:
           printf 'SHA=%s\nBACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' \
             "$GITHUB_SHA" "$BACKEND_IMAGE" "$FRONTEND_IMAGE" > "$RUNNER_TEMP/release.env"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: nonprod-release
           path: ${{ runner.temp }}/release.env

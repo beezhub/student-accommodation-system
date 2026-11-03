@@ -9,6 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -361,6 +364,43 @@ class DeploymentConfigurationTest {
         assertThat(readLf("CONTRIBUTING.md")).contains("### Hotfixes")
                 .contains("Branch from `main` and name it `hotfix/TASK-{id}-{slug}`.");
         assertThat(read(".claude/scout/playbook.md")).contains("Scout never opens one");
+    }
+
+    /**
+     * The first major version of each action that runs on Node 24 or later (#387). Older ones ran
+     * on Node 20 only because GitHub forced them onto Node 24, and stop working when it stops.
+     * Raise a number here when a workflow moves to a newer major; never lower one.
+     */
+    private static final Map<String, Integer> MINIMUM_ACTION_MAJOR = Map.of(
+            "actions/checkout", 7,
+            "actions/setup-java", 6,
+            "actions/setup-node", 7,
+            "actions/upload-artifact", 7,
+            "aws-actions/configure-aws-credentials", 6,
+            "aws-actions/amazon-ecr-login", 2,
+            "docker/build-push-action", 7,
+            "docker/setup-buildx-action", 4);
+
+    @Test
+    void workflows_useNoActionOlderThanItsNode24Major() throws IOException {
+        Pattern uses = Pattern.compile("uses: ([\\w.-]+/[\\w.-]+)@v(\\d+)");
+        int checked = 0;
+
+        try (Stream<Path> files = Files.list(REPO_ROOT.resolve(".github/workflows"))) {
+            for (Path file : files.filter(p -> p.toString().endsWith(".yml")).toList()) {
+                Matcher m = uses.matcher(Files.readString(file, StandardCharsets.UTF_8));
+                while (m.find()) {
+                    assertThat(MINIMUM_ACTION_MAJOR)
+                            .as(m.group(1) + " in " + file.getFileName() + " needs a minimum here")
+                            .containsKey(m.group(1));
+                    assertThat(Integer.parseInt(m.group(2)))
+                            .as(m.group(1) + " in " + file.getFileName())
+                            .isGreaterThanOrEqualTo(MINIMUM_ACTION_MAJOR.get(m.group(1)));
+                    checked++;
+                }
+            }
+        }
+        assertThat(checked).as("action references found").isGreaterThan(20);
     }
 
     /**
