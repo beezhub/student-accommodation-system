@@ -5,4 +5,7 @@ loki.write "default" {
 	endpoint {
 		url = "http://loki:3100/loki/api/v1/push"
 	}
+
+	// One label tells environments apart in every query (labels in logs.alloy).
+	external_labels = {env = "nonprod"}
 }
