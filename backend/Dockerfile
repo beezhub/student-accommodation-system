@@ -24,6 +24,12 @@ RUN ./gradlew dependencies --no-daemon --quiet
 COPY src ./src
 RUN ./gradlew bootJar --no-daemon -x test
 
+# Split the jar into Spring Boot's layers (#374): dependencies, the loader, snapshot dependencies,
+# and the application's own classes, which are the only part a code change touches. As one fat
+# jar, every deploy downloaded the whole 95.6 MB again.
+RUN cp build/libs/*.jar app.jar \
+ && java -Djarmode=tools -jar app.jar extract --layers --destination extracted
+
 # Runtime stage — use JRE only for a smaller image
 FROM eclipse-temurin:21-jre-alpine
 
@@ -32,10 +38,14 @@ WORKDIR /app
 # Create a non-root user to run the application
 RUN addgroup -S spring && adduser -S spring -G spring
 
-# Copy the built JAR from the build stage
-COPY --from=build /app/build/libs/*.jar app.jar
-
-RUN chown spring:spring app.jar
+# One COPY per layer, least often changed first, so a code-only change replaces only the last.
+# Left owned by root and readable by all: the app runs as spring and has no reason to change its
+# own code. The old `RUN chown spring:spring app.jar` also wrote a second full copy of the jar
+# into a new layer, which every deploy downloaded twice.
+COPY --from=build /app/extracted/dependencies/ ./
+COPY --from=build /app/extracted/spring-boot-loader/ ./
+COPY --from=build /app/extracted/snapshot-dependencies/ ./
+COPY --from=build /app/extracted/application/ ./
 
 USER spring:spring
 
