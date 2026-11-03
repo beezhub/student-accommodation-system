@@ -335,6 +335,20 @@ class DeploymentConfigurationTest {
     }
 
     /**
+     * A release pull request builds no images: every change in it built on its own pull request,
+     * and the push to main builds again for the deploy (#376). The deploy's call is not a pull
+     * request, so the condition never skips it.
+     */
+    @Test
+    void images_skipReleasePullRequestsOnly() throws IOException {
+        String images = readLf(".github/workflows/images.yml");
+        String skip = "    if: github.event_name != 'pull_request' || github.head_ref != 'develop'\n";
+
+        assertThat(images).contains("    name: Backend image (arm64)\n" + skip);
+        assertThat(images).contains("    name: Frontend image (arm64)\n" + skip);
+    }
+
+    /**
      * CI runs on pull requests and the develop push, not on main: a release merges files develop
      * already tested (#385). A hotfix pull request into main is still tested.
      */

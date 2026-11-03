@@ -3,6 +3,9 @@
 # promotes the exact bytes NONPROD ran.
 #
 # - On a pull request: build only. Proves the Dockerfiles still build for arm64; pushes nothing.
+#   Not on a release pull request (develop into main): every change in it already built on its
+#   own pull request, and the push to main builds again for the deploy (#376). Each job carries
+#   the same `if` ci.yml uses for the same case (GH-284).
 # - Called by deploy.yml: build and push to ECR in af-south-1, and hand the digests to the deploy.
 #   NONPROD then pulls those digests instead of building on the host.
 #
@@ -42,6 +45,7 @@ env:
 jobs:
   backend:
     name: Backend image (arm64)
+    if: github.event_name != 'pull_request' || github.head_ref != 'develop'
     runs-on: ubuntu-24.04-arm
     outputs:
       image: ${{ steps.result.outputs.image }}
@@ -83,6 +87,7 @@ jobs:
 
   frontend:
     name: Frontend image (arm64)
+    if: github.event_name != 'pull_request' || github.head_ref != 'develop'
     runs-on: ubuntu-24.04-arm
     outputs:
       image: ${{ steps.result.outputs.image }}

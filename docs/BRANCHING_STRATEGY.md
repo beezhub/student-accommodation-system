@@ -121,7 +121,7 @@ flowchart LR
 | Deploy PROD accepts runs from `main` only, enforced by the AWS deploy role | Works (#369) |
 | NONPROD deploy survives a dropped connection | Works (#375) |
 | No CI on the `main` push; Deploy NONPROD checks CI first | Works (#385), `tools/ci/ci-passed.sh` |
-| No image build on release pull requests | To build (#376) |
+| No image build on release pull requests | Works (#376) |
 | Hotfix branches from `main`, and the back-merge workflow | To build (#386). Needs `CONTRIBUTING.md` to allow branching from `main` for hotfixes |
 
 Until the hotfix issue lands, `CONTRIBUTING.md` still says to branch from `develop` only, and that
