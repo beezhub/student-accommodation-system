@@ -1,0 +1,123 @@
+# Builds the backend and frontend images on GitHub's ARM runners, natively for arm64 (#287, #337).
+# NONPROD (Oracle Ampere) and PROD (EC2 Graviton) are both arm64, so one build serves both and PROD
+# promotes the exact bytes NONPROD ran.
+#
+# - On a pull request: build only. Proves the Dockerfiles still build for arm64; pushes nothing.
+# - Called by deploy.yml: build and push to ECR in af-south-1, and hand the digests to the deploy.
+#   NONPROD then pulls those digests instead of building on the host.
+#
+# ECR is reached through GitHub's OIDC token and the sas-prod-github-ecr-push role
+# (infra/terraform/prod/iam.tf), which trusts only pushes to develop and main. No AWS key is stored
+# in GitHub.
+
+name: Images
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/images.yml'
+  workflow_call:
+    outputs:
+      backend:
+        description: Backend image by digest, <registry>/<repository>@sha256:<digest>
+        value: ${{ jobs.backend.outputs.image }}
+      frontend:
+        description: Frontend image by digest
+        value: ${{ jobs.frontend.outputs.image }}
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: af-south-1
+  REGISTRY: 428847003911.dkr.ecr.af-south-1.amazonaws.com
+  PUSH_ROLE: arn:aws:iam::428847003911:role/sas-prod-github-ecr-push
+  # Pull requests build only. Everything else (the call from deploy.yml) pushes.
+  PUSH: ${{ github.event_name != 'pull_request' }}
+
+jobs:
+  backend:
+    name: Backend image (arm64)
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      image: ${{ steps.result.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AWS credentials through OIDC
+        if: env.PUSH == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.PUSH_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        if: env.PUSH == 'true'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build${{ env.PUSH == 'true' && ' and push' || '' }}
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          platforms: linux/arm64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ env.REGISTRY }}/student-accommodation-backend:sha-${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Image by digest
+        id: result
+        if: env.PUSH == 'true'
+        run: |
+          image="$REGISTRY/student-accommodation-backend@${{ steps.build.outputs.digest }}"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "- backend: \`$image\`" >> "$GITHUB_STEP_SUMMARY"
+
+  frontend:
+    name: Frontend image (arm64)
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      image: ${{ steps.result.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AWS credentials through OIDC
+        if: env.PUSH == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.PUSH_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        if: env.PUSH == 'true'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build${{ env.PUSH == 'true' && ' and push' || '' }}
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/arm64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ env.REGISTRY }}/student-accommodation-frontend:sha-${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Image by digest
+        id: result
+        if: env.PUSH == 'true'
+        run: |
+          image="$REGISTRY/student-accommodation-frontend@${{ steps.build.outputs.digest }}"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "- frontend: \`$image\`" >> "$GITHUB_STEP_SUMMARY"
