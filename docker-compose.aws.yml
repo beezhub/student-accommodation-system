@@ -73,6 +73,9 @@ services:
       - S3_REGION=af-south-1
       - S3_CREDENTIALS=aws-instance-role
       - S3_CREATE_BUCKET=false
+      # SES SMTP logs in with an IAM key ID, not an address, and the SMTP user may only send from
+      # no-reply@ (infra/terraform/prod/email.tf, GH-356).
+      - MAIL_FROM=no-reply@beezhub.co.za
       # Presigned document URLs point at S3 itself, so the CSP must allow its origin.
       - STORAGE_PUBLIC_ORIGIN=${STORAGE_PUBLIC_ORIGIN:?STORAGE_PUBLIC_ORIGIN must be set to the bucket origin}
     # The JVM takes 70% of this (backend/Dockerfile). The limits on this server add up to about
