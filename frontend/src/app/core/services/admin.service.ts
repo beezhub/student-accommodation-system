@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { BuildingPreferenceResponse } from './application.service';
@@ -132,7 +132,9 @@ export class AdminService {
 
   // User Management
   createUser(userData: CreateUserRequest): Observable<AdminUser> {
-    return this.http.post<AdminUser>(this.userApiUrl, userData);
+    return this.http.post<AdminUser>(this.userApiUrl, userData, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   /**
@@ -141,16 +143,24 @@ export class AdminService {
    */
   getAllUsers(page = 0, size = 25): Observable<PageResponse<AdminUser>> {
     const params = new HttpParams().set('page', page).set('size', size);
-    return this.http.get<PageResponse<AdminUser>>(this.userApiUrl, { params });
+    return this.http.get<PageResponse<AdminUser>>(this.userApiUrl, {
+      params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   getUsersByRole(role: string, page = 0, size = 25): Observable<PageResponse<AdminUser>> {
     const params = new HttpParams().set('page', page).set('size', size);
-    return this.http.get<PageResponse<AdminUser>>(`${this.userApiUrl}/role/${role}`, { params });
+    return this.http.get<PageResponse<AdminUser>>(`${this.userApiUrl}/role/${role}`, {
+      params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   deleteUser(userId: number): Observable<void> {
-    return this.http.delete<void>(`${this.userApiUrl}/${userId}`);
+    return this.http.delete<void>(`${this.userApiUrl}/${userId}`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   // Application Management
@@ -166,17 +176,20 @@ export class AdminService {
     return this.http.get<PageResponse<ApplicationResponse>>(this.applicationApiUrl, { params });
   }
 
-  searchApplications(filters: {
-    applicationCode?: string;
-    studentName?: string;
-    status?: string;
-    allocationStatus?: string;
-    preferredBuilding?: string;
-    startDate?: string;
-    endDate?: string;
-    page?: number;
-    size?: number;
-  }): Observable<PageResponse<ApplicationResponse>> {
+  searchApplications(
+    filters: {
+      applicationCode?: string;
+      studentName?: string;
+      status?: string;
+      allocationStatus?: string;
+      preferredBuilding?: string;
+      startDate?: string;
+      endDate?: string;
+      page?: number;
+      size?: number;
+    },
+    silent = false
+  ): Observable<PageResponse<ApplicationResponse>> {
     let params = new HttpParams()
       .set('page', (filters.page || 0).toString())
       .set('size', (filters.size || 20).toString());
@@ -192,6 +205,7 @@ export class AdminService {
 
     return this.http.get<PageResponse<ApplicationResponse>>(`${this.applicationApiUrl}/search`, {
       params,
+      headers: silent ? new HttpHeaders({ 'X-Silent-Error': 'true' }) : undefined,
     });
   }
 
@@ -209,7 +223,8 @@ export class AdminService {
       {
         status,
         remarks,
-      }
+      },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
     );
   }
 
@@ -232,6 +247,7 @@ export class AdminService {
 
     return this.http.get<PageResponse<DocumentResponse>>(`${this.documentApiUrl}/search`, {
       params,
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
     });
   }
 
@@ -247,6 +263,7 @@ export class AdminService {
   downloadDocument(documentId: number): Observable<Blob> {
     return this.http.get(`${this.documentApiUrl}/download/${documentId}`, {
       responseType: 'blob',
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
     });
   }
 

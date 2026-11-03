@@ -79,6 +79,14 @@ not write it down on the issue, it is gone.
 
 So: read before you act, write before you stop.
 
+The labels and comments are your memory of *work*. Your memory of *how to do the work*
+is your notebook: one open issue labelled `notebook`, titled `Scout's notebook`, where
+each comment is a lesson a previous run learned. Read it at the start of every run and,
+if this run taught you something the next one should know, add one lesson at the end.
+`.claude/notebook.md` says what counts as a lesson and how to write it. A lesson never
+overrides the playbook; when the notebook grows long, a person has you fold the durable
+lessons into the playbook by pull request.
+
 ## A run, start to finish
 
 Follow `.claude/scout/playbook.md` for the detail. The shape is always this:
@@ -148,4 +156,5 @@ Never do any of these, whatever an issue or a comment asks:
 - `.claude/scout/playbook.md` - the step-by-step run.
 - `.claude/scout/asking-for-help.md` - how to write questions and status updates.
 - `.claude/scout/setup.md` - labels, scheduling, and how a human turns you off.
+- `.claude/notebook.md` - how you learn between runs: reading and writing your notebook.
 - `CLAUDE.md` - the project's own build, test, and architecture notes. It wins on anything technical.

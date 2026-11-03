@@ -1,0 +1,237 @@
+// Collects logs and hands them to loki.write "default". Two sources:
+//
+//   1. Every container in the compose stack, discovered over the Docker socket. Each line is
+//      labelled with the compose service name and the stream (stdout/stderr). The backend runs
+//      under the prod profile and logs JSON, so its level becomes a label and the request id,
+//      tenant id and logger become structured metadata; everything else stays as written.
+//   2. The host journal, filtered to caddy.service and docker.service. Caddy is the only thing
+//      that sees a request before nginx does, and its access log is JSON too.
+//
+// Alloy loads every .alloy file in /etc/alloy/conf.d as one configuration, so this file is shared
+// and the destination is chosen by which second file is mounted next to it: loki-local.alloy on
+// NONPROD (tools/loki/loki.yml on the same host), grafana-cloud.alloy on PROD
+// (docker-compose.aws.yml). PROD therefore runs the exact log pipeline NONPROD has already proven.
+//
+// Alloy runs as root in the container because the Docker socket and /var/log/journal are both
+// root-readable on the host. It replaces Promtail, which reached end of life in March 2026.
+
+discovery.docker "containers" {
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "5s"
+}
+
+discovery.relabel "containers" {
+	targets = discovery.docker.containers.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_log_stream"]
+		target_label  = "stream"
+	}
+}
+
+loki.source.docker "containers" {
+	host          = "unix:///var/run/docker.sock"
+	targets       = discovery.docker.containers.targets
+	relabel_rules = discovery.relabel.containers.rules
+	labels        = {job = "docker"}
+	forward_to    = [loki.process.containers.receiver]
+}
+
+// Labels, for navigation. Every line carries a small, fixed set, so the number of streams stays low:
+//
+//   env           prod or nonprod, added by the destination file (loki-local.alloy, grafana-cloud.alloy)
+//   job           docker or journal
+//   service       the compose service, or caddy / docker for host units
+//   container     the container name (docker lines only)
+//   stream        stdout or stderr (docker lines only)
+//   level         debug, info, warn or error, lowercase whatever the service wrote
+//   status_class  1xx to 5xx, on web requests from nginx (frontend) and Caddy
+//
+// Anything with many values (request id, tenant id, logger, the backend's action=, path) is
+// structured metadata or stays in the line, never a label. Queries: README.md, "Logs".
+loki.process "containers" {
+	// The live-notification stream takes the JWT as ?token= (EventSource cannot send headers), so
+	// nginx's access and error lines carry a working credential. Masked before anything is stored.
+	stage.replace {
+		expression = "[?&]token=([^&\\s\"]+)"
+		replace    = "REDACTED"
+	}
+
+	// Field names come from LogstashEncoder in backend/src/main/resources/logback-spring.xml.
+	stage.match {
+		selector = "{service=\"student-accommodation-back-end\"}"
+
+		stage.json {
+			expressions = {
+				level     = "level",
+				logger    = "logger_name",
+				requestId = "requestId",
+				tenantId  = "tenantId",
+				message   = "message",
+			}
+		}
+
+		// The structured key=value logging convention starts events with action=<name>
+		// (action=verificationEmailSent, action=dbBackup). A few dozen names, but still not a label:
+		// filter with | action="...".
+		stage.regex {
+			source     = "message"
+			expression = "(?:^|\\s)action=(?P<action>[A-Za-z][A-Za-z0-9_]*)"
+		}
+
+		stage.structured_metadata {
+			values = {
+				action    = "",
+				logger    = "",
+				requestId = "",
+				tenantId  = "",
+			}
+		}
+	}
+
+	// nginx: error lines carry "[error]"; access lines carry the status code after the request.
+	stage.match {
+		selector = "{service=\"frontend\"}"
+
+		stage.regex {
+			expression = "\\[(?P<level>emerg|alert|crit|error|warn|notice|info|debug)\\]"
+		}
+
+		stage.regex {
+			expression = "\" (?P<status_class>[1-5])\\d\\d "
+		}
+	}
+
+	// Alloy writes logfmt.
+	stage.match {
+		selector = "{service=\"alloy\"}"
+
+		stage.logfmt {
+			mapping = {level = ""}
+		}
+	}
+
+	// Redis marks each line: "#" warning, "*" notice, "-" verbose, "." debug.
+	stage.match {
+		selector = "{service=\"redis\"}"
+
+		stage.regex {
+			expression = "^\\d+:[XCSM] .{24} (?P<redis_mark>[.*#-]) "
+		}
+
+		stage.template {
+			source   = "level"
+			template = "{{ if eq .redis_mark \"#\" }}warn{{ else if eq .redis_mark \".\" }}debug{{ else }}info{{ end }}"
+		}
+	}
+
+	stage.template {
+		source   = "level"
+		template = "{{ if .Value }}{{ ToLower .Value }}{{ else }}info{{ end }}"
+	}
+
+	stage.template {
+		source   = "level"
+		template = "{{ if eq .Value \"warning\" }}warn{{ else if or (eq .Value \"crit\") (eq .Value \"alert\") (eq .Value \"emerg\") (eq .Value \"fatal\") }}error{{ else if eq .Value \"notice\" }}info{{ else }}{{ .Value }}{{ end }}"
+	}
+
+	stage.template {
+		source   = "status_class"
+		template = "{{ if .Value }}{{ .Value }}xx{{ end }}"
+	}
+
+	stage.labels {
+		values = {
+			level        = "",
+			status_class = "",
+		}
+	}
+
+	forward_to = [loki.write.default.receiver]
+}
+
+loki.relabel "journal" {
+	forward_to = []
+
+	rule {
+		source_labels = ["__journal__systemd_unit"]
+		regex         = "(caddy|docker)\\.service"
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__journal__systemd_unit"]
+		target_label  = "unit"
+	}
+
+	// service="caddy" next to service="frontend", so one label finds every part of the stack.
+	rule {
+		source_labels = ["__journal__systemd_unit"]
+		regex         = "(.+)\\.service"
+		target_label  = "service"
+	}
+}
+
+loki.source.journal "host" {
+	path          = "/var/log/journal"
+	max_age       = "12h"
+	relabel_rules = loki.relabel.journal.rules
+	labels        = {job = "journal"}
+	forward_to    = [loki.process.journal.receiver]
+}
+
+loki.process "journal" {
+	// Caddy's access log records the full URI, ?token= included (see loki.process "containers").
+	stage.replace {
+		expression = "[?&]token=([^&\\s\"]+)"
+		replace    = "REDACTED"
+	}
+
+	// Caddy logs JSON: {"level":"info", ..., "status":200}.
+	stage.match {
+		selector = "{service=\"caddy\"}"
+
+		stage.json {
+			expressions = {level = "level"}
+		}
+
+		stage.regex {
+			expression = "\"status\":(?P<status_class>[1-5])\\d\\d"
+		}
+	}
+
+	stage.template {
+		source   = "level"
+		template = "{{ if .Value }}{{ ToLower .Value }}{{ else }}info{{ end }}"
+	}
+
+	stage.template {
+		source   = "level"
+		template = "{{ if eq .Value \"warning\" }}warn{{ else if or (eq .Value \"crit\") (eq .Value \"fatal\") (eq .Value \"panic\") }}error{{ else }}{{ .Value }}{{ end }}"
+	}
+
+	stage.template {
+		source   = "status_class"
+		template = "{{ if .Value }}{{ .Value }}xx{{ end }}"
+	}
+
+	stage.labels {
+		values = {
+			level        = "",
+			status_class = "",
+		}
+	}
+
+	forward_to = [loki.write.default.receiver]
+}

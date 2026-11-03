@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RoomService, RoomResponse } from '../../../core/services/room.service';
@@ -58,6 +59,7 @@ export class RoomBrowserComponent implements OnInit {
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {
     this.filterForm = this.fb.group({
@@ -70,13 +72,13 @@ export class RoomBrowserComponent implements OnInit {
     this.loadBuildings();
     this.loadRooms();
 
-    this.filterForm.valueChanges.subscribe(() => {
+    this.filterForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.applyFilters();
     });
   }
 
   loadBuildings(): void {
-    this.buildingService.getAllBuildingsNoPagination().subscribe({
+    this.buildingService.getAllBuildingsNoPagination(true).subscribe({
       next: (buildings) => {
         this.buildings = buildings;
       },

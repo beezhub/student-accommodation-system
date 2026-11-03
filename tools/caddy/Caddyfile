@@ -31,9 +31,20 @@
 {$APP_HOSTNAME} {
 	encode zstd gzip
 
-	# Everything goes to the frontend container. It serves the Angular bundle and proxies /api/ to
-	# the backend itself (frontend/nginx.conf), so exactly one place knows the backend's address.
-	reverse_proxy 127.0.0.1:8081
+	# Grafana, published on the host's loopback by docker-compose.deploy.yml. The /grafana prefix is
+	# passed through unchanged: Grafana serves from that sub-path itself (GF_SERVER_SERVE_FROM_SUB_PATH)
+	# and builds its links from GRAFANA_ROOT_URL. Without this route /grafana fell through to the
+	# frontend and returned the Angular app.
+	@grafana path /grafana /grafana/*
+	handle @grafana {
+		reverse_proxy 127.0.0.1:3000
+	}
+
+	# Everything else goes to the frontend container. It serves the Angular bundle and proxies /api/
+	# to the backend itself (frontend/nginx.conf), so exactly one place knows the backend's address.
+	handle {
+		reverse_proxy 127.0.0.1:8081
+	}
 
 	header {
 		# Caddy redirects http to https on its own; this stops the browser trying http at all.

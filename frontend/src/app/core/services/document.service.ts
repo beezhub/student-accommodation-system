@@ -1,5 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams, HttpEvent, HttpEventType } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpEvent,
+  HttpEventType,
+  HttpHeaders,
+  HttpParams,
+} from '@angular/common/http';
 import { Observable, map, filter } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DocumentData } from '../models/document.model';
@@ -206,6 +212,7 @@ export class DocumentService {
   downloadDocument(documentId: string | number): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/download/${documentId}`, {
       responseType: 'blob',
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
     });
   }
 

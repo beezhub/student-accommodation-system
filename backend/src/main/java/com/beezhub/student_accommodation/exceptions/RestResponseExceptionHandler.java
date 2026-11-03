@@ -155,6 +155,20 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
         }
 
         /**
+         * 400, not the 409 the one pre-existing inactive-tenant guard produced by reusing
+         * {@link DuplicateResourceException}. Nothing is duplicated: the request names a company
+         * that is not accepting new records (GH-267).
+         */
+        @ExceptionHandler(InactiveTenantException.class)
+        public ResponseEntity<ErrorResponse> handleInactiveTenant(InactiveTenantException ex, WebRequest request) {
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.BAD_REQUEST.value(),
+                                ex.getMessage(),
+                                request.getDescription(false)), HttpStatus.BAD_REQUEST);
+        }
+
+        /**
          * True when the message was written by this codebase and is meant for a user.
          *
          * <p>Exactly {@code java.lang.RuntimeException} means a deliberate throw from this project.
@@ -536,7 +550,7 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
          * Object storage failed. 503 rather than 500: the caller did nothing wrong and the request
          * may succeed later.
          *
-         * <p>The message is no longer echoed. These carry the object key and MinIO's own driver
+         * <p>The message is no longer echoed. These carry the object key and the storage SDK's own
          * text, which is internal detail the caller cannot act on (GH-205).
          */
         @ExceptionHandler(FileStorageException.class)
@@ -569,6 +583,23 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                                 HttpStatus.SERVICE_UNAVAILABLE.value(),
                                 "A service this action depends on is temporarily unavailable. Reference: "
                                                 + reference,
+                                request.getDescription(false)), HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
+        /**
+         * An optional integration this deployment has not configured. The same 503 as an outage,
+         * but logged at INFO with no stack trace: nothing failed, and the startup log already says
+         * which setting is missing.
+         */
+        @ExceptionHandler(ServiceNotConfiguredException.class)
+        public ResponseEntity<ErrorResponse> handleServiceNotConfigured(
+                        ServiceNotConfiguredException ex, WebRequest request) {
+                log.info("action=serviceNotConfigured path={} reason={}",
+                                request.getDescription(false), ex.getMessage());
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                                "This feature is not enabled on this deployment.",
                                 request.getDescription(false)), HttpStatus.SERVICE_UNAVAILABLE);
         }
 

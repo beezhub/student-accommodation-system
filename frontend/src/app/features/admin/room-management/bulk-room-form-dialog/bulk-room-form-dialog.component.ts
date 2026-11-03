@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -358,6 +359,7 @@ export class BulkRoomFormDialogComponent {
   private fb = inject(FormBuilder);
   private roomService = inject(RoomService);
   private snackBar = inject(MatSnackBar);
+  private destroyRef = inject(DestroyRef);
   dialogRef = inject<MatDialogRef<BulkRoomFormDialogComponent>>(MatDialogRef);
   data = inject<{
     buildings: BuildingResponse[];
@@ -376,7 +378,9 @@ export class BulkRoomFormDialogComponent {
       capacity: [2, [Validators.required, Validators.min(1)]],
     });
 
-    this.bulkForm.valueChanges.subscribe(() => this.generatePreview());
+    this.bulkForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.generatePreview());
     this.generatePreview();
   }
 

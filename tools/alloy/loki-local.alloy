@@ -1,0 +1,11 @@
+// NONPROD destination for logs.alloy: the Loki container on the same host (tools/loki/loki.yml),
+// queried from the host's own Grafana. Mounted by docker-compose.deploy.yml.
+
+loki.write "default" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+
+	// One label tells environments apart in every query (labels in logs.alloy).
+	external_labels = {env = "nonprod"}
+}

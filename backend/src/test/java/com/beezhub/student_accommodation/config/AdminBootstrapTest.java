@@ -34,8 +34,12 @@ class AdminBootstrapTest {
     private PasswordEncoder passwordEncoder;
 
     private AdminBootstrap bootstrap(String email, String password) {
+        return bootstrap(email, password, false);
+    }
+
+    private AdminBootstrap bootstrap(String email, String password, boolean force) {
         when(passwordEncoder.encode(anyString())).thenAnswer(i -> "encoded:" + i.getArgument(0));
-        return new AdminBootstrap(appUserRepository, passwordEncoder, email, password);
+        return new AdminBootstrap(appUserRepository, passwordEncoder, email, password, force);
     }
 
     private AppUser savedUser() {
@@ -74,18 +78,55 @@ class AdminBootstrapTest {
     }
 
     @Test
-    void existingAccount_passwordResetLockCearedAndChangeForcedAgain() {
+    void existingAccount_neverChangedPassword_resetAndChangeForcedAgain() {
         AppUser existing = new AppUser();
         existing.setId(4L);
         existing.setEmail("admin@example.com");
         existing.setUserRole(UserRole.PLATFORM_ADMIN);
         existing.setUserPassword("old-hash");
-        existing.setMustChangePassword(false);
+        existing.setMustChangePassword(true);
         existing.setAccountLockedUntil(LocalDateTime.of(9999, 12, 31, 23, 59, 59));
         existing.setFailedLoginAttempts(5);
         when(appUserRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(existing));
 
         bootstrap("admin@example.com", "new-secret").run(null);
+
+        AppUser saved = savedUser();
+        assertThat(saved.getId()).isEqualTo(4L);
+        assertThat(saved.getUserPassword()).isEqualTo("encoded:new-secret");
+        assertThat(saved.getMustChangePassword()).isTrue();
+        assertThat(saved.getAccountLockedUntil()).isNull();
+        assertThat(saved.getFailedLoginAttempts()).isZero();
+    }
+
+    @Test
+    void existingAccount_passwordAlreadyChanged_isLeftAlone() {
+        AppUser existing = new AppUser();
+        existing.setId(4L);
+        existing.setEmail("admin@example.com");
+        existing.setUserRole(UserRole.PLATFORM_ADMIN);
+        existing.setUserPassword("chosen-hash");
+        existing.setMustChangePassword(false);
+        when(appUserRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(existing));
+
+        bootstrap("admin@example.com", "seeded-password").run(null);
+
+        verify(appUserRepository, never()).save(any());
+    }
+
+    @Test
+    void existingAccount_passwordAlreadyChanged_withForce_resetsAnyway() {
+        AppUser existing = new AppUser();
+        existing.setId(4L);
+        existing.setEmail("admin@example.com");
+        existing.setUserRole(UserRole.PLATFORM_ADMIN);
+        existing.setUserPassword("chosen-hash");
+        existing.setMustChangePassword(false);
+        existing.setAccountLockedUntil(LocalDateTime.of(9999, 12, 31, 23, 59, 59));
+        existing.setFailedLoginAttempts(5);
+        when(appUserRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(existing));
+
+        bootstrap("admin@example.com", "new-secret", true).run(null);
 
         AppUser saved = savedUser();
         assertThat(saved.getId()).isEqualTo(4L);

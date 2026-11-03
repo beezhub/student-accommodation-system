@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.config.health;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -9,7 +10,12 @@ import org.springframework.stereotype.Component;
 
 import java.net.Socket;
 
+/**
+ * Opens a socket to the SMTP host. Only with the SMTP transport: on PROD mail goes through the SES
+ * API (GH-360) and Spring Boot's mail health check asks SES instead (SesApiMailSender).
+ */
 @Component
+@ConditionalOnProperty(name = "app.mail.transport", havingValue = "smtp", matchIfMissing = true)
 public class SmtpHealthIndicator implements HealthIndicator {
 
     private final JavaMailSender javaMailSender;

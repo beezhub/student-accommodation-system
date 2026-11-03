@@ -398,7 +398,7 @@ class RestResponseExceptionHandlerTest {
     }
     
     /**
-     * Still 503, but the message is no longer echoed: these carry the object key and MinIO's driver
+     * Still 503, but the message is no longer echoed: these carry the object key and the storage SDK's
      * text, which the caller cannot act on (GH-205). The detail-hiding is asserted separately in
      * handleFileStorage_isServiceUnavailableAndHidesTheObjectKey.
      */
@@ -448,11 +448,21 @@ class RestResponseExceptionHandlerTest {
         assertFalse(message.contains("postmaster"));
     }
 
+    /** A feature this deployment never configured is still unavailable to the caller. */
+    @Test
+    void handleServiceNotConfigured_isServiceUnavailable() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleServiceNotConfigured(
+                new ServiceNotConfiguredException("Geocoding is not configured"), webRequest);
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertTrue(response.getBody().getErrors().get(0).contains("not enabled"));
+    }
+
     /** Storage failures carry the object key and the driver's text; neither is the caller's business. */
     @Test
     void handleFileStorage_isServiceUnavailableAndHidesTheObjectKey() {
         ResponseEntity<ErrorResponse> response = exceptionHandler.handleFileStorageException(
-                new FileStorageException("Error uploading file to MinIO: student/12/passport-scan.pdf"),
+                new FileStorageException("Error uploading file to storage: student/12/passport-scan.pdf"),
                 webRequest);
 
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());

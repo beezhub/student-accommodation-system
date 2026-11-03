@@ -20,12 +20,16 @@ import java.time.LocalDateTime;
  * <p>The seeded demo administrator is disabled outside demo environments (see
  * {@code V2026_09_05_1000__disable_seeded_admin.sql}), so a fresh NONPROD or PROD database needs
  * another way in. Setting {@code ADMIN_BOOTSTRAP_EMAIL} and {@code ADMIN_BOOTSTRAP_PASSWORD}
- * creates that account on startup, flagged to force a password change on first use. An existing
- * account with the same email has its password reset and that flag set again, which makes the
- * variables a recovery path as well.
+ * creates that account on startup, flagged to force a password change on first use.
  *
- * <p>Nothing happens when either variable is blank, so normal restarts are unaffected. Remove the
- * variables once the administrator has signed in.
+ * <p>This is idempotent by design: once that account has changed its password, a later startup
+ * with the same variables still present leaves it alone rather than resetting it, so a routine
+ * redeploy cannot silently undo the administrator's chosen password. Reapplying to an account that
+ * has never completed its first change is harmless and still happens, since no chosen password is
+ * being destroyed. Set {@code ADMIN_BOOTSTRAP_FORCE=true} to reset a lost password on purpose; that
+ * is a deliberate recovery action, not a side effect of deploying.
+ *
+ * <p>Nothing happens when email or password is blank, so normal restarts are unaffected.
  */
 @Component
 @Slf4j
@@ -35,15 +39,18 @@ public class AdminBootstrap implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
     private final String bootstrapEmail;
     private final String bootstrapPassword;
+    private final boolean bootstrapForce;
 
     public AdminBootstrap(AppUserRepository appUserRepository,
                           PasswordEncoder passwordEncoder,
                           @Value("${app.admin-bootstrap.email:}") String bootstrapEmail,
-                          @Value("${app.admin-bootstrap.password:}") String bootstrapPassword) {
+                          @Value("${app.admin-bootstrap.password:}") String bootstrapPassword,
+                          @Value("${app.admin-bootstrap.force:false}") boolean bootstrapForce) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.bootstrapEmail = bootstrapEmail;
         this.bootstrapPassword = bootstrapPassword;
+        this.bootstrapForce = bootstrapForce;
     }
 
     @Override
@@ -56,6 +63,11 @@ public class AdminBootstrap implements ApplicationRunner {
 
         AppUser admin = appUserRepository.findByEmail(email).orElseGet(AppUser::new);
         boolean isNew = admin.getId() == null;
+
+        if (!isNew && !bootstrapForce && Boolean.FALSE.equals(admin.getMustChangePassword())) {
+            log.info("action=adminBootstrap skipped=true userId={} reason=passwordAlreadyChanged", admin.getId());
+            return;
+        }
 
         if (isNew) {
             admin.setEmail(email);
@@ -73,8 +85,9 @@ public class AdminBootstrap implements ApplicationRunner {
         admin.setUpdatedAt(LocalDateTime.now());
 
         appUserRepository.save(admin);
-        log.warn("action=adminBootstrap created={} userId={} — this account must change its password on first login,"
-                + " then clear ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD", isNew, admin.getId());
+        log.warn("action=adminBootstrap created={} forced={} userId={}: this account must change its password on"
+                + " first login, then clear ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD",
+                isNew, bootstrapForce, admin.getId());
     }
 
     private static boolean isBlank(String value) {

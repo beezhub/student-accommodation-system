@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.InactiveTenantException;
 import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
 import com.beezhub.student_accommodation.model.dto.TenantRequestDto;
 import com.beezhub.student_accommodation.model.dto.TenantResponseDto;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +34,7 @@ class TenantServiceTest {
     private TenantService tenantService;
 
     private Tenant sampleTenant;
+    private Tenant inactiveTenant;
 
     @BeforeEach
     void setUp() {
@@ -40,6 +43,14 @@ class TenantServiceTest {
                 .name("University of Cape Town")
                 .domain("uct.ac.za")
                 .isActive(true)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        inactiveTenant = Tenant.builder()
+                .id(2L)
+                .name("Deactivated Company")
+                .domain("gone.ac.za")
+                .isActive(false)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -169,6 +180,59 @@ class TenantServiceTest {
         when(tenantRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> tenantService.toggleTenantStatus(99L, status))
+                .isInstanceOf(TenantNotFoundException.class);
+    }
+
+    // ── getAllTenants: the two lists ─────────────────────────────
+
+    /**
+     * The administration screen is the only route back from deactivation, so its list must keep
+     * showing companies that have been switched off (GH-267).
+     */
+    @Test
+    void getAllTenants_default_includesInactiveTenants() {
+        when(tenantRepository.findAll()).thenReturn(List.of(sampleTenant, inactiveTenant));
+
+        List<TenantResponseDto> result = tenantService.getAllTenants();
+
+        assertThat(result).extracting(TenantResponseDto::getId).containsExactly(1L, 2L);
+        verify(tenantRepository, never()).findByIsActiveTrue();
+    }
+
+    @Test
+    void getAllTenants_activeOnly_usesTheActiveFinder() {
+        when(tenantRepository.findByIsActiveTrue()).thenReturn(List.of(sampleTenant));
+
+        List<TenantResponseDto> result = tenantService.getAllTenants(true);
+
+        assertThat(result).extracting(TenantResponseDto::getId).containsExactly(1L);
+        verify(tenantRepository, never()).findAll();
+    }
+
+    // ── requireTenantAcceptingNewRecords ─────────────────────────
+
+    @Test
+    void requireTenantAcceptingNewRecords_activeTenant_returnsTenant() {
+        when(tenantRepository.findById(1L)).thenReturn(Optional.of(sampleTenant));
+
+        assertThat(tenantService.requireTenantAcceptingNewRecords(1L)).isEqualTo(sampleTenant);
+    }
+
+    /** 400, not the 409 the one pre-existing guard produced by reusing DuplicateResourceException. */
+    @Test
+    void requireTenantAcceptingNewRecords_inactiveTenant_throwsInactiveTenantException() {
+        when(tenantRepository.findById(2L)).thenReturn(Optional.of(inactiveTenant));
+
+        assertThatThrownBy(() -> tenantService.requireTenantAcceptingNewRecords(2L))
+                .isInstanceOf(InactiveTenantException.class)
+                .hasMessageContaining("Deactivated Company");
+    }
+
+    @Test
+    void requireTenantAcceptingNewRecords_unknownTenant_throwsTenantNotFoundException() {
+        when(tenantRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> tenantService.requireTenantAcceptingNewRecords(99L))
                 .isInstanceOf(TenantNotFoundException.class);
     }
 }

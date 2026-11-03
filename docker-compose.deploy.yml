@@ -9,16 +9,16 @@
 # machine itself, and its certificate store has to survive a compose recreate. The frontend is
 # published on loopback only, so the host proxy is the single way in.
 #
-# Partial against GH-246. Still outstanding from that issue:
-#   - registry image digests for backend and frontend with `build: !reset null`, once GH-243 pushes
-#     them. This file still builds from the tree: wrong for a server, right for a POC with no
-#     registry.
-#   - GH-246's managed-database section is obsolete. It was written for DigitalOcean Managed
-#     PostgreSQL; the deployment now runs Postgres in a container on Oracle Cloud, so `db` stays.
+# Images: backend and frontend are pulled from ECR by digest and never built on a server (#337).
+# BACKEND_IMAGE and FRONTEND_IMAGE come from the deploy workflow, which built them on GitHub's ARM
+# runners in the same run; they are not in the host .env.
+#
+# GH-246's managed-database section is obsolete. It was written for DigitalOcean Managed
+# PostgreSQL; NONPROD runs Postgres in a container on Oracle Cloud, so `db` stays.
 #
 # Logs: every container's stdout/stderr and the host's Caddy journal are shipped by Alloy to Loki
-# and searched from Grafana's Explore page. Grafana is published on loopback only; reach it over
-# an SSH tunnel (README, Operations).
+# and searched from Grafana's Explore page. Grafana is published on loopback only, and the host's
+# Caddy serves it at https://<host>/grafana (README, Operations).
 
 # Same rotation the production overlay applies to the base services; the anchor cannot be shared
 # across files, so it is declared again here.
@@ -29,11 +29,21 @@ x-bounded-logs: &bounded-logs
     max-file: "3"
 
 services:
-  # Publish Grafana on loopback so `ssh -L 3000:127.0.0.1:3000 <host>` reaches it. Nothing else
-  # needs it and the prod overlay has already taken the base file's 0.0.0.0 publish away.
+  # Published on loopback for the host's Caddy, which serves it at /grafana (tools/caddy/Caddyfile).
+  # The prod overlay has already taken the base file's 0.0.0.0 publish away.
   grafana:
     ports:
       - "127.0.0.1:3000:3000"
+    environment:
+      # GRAFANA_ROOT_URL must be https://<host>/grafana. Without sub-path serving Grafana answers
+      # every /grafana request with a redirect to /grafana/login, which is itself under /grafana, so
+      # the login page loops forever and logs are unreachable.
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      # Reachable from the internet now: the session cookie must never travel over plain HTTP, and
+      # nobody may create their own account.
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
     depends_on:
       - prometheus
       - loki
@@ -64,9 +74,14 @@ services:
       - run
       - --server.http.listen-addr=127.0.0.1:12345
       - --storage.path=/var/lib/alloy/data
-      - /etc/alloy/config.alloy
+      # A directory, not a file: Alloy loads every .alloy file in it as one configuration. The
+      # shared log pipeline plus this host's destination; docker-compose.aws.yml swaps the second
+      # file for Grafana Cloud. conf.d rather than /etc/alloy itself, which holds the image's own
+      # example config.alloy (debug logging, exporters pointed at localhost) that must not load.
+      - /etc/alloy/conf.d
     volumes:
-      - ./tools/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./tools/alloy/logs.alloy:/etc/alloy/conf.d/logs.alloy:ro
+      - ./tools/alloy/loki-local.alloy:/etc/alloy/conf.d/loki-local.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/log/journal:/var/log/journal:ro
       - /etc/machine-id:/etc/machine-id:ro
@@ -82,12 +97,14 @@ services:
         limits:
           memory: 256M
 
+  # The base file builds the backend from the tree. On a server it is pulled by digest instead.
+  student-accommodation-back-end:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be a registry reference by digest, repo@sha256:...}
+    build: !reset null
+
   frontend:
     container_name: student-accommodation-frontend
-    image: student-accommodation-frontend:latest
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE must be a registry reference by digest, repo@sha256:...}
     # Loopback only. Nothing about this service should be reachable from outside the machine;
     # Caddy on the host is what the internet talks to.
     ports:

@@ -38,7 +38,7 @@ class ConfigurationDefaultsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "${USER_DB}", "${PASSWORD_DB}", "${MINIO_ACCESS_KEY}", "${MINIO_SECRET_KEY}",
+            "${USER_DB}", "${PASSWORD_DB}", "${S3_ACCESS_KEY}", "${S3_SECRET_KEY}",
             "${APP_BASE_URL}", "${ALLOWED_ORIGINS}"
     })
     void requiredSettingsHaveNoFallback(String placeholder) throws IOException {

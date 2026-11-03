@@ -62,22 +62,27 @@ rejection or an offer expiry has to reach a person. Create it before the first d
 
 Separate from the provider credentials in steps 2–5: these are the application's own secrets, one
 distinct set per environment, and nothing else in the programme generates them for you. The backend
-refuses to start without `JWT_SECRET`, `PASSWORD_DB`, `USER_DB`, `MINIO_ACCESS_KEY`,
-`MINIO_SECRET_KEY` and `ALLOWED_ORIGINS`; `docker-compose.prod.yml` additionally fail-fasts on
+refuses to start without `JWT_SECRET`, `PASSWORD_DB`, `USER_DB`, `S3_ACCESS_KEY`,
+`S3_SECRET_KEY` and `ALLOWED_ORIGINS`; `docker-compose.prod.yml` additionally fail-fasts on
 `REDIS_PASSWORD`, `GRAFANA_ADMIN_PASSWORD` and `APP_SECURITY_TRUSTED_PROXIES`.
 
 ```
 openssl rand -base64 64   # JWT_SECRET  — must be >= 64 characters, one per environment
 openssl rand -base64 32   # PASSWORD_DB
-openssl rand -base64 32   # MINIO_SECRET_KEY
+openssl rand -base64 32   # S3_SECRET_KEY
 openssl rand -base64 32   # REDIS_PASSWORD
 openssl rand -base64 32   # GRAFANA_ADMIN_PASSWORD
 openssl rand -base64 32   # ADMIN_BOOTSTRAP_PASSWORD — you change it at first login
 ```
 
-`USER_DB` and `MINIO_ACCESS_KEY` are names rather than secrets, but pick non-default ones. Never
+`USER_DB` and `S3_ACCESS_KEY` are names rather than secrets, but pick non-default ones. Never
 reuse a NONPROD value in PROD: NONPROD is destroyed and recreated, and its secrets pass through more
 hands.
+
+`ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD` can stay set in `.env` after the admin has
+signed in: the bootstrap is idempotent and leaves an account alone once its password has been
+changed, so a routine redeploy will not reset it. Set `ADMIN_BOOTSTRAP_FORCE=true` only to
+deliberately reset a lost platform admin password on the next startup, then clear it again.
 
 `.env.example` documents every variable the application reads, including the ones not listed here.
 
@@ -419,3 +424,5 @@ has to be present — `KEY=` is a setting, an absent line is not.
 - [Backup and restore runbook](BACKUP_AND_RESTORE.md) — what GH-248 automates offsite.
 - `.env.example` — every environment variable the application reads, with its default.
 - `docker-compose.prod.yml` — the overlay whose fail-fast variables section 0.2 satisfies.
+- [PROD runbook](PROD_RUNBOOK.md): deploying and operating PROD on AWS, which replaced the
+  DigitalOcean plan this runbook was written for (docs/PROD_ENVIRONMENT_PLAN.md).

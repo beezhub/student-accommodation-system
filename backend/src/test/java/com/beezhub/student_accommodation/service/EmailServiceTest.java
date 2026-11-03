@@ -54,6 +54,43 @@ class EmailServiceTest {
         when(templateEngine.process(anyString(), any(Context.class))).thenReturn("<html>email</html>");
     }
 
+    // ── GH-356: the From address is not the SMTP login when MAIL_FROM is set ─────────────────
+
+    private void setMailFrom(String value) throws Exception {
+        java.lang.reflect.Field field = EmailService.class.getDeclaredField("mailFrom");
+        field.setAccessible(true);
+        field.set(emailService, value);
+    }
+
+    @Test
+    void sendSimpleEmail_mailFromSet_sendsFromItNotTheSmtpLogin() throws Exception {
+        setMailFrom("no-reply@beezhub.co.za");
+
+        emailService.sendSimpleEmail("test@example.com", "Subject", "Body");
+
+        org.mockito.ArgumentCaptor<SimpleMailMessage> sent = org.mockito.ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(sent.capture());
+        org.assertj.core.api.Assertions.assertThat(sent.getValue().getFrom()).isEqualTo("no-reply@beezhub.co.za");
+    }
+
+    @Test
+    void sendSimpleEmail_mailFromBlank_fallsBackToTheSmtpLogin() throws Exception {
+        setMailFrom("");
+
+        emailService.sendSimpleEmail("test@example.com", "Subject", "Body");
+
+        org.mockito.ArgumentCaptor<SimpleMailMessage> sent = org.mockito.ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(sent.capture());
+        org.assertj.core.api.Assertions.assertThat(sent.getValue().getFrom()).isEqualTo("noreply@example.com");
+    }
+
+    @Test
+    void sender_mailFromSet_isUsedForHtmlMailToo() throws Exception {
+        setMailFrom("no-reply@beezhub.co.za");
+
+        org.assertj.core.api.Assertions.assertThat(emailService.sender()).isEqualTo("no-reply@beezhub.co.za");
+    }
+
     @Test
     void sendSimpleEmail_shouldSendEmail() {
         emailService.sendSimpleEmail("test@example.com", "Subject", "Body");

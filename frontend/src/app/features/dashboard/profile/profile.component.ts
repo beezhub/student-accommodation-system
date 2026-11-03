@@ -334,7 +334,12 @@ export class ProfileComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result === 'success') {
-        this.errorService.showSuccess('Password changed successfully!');
+        // The backend blacklists the token this dialog just used to authenticate the change, so
+        // the copy still held by the browser is already dead. Sign out and send the user back to
+        // a fresh login instead of leaving them here to hit that dead token on the next request
+        // (GH-291).
+        this.authService.endSessionAfterPasswordChange();
+        this.router.navigate(['/login'], { queryParams: { passwordChanged: 'true' } });
       }
     });
   }

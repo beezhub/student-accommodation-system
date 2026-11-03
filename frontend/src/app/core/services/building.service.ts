@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 export { PageResponse } from '../models/page-response.model';
@@ -94,7 +94,7 @@ export class BuildingService {
    * host-qualified address, the same way every other building endpoint is only a path here and
    * gets `environment.apiUrl` prepended. Resolving it in one place means every list, browse and
    * detail response ends up pointing at wherever this app's own API is, in dev or in prod, instead
-   * of a MinIO URL the browser could never reach (GH-268).
+   * of an object-storage URL the browser could never reach (GH-268).
    */
   private resolveImageUrl<T extends string | undefined>(url: T): T {
     if (url && url.startsWith('/')) {
@@ -129,9 +129,14 @@ export class BuildingService {
     );
   }
 
-  getAllBuildingsNoPagination(): Observable<BuildingResponse[]> {
+  // `silent` defaults to false: most callers only log to the console on failure and rely on
+  // the interceptor's own snackbar to tell the user, so silencing this unconditionally would
+  // leave those callers with no visible error at all. Pass true only where the caller shows
+  // its own message.
+  getAllBuildingsNoPagination(silent = false): Observable<BuildingResponse[]> {
+    const options = silent ? { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) } : undefined;
     return this.http
-      .get<BuildingResponse[]>(`${this.apiUrl}/all`)
+      .get<BuildingResponse[]>(`${this.apiUrl}/all`, options)
       .pipe(map((buildings) => buildings.map((building) => this.resolveBuildingUrls(building))));
   }
 
@@ -163,6 +168,11 @@ export class BuildingService {
     );
   }
 
+  /**
+   * Silent because every caller (the admin building list, the application-submission building
+   * picker, and the new-application building picker) shows its own message on failure; the
+   * interceptor's generic one only stacked a second toast on top of it.
+   */
   searchBuildings(filters: {
     name?: string;
     address?: string;
@@ -176,12 +186,17 @@ export class BuildingService {
     if (filters.name) params = params.set('name', filters.name);
     if (filters.address) params = params.set('address', filters.address);
 
-    return this.http.get<PageResponse<BuildingResponse>>(`${this.apiUrl}/search`, { params }).pipe(
-      map((response) => ({
-        ...response,
-        content: response.content.map((building) => this.resolveBuildingUrls(building)),
-      }))
-    );
+    return this.http
+      .get<PageResponse<BuildingResponse>>(`${this.apiUrl}/search`, {
+        params,
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+      })
+      .pipe(
+        map((response) => ({
+          ...response,
+          content: response.content.map((building) => this.resolveBuildingUrls(building)),
+        }))
+      );
   }
 
   getBuildingById(id: number): Observable<BuildingResponse> {
@@ -190,20 +205,32 @@ export class BuildingService {
       .pipe(map((building) => this.resolveBuildingUrls(building)));
   }
 
+  /**
+   * Silent because the create/edit dialog shows the backend's own message, or its own generic
+   * one, on failure. The interceptor's generic message only stacked a second toast on top.
+   */
   createBuilding(building: BuildingRequest): Observable<BuildingResponse> {
     return this.http
-      .post<BuildingResponse>(this.apiUrl, building)
+      .post<BuildingResponse>(this.apiUrl, building, {
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+      })
       .pipe(map((response) => this.resolveBuildingUrls(response)));
   }
 
+  /** Silent for the same reason as createBuilding above. */
   updateBuilding(id: number, building: BuildingRequest): Observable<BuildingResponse> {
     return this.http
-      .put<BuildingResponse>(`${this.apiUrl}/${id}`, building)
+      .put<BuildingResponse>(`${this.apiUrl}/${id}`, building, {
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+      })
       .pipe(map((response) => this.resolveBuildingUrls(response)));
   }
 
+  /** Silent because the admin list shows its own message when a delete is refused. */
   deleteBuilding(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   getBuildingsByInstitution(institutionId: number): Observable<BuildingResponse[]> {
@@ -214,9 +241,12 @@ export class BuildingService {
 
   // Building Image Methods
 
+  /** Silent because the image dialog shows its own message for every one of these calls below. */
   getBuildingImages(buildingId: number): Observable<BuildingImageResponse[]> {
     return this.http
-      .get<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`)
+      .get<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`, {
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+      })
       .pipe(map((images) => images.map((image) => this.resolveBuildingImageUrls(image))));
   }
 
@@ -224,17 +254,25 @@ export class BuildingService {
     const formData = new FormData();
     files.forEach((file) => formData.append('files', file));
     return this.http
-      .post<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`, formData)
+      .post<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`, formData, {
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+      })
       .pipe(map((images) => images.map((image) => this.resolveBuildingImageUrls(image))));
   }
 
   deleteBuildingImage(buildingId: number, imageId: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${buildingId}/images/${imageId}`);
+    return this.http.delete<void>(`${this.apiUrl}/${buildingId}/images/${imageId}`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   setPrimaryImage(buildingId: number, imageId: number): Observable<BuildingImageResponse> {
     return this.http
-      .put<BuildingImageResponse>(`${this.apiUrl}/${buildingId}/images/${imageId}/primary`, {})
+      .put<BuildingImageResponse>(
+        `${this.apiUrl}/${buildingId}/images/${imageId}/primary`,
+        {},
+        { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+      )
       .pipe(map((image) => this.resolveBuildingImageUrls(image)));
   }
 }

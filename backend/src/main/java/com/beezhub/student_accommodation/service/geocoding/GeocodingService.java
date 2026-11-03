@@ -26,10 +26,23 @@ public interface GeocodingService {
     boolean isConfigured();
 
     /**
-     * Candidate addresses for a query, best first, or an empty list when there are none.
+     * Candidate addresses for a partly typed query, best first, or an empty list when there are
+     * none.
      *
+     * @param sessionToken groups the requests one person makes while picking an address, through
+     *     to the {@link #resolve} that ends it, so the provider bills them as one session. May be
+     *     null, which bills each request on its own.
      * @throws com.beezhub.student_accommodation.exceptions.ExternalServiceException if the
      *     provider is unreachable, refuses the request, or is not configured
      */
-    List<AddressSuggestion> search(String query);
+    List<AddressSuggestion> search(String query, String sessionToken);
+
+    /**
+     * The coordinates of a suggestion that was picked.
+     *
+     * @param sessionToken the same token the {@link #search} calls used, or null
+     * @throws com.beezhub.student_accommodation.exceptions.ExternalServiceException if the
+     *     provider is unreachable, refuses the request, is not configured, or returns no location
+     */
+    ResolvedPlace resolve(String placeId, String sessionToken);
 }

@@ -63,11 +63,15 @@ import { RoleService } from '../../../../core/services/role.service';
             <input
               matInput
               formControlName="address"
-              placeholder="Start typing to search..."
+              [placeholder]="
+                addressLookupEnabled ? 'Start typing to search...' : 'Type the full address'
+              "
               [matAutocomplete]="addressAuto"
               (input)="onAddressInput($event)"
             />
-            <mat-hint>Powered by OpenStreetMap</mat-hint>
+            @if (!addressLookupEnabled) {
+            <mat-hint>Address lookup is not enabled on this deployment</mat-hint>
+            }
             <mat-autocomplete
               #addressAuto="matAutocomplete"
               [displayWith]="displayAddress"
@@ -88,21 +92,6 @@ import { RoleService } from '../../../../core/services/role.service';
               }
             </mat-autocomplete>
           </mat-form-field>
-
-          @if (buildingForm.get('latitude')?.value) {
-          <div class="coords-row">
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Latitude</mat-label>
-              <mat-icon matPrefix>my_location</mat-icon>
-              <input matInput formControlName="latitude" readonly />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="half-width">
-              <mat-label>Longitude</mat-label>
-              <mat-icon matPrefix>my_location</mat-icon>
-              <input matInput formControlName="longitude" readonly />
-            </mat-form-field>
-          </div>
-          }
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Total Floors</mat-label>
@@ -252,13 +241,6 @@ import { RoleService } from '../../../../core/services/role.service';
       }
       .full-width {
         width: 100%;
-      }
-      .half-width {
-        flex: 1;
-      }
-      .coords-row {
-        display: flex;
-        gap: 0.75rem;
       }
 
       mat-icon[matPrefix] {
@@ -419,6 +401,15 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
   addressSuggestions: AddressSuggestion[] = [];
   isSearching = false;
 
+  /**
+   * Off until maps-config says otherwise. Without this check the form searched on every pause in
+   * typing, and with no key on the server each search was a 503 that could never succeed.
+   */
+  addressLookupEnabled = false;
+
+  /** One per pick: Google bills the searches and the resolve that ends them as one session. */
+  private sessionToken = this.geocodingService.newSessionToken();
+
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
 
@@ -468,18 +459,23 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
   }
 
   private setupAddressSearch(): void {
+    this.geocodingService
+      .isEnabled()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((enabled) => (this.addressLookupEnabled = enabled));
+
     this.searchSubject
       .pipe(
         debounceTime(400),
         distinctUntilChanged(),
         switchMap((query) => {
-          if (!query || query.length < 3) {
+          if (!this.addressLookupEnabled || !query || query.length < 3) {
             this.addressSuggestions = [];
             this.isSearching = false;
             return [];
           }
           this.isSearching = true;
-          return this.geocodingService.search(query);
+          return this.geocodingService.search(query, this.sessionToken);
         }),
         takeUntil(this.destroy$)
       )
@@ -497,20 +493,39 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
 
   onAddressInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
-    if (this.buildingForm.get('latitude')?.value) {
+    if (this.buildingForm.get('placeId')?.value) {
       this.buildingForm.patchValue({ placeId: '', latitude: null, longitude: null });
     }
     this.searchSubject.next(value);
   }
 
   onSuggestionSelected(suggestion: AddressSuggestion): void {
+    // The suggestion text is kept as the address: it is what the admin read and picked, house
+    // number included. Coordinates are a second lookup, because suggestions do not carry them.
     this.buildingForm.patchValue({
       address: suggestion.displayName,
       placeId: suggestion.placeId,
-      latitude: suggestion.latitude,
-      longitude: suggestion.longitude,
+      latitude: null,
+      longitude: null,
     });
     this.addressSuggestions = [];
+
+    const session = this.sessionToken;
+    this.sessionToken = this.geocodingService.newSessionToken();
+    this.geocodingService
+      .resolve(suggestion.placeId, session)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((place) => {
+        // The admin may have typed again, or picked another suggestion, while this was in flight.
+        if (this.buildingForm.get('placeId')?.value !== suggestion.placeId) return;
+        if (!place) {
+          this.snackBar.open('Could not get the map location for that address', 'Close', {
+            duration: 5000,
+          });
+          return;
+        }
+        this.buildingForm.patchValue({ latitude: place.latitude, longitude: place.longitude });
+      });
   }
 
   displayAddress(suggestion: AddressSuggestion | string | null): string {
@@ -520,8 +535,13 @@ export class BuildingFormDialogComponent implements OnInit, OnDestroy {
   }
 
   loadCompanies(): void {
+    // Active companies only. A deactivated one stayed in this dropdown, so a new building could
+    // still be created under a company that had been switched off (GH-267). Only reached when
+    // showCompanySelector is true, which is create mode for a platform admin, so there is no
+    // already-assigned value to preserve here: the backend refuses to move a building between
+    // companies on edit, and the selector is not rendered then.
     this.tenantService
-      .getAllTenants()
+      .getActiveTenants()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (companies) => {

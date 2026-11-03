@@ -24,11 +24,16 @@ public class TenantController {
 
     private final TenantService tenantService;
 
-    @Operation(summary = "List all tenants")
+    @Operation(summary = "List tenants",
+            description = "Every tenant by default, so the administration screen can still show "
+                    + "and reactivate deactivated ones. Pass activeOnly=true for the list a "
+                    + "dropdown should offer when assigning something to a company.")
     @ApiResponse(responseCode = "200", description = "Tenant list returned")
     @GetMapping
-    public ResponseEntity<List<TenantResponseDto>> getAllTenants() {
-        return ResponseEntity.ok(tenantService.getAllTenants());
+    public ResponseEntity<List<TenantResponseDto>> getAllTenants(
+            // Defaults to false so every existing caller keeps the list it had (GH-267).
+            @RequestParam(defaultValue = "false") boolean activeOnly) {
+        return ResponseEntity.ok(tenantService.getAllTenants(activeOnly));
     }
 
     @Operation(summary = "Get tenant by ID")

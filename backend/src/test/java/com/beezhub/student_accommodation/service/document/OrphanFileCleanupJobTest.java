@@ -147,7 +147,7 @@ class OrphanFileCleanupJobTest {
 
     @Test
     void cleanup_errorListingOnePrefix_loggedAndOtherPrefixesStillProcessed() {
-        when(fileStorageService.listObjects(STUDENT_PREFIX)).thenThrow(new RuntimeException("MinIO error"));
+        when(fileStorageService.listObjects(STUDENT_PREFIX)).thenThrow(new RuntimeException("Storage error"));
         String adminPrefix = UserRole.PLATFORM_ADMIN.getRole() + "/";
         StoredObject adminOrphan = new StoredObject(adminPrefix + "9/ID/x.pdf", OLD);
         when(fileStorageService.listObjects(adminPrefix)).thenReturn(Stream.of(adminOrphan));

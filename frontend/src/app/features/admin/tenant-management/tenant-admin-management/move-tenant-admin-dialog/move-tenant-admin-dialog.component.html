@@ -1,0 +1,74 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="dialog-header-inner">
+      <div class="header-icon-wrap">
+        <mat-icon>swap_horiz</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">Move Administrator</h2>
+        <p class="dialog-subtitle">
+          Move {{ data.admin.firstName }} {{ data.admin.lastName }} out of {{ data.tenantName || 'this tenant' }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <mat-dialog-content>
+    <div class="admin-form">
+
+      @if (serverError) {
+        <div class="server-error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ serverError }}</span>
+        </div>
+      }
+
+      <div class="form-field-wrapper">
+        <label class="field-label" for="target-tenant">
+          <mat-icon>business</mat-icon>
+          New Property Company <span class="required-mark">*</span>
+        </label>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-select id="target-tenant" [formControl]="targetTenantId" placeholder="Choose a company">
+            @for (tenant of targetTenants; track tenant.id) {
+              <mat-option [value]="tenant.id">{{ tenant.name }}</mat-option>
+            }
+          </mat-select>
+          @if (targetTenantId.hasError('required') && targetTenantId.touched) {
+            <mat-error>Choose a company</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      @if (tenantsLoaded && targetTenants.length === 0) {
+        <div class="info-note" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <span>There is no other active property company to move this admin to.</span>
+        </div>
+      } @else {
+        <div class="info-note" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <span>
+            They will be signed out right away. After signing in again they will only see the new
+            company's data.
+          </span>
+        </div>
+      }
+
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button mat-stroked-button (click)="onCancel()" [disabled]="isLoading" class="cancel-btn">
+      Cancel
+    </button>
+    <button mat-raised-button (click)="onSubmit()" [disabled]="isLoading || targetTenantId.invalid" class="submit-btn">
+      @if (isLoading) {
+        <mat-spinner diameter="18"></mat-spinner>
+      } @else {
+        <mat-icon>swap_horiz</mat-icon>
+      }
+      <span>{{ isLoading ? 'Moving...' : 'Move Admin' }}</span>
+    </button>
+  </mat-dialog-actions>
+</div>

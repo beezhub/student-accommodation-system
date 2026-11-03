@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, map, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -142,7 +142,9 @@ export class ApplicationService {
   }
 
   getApplicationById(applicationId: number): Observable<Application> {
-    return this.http.get<Application>(`${this.apiUrl}/${applicationId}`);
+    return this.http.get<Application>(`${this.apiUrl}/${applicationId}`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   getApplicationsByStudentId(studentId: number): Observable<Application[]> {
@@ -209,7 +211,9 @@ export class ApplicationService {
    * @returns Observable<ApplicationFullDetails> Full application details
    */
   getApplicationFullDetails(applicationId: number): Observable<ApplicationFullDetails> {
-    return this.http.get<ApplicationFullDetails>(`${this.apiUrl}/${applicationId}/full-details`);
+    return this.http.get<ApplicationFullDetails>(`${this.apiUrl}/${applicationId}/full-details`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 
   /**
@@ -220,7 +224,8 @@ export class ApplicationService {
   saveReviewProgress(request: ReviewProgressRequest): Observable<{ success: boolean }> {
     return this.http.post<{ success: boolean }>(
       `${this.apiUrl}/${request.applicationId}/save-review-progress`,
-      request
+      request,
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
     );
   }
 
@@ -230,7 +235,11 @@ export class ApplicationService {
    * @returns Observable<Application> Updated application
    */
   moveToAllocationPhase(applicationId: number): Observable<Application> {
-    return this.http.post<Application>(`${this.apiUrl}/${applicationId}/move-to-allocation`, {});
+    return this.http.post<Application>(
+      `${this.apiUrl}/${applicationId}/move-to-allocation`,
+      {},
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   /**

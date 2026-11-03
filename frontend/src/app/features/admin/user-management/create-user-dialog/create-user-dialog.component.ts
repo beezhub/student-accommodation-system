@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -65,6 +66,7 @@ export class CreateUserDialogComponent {
 
   private authService = inject(AuthService);
   private tenantService = inject(TenantService);
+  private destroyRef = inject(DestroyRef);
 
   constructor() {
     this.isPlatformAdmin = this.authService.currentUserValue?.tenantId === 0;
@@ -80,7 +82,11 @@ export class CreateUserDialogComponent {
 
     if (this.isPlatformAdmin) {
       this.createUserForm.addControl('tenantId', this.fb.control(null, [Validators.required]));
-      this.tenantService.getAllTenants().subscribe({
+      // Active companies only. This list was unfiltered, so a TENANT_ADMIN or BUILDING_STAFF
+      // account could be created against a deactivated company through this dialog while the
+      // tenant-admin screen refused exactly that (GH-267). This dialog only creates, so no
+      // already-assigned company has to be kept in the options.
+      this.tenantService.getActiveTenants().subscribe({
         next: (tenants) => (this.tenants = tenants),
         error: () => this.snackBar.open('Failed to load tenants', 'Close', { duration: 3000 }),
       });
@@ -88,17 +94,20 @@ export class CreateUserDialogComponent {
       // Without this, choosing a tenant and then switching to PLATFORM_ADMIN submits a stale
       // non-zero tenantId, which the backend now rejects (GH-146). The control keeps a value
       // that is no longer among the options, so the user cannot see what is wrong.
-      this.createUserForm.get('userRole')?.valueChanges.subscribe((role: string) => {
-        const tenantControl = this.createUserForm.get('tenantId');
-        if (!tenantControl) return;
-        tenantControl.reset(null);
-        if (this.isTenantScoped(role)) {
-          tenantControl.setValidators([Validators.required]);
-        } else {
-          tenantControl.clearValidators();
-        }
-        tenantControl.updateValueAndValidity();
-      });
+      this.createUserForm
+        .get('userRole')
+        ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((role: string) => {
+          const tenantControl = this.createUserForm.get('tenantId');
+          if (!tenantControl) return;
+          tenantControl.reset(null);
+          if (this.isTenantScoped(role)) {
+            tenantControl.setValidators([Validators.required]);
+          } else {
+            tenantControl.clearValidators();
+          }
+          tenantControl.updateValueAndValidity();
+        });
     }
   }
 

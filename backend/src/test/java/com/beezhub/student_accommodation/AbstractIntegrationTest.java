@@ -54,10 +54,16 @@ public abstract class AbstractIntegrationTest {
             new GenericContainer<>("redis:8")
                     .withExposedPorts(6379);
 
-    private static final GenericContainer<?> minio =
-            new GenericContainer<>("minio/minio")
-                    .withEnv("MINIO_ROOT_USER", "minioadmin")
-                    .withEnv("MINIO_ROOT_PASSWORD", "minioadmin")
+    // An S3-compatible server, as in docker-compose.yml. minio/minio no longer exists on Docker Hub
+    // (pulls return 404). Chainguard's image runs as a non-root user, but its /data is
+    // world-writable, so the command below works unchanged.
+    private static final String STORAGE_ACCESS_KEY = "testaccess";
+    private static final String STORAGE_SECRET_KEY = "testsecret";
+
+    private static final GenericContainer<?> objectStorage =
+            new GenericContainer<>("cgr.dev/chainguard/minio:latest")
+                    .withEnv("MINIO_ROOT_USER", STORAGE_ACCESS_KEY)
+                    .withEnv("MINIO_ROOT_PASSWORD", STORAGE_SECRET_KEY)
                     .withCommand("server /data --console-address :9001")
                     .withExposedPorts(9000)
                     .waitingFor(Wait.forHttp("/minio/health/live").forPort(9000));
@@ -66,7 +72,7 @@ public abstract class AbstractIntegrationTest {
         database.start();
         mailServer.start();
         redis.start();
-        minio.start();
+        objectStorage.start();
     }
 
     // ── Spring property injection ─────────────────────────────────────────────
@@ -92,11 +98,11 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", redis::getFirstMappedPort);
 
-        // MinIO
-        registry.add("minio.endpoint",
-                () -> "http://" + minio.getHost() + ":" + minio.getMappedPort(9000));
-        registry.add("minio.access-key", () -> "minioadmin");
-        registry.add("minio.secret-key", () -> "minioadmin");
+        // Object storage
+        registry.add("s3.endpoint",
+                () -> "http://" + objectStorage.getHost() + ":" + objectStorage.getMappedPort(9000));
+        registry.add("s3.access-key", () -> STORAGE_ACCESS_KEY);
+        registry.add("s3.secret-key", () -> STORAGE_SECRET_KEY);
 
         // Production boots with hbm2ddl.auto=validate (application.yml). These are the only tests
         // that build the schema with Flyway on real PostgreSQL, so this is the one place entity

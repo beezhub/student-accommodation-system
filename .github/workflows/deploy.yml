@@ -1,23 +1,20 @@
-# Deploys NONPROD on every merge to develop.
+# Deploys NONPROD on every merge to main, the release branch.
 #
-# GH-243 says not to deploy from develop, on the grounds that main is the release branch and
-# NONPROD should run the exact artifact PROD will get. That argument assumes a PROD, and there is
-# not one yet: until GH-251 lands, NONPROD is where work is looked at rather than a rehearsal of a
-# release, and waiting for a develop -> main PR before anything is visible is slow for no return.
-# Revisit when PROD exists — at that point NONPROD should probably track main again.
+# NONPROD tracked develop while there was no PROD to rehearse for. Now there is (#336), so it tracks
+# main again, as GH-243 asked: every release runs on NONPROD first, and deploy-prod.yml promotes
+# exactly what a green run here deployed (#338). A develop branch can still be put on NONPROD by
+# hand with Run workflow; PROD refuses those runs.
 #
-# Builds happen ON THE HOST rather than pulling images, which GH-243 and GH-246 both want instead.
-# The reason is architecture: the NONPROD instance is Oracle Ampere (aarch64) and GitHub's standard
-# runners are amd64, so images built by docker-build.yml today cannot run on it at all. The options
-# are multi-arch builds under QEMU (30-60 minutes for the Angular and Gradle builds), GitHub's ARM
-# runners (billed on private repositories), or building on the host (~10 minutes, no emulation).
-# Registry digests remain the right destination; see GH-246.
+# Images are built once, on GitHub's ARM runners (images.yml), pushed to ECR, and pulled here by
+# digest (#337). The host used to build them itself, because it is Oracle Ampere (aarch64) and the
+# standard runners are amd64; GitHub's arm64 runners remove that reason (#287). Pulling by digest
+# means NONPROD runs exactly what was built, and PROD promotes the same bytes.
 
 name: Deploy NONPROD
 
 on:
   push:
-    branches: [develop]
+    branches: [main]
   workflow_dispatch:
 
 # Never let two deploys touch the host at once. Cancel-in-progress is deliberately off: a deploy
@@ -27,11 +24,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  images:
+    name: Build images
+    if: vars.NONPROD_ACTIVE == 'true'
+    uses: ./.github/workflows/images.yml
+    permissions:
+      contents: read
+      id-token: write
+
   deploy:
     name: Deploy to NONPROD
+    needs: images
     runs-on: ubuntu-latest
     if: vars.NONPROD_ACTIVE == 'true'
     environment: nonprod
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      BACKEND_IMAGE: ${{ needs.images.outputs.backend }}
+      FRONTEND_IMAGE: ${{ needs.images.outputs.frontend }}
+      REGISTRY: 428847003911.dkr.ecr.af-south-1.amazonaws.com
     steps:
       - uses: actions/checkout@v4
 
@@ -105,7 +118,12 @@ jobs:
 
       # tar over the ssh channel, not git clone on the host: a clone needs a repository credential
       # on the server and lets host state drift from the commit that produced this run.
-      - name: Sync the tree to the host
+      #
+      # Into a fresh staging directory, not straight over /opt/sas. Extracting only adds and
+      # overwrites, so every file ever renamed or deleted in the repository stayed on the host: the
+      # renames in #346 left the old Minio*.java classes behind, they no longer compiled, and the
+      # deploy failed (GH-347). The next step makes /opt/sas match the staged tree exactly.
+      - name: Stage the tree on the host
         run: |
           tar --exclude='.git' \
               --exclude='frontend/node_modules' \
@@ -113,21 +131,71 @@ jobs:
             | ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
                 -o StrictHostKeyChecking=yes -o BatchMode=yes \
                 "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
-                'tar -x -C /opt/sas'
+                'rm -rf "$HOME/sas-incoming" && mkdir "$HOME/sas-incoming" && tar -x -C "$HOME/sas-incoming"'
 
-      - name: Build and start
+      # Deletes every file under /opt/sas that this commit does not contain, then copies the commit
+      # in. rsync --delete would do the same, but the host does not have rsync. Kept: what only the
+      # host has and the repository never will, which is .env, its .env.bak-* copies and .backup-*
+      # folders, plus frontend/node_modules, which the tar above excludes.
+      - name: Sync the tree to the host
         run: |
           ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
             -o StrictHostKeyChecking=yes -o BatchMode=yes \
             "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" 'bash -se' <<'REMOTE'
           set -euo pipefail
+          stage="$HOME/sas-incoming"
+          # A truncated or empty stream must never decide what gets deleted.
+          if [ ! -f "$stage/docker-compose.yml" ]; then
+            echo "::error::the staged tree has no docker-compose.yml; nothing on the host was changed"
+            exit 1
+          fi
           cd /opt/sas
-          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml"
-          docker compose $F build
-          docker compose $F up -d --remove-orphans
+          find . -type f ! -path './.env' ! -path './.env.bak-*' ! -path './.backup-*' \
+               ! -path './frontend/node_modules/*' | sort > "$stage.host"
+          (cd "$stage" && find . -type f | sort) > "$stage.tree"
+          comm -23 "$stage.host" "$stage.tree" | while IFS= read -r stale; do
+            echo "removing $stale"
+            rm -f -- "$stale"
+          done
+          tar -C "$stage" -cf - . | tar -x -C /opt/sas
+          rm -rf "$stage" "$stage.host" "$stage.tree"
           REMOTE
 
-      # Readiness, not /actuator/health. The aggregate includes the SMTP, MinIO and Redis
+      # The host is on Oracle Cloud, so it has no AWS role to pull with. This job gets a pull-only
+      # role through OIDC (sas-nonprod-ecr-pull, trusted from the nonprod environment only) and
+      # hands the host an ECR login token, valid for 12 hours, over the ssh channel. No AWS key is
+      # stored on the host or in GitHub.
+      - name: AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::428847003911:role/sas-nonprod-ecr-pull
+          aws-region: af-south-1
+
+      - name: Log the host in to ECR
+        run: |
+          aws ecr get-login-password \
+            | ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+                -o StrictHostKeyChecking=yes -o BatchMode=yes \
+                "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+                "docker login --username AWS --password-stdin $REGISTRY"
+
+      # Pull the images images.yml built in this run, by digest, and start them. Nothing is built on
+      # the host any more (#337).
+      - name: Pull and start
+        run: |
+          ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+            "BACKEND_IMAGE='$BACKEND_IMAGE' FRONTEND_IMAGE='$FRONTEND_IMAGE' bash -se" <<'REMOTE'
+          set -euo pipefail
+          cd /opt/sas
+          export BACKEND_IMAGE FRONTEND_IMAGE
+          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml"
+          docker compose $F pull --quiet student-accommodation-back-end frontend
+          docker compose $F up -d --no-build --remove-orphans
+          REMOTE
+
+      # Readiness, not /actuator/health. The aggregate includes the SMTP, storage and Redis
       # indicators, so a mail outage would fail an otherwise good deploy — backend/Dockerfile made
       # the same choice for the same reason (GH-147). It has to run on the host and inside the
       # compose network: the prod overlay unpublishes the backend port and nginx proxies only
@@ -136,8 +204,11 @@ jobs:
         run: |
           ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
             -o StrictHostKeyChecking=yes -o BatchMode=yes \
-            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" 'bash -se' <<'REMOTE'
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+            "BACKEND_IMAGE='$BACKEND_IMAGE' FRONTEND_IMAGE='$FRONTEND_IMAGE' bash -se" <<'REMOTE'
           set -uo pipefail
+          # Compose needs the image variables even just to list or log the stack.
+          export BACKEND_IMAGE FRONTEND_IMAGE
           NET=$(docker inspect student-accommodation-back-end \
                   --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
           # Generous: Flyway applies migrations in-process at startup, so a first boot or a large
@@ -158,14 +229,32 @@ jobs:
           exit 1
           REMOTE
 
+      # What deploy-prod.yml promotes: written only once the smoke check has passed, so a release
+      # that never came up on NONPROD cannot reach PROD.
+      - name: Record the release for PROD
+        run: |
+          printf 'SHA=%s\nBACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' \
+            "$GITHUB_SHA" "$BACKEND_IMAGE" "$FRONTEND_IMAGE" > "$RUNNER_TEMP/release.env"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nonprod-release
+          path: ${{ runner.temp }}/release.env
+          retention-days: 90
+
       - name: Report
         if: always()
         run: |
           echo "### NONPROD deploy" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- backend: \`$BACKEND_IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- frontend: \`$FRONTEND_IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- schema before: \`${{ steps.schema.outputs.before }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- result: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ job.status }}" = success ] && [ "$GITHUB_REF" = refs/heads/main ]; then
+            echo "- to promote: run **Deploy PROD** with nonprod_run \`$GITHUB_RUN_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "There is no automatic rollback. If the schema version changed, redeploying the" >> "$GITHUB_STEP_SUMMARY"
           echo "previous commit will crash-loop against a schema it does not know (GH-243)." >> "$GITHUB_STEP_SUMMARY"

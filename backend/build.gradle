@@ -24,6 +24,11 @@ repositories {
 	mavenCentral()
 }
 
+// Spring Boot 3.5.7 manages Testcontainers at 1.21.3, which cannot talk to Docker Engine 29
+// (now on ubuntu-latest and Docker Desktop): every container test fails with "Could not find a
+// valid Docker environment". 1.21.4 adds support. Drop this line once the Boot BOM ships >= 1.21.4.
+ext['testcontainers.version'] = '1.21.4'
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -54,7 +59,20 @@ dependencies {
 	testRuntimeOnly 'com.h2database:h2'
 	implementation 'org.mapstruct:mapstruct:1.6.3'
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
-	implementation 'io.minio:minio:9.0.0'
+	// Amazon S3 on PROD, and an S3-compatible container locally and on NONPROD
+	// (GH-331). The URLConnection client instead of the SDK's default Apache and Netty clients: the
+	// only caller is synchronous and low-volume, and it adds no further dependencies.
+	implementation platform('software.amazon.awssdk:bom:2.56.0')
+	implementation('software.amazon.awssdk:s3') {
+		exclude group: 'software.amazon.awssdk', module: 'apache-client'
+		exclude group: 'software.amazon.awssdk', module: 'netty-nio-client'
+	}
+	// Email on PROD: SES has no SMTP endpoint in af-south-1, so mail goes through its API (GH-360).
+	implementation('software.amazon.awssdk:sesv2') {
+		exclude group: 'software.amazon.awssdk', module: 'apache-client'
+		exclude group: 'software.amazon.awssdk', module: 'netty-nio-client'
+	}
+	implementation 'software.amazon.awssdk:url-connection-client'
 	implementation('org.ff4j:ff4j-spring-boot-starter:1.9') {
 		exclude group: 'org.springdoc'
 		// FF4j's own REST API (/api/ff4j/**) would let any authenticated user flip flags.
