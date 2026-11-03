@@ -228,7 +228,9 @@ applied migration. Enums are stored as strings; no soft deletes.
 - DB naming: `snake_case`, booleans `is_*`, FKs `{entity}_id`, indexes `idx_{table}_{cols}`, uniques
   `uq_{table}_{cols}`. Adding NOT NULL is three steps: nullable column -> backfill -> constraint.
 - Conventional Commits; feature branches `feature/TASK-{id}-{slug}` from `develop`; `develop` merges to `main` via PR.
-  Never commit directly to `main` or `develop`.
+  The one exception is a hotfix, `hotfix/TASK-{id}-{slug}` from `main` with its PR into `main`, for a PROD bug that
+  cannot wait for the next release; `back-merge.yml` then opens the `main` to `develop` PR (`docs/BRANCHING_STRATEGY.md`).
+  Merge with a merge commit, never a squash. Never commit directly to `main` or `develop`.
 
 ## Known inconsistencies
 
@@ -255,7 +257,10 @@ rules that matter most:
 - Name branches with the project convention, `feature/TASK-{id}-{slug}`.
   Never put an agent, model, or tool name in a branch.
 - Always branch from `develop` and open the pull request back against
-  `develop`. One issue per pull request, no bundled or drive-by changes.
+  `develop`. The only exception is a hotfix, which a person decides on:
+  `hotfix/TASK-{id}-{slug}` from `main`, with its pull request into
+  `main` (`CONTRIBUTING.md`, "Hotfixes"). One issue per pull request, no
+  bundled or drive-by changes.
 - Write Conventional Commits with an imperative subject of 72
   characters or less. The body says what changed and why, not that a
   tool made it.

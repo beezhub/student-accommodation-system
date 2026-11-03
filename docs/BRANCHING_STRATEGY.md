@@ -84,8 +84,10 @@ For a PROD bug that cannot wait for the next release.
    request, so its CI run tests exactly what will land.
 4. Run **Deploy PROD** with that NONPROD run id, as for a release. A hotfix goes through NONPROD
    too: about five minutes, and the fix runs on a real server before students see it.
-5. A workflow notices that `main` now has a change `develop` lacks, and opens a pull request from
-   `main` into `develop`. Merge it. If it conflicts, resolve it on a branch from `develop`.
+5. `back-merge.yml` notices that `main` now has a change `develop` lacks, and opens a pull request
+   from `main` into `develop`. Merge it with a merge commit. If it conflicts, its description says
+   how to resolve it on a branch from `develop`. CI does not start on that pull request, because a
+   workflow opened it; the fix already passed CI, and merging into `develop` runs CI as a push.
 
 Skipping step 5 strands the fix on `main`: the next release would not have it on `develop`, and
 `develop` and `main` would drift apart. That is how #288 sat on `main` for two months.
@@ -122,7 +124,8 @@ flowchart LR
 | NONPROD deploy survives a dropped connection | Works (#375) |
 | No CI on the `main` push; Deploy NONPROD checks CI first | Works (#385), `tools/ci/ci-passed.sh` |
 | No image build on release pull requests | Works (#376) |
-| Hotfix branches from `main`, and the back-merge workflow | To build (#386). Needs `CONTRIBUTING.md` to allow branching from `main` for hotfixes |
+| Hotfix branches from `main`, and the back-merge workflow | Works (#386): the rule is in `CONTRIBUTING.md`, "Hotfixes"; the workflow is `back-merge.yml` |
 
-Until the hotfix issue lands, `CONTRIBUTING.md` still says to branch from `develop` only, and that
-rule wins.
+The back-merge workflow needs the repository setting "Allow GitHub Actions to create and approve
+pull requests" (Settings > Actions > General > Workflow permissions). Without it, opening the pull
+request is refused and the workflow run fails, which is at least visible.

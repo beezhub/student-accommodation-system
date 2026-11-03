@@ -34,9 +34,26 @@ Never include an agent, model, or tool name in a branch:
     ai-fix-tests               # wrong
     bot/refactor               # wrong
 
-Always branch from `develop`, never from `main`. Feature branches merge
-back into `develop` via pull request, and `develop` merges into `main`.
-Never commit directly to `main` or `develop`.
+Always branch from `develop`, never from `main`, except for a hotfix
+(below). Feature branches merge back into `develop` via pull request, and
+`develop` merges into `main`. Never commit directly to `main` or
+`develop`.
+
+### Hotfixes
+
+A hotfix is the one exception: a fix for a PROD bug that cannot wait for
+the next release. Everything else goes through `develop`.
+
+- Branch from `main` and name it `hotfix/TASK-{id}-{slug}`.
+- Open the pull request against `main`. If `main` changed after you
+  branched, merge `main` into your branch first, so CI tests exactly what
+  will land.
+- Merge with a merge commit, never a squash.
+- It deploys like a release: NONPROD first, then Deploy PROD.
+- A workflow then opens a pull request from `main` into `develop`. Merge
+  it, so the next release keeps the fix.
+
+The full flow, with a diagram, is in `docs/BRANCHING_STRATEGY.md`.
 
 ## Commit messages
 
@@ -49,7 +66,10 @@ Never commit directly to `main` or `develop`.
 
 ## Pull requests
 
-- Open the pull request against `develop`.
+- Open the pull request against `develop`. A hotfix opens it against
+  `main` (see Hotfixes).
+- Merge with a merge commit, never a squash. A squash makes `main` and
+  `develop` look unrelated to Git, and later releases conflict.
 - One issue per pull request. Do not bundle unrelated issues, and do not
   fold drive-by fixes or refactors into a pull request that is about
   something else. Open a second branch and a second pull request
@@ -71,6 +91,9 @@ Run these and confirm the output is clean:
 
     git log --format='%an <%ae>%n%b' origin/develop..HEAD
     git rev-parse --abbrev-ref HEAD
+
+For a hotfix, compare against the branch it came from:
+`origin/main..HEAD`.
 
 Amend or rebase to strip any attribution that slipped in before the
 branch is pushed.
