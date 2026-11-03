@@ -214,6 +214,10 @@ class DeploymentConfigurationTest {
         assertThat(read("docker-compose.aws.yml"))
                 .as("the SES SMTP login is an IAM key ID, not an address (GH-356)")
                 .contains("- MAIL_FROM=no-reply@beezhub.co.za");
+        assertThat(read("docker-compose.aws.yml"))
+                .as("SES has no SMTP endpoint in af-south-1 (GH-360)")
+                .contains("- MAIL_TRANSPORT=ses-api");
+        assertThat(read("docker-compose.yml")).contains("- MAIL_TRANSPORT=${MAIL_TRANSPORT:-smtp}");
         assertThat(read("docker-compose.yml")).contains("- MAIL_FROM=${MAIL_FROM:-}");
         assertThat(read("docker-compose.yml"))
                 .as("the base file must forward the settings for the overlay to override")
