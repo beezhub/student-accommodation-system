@@ -378,3 +378,5 @@ has to be present — `KEY=` is a setting, an absent line is not.
 - [Backup and restore runbook](BACKUP_AND_RESTORE.md) — what GH-248 automates offsite.
 - `.env.example` — every environment variable the application reads, with its default.
 - `docker-compose.prod.yml` — the overlay whose fail-fast variables section 0.2 satisfies.
+- [PROD runbook](PROD_RUNBOOK.md): deploying and operating PROD on AWS, which replaced the
+  DigitalOcean plan this runbook was written for (docs/PROD_ENVIRONMENT_PLAN.md).
