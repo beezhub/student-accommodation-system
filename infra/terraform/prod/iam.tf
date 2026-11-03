@@ -90,6 +90,27 @@ data "aws_iam_policy_document" "app" {
     actions   = ["secretsmanager:GetSecretValue"]
     resources = [local.db_secret_arn]
   }
+
+  # Email through the SES v2 API (GH-360): SES has no SMTP endpoint in af-south-1. Sending only from
+  # no-reply@, the same limit the SMTP user had.
+  statement {
+    sid       = "SendEmail"
+    actions   = ["ses:SendEmail", "ses:SendRawEmail"]
+    resources = [aws_sesv2_email_identity.sending_domain.arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "ses:FromAddress"
+      values   = ["no-reply@${var.sending_domain}"]
+    }
+  }
+
+  # Spring Boot's mail health check asks SES whether sending is enabled (SesApiMailSender).
+  statement {
+    sid       = "EmailHealth"
+    actions   = ["ses:GetAccount"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "app" {

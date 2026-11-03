@@ -71,6 +71,8 @@ services:
       - MAIL_PASSWORD=${MAIL_PASSWORD:-test}
       # Blank sends from MAIL_USERNAME. Set where the SMTP login is not an email address (GH-356).
       - MAIL_FROM=${MAIL_FROM:-}
+      # smtp everywhere but PROD, which uses the SES API (GH-360).
+      - MAIL_TRANSPORT=${MAIL_TRANSPORT:-smtp}
       - MAIL_SMTP_AUTH=${MAIL_SMTP_AUTH:-false}
       - MAIL_STARTTLS_ENABLE=${MAIL_STARTTLS_ENABLE:-false}
       - MAIL_CONNECT_TIMEOUT_MS=${MAIL_CONNECT_TIMEOUT_MS:-5000}

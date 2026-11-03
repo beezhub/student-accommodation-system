@@ -112,6 +112,10 @@ app:
     # From address on every message. Blank uses spring.mail.username, the SMTP login. SES SMTP logs
     # in with an IAM key ID, so PROD sets this (GH-356).
     from: ${MAIL_FROM:}
+    # smtp, through spring.mail.* (local, NONPROD), or ses-api, through the SES v2 API with the
+    # instance role (PROD: SES has no SMTP endpoint in af-south-1, GH-360).
+    transport: ${MAIL_TRANSPORT:smtp}
+    ses-region: ${MAIL_SES_REGION:af-south-1}
   support-email: ${APP_SUPPORT_EMAIL:accommodation@university.edu}
   university-name: ${APP_UNIVERSITY_NAME:University}
   contact-phone: ${APP_CONTACT_PHONE:+27 (0) 11 000 0000}
