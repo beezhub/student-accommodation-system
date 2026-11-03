@@ -335,6 +335,46 @@ class DeploymentConfigurationTest {
     }
 
     /**
+     * CI runs on pull requests and the develop push, not on main: a release merges files develop
+     * already tested (#385). A hotfix pull request into main is still tested.
+     */
+    @Test
+    void ci_runsOnDevelopPushesAndOnPullRequestsOnly() throws IOException {
+        String ci = readLf(".github/workflows/ci.yml");
+
+        assertThat(ci).contains("  push:\n    branches: [develop]\n");
+        assertThat(ci).contains("  pull_request:\n    branches: [main, develop]\n");
+    }
+
+    /**
+     * With no CI on main, the NONPROD deploy checks that a successful CI run tested these files
+     * before it builds anything (#385), and PROD only promotes a green NONPROD run.
+     */
+    @Test
+    void nonprodDeploy_buildsOnlyAfterCiPassedOnTheseFiles() throws IOException {
+        String deploy = readLf(".github/workflows/deploy.yml");
+        String tested = deploy.substring(deploy.indexOf("  tested:"), deploy.indexOf("  images:"));
+
+        assertThat(tested).contains("run: bash tools/ci/ci-passed.sh \"$GITHUB_SHA\"");
+        assertThat(tested).contains("fetch-depth: 0").contains("actions: read");
+        assertThat(deploy).contains("  images:\n    name: Build images\n    needs: tested\n");
+    }
+
+    /**
+     * ci-passed.sh reads the ignored paths from the push trigger in ci.yml, one quoted entry per
+     * line. If that layout changes the script finds no ignored paths: safe, but every docs-only
+     * release would then be refused.
+     */
+    @Test
+    void ciPassedScript_readsTheIgnoredPathsFromCi() throws IOException {
+        String ci = readLf(".github/workflows/ci.yml");
+        String push = ci.substring(ci.indexOf("  push:"), ci.indexOf("  pull_request:"));
+
+        assertThat(push).contains("    paths-ignore:\n      - '**/*.md'\n      - 'docs/**'\n");
+        assertThat(read("tools/ci/ci-passed.sh")).contains("ci=.github/workflows/ci.yml");
+    }
+
+    /**
      * Two NONPROD deploys lost their ssh session mid-pull (#375). Every session keeps itself alive,
      * the pull is retried in a fresh session, and `up -d` runs in a later step, so a failed pull
      * never replaces a running container.

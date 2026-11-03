@@ -1,0 +1,2 @@
+# Run by GitHub Actions on Linux runners. CRLF line endings would break every line under bash.
+*.sh text eol=lf
