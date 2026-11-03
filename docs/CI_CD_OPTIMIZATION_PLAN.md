@@ -52,17 +52,32 @@ The backend image in ECR, layer by layer:
 
 ## Steps
 
-In order. Step 1 unblocks releases; step 2 is the biggest saving.
+In order. The branch flow these steps lead to, with its diagram, is in
+`docs/BRANCHING_STRATEGY.md`.
 
 | Step | Issue | Change | Expected effect |
 |---|---|---|---|
-| 1 | #375 | NONPROD deploy: SSH keep-alive, and retry the pull three times before `up`, as `tools/prod/start.sh` does | No failed deploys from a dropped connection; a failed pull never touches the running stack |
-| 2 | #374 | Backend image: `COPY --chown` instead of `RUN chown`, and Spring Boot's layered jar | Image from 261 MB to about 166 MB; a code-only deploy downloads a few MB instead of 191 MB |
+| 1 | #375 | NONPROD deploy: SSH keep-alive, and retry the pull three times before `up`, as `tools/prod/start.sh` does | Done. No failed deploys from a dropped connection; a failed pull never touches the running stack |
+| 2 | #385 | No CI on the `main` push; Deploy NONPROD checks CI passed on the released commit first | One test run fewer per release, and a release with red CI never deploys |
 | 3 | #376 | `images.yml`: skip pull requests from `develop`, as `ci.yml` already does (GH-284) | No 20-minute build on each release PR |
-| 4 | #377 | Check the Docker layer cache is warm on `main` and on branches, after step 2 | Confirms builds stay at about 2 minutes; if not, move the cache to ECR |
+| 4 | #386 | Hotfix path: `hotfix/TASK-{id}-{slug}` from `main`, the rule in `CONTRIBUTING.md`, and a workflow that opens the `main` to `develop` back-merge | A PROD fix can ship without the rest of `develop`, and never gets stranded on `main` |
+| 5 | #387 | Upgrade the actions still on deprecated Node 20 versions | Nothing breaks when GitHub stops forcing them onto Node 24 |
+| 6 | #374 | Backend image: `COPY --chown` instead of `RUN chown`, and Spring Boot's layered jar | Image from 261 MB to about 166 MB; a code-only deploy downloads a few MB instead of 191 MB |
+| 7 | #377 | Check the Docker layer cache is warm on `main` and on branches, after step 6 | Confirms builds stay at about 2 minutes; if not, move the cache to ECR |
 
-Steps 1 and 3 are small workflow changes. Step 2 changes the Dockerfile, so its first build starts
-cold, which is why step 4 waits for it.
+Steps 2 to 5 are small workflow and documentation changes. Step 6 changes the Dockerfile, so its
+first build starts cold, which is why step 7 waits for it.
+
+## Decisions (2026-11-03)
+
+| Question | Decision | Why |
+|---|---|---|
+| Where do the tests run? | On the pull request and on the push to `develop`, not on the push to `main` | The `develop` push catches two pull requests that pass alone but break together; `main` gets the same files again |
+| Which image builds stay? | The feature pull request (build only) and the `main` push (build and push) | The first catches a broken Dockerfile early, the second is what deploys; the release PR's build is never used |
+| How does a release prove its tests passed? | Deploy NONPROD checks CI on the released commit before building | Costs seconds, and no extra test run |
+| When do the actions get upgraded? | Now, in their own pull request | Today they run only because GitHub forces them onto Node 24 |
+| Can a hotfix skip NONPROD? | No, it goes through NONPROD like a release | About five minutes, and the main-only promotion rule stays as it is |
+| How does a hotfix get back into `develop`? | A workflow opens the back-merge pull request when the files differ | Nobody has to remember; #288 was stranded on `main` because nobody did |
 
 ## How PROD benefits
 
