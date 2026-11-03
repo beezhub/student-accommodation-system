@@ -11,6 +11,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
+import { HttpErrorResponse } from '@angular/common/http';
+import {
+  PASSWORD_RULES_HINT,
+  strongPasswordValidator,
+} from '../../../shared/validators/strong-password.validator';
 
 @Component({
   selector: 'app-signup',
@@ -43,6 +48,7 @@ export class SignupComponent {
   errorMessage = '';
   hidePassword = true;
   hideConfirmPassword = true;
+  readonly passwordRulesHint = PASSWORD_RULES_HINT;
 
   constructor() {
     this.signupForm = this.fb.group(
@@ -50,7 +56,7 @@ export class SignupComponent {
         firstName: ['', [Validators.required]],
         lastName: ['', [Validators.required]],
         email: ['', [Validators.required, Validators.email]],
-        password: ['', [Validators.required, Validators.minLength(8)]],
+        password: ['', [Validators.required, strongPasswordValidator]],
         confirmPassword: ['', [Validators.required]],
         agreeTerms: [false, [Validators.requiredTrue]],
       },
@@ -99,9 +105,14 @@ export class SignupComponent {
             queryParams: { verificationPending: true },
           });
         },
-        error: (error: { error: { message: string } }) => {
+        error: (error: HttpErrorResponse) => {
           this.isSubmitting = false;
-          this.errorMessage = error.error.message || 'An error occurred during signup';
+          // The backend's ErrorResponse puts the reason in `errors`, not `message`. Reading only
+          // `message` hid the real reason behind the generic fallback below.
+          this.errorMessage =
+            error.error?.errors?.[0] ||
+            error.error?.message ||
+            'We could not create your account. Please try again.';
           this.cdr.markForCheck();
           this.snackBar.open(this.errorMessage, 'Close', {
             duration: 5000,
