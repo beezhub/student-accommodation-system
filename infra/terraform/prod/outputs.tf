@@ -44,3 +44,8 @@ output "deploy_settings_path" {
   description = "SSM Parameter Store path the deploy reads the host .env from."
   value       = "/${var.name}/"
 }
+
+output "github_nonprod_pull_role_arn" {
+  description = "For aws-actions/configure-aws-credentials in the NONPROD deploy (#337)."
+  value       = aws_iam_role.github_nonprod_pull.arn
+}

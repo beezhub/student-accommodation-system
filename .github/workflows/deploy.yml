@@ -6,12 +6,10 @@
 # release, and waiting for a develop -> main PR before anything is visible is slow for no return.
 # Revisit when PROD exists — at that point NONPROD should probably track main again.
 #
-# Builds happen ON THE HOST rather than pulling images, which GH-243 and GH-246 both want instead.
-# The reason is architecture: the NONPROD instance is Oracle Ampere (aarch64) and GitHub's standard
-# runners are amd64, so images built by docker-build.yml today cannot run on it at all. The options
-# are multi-arch builds under QEMU (30-60 minutes for the Angular and Gradle builds), GitHub's ARM
-# runners (billed on private repositories), or building on the host (~10 minutes, no emulation).
-# Registry digests remain the right destination; see GH-246.
+# Images are built once, on GitHub's ARM runners (images.yml), pushed to ECR, and pulled here by
+# digest (#337). The host used to build them itself, because it is Oracle Ampere (aarch64) and the
+# standard runners are amd64; GitHub's arm64 runners remove that reason (#287). Pulling by digest
+# means NONPROD runs exactly what was built, and PROD can later promote the same bytes (#338).
 
 name: Deploy NONPROD
 
@@ -27,11 +25,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  images:
+    name: Build images
+    if: vars.NONPROD_ACTIVE == 'true'
+    uses: ./.github/workflows/images.yml
+    permissions:
+      contents: read
+      id-token: write
+
   deploy:
     name: Deploy to NONPROD
+    needs: images
     runs-on: ubuntu-latest
     if: vars.NONPROD_ACTIVE == 'true'
     environment: nonprod
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      BACKEND_IMAGE: ${{ needs.images.outputs.backend }}
+      FRONTEND_IMAGE: ${{ needs.images.outputs.frontend }}
+      REGISTRY: 428847003911.dkr.ecr.af-south-1.amazonaws.com
     steps:
       - uses: actions/checkout@v4
 
@@ -148,16 +162,38 @@ jobs:
           rm -rf "$stage" "$stage.host" "$stage.tree"
           REMOTE
 
-      - name: Build and start
+      # The host is on Oracle Cloud, so it has no AWS role to pull with. This job gets a pull-only
+      # role through OIDC (sas-nonprod-ecr-pull, trusted from the nonprod environment only) and
+      # hands the host an ECR login token, valid for 12 hours, over the ssh channel. No AWS key is
+      # stored on the host or in GitHub.
+      - name: AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::428847003911:role/sas-nonprod-ecr-pull
+          aws-region: af-south-1
+
+      - name: Log the host in to ECR
+        run: |
+          aws ecr get-login-password \
+            | ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+                -o StrictHostKeyChecking=yes -o BatchMode=yes \
+                "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+                "docker login --username AWS --password-stdin $REGISTRY"
+
+      # Pull the images images.yml built in this run, by digest, and start them. Nothing is built on
+      # the host any more (#337).
+      - name: Pull and start
         run: |
           ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
             -o StrictHostKeyChecking=yes -o BatchMode=yes \
-            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" 'bash -se' <<'REMOTE'
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+            "BACKEND_IMAGE='$BACKEND_IMAGE' FRONTEND_IMAGE='$FRONTEND_IMAGE' bash -se" <<'REMOTE'
           set -euo pipefail
           cd /opt/sas
+          export BACKEND_IMAGE FRONTEND_IMAGE
           F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml"
-          docker compose $F build
-          docker compose $F up -d --remove-orphans
+          docker compose $F pull --quiet student-accommodation-back-end frontend
+          docker compose $F up -d --no-build --remove-orphans
           REMOTE
 
       # Readiness, not /actuator/health. The aggregate includes the SMTP, storage and Redis
@@ -169,8 +205,11 @@ jobs:
         run: |
           ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
             -o StrictHostKeyChecking=yes -o BatchMode=yes \
-            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" 'bash -se' <<'REMOTE'
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+            "BACKEND_IMAGE='$BACKEND_IMAGE' FRONTEND_IMAGE='$FRONTEND_IMAGE' bash -se" <<'REMOTE'
           set -uo pipefail
+          # Compose needs the image variables even just to list or log the stack.
+          export BACKEND_IMAGE FRONTEND_IMAGE
           NET=$(docker inspect student-accommodation-back-end \
                   --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
           # Generous: Flyway applies migrations in-process at startup, so a first boot or a large
@@ -197,6 +236,8 @@ jobs:
           echo "### NONPROD deploy" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- backend: \`$BACKEND_IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- frontend: \`$FRONTEND_IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- schema before: \`${{ steps.schema.outputs.before }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- result: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"

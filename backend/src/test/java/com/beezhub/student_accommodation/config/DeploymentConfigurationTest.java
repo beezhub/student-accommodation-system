@@ -179,6 +179,21 @@ class DeploymentConfigurationTest {
         assertThat(dependsOn).doesNotContain("db:").doesNotContain("minio:");
     }
 
+    /**
+     * NONPROD pulls what images.yml built for arm64 in the same run, by digest, instead of building
+     * on the host (#337). Local development keeps building from the base file.
+     */
+    @Test
+    void deployOverlay_pullsImagesByDigestAndNeverBuilds() throws IOException {
+        String deploy = read("docker-compose.deploy.yml");
+
+        assertThat(deploy).contains("image: ${BACKEND_IMAGE:?");
+        assertThat(deploy).contains("image: ${FRONTEND_IMAGE:?");
+        assertThat(deploy).contains("build: !reset null");
+        assertThat(deploy).doesNotContain("context: ./frontend");
+        assertThat(read("docker-compose.yml")).contains("context: ./backend");
+    }
+
     /** PROD runs the image NONPROD ran, pulled by digest, and never builds from the tree. */
     @Test
     void awsOverlay_pullsImagesByDigestAndNeverBuilds() throws IOException {
