@@ -24,8 +24,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # CI does not run on main: a release has the same files the develop push already tested, and a
+  # hotfix was tested on its pull request (#385). So before anything is built, check that a
+  # successful CI run covered exactly these files, apart from the paths CI ignores. A release with
+  # red, cancelled or missing CI stops here, and PROD only promotes a green run of this workflow.
+  tested:
+    name: CI passed on these files
+    if: vars.NONPROD_ACTIVE == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The candidate commits CI tested are compared against this one with git diff.
+          fetch-depth: 0
+
+      - name: Find a CI run that tested these files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/ci/ci-passed.sh "$GITHUB_SHA"
+
   images:
     name: Build images
+    needs: tested
     if: vars.NONPROD_ACTIVE == 'true'
     uses: ./.github/workflows/images.yml
     permissions:

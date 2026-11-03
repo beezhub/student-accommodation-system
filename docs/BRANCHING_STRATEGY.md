@@ -65,8 +65,10 @@ gitGraph
    change in it has already passed both.
 2. Merge it with a **merge commit, never a squash**. A squash makes `main` and `develop` look
    unrelated to Git, and every later release conflicts (that happened with #104).
-3. Deploy NONPROD starts. It first checks that CI passed on the `develop` commit being released,
-   then builds the images, deploys NONPROD and saves the release.
+3. Deploy NONPROD starts. It first checks that a successful CI run tested the same files (for a
+   release, the push to `develop`; only paths CI ignores, such as docs, may differ), then builds
+   the images, deploys NONPROD and saves the release. If CI failed or was cancelled on `develop`,
+   it stops here: re-run CI on `develop`, then re-run the deploy.
 4. Check NONPROD. Then run **Deploy PROD** on `main` with the NONPROD run id from the run's
    summary (`docs/PROD_RUNBOOK.md`).
 
@@ -76,8 +78,10 @@ For a PROD bug that cannot wait for the next release.
 
 1. Branch `hotfix/TASK-{id}-{slug}` from `main`.
 2. Open a pull request into `main`. CI and the image build both run on it.
-3. Merge it with a merge commit. NONPROD deploys it, after checking CI passed on the hotfix
-   branch.
+3. Merge it with a merge commit. NONPROD deploys it, after checking CI passed on the same files.
+   If `main` changed after the hotfix branched, the merged files were never tested together and
+   the check refuses the deploy. Merge `main` into the hotfix branch before merging the pull
+   request, so its CI run tests exactly what will land.
 4. Run **Deploy PROD** with that NONPROD run id, as for a release. A hotfix goes through NONPROD
    too: about five minutes, and the fix runs on a real server before students see it.
 5. A workflow notices that `main` now has a change `develop` lacks, and opens a pull request from
@@ -116,7 +120,7 @@ flowchart LR
 | NONPROD deploys `main`, Deploy PROD promotes a NONPROD run of `main` | Works (#338, #369) |
 | Deploy PROD accepts runs from `main` only, enforced by the AWS deploy role | Works (#369) |
 | NONPROD deploy survives a dropped connection | Works (#375) |
-| No CI on the `main` push; Deploy NONPROD checks CI first | To build (#385) |
+| No CI on the `main` push; Deploy NONPROD checks CI first | Works (#385), `tools/ci/ci-passed.sh` |
 | No image build on release pull requests | To build (#376) |
 | Hotfix branches from `main`, and the back-merge workflow | To build (#386). Needs `CONTRIBUTING.md` to allow branching from `main` for hotfixes |
 
