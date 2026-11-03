@@ -111,6 +111,20 @@ data "aws_iam_policy_document" "app" {
     actions   = ["ses:GetAccount"]
     resources = ["*"]
   }
+
+  # The daily database dump reports success here; an alarm fires when it stops (#339).
+  # PutMetricData has no resource ARN, so the namespace condition is the limit.
+  statement {
+    sid       = "BackupMetric"
+    actions   = ["cloudwatch:PutMetricData"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "cloudwatch:namespace"
+      values   = ["SAS/Backups"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "app" {

@@ -1,5 +1,5 @@
 # Health alarms for what Grafana Cloud cannot see from inside the server (#340). Five alarms at
-# $0.10 each a month.
+# $0.10 each a month, plus the backup alarm and its custom metric.
 
 resource "aws_sns_topic" "alarms" {
   name = "${var.name}-alarms"
@@ -87,6 +87,26 @@ resource "aws_cloudwatch_metric_alarm" "rds_memory" {
   evaluation_periods  = 3
   threshold           = 100 * 1024 * 1024
   comparison_operator = "LessThanThreshold"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+}
+
+# The daily pg_dump (tools/prod/backup-db.sh) puts BackupSucceeded=1 after each upload. No datapoint
+# for two days in a row means the backup has stopped, whatever the reason: the timer, the dump, the
+# upload or the server itself. Missing data counts as breaching for exactly that reason.
+resource "aws_cloudwatch_metric_alarm" "db_backup_missing" {
+  alarm_name          = "${var.name}-db-backup-missing"
+  alarm_description   = "No successful daily database dump to the backups bucket for 2 days (#339)"
+  namespace           = "SAS/Backups"
+  metric_name         = "BackupSucceeded"
+  dimensions          = { Database = var.name }
+  statistic           = "Sum"
+  period              = 86400
+  evaluation_periods  = 2
+  datapoints_to_alarm = 2
+  threshold           = 1
+  comparison_operator = "LessThanThreshold"
+  treat_missing_data  = "breaching"
   alarm_actions       = [aws_sns_topic.alarms.arn]
   ok_actions          = [aws_sns_topic.alarms.arn]
 }

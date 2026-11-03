@@ -4,8 +4,104 @@ Covers the two stores that hold state you cannot rebuild: the PostgreSQL databas
 bucket. It also records what the system does about document retention, and why the bucket has no
 lifecycle rule expiring documents.
 
-GH-235. The deploy half of that issue is deliberately not here: there is no deployment target
-chosen yet, and a workflow written against none would deploy nowhere.
+GH-235. **PROD on AWS** (#335, #336) keeps its state in RDS and S3 rather than in containers, and is
+covered first, in the PROD section. Sections 1 to 6 after it describe the compose deployment that
+NONPROD runs, with PostgreSQL and MinIO in containers.
+
+---
+
+## PROD (AWS Cape Town)
+
+### What protects what
+
+| Store | Backup | Kept | Who runs it |
+| --- | --- | --- | --- |
+| RDS `sas-prod` | Automated backups with point-in-time recovery to any second | 7 days | AWS |
+| RDS, outside RDS | Daily `pg_dump -Fc` to `s3://beezhub-sas-prod-backups/postgres/` at 01:30 UTC (`sas-backup-db.timer`, `tools/prod/backup-db.sh`) | 35 days | The PROD server |
+| S3 `beezhub-sas-prod-documents` | Versioning: a deleted or overwritten object keeps its previous version | 35 days | AWS |
+
+The daily dump exists because RDS's own backups live with the instance: deleting the instance, or
+losing the account, can take them too. After each upload it reports the CloudWatch metric
+`SAS/Backups BackupSucceeded`; the alarm `sas-prod-db-backup-missing` emails `sas-prod-alarms` when
+none arrives for two days. Its log is `journalctl -u sas-backup-db` on the server.
+
+Redis holds only the token blacklist and rate-limit counters and is not backed up (section 1).
+
+### Recovery times, from the drills on 2026-11-03 (#339)
+
+| Restore | Measured | Notes |
+| --- | --- | --- |
+| A deleted document, from its previous version | 6 s | From detecting the deletion to the identical file back in place |
+| The daily dump into an empty PostgreSQL 16, then Flyway `validate` | 34 s | 200 KB dump, 43 tables, 51 migrations validated; grows with the data |
+| RDS to a point in time, as a new instance | 16 min | Restore started to the copy answering queries; RDS creating the instance is nearly all of it. Switching PROD over (SSM and a redeploy) adds about 2 min |
+
+### Restore the database to a point in time
+
+RDS always restores into a **new** instance; `sas-prod` is not touched.
+
+```bash
+aws rds restore-db-instance-to-point-in-time --region af-south-1 \
+  --source-db-instance-identifier sas-prod --target-db-instance-identifier sas-prod-restore \
+  --restore-time <UTC, e.g. 2026-11-03T14:46:25Z> \
+  --db-instance-class db.t4g.micro --db-subnet-group-name sas-prod \
+  --vpc-security-group-ids <sas-prod-db security group> --availability-zone af-south-1a \
+  --db-parameter-group-name sas-prod-postgres16 --no-publicly-accessible --no-multi-az
+```
+
+The restored instance keeps the master password it had at that time, which is the one in the
+RDS-managed secret unless it has been rotated since.
+
+To switch PROD over: point `/sas-prod/DB_URL` in SSM at the new endpoint and redeploy
+(`docs/PROD_RUNBOOK.md`, steps 3 and 4). Then either keep the new instance and import it into
+Terraform, or rename the instances so the restored one is `sas-prod`. Check what a rollback of the
+schema means first: an older schema with a newer image will not start (`docs/PROD_RUNBOOK.md`,
+"Rolling back").
+
+### Restore from a daily dump
+
+For when RDS's own backups are gone. On the PROD server (`tools/prod/ssmrun.sh`), into a database
+that is empty:
+
+```bash
+aws s3 cp s3://beezhub-sas-prod-backups/postgres/<file>.dump /var/tmp/restore.dump
+pg_restore "host=<endpoint> dbname=studentaccommodation sslmode=require" --no-owner --no-privileges \
+  /var/tmp/restore.dump
+```
+
+The drill restored into a throwaway `postgres:16.2-alpine` container on the server, so the data
+never left AWS, and ran `flyway/flyway:11.7.2 validate` against `backend/src/main/resources/db/migration`
+with `-placeholders.demoSeed=false`.
+
+### Restore a deleted or overwritten document
+
+```bash
+aws s3api list-object-versions --bucket beezhub-sas-prod-documents --prefix <key>
+aws s3api copy-object --bucket beezhub-sas-prod-documents --key <key> \
+  --copy-source "beezhub-sas-prod-documents/<key>?versionId=<previous version id>"
+```
+
+Copying the previous version over the current one keeps the history; nothing is deleted.
+
+### Database and documents together
+
+The rule in section 5 holds on PROD too: a database restored to an earlier time has no rows for
+documents uploaded after that time, and `OrphanFileCleanupJob` (daily, 03:00) deletes stored files
+without a row once they are older than the grace period. Those files are still recoverable as old
+versions for 35 days, but restore the database first and check the documents it references exist in
+the bucket before the next cleanup run.
+
+### Not covered
+
+- A stolen or deleted AWS account takes RDS, its snapshots and both buckets with it. Copying the
+  daily dumps to a second account or provider is the remaining gap.
+- Self-service account deletion (`AuthService.deleteAccount`) removes a student's rows but leaves
+  their stored files, which `OrphanFileCleanupJob` then removes as orphans. Until then, and for 35
+  days afterwards as old versions, they are recoverable. Seen on PROD's first day, when a test
+  student was deleted.
+
+---
+
+## NONPROD and local (compose)
 
 Everything below assumes the compose deployment described in the repository root:
 
