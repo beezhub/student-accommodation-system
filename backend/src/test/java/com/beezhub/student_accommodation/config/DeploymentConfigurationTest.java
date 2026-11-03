@@ -334,6 +334,25 @@ class DeploymentConfigurationTest {
                 .isGreaterThan(deploy.indexOf("name: Smoke check"));
     }
 
+    /**
+     * Two NONPROD deploys lost their ssh session mid-pull (#375). Every session keeps itself alive,
+     * the pull is retried in a fresh session, and `up -d` runs in a later step, so a failed pull
+     * never replaces a running container.
+     */
+    @Test
+    void nonprodDeploy_retriesThePullAndStartsOnlyAfterIt() throws IOException {
+        String deploy = readLf(".github/workflows/deploy.yml");
+        String pull = deploy.substring(deploy.indexOf("      - name: Pull the images"),
+                deploy.indexOf("      - name: Start"));
+
+        assertThat(deploy.split("-o StrictHostKeyChecking=yes", -1).length)
+                .as("every ssh call sends keep-alives")
+                .isEqualTo(deploy.split("-o ServerAliveInterval=30 -o ServerAliveCountMax=6", -1).length);
+        assertThat(pull).contains("for attempt in 1 2 3; do").contains("pull --quiet");
+        assertThat(pull).doesNotContain("up -d");
+        assertThat(deploy.indexOf("up -d --no-build")).isGreaterThan(deploy.indexOf("      - name: Start"));
+    }
+
     /** PROD is started by a person, and only with a green NONPROD deploy of main (#338). */
     @Test
     void prodDeploy_isManualAndPromotesOnlyNonprodReleasesOfMain() throws IOException {

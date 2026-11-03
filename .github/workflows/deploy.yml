@@ -52,6 +52,11 @@ jobs:
       # server, and an action receives the private key and the whole step environment. The inline
       # equivalent is a few auditable lines. StrictHostKeyChecking=yes with a known_hosts from a
       # repository variable, so a substituted host fails closed instead of being trusted silently.
+      #
+      # Every session sends a keep-alive every 30 seconds (ServerAliveInterval). A quiet command,
+      # such as `docker compose pull --quiet` or the readiness wait, otherwise leaves the connection
+      # idle for minutes, and an idle timeout on the path is the likely reason two deploys lost theirs
+      # mid-pull (#375).
       - name: Configure SSH
         run: |
           install -m 700 -d "$RUNNER_TEMP/.ssh"
@@ -83,7 +88,7 @@ jobs:
             } | sort -u
           )
           PRESENT=$(ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
-            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
             "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
             "test -f /opt/sas/.env && sed -nE 's/^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=.*/\2/p' /opt/sas/.env | sort -u") || {
               echo "::error::/opt/sas/.env is missing or unreadable on ${{ vars.DEPLOY_HOST }}"
@@ -107,7 +112,7 @@ jobs:
           # POSTGRES_USER and POSTGRES_DB are set inside the db container, so the query does not
           # need the deploy user's shell to know any database credentials.
           BEFORE=$(ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
-            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
             "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
             'docker exec student-accommodation-local-db sh -c '"'"'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select max(version) from flyway_schema_history"'"'"' 2>/dev/null || echo unknown')
           echo "before=$BEFORE" >> "$GITHUB_OUTPUT"
@@ -129,7 +134,7 @@ jobs:
               --exclude='frontend/node_modules' \
               -cf - . \
             | ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
-                -o StrictHostKeyChecking=yes -o BatchMode=yes \
+                -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
                 "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
                 'rm -rf "$HOME/sas-incoming" && mkdir "$HOME/sas-incoming" && tar -x -C "$HOME/sas-incoming"'
 
@@ -140,7 +145,7 @@ jobs:
       - name: Sync the tree to the host
         run: |
           ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
-            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
             "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" 'bash -se' <<'REMOTE'
           set -euo pipefail
           stage="$HOME/sas-incoming"
@@ -175,23 +180,51 @@ jobs:
         run: |
           aws ecr get-login-password \
             | ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
-                -o StrictHostKeyChecking=yes -o BatchMode=yes \
+                -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
                 "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
                 "docker login --username AWS --password-stdin $REGISTRY"
 
-      # Pull the images images.yml built in this run, by digest, and start them. Nothing is built on
-      # the host any more (#337).
-      - name: Pull and start
+      # Pull the images images.yml built in this run, by digest. Nothing is built on the host any
+      # more (#337).
+      #
+      # Retried from the runner, in its own ssh session per try. A dropped connection kills whatever
+      # the session was running: two deploys lost theirs about 4.5 minutes into a backend pull
+      # (#375). Pulling is safe to repeat, and layers already downloaded are kept, so a retry
+      # resumes. tools/prod/start.sh does the same on PROD.
+      - name: Pull the images
+        run: |
+          for attempt in 1 2 3; do
+            if ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+                 -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
+                 "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+                 "BACKEND_IMAGE='$BACKEND_IMAGE' FRONTEND_IMAGE='$FRONTEND_IMAGE' bash -se" <<'REMOTE'
+          set -euo pipefail
+          cd /opt/sas
+          export BACKEND_IMAGE FRONTEND_IMAGE
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml \
+            pull --quiet student-accommodation-back-end frontend
+          REMOTE
+            then
+              echo "pull: OK on attempt $attempt"
+              exit 0
+            fi
+            echo "pull failed (attempt $attempt of 3)"
+            sleep 10
+          done
+          echo "::error::the images could not be pulled in 3 tries; the running stack was not touched"
+          exit 1
+
+      # Only reached after a pull succeeded, so a failed pull never replaces a running container.
+      - name: Start
         run: |
           ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
-            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
             "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
             "BACKEND_IMAGE='$BACKEND_IMAGE' FRONTEND_IMAGE='$FRONTEND_IMAGE' bash -se" <<'REMOTE'
           set -euo pipefail
           cd /opt/sas
           export BACKEND_IMAGE FRONTEND_IMAGE
           F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml"
-          docker compose $F pull --quiet student-accommodation-back-end frontend
           docker compose $F up -d --no-build --remove-orphans
           REMOTE
 
@@ -203,7 +236,7 @@ jobs:
       - name: Smoke check
         run: |
           ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
-            -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
             "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
             "BACKEND_IMAGE='$BACKEND_IMAGE' FRONTEND_IMAGE='$FRONTEND_IMAGE' bash -se" <<'REMOTE'
           set -uo pipefail
