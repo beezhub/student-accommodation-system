@@ -139,8 +139,9 @@ Now, both the backend and frontend servers should be running. Access the applica
   `{service="student-accommodation-back-end", level="error"}` for backend errors;
   `{service=~"caddy|frontend", status_class="5xx"}` for failed requests;
   `{service="student-accommodation-back-end"} | requestId="<id>"` to follow one request by the
-  `x-request-id` the API returns. The backend's logger, request id and tenant id are structured
-  metadata and filter with `| logger=~"...Service"`. `?token=` values are masked before storage.
+  `x-request-id` the API returns; `{env="prod"} | action="verificationEmailFailed"` for one kind of
+  event. The backend's action, logger, request id and tenant id are structured metadata and filter
+  with `| logger=~"...Service"`; search the message itself with `|= "text"`. `?token=` values are masked before storage.
   Without Grafana, `docker compose logs` on the host also works, but only holds the last 30 MB per
   container.
 - **Metrics and alerts.** Prometheus scrapes the backend every 15 seconds and keeps 30 days on
