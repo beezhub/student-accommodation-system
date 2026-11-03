@@ -124,12 +124,25 @@ Now, both the backend and frontend servers should be running. Access the applica
   `GRAFANA_ROOT_URL` in the host `.env` must be that public address including `/grafana`, and the
   host's `/etc/caddy/Caddyfile` must be the copy in `tools/caddy/`; the deploy updates neither.
 
-  Useful queries: `{service="student-accommodation-back-end", level="ERROR"}` for backend errors,
+  Every line carries the same labels (`tools/alloy/logs.alloy`), so one query shape works across
+  the stack and in both environments. PROD's logs are in Grafana Cloud, NONPROD's in its own Loki:
+
+  | Label | Values |
+  | --- | --- |
+  | `env` | `prod`, `nonprod` |
+  | `service` | `student-accommodation-back-end`, `frontend`, `redis`, `alloy`, `caddy`, `docker` |
+  | `level` | `debug`, `info`, `warn`, `error`, lowercase for every service |
+  | `status_class` | `2xx` to `5xx`, on web requests from nginx and Caddy |
+  | `job`, `stream`, `container` | `docker` or `journal`; `stdout` or `stderr`; the container name |
+
+  Useful queries: `{env="prod", level="error"}` for every error in PROD;
+  `{service="student-accommodation-back-end", level="error"}` for backend errors;
+  `{service=~"caddy|frontend", status_class="5xx"}` for failed requests;
   `{service="student-accommodation-back-end"} | requestId="<id>"` to follow one request by the
-  `x-request-id` the API returns, `{unit="caddy.service"}` for the TLS proxy's access log, and
-  `{service="frontend"}` for nginx. The backend's level is a label; its logger, request id and
-  tenant id are structured metadata and filter with `| logger=~"...Service"`. Without Grafana,
-  `docker compose logs` on the host also works, but only holds the last 30 MB per container.
+  `x-request-id` the API returns. The backend's logger, request id and tenant id are structured
+  metadata and filter with `| logger=~"...Service"`. `?token=` values are masked before storage.
+  Without Grafana, `docker compose logs` on the host also works, but only holds the last 30 MB per
+  container.
 - **Metrics and alerts.** Prometheus scrapes the backend every 15 seconds and keeps 30 days on
   its own volume; the dashboards under `tools/grafana/dashboards` read from it in the same
   Grafana. Scraping needs `PROMETHEUS_SCRAPE_PASSWORD` set in `.env`, which feeds both the backend

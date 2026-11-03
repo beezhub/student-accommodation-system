@@ -48,7 +48,26 @@ loki.source.docker "containers" {
 	forward_to    = [loki.process.containers.receiver]
 }
 
+// Labels, for navigation. Every line carries a small, fixed set, so the number of streams stays low:
+//
+//   env           prod or nonprod, added by the destination file (loki-local.alloy, grafana-cloud.alloy)
+//   job           docker or journal
+//   service       the compose service, or caddy / docker for host units
+//   container     the container name (docker lines only)
+//   stream        stdout or stderr (docker lines only)
+//   level         debug, info, warn or error, lowercase whatever the service wrote
+//   status_class  1xx to 5xx, on web requests from nginx (frontend) and Caddy
+//
+// Anything with many values (request id, tenant id, logger, path) is structured metadata or stays in
+// the line, never a label. Queries: README.md, "Logs".
 loki.process "containers" {
+	// The live-notification stream takes the JWT as ?token= (EventSource cannot send headers), so
+	// nginx's access and error lines carry a working credential. Masked before anything is stored.
+	stage.replace {
+		expression = "[?&]token=([^&\\s\"]+)"
+		replace    = "REDACTED"
+	}
+
 	// Field names come from LogstashEncoder in backend/src/main/resources/logback-spring.xml.
 	stage.match {
 		selector = "{service=\"student-accommodation-back-end\"}"
@@ -62,16 +81,70 @@ loki.process "containers" {
 			}
 		}
 
-		stage.labels {
-			values = {level = ""}
-		}
-
 		stage.structured_metadata {
 			values = {
 				logger    = "",
 				requestId = "",
 				tenantId  = "",
 			}
+		}
+	}
+
+	// nginx: error lines carry "[error]"; access lines carry the status code after the request.
+	stage.match {
+		selector = "{service=\"frontend\"}"
+
+		stage.regex {
+			expression = "\\[(?P<level>emerg|alert|crit|error|warn|notice|info|debug)\\]"
+		}
+
+		stage.regex {
+			expression = "\" (?P<status_class>[1-5])\\d\\d "
+		}
+	}
+
+	// Alloy writes logfmt.
+	stage.match {
+		selector = "{service=\"alloy\"}"
+
+		stage.logfmt {
+			mapping = {level = ""}
+		}
+	}
+
+	// Redis marks each line: "#" warning, "*" notice, "-" verbose, "." debug.
+	stage.match {
+		selector = "{service=\"redis\"}"
+
+		stage.regex {
+			expression = "^\\d+:[XCSM] .{24} (?P<redis_mark>[.*#-]) "
+		}
+
+		stage.template {
+			source   = "level"
+			template = "{{ if eq .redis_mark \"#\" }}warn{{ else if eq .redis_mark \".\" }}debug{{ else }}info{{ end }}"
+		}
+	}
+
+	stage.template {
+		source   = "level"
+		template = "{{ if .Value }}{{ ToLower .Value }}{{ else }}info{{ end }}"
+	}
+
+	stage.template {
+		source   = "level"
+		template = "{{ if eq .Value \"warning\" }}warn{{ else if or (eq .Value \"crit\") (eq .Value \"alert\") (eq .Value \"emerg\") (eq .Value \"fatal\") }}error{{ else if eq .Value \"notice\" }}info{{ else }}{{ .Value }}{{ end }}"
+	}
+
+	stage.template {
+		source   = "status_class"
+		template = "{{ if .Value }}{{ .Value }}xx{{ end }}"
+	}
+
+	stage.labels {
+		values = {
+			level        = "",
+			status_class = "",
 		}
 	}
 
@@ -91,6 +164,13 @@ loki.relabel "journal" {
 		source_labels = ["__journal__systemd_unit"]
 		target_label  = "unit"
 	}
+
+	// service="caddy" next to service="frontend", so one label finds every part of the stack.
+	rule {
+		source_labels = ["__journal__systemd_unit"]
+		regex         = "(.+)\\.service"
+		target_label  = "service"
+	}
 }
 
 loki.source.journal "host" {
@@ -98,5 +178,50 @@ loki.source.journal "host" {
 	max_age       = "12h"
 	relabel_rules = loki.relabel.journal.rules
 	labels        = {job = "journal"}
-	forward_to    = [loki.write.default.receiver]
+	forward_to    = [loki.process.journal.receiver]
+}
+
+loki.process "journal" {
+	// Caddy's access log records the full URI, ?token= included (see loki.process "containers").
+	stage.replace {
+		expression = "[?&]token=([^&\\s\"]+)"
+		replace    = "REDACTED"
+	}
+
+	// Caddy logs JSON: {"level":"info", ..., "status":200}.
+	stage.match {
+		selector = "{service=\"caddy\"}"
+
+		stage.json {
+			expressions = {level = "level"}
+		}
+
+		stage.regex {
+			expression = "\"status\":(?P<status_class>[1-5])\\d\\d"
+		}
+	}
+
+	stage.template {
+		source   = "level"
+		template = "{{ if .Value }}{{ ToLower .Value }}{{ else }}info{{ end }}"
+	}
+
+	stage.template {
+		source   = "level"
+		template = "{{ if eq .Value \"warning\" }}warn{{ else if or (eq .Value \"crit\") (eq .Value \"fatal\") (eq .Value \"panic\") }}error{{ else }}{{ .Value }}{{ end }}"
+	}
+
+	stage.template {
+		source   = "status_class"
+		template = "{{ if .Value }}{{ .Value }}xx{{ end }}"
+	}
+
+	stage.labels {
+		values = {
+			level        = "",
+			status_class = "",
+		}
+	}
+
+	forward_to = [loki.write.default.receiver]
 }

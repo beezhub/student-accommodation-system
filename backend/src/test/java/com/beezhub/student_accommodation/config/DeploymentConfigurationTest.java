@@ -270,6 +270,25 @@ class DeploymentConfigurationTest {
         assertThat(read("tools/alloy/grafana-cloud.alloy")).contains("loki.write \"default\"");
     }
 
+    /**
+     * The notification stream takes the JWT as ?token=, so nginx and Caddy log a working credential.
+     * Both log pipelines must mask it before it reaches Loki or Grafana Cloud, and every line must
+     * say which environment it came from.
+     */
+    @Test
+    void alloy_masksTokensAndLabelsTheEnvironment() throws IOException {
+        String logs = readLf("tools/alloy/logs.alloy");
+
+        assertThat(logs.split("expression = \"\\[\\?&\\]token=\\(\\[\\^&\\\\\\\\s\\\\\"\\]\\+\\)\"", -1))
+                .as("one token mask in the container pipeline and one in the journal pipeline")
+                .hasSize(3);
+        assertThat(logs).contains("replace    = \"REDACTED\"");
+        assertThat(read("tools/alloy/loki-local.alloy")).contains("external_labels = {env = \"nonprod\"}");
+        assertThat(read("tools/alloy/grafana-cloud.alloy").split("external_labels = \\{env = \"prod\"\\}", -1))
+                .as("logs and metrics both carry env=prod")
+                .hasSize(3);
+    }
+
     /** Alloy does Prometheus's job in PROD, with the same credentials the backend checks. */
     @Test
     void awsOverlay_alloyScrapesTheBackendWithTheSharedSecret() throws IOException {

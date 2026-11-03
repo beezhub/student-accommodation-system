@@ -15,6 +15,9 @@ loki.write "default" {
 			password = sys.env("GRAFANA_CLOUD_API_KEY")
 		}
 	}
+
+	// One label tells environments apart in every query (labels in logs.alloy).
+	external_labels = {env = "prod"}
 }
 
 // Same target, path, credentials and job name as tools/prometheus/prometheus.yml, so the
@@ -44,4 +47,6 @@ prometheus.remote_write "default" {
 			password = sys.env("GRAFANA_CLOUD_API_KEY")
 		}
 	}
+
+	external_labels = {env = "prod"}
 }
