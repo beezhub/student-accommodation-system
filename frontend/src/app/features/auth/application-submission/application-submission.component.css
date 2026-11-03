@@ -169,6 +169,18 @@
   width: 100%;
 }
 
+/* Two fields side by side, each taking half the row */
+.form-row {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.half-width {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Info card */
 .info-card {
   display: flex;
@@ -360,6 +372,16 @@
 
   .step-card-footer {
     padding: 1.25rem 1.5rem;
+  }
+
+  /* Stack the paired fields on small screens */
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .half-width {
+    width: 100%;
   }
 }
 
