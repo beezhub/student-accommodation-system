@@ -1,8 +1,8 @@
 # PROD runbook
 
-How PROD is deployed and operated by hand, as done for the first deploy (#336). The environment
-itself is `infra/terraform/prod` (#335) and its design is `docs/PROD_ENVIRONMENT_PLAN.md`. #338
-automates this procedure; until then, this is how PROD changes.
+How PROD is deployed and operated. The environment itself is `infra/terraform/prod` (#335) and its
+design is `docs/PROD_ENVIRONMENT_PLAN.md`. Releases go out through the Deploy PROD workflow (#338),
+which runs the same scripts the first deploy ran by hand (#336).
 
 | What | Where |
 |---|---|
@@ -29,9 +29,25 @@ Credentials on the operator's machine come from `aws login`.
 
 ## Deploy a release
 
-PROD runs exactly what NONPROD has already run. Every merge to `develop` builds both images on
+PROD runs exactly what NONPROD has already run. Every merge to `main` builds both images on
 GitHub's ARM runners and deploys them to NONPROD (`deploy.yml`, #337); the run summary lists the
-two digests.
+two digests and the run id to promote.
+
+### With the workflow (the normal way)
+
+1. Merge `develop` into `main` through a pull request. NONPROD deploys it; check it there.
+2. Copy the run id from the green **Deploy NONPROD** run's summary ("to promote: ...").
+3. **Actions > Deploy PROD > Run workflow**, on `main`, with that run id as `nonprod_run`.
+
+The workflow (`deploy-prod.yml`, #338) checks the run is a successful NONPROD deploy of `main`,
+reads its commit and digests from the run's `nonprod-release` artifact, and does steps 2 to 5 below
+through SSM. Its summary shows the Flyway version before and after, which decides how to roll back.
+Starting the workflow is the release gate: anyone who can run it can deploy.
+
+To roll back, run it again with the previous release's NONPROD run id, if the rules under
+**Rolling back** allow it. Artifacts are kept 90 days.
+
+### By hand (when GitHub Actions is unavailable)
 
 1. **Pick the release.** From a green NONPROD deploy run, note the commit and the two image digests.
 2. **Upload that commit's tree** (compose files, `tools/`):
@@ -48,10 +64,13 @@ two digests.
      tools/prod/ssmrun.sh tools/prod/write-env.sh
    ```
 
-   It prints key names only and ends with `compose config: OK with the four PROD files`.
+   It prints key names only and ends with `compose config: OK with the four PROD files`. If
+   Parameter Store lacks a key the release's compose files need, it stops before changing anything
+   and names the key.
 
-4. **Pull and start:** `tools/prod/ssmrun.sh tools/prod/start.sh`. It waits for readiness and ends
-   with the running digests, the error count and memory.
+4. **Pull and start:** `tools/prod/ssmrun.sh tools/prod/start.sh`. It prints `schema_before=`,
+   pulls (three tries, and stops before `up` if all fail), waits for readiness, prints
+   `schema_after=`, and ends with the running digests, the error count and memory.
 
 5. **Check from outside:** `curl -sI https://accommodation.beezhub.co.za/` returns 200, and the
    `Content-Security-Policy` header matches the release.
@@ -76,7 +95,8 @@ MSYS_NO_PATHCONV=1 aws ssm put-parameter --region af-south-1 --name /sas-prod/<N
 ```
 
 Use `--type SecureString` for anything secret, and enter secrets through a prompt rather than on the
-command line (see Grafana token below). Then redeploy the current release (steps 3 and 4).
+command line (see Grafana token below). Then redeploy the current release: run Deploy PROD with the same NONPROD run id (or steps 3 and 4
+by hand).
 
 The database login is not in SSM: `write-env.sh` reads it from the RDS-managed secret every time, so
 it always matches what RDS holds.
@@ -119,7 +139,6 @@ Done on 2026-11-03; kept here to rebuild PROD from nothing.
 
 ## Known gaps
 
-- #338: this procedure is manual.
 - #339: no tested restore yet; RDS point-in-time recovery exists but has not been drilled.
 - #340: Grafana Cloud dashboards and alerts are not built yet.
 - #344: DNS is still at the SADomains email hosting package.

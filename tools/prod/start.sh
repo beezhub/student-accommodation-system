@@ -7,8 +7,31 @@ REGISTRY=428847003911.dkr.ecr.af-south-1.amazonaws.com
 cd /opt/sas || exit 1
 F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.aws.yml"
 
+# The Flyway version, read from RDS with the login write-env.sh put in .env. Printed before and after
+# as schema_before= and schema_after=, because a rollback is only safe when they match (GH-243).
+env_value() { sed -nE "s/^$1='(.*)'$/\1/p" .env; }
+schema() {
+  local host
+  host=$(env_value DB_URL | sed -E 's#^jdbc:postgresql://([^:/?]+).*#\1#')
+  PGPASSWORD=$(env_value PASSWORD_DB) psql "host=$host dbname=studentaccommodation user=$(env_value USER_DB) sslmode=require connect_timeout=10" \
+    -tAc 'select max(version) from flyway_schema_history' 2>/dev/null || echo unknown
+}
+echo "schema_before=$(schema)"
+
 aws ecr get-login-password | sudo -u ubuntu docker login --username AWS --password-stdin "$REGISTRY" 2>&1 | tail -1
-sudo -u ubuntu docker compose $F pull --quiet student-accommodation-back-end frontend redis alloy && echo "pull: OK"
+# A pull that fails must stop here: `up` would otherwise start whatever images are already on disk.
+# Three tries, because a single ECR or Docker Hub hiccup should not need a person.
+pulled=no
+for attempt in 1 2 3; do
+  if sudo -u ubuntu docker compose $F pull --quiet student-accommodation-back-end frontend redis alloy; then
+    pulled=yes
+    break
+  fi
+  echo "pull failed (attempt $attempt of 3)"
+  sleep 10
+done
+[ "$pulled" = yes ] || { echo "PULL FAILED; the running stack was not touched"; exit 1; }
+echo "pull: OK"
 sudo -u ubuntu docker compose $F up -d --no-build --remove-orphans 2>&1 | tail -6
 
 # Generous: on a first boot, or after a large migration, Flyway runs in-process before readiness.
@@ -23,6 +46,7 @@ for i in $(seq 1 120); do
   fi
   sleep 5
 done
+echo "schema_after=$(schema)"
 
 echo "== running images:"
 for c in student-accommodation-back-end student-accommodation-frontend; do
