@@ -335,6 +335,35 @@ class DeploymentConfigurationTest {
     }
 
     /**
+     * After a hotfix, a workflow opens the main to develop pull request, so the fix cannot be
+     * stranded on main the way #288 was (#386). It asks whether merging main into develop would
+     * change develop, not whether their files differ: develop is usually ahead of main, so the
+     * files differ after every normal release too.
+     */
+    @Test
+    void backMerge_opensAPullRequestOnlyWhenDevelopLacksAChangeFromMain() throws IOException {
+        String workflow = readLf(".github/workflows/back-merge.yml");
+        String script = read("tools/ci/back-merge.sh");
+
+        assertThat(workflow).contains("on:\n  push:\n    branches: [main]\n");
+        assertThat(workflow).contains("permissions:\n  contents: read\n  pull-requests: write\n");
+        assertThat(workflow).contains("fetch-depth: 0").contains("run: bash tools/ci/back-merge.sh");
+        assertThat(script).contains("git merge-tree --write-tree");
+        assertThat(script).contains("gh pr list --base develop --head main --state open");
+        assertThat(script).contains("gh pr create --base develop --head main");
+    }
+
+    /**
+     * A hotfix is the one branch that starts from main, and a person decides on it (#386).
+     */
+    @Test
+    void hotfixRule_isWrittenWhereContributorsAndScoutLook() throws IOException {
+        assertThat(readLf("CONTRIBUTING.md")).contains("### Hotfixes")
+                .contains("Branch from `main` and name it `hotfix/TASK-{id}-{slug}`.");
+        assertThat(read(".claude/scout/playbook.md")).contains("Scout never opens one");
+    }
+
+    /**
      * A release pull request builds no images: every change in it built on its own pull request,
      * and the push to main builds again for the deploy (#376). The deploy's call is not a pull
      * request, so the condition never skips it.
