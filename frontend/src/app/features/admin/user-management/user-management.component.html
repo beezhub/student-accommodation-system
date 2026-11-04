@@ -98,24 +98,14 @@
                   All Users
                 </div>
               </mat-option>
-              <mat-option value="ADMIN">
-                <div class="role-option">
-                  <mat-icon class="admin">admin_panel_settings</mat-icon>
-                  Admins Only
-                </div>
-              </mat-option>
-              <mat-option value="LANDLORD">
-                <div class="role-option">
-                  <mat-icon class="landlord">apartment</mat-icon>
-                  Landlords Only
-                </div>
-              </mat-option>
-              <mat-option value="STUDENT">
-                <div class="role-option">
-                  <mat-icon class="student">school</mat-icon>
-                  Students Only
-                </div>
-              </mat-option>
+              @for (option of roleFilterOptions; track option.value) {
+                <mat-option [value]="option.value">
+                  <div class="role-option">
+                    <mat-icon [class]="option.iconClass">{{ option.icon }}</mat-icon>
+                    {{ option.label }}
+                  </div>
+                </mat-option>
+              }
             </mat-select>
           </mat-form-field>
         </div>

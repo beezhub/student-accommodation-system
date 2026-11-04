@@ -21,9 +21,7 @@ export interface PreferencesDialogData {
         <div class="student-subtitle">
           <span class="code">{{ data.application.applicationCode }}</span>
           <span class="separator">•</span>
-          <span class="name"
-            >{{ data.application.studentFirstName }} {{ data.application.studentLastName }}</span
-          >
+          <span class="name">{{ data.application.studentName }}</span>
         </div>
       </div>
       <button mat-icon-button (click)="close()" class="close-btn">

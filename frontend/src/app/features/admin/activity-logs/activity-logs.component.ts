@@ -112,7 +112,13 @@ export class ActivityLogsComponent implements OnInit {
     'SYSTEM',
   ];
 
-  userRoles: string[] = ['PLATFORM_ADMIN', 'BUILDING_OWNER', 'BUILDING_STAFF', 'STUDENT'];
+  userRoles: string[] = [
+    'PLATFORM_ADMIN',
+    'PLATFORM_STAFF',
+    'TENANT_ADMIN',
+    'BUILDING_STAFF',
+    'STUDENT',
+  ];
 
   constructor() {
     this.filterForm = this.fb.group({

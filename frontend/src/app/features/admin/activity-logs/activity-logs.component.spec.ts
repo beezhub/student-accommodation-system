@@ -1,3 +1,8 @@
+import { By } from '@angular/platform-browser';
+import { MatSelect } from '@angular/material/select';
+import { NgControl } from '@angular/forms';
+import { of } from 'rxjs';
+import { ActivityLogService } from '../../../core/services/activity-log.service';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -101,5 +106,41 @@ describe('ActivityLogsComponent', () => {
     expectLogsRequest().flush('boom', { status: 500, statusText: 'Server Error' });
 
     expect(component.isLoading).toBeFalse();
+  });
+});
+
+describe('ActivityLogsComponent role filter', () => {
+  it('roleFilter_everyOption_isARoleTheApiAccepts', () => {
+    TestBed.configureTestingModule({
+      imports: [ActivityLogsComponent],
+      providers: [
+        provideNoopAnimations(),
+        {
+          provide: ActivityLogService,
+          useValue: jasmine.createSpyObj('ActivityLogService', {
+            getActivityLogs: of({ content: [], totalElements: 0 }),
+            getActionIcon: 'info',
+            getActionColor: '',
+          }),
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(ActivityLogsComponent);
+    fixture.componentInstance.filtersVisible = true;
+    fixture.detectChanges();
+
+    const select = fixture.debugElement
+      .queryAll(By.directive(MatSelect))
+      .find((candidate) => candidate.injector.get(NgControl).name === 'userRole')!
+      .componentInstance as MatSelect;
+
+    // The UserRole names on the backend. BUILDING_OWNER is not one, and made it answer 409.
+    expect(select.options.map((option) => option.value).filter(Boolean)).toEqual([
+      'PLATFORM_ADMIN',
+      'PLATFORM_STAFF',
+      'TENANT_ADMIN',
+      'BUILDING_STAFF',
+      'STUDENT',
+    ]);
   });
 });

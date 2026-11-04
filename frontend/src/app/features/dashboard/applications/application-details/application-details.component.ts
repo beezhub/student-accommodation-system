@@ -137,8 +137,7 @@ export class ApplicationDetailsComponent implements OnInit {
           status: fullDetails.status,
           remarks: fullDetails.remarks,
           studentId: fullDetails.studentProfile.id,
-          studentFirstName: fullDetails.studentProfile.firstName,
-          studentLastName: fullDetails.studentProfile.lastName,
+          studentName: `${fullDetails.studentProfile.firstName} ${fullDetails.studentProfile.lastName}`,
           studentEmail: fullDetails.studentProfile.email,
           // Optional fields
           preferredBuildingName: fullDetails.preferredBuildingName,

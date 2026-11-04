@@ -341,7 +341,8 @@
     width: 1.125rem;
     height: 1.125rem;
 
-    &.platform_admin {
+    &.platform_admin,
+    &.platform_staff {
       color: vars.$accent-purple-dark;
     }
 
@@ -349,7 +350,7 @@
       color: vars.$success;
     }
 
-    &.building_owner,
+    &.tenant_admin,
     &.building_staff {
       color: vars.$accent-cyan-dark;
     }
@@ -399,7 +400,8 @@
   flex-shrink: 0;
   user-select: none;
 
-  &.platform_admin {
+  &.platform_admin,
+  &.platform_staff {
     background: linear-gradient(135deg, vars.$accent-purple-light, vars.$accent-purple-dark);
   }
 
@@ -407,7 +409,7 @@
     background: linear-gradient(135deg, vars.$accent-green-light, vars.$accent-green-dark);
   }
 
-  &.building_owner,
+  &.tenant_admin,
   &.building_staff {
     background: linear-gradient(135deg, vars.$accent-cyan-light, vars.$accent-cyan-dark);
   }
@@ -509,7 +511,8 @@
   letter-spacing: 0.05em;
   margin-left: 0.5rem;
 
-  &.platform_admin {
+  &.platform_admin,
+  &.platform_staff {
     background: rgba(vars.$accent-purple-light, 0.12);
     color: vars.$accent-purple-dark;
     border: 1px solid rgba(vars.$accent-purple-light, 0.25);
@@ -521,7 +524,7 @@
     border: 1px solid rgba(vars.$success, 0.2);
   }
 
-  &.building_owner,
+  &.tenant_admin,
   &.building_staff {
     background: rgba(vars.$accent-cyan-light, 0.1);
     color: vars.$accent-cyan-dark;

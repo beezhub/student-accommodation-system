@@ -147,7 +147,7 @@
           </mat-card>
         }
         <!-- Student Information (for admin view) -->
-        @if (isAdmin && application.studentFirstName) {
+        @if (isAdmin && application.studentName) {
           <mat-card appearance="outlined">
             <mat-card-content>
               <h3 class="section-title">Student Information</h3>
@@ -155,7 +155,7 @@
               <div class="info-grid">
                 <div class="info-item">
                   <div class="label">Full Name</div>
-                  <div class="value">{{ application.studentFirstName }} {{ application.studentLastName }}</div>
+                  <div class="value">{{ application.studentName }}</div>
                 </div>
                 <div class="info-item">
                   <div class="label">Email</div>

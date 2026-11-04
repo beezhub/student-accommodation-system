@@ -190,7 +190,7 @@
                     <div class="student-cell">
                       <div class="avatar-circle" aria-hidden="true">{{ getInitials(app) }}</div>
                       <div class="student-info">
-                        <span class="student-name">{{ app.studentFirstName }} {{ app.studentLastName }}</span>
+                        <span class="student-name">{{ app.studentName }}</span>
                         <span class="student-email">{{ app.studentEmail }}</span>
                       </div>
                     </div>
@@ -329,6 +329,42 @@
               Confirm All
             </button>
           </div>
+
+          @if (proposalFailures.length > 0) {
+            <div class="proposal-error proposal-notice proposal-failures" role="alert">
+              <mat-icon>error_outline</mat-icon>
+              <div>
+                <strong>No proposal for {{ proposalFailures.length }} student{{ proposalFailures.length !== 1 ? 's' : '' }}</strong>
+                <ul>
+                  @for (failure of proposalFailures; track failure.studentId) {
+                    <li>{{ failure.studentName }}: {{ failure.reason }}</li>
+                  }
+                </ul>
+              </div>
+            </div>
+          }
+
+          @if (proposalWarnings.length > 0) {
+            <div class="proposal-error proposal-notice proposal-warnings" role="status">
+              <mat-icon>warning_amber</mat-icon>
+              <ul>
+                @for (warning of proposalWarnings; track warning) {
+                  <li>{{ warning }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (confirmErrors.length > 0) {
+            <div class="proposal-error proposal-notice confirm-errors" role="alert">
+              <mat-icon>error_outline</mat-icon>
+              <ul>
+                @for (error of confirmErrors; track error) {
+                  <li>{{ error }}</li>
+                }
+              </ul>
+            </div>
+          }
 
           <div class="table-container">
             <table mat-table [dataSource]="proposals" class="alloc-table" aria-label="Proposed allocations">

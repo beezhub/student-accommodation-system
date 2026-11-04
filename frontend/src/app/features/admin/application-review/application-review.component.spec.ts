@@ -1,3 +1,4 @@
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
@@ -180,7 +181,7 @@ describe('ApplicationReviewComponent status filter', () => {
   });
 
   it('displayHelpers_reflectTheApplication', () => {
-    const app = { studentFirstName: 'thandi', studentLastName: 'mokoena' } as ApplicationResponse;
+    const app = { studentName: 'thandi mokoena' } as ApplicationResponse;
 
     expect(component.getStudentInitials(app)).toBe('TM');
     expect(component.getStudentInitials({} as ApplicationResponse)).toBe('?');
@@ -305,5 +306,51 @@ describe('ApplicationReviewComponent status filter', () => {
 
       expect(staged.enqueueWaitingList).not.toHaveBeenCalled();
     });
+  });
+});
+
+/** The real shape of the backend ApplicationResponse: one `studentName`, no first and last. */
+const APPLICATION = {
+  id: 1,
+  applicationCode: 'APP-1',
+  status: 'PENDING',
+  studentId: 9,
+  studentName: 'Thandi van der Merwe',
+  studentEmail: 'thandi@example.com',
+} as unknown as ApplicationResponse;
+
+describe('ApplicationReviewComponent student names', () => {
+  function render() {
+    TestBed.configureTestingModule({
+      imports: [ApplicationReviewComponent],
+      providers: [
+        provideNoopAnimations(),
+        {
+          provide: AdminService,
+          useValue: jasmine.createSpyObj('AdminService', {
+            searchApplications: of({ content: [APPLICATION], totalElements: 1 }),
+          }),
+        },
+        {
+          provide: BuildingService,
+          useValue: jasmine.createSpyObj('BuildingService', {
+            getAllBuildingsNoPagination: of([]),
+          }),
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(ApplicationReviewComponent);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('applicationList_responseWithStudentName_showsTheNameAndInitials', () => {
+    const page: HTMLElement = render().nativeElement;
+
+    expect(page.querySelector('.student-name')?.textContent?.trim()).toBe('Thandi van der Merwe');
+    expect(page.querySelector('.mc-student-name')?.textContent?.trim()).toBe(
+      'Thandi van der Merwe'
+    );
+    expect(page.querySelector('.student-cell .avatar-circle')?.textContent?.trim()).toBe('TM');
   });
 });

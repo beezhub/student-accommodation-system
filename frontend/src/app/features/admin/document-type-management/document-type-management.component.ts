@@ -78,7 +78,7 @@ export class DocumentTypeManagementComponent implements OnInit {
   }
 
   documentTypes: DocumentTypeResponse[] = [];
-  displayedColumns: string[] = ['typeName', 'description', 'isRequired', 'createdAt', 'actions'];
+  displayedColumns: string[] = ['name', 'description', 'isRequired', 'actions'];
 
   isLoading = false;
   totalElements = 0;
@@ -184,7 +184,7 @@ export class DocumentTypeManagementComponent implements OnInit {
     import('./document-type-form-dialog/document-type-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.DocumentTypeFormDialogComponent, {
         width: '600px',
-        data: { mode: 'create', prefillName: docType.typeName, shadow: true },
+        data: { mode: 'create', prefillName: docType.name, shadow: true },
       });
 
       dialogRef.afterClosed().subscribe((result) => {
@@ -213,7 +213,7 @@ export class DocumentTypeManagementComponent implements OnInit {
   deleteDocumentType(documentType: DocumentTypeResponse): void {
     confirmAction(this.dialog, {
       title: 'Delete this document type?',
-      message: `"${documentType.typeName}" is removed permanently. This cannot be undone.`,
+      message: `"${documentType.name}" is removed permanently. This cannot be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
     }).subscribe((confirmed) => {
