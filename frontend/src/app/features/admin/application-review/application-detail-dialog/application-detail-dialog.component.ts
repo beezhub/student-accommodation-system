@@ -294,6 +294,11 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
             }
             return doc;
           });
+          // documentChecklist already has these changes applied. Make it the list the next change
+          // rebuilds from, or the next rebuild drops what was just saved.
+          if (this.applicationDetails?.requiredDocumentsChecklist) {
+            this.applicationDetails.requiredDocumentsChecklist.documents = this.documentChecklist;
+          }
           this.documentStatusChanges.clear();
         } else {
           this.snackBar.open('Failed to save progress', 'Close', { duration: 3000 });
