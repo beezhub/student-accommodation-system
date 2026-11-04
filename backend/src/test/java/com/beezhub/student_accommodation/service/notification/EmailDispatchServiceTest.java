@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Answers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -193,6 +194,22 @@ class EmailDispatchServiceTest {
                 eq("room-allocated"),
                 any(RoomAllocatedContext.class)
         );
+    }
+
+    /** The email has to name the moment the offer lapses and link to where the student accepts. */
+    @Test
+    void sendRoomAllocatedEmail_offer_carriesTheDeadlineAndTheAcceptLink() {
+        LocalDateTime deadline = LocalDateTime.of(2026, 11, 11, 14, 30);
+        allocation.setOfferExpiryDate(deadline);
+        when(contentBuilder.formatDeadline(deadline)).thenReturn("11 November 2026 at 14:30 UTC");
+
+        emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, "John Doe", "john@example.com");
+
+        ArgumentCaptor<RoomAllocatedContext> ctx = ArgumentCaptor.forClass(RoomAllocatedContext.class);
+        verify(emailService).sendTemplateEmail(
+                eq("john@example.com"), eq(EmailSubjects.ROOM_ALLOCATED), eq("room-allocated"), ctx.capture());
+        assertThat(ctx.getValue().offerExpiryDate()).isEqualTo("11 November 2026 at 14:30 UTC");
+        assertThat(ctx.getValue().portalUrl()).isEqualTo("http://test-url/dashboard");
     }
 
     @Test

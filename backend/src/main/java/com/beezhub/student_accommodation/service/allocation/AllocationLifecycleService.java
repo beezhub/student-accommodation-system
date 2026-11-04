@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.*;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
+import com.beezhub.student_accommodation.model.event.AllocationMovedEvent;
 import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
 import com.beezhub.student_accommodation.model.event.RoomVacatedEvent;
 import com.beezhub.student_accommodation.model.enums.*;
@@ -435,7 +436,7 @@ public class AllocationLifecycleService {
             // Both rooms, after the save (GH-136).
             roomOccupancyManager.syncOccupancy(oldRoom);
             roomOccupancyManager.syncOccupancy(newRoom);
-            sendAllocationNotification(updated);
+            notifyRoomChanged(updated, oldRoom);
         }
 
         return roomAllocationMapper.toResponse(updated);
@@ -573,10 +574,24 @@ public class AllocationLifecycleService {
             log.info("Triggering room allocation notification for student {} to room {}",
                     allocation.getStudent().getId(), allocation.getRoom().getRoomNumber());
             eventPublisher.publishEvent(new AllocationCreatedEvent(allocation));
+            userNotificationService.createRoomOfferNotification(
+                    allocation.getStudent().getAppUser().getId(),
+                    allocation.getRoom().getRoomNumber(),
+                    allocation.getRoom().getBuilding().getName(),
+                    allocation.getOfferExpiryDate());
         } catch (Exception e) {
             log.error(
                     "Failed to trigger notification for room allocation {} - notification will be retried by scheduler",
                     allocation.getId(), e);
+        }
+    }
+
+    /** An open offer is re-sent for the new room. Once accepted, there is nothing left to accept. */
+    private void notifyRoomChanged(RoomAllocation allocation, Room oldRoom) {
+        if (allocation.getStatus() == AllocationStatus.OFFERED) {
+            sendAllocationNotification(allocation);
+        } else {
+            eventPublisher.publishEvent(new AllocationMovedEvent(allocation, oldRoom, LocalDateTime.now(), null));
         }
     }
 

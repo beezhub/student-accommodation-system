@@ -155,6 +155,26 @@ class EmailTemplateRenderTest {
         assertThat(html).contains("Westview Block");
     }
 
+    /** This email goes out for an OFFERED allocation, which lapses unless the student accepts it. */
+    @Test
+    void roomAllocated_unansweredOffer_saysToAcceptByTheDeadline() {
+        Map<String, Object> vars = baseContext();
+        vars.put("studentName", "Alice Brown");
+        vars.put("roomNumber", "205B");
+        vars.put("buildingName", "Westview Block");
+        vars.put("portalUrl", PORTAL_URL + "/dashboard");
+        vars.put("offerExpiryDate", "11 November 2026 at 14:30 UTC");
+
+        String html = render("room-allocated", vars);
+
+        assertThat(html).contains("11 November 2026 at 14:30 UTC");
+        assertThat(html).contains("must accept");
+        assertThat(html).contains("Accept Offer");
+        assertThat(html).doesNotContain("Your Room is Ready");
+        assertThat(html).doesNotContain("successfully");
+        assertThat(html).doesNotContain("confirmed");
+    }
+
     @Test
     void applicationApproved_rendersCorrectly() {
         Map<String, Object> vars = baseContext();

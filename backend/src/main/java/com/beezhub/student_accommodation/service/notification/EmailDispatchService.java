@@ -179,7 +179,8 @@ public class EmailDispatchService {
                                 duration,
                                 officeLocation,
                                 buildingAddress,
-                                portalUrl);
+                                portalUrl,
+                                contentBuilder.formatDeadline(allocation.getOfferExpiryDate()));
 
                 monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ROOM_ALLOCATED, "room-allocated", ctx));
                 log.info("Room allocation email sent to {}", email);

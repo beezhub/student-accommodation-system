@@ -234,6 +234,7 @@ public class EmailService {
                 vars.put("officeLocation", c.officeLocation());
                 vars.put("buildingAddress", c.buildingAddress());
                 vars.put("portalUrl", c.portalUrl());
+                vars.put("offerExpiryDate", c.offerExpiryDate());
             }
             case AllocationProposalContext c -> {
                 vars.put("studentName", c.studentName());
