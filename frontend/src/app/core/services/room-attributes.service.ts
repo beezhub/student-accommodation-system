@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
@@ -27,6 +27,9 @@ export interface RoomAttributesRequest {
   maxYearOfStudy?: number;
 }
 
+// Callers of the save methods below show their own failure message.
+const SILENT = { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) };
+
 @Injectable({
   providedIn: 'root',
 })
@@ -44,11 +47,11 @@ export class RoomAttributesService {
   }
 
   saveAttributes(request: RoomAttributesRequest): Observable<RoomAttributesResponse> {
-    return this.http.post<RoomAttributesResponse>(this.apiUrl, request);
+    return this.http.post<RoomAttributesResponse>(this.apiUrl, request, SILENT);
   }
 
   bulkSaveAttributes(requests: RoomAttributesRequest[]): Observable<RoomAttributesResponse[]> {
-    return this.http.post<RoomAttributesResponse[]>(`${this.apiUrl}/bulk`, requests);
+    return this.http.post<RoomAttributesResponse[]>(`${this.apiUrl}/bulk`, requests, SILENT);
   }
 
   deleteAttributes(roomId: number): Observable<{ success: boolean }> {
