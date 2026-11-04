@@ -10,6 +10,12 @@ import { AdminService } from '../../../core/services/admin.service';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 
 describe('DocumentVerificationComponent', () => {
+  let documents: object[] = [];
+
+  beforeEach(() => {
+    documents = [];
+  });
+
   function render() {
     TestBed.configureTestingModule({
       imports: [DocumentVerificationComponent],
@@ -18,7 +24,7 @@ describe('DocumentVerificationComponent', () => {
         {
           provide: AdminService,
           useValue: jasmine.createSpyObj('AdminService', {
-            searchDocuments: of({ content: [], totalElements: 0 }),
+            searchDocuments: of({ content: documents, totalElements: documents.length }),
           }),
         },
         {
@@ -49,5 +55,14 @@ describe('DocumentVerificationComponent', () => {
     );
 
     expect(labels).toEqual(['All Types', 'ID Copy']);
+  });
+
+  it('uploadedColumn_responseWithUploadDate_showsTheDate', () => {
+    documents = [{ id: 1, documentName: 'id.pdf', uploadDate: '2026-03-05' }];
+
+    const page: HTMLElement = render().nativeElement;
+
+    expect(page.querySelector('td .date-value')?.textContent?.trim()).toBe('Mar 5, 2026');
+    expect(page.querySelector('.mc-doc-meta .date-value')?.textContent?.trim()).toBe('Mar 5, 2026');
   });
 });

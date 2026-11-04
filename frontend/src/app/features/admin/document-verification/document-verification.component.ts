@@ -183,7 +183,7 @@ export class DocumentVerificationComponent implements OnInit {
       id: document.id,
       name: document.documentName,
       type: document.documentTypeName,
-      uploadDate: document.createdAt,
+      uploadDate: document.uploadDate,
       status: document.documentStatus,
       size: '',
     };

@@ -75,8 +75,7 @@ export interface DocumentResponse {
   studentEmail: string;
   applicationStatus?: string;
   applicationId?: number;
-  createdAt: string;
-  updatedAt: string;
+  uploadDate: string;
 }
 
 export interface DashboardStats {
