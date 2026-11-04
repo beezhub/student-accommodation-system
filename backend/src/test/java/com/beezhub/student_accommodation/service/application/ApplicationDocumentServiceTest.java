@@ -45,6 +45,8 @@ class ApplicationDocumentServiceTest {
     private AppUserRepository appUserRepository;
     @Mock
     private DocumentTypeService documentTypeService;
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     @InjectMocks
     private ApplicationDocumentService service;

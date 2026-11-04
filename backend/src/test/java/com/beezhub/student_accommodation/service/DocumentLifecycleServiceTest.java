@@ -60,6 +60,8 @@ class DocumentLifecycleServiceTest {
     ApplicationRepository applicationRepository;
     @Mock
     ApplicationEventPublisher eventPublisher;
+    @Mock
+    com.beezhub.student_accommodation.service.document.DocumentAccessGuard documentAccessGuard;
 
     @InjectMocks
     DocumentLifecycleService documentLifecycleService;

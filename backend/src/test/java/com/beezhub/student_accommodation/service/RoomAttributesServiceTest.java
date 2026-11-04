@@ -29,6 +29,8 @@ class RoomAttributesServiceTest {
 
     @Mock private RoomAttributesRepository roomAttributesRepository;
     @Mock private RoomRepository roomRepository;
+    @Mock private com.beezhub.student_accommodation.repository.BuildingRepository buildingRepository;
+    @Mock private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     @InjectMocks
     private RoomAttributesService service;
@@ -99,6 +101,7 @@ class RoomAttributesServiceTest {
 
     @Test
     void getAttributesByBuildingId_returnsListForBuilding() {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
         when(roomAttributesRepository.findByRoom_Building_Id(1L)).thenReturn(List.of(attributes));
 
         List<RoomAttributesResponse> responses = service.getAttributesByBuildingId(1L);
@@ -109,6 +112,7 @@ class RoomAttributesServiceTest {
 
     @Test
     void getAttributesByBuildingId_noAttributes_returnsEmpty() {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
         when(roomAttributesRepository.findByRoom_Building_Id(1L)).thenReturn(List.of());
 
         List<RoomAttributesResponse> responses = service.getAttributesByBuildingId(1L);
