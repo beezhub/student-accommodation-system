@@ -38,6 +38,10 @@ spring:
       # true keeps the seeded demo administrator usable; anything else disables it (see
       # V2026_09_05_1000__disable_seeded_admin.sql). Never set this in NONPROD or PROD.
       demoSeed: ${DEMO_SEED:false}
+      # true keeps the seed's example institutions, academic year and demo administrator; false
+      # removes them (V2026_11_04_1000__remove_example_data.sql, #365). Local and NONPROD keep the
+      # default. PROD must be false, and docker-compose.aws.yml refuses to start without the value.
+      exampleData: ${EXAMPLE_DATA:true}
   data:
     redis:
       host: ${REDIS_HOST:localhost}

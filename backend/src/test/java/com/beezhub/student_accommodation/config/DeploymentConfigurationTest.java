@@ -410,6 +410,24 @@ class DeploymentConfigurationTest {
     }
 
     /**
+     * The example-data migration runs once (#365). Local and NONPROD keep the rows by default, and
+     * PROD cannot start without saying what it wants: a ${VAR:?} key is what write-env.sh checks
+     * before it changes anything on the server, so a missing value stops the deploy before Flyway.
+     */
+    @Test
+    void exampleData_keptByDefaultAndRequiredOnProd() throws IOException {
+        assertThat(applicationYml()).contains("exampleData: ${EXAMPLE_DATA:true}");
+        assertThat(read("backend/src/main/resources/db/migration/V2026_11_04_1000__remove_example_data.sql"))
+                .contains("IF lower('${exampleData}') = 'true' THEN");
+
+        String aws = readLf("docker-compose.aws.yml");
+        String backend = aws.substring(aws.indexOf("  student-accommodation-back-end:"), aws.indexOf("  alloy:"));
+        assertThat(backend).contains("- EXAMPLE_DATA=${EXAMPLE_DATA:?");
+        assertThat(read("tools/prod/write-env.sh")).contains("grep -hoE '\\$\\{[A-Z0-9_]+(\\}|:?\\?)'");
+        assertThat(read(".env.example")).contains("EXAMPLE_DATA=true");
+    }
+
+    /**
      * NONPROD rehearses releases: it deploys main and records what passed its smoke check, which
      * is the only thing deploy-prod.yml will promote (#338).
      */
