@@ -62,7 +62,7 @@ export class DocumentTypeFormDialogComponent implements OnInit {
   ngOnInit(): void {
     if (this.mode === 'edit' && this.documentType) {
       this.documentTypeForm.patchValue({
-        name: this.documentType.typeName,
+        name: this.documentType.name,
         description: this.documentType.description,
         isRequired: this.documentType.isRequired,
       });

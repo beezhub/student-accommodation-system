@@ -77,7 +77,7 @@
             <mat-select formControlName="documentTypeId">
               <mat-option value="">All Types</mat-option>
               @for (docType of documentTypes; track docType.id) {
-                <mat-option [value]="docType.id">{{ docType.typeName }}</mat-option>
+                <mat-option [value]="docType.id">{{ docType.name }}</mat-option>
               }
             </mat-select>
           </mat-form-field>

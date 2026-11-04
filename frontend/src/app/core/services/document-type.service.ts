@@ -22,12 +22,10 @@ export interface DocumentTypeFilters {
 
 export interface DocumentTypeResponse {
   id: number;
-  typeName: string;
+  name: string;
   description?: string;
   isRequired: boolean;
   isPlatformDefault?: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface DocumentTypeRequest {
