@@ -208,20 +208,24 @@ real students' addresses onto NONPROD.
 
 ### Disk
 
-The disk is 45 GB and was 66% full on 2026-11-04. Docker's build cache held 16 GB of that. It is left
-over from when the server built its own images, which stopped in #337, so it is safe to remove:
+The disk is 45 GB and was 35% full on 2026-11-04, after the old build cache and monitoring volumes
+were removed. Check what is using it first:
 
 ```bash
-docker system df                 # see what can be freed first
-docker builder prune --all --force
+df -h /
+docker system df
 ```
 
-Unused images held another 3.4 GB. This removes every image no running container uses, and the next
-deploy pulls what it needs again:
+Old images are what builds up now: each release leaves the previous one behind, and unused images
+held 5.7 GB on that date. This removes every image no running container uses, and the next deploy
+pulls what it needs again:
 
 ```bash
 docker image prune --all
 ```
+
+The build cache should stay empty, because the server has not built its own images since #337. If
+`docker system df` shows one, it is safe to remove with `docker builder prune --all --force`.
 
 Do not use `docker system prune --volumes`. The volumes hold the database.
 
@@ -405,6 +409,10 @@ RDS upgrades are still tested only on PROD.
 - **No alerts and no uptime monitor.** NONPROD's metrics reach Grafana Cloud, but the alert rules
   only read `env="prod"`, so nothing tells you if NONPROD goes down. This is deliberate: an outage
   here pages nobody (#381).
+- **Shared Grafana Cloud key.** NONPROD's `GRAFANA_CLOUD_API_KEY` is PROD's key, reused on 2026-11-04
+  to unblock a release. It can only write logs and metrics, but replacing it for one environment
+  affects the other. To fix this, create a key with `logs:write` and `metrics:write`, set it in
+  `.env`, and run **Deploy NONPROD**.
 - **Rebuild not rehearsed.** Nobody has followed [Rebuild from nothing](#rebuild-from-nothing) from
   start to finish.
 - **#264:** Postgres has no developer access from outside the server.
