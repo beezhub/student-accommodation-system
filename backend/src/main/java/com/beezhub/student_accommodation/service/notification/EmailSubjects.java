@@ -15,7 +15,7 @@ public final class EmailSubjects {
     public static final String DOCUMENT_VERIFIED = "Document Verified - Student Accommodation";
     public static final String DOCUMENT_REJECTED = "Document Review Required - Student Accommodation";
     public static final String DOCUMENT_COMMENT = "Document Review: Action Required - Student Accommodation";
-    public static final String ROOM_ALLOCATED = "Room Allocation Confirmation - Student Accommodation";
+    public static final String ROOM_ALLOCATED = "Action Required: Accept Your Room Offer - Student Accommodation";
     public static final String ALLOCATION_PROPOSAL = "Room Allocation Proposal - Student Accommodation";
     public static final String ALLOCATION_CONFIRMED = "Room Allocation Confirmed - Student Accommodation";
     public static final String ALLOCATION_REJECTED = "Room Allocation Update - Student Accommodation";

@@ -85,6 +85,8 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - APP_SUPPORT_EMAIL=${APP_SUPPORT_EMAIL:-accommodation@university.edu}
       - APP_UNIVERSITY_NAME=${APP_UNIVERSITY_NAME:-University}
+      # Blank hides the phone number in the email footer, rather than print a made-up one.
+      - APP_CONTACT_PHONE=${APP_CONTACT_PHONE:-}
       # Read by application.yml, so it has to be forwarded: compose passes a container only the
       # variables listed here, not the whole .env. Blank keeps address lookup off.
       - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}

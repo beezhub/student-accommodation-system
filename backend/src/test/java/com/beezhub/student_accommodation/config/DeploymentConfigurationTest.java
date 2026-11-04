@@ -419,6 +419,17 @@ class DeploymentConfigurationTest {
                 .contains("GRAFANA_CLOUD_API_KEY=");
     }
 
+    /**
+     * Compose passes a container only the variables it lists, so without this line a value set in
+     * the host .env never reaches the backend and every email footer shows the placeholder from
+     * application.yml. Blank when unset, which hides the phone line rather than print a made-up
+     * number.
+     */
+    @Test
+    void contactPhone_isForwardedToTheBackendAndBlankWhenUnset() throws IOException {
+        assertThat(read("docker-compose.yml")).contains("- APP_CONTACT_PHONE=${APP_CONTACT_PHONE:-}");
+    }
+
     @Test
     void newSettingsAreDocumented() throws IOException {
         String env = read(".env.example");
