@@ -213,8 +213,28 @@ class AuthServiceTest {
                 () -> authService.unlockAccount(7L)).getMessage();
 
         assertTrue(message.startsWith("Thandi Mokoena is not linked to a company yet."), message);
-        assertTrue(message.contains("/api/admin/unassigned-admins/7/assign"), message);
-        assertFalse(message.toLowerCase().contains("tenant"), message);
+        // #413: there is a screen for it now, so the message names the clicks, not the API.
+        assertTrue(message.contains("Tenants > Manage admin users > Add Existing Admin"), message);
+        assertFalse(message.contains("/api/"), message);
+        assertFalse(message.toLowerCase().contains("tenant 0"), message);
+        assertFalse(message.toLowerCase().contains("platform tenant"), message);
+    }
+
+    /**
+     * The company admin screen offers tenant admins only (#413), so pointing building staff at it
+     * would send the admin to a list the person is not on. Their way out is still the API.
+     */
+    @Test
+    void unlockAccount_buildingStaffWithNoCompany_messagePointsAtTheApiNotTheScreen() {
+        when(userRepository.findById(7L)).thenReturn(Optional.of(
+                waitingAdmin(UserRole.BUILDING_STAFF, LocalDateTime.of(9999, 12, 31, 23, 59, 59))));
+
+        String message = assertThrows(UnassignedAdminUnlockException.class,
+                () -> authService.unlockAccount(7L)).getMessage();
+
+        assertTrue(message.startsWith("Thandi Mokoena is not linked to a company yet."), message);
+        assertTrue(message.contains("POST /api/admin/unassigned-admins/7/assign"), message);
+        assertFalse(message.contains("Add Existing Admin"), message);
     }
 
     /** A tenant admin locked out by failed sign-ins at its own company is an ordinary unlock. */

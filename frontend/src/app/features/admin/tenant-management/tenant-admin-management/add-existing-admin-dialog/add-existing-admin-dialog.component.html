@@ -1,0 +1,106 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="dialog-header-inner">
+      <div class="header-icon-wrap">
+        <mat-icon>person_add</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">Add Existing Admin</h2>
+        <p class="dialog-subtitle">Choose who will manage {{ data.tenantName || 'this property company' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <mat-dialog-content>
+    <div class="admin-form">
+      @if (serverError) {
+        <div class="server-error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ serverError }}</span>
+        </div>
+      }
+
+      @if (loadError) {
+        <div class="server-error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ loadError }}</span>
+        </div>
+      } @else if (loaded && waiting.length === 0) {
+        <div class="info-note" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <span>
+            No admins are waiting for a company. Create one in user management as a tenant admin,
+            leaving the company empty, then add them here.
+          </span>
+        </div>
+        <a mat-stroked-button routerLink="/admin/users" (click)="cancel()" class="full-width">
+          <mat-icon>manage_accounts</mat-icon>
+          Go to user management
+        </a>
+      } @else if (loaded) {
+        <div class="form-field-wrapper">
+          <label class="field-label" for="admin-search">
+            <mat-icon>search</mat-icon>
+            Admin waiting for a company <span class="required-mark">*</span>
+          </label>
+          <mat-form-field appearance="outline" class="full-width">
+            <input
+              id="admin-search"
+              matInput
+              [formControl]="search"
+              [matAutocomplete]="auto"
+              (input)="onType()"
+              placeholder="Type part of a name or email"
+              aria-describedby="admin-search-hint"
+            />
+            <mat-autocomplete
+              #auto="matAutocomplete"
+              [displayWith]="displayName"
+              (optionSelected)="choose($event.option.value)"
+            >
+              @for (admin of options; track admin.id) {
+                <mat-option [value]="admin">
+                  <span>{{ fullName(admin) }}</span>
+                  <small> · {{ admin.email }}</small>
+                  @if (admin.createdAt) {
+                    <small> · created {{ admin.createdAt | date: 'd MMM y' }}</small>
+                  }
+                </mat-option>
+              } @empty {
+                <mat-option disabled>Nobody waiting matches that</mat-option>
+              }
+            </mat-autocomplete>
+            <mat-hint id="admin-search-hint">{{ waiting.length }} waiting</mat-hint>
+          </mat-form-field>
+        </div>
+
+        @if (chosen) {
+          <div class="info-note" role="status" aria-live="polite">
+            <mat-icon>info_outline</mat-icon>
+            <span>
+              {{ fullName(chosen) }} becomes an admin of {{ data.tenantName || 'this property company' }}
+              and can sign in now. They will be asked to change their password.
+            </span>
+          </div>
+        }
+      }
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button mat-stroked-button (click)="cancel()" [disabled]="isSaving" class="cancel-btn">Cancel</button>
+    <button
+      mat-raised-button
+      (click)="confirm()"
+      [disabled]="isSaving || !chosen"
+      class="submit-btn"
+    >
+      @if (isSaving) {
+        <mat-spinner diameter="18"></mat-spinner>
+      } @else {
+        <mat-icon>person_add</mat-icon>
+      }
+      <span>{{ isSaving ? 'Adding...' : 'Add as Admin' }}</span>
+    </button>
+  </mat-dialog-actions>
+</div>

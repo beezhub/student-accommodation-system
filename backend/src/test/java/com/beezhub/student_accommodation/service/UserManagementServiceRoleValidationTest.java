@@ -25,6 +25,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -156,6 +159,45 @@ class UserManagementServiceRoleValidationTest {
         stubSuccessfulCreate(UserRole.BUILDING_STAFF);
 
         assertThat(createAndCapture(buildRequest("Building_Staff", 7L)).getTenantId()).isEqualTo(7L);
+    }
+
+    /**
+     * #413: users are created only here, and a company's admin screen picks an existing one. A
+     * tenant admin with no company yet waits on the platform tenant, locked exactly as
+     * V2026_09_06_1500 locks such accounts, because tenant 0 would otherwise open every company's
+     * data to it (GH-212). Assigning a company unlocks it (UnassignedAdminService.assignTenant).
+     */
+    @Test
+    @DisplayName("A TENANT_ADMIN created without a company waits locked on the platform tenant")
+    void createUser_tenantAdminWithoutCompany_waitsLockedOnThePlatformTenant() {
+        stubSuccessfulCreate(UserRole.TENANT_ADMIN);
+
+        AppUser saved = createAndCapture(buildRequest("Tenant_Admin"));
+
+        assertThat(saved.getTenantId()).isEqualTo(TenantContext.PLATFORM_TENANT_ID);
+        assertThat(saved.getAccountLockedUntil()).isEqualTo(LocalDateTime.of(9999, 12, 31, 23, 59, 59));
+        verify(tenantService, never()).requireTenantAcceptingNewRecords(any());
+    }
+
+    @Test
+    @DisplayName("A TENANT_ADMIN created with a company belongs to it and can sign in")
+    void createUser_tenantAdminWithCompany_belongsToItUnlocked() {
+        stubSuccessfulCreate(UserRole.TENANT_ADMIN);
+
+        AppUser saved = createAndCapture(buildRequest("Tenant_Admin", 7L));
+
+        assertThat(saved.getTenantId()).isEqualTo(7L);
+        assertThat(saved.getAccountLockedUntil()).isNull();
+    }
+
+    /** Only "no company" waits. Naming the platform tenant outright is the GH-146 mistake. */
+    @Test
+    @DisplayName("A TENANT_ADMIN with the platform tenant named outright is still rejected")
+    void createUser_tenantAdminWithPlatformTenant_throws() {
+        assertThatThrownBy(() -> userManagementService.createUser(buildRequest("Tenant_Admin", 0L)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("scoped to a specific institution tenant");
+        verify(userRepository, never()).save(any());
     }
 
     /**

@@ -22,6 +22,9 @@ export interface AdminUser {
   lastName: string;
   userRole: string;
   mustChangePassword?: boolean;
+  /** The user's company; 0 is the platform. See isWaitingForACompany (#413). */
+  tenantId?: number;
+  accountLockedUntil?: string;
 }
 
 export interface ApplicationResponse {

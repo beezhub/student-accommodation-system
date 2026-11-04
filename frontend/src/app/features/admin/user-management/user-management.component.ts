@@ -3,6 +3,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AdminService, AdminUser } from '../../../core/services/admin.service';
+import { isWaitingForACompany } from './waiting-for-a-company';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -215,5 +216,10 @@ export class UserManagementComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  /** A tenant admin with no company yet: it cannot sign in, so it must not look like it can. */
+  isWaitingForACompany(user: AdminUser): boolean {
+    return isWaitingForACompany(user);
   }
 }
