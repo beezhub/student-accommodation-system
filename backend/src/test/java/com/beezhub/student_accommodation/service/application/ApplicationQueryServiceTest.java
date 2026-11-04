@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service.application;
 
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
+ import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse;
 import com.beezhub.student_accommodation.model.dto.DocumentWithCommentsResponse;
@@ -14,11 +15,14 @@ import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.service.AuthService;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -27,6 +31,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +43,8 @@ class ApplicationQueryServiceTest {
     private AuthService authService;
     @Mock
     private ApplicationDocumentService applicationDocumentService;
+    @Spy
+    private TenantOwnershipGuard tenantOwnershipGuard = new TenantOwnershipGuard();
 
     @InjectMocks
     private ApplicationQueryService applicationQueryService;
@@ -180,6 +187,28 @@ class ApplicationQueryServiceTest {
                 .getApplicationFullDetailsEnhanced(1L, "other@example.com"))
                 .isInstanceOf(UnauthorizedAccessException.class)
                 .hasMessageContaining("not authorized");
+    }
+
+    @Test
+    void getApplicationFullDetailsEnhanced_tenantAdminOfAnotherTenant_shouldThrowNotFound() {
+        AppUser tenantAdmin = new AppUser();
+        tenantAdmin.setId(300L);
+        tenantAdmin.setUserRole(UserRole.TENANT_ADMIN);
+        application.setTenantId(2L);
+
+        when(authService.getCurrentUser()).thenReturn(tenantAdmin);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+
+        TenantContext.setTenantId(1L);
+        try {
+            assertThatThrownBy(() -> applicationQueryService
+                    .getApplicationFullDetailsEnhanced(1L, "tenant.admin@example.com"))
+                    .isInstanceOf(ResourceNotFoundException.class);
+        } finally {
+            TenantContext.clear();
+        }
+
+        verifyNoInteractions(applicationDocumentService);
     }
 
     @Test

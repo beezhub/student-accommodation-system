@@ -221,7 +221,7 @@ public class ApplicationController {
                         @ApiResponse(responseCode = "404", description = "Application not found")
         })
         @GetMapping("/{applicationId}/full-details")
-        @PreAuthorize("hasAnyRole('STUDENT', 'PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('STUDENT', 'PLATFORM_ADMIN', 'TENANT_ADMIN')")
         public ResponseEntity<ApplicationFullDetailsResponse> getApplicationFullDetails(
                         @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId,
                         Authentication authentication) {
