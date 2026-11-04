@@ -93,6 +93,37 @@ class DeploymentConfigurationTest {
     }
 
     /**
+     * infra/terraform/prod-grafana/dashboards.tf copies these dashboards to Grafana Cloud (#340) by
+     * rewriting each panel's and each query's data source one level deep. A row, a nested panel or a
+     * panel without its own data source would break that at terraform plan, far from the change
+     * that caused it, so the shape is pinned here.
+     */
+    @Test
+    void grafanaDashboards_haveTheFlatShapeTheProdCopyRewrites() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        try (Stream<Path> files = Files.list(REPO_ROOT.resolve("tools/grafana/dashboards"))) {
+            for (Path file : files.filter(p -> p.toString().endsWith(".json")).toList()) {
+                String name = file.getFileName().toString();
+                var dashboard = mapper.readTree(file.toFile());
+
+                assertThat(dashboard.path("uid").asText()).as(name + " uid").isNotBlank();
+                assertThat(dashboard.path("panels").isArray()).as(name + " panels").isTrue();
+                for (var panel : dashboard.path("panels")) {
+                    String where = name + " panel \"" + panel.path("title").asText() + "\"";
+                    assertThat(panel.path("type").asText()).as(where).isNotEqualTo("row");
+                    assertThat(panel.has("panels")).as(where + " nested panels").isFalse();
+                    assertThat(panel.path("datasource").path("type").asText()).as(where + " datasource")
+                            .isNotBlank();
+                    assertThat(panel.path("targets").isArray()).as(where + " targets").isTrue();
+                    for (var target : panel.path("targets")) {
+                        assertThat(target.has("datasource")).as(where + " query datasource").isTrue();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Grafana builds its redirects from GRAFANA_ROOT_URL, which ends in /grafana. Without sub-path
      * serving the login page redirects to itself forever; without the Caddy route /grafana reaches
      * the frontend instead.
