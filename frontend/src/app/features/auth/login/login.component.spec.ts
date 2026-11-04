@@ -32,6 +32,7 @@ describe('LoginComponent returnUrl handling', () => {
     authService = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
     roleService = jasmine.createSpyObj<RoleService>('RoleService', [
       'isPlatformAdmin',
+      'isPlatformStaff',
       'isTenantAdmin',
     ]);
     roleService.isPlatformAdmin.and.returnValue(false);
@@ -80,6 +81,15 @@ describe('LoginComponent returnUrl handling', () => {
     await signInFrom('/login');
 
     expect(navigate).toHaveBeenCalledWith(['/dashboard']);
+  });
+
+  it('platformStaffWithNoReturnUrl_landsOnAdmin', async () => {
+    roleService.isPlatformStaff.and.returnValue(true);
+    const navigate = spyOn(router, 'navigate').and.callThrough();
+
+    await signInFrom('/login');
+
+    expect(navigate).toHaveBeenCalledWith(['/admin']);
   });
 
   it('adminWithNoReturnUrl_landsOnAdmin', async () => {
@@ -137,6 +147,7 @@ describe('LoginComponent passwordChanged message', () => {
     authService = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
     roleService = jasmine.createSpyObj<RoleService>('RoleService', [
       'isPlatformAdmin',
+      'isPlatformStaff',
       'isTenantAdmin',
     ]);
 

@@ -188,7 +188,7 @@
                       aria-label="Override platform default document type">
                       <mat-icon>edit_note</mat-icon>
                     </button>
-                  } @else {
+                  } @else if (canMutate(docType)) {
                     <!-- Normal admin actions (enabled for own types, and for PLATFORM_ADMIN on any type) -->
                     <button
                       mat-icon-button

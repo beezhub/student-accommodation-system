@@ -72,10 +72,9 @@ export class DocumentTypeManagementComponent implements OnInit {
     return this.roleService.isTenantAdmin();
   }
 
-  /** Returns false for platform-default types when the user is TENANT_ADMIN. */
+  /** Platform-default types can only be changed by PLATFORM_ADMIN (guardPlatformType answers 403). */
   canMutate(docType: DocumentTypeResponse): boolean {
-    if (this.isTenantAdmin && docType.isPlatformDefault) return false;
-    return true;
+    return !docType.isPlatformDefault || this.roleService.isPlatformAdmin();
   }
 
   documentTypes: DocumentTypeResponse[] = [];
