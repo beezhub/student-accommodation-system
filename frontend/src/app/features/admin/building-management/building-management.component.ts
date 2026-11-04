@@ -197,6 +197,17 @@ export class BuildingManagementComponent implements OnInit {
     return (f + l).toUpperCase();
   }
 
+  async openAccessibilityDialog(building: BuildingResponse): Promise<void> {
+    const m = await import(
+      './building-accessibility-dialog/building-accessibility-dialog.component'
+    );
+    this.dialog.open(m.BuildingAccessibilityDialogComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+      data: { building },
+    });
+  }
+
   openImageDialog(building: BuildingResponse): void {
     import('./building-image-dialog/building-image-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.BuildingImageDialogComponent, {

@@ -604,6 +604,10 @@
 
 ## E. Admin — Building Attributes
 
+> **Screen (#305):** the app edits only accessibility features, from a building's menu in Building
+> Management: Accessibility Features. Gender is set per room in Room Management. The building-level
+> gender cases below are API checks of deprecated fields: run them with `PUT`, not a screen.
+
 ### TC-BLD-022: Set gender restriction to ANY
 
 | Field | Value |

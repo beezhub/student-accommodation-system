@@ -1,0 +1,80 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="header-icon-wrap" aria-hidden="true">
+      <mat-icon>accessible</mat-icon>
+    </div>
+    <div class="header-text">
+      <h2 mat-dialog-title>Accessibility Features</h2>
+      <p class="subtitle">{{ data.building.name }}</p>
+    </div>
+  </div>
+
+  <mat-dialog-content>
+    @if (isLoading) {
+      <div class="loading-state">
+        <mat-spinner diameter="36"></mat-spinner>
+        <p>Loading features...</p>
+      </div>
+    } @else if (loadFailed) {
+      <div class="message error" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>This building's accessibility features could not be loaded. Close this and try again.</span>
+      </div>
+    } @else {
+      <p class="section-desc">
+        Shown on this building's public page. Type a feature, such as Ramp access, and press Enter.
+        Accessibility and gender for a single room are set on that room.
+      </p>
+
+      @if (saveError) {
+        <div class="message error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ saveError }}</span>
+        </div>
+      }
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Features</mat-label>
+        <mat-chip-grid #featureGrid aria-label="Accessibility features">
+          @for (feature of features; track feature) {
+            <mat-chip-row (removed)="removeFeature(feature)">
+              {{ feature }}
+              <button matChipRemove [attr.aria-label]="'Remove ' + feature">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip-row>
+          }
+          <input
+            class="feature-input"
+            placeholder="Add a feature"
+            maxlength="100"
+            [matChipInputFor]="featureGrid"
+            [matChipInputSeparatorKeyCodes]="separatorKeys"
+            [matChipInputAddOnBlur]="true"
+            (matChipInputTokenEnd)="onChipInput($event)"
+            (input)="onType($any($event.target).value)"
+          />
+        </mat-chip-grid>
+      </mat-form-field>
+
+      @if (features.length === 0) {
+        <div class="message note" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <span>No features listed, so the public page hides its Accessibility section.</span>
+        </div>
+      }
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="cancel()" [disabled]="isSaving" class="cancel-btn">Cancel</button>
+    <button mat-raised-button (click)="save()" [disabled]="!canSave" class="save-btn">
+      @if (isSaving) {
+        <mat-spinner diameter="18"></mat-spinner>
+      } @else {
+        <mat-icon>save</mat-icon>
+      }
+      {{ isSaving ? 'Saving...' : 'Save' }}
+    </button>
+  </mat-dialog-actions>
+</div>

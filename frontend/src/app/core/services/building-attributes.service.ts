@@ -3,78 +3,42 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
-export enum GenderRestriction {
-  NONE = 'NONE',
-  MALE_ONLY = 'MALE_ONLY',
-  FEMALE_ONLY = 'FEMALE_ONLY',
-  MIXED = 'MIXED',
-}
-
+/**
+ * The part of a building's attributes this app edits. The backend's gender and desirability fields
+ * are deprecated: gender is managed on rooms (room-attributes.service.ts).
+ */
 export interface BuildingAttributes {
-  id: number;
   buildingId: number;
-  genderRestriction: GenderRestriction;
-  hasElevator: boolean;
-  wheelchairAccessible: boolean;
-  desirabilityScore: number; // 0-100
-  accessType: string; // e.g., 'RFID', 'KEY'
-  amenities: string[]; // e.g., ['GYM', 'LAUNDRY']
-  updatedAt: string;
+  /** A JSON list of text, such as `["Ramp access"]`; empty until a feature is saved. */
+  accessibilityFeatures?: string | null;
 }
 
-export interface RoomAttributes {
-  id?: number;
-  roomId: number;
-  roomNumber?: string;
-  buildingId?: number;
-  buildingName?: string;
-  accessibilityCompliant: boolean;
-  genderRestriction: GenderRestriction;
-  minYearOfStudy?: number;
-  maxYearOfStudy?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
+/** The accessibility dialog shows its own message on failure, so the interceptor's would repeat it. */
+const SILENT = new HttpHeaders({ 'X-Silent-Error': 'true' });
 
 @Injectable({
   providedIn: 'root',
 })
 export class BuildingAttributesService {
-  private apiUrl = `${environment.apiUrl}/admin`;
+  private apiUrl = `${environment.apiUrl}/admin/buildings`;
 
   private http = inject(HttpClient);
 
-  constructor() {}
-
   getBuildingAttributes(buildingId: number): Observable<BuildingAttributes> {
-    return this.http.get<BuildingAttributes>(`${this.apiUrl}/buildings/${buildingId}/attributes`);
+    return this.http.get<BuildingAttributes>(`${this.apiUrl}/${buildingId}/attributes`, {
+      headers: SILENT,
+    });
   }
 
-  /** Silent because the attributes screen shows its own message on save failure. */
-  saveBuildingAttributes(
+  /** The backend leaves any field not sent as it is, so this touches only the features. */
+  saveAccessibilityFeatures(
     buildingId: number,
-    attributes: Partial<BuildingAttributes>
+    features: string[]
   ): Observable<BuildingAttributes> {
     return this.http.put<BuildingAttributes>(
-      `${this.apiUrl}/buildings/${buildingId}/attributes`,
-      attributes,
-      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+      `${this.apiUrl}/${buildingId}/attributes`,
+      { buildingId, accessibilityFeatures: JSON.stringify(features) },
+      { headers: SILENT }
     );
-  }
-
-  getRoomAttributes(buildingId: number): Observable<RoomAttributes[]> {
-    return this.http.get<RoomAttributes[]>(
-      `${this.apiUrl}/buildings/${buildingId}/rooms/attributes`
-    );
-  }
-
-  /** Silent for the same reason as saveBuildingAttributes above. */
-  saveRoomAttributes(
-    roomId: number,
-    attributes: Partial<RoomAttributes>
-  ): Observable<RoomAttributes> {
-    return this.http.put<RoomAttributes>(`${this.apiUrl}/rooms/${roomId}/attributes`, attributes, {
-      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
-    });
   }
 }
