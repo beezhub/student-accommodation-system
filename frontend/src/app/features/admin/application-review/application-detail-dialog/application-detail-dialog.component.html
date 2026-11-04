@@ -72,6 +72,18 @@
     <!-- Main Content -->
     <div *ngIf="!isLoading && !loadError && applicationDetails" class="dialog-body">
 
+      <!-- Where the application stands, when the footer has no decision to offer -->
+      @if (nextStepHint || applicationDetails.remarks) {
+        <div class="review-note" role="status">
+          @if (nextStepHint) {
+            <p>{{ nextStepHint }}</p>
+          }
+          @if (applicationDetails.remarks) {
+            <p><strong>Last reviewer note:</strong> {{ applicationDetails.remarks }}</p>
+          }
+        </div>
+      }
+
       <!-- Rejection Banner (inline, top of body) -->
       @if (showRejectionForm) {
         <div class="rejection-banner">
@@ -414,11 +426,23 @@
     <button
       mat-button
       (click)="toggleRejectionForm()"
-      [disabled]="isSaving || isMovingToAllocation || isRejecting || isApproving || showRejectionForm"
+      [disabled]="isBusy || showRejectionForm"
       *ngIf="applicationDetails?.status !== 'REJECTED' && applicationDetails?.status !== 'APPROVED' && applicationDetails?.status !== 'AWAITING_ALLOCATION'"
       class="footer-btn reject-btn">
       <mat-icon aria-hidden="true">block</mat-icon>
       Reject
+    </button>
+
+    <button
+      mat-stroked-button
+      (click)="requestChanges()"
+      [disabled]="hasUnsavedChanges() || isBusy"
+      [matTooltip]="hasUnsavedChanges() ? 'Save your progress first' : ''"
+      *ngIf="canRequestChanges"
+      class="footer-btn">
+      <mat-spinner *ngIf="isRequestingChanges" diameter="18"></mat-spinner>
+      <mat-icon *ngIf="!isRequestingChanges" aria-hidden="true">edit_note</mat-icon>
+      Request Changes
     </button>
 
     <span class="footer-spacer"></span>
@@ -426,7 +450,7 @@
     <button
       mat-stroked-button
       (click)="saveProgress()"
-      [disabled]="!hasUnsavedChanges() || isSaving || isMovingToAllocation || isRejecting || isApproving"
+      [disabled]="!hasUnsavedChanges() || isBusy"
       class="footer-btn save-btn">
       <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
       <mat-icon *ngIf="!isSaving" aria-hidden="true">save</mat-icon>
@@ -434,15 +458,38 @@
     </button>
 
     <button
+      mat-stroked-button
+      (click)="markUnderReview()"
+      [disabled]="isBusy"
+      *ngIf="canMarkUnderReview"
+      class="footer-btn">
+      <mat-spinner *ngIf="isMarkingUnderReview" diameter="18"></mat-spinner>
+      <mat-icon *ngIf="!isMarkingUnderReview" aria-hidden="true">rate_review</mat-icon>
+      Mark Under Review
+    </button>
+
+    <button
       mat-raised-button
       (click)="approveApplication()"
-      [disabled]="!allRequiredApproved || hasUnsavedChanges() || isSaving || isMovingToAllocation || isRejecting || isApproving"
+      [disabled]="!allRequiredApproved || hasUnsavedChanges() || isBusy"
       [matTooltip]="!allRequiredApproved ? 'All required documents must be approved first' : (hasUnsavedChanges() ? 'Save your progress first' : '')"
       *ngIf="applicationDetails?.status === 'PENDING' || applicationDetails?.status === 'UNDER_REVIEW'"
       class="footer-btn approve-btn">
       <mat-spinner *ngIf="isApproving" diameter="18"></mat-spinner>
       <mat-icon *ngIf="!isApproving" aria-hidden="true">check_circle</mat-icon>
       Approve Application
+    </button>
+
+    <button
+      mat-raised-button
+      (click)="moveToAllocation()"
+      [disabled]="!allRequiredApproved || hasUnsavedChanges() || isBusy"
+      [matTooltip]="!allRequiredApproved ? 'All required documents must be approved first' : (hasUnsavedChanges() ? 'Save your progress first' : '')"
+      *ngIf="canMoveToAllocation"
+      class="footer-btn approve-btn">
+      <mat-spinner *ngIf="isMovingToAllocation" diameter="18"></mat-spinner>
+      <mat-icon *ngIf="!isMovingToAllocation" aria-hidden="true">arrow_forward</mat-icon>
+      Move to Allocation
     </button>
   </mat-dialog-actions>
 </div>

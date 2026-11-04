@@ -1,8 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { ApplicationDetailDialogComponent } from './application-detail-dialog.component';
+import { Application } from '../../../../core/models/application.model';
 import {
   ApplicationFullDetails,
   ApplicationService,
@@ -127,6 +128,149 @@ describe('ApplicationDetailDialogComponent', () => {
       expect(component.applicationDetails!.requiredDocumentsChecklist.documents[0].status).toBe(
         'PENDING'
       );
+    });
+  });
+
+  describe('review actions', () => {
+    const MARK = 'Mark Under Review';
+    const REQUEST = 'Request Changes';
+    const MOVE = 'Move to Allocation';
+
+    function footerButton(label: string): HTMLButtonElement | undefined {
+      fixture.detectChanges();
+      const buttons: HTMLButtonElement[] = Array.from(
+        fixture.nativeElement.querySelectorAll('mat-dialog-actions button')
+      );
+      return buttons.find((b) => (b.textContent ?? '').includes(label));
+    }
+
+    const expectedActions: Record<string, string[]> = {
+      PENDING: [MARK],
+      UNDER_REVIEW: [REQUEST],
+      CHANGES_REQUESTED: [],
+      APPROVED: [MOVE],
+      AWAITING_ALLOCATION: [],
+      ALLOCATED: [],
+      CHECKED_IN: [],
+      REJECTED: [],
+      EXPIRED: [],
+      CANCELLED: [],
+    };
+
+    Object.entries(expectedActions).forEach(([status, expected]) => {
+      it(`footer_${status}_offersOnlyLegalReviewActions`, () => {
+        create(details(status, 'APPROVED'));
+
+        const offered = [MARK, REQUEST, MOVE].filter((label) => footerButton(label));
+
+        expect(offered).toEqual(expected);
+      });
+    });
+
+    it('markUnderReview_pending_movesStatusAndKeepsDialogOpen', () => {
+      create(details('PENDING'));
+      applicationService.markUnderReview.and.returnValue(
+        of({ id: 7, status: 'UNDER_REVIEW' } as Application)
+      );
+
+      footerButton(MARK)!.click();
+
+      expect(applicationService.markUnderReview).toHaveBeenCalledOnceWith(7);
+      expect(TestBed.inject(MatDialogRef).close).not.toHaveBeenCalled();
+      expect(footerButton(REQUEST)).toBeDefined();
+      expect(footerButton(MARK)).toBeUndefined();
+    });
+
+    it('closeDialog_afterStatusMoved_tellsTheListToReload', () => {
+      create(details('PENDING'));
+      applicationService.markUnderReview.and.returnValue(
+        of({ id: 7, status: 'UNDER_REVIEW' } as Application)
+      );
+      component.markUnderReview();
+
+      component.closeDialog();
+
+      expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalledOnceWith({
+        action: 'saved',
+        applicationId: 7,
+        newStatus: 'UNDER_REVIEW',
+      });
+    });
+
+    it('closeDialog_nothingMoved_reportsClosed', () => {
+      create(details('PENDING'));
+
+      component.closeDialog();
+
+      expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalledOnceWith({
+        action: 'closed',
+        applicationId: 7,
+      });
+    });
+
+    function answerReasonDialog(reason: string | null): void {
+      // The component's own instance: its imports provide MatDialog separately from the root one.
+      spyOn(fixture.debugElement.injector.get(MatDialog), 'open').and.returnValue({
+        afterClosed: () => of(reason),
+      } as unknown as MatDialogRef<unknown>);
+    }
+
+    it('requestChanges_reasonGiven_sendsItAndCloses', () => {
+      create(details('UNDER_REVIEW'));
+      answerReasonDialog('Proof of registration is for the wrong year');
+      applicationService.requestChanges.and.returnValue(
+        of({ id: 7, status: 'CHANGES_REQUESTED' } as Application)
+      );
+
+      footerButton(REQUEST)!.click();
+
+      expect(applicationService.requestChanges).toHaveBeenCalledOnceWith(
+        7,
+        'Proof of registration is for the wrong year'
+      );
+      expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalledOnceWith({
+        action: 'saved',
+        applicationId: 7,
+        newStatus: 'CHANGES_REQUESTED',
+      });
+    });
+
+    it('requestChanges_reasonDialogDismissed_sendsNothing', () => {
+      create(details('UNDER_REVIEW'));
+      answerReasonDialog(null);
+
+      component.requestChanges();
+
+      expect(applicationService.requestChanges).not.toHaveBeenCalled();
+      expect(TestBed.inject(MatDialogRef).close).not.toHaveBeenCalled();
+    });
+
+    it('requestChanges_unsavedDocumentChanges_isDisabled', () => {
+      create(details('UNDER_REVIEW'));
+
+      component.onDocumentStatusChange(component.documents[0], 'REJECTED');
+
+      expect(footerButton(REQUEST)!.disabled).toBeTrue();
+    });
+
+    it('moveToAllocation_approved_callsTheBackendAndCloses', () => {
+      create(details('APPROVED', 'APPROVED'));
+      applicationService.moveToAllocationPhase.and.returnValue(of({ id: 7 } as Application));
+
+      footerButton(MOVE)!.click();
+
+      expect(applicationService.moveToAllocationPhase).toHaveBeenCalledOnceWith(7);
+      expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalledOnceWith({
+        action: 'allocated',
+        applicationId: 7,
+        newStatus: 'AWAITING_ALLOCATION',
+      });
+    });
+
+    it('moveToAllocation_documentsNotApproved_isDisabled', () => {
+      create(details('APPROVED', 'PENDING'));
+
+      expect(footerButton(MOVE)!.disabled).toBeTrue();
     });
   });
 });
