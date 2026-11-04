@@ -95,7 +95,9 @@ The **Deploy NONPROD** workflow (`.github/workflows/deploy.yml`) then:
 2. Builds both images on GitHub's ARM runners and pushes them to ECR.
 3. Checks that `/opt/sas/.env` has every key the Compose files need, and stops if not. Nothing on
    the server has changed at this point.
-4. Copies the commit to `/opt/sas`, pulls the images and starts them.
+4. Copies the commit to `/opt/sas`, pulls the images and starts them. It then restarts any container
+   whose mounted config file changed, and the log names it (`tools/deploy/restart-changed-config.sh`).
+   Compose would otherwise leave that container running the old file.
 5. Waits for readiness, then saves the release for PROD. The run summary shows the run id to promote.
 
 ```mermaid
@@ -128,10 +130,6 @@ PROD runbook.
 - **It does not write `.env`.** A new required key stops the deploy at step 3. See
   [Changing a setting](#changing-a-setting).
 - **It does not update Caddy.** See [Changing Caddy](#changing-caddy).
-- **It does not pick up a changed config file.** Compose recreates a container when its settings
-  change, not when the content of a mounted file changes. After a release that changes a file under
-  `tools/alloy/` or `tools/postgres/`, run `docker restart` on that container, or it keeps the old
-  file. NONPROD's Alloy ran without the `?token=` masking for this reason.
 - **It does not keep your files.** It deletes every file in `/opt/sas` that is not in the commit.
   Only `.env`, `.env.bak-*`, `.backup-*` and `frontend/node_modules` stay. Keep anything else, such
   as a database dump, outside `/opt/sas`.

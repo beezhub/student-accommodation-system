@@ -726,6 +726,31 @@ class DeploymentConfigurationTest {
                 .contains("EXAMPLE_DATA=true");
     }
 
+    /**
+     * Compose recreates a container when its settings change, not when a mounted file's content
+     * does, so the running container kept the old file. That left NONPROD's Alloy without the token
+     * masking for days (#411). Both deploys must look after `up`, and before readiness is judged.
+     */
+    @Test
+    void deploys_restartContainersWhoseConfigFileChanged() throws IOException {
+        String step = "bash tools/deploy/restart-changed-config.sh";
+        String nonprod = readLf(".github/workflows/deploy.yml");
+        String prod = readLf("tools/prod/start.sh");
+
+        assertThat(nonprod.indexOf(step))
+                .isGreaterThan(nonprod.indexOf("docker compose $F up -d --no-build --remove-orphans"))
+                .isLessThan(nonprod.indexOf("- name: Smoke check"));
+        assertThat(prod.indexOf(step))
+                .isGreaterThan(prod.indexOf("docker compose $F up -d --no-build --remove-orphans"))
+                .isLessThan(prod.indexOf("readiness OK after"));
+        assertThat(readLf("tools/deploy/restart-changed-config.sh"))
+                .contains("{{if eq .Type \"bind\"}}")
+                .contains("sha256sum")
+                .contains("docker restart")
+                .as("docker exec prints failures to stdout; an image with no sha256sum must not look changed")
+                .contains("=~ ^[0-9a-f]{64}$");
+    }
+
     /** A step that runs Compose with other files would act on a different stack. */
     @Test
     void nonprodDeploy_usesTheFiveFilesInEveryStep() throws IOException {

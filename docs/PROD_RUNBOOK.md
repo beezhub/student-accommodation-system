@@ -69,8 +69,9 @@ To roll back, run it again with the previous release's NONPROD run id, if the ru
    and names the key.
 
 4. **Pull and start:** `tools/prod/ssmrun.sh tools/prod/start.sh`. It prints `schema_before=`,
-   pulls (three tries, and stops before `up` if all fail), waits for readiness, prints
-   `schema_after=`, and ends with the running digests, the error count and memory.
+   pulls (three tries, and stops before `up` if all fail), restarts any container whose mounted
+   config file changed (#411), waits for readiness, prints `schema_after=`, and ends with the running
+   digests, the error count and memory.
 
 5. **Check from outside:** `curl -sI https://accommodation.beezhub.co.za/` returns 200, and the
    `Content-Security-Policy` header matches the release.

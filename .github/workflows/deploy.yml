@@ -249,6 +249,7 @@ jobs:
           export BACKEND_IMAGE FRONTEND_IMAGE
           F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.aws.yml -f docker-compose.nonprod.yml"
           docker compose $F up -d --no-build --remove-orphans
+          bash tools/deploy/restart-changed-config.sh
           REMOTE
 
       # Readiness, not /actuator/health. The aggregate includes the SMTP, storage and Redis
