@@ -98,8 +98,51 @@ Use `--type SecureString` for anything secret, and enter secrets through a promp
 command line (see Grafana token below). Then redeploy the current release: run Deploy PROD with the same NONPROD run id (or steps 3 and 4
 by hand).
 
-The database login is not in SSM: `write-env.sh` reads it from the RDS-managed secret every time, so
-it always matches what RDS holds.
+The database login is not in SSM: `write-env.sh` reads it from the RDS-managed secret on every
+deploy. Only on a deploy, though, which is what the next section is about.
+
+## The database password
+
+RDS keeps the master password in Secrets Manager and rotates it **once a year**
+(`aws_secretsmanager_secret_rotation.db_master` in `infra/terraform/prod/database.tf`). The backend
+does not read the secret itself: it runs on the copy `write-env.sh` put in `/opt/sas/.env` at the
+last deploy. After a rotation, the connection pool replaces its connections within 10 minutes and
+each new one is refused, so **the site goes down about 10 minutes after any rotation until PROD is
+redeployed** (#407). While RDS used its default 7-day schedule, that would have happened every week.
+
+The daily backup is not affected: `backup-db.sh` reads the secret on every run.
+
+**When it rotates next:**
+
+```bash
+MSYS_NO_PATHCONV=1 aws secretsmanager describe-secret --region af-south-1 \
+  --secret-id "$(MSYS_NO_PATHCONV=1 aws rds describe-db-instances --region af-south-1 \
+    --db-instance-identifier sas-prod --query 'DBInstances[0].MasterUserSecret.SecretArn' --output text)" \
+  --query '{Last:LastRotatedDate, Next:NextRotationDate, Rules:RotationRules}'
+```
+
+**Rotate on purpose, before that date,** at a quiet time, so the outage is a minute you chose rather
+than ten minutes at night:
+
+1. Have the NONPROD run id of the release PROD runs now (the last green Deploy PROD run's summary).
+2. Rotate, with the secret ARN from the command above:
+
+   ```bash
+   MSYS_NO_PATHCONV=1 aws secretsmanager rotate-secret --region af-south-1 --secret-id '<SecretArn>'
+   ```
+
+   It takes a few seconds. Run the "when it rotates next" command again until `Last` shows the time
+   you rotated; a deploy before that would copy the old password.
+
+3. Straight away, run **Deploy PROD** with that same run id. `write-env.sh` picks up the new
+   password and `start.sh` restarts the backend with it.
+4. Check the site and `start.sh`'s `errors since start: 0`. The next rotation is now a year away.
+
+**If the site is already down** and the backend log shows `password authentication failed for user
+"sas_admin"`, a rotation happened: do step 3.
+
+A restored database keeps the password it had at that time (`docs/BACKUP_AND_RESTORE.md`), so after a
+restore the same redeploy applies.
 
 ## First deploy only
 
