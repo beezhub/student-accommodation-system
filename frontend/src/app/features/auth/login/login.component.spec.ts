@@ -4,7 +4,8 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { of } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
 
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../../core/services/auth.service';
@@ -122,6 +123,43 @@ describe('LoginComponent returnUrl handling', () => {
     expect(navigate).toHaveBeenCalledWith(['/change-password'], {
       queryParams: { forced: 'true' },
     });
+  });
+});
+
+/**
+ * #441: the backend's ErrorResponse only has errors[], so a wrong password fell through to Angular's
+ * own "Http failure response for .../api/auth/login: 401".
+ */
+describe('LoginComponent failed sign-in message', () => {
+  it('wrongPassword_showsTheBackendReason', async () => {
+    const authService = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
+    authService.login.and.returnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 401,
+            url: 'http://localhost:8080/api/auth/login',
+            error: { status: 401, errors: ['Invalid email or password'] },
+          })
+      )
+    );
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([{ path: 'login', component: LoginComponent }]),
+        provideLocationMocks(),
+        provideNoopAnimations(),
+        { provide: AuthService, useValue: authService },
+      ],
+    });
+    const open = spyOn(MatSnackBar.prototype, 'open').and.callThrough();
+
+    const harness = await RouterTestingHarness.create();
+    const component = await harness.navigateByUrl('/login', LoginComponent);
+    component.loginForm.setValue({ email: 'a@b.com', password: 'wrong-password' });
+    component.onSubmit();
+
+    expect(component.errorMessage).toBe('Invalid email or password');
+    expect(open).toHaveBeenCalledWith('Invalid email or password', 'Close', jasmine.any(Object));
   });
 });
 

@@ -231,12 +231,9 @@ export class NewApplicationComponent implements OnInit {
         error: (error) => {
           this.isSubmitting = false;
           console.error('Error submitting application:', error);
+          // Shown inline. errorInterceptor has already opened the snackbar with the backend's
+          // reason, so opening another here could only replace it (#441).
           this.submitError = this.errorService.parseError(error);
-
-          // Don't show snackbar for validation errors - they'll see the inline error
-          if (this.submitError.type !== 'validation') {
-            this.errorService.showErrorSnackbar(this.submitError);
-          }
           this.cdr.markForCheck();
         },
       });

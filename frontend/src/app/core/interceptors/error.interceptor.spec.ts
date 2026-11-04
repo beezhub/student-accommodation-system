@@ -109,6 +109,20 @@ describe('errorInterceptor', () => {
     expect(snackBar.open).not.toHaveBeenCalled();
   });
 
+  /** #441: nginx refuses a large upload with an HTML page, so there is no backend reason to show. */
+  it('payloadTooLarge_saysTheFileIsTooLarge', async () => {
+    await run(
+      new HttpRequest('POST', '/api/documents/upload', null),
+      new HttpErrorResponse({ status: 413, error: '<html><body>413</body></html>' })
+    );
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('That file is too large'),
+      'Close',
+      jasmine.any(Object)
+    );
+  });
+
   it('unauthorizedResponse_stillRedirectsToLoginWithTheCurrentUrl', async () => {
     await run(
       new HttpRequest('GET', '/api/admin/system-settings'),
