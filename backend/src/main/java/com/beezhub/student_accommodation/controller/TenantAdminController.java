@@ -1,7 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
 import com.beezhub.student_accommodation.model.dto.MoveTenantAdminRequestDto;
-import com.beezhub.student_accommodation.model.dto.TenantAdminRequestDto;
 import com.beezhub.student_accommodation.model.dto.TenantAdminResponseDto;
 import com.beezhub.student_accommodation.service.TenantAdminService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +14,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Lists, moves and deactivates a company's admins. It does not create them: accounts are made in
+ * user management only, and a company adds an existing one through
+ * {@code POST /api/admin/unassigned-admins/{id}/assign} (#413).
+ */
 @RestController
 @RequestMapping("/api/admin/tenants/{tenantId}/admins")
 @RequiredArgsConstructor
@@ -30,17 +34,6 @@ public class TenantAdminController {
     @GetMapping
     public ResponseEntity<List<TenantAdminResponseDto>> listTenantAdmins(@PathVariable Long tenantId) {
         return ResponseEntity.ok(tenantAdminService.listTenantAdmins(tenantId));
-    }
-
-    @Operation(summary = "Create a tenant admin user")
-    @ApiResponse(responseCode = "201", description = "Tenant admin created")
-    @ApiResponse(responseCode = "404", description = "Tenant not found")
-    @ApiResponse(responseCode = "409", description = "Email already in use or tenant is inactive")
-    @PostMapping
-    public ResponseEntity<TenantAdminResponseDto> createTenantAdmin(
-            @PathVariable Long tenantId,
-            @Valid @RequestBody TenantAdminRequestDto request) {
-        return ResponseEntity.status(201).body(tenantAdminService.createTenantAdmin(tenantId, request));
     }
 
     @Operation(summary = "Deactivate a tenant admin user")

@@ -199,11 +199,16 @@ public class AuthService {
 
         if (isWaitingForACompany(user)) {
             log.warn("action=unlockRefused reason=noCompany userId={} role={}", userId, user.getUserRole());
+            // The company admin screen (#413) offers tenant admins only, so building staff are
+            // still pointed at the API; the screen labels are the ones the admin clicks.
+            String wayOut = user.getUserRole() == UserRole.TENANT_ADMIN
+                    ? "Tenants > Manage admin users > Add Existing Admin"
+                    : "POST /api/admin/unassigned-admins/" + userId + "/assign";
             throw new UnassignedAdminUnlockException(String.format(
                     "%s %s is not linked to a company yet. Unlocking would give them access to every "
-                            + "company's data. Assign them to a company instead, which unlocks the "
-                            + "account too: POST /api/admin/unassigned-admins/%d/assign.",
-                    user.getFirstName(), user.getLastName(), userId));
+                            + "company's data. Add them to a company instead, which unlocks the account "
+                            + "too: %s.",
+                    user.getFirstName(), user.getLastName(), wayOut));
         }
 
         user.setAccountLockedUntil(null);

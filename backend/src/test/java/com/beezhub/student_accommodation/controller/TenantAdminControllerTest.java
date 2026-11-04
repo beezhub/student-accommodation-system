@@ -1,7 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
 import com.beezhub.student_accommodation.config.SecurityConfig;
-import com.beezhub.student_accommodation.model.dto.TenantAdminRequestDto;
 import com.beezhub.student_accommodation.model.dto.TenantAdminResponseDto;
 import com.beezhub.student_accommodation.security.RateLimitingFilter;
 import com.beezhub.student_accommodation.service.TenantAdminService;
@@ -117,46 +116,21 @@ class TenantAdminControllerTest {
                 .andExpect(status().isForbidden());
     }
 
-    // ── Create admin ─────────────────────────────────────────────────────────
+    // ── No create here ───────────────────────────────────────────────────────
 
+    /**
+     * #413: users are created and managed in user management only. A company's admin screen adds
+     * an existing account (POST /api/admin/unassigned-admins/{id}/assign) instead of making one.
+     */
     @Test
     @WithMockUser(roles = "PLATFORM_ADMIN")
-    @DisplayName("POST /api/admin/tenants/{id}/admins — 201 for PLATFORM_ADMIN")
-    void createAdmin_platformAdmin_returns201() throws Exception {
-        TenantAdminRequestDto request = new TenantAdminRequestDto(
-                "Jane", "Smith", "admin@tenant.com", "Str0ng!Passw0rd");
-        when(tenantAdminService.createTenantAdmin(eq(TENANT_ID), any())).thenReturn(sampleResponse());
-
+    @DisplayName("POST /api/admin/tenants/{id}/admins: gone, users are created in user management")
+    void createAdmin_platformAdmin_methodNotAllowed() throws Exception {
         mockMvc.perform(post("/api/admin/tenants/{id}/admins", TENANT_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value("admin@tenant.com"));
-    }
-
-    @Test
-    @WithMockUser(roles = "TENANT_ADMIN")
-    @DisplayName("POST /api/admin/tenants/{id}/admins — 403 for TENANT_ADMIN")
-    void createAdmin_tenantAdmin_returns403() throws Exception {
-        TenantAdminRequestDto request = new TenantAdminRequestDto(
-                "Jane", "Smith", "admin@tenant.com", "Str0ng!Passw0rd");
-
-        mockMvc.perform(post("/api/admin/tenants/{id}/admins", TENANT_ID)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @WithMockUser(roles = "PLATFORM_ADMIN")
-    @DisplayName("POST /api/admin/tenants/{id}/admins — 400 for invalid request body")
-    void createAdmin_invalidBody_returns400() throws Exception {
-        // Missing required fields
-        String badBody = "{}";
-        mockMvc.perform(post("/api/admin/tenants/{id}/admins", TENANT_ID)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(badBody))
-                .andExpect(status().isBadRequest());
+                        .content("{\"firstName\":\"Jane\",\"lastName\":\"Smith\","
+                                + "\"email\":\"admin@tenant.com\",\"password\":\"Str0ng!Passw0rd\"}"))
+                .andExpect(status().isMethodNotAllowed());
     }
 
     // ── Deactivate admin ─────────────────────────────────────────────────────
