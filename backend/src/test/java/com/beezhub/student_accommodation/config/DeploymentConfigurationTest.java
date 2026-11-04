@@ -392,6 +392,22 @@ class DeploymentConfigurationTest {
                 "values = [\"EC2: Data Transfer - Internet (Out)\", \"S3: Data Transfer - Internet (Out)\"]");
     }
 
+    /**
+     * The backend runs on the database password write-env.sh copied at the last deploy, so every
+     * RDS rotation takes PROD down until a redeploy (#407). Yearly, not RDS's default weekly; and
+     * rotate_immediately defaults to true, which would rotate, and cause that outage, on apply.
+     */
+    @Test
+    void dbPasswordRotation_yearlyAndNotOnApply() throws IOException {
+        String database = readLf("infra/terraform/prod/database.tf");
+        String rotation = database.substring(
+                database.indexOf("resource \"aws_secretsmanager_secret_rotation\" \"db_master\""));
+
+        assertThat(rotation).contains("secret_id          = aws_db_instance.main.master_user_secret[0].secret_arn");
+        assertThat(rotation).contains("rotate_immediately = false");
+        assertThat(rotation).contains("automatically_after_days = 365");
+    }
+
     @Test
     void awsOverlay_settingsAreDocumented() throws IOException {
         String env = read(".env.example");
