@@ -12,62 +12,58 @@ Server details below were checked on the host on 2026-11-04.
 | DNS | A record to `84.12.109.37`, in the `beezhub.co.za` zone at SADomains until #344 |
 | Server | Free Oracle Cloud VM `as-poc-nonprod`, `af-johannesburg-1`, Ampere A1 (`aarch64`), 2 OCPU, 12 GB, no swap, 45 GB disk, Ubuntu 24.04 |
 | Stack | Docker Compose in `/opt/sas`, project `sas`, networks `sas_app-network` and `sas_monitoring-network` |
-| Database | PostgreSQL 16 container `student-accommodation-local-db`, not published outside the server |
-| Documents | MinIO container `student-accommodation-minio`, an S3-compatible store |
+| Database | PostgreSQL 16 container `student-accommodation-local-db`, not published outside the server. Network connections must use TLS |
+| Documents | S3 bucket `beezhub-sas-nonprod-documents` in `af-south-1`, reached with IAM user `sas-nonprod-app` (`infra/terraform/nonprod`) |
 | Images | ECR in `af-south-1` (AWS's image registry), pulled by digest (a hash that names one exact build) |
 | Settings | `/opt/sas/.env`, edited by hand on the server |
-| Email | Brevo SMTP (`smtp-relay.brevo.com`) |
-| Logs and metrics | Loki, Prometheus and Grafana containers on the same server |
-| TLS | Caddy, a web server installed on the host and not in Compose. It gets the certificate and sends traffic to Grafana or the frontend |
+| Email | SES API in `af-south-1`, from `nonprod@beezhub.co.za`, with the same IAM user |
+| Logs and metrics | Alloy on the server sends them to Grafana Cloud, the same stack as PROD, with the label `env=nonprod` |
+| TLS | Caddy, a web server installed on the host and not in Compose. It gets the certificate and sends traffic to the frontend |
 
 ## What runs where
 
-This is NONPROD today. For the planned version, see [After #378 is done](#after-378-is-done).
-
-Everything except email and maps runs on one server. Each box in the server is
-a container, apart from Caddy. A request reaches the backend through Caddy and then nginx in the
-frontend container.
+The application runs on one server and uses the same AWS services and Grafana Cloud stack as PROD.
+Each box in the server is a container, apart from Caddy. A request reaches the backend through Caddy
+and then nginx in the frontend container.
 
 ```mermaid
 flowchart TD
     users["Testers<br/>(browser)"]
-    brevo["Brevo<br/>(email)"]
     maps["Google Maps API<br/>(geocoding)"]
+    gcloud["Grafana Cloud<br/>(same stack as PROD,<br/>label env=nonprod)"]
+
+    subgraph aws["AWS Cape Town (af-south-1)"]
+        s3[("S3: NONPROD bucket<br/>documents and<br/>building images")]
+        ses["SES<br/>(email)"]
+    end
 
     subgraph vm["Oracle VM as-poc-nonprod"]
         caddy["Caddy on the host<br/>ports 80 and 443"]
+        alloy["Alloy<br/>(logs and metrics)"]
 
         subgraph app["sas_app-network"]
             frontend["frontend<br/>(nginx + Angular)"]
             backend["backend<br/>(Spring Boot)"]
-            db[("PostgreSQL")]
+            db[("PostgreSQL<br/>TLS required")]
             redis[("Redis")]
-            minio[("MinIO")]
-        end
-
-        prometheus["Prometheus<br/>(on both networks)"]
-
-        subgraph mon["sas_monitoring-network"]
-            grafana["Grafana"]
-            loki[("Loki")]
-            alloy["Alloy<br/>(collects logs)"]
         end
     end
 
     users -->|HTTPS| caddy
-    caddy -->|"everything else<br/>127.0.0.1:8081"| frontend
-    caddy -->|"/grafana<br/>127.0.0.1:3000"| grafana
+    users -->|presigned links| s3
+    caddy --> frontend
     frontend -->|"/api/"| backend
     backend --> db
     backend --> redis
-    backend --> minio
-    backend ---> brevo
+    backend --->|IAM access key| s3
+    backend ---->|IAM access key| ses
     backend ----> maps
-    prometheus -->|scrapes metrics| backend
-    grafana --> prometheus
-    grafana --> loki
-    alloy -->|"container and Caddy logs"| loki
+    backend -->|"Alloy scrapes metrics"| alloy
+    alloy -->|logs and metrics| gcloud
 ```
+
+A presigned link is a temporary S3 address the backend creates, so the browser fetches a document
+from S3 directly.
 
 Deploys are left out of this picture, and [Deploy a release](#deploy-a-release) covers them.
 
@@ -85,8 +81,8 @@ The server accepts one SSH key, `deploy@nonprod`, so your alias and GitHub Actio
 replace that key, update `~/.ssh/authorized_keys` on the server, your local key file and the
 `SSH_PRIVATE_KEY` secret together, or you lock out either yourself or the deploy.
 
-Grafana is at `https://nonprod.beezhub.co.za/grafana`. Sign in with `GRAFANA_ADMIN_USER` (default
-`admin`) and `GRAFANA_ADMIN_PASSWORD` from the server's `.env`.
+Logs and metrics are in Grafana Cloud at `https://friendlysamosa508.grafana.net`, shared with PROD.
+Sign in with your Grafana Cloud account.
 
 ## Deploy a release
 
@@ -132,6 +128,10 @@ PROD runbook.
 - **It does not write `.env`.** A new required key stops the deploy at step 3. See
   [Changing a setting](#changing-a-setting).
 - **It does not update Caddy.** See [Changing Caddy](#changing-caddy).
+- **It does not pick up a changed config file.** Compose recreates a container when its settings
+  change, not when the content of a mounted file changes. After a release that changes a file under
+  `tools/alloy/` or `tools/postgres/`, run `docker restart` on that container, or it keeps the old
+  file. NONPROD's Alloy ran without the `?token=` masking for this reason.
 - **It does not keep your files.** It deletes every file in `/opt/sas` that is not in the commit.
   Only `.env`, `.env.bak-*`, `.backup-*` and `frontend/node_modules` stay. Keep anything else, such
   as a database dump, outside `/opt/sas`.
@@ -202,10 +202,11 @@ PROD, check the parts a user touches:
 
 - Upload a document, then download it again.
 - Open a building that has an image, and check that the image shows.
-- In Grafana, run `{env="nonprod", level="error"}` and look for errors since the deploy.
+- In Grafana Cloud, run `{env="nonprod", level="error"}` and look for errors since the deploy.
 
-Use only addresses you own. Brevo's free plan allows 300 emails a day, shared with everything else
-NONPROD sends.
+**Only use addresses you own.** SES production access applies to the whole AWS account, so NONPROD
+can email anyone. The IAM user limits who mail appears to come from, not who receives it. Do not load
+real students' addresses onto NONPROD.
 
 ### Disk
 
@@ -224,7 +225,7 @@ deploy pulls what it needs again:
 docker image prune --all
 ```
 
-Do not use `docker system prune --volumes`. The volumes hold the database and the documents.
+Do not use `docker system prune --volumes`. The volumes hold the database.
 
 ### Using Compose on the server
 
@@ -236,41 +237,43 @@ containers first:
 cd /opt/sas
 export BACKEND_IMAGE=$(docker inspect student-accommodation-back-end --format '{{.Config.Image}}')
 export FRONTEND_IMAGE=$(docker inspect student-accommodation-frontend --format '{{.Config.Image}}')
-F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml"
+F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.aws.yml -f docker-compose.nonprod.yml"
 docker compose $F ps
 ```
 
-**Never add `-v` to `docker compose down`.** It deletes the Docker volumes, which hold the database
-and the documents, and NONPROD has no backups.
+**Never add `-v` to `docker compose down`.** It deletes the Docker volumes, which hold the database,
+and NONPROD has no database backups.
 
 ### Reaching a service that has no public port
 
-Only the frontend and Grafana have a port on the host, and both listen on the server itself only.
-For the rest, run `curl` in a throwaway container on the Compose network:
+Only the frontend has a port on the host, and it listens on the server itself only. For the rest,
+run `curl` in a throwaway container on the Compose network:
 
 ```bash
 docker run --rm --network sas_app-network curlimages/curl:latest -s \
   http://student-accommodation-back-end:8080/actuator/health/readiness
-
-docker run --rm --network sas_monitoring-network curlimages/curl:latest -s \
-  http://student-accommodation-loki:3100/ready
-
-docker run --rm --network sas_monitoring-network curlimages/curl:latest -s \
-  http://student-accommodation-prometheus:9090/-/ready
 ```
 
-### Logs in Grafana
+### Logs and metrics in Grafana Cloud
 
-Open **Explore** with the Loki data source. Loki keeps two weeks of logs, Prometheus keeps 30 days of
-metrics, and `docker logs` holds only the last 30 MB per container.
+The stack holds both environments, so **every query needs the `env` label**. Without it you see PROD
+and NONPROD mixed together. `docker logs` on the server holds only the last 30 MB per container.
+
+Open **Explore** with the stack's Loki data source for logs:
 
 ```
-{env="nonprod", level="error"}                                  every error
-{service="student-accommodation-back-end", level="error"}       backend errors
-{service=~"caddy|frontend", status_class="5xx"}                 failed requests
+{env="nonprod", level="error"}                                            every error
+{env="nonprod", service="student-accommodation-back-end", level="error"}  backend errors
+{env="nonprod", service=~"caddy|frontend", status_class="5xx"}            failed requests
 ```
 
-The README's Operations section lists every label.
+Use its Prometheus data source for metrics. `up{env="nonprod",job="student-accommodation-backend"}`
+should be `1`. `0` means Alloy cannot scrape the backend, usually because of
+`PROMETHEUS_SCRAPE_PASSWORD`.
+
+The dashboards are under **PROD dashboards** and open on `env=prod`. To see NONPROD, change the
+filter at the top of the dashboard to `env=nonprod`. The README's Operations section lists every
+label.
 
 ## Database
 
@@ -304,15 +307,18 @@ Restores, and the order to restore the database and the bucket in, are in
 | `readiness never came up` | The backend did not start, often because a migration failed | Read the logs at the end of the failed run. If a migration ran, fix forward |
 | `No space left on device` | The disk is full | See [Disk](#disk) |
 | The site has no HTTPS | Caddy has a wrong or empty `APP_HOSTNAME`, or port 80 is blocked | Check `journalctl -u caddy -n 50` and `sudo systemctl cat caddy` |
-| `/grafana` shows the Angular app | The server's Caddyfile is old | See [Changing Caddy](#changing-caddy) |
-| The Grafana login page keeps reloading | `GRAFANA_ROOT_URL` does not end in `/grafana` | Fix it in `.env`, see [Changing a setting](#changing-a-setting) |
-| Emails do not arrive | Brevo's limit was reached, or its key is wrong | Search the backend log for `action=verificationEmailFailed`, and see section 4.5 of the [operator runbook](OPERATOR_RUNBOOK.md) |
+| `/grafana` returns 502, not 404 | The server's Caddyfile still sends it to the Grafana that was removed | See [Changing Caddy](#changing-caddy) |
+| `the images could not be pulled in 3 tries`, with `GRAFANA_CLOUD_... must be set` in the log | A Grafana Cloud key is not in `.env` | Add it, see [Changing a setting](#changing-a-setting), and re-run. The running containers were not touched |
+| No `env="nonprod"` data in Grafana Cloud | Alloy cannot push, usually a wrong URL, user or token | Check `docker logs --tail 50 student-accommodation-alloy` for `401` or `403` |
+| Emails do not arrive | SES refused the send, usually `AccessDenied` from a wrong key or sender | Search the backend log for `action=verificationEmailFailed`. The sender must be `nonprod@beezhub.co.za` |
+| Uploads or building images fail with `AccessDenied` or `NoSuchBucket` | A wrong key or bucket in `.env`, or the Terraform in `infra/terraform/nonprod` has not been applied | Compare `S3_ACCESS_KEY` and `S3_BUCKET` with `/sas-nonprod/` in SSM and with `tf nonprod output` |
 
 ## Rebuild from nothing
 
 Use this if the VM is lost. **These steps have not been rehearsed.** They are written from how the
-server is set up today, so expect to fix small details as you go. The database and the documents
-live only on this VM, so a rebuild starts empty unless you have your own dumps.
+server is set up today, so expect to fix small details as you go. The database lives only on this
+VM, so a rebuild starts empty unless you have your own dumps. The documents are in S3 and survive,
+but rows for them are lost with the database.
 
 1. **Create the VM.** Oracle Cloud, `af-johannesburg-1`, Always Free Ampere A1, Ubuntu 24.04. Open
    ports 22, 80 and 443 in the subnet's security list.
@@ -353,7 +359,10 @@ live only on this VM, so a rebuild starts empty unless you have your own dumps.
 
 6. **Write `.env`.** Copy the template from your machine, then fill it in on the server. Section 0.2
    of the [operator runbook](OPERATOR_RUNBOOK.md) lists the secrets to generate, and they must not
-   match PROD's. Set `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD` for the first admin.
+   match PROD's. Set `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD` for the first admin. The
+   NONPROD section of `.env.example` lists the values this environment needs, including the AWS key
+   from SSM. The `GRAFANA_CLOUD_*` keys use the stack's URLs and users, and an API key with
+   `logs:write` and `metrics:write`.
 
    ```bash
    scp .env.example nonprod:/opt/sas/.env
@@ -381,93 +390,27 @@ already takes the whole monthly budget.
 
 | | NONPROD now | PROD | Issue |
 |---|---|---|---|
-| Server | Oracle A1, 12 GB | EC2 `t4g.small`, 2 GB + 2 GB swap | #382 adds PROD's memory limits |
-| Database | Postgres container, no TLS | RDS PostgreSQL 16, TLS required | #380 |
-| Documents | MinIO | S3, instance role | #379, #382 |
-| Email | Brevo SMTP | SES API (`MAIL_TRANSPORT=ses-api`) | #382 |
-| Monitoring | Grafana, Prometheus, Loki on the server | Alloy to Grafana Cloud | #381 |
-| Compose files | base + `prod` + `deploy` | base + `prod` + `deploy` + `aws` | #382 |
+| Server | Oracle A1, 12 GB, with PROD's container memory limits | EC2 `t4g.small`, 2 GB + 2 GB swap | Stays |
+| Database | Postgres container, TLS required | RDS PostgreSQL 16, TLS required | Stays |
+| AWS credentials | IAM user's access key | Instance role | Stays |
+| Compose files | base + `prod` + `deploy` + `aws` + `nonprod` | base + `prod` + `deploy` + `aws` | Stays |
 | Deploy | SSH | SSM | Stays |
 
-Until those issues are done, the `ses-api` mail path, S3 storage and `docker-compose.aws.yml` run
-nowhere before PROD, so a fault in any of them first shows on PROD.
-
-Three gaps stay on purpose: an IAM access key in place of an instance role, SSH deploys in place of
-SSM, and a Postgres container in place of RDS.
-
-### After #378 is done
-
-**This is the plan, not what runs today.** It comes from #379, #380, #381 and #382, all still open.
-The server stays the same free Oracle VM. MinIO, Brevo and the local monitoring containers go away,
-and NONPROD uses the same AWS services and Grafana Cloud stack as PROD.
-
-```mermaid
-flowchart TD
-    users["Testers<br/>(browser)"]
-    maps["Google Maps API<br/>(geocoding)"]
-    gcloud["Grafana Cloud<br/>(same stack as PROD,<br/>label env=nonprod)"]
-
-    subgraph aws["AWS Cape Town (af-south-1)"]
-        s3[("S3: NONPROD bucket<br/>documents and<br/>building images")]
-        ses["SES<br/>(email)"]
-    end
-
-    subgraph vm["Oracle VM as-poc-nonprod"]
-        caddy["Caddy on the host<br/>ports 80 and 443"]
-        alloy["Alloy<br/>(logs and metrics)"]
-
-        subgraph app["sas_app-network"]
-            frontend["frontend<br/>(nginx + Angular)"]
-            backend["backend<br/>(Spring Boot)"]
-            db[("PostgreSQL<br/>TLS required")]
-            redis[("Redis")]
-        end
-    end
-
-    users -->|HTTPS| caddy
-    users -->|presigned links| s3
-    caddy --> frontend
-    frontend -->|"/api/"| backend
-    backend --> db
-    backend --> redis
-    backend --->|IAM access key| s3
-    backend ---->|IAM access key| ses
-    backend ----> maps
-    backend -->|"Alloy scrapes metrics"| alloy
-    alloy -->|logs and metrics| gcloud
-```
-
-A presigned link is a temporary S3 address the backend creates, so the browser fetches a document
-from S3 directly.
-
-Deploys are left out of this picture because they keep working the same way: GitHub Actions pushes
-the images to ECR and deploys over SSH, and the server pulls them from ECR.
-
-| Part | Today | After | Issue |
-|---|---|---|---|
-| Documents and images | MinIO container | S3 bucket, reached with IAM user `sas-nonprod-app` | #379, #382 |
-| Email | Brevo SMTP | SES API, from one allowed NONPROD sender | #379, #382 |
-| Database | Postgres container, plain connections allowed | Same container, TLS required (`sslmode=require`) | #380 |
-| Monitoring | Grafana, Prometheus and Loki on the server | Alloy sends to Grafana Cloud. `/grafana` on NONPROD returns 404 | #381 |
-| Compose files | `base`, `prod`, `deploy` | Also `aws` and a new `nonprod` overlay | #382 |
-| Memory limits | Backend 1G, frontend 256M, Redis 256M, Alloy 256M | Backend 1G, frontend 128M, Redis 128M, Alloy 384M, as on PROD | #382 |
-
-Order: #379 first, because #382 needs its bucket and key. #380 can happen at any time. #381 follows
-#340, which sets up PROD's Grafana Cloud stack.
-
-When #382 lands, `/opt/sas/.env` also needs `EXAMPLE_DATA=true`. `docker-compose.aws.yml` refuses to
-start without the key (#365). NONPROD keeps the example data, so its value is `true`, where PROD's is
-`false`.
+These gaps are on purpose: NONPROD stays on the free Oracle VM, and the differences are listed in
+`docker-compose.nonprod.yml`. S3, the SES API, Grafana Cloud and the AWS overlay all run here first,
+so a fault in any of them shows here before PROD. The instance role, SSM, the RDS parameter group and
+RDS upgrades are still tested only on PROD.
 
 ## Known gaps
 
-- **No scheduled backups.** The server has no cron job or systemd timer for the database or MinIO.
-  The only copies are the dumps someone takes by hand.
-- **No uptime monitor.** Monitoring runs on the same server, so if the server dies nothing tells
-  you. This is deliberate: the operator runbook sets one up for PROD only.
+- **No scheduled database backups.** The server has no cron job or systemd timer for the database.
+  The only copies are the dumps someone takes by hand. The S3 bucket keeps old versions for 7 days.
+- **No alerts and no uptime monitor.** NONPROD's metrics reach Grafana Cloud, but the alert rules
+  only read `env="prod"`, so nothing tells you if NONPROD goes down. This is deliberate: an outage
+  here pages nobody (#381).
 - **Rebuild not rehearsed.** Nobody has followed [Rebuild from nothing](#rebuild-from-nothing) from
   start to finish.
-- **#264:** Postgres and MinIO have no developer access from outside the server.
+- **#264:** Postgres has no developer access from outside the server.
 - `docs/OPERATOR_RUNBOOK.md` was written for a DigitalOcean plan that was replaced. Where it differs
   from this file on NONPROD, such as `DEPLOY_USER` being `deploy` where the real value is `ubuntu`,
   this file is correct.

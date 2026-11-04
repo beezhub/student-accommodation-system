@@ -31,13 +31,11 @@
 {$APP_HOSTNAME} {
 	encode zstd gzip
 
-	# Grafana, published on the host's loopback by docker-compose.deploy.yml. The /grafana prefix is
-	# passed through unchanged: Grafana serves from that sub-path itself (GF_SERVER_SERVE_FROM_SUB_PATH)
-	# and builds its links from GRAFANA_ROOT_URL. Without this route /grafana fell through to the
-	# frontend and returned the Angular app.
+	# Grafana no longer runs on any deployed server: both use Grafana Cloud (#381). Without this
+	# route /grafana would fall through to the frontend and return the Angular app with a 200.
 	@grafana path /grafana /grafana/*
 	handle @grafana {
-		reverse_proxy 127.0.0.1:3000
+		respond 404
 	}
 
 	# Everything else goes to the frontend container. It serves the Angular bundle and proxies /api/

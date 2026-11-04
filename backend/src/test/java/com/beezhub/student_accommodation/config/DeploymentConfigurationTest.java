@@ -124,14 +124,14 @@ class DeploymentConfigurationTest {
     }
 
     /**
-     * Grafana builds its redirects from GRAFANA_ROOT_URL, which ends in /grafana. Without sub-path
-     * serving the login page redirects to itself forever; without the Caddy route /grafana reaches
-     * the frontend instead.
+     * No deployed server runs Grafana any more (#381). Without its own route /grafana would reach the
+     * frontend, which answers 200 with the Angular app, so it answers 404 itself.
      */
     @Test
-    void deployOverlay_servesGrafanaUnderTheCaddyRoute() throws IOException {
-        assertThat(read("docker-compose.deploy.yml")).contains("GF_SERVER_SERVE_FROM_SUB_PATH=true");
-        assertThat(read("tools/caddy/Caddyfile")).contains("@grafana path /grafana /grafana/*");
+    void caddy_answers404ForGrafana() throws IOException {
+        assertThat(read("tools/caddy/Caddyfile")).doesNotContain("127.0.0.1:3000");
+        assertThat(readLf("tools/caddy/Caddyfile"))
+                .contains("@grafana path /grafana /grafana/*\n\thandle @grafana {\n\t\trespond 404\n\t}");
     }
 
     @Test
@@ -188,7 +188,7 @@ class DeploymentConfigurationTest {
     void awsOverlay_switchesOffEveryServiceThatDoesNotRunInProd() throws IOException {
         String aws = readLf("docker-compose.aws.yml");
 
-        for (String service : List.of("db", "minio", "minio-volume-permissions", "prometheus",
+        for (String service : List.of("db", "db-tls-cert", "minio", "minio-volume-permissions", "prometheus",
                 "grafana", "loki")) {
             assertThat(aws)
                     .as(service + " must be scaled to zero behind an unused profile")
@@ -318,9 +318,11 @@ class DeploymentConfigurationTest {
                 .hasSize(3);
         assertThat(logs).contains("replace    = \"REDACTED\"");
         assertThat(read("tools/alloy/loki-local.alloy")).contains("external_labels = {env = \"nonprod\"}");
-        assertThat(read("tools/alloy/grafana-cloud.alloy").split("external_labels = \\{env = \"prod\"\\}", -1))
-                .as("logs and metrics both carry env=prod")
+        assertThat(read("tools/alloy/grafana-cloud.alloy").split("external_labels = \\{env = sys.env\\(\"ALLOY_ENV\"\\)\\}", -1))
+                .as("logs and metrics both carry the environment's label")
                 .hasSize(3);
+        assertThat(readLf("docker-compose.aws.yml").substring(readLf("docker-compose.aws.yml").indexOf("  alloy:")))
+                .contains("- ALLOY_ENV=prod\n");
     }
 
     /** Alloy does Prometheus's job in PROD, with the same credentials the backend checks. */
@@ -390,6 +392,22 @@ class DeploymentConfigurationTest {
                 "name   = \"UsageTypeGroup\"");
         assertThat(budget).contains(
                 "values = [\"EC2: Data Transfer - Internet (Out)\", \"S3: Data Transfer - Internet (Out)\"]");
+    }
+
+    /**
+     * The backend runs on the database password write-env.sh copied at the last deploy, so every
+     * RDS rotation takes PROD down until a redeploy (#407). Yearly, not RDS's default weekly; and
+     * rotate_immediately defaults to true, which would rotate, and cause that outage, on apply.
+     */
+    @Test
+    void dbPasswordRotation_yearlyAndNotOnApply() throws IOException {
+        String database = readLf("infra/terraform/prod/database.tf");
+        String rotation = database.substring(
+                database.indexOf("resource \"aws_secretsmanager_secret_rotation\" \"db_master\""));
+
+        assertThat(rotation).contains("secret_id          = aws_db_instance.main.master_user_secret[0].secret_arn");
+        assertThat(rotation).contains("rotate_immediately = false");
+        assertThat(rotation).contains("automatically_after_days = 365");
     }
 
     @Test
@@ -635,5 +653,207 @@ class DeploymentConfigurationTest {
                 .isPositive()
                 .isLessThan(start.indexOf("docker compose $F up -d"));
         assertThat(start).contains("echo \"schema_before=").contains("echo \"schema_after=");
+    }
+
+    /**
+     * NONPROD runs PROD's overlay itself (#382), so what reaches PROD has already run here. Its own
+     * file is only the listed differences. The label must say nonprod, or NONPROD could set off
+     * PROD's alerts.
+     */
+    @Test
+    void nonprodOverlay_isOnlyTheDifferencesFromPROD() throws IOException {
+        String nonprod = readLf("docker-compose.nonprod.yml");
+
+        assertThat(nonprod)
+                .contains("- ALLOY_ENV=nonprod\n")
+                .as("Alloy's files, mounts, keys and memory limit come from the AWS overlay")
+                .doesNotContain("grafana-cloud.alloy:", "GRAFANA_CLOUD_", "memory:");
+    }
+
+    /**
+     * The AWS overlay switches these off with a profile and zero replicas, and they are running on
+     * NONPROD. Compose leaves a running container alone while a profile disables its service, so the
+     * profile must go for the zero replicas to remove the container.
+     */
+    @Test
+    void nonprodOverlay_removesTheRunningContainersPRODNeverHad() throws IOException {
+        String nonprod = readLf("docker-compose.nonprod.yml");
+
+        for (String service : List.of("minio", "minio-volume-permissions", "grafana", "prometheus", "loki")) {
+            assertThat(nonprod).contains("  " + service + ":\n    profiles: !reset []\n");
+        }
+    }
+
+    /** On PROD the database is RDS. On NONPROD it stays a container, with no PROD memory limit. */
+    @Test
+    void nonprodOverlay_runsTheDatabaseAgain() throws IOException {
+        String nonprod = readLf("docker-compose.nonprod.yml");
+
+        for (String service : List.of("db", "db-tls-cert")) {
+            assertThat(nonprod).contains("  " + service
+                    + ":\n    profiles: !reset []\n    deploy: !override\n      replicas: 1\n");
+        }
+        assertThat(nonprod)
+                .contains("    depends_on:\n      db:\n        condition: service_healthy\n")
+                .as("fixed here, so a PROD .env copied by mistake cannot point NONPROD at RDS")
+                .contains("- DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb?sslmode=require\n");
+    }
+
+    /**
+     * Oracle has no instance role, so the IAM user's key from #379 replaces it for both S3 and SES.
+     * The sender must be the one that user's policy allows, or every email fails with AccessDenied.
+     */
+    @Test
+    void nonprodOverlay_reachesAwsWithTheKeyFromTerraform() throws IOException {
+        String nonprod = readLf("docker-compose.nonprod.yml");
+
+        assertThat(nonprod)
+                .contains("- S3_CREDENTIALS=static\n")
+                .contains("- AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY:?")
+                .contains("- AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY:?")
+                .contains("- MAIL_FROM=nonprod@beezhub.co.za\n");
+        assertThat(readLf("infra/terraform/nonprod/iam.tf"))
+                .contains("mail_from = \"nonprod@${var.sending_domain}\"");
+        assertThat(readLf("infra/terraform/nonprod/variables.tf")).contains("default     = \"beezhub.co.za\"");
+    }
+
+    /** The AWS overlay checks these before it knows NONPROD overrides or ignores some of them. */
+    @Test
+    void nonprodSettings_areDocumented() throws IOException {
+        assertThat(readLf(".env.example"))
+                .contains("# NONPROD (docker-compose.nonprod.yml)")
+                .contains("beezhub-sas-nonprod-documents")
+                .contains("EXAMPLE_DATA=true");
+    }
+
+    /** A step that runs Compose with other files would act on a different stack. */
+    @Test
+    void nonprodDeploy_usesTheFiveFilesInEveryStep() throws IOException {
+        String deploy = readLf(".github/workflows/deploy.yml");
+
+        assertThat(deploy).contains("F=\"docker-compose.yml docker-compose.prod.yml docker-compose.deploy.yml"
+                + " docker-compose.aws.yml docker-compose.nonprod.yml\"");
+        assertThat(deploy.split("-f docker-compose\\.deploy\\.yml -f docker-compose\\.aws\\.yml"
+                + " -f docker-compose\\.nonprod\\.yml", -1)).hasSize(4);
+        assertThat(deploy.split("-f docker-compose\\.deploy\\.yml", -1)).hasSize(4);
+    }
+
+    /**
+     * The dashboards' queries carry no labels, and two environments now share the stack, so without
+     * this filter every PROD panel would add NONPROD's numbers to its own.
+     */
+    @Test
+    void prodDashboards_filterOnTheEnvironment() throws IOException {
+        assertThat(readLf("infra/terraform/prod-grafana/dashboards.tf"))
+                .contains("type       = \"adhoc\"")
+                .contains("filters    = [{ key = \"env\", operator = \"=\", value = \"prod\" }]")
+                .contains("templating = { list = [local.env_filter] }");
+    }
+
+    /**
+     * Separate state means a NONPROD plan cannot change a PROD resource, even by mistake (#379).
+     */
+    @Test
+    void nonprodTerraform_keepsItsOwnState() throws IOException {
+        assertThat(readLf("infra/terraform/nonprod/versions.tf"))
+                .containsPattern("key\\s+= \"nonprod/terraform\\.tfstate\"");
+    }
+
+    /**
+     * The bucket gets PROD's private baseline (infra/terraform/prod/storage.tf), so NONPROD tests the
+     * same settings. It holds test data, so it can be destroyed and keeps old versions for 7 days
+     * rather than 35.
+     */
+    @Test
+    void nonprodBucket_hasThePrivateBaselineAndCanBeDestroyed() throws IOException {
+        assertThat(readLf("infra/terraform/nonprod/storage.tf"))
+                .contains("object_ownership = \"BucketOwnerEnforced\"")
+                .containsPattern("block_public_acls\\s+= true")
+                .containsPattern("block_public_policy\\s+= true")
+                .containsPattern("ignore_public_acls\\s+= true")
+                .containsPattern("restrict_public_buckets = true")
+                .contains("sse_algorithm = \"AES256\"")
+                .contains("status = \"Enabled\"")
+                .contains("sid       = \"DenyInsecureTransport\"")
+                .contains("noncurrent_days = 7")
+                .doesNotContain("prevent_destroy");
+    }
+
+    /**
+     * The key lives in a file on a host with no instance role, so it may do only what the backend
+     * calls: S3FileStorageService and the health checks on its own bucket, SesApiMailSender from one
+     * sender. An extra action here fails this test on purpose.
+     */
+    @Test
+    void nonprodAppUser_mayOnlyUseItsBucketAndOneSender() throws IOException {
+        String iam = readLf("infra/terraform/nonprod/iam.tf");
+
+        List<String> actions = Pattern.compile("actions\\s+= \\[([^]]*)]").matcher(iam).results()
+                .flatMap(list -> Stream.of(list.group(1).split(",")))
+                .map(action -> action.replace("\"", "").strip())
+                .toList();
+
+        assertThat(actions)
+                .containsExactlyInAnyOrder("s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+                        "ses:SendEmail", "ses:SendRawEmail", "ses:GetAccount");
+        assertThat(Pattern.compile("resources = \\[\"\\*\"]").matcher(iam).results().count())
+                .as("only ses:GetAccount, which has no resource ARN, may use a wildcard")
+                .isEqualTo(1);
+        assertThat(iam)
+                .contains("variable = \"ses:FromAddress\"")
+                .contains("values   = [local.mail_from]")
+                .contains("mail_from = \"nonprod@${var.sending_domain}\"");
+    }
+
+    /**
+     * A person copies the key into /opt/sas/.env from SSM (#379). The secret must never be printed by
+     * `terraform output`, which ends up on screens and in logs.
+     */
+    @Test
+    void nonprodAppKey_secretOnlyReachesAnEncryptedParameter() throws IOException {
+        assertThat(readLf("infra/terraform/nonprod/iam.tf"))
+                .contains("name  = \"/${var.name}/AWS_SECRET_ACCESS_KEY\"\n  type  = \"SecureString\"");
+        assertThat(readLf("infra/terraform/nonprod/outputs.tf")).doesNotContain("aws_iam_access_key");
+    }
+
+    /**
+     * RDS rejects connections without TLS, so a driver, URL or certificate problem would otherwise
+     * first appear on PROD (#380). NONPROD's container now asks for TLS and its backend uses it.
+     */
+    @Test
+    void nonprodDatabase_requiresTls() throws IOException {
+        assertThat(readLf("docker-compose.deploy.yml"))
+                .contains("- ssl=on")
+                .contains("- hba_file=/etc/postgresql/pg_hba.conf")
+                .contains("- ./tools/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro")
+                .contains("- DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb?sslmode=require");
+    }
+
+    /**
+     * The order matters: Postgres uses the first line that matches. The network may only use TLS,
+     * and the local socket stays open for the healthcheck, the deploy's schema check and backups.
+     */
+    @Test
+    void nonprodDatabase_acceptsOnlyTlsFromTheNetwork() throws IOException {
+        List<String> rules = readLf("tools/postgres/pg_hba.conf").lines()
+                .filter(line -> !line.isBlank() && !line.startsWith("#"))
+                .map(line -> line.trim().replaceAll("\\s+", " "))
+                .toList();
+
+        assertThat(rules).containsExactly(
+                "local all all trust",
+                "local replication all trust",
+                "hostssl all all all scram-sha-256",
+                "hostnossl all all all reject");
+    }
+
+    /**
+     * Local development keeps plain connections: only the deploy overlay turns TLS on.
+     */
+    @Test
+    void localDatabase_staysWithoutTls() throws IOException {
+        assertThat(readLf("docker-compose.yml"))
+                .contains("- DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb\n")
+                .doesNotContain("ssl=on");
     }
 }

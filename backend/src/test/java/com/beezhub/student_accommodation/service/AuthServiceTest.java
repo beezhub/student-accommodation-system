@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.EmailAlreadyRegisteredException;
+import com.beezhub.student_accommodation.exceptions.UnassignedAdminUnlockException;
 import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.mapper.AppUserMapper;
 import com.beezhub.student_accommodation.model.dto.LoginResponse;
@@ -18,6 +19,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,6 +34,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -178,6 +182,80 @@ class AuthServiceTest {
         assertEquals(0, appUser.getFailedLoginAttempts());
         verify(loginAttemptService).loginSucceeded(1L);
         verify(userRepository).save(appUser);
+    }
+
+    /**
+     * #412: an admin with no company sits on the platform tenant, where the tenant filter is off and
+     * it could read every company's data (GH-212). The lock is all that holds it back, so unlocking
+     * it is refused and the account stays exactly as it was.
+     */
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"TENANT_ADMIN", "BUILDING_STAFF"})
+    void unlockAccount_tenantScopedRoleWithNoCompany_refusedAndStaysLocked(UserRole role) {
+        LocalDateTime lock = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
+        AppUser waiting = waitingAdmin(role, lock);
+        when(userRepository.findById(7L)).thenReturn(Optional.of(waiting));
+
+        assertThrows(UnassignedAdminUnlockException.class, () -> authService.unlockAccount(7L));
+
+        assertEquals(lock, waiting.getAccountLockedUntil());
+        verify(userRepository, never()).save(any());
+        verify(loginAttemptService, never()).loginSucceeded(anyLong());
+    }
+
+    /** The refusal is what a person reads, so it names them and the way forward, in plain words. */
+    @Test
+    void unlockAccount_tenantAdminWithNoCompany_messageNamesThePersonAndTheWayOut() {
+        when(userRepository.findById(7L)).thenReturn(Optional.of(
+                waitingAdmin(UserRole.TENANT_ADMIN, LocalDateTime.of(9999, 12, 31, 23, 59, 59))));
+
+        String message = assertThrows(UnassignedAdminUnlockException.class,
+                () -> authService.unlockAccount(7L)).getMessage();
+
+        assertTrue(message.startsWith("Thandi Mokoena is not linked to a company yet."), message);
+        assertTrue(message.contains("/api/admin/unassigned-admins/7/assign"), message);
+        assertFalse(message.toLowerCase().contains("tenant"), message);
+    }
+
+    /** A tenant admin locked out by failed sign-ins at its own company is an ordinary unlock. */
+    @Test
+    void unlockAccount_tenantAdminOfACompany_unlocked() {
+        AppUser admin = waitingAdmin(UserRole.TENANT_ADMIN, LocalDateTime.now().plusMinutes(15));
+        admin.setTenantId(3L);
+        when(userRepository.findById(7L)).thenReturn(Optional.of(admin));
+
+        authService.unlockAccount(7L);
+
+        assertNull(admin.getAccountLockedUntil());
+        verify(userRepository).save(admin);
+    }
+
+    /**
+     * The deprecated ADMIN on the platform tenant is most likely a real operator, which the GH-212
+     * migration deliberately left unlocked; refusing it would strand that operator after a lockout.
+     */
+    @Test
+    void unlockAccount_legacyAdminOnPlatformTenant_unlocked() {
+        AppUser operator = waitingAdmin(UserRole.ADMIN, LocalDateTime.now().plusMinutes(15));
+        when(userRepository.findById(7L)).thenReturn(Optional.of(operator));
+
+        authService.unlockAccount(7L);
+
+        assertNull(operator.getAccountLockedUntil());
+        verify(userRepository).save(operator);
+    }
+
+    private static AppUser waitingAdmin(UserRole role, LocalDateTime lockedUntil) {
+        return AppUser.builder()
+                .id(7L)
+                .email("thandi@company.test")
+                .firstName("Thandi")
+                .lastName("Mokoena")
+                .userRole(role)
+                .tenantId(TenantContext.PLATFORM_TENANT_ID)
+                .accountLockedUntil(lockedUntil)
+                .failedLoginAttempts(0)
+                .build();
     }
 
     @Test

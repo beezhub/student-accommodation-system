@@ -1,0 +1,67 @@
+# NONPROD overlay: PROD's own overlay plus the differences below, so whatever reaches PROD has
+# already run here (#378). Used only by deploy.yml, on top of docker-compose.aws.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml \
+#     -f docker-compose.aws.yml -f docker-compose.nonprod.yml up -d --no-build
+#
+# The differences, all because this is a free Oracle server rather than PROD's AWS one:
+#
+#   - PostgreSQL stays a container, requiring TLS like RDS (#380).
+#   - There is no instance role, so S3 and SES use an IAM user's access key (#379).
+#   - Mail comes from the one sender that user may use.
+#   - Series and log lines are labelled nonprod (#381).
+#
+# Everything else comes from the AWS overlay, including its memory limits. Compose checks every
+# file's required values before it merges them, so .env needs all of them, even DB_URL, which this
+# file then replaces. The NONPROD section of .env.example lists them.
+
+services:
+  # !override drops the base file's memory limit too: on PROD the database is off the server, so
+  # PROD's limits say nothing about it.
+  db:
+    profiles: !reset []
+    deploy: !override
+      replicas: 1
+
+  db-tls-cert:
+    profiles: !reset []
+    deploy: !override
+      replicas: 1
+
+  student-accommodation-back-end:
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Fixed here, not in .env, so a PROD .env copied by mistake cannot point NONPROD at RDS.
+      - DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb?sslmode=require
+      - S3_CREDENTIALS=static
+      # SES reads the SDK's default credential chain, which looks for these names. One IAM user
+      # covers both S3 and SES (infra/terraform/nonprod/iam.tf).
+      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY:?S3_ACCESS_KEY must be the key from /sas-nonprod/AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY:?S3_SECRET_KEY must be the secret from /sas-nonprod/AWS_SECRET_ACCESS_KEY}
+      # The only sender the IAM user may use, so NONPROD mail can never pass as PROD's no-reply@.
+      - MAIL_FROM=nonprod@beezhub.co.za
+
+  # PROD's alert rules only read env="prod", so a NONPROD outage pages nobody.
+  alloy:
+    environment:
+      - ALLOY_ENV=nonprod
+
+  # The AWS overlay gives these zero replicas and a profile nothing enables. PROD never had them, but
+  # they run here, and Compose leaves a running container alone while a profile disables its service.
+  # Without the profile, the zero replicas remove the container.
+  minio:
+    profiles: !reset []
+
+  minio-volume-permissions:
+    profiles: !reset []
+
+  grafana:
+    profiles: !reset []
+
+  prometheus:
+    profiles: !reset []
+
+  loki:
+    profiles: !reset []
