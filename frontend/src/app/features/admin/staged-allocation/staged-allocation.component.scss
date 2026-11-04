@@ -595,6 +595,22 @@
   }
 }
 
+.proposal-notice {
+  align-items: flex-start;
+  margin-bottom: 1rem;
+
+  ul {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+}
+
+.proposal-warnings {
+  color: vars.$warning;
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
 .proposal-cta-actions {
   display: flex;
   gap: 0.75rem;

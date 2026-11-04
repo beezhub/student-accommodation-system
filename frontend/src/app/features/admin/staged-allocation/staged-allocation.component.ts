@@ -20,7 +20,12 @@ import {
   initialsOf,
 } from '../../../core/services/admin.service';
 import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
-import { StagedAllocation, BatchAllocationProposal } from '../../../core/models/allocation.models';
+import {
+  StagedAllocation,
+  BatchAllocationProposal,
+  BatchConfirmationResult,
+  FailedProposal,
+} from '../../../core/models/allocation.models';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
@@ -88,6 +93,9 @@ export class StagedAllocationComponent implements OnInit {
     'actions',
   ];
   confirmedCount = 0;
+  proposalWarnings: string[] = [];
+  proposalFailures: FailedProposal[] = [];
+  confirmErrors: string[] = [];
 
   // Existing proposals (loaded from DB on init)
   existingProposals: StagedAllocation[] = [];
@@ -258,6 +266,9 @@ export class StagedAllocationComponent implements OnInit {
     this.stagedAllocationService.proposeAllocation(studentIds, this.batchId!).subscribe({
       next: (response: BatchAllocationProposal) => {
         this.proposals = response.proposals;
+        this.proposalWarnings = response.warnings ?? [];
+        this.proposalFailures = response.failures ?? [];
+        this.confirmErrors = [];
         this.isProposing = false;
         this.stepper.next(); // Move to Step 3
       },
@@ -332,16 +343,43 @@ export class StagedAllocationComponent implements OnInit {
     if (this.batchId) {
       this.stagedAllocationService.confirmBatch(this.batchId).subscribe({
         next: (res) => {
-          this.snackBar.open(`Confirmed ${res.confirmed} allocations`, 'Close', { duration: 3000 });
-          // Refresh or mark all as confirmed locally
-          this.proposals.forEach((p) => {
-            if (p.status === 'PROPOSED') p.status = 'CONFIRMED';
-          });
+          this.confirmedCount += res.successCount;
+          this.confirmErrors = res.errors ?? [];
+          this.snackBar.open(this.batchConfirmMessage(res), 'Close', { duration: 5000 });
+          this.refreshProposalStatuses();
         },
         error: () => {
           this.snackBar.open('Batch confirm failed', 'Close', { duration: 3000 });
         },
       });
     }
+  }
+
+  private batchConfirmMessage(res: BatchConfirmationResult): string {
+    if (res.failureCount > 0) {
+      return `Confirmed ${res.successCount} of ${res.totalAttempted} allocations, ${res.failureCount} failed`;
+    }
+    return `Confirmed ${res.successCount} allocation${res.successCount === 1 ? '' : 's'}`;
+  }
+
+  /**
+   * Asks the server which rows ended up confirmed. The confirm answer cannot say: its ids are of
+   * the new room allocations, and these rows are staged allocations.
+   */
+  private refreshProposalStatuses(): void {
+    this.stagedAllocationService
+      .getProposals(this.batchId!, undefined, 0, this.proposals.length)
+      .subscribe({
+        next: (page) => {
+          const statusById = new Map(page.content.map((p) => [p.id, p.status]));
+          this.proposals.forEach((p) => (p.status = statusById.get(p.id) ?? p.status));
+        },
+        error: () => {
+          this.confirmErrors = [
+            ...this.confirmErrors,
+            'Could not refresh this list. Reload the page to see which rows were confirmed.',
+          ];
+        },
+      });
   }
 }
