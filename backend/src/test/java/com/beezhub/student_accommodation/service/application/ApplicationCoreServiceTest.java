@@ -80,7 +80,7 @@ class ApplicationCoreServiceTest {
                 student.setId(1L);
                 student.setStudentNumber("STU001");
                 student.setPhoneNumber("0123456789");
-                student.setDateOfBirth(new java.util.Date());
+                student.setDateOfBirth(LocalDate.of(2000, 5, 14));
                 student.setGender("Female");
                 // GH-239: a complete profile now includes an emergency contact, so the happy-path
                 // fixture carries one. The gate's own cases below clear it deliberately.

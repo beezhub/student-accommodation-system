@@ -30,6 +30,7 @@ import {
   ApplicationDraft,
 } from '../../../core/services/application-draft.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
+import { toLocalDateString } from '../../../core/utils/local-date';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 import { contentOf } from '../../../core/models/page-response.model';
 
@@ -140,14 +141,13 @@ export class ApplicationReviewComponent implements OnInit {
     this.submitError = null;
 
     // Step 1: Update student profile with deferred fields
-    const dob = this.draft.dateOfBirth;
     const profileUpdate: StudentRequest = {
       firstName: this.currentUser!.firstName,
       lastName: this.currentUser!.lastName,
       email: this.currentUser!.email,
       studentNumber: this.draft.studentNumber,
       phoneNumber: this.draft.phoneNumber,
-      dateOfBirth: dob instanceof Date ? dob.toISOString() : dob,
+      dateOfBirth: toLocalDateString(this.draft.dateOfBirth),
       gender: this.draft.gender,
       specialRequirements: this.draft.specialRequirements ?? undefined,
       institutionId,
