@@ -1,7 +1,5 @@
-# PROD overlay: the AWS Cape Town server in docs/PROD_ENVIRONMENT_PLAN.md. Layered on top of the
-# NONPROD deployment rather than written beside it, so PROD is NONPROD plus the differences below
-# and inherits everything NONPROD has already proven (hardening, the frontend service and its fixed
-# address, bounded logs, Alloy's log pipeline):
+# PROD overlay: the AWS Cape Town server in docs/PROD_ENVIRONMENT_PLAN.md. NONPROD runs this file
+# too, with docker-compose.nonprod.yml on top (#378), so what reaches PROD has already run there:
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml \
 #     -f docker-compose.aws.yml up -d --no-build

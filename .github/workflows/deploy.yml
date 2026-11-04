@@ -98,7 +98,7 @@ jobs:
       # Only key names cross the wire; no value ever leaves the host.
       - name: Preflight the host environment
         run: |
-          F="docker-compose.yml docker-compose.prod.yml docker-compose.deploy.yml docker-compose.nonprod.yml"
+          F="docker-compose.yml docker-compose.prod.yml docker-compose.deploy.yml docker-compose.aws.yml docker-compose.nonprod.yml"
           # Required means compose has no fallback: ${VAR} written without a `:-` default, plus
           # every variable an `environment:` secret is built from. An environment secret is the
           # stricter of the two — compose aborts on an unset one even where the service reading it
@@ -224,7 +224,7 @@ jobs:
           set -euo pipefail
           cd /opt/sas
           export BACKEND_IMAGE FRONTEND_IMAGE
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.nonprod.yml \
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.aws.yml -f docker-compose.nonprod.yml \
             pull --quiet student-accommodation-back-end frontend
           REMOTE
             then
@@ -247,7 +247,7 @@ jobs:
           set -euo pipefail
           cd /opt/sas
           export BACKEND_IMAGE FRONTEND_IMAGE
-          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.nonprod.yml"
+          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.aws.yml -f docker-compose.nonprod.yml"
           docker compose $F up -d --no-build --remove-orphans
           REMOTE
 
@@ -279,7 +279,7 @@ jobs:
           done
           echo "::error::readiness never came up"
           cd /opt/sas
-          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.nonprod.yml"
+          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.aws.yml -f docker-compose.nonprod.yml"
           docker compose $F ps
           docker compose $F logs --tail=200
           exit 1

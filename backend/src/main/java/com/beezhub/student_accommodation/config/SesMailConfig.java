@@ -11,11 +11,12 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sesv2.SesV2Client;
 
 /**
- * Email through the SES API instead of SMTP, when app.mail.transport is ses-api (PROD, GH-360).
- * Spring Boot's own SMTP sender backs off because a JavaMailSender bean exists; with the default
- * transport this class does nothing and mail goes over SMTP as before.
+ * Email through the SES API instead of SMTP, when app.mail.transport is ses-api (PROD and NONPROD,
+ * GH-360). Spring Boot's own SMTP sender backs off because a JavaMailSender bean exists; with the
+ * default transport this class does nothing and mail goes over SMTP as before.
  *
- * <p>Credentials come from the default chain, which on the PROD server is the instance role.
+ * <p>Credentials come from the default chain: the instance role on the PROD server, and the
+ * AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY variables on NONPROD, which has no role.
  */
 @Configuration
 @ConditionalOnProperty(name = "app.mail.transport", havingValue = "ses-api")
