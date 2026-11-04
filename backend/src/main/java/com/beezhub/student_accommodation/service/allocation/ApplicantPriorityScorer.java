@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Ranks applicants in a waiting-list queue.
@@ -74,8 +75,10 @@ public class ApplicantPriorityScorer {
      * rule would make the scores incomparable — a student's arrival weight would depend on which
      * rooms happened to be free when the job ran (GH-140).
      *
-     * <p>The tenant filter scopes the query, so callers must have the tenant in context.
+     * <p>The tenant filter scopes the query, so callers must have the tenant in context. It only
+     * applies inside a transaction, and the batch job calls this without one.
      */
+    @Transactional(readOnly = true)
     public AllocationRule tenantRule() {
         return allocationRuleRepository.findByBuildingIsNullAndActiveTrue().stream()
                 .max(Comparator.comparing(AllocationRule::getPriority,

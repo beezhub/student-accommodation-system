@@ -250,6 +250,67 @@ class WaitingListQueueIntegrationTest extends AbstractIntegrationTest {
                 .containsEntry("tenant_id", tenantB);
     }
 
+    @Test
+    void batchAllocate_otherTenantHasHigherPriorityRule_ranksQueueByOwnTenantRule() {
+        ff4j.enable(FF4jConfig.FEATURE_AUTO_ALLOCATION);
+        // Tenant A's rule rewards funding, so the funded student goes first despite arriving second.
+        newRule(tenantA, 1, new BigDecimal("5.00"));
+        // Tenant B's rule ignores funding. If it leaks in, the tie falls back to arrival.
+        newRule(tenantB, 99, BigDecimal.ZERO);
+
+        Building building = newBuilding(tenantA);
+        Room lastRoom = newRoom(building, tenantA, 1);
+        Student earlier = newStudent("Ada", null, null);
+        enqueue(earlier, newApplication(earlier, tenantA, building, null), tenantA);
+        Student funded = newStudent("Bea", null, "NSFAS funded");
+        enqueue(funded, newApplication(funded, tenantA, building, null), tenantA);
+
+        allocationBatchService.batchAllocateFromWaitingList(10);
+
+        assertThat(allocationOf(funded)).containsEntry("room_id", lastRoom.getId());
+        assertThat(allocationOf(earlier)).isEmpty();
+    }
+
+    @Test
+    void getAvailableRoomsForBatch_tenantInContext_returnsOnlyThatTenantsRooms() {
+        Room roomA = newRoom(newBuilding(tenantA), tenantA);
+        Room roomB = newRoom(newBuilding(tenantB), tenantB);
+
+        TenantContext.setTenantId(tenantA);
+        List<Room> rooms = allocationScoringOrchestrator.getAvailableRoomsForBatch();
+        TenantContext.clear();
+
+        assertThat(rooms).extracting(Room::getId).contains(roomA.getId()).doesNotContain(roomB.getId());
+    }
+
+    @Test
+    void refillAfterCommit_earlierTenantCannotBeMatched_laterTenantGetsOwnRoom() {
+        ff4j.enable(FF4jConfig.FEATURE_AUTO_ALLOCATION);
+        // Tenant A's queue comes first and cannot use tenant A's only room.
+        Building buildingA = newBuilding(tenantA);
+        Room femaleOnlyRoomA = newRoom(buildingA, tenantA);
+        restrictRoom(femaleOnlyRoomA, null, null, GenderRestriction.FEMALE_ONLY);
+        Student maleStudentA = newStudent("Ada", null, null);
+        setGender(maleStudentA, "MALE");
+        enqueue(maleStudentA, newApplication(maleStudentA, tenantA, buildingA, null), tenantA);
+
+        // Tenant B's student could use that room, so a filter stuck on tenant A would offer it to her.
+        Building buildingB = newBuilding(tenantB);
+        Room roomB = newRoom(buildingB, tenantB);
+        Student femaleStudentB = newStudent("Bea", null, null);
+        setGender(femaleStudentB, "FEMALE");
+        enqueue(femaleStudentB, newApplication(femaleStudentB, tenantB, buildingB, null), tenantB);
+
+        // A decline by a student: platform tenant, so the decline's own session has no filter on.
+        TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+        transactionTemplate.executeWithoutResult(status -> eventPublisher.publishEvent(
+                new RoomVacatedEvent(0L, roomB.getId(), AllocationStatus.DECLINED)));
+        TenantContext.clear();
+
+        assertThat(allocationOf(femaleStudentB)).containsEntry("room_id", roomB.getId())
+                .containsEntry("tenant_id", tenantB);
+    }
+
     // ==================== Fixtures ====================
 
     private ResponseEntity<JsonNode> getWaitingListAs(UserRole role, Long tenantId) {

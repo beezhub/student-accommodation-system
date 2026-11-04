@@ -74,6 +74,8 @@ public class AllocationScoringOrchestrator {
         return capacityMap;
     }
 
+    /** The transaction is what lets the tenant filter scope this to the tenant in context. */
+    @Transactional(readOnly = true)
     public List<Room> getAvailableRoomsForBatch() {
         return roomRepository.findRoomsWithAvailableCapacity();
     }
