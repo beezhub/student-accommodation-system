@@ -95,7 +95,7 @@ export class InstitutionManagementComponent implements OnInit {
       size: this.pageSize,
     };
 
-    this.institutionService.searchInstitutions(filters).subscribe({
+    this.institutionService.searchInstitutions(filters, true).subscribe({
       next: (response: PageResponse<InstitutionResponse>) => {
         this.institutions = response.content;
         this.totalElements = response.totalElements;

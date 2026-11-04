@@ -1,7 +1,5 @@
-# PROD overlay: the AWS Cape Town server in docs/PROD_ENVIRONMENT_PLAN.md. Layered on top of the
-# NONPROD deployment rather than written beside it, so PROD is NONPROD plus the differences below
-# and inherits everything NONPROD has already proven (hardening, the frontend service and its fixed
-# address, bounded logs, Alloy's log pipeline):
+# PROD overlay: the AWS Cape Town server in docs/PROD_ENVIRONMENT_PLAN.md. NONPROD runs this file
+# too, with docker-compose.nonprod.yml on top (#378), so what reaches PROD has already run there:
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml \
 #     -f docker-compose.aws.yml up -d --no-build
@@ -23,6 +21,11 @@ services:
   # Scaled to zero with a profile nothing enables, the way docker-compose.prod.yml retires MailHog.
   # Compose cannot delete a service an earlier file declares.
   db:
+    deploy:
+      replicas: 0
+    profiles: ["never"]
+
+  db-tls-cert:
     deploy:
       replicas: 0
     profiles: ["never"]
@@ -81,6 +84,10 @@ services:
       - MAIL_TRANSPORT=ses-api
       # Presigned document URLs point at S3 itself, so the CSP must allow its origin.
       - STORAGE_PUBLIC_ORIGIN=${STORAGE_PUBLIC_ORIGIN:?STORAGE_PUBLIC_ORIGIN must be set to the bucket origin}
+      # Required, with no default: the migration that removes the seed's example rows runs once, so
+      # PROD must say false before its first deploy with it, not after (#365). Read from .env rather
+      # than fixed here, so NONPROD on this overlay (#382) has to choose too.
+      - EXAMPLE_DATA=${EXAMPLE_DATA:?EXAMPLE_DATA must be set, false on PROD (#365)}
     # The JVM takes 70% of this (backend/Dockerfile). The limits on this server add up to about
     # 1.6 GB, leaving room for the OS and Caddy on 2 GB, with 2 GB of swap behind it. #334 checks
     # that holds under deadline-day load.
@@ -115,9 +122,16 @@ services:
       - /var/log/journal:/var/log/journal:ro
       - /etc/machine-id:/etc/machine-id:ro
       - alloy_data:/var/lib/alloy/data
+      # The host's memory, swap, disk and CPU for prometheus.exporter.unix (#340). Read-only;
+      # rslave lets a disk mounted on the host after Alloy starts show up without a restart.
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
     # Loki is not running here.
     depends_on: !reset []
     environment:
+      # Fixed rather than read from .env, so no setting can make PROD's series look like NONPROD's.
+      - ALLOY_ENV=prod
       - GRAFANA_CLOUD_LOGS_URL=${GRAFANA_CLOUD_LOGS_URL:?GRAFANA_CLOUD_LOGS_URL must be set}
       - GRAFANA_CLOUD_LOGS_USER=${GRAFANA_CLOUD_LOGS_USER:?GRAFANA_CLOUD_LOGS_USER must be set}
       - GRAFANA_CLOUD_METRICS_URL=${GRAFANA_CLOUD_METRICS_URL:?GRAFANA_CLOUD_METRICS_URL must be set}

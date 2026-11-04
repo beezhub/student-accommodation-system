@@ -70,10 +70,16 @@ The full flow, with a diagram, is in `docs/BRANCHING_STRATEGY.md`.
   `main` (see Hotfixes).
 - Merge with a merge commit, never a squash. A squash makes `main` and
   `develop` look unrelated to Git, and later releases conflict.
-- One issue per pull request. Do not bundle unrelated issues, and do not
-  fold drive-by fixes or refactors into a pull request that is about
-  something else. Open a second branch and a second pull request
-  instead.
+- A pull request may close several issues when they are related: the
+  same area, the same kind of change (such as one bug on several
+  screens), and reviewable and revertible as one piece. Then:
+  - one commit per issue, so each fix stays readable on its own;
+  - a `Closes #n` line for each issue in the pull request body;
+  - the branch named after the first issue, `feature/TASK-{id}-{slug}`;
+  - a title that says what the issues have in common.
+- Do not bundle unrelated issues, and do not fold drive-by fixes or
+  refactors into a pull request that is about something else. Open a
+  second branch and a second pull request instead.
 - Title and description describe the change only.
 - No tooling disclosure section, no "how this was made" notes.
 - Fill in the repository PR template as a human contributor would.

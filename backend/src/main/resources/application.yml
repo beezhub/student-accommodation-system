@@ -38,6 +38,10 @@ spring:
       # true keeps the seeded demo administrator usable; anything else disables it (see
       # V2026_09_05_1000__disable_seeded_admin.sql). Never set this in NONPROD or PROD.
       demoSeed: ${DEMO_SEED:false}
+      # true keeps the seed's example institutions, academic year and demo administrator; false
+      # removes them (V2026_11_04_1000__remove_example_data.sql, #365). Local and NONPROD keep the
+      # default. PROD must be false, and docker-compose.aws.yml refuses to start without the value.
+      exampleData: ${EXAMPLE_DATA:true}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -112,8 +116,8 @@ app:
     # From address on every message. Blank uses spring.mail.username, the SMTP login. SES SMTP logs
     # in with an IAM key ID, so PROD sets this (GH-356).
     from: ${MAIL_FROM:}
-    # smtp, through spring.mail.* (local, NONPROD), or ses-api, through the SES v2 API with the
-    # instance role (PROD: SES has no SMTP endpoint in af-south-1, GH-360).
+    # smtp, through spring.mail.* (local), or ses-api, through the SES v2 API with the SDK's default
+    # credentials (PROD and NONPROD: SES has no SMTP endpoint in af-south-1, GH-360).
     transport: ${MAIL_TRANSPORT:smtp}
     ses-region: ${MAIL_SES_REGION:af-south-1}
   support-email: ${APP_SUPPORT_EMAIL:accommodation@university.edu}

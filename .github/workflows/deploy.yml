@@ -98,18 +98,22 @@ jobs:
       # Only key names cross the wire; no value ever leaves the host.
       - name: Preflight the host environment
         run: |
-          F="docker-compose.yml docker-compose.prod.yml docker-compose.deploy.yml"
-          # Required means compose has no fallback: ${VAR} written without a `:-` default, plus
-          # every variable an `environment:` secret is built from. An environment secret is the
-          # stricter of the two — compose aborts on an unset one even where the service reading it
-          # tolerates an empty value, which is exactly how GH-274 happened. Anything carrying a
-          # `:-` default degrades on its own and is deliberately not checked.
+          F="docker-compose.yml docker-compose.prod.yml docker-compose.deploy.yml docker-compose.aws.yml docker-compose.nonprod.yml"
+          # Required means compose has no fallback: ${VAR} or ${VAR:?message}, the same pattern as
+          # tools/prod/write-env.sh, plus every variable an `environment:` secret is built from. An
+          # environment secret is the stricter of the two — compose aborts on an unset one even where
+          # the service reading it tolerates an empty value, which is exactly how GH-274 happened.
+          # Anything carrying a `:-` default degrades on its own and is deliberately not checked.
+          # The image names are not in .env: this workflow passes them in.
           REQUIRED=$(
             {
-              grep -hoE '\$\{[A-Z0-9_]+\}' $F | tr -d '${}'
+              grep -hoE '\$\{[A-Z0-9_]+(\}|:?\?)' $F | sed -E 's/^\$\{([A-Z0-9_]+).*/\1/'
               grep -hoE '^[[:space:]]+environment:[[:space:]]+[A-Z0-9_]+[[:space:]]*$' $F | awk '{print $2}'
-            } | sort -u
+            } | grep -vxE 'BACKEND_IMAGE|FRONTEND_IMAGE' | sort -u
           )
+          # ${VAR:?message} also refuses an empty value, so `KEY=` stops compose just like no key (#423).
+          MUST_BE_SET=$(grep -hoE '\$\{[A-Z0-9_]+:\?' $F | sed -E 's/^\$\{([A-Z0-9_]+).*/\1/' \
+            | grep -vxE 'BACKEND_IMAGE|FRONTEND_IMAGE' | sort -u)
           PRESENT=$(ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
             -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
             "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
@@ -117,13 +121,20 @@ jobs:
               echo "::error::/opt/sas/.env is missing or unreadable on ${{ vars.DEPLOY_HOST }}"
               exit 1
             }
+          WITH_VALUE=$(ssh -i "$RUNNER_TEMP/.ssh/id_ed25519" -o UserKnownHostsFile="$RUNNER_TEMP/.ssh/known_hosts" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+            "sed -nE 's/^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=.+$/\2/p' /opt/sas/.env | sort -u")
           MISSING=$(comm -23 <(printf '%s\n' "$REQUIRED") <(printf '%s\n' "$PRESENT") | tr '\n' ' ')
-          if [ -n "${MISSING// /}" ]; then
-            echo "::error::/opt/sas/.env is missing keys the compose files require: $MISSING"
+          EMPTY=$(comm -23 <(printf '%s\n' "$MUST_BE_SET") <(printf '%s\n' "$WITH_VALUE") \
+            | comm -12 - <(printf '%s\n' "$PRESENT") | tr '\n' ' ')
+          if [ -n "${MISSING// /}${EMPTY// /}" ]; then
+            [ -z "${MISSING// /}" ] || echo "::error::/opt/sas/.env is missing keys the compose files require: $MISSING"
+            [ -z "${EMPTY// /}" ] || echo "::error::/opt/sas/.env has empty values for keys that must be set: $EMPTY"
             echo "Deploying now would abort partway through 'docker compose up -d' and leave the stack"
             echo "half recreated (GH-274). Nothing has been changed on the host."
             echo ""
-            echo "Add each key to /opt/sas/.env and re-run this workflow. .env.example documents every"
+            echo "Set each key in /opt/sas/.env and re-run this workflow. .env.example documents every"
             echo "one of them, including where an empty value is a valid choice rather than an omission."
             exit 1
           fi
@@ -224,7 +235,7 @@ jobs:
           set -euo pipefail
           cd /opt/sas
           export BACKEND_IMAGE FRONTEND_IMAGE
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml \
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.aws.yml -f docker-compose.nonprod.yml \
             pull --quiet student-accommodation-back-end frontend
           REMOTE
             then
@@ -247,8 +258,9 @@ jobs:
           set -euo pipefail
           cd /opt/sas
           export BACKEND_IMAGE FRONTEND_IMAGE
-          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml"
+          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.aws.yml -f docker-compose.nonprod.yml"
           docker compose $F up -d --no-build --remove-orphans
+          bash tools/deploy/restart-changed-config.sh
           REMOTE
 
       # Readiness, not /actuator/health. The aggregate includes the SMTP, storage and Redis
@@ -279,7 +291,7 @@ jobs:
           done
           echo "::error::readiness never came up"
           cd /opt/sas
-          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml"
+          F="-f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml -f docker-compose.aws.yml -f docker-compose.nonprod.yml"
           docker compose $F ps
           docker compose $F logs --tail=200
           exit 1

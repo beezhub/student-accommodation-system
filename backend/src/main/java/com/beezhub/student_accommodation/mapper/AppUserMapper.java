@@ -27,7 +27,8 @@ public interface AppUserMapper {
     @Mapping(target = "failedLoginAttempts", ignore = true)
     AppUser toEntity(SignupRequest signupRequest, String password);
 
-    // Admin-created users - PLATFORM_ADMIN/BUILDING_STAFF only
+    // Admin-created users: every role except STUDENT (UserManagementService.validateAdminCreatableRole).
+    // The person gets a password someone else typed, so the first sign-in forces a change (#413).
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -37,7 +38,7 @@ public interface AppUserMapper {
     @Mapping(target = "email", source = "request.email")
     @Mapping(target = "userRole", expression = "java(mapAdminRole(request.getUserRole()))")
     @Mapping(target = "emailVerified", constant = "true")
-    @Mapping(target = "mustChangePassword", constant = "false")
+    @Mapping(target = "mustChangePassword", constant = "true")
     @Mapping(target = "accountLockedUntil", ignore = true)
     @Mapping(target = "failedLoginAttempts", ignore = true)
     AppUser toEntityFromAdminRequest(CreateUserRequest request, String password);

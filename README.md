@@ -109,23 +109,21 @@ Now, both the backend and frontend servers should be running. Access the applica
 - [Operator runbook](docs/OPERATOR_RUNBOOK.md) — every account, domain, DNS record, credential and
   GitHub setting the deployment needs from a person, in the order it is needed. Start here before
   any deployment work.
+- [NONPROD runbook](docs/NONPROD_RUNBOOK.md): how NONPROD is deployed and operated, how it differs
+  from PROD, and its planned architecture once #378 is done.
 - [Backup and restore runbook](docs/BACKUP_AND_RESTORE.md) — PostgreSQL and MinIO backup, restore
   ordering, and the document retention rule (twelve months after a student's last application
   closes and last tenancy ends). Read it before turning retention off dry-run mode.
-- **Logs.** On a deployed host every container's output and the Caddy journal are shipped by
-  Alloy to Loki and kept for two weeks (`tools/alloy/logs.alloy`, `tools/loki/loki.yml`). Caddy
-  serves Grafana at `/grafana`; sign in with `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` and
-  use Explore with the Loki datasource:
+- **Logs.** On both deployed servers every container's output and the Caddy journal are shipped by
+  Alloy to one Grafana Cloud stack (`tools/alloy/logs.alloy`, `tools/alloy/grafana-cloud.alloy`).
+  Use Explore with the Loki data source:
 
   ```
-  https://nonprod.beezhub.co.za/grafana/explore   # datasource Loki
+  https://friendlysamosa508.grafana.net/explore
   ```
 
-  `GRAFANA_ROOT_URL` in the host `.env` must be that public address including `/grafana`, and the
-  host's `/etc/caddy/Caddyfile` must be the copy in `tools/caddy/`; the deploy updates neither.
-
-  Every line carries the same labels (`tools/alloy/logs.alloy`), so one query shape works across
-  the stack and in both environments. PROD's logs are in Grafana Cloud, NONPROD's in its own Loki:
+  Every line carries the same labels, so one query shape works across the stack. Both environments
+  share it, so add `env` to every query:
 
   | Label | Values |
   | --- | --- |
@@ -136,20 +134,23 @@ Now, both the backend and frontend servers should be running. Access the applica
   | `job`, `stream`, `container` | `docker` or `journal`; `stdout` or `stderr`; the container name |
 
   Useful queries: `{env="prod", level="error"}` for every error in PROD;
-  `{service="student-accommodation-back-end", level="error"}` for backend errors;
-  `{service=~"caddy|frontend", status_class="5xx"}` for failed requests;
-  `{service="student-accommodation-back-end"} | requestId="<id>"` to follow one request by the
+  `{env="prod", service="student-accommodation-back-end", level="error"}` for backend errors;
+  `{env="prod", service=~"caddy|frontend", status_class="5xx"}` for failed requests;
+  `{env="prod", service="student-accommodation-back-end"} | requestId="<id>"` to follow one request by the
   `x-request-id` the API returns; `{env="prod"} | action="verificationEmailFailed"` for one kind of
   event. The backend's action, logger, request id and tenant id are structured metadata and filter
   with `| logger=~"...Service"`; search the message itself with `|= "text"`. `?token=` values are masked before storage.
-  Without Grafana, `docker compose logs` on the host also works, but only holds the last 30 MB per
-  container.
-- **Metrics and alerts.** Prometheus scrapes the backend every 15 seconds and keeps 30 days on
-  its own volume; the dashboards under `tools/grafana/dashboards` read from it in the same
-  Grafana. Scraping needs `PROMETHEUS_SCRAPE_PASSWORD` set in `.env`, which feeds both the backend
-  and Prometheus. Provisioned alerts email `GRAFANA_ALERT_EMAIL` (default `APP_SUPPORT_EMAIL`)
-  through the `MAIL_*` account. Check `up{job="student-accommodation-backend"}` in Explore first:
-  `0` means the scrape is failing, and the usual cause is that password.
+  Without Grafana, `docker logs <container>` on the host also works, but only holds the last 30 MB
+  per container.
+- **Metrics and alerts.** On the deployed servers Alloy scrapes the backend every 15 seconds and
+  sends the metrics to the same stack. The alert rules (`infra/terraform/prod-grafana`) only read
+  `env="prod"`, so a NONPROD outage pages nobody. The dashboards open on `env=prod`; change the filter
+  at the top to see NONPROD. Scraping needs `PROMETHEUS_SCRAPE_PASSWORD` set in `.env`, which feeds
+  both the backend and Alloy. Check `up{env="prod",job="student-accommodation-backend"}` in Explore
+  first: `0` means the scrape is failing, and the usual cause is that password.
+- **Local monitoring.** `docker-compose up` still runs Prometheus and Grafana on your machine, at
+  `http://localhost:3000`, reading the dashboards under `tools/grafana/dashboards`. Their provisioned
+  alerts email `GRAFANA_ALERT_EMAIL` (default `APP_SUPPORT_EMAIL`) through the `MAIL_*` account.
 
 ## Folder Structure
 ```

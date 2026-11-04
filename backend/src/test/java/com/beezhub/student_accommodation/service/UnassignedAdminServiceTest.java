@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.beezhub.student_accommodation.exceptions.InactiveTenantException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
 import com.beezhub.student_accommodation.model.dto.UnassignedAdminResponseDto;
@@ -17,7 +18,7 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
-import com.beezhub.student_accommodation.repository.TenantRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantService;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -43,8 +44,8 @@ class UnassignedAdminServiceTest {
     private static final LocalDateTime LOCKED_FOREVER = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
 
     @Mock private AppUserRepository appUserRepository;
-    @Mock private TenantRepository tenantRepository;
     @Mock private TokenBlacklistService tokenBlacklistService;
+    @Mock private TenantService tenantService;
 
     @InjectMocks private UnassignedAdminService service;
 
@@ -117,7 +118,7 @@ class UnassignedAdminServiceTest {
     @EnumSource(value = UserRole.class, names = {"TENANT_ADMIN", "BUILDING_STAFF", "ADMIN"})
     void assignTenant_setsTheCompanyAndUnlocksTheAccount(UserRole role) {
         AppUser user = strandedAdmin(1L, role);
-        when(tenantRepository.findById(OWNING_TENANT)).thenReturn(Optional.of(company()));
+        when(tenantService.requireTenantAcceptingNewRecords(OWNING_TENANT)).thenReturn(company());
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
         when(appUserRepository.save(any(AppUser.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -135,7 +136,7 @@ class UnassignedAdminServiceTest {
     @Test
     void assignTenant_revokesTheTokensStillCarryingThePlatformTenant() {
         AppUser user = strandedAdmin(1L, UserRole.TENANT_ADMIN);
-        when(tenantRepository.findById(OWNING_TENANT)).thenReturn(Optional.of(company()));
+        when(tenantService.requireTenantAcceptingNewRecords(OWNING_TENANT)).thenReturn(company());
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
         when(appUserRepository.save(any(AppUser.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -156,15 +157,32 @@ class UnassignedAdminServiceTest {
 
     @Test
     void assignTenant_unknownCompany_isRefused() {
-        when(tenantRepository.findById(999L)).thenReturn(Optional.empty());
+        when(tenantService.requireTenantAcceptingNewRecords(999L))
+                .thenThrow(new TenantNotFoundException("Property company not found with id: 999"));
 
         assertThatThrownBy(() -> service.assignTenant(1L, 999L))
                 .isInstanceOf(TenantNotFoundException.class);
     }
 
+    /**
+     * #413: this is now how every company gets a new admin, so it keeps the rule the removed
+     * TenantAdminService.createTenantAdmin had: a deactivated company takes no new records (GH-267).
+     */
+    @Test
+    void assignTenant_deactivatedCompany_isRefusedBeforeTheAccountIsTouched() {
+        when(tenantService.requireTenantAcceptingNewRecords(OWNING_TENANT)).thenThrow(
+                new InactiveTenantException("Property company 'Acme Residences' is deactivated"));
+
+        assertThatThrownBy(() -> service.assignTenant(1L, OWNING_TENANT))
+                .isInstanceOf(InactiveTenantException.class);
+
+        verify(appUserRepository, never()).save(any());
+        verify(tokenBlacklistService, never()).revokeTokensIssuedBefore(anyString(), any(), anyLong());
+    }
+
     @Test
     void assignTenant_unknownUser_isRefused() {
-        when(tenantRepository.findById(OWNING_TENANT)).thenReturn(Optional.of(company()));
+        when(tenantService.requireTenantAcceptingNewRecords(OWNING_TENANT)).thenReturn(company());
         when(appUserRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.assignTenant(1L, OWNING_TENANT))
@@ -177,7 +195,7 @@ class UnassignedAdminServiceTest {
         // companies, which is a different and much larger operation.
         AppUser user = strandedAdmin(1L, UserRole.TENANT_ADMIN);
         user.setTenantId(7L);
-        when(tenantRepository.findById(OWNING_TENANT)).thenReturn(Optional.of(company()));
+        when(tenantService.requireTenantAcceptingNewRecords(OWNING_TENANT)).thenReturn(company());
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> service.assignTenant(1L, OWNING_TENANT))
@@ -189,7 +207,7 @@ class UnassignedAdminServiceTest {
     @EnumSource(value = UserRole.class, names = {"STUDENT", "PLATFORM_ADMIN"})
     void assignTenant_aRoleThatBelongsOnThePlatformTenant_isRefused(UserRole role) {
         AppUser user = strandedAdmin(1L, role);
-        when(tenantRepository.findById(OWNING_TENANT)).thenReturn(Optional.of(company()));
+        when(tenantService.requireTenantAcceptingNewRecords(OWNING_TENANT)).thenReturn(company());
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> service.assignTenant(1L, OWNING_TENANT))

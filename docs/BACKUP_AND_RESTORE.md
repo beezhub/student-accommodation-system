@@ -5,8 +5,9 @@ bucket. It also records what the system does about document retention, and why t
 lifecycle rule expiring documents.
 
 GH-235. **PROD on AWS** (#335, #336) keeps its state in RDS and S3 rather than in containers, and is
-covered first, in the PROD section. Sections 1 to 6 after it describe the compose deployment that
-NONPROD runs, with PostgreSQL and MinIO in containers.
+covered first, in the PROD section. Sections 1 to 6 after it describe a compose deployment with
+PostgreSQL and MinIO in containers. NONPROD keeps its PostgreSQL in a container, so section 2 applies
+to it, but its documents are in S3 (#382), so section 3 does not.
 
 ---
 
@@ -124,6 +125,7 @@ need are the ones in your `.env`; `.env.example` documents every variable.
 | PostgreSQL (`postgres_data`) | every application, allocation, user, audit row | No |
 | MinIO (`minio_data`) | student document objects, building images | No |
 | Redis (`redis_data`) | token blacklist, rate-limit counters | Yes — losing it un-blacklists logged-out tokens until they expire, and resets rate limits |
+| Postgres certificate (`postgres_tls`) | NONPROD's self-signed TLS certificate | Yes: `db-tls-cert` makes a new one on the next start, and `sslmode=require` does not check it |
 | Grafana (`grafana_data`) | dashboards | Yes — provisioned from `tools/grafana/` |
 | Prometheus | metrics history | Yes, and not worth backing up |
 | Loki (`loki_data`) | two weeks of container and Caddy logs | Yes, and not worth backing up |
@@ -179,6 +181,9 @@ add WAL archiving, which lets you roll forward to any moment:
       - postgres_data:/var/lib/postgresql/data
       - /srv/backup/wal:/wal
 ```
+
+On NONPROD, `docker-compose.deploy.yml` already sets `command` to require TLS (#380). `command` is
+replaced rather than merged, so copy its `-c` lines into yours or TLS turns off.
 
 Then take a base backup periodically:
 

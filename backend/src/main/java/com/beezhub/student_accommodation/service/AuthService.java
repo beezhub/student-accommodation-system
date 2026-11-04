@@ -7,6 +7,7 @@ import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.EmailVerificationToken;
 import com.beezhub.student_accommodation.model.entity.PasswordResetToken;
+import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
 import com.beezhub.student_accommodation.util.SecureTokenHasher;
@@ -196,6 +197,20 @@ public class AuthService {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+        if (isWaitingForACompany(user)) {
+            log.warn("action=unlockRefused reason=noCompany userId={} role={}", userId, user.getUserRole());
+            // The company admin screen (#413) offers tenant admins only, so building staff are
+            // still pointed at the API; the screen labels are the ones the admin clicks.
+            String wayOut = user.getUserRole() == UserRole.TENANT_ADMIN
+                    ? "Tenants > Manage admin users > Add Existing Admin"
+                    : "POST /api/admin/unassigned-admins/" + userId + "/assign";
+            throw new UnassignedAdminUnlockException(String.format(
+                    "%s %s is not linked to a company yet. Unlocking would give them access to every "
+                            + "company's data. Add them to a company instead, which unlocks the account "
+                            + "too: %s.",
+                    user.getFirstName(), user.getLastName(), wayOut));
+        }
+
         user.setAccountLockedUntil(null);
         user.setFailedLoginAttempts(0);
         userRepository.save(user);
@@ -204,6 +219,17 @@ public class AuthService {
         loginAttemptService.loginSucceeded(userId);
 
         log.info("Account manually unlocked for user: {}", userId);
+    }
+
+    /**
+     * A TENANT_ADMIN or BUILDING_STAFF still on the platform tenant has no company yet, and its lock
+     * is the only thing keeping it out of every company's data (#412, GH-212). These are exactly the
+     * roles V2026_09_06_1500 locks. The deprecated ADMIN is not among them: on tenant 0 it is most
+     * likely a real operator, who must stay unlockable after an ordinary lockout.
+     */
+    private static boolean isWaitingForACompany(AppUser user) {
+        return TenantContext.PLATFORM_TENANT_ID.equals(user.getTenantId())
+                && (user.getUserRole() == UserRole.TENANT_ADMIN || user.getUserRole() == UserRole.BUILDING_STAFF);
     }
 
     public UserData me(Authentication authentication) {

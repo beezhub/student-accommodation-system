@@ -1,6 +1,10 @@
 import { Component, Input, OnInit, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { TenantService, TenantAdminUser } from '../../../../core/services/tenant.service';
+import {
+  TenantService,
+  TenantAdminUser,
+  UnassignedAdmin,
+} from '../../../../core/services/tenant.service';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
@@ -89,15 +93,28 @@ export class TenantAdminManagementComponent implements OnInit {
     });
   }
 
-  openCreateDialog(): void {
-    import('./tenant-admin-form-dialog/tenant-admin-form-dialog.component').then((m) => {
-      const dialogRef = this.dialog.open(m.TenantAdminFormDialogComponent, {
-        width: '480px',
-        data: { tenantId: this.tenantId, tenantName: this.tenantName },
-      });
-      dialogRef.afterClosed().subscribe((result) => {
-        if (result) this.loadAdmins();
-      });
+  /**
+   * Adds an existing account as this company's admin (#413). Accounts are created in user
+   * management only, so there is no form here that makes one.
+   */
+  async openAddDialog(): Promise<void> {
+    const m = await import('./add-existing-admin-dialog/add-existing-admin-dialog.component');
+    const dialogRef = this.dialog.open(m.AddExistingAdminDialogComponent, {
+      width: '520px',
+      data: { tenantId: this.tenantId, tenantName: this.tenantName },
+    });
+    dialogRef.afterClosed().subscribe((added?: UnassignedAdmin) => {
+      if (!added) return;
+      const company = this.tenantName || 'this property company';
+      this.snackBar.open(
+        `${added.firstName} ${added.lastName} is now an admin of ${company}.`,
+        'Close',
+        {
+          duration: 4000,
+          panelClass: 'snack-success',
+        }
+      );
+      this.loadAdmins();
     });
   }
 

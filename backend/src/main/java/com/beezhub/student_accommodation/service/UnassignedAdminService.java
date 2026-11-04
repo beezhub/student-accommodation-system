@@ -1,14 +1,13 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
-import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
 import com.beezhub.student_accommodation.model.dto.UnassignedAdminResponseDto;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
-import com.beezhub.student_accommodation.repository.TenantRepository;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
+import com.beezhub.student_accommodation.service.tenant.TenantService;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
@@ -51,7 +50,7 @@ public class UnassignedAdminService {
     private static final long TOKEN_REVOCATION_MARKER_TTL_SECONDS = 12 * 60 * 60L;
 
     private final AppUserRepository appUserRepository;
-    private final TenantRepository tenantRepository;
+    private final TenantService tenantService;
     private final TokenBlacklistService tokenBlacklistService;
 
     /** Every admin account still sitting on the platform tenant, newest first. */
@@ -82,8 +81,10 @@ public class UnassignedAdminService {
             throw new IllegalArgumentException(
                     "The platform tenant is the value being repaired here; choose a property company");
         }
-        Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new TenantNotFoundException("Tenant not found with id: " + tenantId));
+        // Not found, or deactivated: both refused, as everything that gives a company new records
+        // is (GH-267). This is now how a company gets a new admin (#413), so it must not be the
+        // one route that ignores a switched-off company.
+        Tenant tenant = tenantService.requireTenantAcceptingNewRecords(tenantId);
 
         AppUser user = appUserRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));

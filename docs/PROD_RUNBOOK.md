@@ -69,8 +69,9 @@ To roll back, run it again with the previous release's NONPROD run id, if the ru
    and names the key.
 
 4. **Pull and start:** `tools/prod/ssmrun.sh tools/prod/start.sh`. It prints `schema_before=`,
-   pulls (three tries, and stops before `up` if all fail), waits for readiness, prints
-   `schema_after=`, and ends with the running digests, the error count and memory.
+   pulls (three tries, and stops before `up` if all fail), restarts any container whose mounted
+   config file changed (#411), waits for readiness, prints `schema_after=`, and ends with the running
+   digests, the error count and memory.
 
 5. **Check from outside:** `curl -sI https://accommodation.beezhub.co.za/` returns 200, and the
    `Content-Security-Policy` header matches the release.
@@ -98,8 +99,51 @@ Use `--type SecureString` for anything secret, and enter secrets through a promp
 command line (see Grafana token below). Then redeploy the current release: run Deploy PROD with the same NONPROD run id (or steps 3 and 4
 by hand).
 
-The database login is not in SSM: `write-env.sh` reads it from the RDS-managed secret every time, so
-it always matches what RDS holds.
+The database login is not in SSM: `write-env.sh` reads it from the RDS-managed secret on every
+deploy. Only on a deploy, though, which is what the next section is about.
+
+## The database password
+
+RDS keeps the master password in Secrets Manager and rotates it **once a year**
+(`aws_secretsmanager_secret_rotation.db_master` in `infra/terraform/prod/database.tf`). The backend
+does not read the secret itself: it runs on the copy `write-env.sh` put in `/opt/sas/.env` at the
+last deploy. After a rotation, the connection pool replaces its connections within 10 minutes and
+each new one is refused, so **the site goes down about 10 minutes after any rotation until PROD is
+redeployed** (#407). While RDS used its default 7-day schedule, that would have happened every week.
+
+The daily backup is not affected: `backup-db.sh` reads the secret on every run.
+
+**When it rotates next:**
+
+```bash
+MSYS_NO_PATHCONV=1 aws secretsmanager describe-secret --region af-south-1 \
+  --secret-id "$(MSYS_NO_PATHCONV=1 aws rds describe-db-instances --region af-south-1 \
+    --db-instance-identifier sas-prod --query 'DBInstances[0].MasterUserSecret.SecretArn' --output text)" \
+  --query '{Last:LastRotatedDate, Next:NextRotationDate, Rules:RotationRules}'
+```
+
+**Rotate on purpose, before that date,** at a quiet time, so the outage is a minute you chose rather
+than ten minutes at night:
+
+1. Have the NONPROD run id of the release PROD runs now (the last green Deploy PROD run's summary).
+2. Rotate, with the secret ARN from the command above:
+
+   ```bash
+   MSYS_NO_PATHCONV=1 aws secretsmanager rotate-secret --region af-south-1 --secret-id '<SecretArn>'
+   ```
+
+   It takes a few seconds. Run the "when it rotates next" command again until `Last` shows the time
+   you rotated; a deploy before that would copy the old password.
+
+3. Straight away, run **Deploy PROD** with that same run id. `write-env.sh` picks up the new
+   password and `start.sh` restarts the backend with it.
+4. Check the site and `start.sh`'s `errors since start: 0`. The next rotation is now a year away.
+
+**If the site is already down** and the backend log shows `password authentication failed for user
+"sas_admin"`, a rotation happened: do step 3.
+
+A restored database keeps the password it had at that time (`docs/BACKUP_AND_RESTORE.md`), so after a
+restore the same redeploy applies.
 
 ## First deploy only
 
@@ -110,7 +154,8 @@ Done on 2026-11-03; kept here to rebuild PROD from nothing.
    attempt pointed at `5.240.189.31`, someone else's server.
 3. The `/sas-prod/` settings: generated secrets (`JWT_SECRET`, `REDIS_PASSWORD`,
    `PROMETHEUS_SCRAPE_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`, `ADMIN_BOOTSTRAP_PASSWORD`), the
-   Grafana Cloud values, and the plain settings. The mail parameters come from Terraform.
+   Grafana Cloud values, and the plain settings, including `EXAMPLE_DATA=false` (#365). The mail
+   parameters come from Terraform.
 4. The Grafana Cloud token, entered through a prompt so it never reaches the screen or a transcript:
 
    ```bash
@@ -129,6 +174,27 @@ Done on 2026-11-03; kept here to rebuild PROD from nothing.
      --names /sas-prod/ADMIN_BOOTSTRAP_EMAIL /sas-prod/ADMIN_BOOTSTRAP_PASSWORD
    ```
 
+## Removing the example data (#365, once)
+
+The baseline seed put two example institutions, a "2026" academic year and the locked demo
+administrator on PROD. `V2026_11_04_1000__remove_example_data.sql` removes them when `EXAMPLE_DATA`
+is `false`. It runs **once**, so the setting comes first:
+
+1. Before deploying the first release that carries that migration:
+
+   ```bash
+   MSYS_NO_PATHCONV=1 aws ssm put-parameter --region af-south-1 --name /sas-prod/EXAMPLE_DATA \
+     --type String --value 'false'
+   ```
+
+   Without it the deploy stops at `write-env.sh` with "need keys that /sas-prod/ does not have:
+   EXAMPLE_DATA", and nothing on the server changes.
+2. Deploy. In the backend's startup log, Flyway applies `2026.11.04.1000`. A line with
+   `action=exampleDataKept` names a row it left because something real points at it; look at that
+   row before removing it by hand.
+3. In the platform admin UI, rename tenant 1 ("Default Tenant") to the real first tenant, and add
+   the real institutions and academic year.
+
 ## Checks after any deploy
 
 - `start.sh` reports readiness and `errors since start: 0`.
@@ -140,5 +206,5 @@ Done on 2026-11-03; kept here to rebuild PROD from nothing.
 ## Known gaps
 
 - #339: no tested restore yet; RDS point-in-time recovery exists but has not been drilled.
-- #340: Grafana Cloud dashboards and alerts are not built yet.
+- #340: Grafana Cloud alerts and dashboards are in `infra/terraform/prod-grafana` (applied by hand: `infra/terraform/README.md`, "Grafana Cloud alerts and dashboards"), and data out is the `sas-prod-data-out` budget in `prod/monitoring.tf`; UptimeRobot is not set up yet.
 - #344: DNS is still at the SADomains email hosting package.

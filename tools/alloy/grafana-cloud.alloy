@@ -1,10 +1,12 @@
-// PROD destination for logs.alloy, plus the metrics Prometheus scrapes on NONPROD. Mounted by
-// docker-compose.aws.yml.
+// Destination for logs.alloy, plus the backend's and the server's metrics, on both PROD and NONPROD.
+// Mounted by docker-compose.aws.yml and docker-compose.nonprod.yml, which set ALLOY_ENV to prod or
+// nonprod: the two environments share one Grafana Cloud stack (#381), and that label is what tells
+// them apart. PROD's alert rules only read env="prod".
 //
-// The PROD server has 2 GB, so Grafana, Prometheus and Loki do not run on it. Logs and metrics go
-// to Grafana Cloud's free plan instead. Every URL, user and the API key come from the environment:
-// the compose overlay requires them, so a missing one stops the deploy rather than leaving Alloy
-// pushing to nowhere.
+// The PROD server has 2 GB, so Grafana, Prometheus and Loki do not run on it, and NONPROD matches
+// it. Logs and metrics go to Grafana Cloud's free plan instead. Every URL, user and the API key come
+// from the environment: the compose overlay requires them, so a missing one stops the deploy rather
+// than leaving Alloy pushing to nowhere.
 
 loki.write "default" {
 	endpoint {
@@ -17,12 +19,12 @@ loki.write "default" {
 	}
 
 	// One label tells environments apart in every query (labels in logs.alloy).
-	external_labels = {env = "prod"}
+	external_labels = {env = sys.env("ALLOY_ENV")}
 }
 
 // Same target, path, credentials and job name as tools/prometheus/prometheus.yml, so the
-// dashboards in tools/grafana/dashboards read PROD's series the way they read NONPROD's. The
-// password is the compose secret built from PROMETHEUS_SCRAPE_PASSWORD, the variable the backend
+// dashboards in tools/grafana/dashboards read these series the way they read a local Prometheus's.
+// The password is the compose secret built from PROMETHEUS_SCRAPE_PASSWORD, the variable the backend
 // checks it against.
 prometheus.scrape "backend" {
 	job_name        = "student-accommodation-backend"
@@ -38,6 +40,36 @@ prometheus.scrape "backend" {
 	forward_to = [prometheus.remote_write.default.receiver]
 }
 
+// The server's own memory, swap, disk and CPU, for the alerts in infra/terraform/prod-grafana
+// (#340). The host's /proc, /sys and / are mounted read-only under /host by the compose overlay;
+// with rootfs_path the exporter reports mount points as the host sees them, so the root disk is
+// mountpoint="/".
+prometheus.exporter.unix "host" {
+	procfs_path    = "/host/proc"
+	sysfs_path     = "/host/sys"
+	rootfs_path    = "/host/root"
+	set_collectors = ["cpu", "filesystem", "loadavg", "meminfo"]
+}
+
+prometheus.scrape "host" {
+	job_name        = "node"
+	scrape_interval = "60s"
+	targets         = prometheus.exporter.unix.host.targets
+	forward_to      = [prometheus.relabel.host.receiver]
+}
+
+// The four collectors produce about 500 series; the free plan allows 10,000 in all. Keep only
+// what an alert or a dashboard reads, so adding a collector later is a choice, not a surprise.
+prometheus.relabel "host" {
+	rule {
+		source_labels = ["__name__"]
+		regex         = "node_(memory_(MemAvailable|MemTotal|SwapFree|SwapTotal)_bytes|filesystem_(avail|size)_bytes|cpu_seconds_total|load(1|5|15))"
+		action        = "keep"
+	}
+
+	forward_to = [prometheus.remote_write.default.receiver]
+}
+
 prometheus.remote_write "default" {
 	endpoint {
 		url = sys.env("GRAFANA_CLOUD_METRICS_URL")
@@ -48,5 +80,5 @@ prometheus.remote_write "default" {
 		}
 	}
 
-	external_labels = {env = "prod"}
+	external_labels = {env = sys.env("ALLOY_ENV")}
 }

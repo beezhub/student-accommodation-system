@@ -1,9 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
-import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.TenantNotFoundException;
-import com.beezhub.student_accommodation.model.dto.TenantAdminRequestDto;
 import com.beezhub.student_accommodation.model.dto.TenantAdminResponseDto;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.UserRole;
@@ -13,7 +11,6 @@ import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,43 +26,10 @@ public class TenantAdminService {
     private final AppUserRepository appUserRepository;
     private final TenantRepository tenantRepository;
     private final TenantService tenantService;
-    private final PasswordEncoder passwordEncoder;
-    private final NotificationService notificationService;
     private final TokenBlacklistService tokenBlacklistService;
 
     /** Revocation markers must outlive the longest token lifetime (10h student tokens). */
     private static final long TOKEN_REVOCATION_MARKER_TTL_SECONDS = 12 * 60 * 60L;
-
-    @Transactional
-    public TenantAdminResponseDto createTenantAdmin(Long tenantId, TenantAdminRequestDto request) {
-        // Was a local check throwing DuplicateResourceException, which the handler answers with
-        // 409 although nothing is duplicated, and which the other route to creating a tenant admin
-        // did not perform at all (GH-267). One implementation now, shared with building and user
-        // creation, so the two routes cannot disagree.
-        tenantService.requireTenantAcceptingNewRecords(tenantId);
-
-        if (appUserRepository.existsByEmail(request.email())) {
-            throw new DuplicateResourceException("Email already in use: " + request.email());
-        }
-
-        AppUser admin = AppUser.builder()
-                .email(request.email())
-                .firstName(request.firstName())
-                .lastName(request.lastName())
-                .userPassword(passwordEncoder.encode(request.password()))
-                .userRole(UserRole.TENANT_ADMIN)
-                .tenantId(tenantId)
-                .emailVerified(true)
-                .mustChangePassword(true)
-                .build();
-
-        AppUser saved = appUserRepository.save(admin);
-        log.info("Created TENANT_ADMIN user {} for tenant {}", saved.getEmail(), tenantId);
-
-        notificationService.sendWelcomeEmail(saved);
-
-        return toResponse(saved);
-    }
 
     public List<TenantAdminResponseDto> listTenantAdmins(Long tenantId) {
         if (!tenantRepository.existsById(tenantId)) {

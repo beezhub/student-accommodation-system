@@ -19,6 +19,8 @@ public class UserData {
     private Boolean emailVerified;
     private LocalDateTime accountLockedUntil;
     private Integer failedLoginAttempts;
+    /** The user's company; 0 is the platform. With a lock, a TENANT_ADMIN on 0 waits for one (#413). */
+    private Long tenantId;
 
     public Long getId() {
         return id;

@@ -20,9 +20,9 @@ import java.net.URI;
 import java.time.Duration;
 
 /**
- * Object storage through the AWS SDK: Amazon S3 on PROD, and an S3-compatible container locally
- * and on NONPROD (docs/PROD_ENVIRONMENT_PLAN.md, GH-331). Configured by the {@code s3.*}
- * properties, which {@code S3_*} variables set.
+ * Object storage through the AWS SDK: Amazon S3 on PROD and NONPROD, and an S3-compatible container
+ * locally (docs/PROD_ENVIRONMENT_PLAN.md, GH-331). Configured by the {@code s3.*} properties, which
+ * {@code S3_*} variables set.
  */
 @Configuration
 public class StorageConfig {

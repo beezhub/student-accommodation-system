@@ -482,4 +482,17 @@ class RestResponseExceptionHandlerTest {
         assertErrorResponse(response, HttpStatus.CONFLICT,
                 "New room does not meet hard constraints for student");
     }
+
+    /**
+     * #412: the account's state refuses the unlock, not the request, so 409. Its message tells the
+     * admin what to do instead, so it reaches them unchanged rather than as a generic 500.
+     */
+    @Test
+    void handleUnassignedAdminUnlock_isConflictAndKeepsTheMessage() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleUnassignedAdminUnlock(
+                new UnassignedAdminUnlockException("Thandi Mokoena is not linked to a company yet."),
+                webRequest);
+
+        assertErrorResponse(response, HttpStatus.CONFLICT, "Thandi Mokoena is not linked to a company yet.");
+    }
 }
