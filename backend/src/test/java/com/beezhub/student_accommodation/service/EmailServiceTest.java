@@ -222,7 +222,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withWelcomeContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new WelcomeContext("Student Name", "test@example.com", "ST123", "2023-01-01", "url", "guide_url");
+        var ctx = new WelcomeContext("Student Name", "test@example.com", "ST123", "2023-01-01", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.WELCOME, "welcome", ctx);
 

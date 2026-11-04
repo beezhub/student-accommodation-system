@@ -34,7 +34,7 @@ public class EmailDispatchService {
 
         public void sendApplicationApprovedEmail(Application application, String studentName, String email) {
                 String applicationDate = contentBuilder.formatDate(application.getApplicationDate());
-                String portalUrl = baseUrl + "/portal/applications/" + application.getId();
+                String portalUrl = baseUrl + "/applications/" + application.getId();
 
                 var ctx = new ApplicationApprovedContext(
                                 studentName,
@@ -54,7 +54,7 @@ public class EmailDispatchService {
                 String rejectionReason = application.getRemarks() != null
                                 ? application.getRemarks()
                                 : "Your application did not meet the current eligibility criteria.";
-                String portalUrl = baseUrl + "/portal/applications/" + application.getId();
+                String portalUrl = baseUrl + "/applications/" + application.getId();
 
                 var ctx = new ApplicationRejectedContext(
                                 studentName,
@@ -73,7 +73,7 @@ public class EmailDispatchService {
                         String documentType) {
                 String documentReference = "DOC-" + document.getId();
                 String verificationDate = contentBuilder.formatDate(document.getUpdatedAt());
-                String portalUrl = baseUrl + "/portal/documents";
+                String portalUrl = baseUrl + "/documents";
 
                 var ctx = new DocumentVerifiedContext(
                                 studentName,
@@ -96,7 +96,7 @@ public class EmailDispatchService {
                                 ? comment
                                 : "The document does not meet our verification requirements.";
                 String resubmissionDeadline = contentBuilder.formatDate(LocalDateTime.now().plusDays(7));
-                String uploadUrl = baseUrl + "/portal/documents/upload";
+                String uploadUrl = baseUrl + "/documents";
                 List<String> feedbackPoints = (comment != null && !comment.isEmpty())
                                 ? contentBuilder.parseFeedbackPoints(comment)
                                 : List.of();
@@ -130,7 +130,7 @@ public class EmailDispatchService {
                 String documentStatus = document.getDocumentStatus() != null ? document.getDocumentStatus().name()
                                 : "PENDING_REVIEW";
                 String commentDate = contentBuilder.formatDate(LocalDateTime.now());
-                String portalUrl = baseUrl + "/portal/documents";
+                String portalUrl = baseUrl + "/documents";
 
                 var ctx = new DocumentCommentContext(
                                 studentName,
@@ -164,7 +164,7 @@ public class EmailDispatchService {
                 String duration = contentBuilder.calculateDuration(allocation.getAllocationDate(),
                                 allocation.getEndDate());
                 String officeLocation = "Main Administration Building, Ground Floor";
-                String portalUrl = baseUrl + "/portal/allocations/" + allocation.getId();
+                String portalUrl = baseUrl + "/dashboard";
 
                 var ctx = new RoomAllocatedContext(
                                 studentName,
@@ -195,7 +195,7 @@ public class EmailDispatchService {
                 BigDecimal score = stagedAllocation.getScore();
                 List<String> warnings = contentBuilder.parseWarnings(stagedAllocation.getWarnings());
                 String moveInDate = null;
-                String portalUrl = baseUrl + "/portal/allocations/proposal/" + stagedAllocation.getId();
+                String portalUrl = baseUrl + "/dashboard";
 
                 var ctx = new AllocationProposalContext(
                                 studentName,
@@ -225,7 +225,7 @@ public class EmailDispatchService {
                 String endDate = allocation.getEndDate() != null
                                 ? contentBuilder.formatDate(allocation.getEndDate())
                                 : contentBuilder.formatDate(allocation.getAllocationDate().plusMonths(10));
-                String portalUrl = baseUrl + "/portal/allocations/" + allocation.getId();
+                String portalUrl = baseUrl + "/dashboard";
 
                 var ctx = new AllocationConfirmedContext(
                                 studentName,
@@ -248,7 +248,7 @@ public class EmailDispatchService {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = building.getName();
                 String proposalId = "PROP-" + stagedAllocation.getId();
-                String portalUrl = baseUrl + "/portal/applications";
+                String portalUrl = baseUrl + "/applications";
 
                 var ctx = new AllocationRejectedContext(
                                 studentName,
@@ -275,7 +275,7 @@ public class EmailDispatchService {
                 Integer newFloorNumber = contentBuilder.extractFloorNumber(newRoomNumber);
                 String newRoomType = contentBuilder.determineRoomType(newRoom);
                 String effectiveDateStr = contentBuilder.formatDate(effectiveDate);
-                String portalUrl = baseUrl + "/portal/allocations/" + newAllocation.getId();
+                String portalUrl = baseUrl + "/dashboard";
 
                 var ctx = new AllocationMovedContext(
                                 studentName,
@@ -302,7 +302,7 @@ public class EmailDispatchService {
                 String declineReason = allocation.getDeclineReason() != null
                                 ? allocation.getDeclineReason().getDisplayName()
                                 : "Not specified";
-                String portalUrl = baseUrl + "/portal/applications";
+                String portalUrl = baseUrl + "/applications";
 
                 var ctx = new OfferDeclinedRequeueContext(
                                 studentName,
@@ -320,7 +320,7 @@ public class EmailDispatchService {
         public void sendOfferDeclinedMaxReachedEmail(RoomAllocation allocation, Application application,
                         String studentName, String email, int totalDeclineCount, String subject) {
                 String applicationCode = application != null ? application.getApplicationCode() : "N/A";
-                String portalUrl = baseUrl + "/portal/applications";
+                String portalUrl = baseUrl + "/applications";
 
                 var ctx = new OfferDeclinedMaxReachedContext(
                                 studentName,
@@ -349,7 +349,6 @@ public class EmailDispatchService {
                 data.put("studentId", "N/A");
                 data.put("registrationDate", contentBuilder.formatDate(user.getCreatedAt()));
                 data.put("loginUrl", baseUrl + "/login");
-                data.put("guideUrl", baseUrl + "/guide");
                 return data;
         }
 
@@ -374,7 +373,7 @@ public class EmailDispatchService {
                 String applicationCode = application != null ? application.getApplicationCode() : "N/A";
                 String roomNumber = room.getRoomNumber();
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
-                String portalUrl = baseUrl + "/portal/applications";
+                String portalUrl = baseUrl + "/applications";
 
                 var ctx = new OfferExpiredContext(
                                 studentName,
@@ -392,7 +391,7 @@ public class EmailDispatchService {
                 String applicationCode = application != null ? application.getApplicationCode() : "N/A";
                 String roomNumber = room.getRoomNumber();
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
-                String portalUrl = baseUrl + "/portal/applications";
+                String portalUrl = baseUrl + "/applications";
 
                 var ctx = new CheckInExpiredContext(
                                 studentName,
@@ -412,7 +411,7 @@ public class EmailDispatchService {
                 String expiryDate = allocation.getOfferExpiryDate() != null
                                 ? contentBuilder.formatDate(allocation.getOfferExpiryDate())
                                 : "soon";
-                String portalUrl = baseUrl + "/portal/allocations/" + allocation.getId();
+                String portalUrl = baseUrl + "/dashboard";
 
                 var ctx = new OfferExpiryReminderContext(
                                 studentName,
@@ -432,7 +431,7 @@ public class EmailDispatchService {
                 String deadlineDate = allocation.getCheckInExpiryDate() != null
                                 ? contentBuilder.formatDate(allocation.getCheckInExpiryDate())
                                 : "soon";
-                String portalUrl = baseUrl + "/portal/allocations/" + allocation.getId();
+                String portalUrl = baseUrl + "/dashboard";
 
                 var ctx = new CheckInReminderContext(
                                 studentName,

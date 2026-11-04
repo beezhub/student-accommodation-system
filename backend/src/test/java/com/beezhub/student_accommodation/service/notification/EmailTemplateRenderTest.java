@@ -26,7 +26,7 @@ class EmailTemplateRenderTest {
     private static final String UNIVERSITY_NAME = "Test University";
     private static final String SUPPORT_EMAIL   = "test@university.edu";
     private static final String CONTACT_PHONE   = "+27 (0) 11 000 0000";
-    private static final String PORTAL_URL      = "http://localhost:4200/portal";
+    private static final String PORTAL_URL      = "http://localhost:4200";
 
     private TemplateEngine templateEngine;
 
@@ -107,7 +107,6 @@ class EmailTemplateRenderTest {
         vars.put("studentId", "N/A");
         vars.put("registrationDate", "15 Jan 2026");
         vars.put("loginUrl", PORTAL_URL + "/login");
-        vars.put("guideUrl", PORTAL_URL + "/guide");
 
         String html = render("welcome", vars);
 
@@ -124,7 +123,6 @@ class EmailTemplateRenderTest {
         vars.put("studentId", "STU-2025-001");
         vars.put("registrationDate", "2026-01-15");
         vars.put("loginUrl", PORTAL_URL + "/login");
-        vars.put("guideUrl", PORTAL_URL + "/guide");
 
         String html = render("welcome", vars);
 
@@ -510,7 +508,6 @@ class EmailTemplateRenderTest {
                 vars.put("studentId", "STU-001");
                 vars.put("registrationDate", "2026-01-01");
                 vars.put("loginUrl", PORTAL_URL);
-                vars.put("guideUrl", PORTAL_URL);
             }
             case "application-approved" -> {
                 vars.put("applicationId", 1L);

@@ -167,7 +167,6 @@ public class EmailService {
                 vars.put("studentId", c.studentId());
                 vars.put("registrationDate", c.registrationDate());
                 vars.put("loginUrl", c.loginUrl());
-                vars.put("guideUrl", c.guideUrl());
             }
             case PasswordResetContext c -> {
                 vars.put("studentName", c.studentName());

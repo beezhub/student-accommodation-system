@@ -5,6 +5,5 @@ public record WelcomeContext(
         String email,
         String studentId,
         String registrationDate,
-        String loginUrl,
-        String guideUrl
+        String loginUrl
 ) implements EmailContext {}
