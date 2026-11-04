@@ -171,6 +171,20 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                                 request.getDescription(false)), HttpStatus.CONFLICT);
         }
 
+        /**
+         * A delete refused because students still hold a place in the room or building. The message
+         * tells the admin what to do first, so it reaches them unchanged.
+         */
+        @ExceptionHandler(ResourceInUseException.class)
+        public ResponseEntity<ErrorResponse> handleResourceInUse(
+                        ResourceInUseException ex, WebRequest request) {
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false)), HttpStatus.CONFLICT);
+        }
+
         @ExceptionHandler(InvalidStatusException.class)
         public ResponseEntity<ErrorResponse> handleInvalidStatus(InvalidStatusException ex, WebRequest request) {
                 return new ResponseEntity<>(new ErrorResponse(

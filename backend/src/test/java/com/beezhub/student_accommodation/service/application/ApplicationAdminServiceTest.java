@@ -61,6 +61,8 @@ class ApplicationAdminServiceTest {
     @Mock
     private com.beezhub.student_accommodation.service.RoomAllocationService roomAllocationService;
     @Mock
+    private com.beezhub.student_accommodation.service.allocation.WaitingListService waitingListService;
+    @Mock
     private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
 
@@ -133,6 +135,21 @@ class ApplicationAdminServiceTest {
         applicationAdminService.updateApplicationStatus(1L, statusRequest(ApplicationStatus.UNDER_REVIEW));
 
         verify(roomAllocationService, never()).releaseOutstandingAllocations(any(), any());
+        verify(waitingListService, never()).closeEntriesForApplication(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(
+            value = ApplicationStatus.class, names = {"REJECTED", "EXPIRED", "CANCELLED"})
+    void updateApplicationStatus_terminalStatus_closesTheWaitingListEntry(ApplicationStatus terminal) {
+        application.setStatus(ApplicationStatus.AWAITING_ALLOCATION);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(applicationRepository.save(any(Application.class))).thenReturn(application);
+        when(applicationMapper.toResponse(any(Application.class))).thenReturn(new ApplicationResponse());
+
+        applicationAdminService.updateApplicationStatus(1L, statusRequest(terminal));
+
+        verify(waitingListService).closeEntriesForApplication(1L);
     }
 
     @Test

@@ -3,6 +3,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 
+/** What a person reads when a 413 arrives. errorInterceptor shows it too. */
+export const FILE_TOO_LARGE_MESSAGE = 'That file is too large. Please choose a smaller file.';
+
 export type ErrorType =
   | 'network'
   | 'server'
@@ -144,6 +147,15 @@ export class ErrorHandlingService {
           statusCode,
         };
 
+      case 413:
+        return {
+          type: 'validation',
+          title: 'File Too Large',
+          message: FILE_TOO_LARGE_MESSAGE,
+          canRetry: false,
+          statusCode,
+        };
+
       case 422:
         return {
           type: 'validation',
@@ -184,12 +196,20 @@ export class ErrorHandlingService {
     const body = error.error;
 
     if (typeof body === 'string') {
-      return body;
+      // A proxy answers with its own HTML page (nginx on a 413), and HttpClient hands that over as
+      // a raw string. Markup is not a message.
+      const text = body.trim();
+      return text && !text.startsWith('<') ? text : null;
     }
 
     if (body && typeof body === 'object') {
-      // Common backend error response formats
-      return body.message || body.error || body.detail || body.title || null;
+      // The backend's ErrorResponse only has errors[]. Reading just the other shapes lost the
+      // reason behind each status code's generic text (#441). The first entry is the headline,
+      // as in errorInterceptor; the whole list goes in ParsedError.details.
+      const firstError: unknown = Array.isArray(body.errors) ? body.errors[0] : undefined;
+      const candidates: unknown[] = [firstError, body.message, body.error, body.detail, body.title];
+      const message = candidates.find((value) => typeof value === 'string' && value.length > 0);
+      return (message as string | undefined) ?? null;
     }
 
     return null;
@@ -230,7 +250,10 @@ export class ErrorHandlingService {
       });
     }
 
-    return errors.length > 0 ? errors : undefined;
+    // A lone entry is already the headline, and the inline display prints both.
+    const onlyRepeatsTheMessage =
+      errors.length === 1 && errors[0] === this.extractBackendMessage(error);
+    return errors.length > 0 && !onlyRepeatsTheMessage ? errors : undefined;
   }
 
   /**

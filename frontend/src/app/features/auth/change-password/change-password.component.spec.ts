@@ -28,6 +28,7 @@ describe('ChangePasswordComponent', () => {
     ]);
     roleService = jasmine.createSpyObj<RoleService>('RoleService', [
       'isPlatformAdmin',
+      'isPlatformStaff',
       'isTenantAdmin',
     ]);
 
@@ -105,6 +106,17 @@ describe('ChangePasswordComponent', () => {
       expect(pageText()).toContain(PASSWORD_RULES_HINT);
       expect(pageText()).not.toContain('8 characters');
     });
+  });
+
+  it('onCancel_platformStaff_goesToAdmin', async () => {
+    roleService.isPlatformStaff.and.returnValue(true);
+    const harness = await RouterTestingHarness.create();
+    const component = await harness.navigateByUrl('/change-password', ChangePasswordComponent);
+    const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+
+    component.onCancel();
+
+    expect(navigate).toHaveBeenCalledWith(['/admin']);
   });
 
   it('success_endsTheLocalSessionInsteadOfNavigatingInWithTheOldToken', async () => {

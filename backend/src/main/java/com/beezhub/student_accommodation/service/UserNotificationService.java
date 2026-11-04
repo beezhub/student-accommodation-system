@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class UserNotificationService {
+
+    private static final DateTimeFormatter OFFER_DEADLINE_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm");
 
     private final UserNotificationRepository userNotificationRepository;
     private final AppUserRepository appUserRepository;
@@ -149,9 +153,11 @@ public class UserNotificationService {
     }
 
     /**
-     * Create a room allocation notification
+     * Tells a student they have been offered a room. An offer is not an allocation: it lapses unless
+     * the student accepts it by the deadline, so the notice has to say both.
      */
-    public void createRoomAllocationNotification(Long userId, String roomNumber, String buildingName) {
+    public void createRoomOfferNotification(Long userId, String roomNumber, String buildingName,
+            LocalDateTime offerExpiryDate) {
         Map<String, Object> data = new HashMap<>();
         data.put("roomNumber", roomNumber);
         data.put("buildingName", buildingName);
@@ -159,8 +165,9 @@ public class UserNotificationService {
         createNotification(
                 userId,
                 "ROOM_ALLOCATION",
-                "Room Allocated",
-                String.format("Your room %s in %s has been allocated!", roomNumber, buildingName),
+                "Room Offer: Action Required",
+                String.format("You have been offered Room %s in %s. Please accept by %s or the offer will expire.",
+                        roomNumber, buildingName, offerExpiryDate.format(OFFER_DEADLINE_FORMAT)),
                 data);
     }
 
@@ -243,23 +250,6 @@ public class UserNotificationService {
                 "Room Allocation Proposed",
                 String.format(
                         "A room allocation has been proposed for you: Room %s in %s. Please review in your portal.",
-                        roomNumber, buildingName),
-                data);
-    }
-
-    /**
-     * Create an allocation confirmation notification
-     */
-    public void createAllocationConfirmationNotification(Long userId, String roomNumber, String buildingName) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("roomNumber", roomNumber);
-        data.put("buildingName", buildingName);
-
-        createNotification(
-                userId,
-                "ALLOCATION_CONFIRMED",
-                "Room Allocation Confirmed",
-                String.format("Your room allocation has been confirmed! You have been assigned to Room %s in %s.",
                         roomNumber, buildingName),
                 data);
     }

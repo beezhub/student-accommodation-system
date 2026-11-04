@@ -124,7 +124,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         student.setAppUser(user);
         student.setStudentNumber("S-" + System.currentTimeMillis());
         student.setPhoneNumber("0123456789");
-        student.setDateOfBirth(new java.util.Date());
+        student.setDateOfBirth(LocalDate.of(2000, 5, 14));
         student.setGender("Female");
         // GH-239: a complete profile now includes an emergency contact, and submitApplication
         // refuses without one. Every case in this class submits an application, so the fixture

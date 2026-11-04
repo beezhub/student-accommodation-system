@@ -27,6 +27,7 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -147,6 +148,58 @@ class AllocationBatchServiceTest {
         assertEquals(0, result.getFailureCount());
         verify(allocationLifecycleService).createRoomAllocation(any());
         verify(waitingListRepository).save(entry);
+    }
+
+    /**
+     * The closed application comes first in the queue and the budget is one, which is what a
+     * waiting-list refill runs with. If it is matched, the seat goes to an allocation that can only
+     * fail, and the student who could take the room misses out.
+     */
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(
+            value = ApplicationStatus.class, names = {"REJECTED", "EXPIRED", "CANCELLED"})
+    void batchAllocateFromWaitingList_terminalApplication_notMatchedAndSeatGoesToNext(
+            ApplicationStatus terminal) {
+        WaitingListEntry closed = waitingEntry(1L, 10L, terminal, LocalDateTime.now().minusDays(2));
+        WaitingListEntry live = waitingEntry(2L, 20L, ApplicationStatus.AWAITING_ALLOCATION,
+                LocalDateTime.now().minusDays(1));
+
+        Room room = new Room();
+        room.setId(100L);
+        room.setCapacity(1);
+        ScoredRoom scoredRoom = ScoredRoom.builder().roomId(100L).totalScore(new BigDecimal("90.0")).build();
+
+        when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(closed, live));
+        when(allocationScoringOrchestrator.buildScoringMatrix(any()))
+                .thenReturn(java.util.Map.of(1L, List.of(scoredRoom), 2L, List.of(scoredRoom)));
+        when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(room));
+        when(allocationScoringOrchestrator.buildRoomCapacityMap(any()))
+                .thenReturn(new java.util.HashMap<>(java.util.Map.of(100L, 1)));
+
+        BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(1);
+
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(List.of(2L), result.getAllocatedStudentIds());
+        assertEquals("WAITING", closed.getStatus());
+        assertEquals("ALLOCATED", live.getStatus());
+    }
+
+    private static WaitingListEntry waitingEntry(Long studentId, Long applicationId, ApplicationStatus status,
+            LocalDateTime createdAt) {
+        Student student = new Student();
+        student.setId(studentId);
+        Application application = new Application();
+        application.setTenantId(1L);
+        application.setId(applicationId);
+        application.setStudent(student);
+        application.setStatus(status);
+        WaitingListEntry entry = new WaitingListEntry();
+        entry.setId(applicationId);
+        entry.setStudent(student);
+        entry.setApplication(application);
+        entry.setStatus("WAITING");
+        entry.setCreatedAt(createdAt);
+        return entry;
     }
 
     @Test

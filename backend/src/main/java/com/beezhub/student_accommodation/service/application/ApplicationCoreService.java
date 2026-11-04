@@ -12,6 +12,7 @@ import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.mapper.ApplicationMapper;
 import com.beezhub.student_accommodation.service.AcademicYearService;
 import com.beezhub.student_accommodation.service.AuthService;
+import com.beezhub.student_accommodation.service.allocation.ApplicationStatusValidator;
 
 import com.beezhub.student_accommodation.model.dto.ApplicationRequest;
 import com.beezhub.student_accommodation.model.dto.ApplicationResponse;
@@ -68,6 +69,7 @@ public class ApplicationCoreService {
         private final ApplicationMapper applicationMapper;
         private final AuthService authService;
         private final AcademicYearService academicYearService;
+        private final com.beezhub.student_accommodation.service.allocation.WaitingListService waitingListService;
 
         /** The student sees the same sentence whether the pre-check or the index refused. */
         private static final String DUPLICATE_APPLICATION_MESSAGE =
@@ -425,7 +427,49 @@ public class ApplicationCoreService {
                 application.setStatus(ApplicationStatus.CANCELLED);
                 application.setRemarks("Cancelled by the student.");
                 applicationRepository.save(application);
+                // An admin can queue an application in any status, so even one that is not yet
+                // approved may have a row here.
+                waitingListService.closeEntriesForApplication(applicationId);
                 log.info("action=applicationCancelled applicationId={}", applicationId);
+        }
+
+        /**
+         * Sends an application back to the review queue after the student has made the changes an
+         * admin asked for (GH-454).
+         *
+         * <p>Students are tenant 0, so the tenant filter does nothing for them, and this ownership
+         * check is what stops one student acting on another's application.
+         *
+         * <p>The explicit status check comes first because the state machine alone is too wide:
+         * UNDER_REVIEW -> PENDING and PENDING -> PENDING are both legal, and neither is a student's
+         * to make.
+         *
+         * <p>The remarks are kept so the reviewer can see what was asked for. The next decision on
+         * the application overwrites them. No event is published: the listener has nothing to send
+         * for PENDING, and it would leave a notification row behind.
+         */
+        @Transactional
+        @LogActivity(action = "UPDATE", entityType = "APPLICATION", description = "Resubmitted application {0}", entityIdParamIndex = 0)
+        public ApplicationResponse resubmitApplication(Long applicationId) {
+                Application application = applicationRepository.findById(applicationId)
+                                .orElseThrow(() -> new ApplicationNotFoundException(
+                                                "Application not found with ID: " + applicationId));
+
+                AppUser currentUser = authService.getCurrentUser();
+                if (!application.getStudent().getAppUser().getId().equals(currentUser.getId())) {
+                        throw new UnauthorizedAccessException("You can only resubmit your own applications");
+                }
+
+                if (application.getStatus() != ApplicationStatus.CHANGES_REQUESTED) {
+                        throw new InvalidStatusException("Only an application with changes requested can be resubmitted");
+                }
+                ApplicationStatusValidator.validate(application, ApplicationStatus.PENDING);
+
+                application.setStatus(ApplicationStatus.PENDING);
+                Application saved = applicationRepository.save(application);
+                log.info("action=applicationResubmitted applicationId={}", applicationId);
+
+                return applicationMapper.toResponse(saved);
         }
 
         @Transactional(readOnly = true)

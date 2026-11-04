@@ -80,7 +80,11 @@ public class ScheduledJobRunner {
         }
     }
 
-    @Scheduled(cron = "${app.storage.cleanup.cron:0 0 3 * * *}")
+    /**
+     * In UTC whatever the JVM's zone is, here and on the retention job below, so these two stay
+     * clear of the 01:30 UTC database backup and RDS's Sunday 01:00 UTC maintenance window (GH-461).
+     */
+    @Scheduled(cron = "${app.storage.cleanup.cron:0 0 3 * * *}", zone = "UTC")
     public void runOrphanFileCleanup() {
         String jobName = "orphanCleanup";
         log.info("job={} action=start", jobName);
@@ -99,7 +103,7 @@ public class ScheduledJobRunner {
      * than beside it: this job leaves objects for the after-commit deletion listener to remove, and
      * anything that listener misses is an orphan the next sweep collects.
      */
-    @Scheduled(cron = "${app.storage.retention.cron:0 30 3 * * *}")
+    @Scheduled(cron = "${app.storage.retention.cron:0 30 3 * * *}", zone = "UTC")
     public void runDocumentRetention() {
         String jobName = "documentRetention";
         log.info("job={} action=start", jobName);

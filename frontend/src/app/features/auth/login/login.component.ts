@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ErrorHandlingService } from '../../../core/services/error-handling.service';
 import { RoleService } from '../../../core/services/role.service';
 
 // Material imports
@@ -39,6 +40,7 @@ export class LoginComponent {
   private authService = inject(AuthService);
   private roleService = inject(RoleService);
   private snackBar = inject(MatSnackBar);
+  private errorService = inject(ErrorHandlingService);
 
   loginForm: FormGroup;
   isSubmitting = false;
@@ -95,7 +97,11 @@ export class LoginComponent {
             }
 
             // Redirect based on user role
-            if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
+            if (
+              this.roleService.isPlatformAdmin() ||
+              this.roleService.isPlatformStaff() ||
+              this.roleService.isTenantAdmin()
+            ) {
               this.router.navigate(['/admin']);
             } else {
               this.router.navigate(['/dashboard']);
@@ -104,10 +110,8 @@ export class LoginComponent {
         },
         error: (error: HttpErrorResponse) => {
           this.isSubmitting = false;
-          this.errorMessage =
-            error?.error?.message || error?.message || 'Login failed. Please try again.';
+          this.errorMessage = this.errorService.parseError(error).message;
           this.snackBar.open(this.errorMessage, 'Close', {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             duration: 5000,
             panelClass: ['error-snackbar'],
           });

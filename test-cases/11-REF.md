@@ -768,7 +768,7 @@
 | **ID** | TC-REF-027 |
 | **Module** | Reference Data Management |
 | **Priority** | Critical |
-| **Preconditions** | Tenant Admin logged in. No academic year named "2027" exists. |
+| **Preconditions** | Platform Admin logged in. No academic year named "2027" exists. |
 | **Test Data** | Name: "2027", Start: 2027-02-01, End: 2027-11-30, App Open: 2027-01-01, App Close: 2027-01-31, isCurrent: false |
 
 | Step | Action | Expected Result |
@@ -800,7 +800,7 @@
 | **ID** | TC-REF-028 |
 | **Module** | Reference Data Management |
 | **Priority** | High |
-| **Preconditions** | Tenant Admin logged in. |
+| **Preconditions** | Platform Admin logged in. |
 | **Test Data** | Name: (empty), all dates valid |
 
 | Step | Action | Expected Result |
@@ -827,7 +827,7 @@
 | **ID** | TC-REF-029 |
 | **Module** | Reference Data Management |
 | **Priority** | High |
-| **Preconditions** | Tenant Admin logged in. |
+| **Preconditions** | Platform Admin logged in. |
 | **Test Data** | Name: "Academic Year 2026-2027" (23 characters), all dates valid |
 
 | Step | Action | Expected Result |
@@ -854,7 +854,7 @@
 | **ID** | TC-REF-030 |
 | **Module** | Reference Data Management |
 | **Priority** | Medium |
-| **Preconditions** | Tenant Admin logged in. |
+| **Preconditions** | Platform Admin logged in. |
 | **Test Data** | Name: "AcademicYear2026-027" (exactly 20 characters), all dates valid |
 
 | Step | Action | Expected Result |
@@ -882,7 +882,7 @@
 | **ID** | TC-REF-031 |
 | **Module** | Reference Data Management |
 | **Priority** | High |
-| **Preconditions** | Tenant Admin logged in. |
+| **Preconditions** | Platform Admin logged in. |
 | **Test Data** | Name: "2028", Start Date: (empty), other dates valid |
 
 | Step | Action | Expected Result |
@@ -910,7 +910,7 @@
 | **ID** | TC-REF-032 |
 | **Module** | Reference Data Management |
 | **Priority** | High |
-| **Preconditions** | Tenant Admin logged in. |
+| **Preconditions** | Platform Admin logged in. |
 | **Test Data** | Name: "2028", End Date: (empty), other dates valid |
 
 | Step | Action | Expected Result |
@@ -938,7 +938,7 @@
 | **ID** | TC-REF-033 |
 | **Module** | Reference Data Management |
 | **Priority** | High |
-| **Preconditions** | Tenant Admin logged in. |
+| **Preconditions** | Platform Admin logged in. |
 | **Test Data** | Name: "2028", Application Open Date: (empty), other dates valid |
 
 | Step | Action | Expected Result |
@@ -966,7 +966,7 @@
 | **ID** | TC-REF-034 |
 | **Module** | Reference Data Management |
 | **Priority** | High |
-| **Preconditions** | Tenant Admin logged in. |
+| **Preconditions** | Platform Admin logged in. |
 | **Test Data** | Name: "2028", Application Close Date: (empty), other dates valid |
 
 | Step | Action | Expected Result |
@@ -994,7 +994,7 @@
 | **ID** | TC-REF-035 |
 | **Module** | Reference Data Management |
 | **Priority** | Critical |
-| **Preconditions** | Tenant Admin logged in. Academic year "2026" is currently marked as isCurrent=true. Academic year "2027" exists with isCurrent=false. |
+| **Preconditions** | Platform Admin logged in. Academic year "2026" is currently marked as isCurrent=true. Academic year "2027" exists with isCurrent=false. |
 | **Test Data** | Current: "2026", Target: "2027" |
 
 | Step | Action | Expected Result |
@@ -1023,7 +1023,7 @@
 | **ID** | TC-REF-036 |
 | **Module** | Reference Data Management |
 | **Priority** | Critical |
-| **Preconditions** | Tenant Admin logged in. Multiple academic years exist. One is marked as current. |
+| **Preconditions** | Platform Admin logged in. Multiple academic years exist. One is marked as current. |
 | **Test Data** | Academic years: "2026" (current), "2027", "2028" |
 
 | Step | Action | Expected Result |
@@ -1052,7 +1052,7 @@
 | **ID** | TC-REF-037 |
 | **Module** | Reference Data Management |
 | **Priority** | High |
-| **Preconditions** | Tenant Admin logged in. Academic year "2027" exists. |
+| **Preconditions** | Platform Admin logged in. Academic year "2027" exists. |
 | **Test Data** | Updated Start Date: 2027-03-01, Updated End Date: 2027-12-15 |
 
 | Step | Action | Expected Result |
@@ -1082,7 +1082,7 @@
 | **ID** | TC-REF-038 |
 | **Module** | Reference Data Management |
 | **Priority** | High |
-| **Preconditions** | Tenant Admin logged in. Academic year "2028" exists and has no associated applications. |
+| **Preconditions** | Platform Admin logged in. Academic year "2028" exists and has no associated applications. |
 | **Test Data** | Academic Year: "2028" |
 
 | Step | Action | Expected Result |
@@ -1377,7 +1377,7 @@
 | 1 | Log in as Tenant Admin (tenantadmin@test.com / Admin@12345) | Admin dashboard loads |
 | 2 | Navigate to /admin/institutions | Institutions page loads; CRUD operations available |
 | 3 | Navigate to /admin/year-of-study | Year of study page loads; CRUD operations available |
-| 4 | Navigate to /admin/academic-years | Academic years page loads; CRUD operations available |
+| 4 | Navigate to /admin/academic-years | Academic years page loads; years listed read-only, with no add, edit, set-current or delete actions |
 | 5 | Navigate to /admin/accommodation-types | Accommodation types page loads; CRUD operations available |
 | 6 | Verify all create, edit, delete actions are accessible | Buttons/actions enabled and functional |
 
