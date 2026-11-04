@@ -81,6 +81,10 @@ services:
       - MAIL_TRANSPORT=ses-api
       # Presigned document URLs point at S3 itself, so the CSP must allow its origin.
       - STORAGE_PUBLIC_ORIGIN=${STORAGE_PUBLIC_ORIGIN:?STORAGE_PUBLIC_ORIGIN must be set to the bucket origin}
+      # Required, with no default: the migration that removes the seed's example rows runs once, so
+      # PROD must say false before its first deploy with it, not after (#365). Read from .env rather
+      # than fixed here, so NONPROD on this overlay (#382) has to choose too.
+      - EXAMPLE_DATA=${EXAMPLE_DATA:?EXAMPLE_DATA must be set, false on PROD (#365)}
     # The JVM takes 70% of this (backend/Dockerfile). The limits on this server add up to about
     # 1.6 GB, leaving room for the OS and Caddy on 2 GB, with 2 GB of swap behind it. #334 checks
     # that holds under deadline-day load.
