@@ -60,10 +60,36 @@ describe('CreateUserDialogComponent tenant scoping', () => {
       firstName: 'Thandi',
       lastName: 'Mokoena',
       email: 'thandi@acme.test',
-      password: 'password123',
+      password: 'Correct-Horse9',
     });
     component.createUserForm.get('userRole')?.setValue(role);
   }
+
+  /** #430: the form asked for 8 characters while the server's @StrongPassword refuses them. */
+  it('passwordTheServerWouldRefuse_isNotSent', () => {
+    const component = build();
+    const adminService = TestBed.inject(AdminService) as jasmine.SpyObj<AdminService>;
+    fillIn(component, 'TENANT_ADMIN');
+    component.createUserForm.get('password')?.setValue('simplepassword');
+
+    component.onSubmit();
+
+    expect(component.createUserForm.valid).toBeFalse();
+    expect(adminService.createUser).not.toHaveBeenCalled();
+  });
+
+  it('passwordTheServerWouldRefuse_saysWhichRulesAreMissing', () => {
+    const component = build();
+    fillIn(component, 'TENANT_ADMIN');
+    component.createUserForm.get('password')?.setValue('simplepassword');
+    component.createUserForm.markAllAsTouched();
+
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Password needs an uppercase letter, a number, a symbol'
+    );
+  });
 
   it('availableRoles_excludesTheDeprecatedAdminRole', () => {
     // The backend mapper rejects ADMIN outright, so it failed every time it was chosen.
@@ -144,7 +170,7 @@ describe('CreateUserDialogComponent tenant scoping', () => {
       firstName: 'Ada',
       lastName: 'Lovelace',
       email: 'ada@example.com',
-      password: 'password123',
+      password: 'Correct-Horse9',
     });
 
     component.createUserForm.get('userRole')?.setValue('PLATFORM_ADMIN');
@@ -158,7 +184,7 @@ describe('CreateUserDialogComponent tenant scoping', () => {
       firstName: 'Ada',
       lastName: 'Lovelace',
       email: 'ada@example.com',
-      password: 'password123',
+      password: 'Correct-Horse9',
     });
 
     component.createUserForm.get('userRole')?.setValue('BUILDING_STAFF');
