@@ -145,11 +145,7 @@ public class NotificationEventListener {
                 user,
                 application.getId(),
                 "Application",
-                td("application-changes-requested", mapOf("studentName", studentName,
-                        "applicationId", application.getId(),
-                        "changesReason", application.getRemarks(),
-                        "portalUrl", emailDispatchService.applicationPageUrl(application.getId()),
-                        "email", email)));
+                emailDispatchService.applicationChangesRequestedTemplateData(application, studentName));
 
         try {
             emailDispatchService.sendApplicationChangesRequestedEmail(application, studentName, email);

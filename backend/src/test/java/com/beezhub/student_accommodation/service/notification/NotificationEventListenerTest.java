@@ -168,8 +168,9 @@ class NotificationEventListenerTest {
     @Test
     void handleApplicationStatusChanged_ChangesRequested_storesWhatARetryNeeds() {
         Application application = createMockApplication();
-        when(application.getRemarks()).thenReturn("Proof of registration is for the wrong year");
-        when(emailDispatchService.applicationPageUrl(10L)).thenReturn("http://portal/applications/10");
+        java.util.Map<String, Object> templateData = java.util.Map.of("templateName", "application-changes-requested");
+        when(emailDispatchService.applicationChangesRequestedTemplateData(application, "John Doe"))
+                .thenReturn(templateData);
         ApplicationStatusChangedEvent event = new ApplicationStatusChangedEvent(
                 application, ApplicationStatus.UNDER_REVIEW, ApplicationStatus.CHANGES_REQUESTED);
         when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
@@ -177,6 +178,7 @@ class NotificationEventListenerTest {
 
         notificationEventListener.handleApplicationStatusChanged(event);
 
+        // What the map must contain is checked against the real template in NotificationTemplateDataTest.
         verify(notificationService).createNotification(
                 eq("test@example.com"),
                 eq(EmailSubjects.APPLICATION_CHANGES_REQUESTED),
@@ -184,11 +186,7 @@ class NotificationEventListenerTest {
                 eq(appUser),
                 eq(10L),
                 eq("Application"),
-                argThat(data -> "application-changes-requested".equals(data.get("templateName"))
-                        && "John Doe".equals(data.get("studentName"))
-                        && Long.valueOf(10L).equals(data.get("applicationId"))
-                        && "Proof of registration is for the wrong year".equals(data.get("changesReason"))
-                        && "http://portal/applications/10".equals(data.get("portalUrl"))));
+                eq(templateData));
     }
 
     @Test
