@@ -129,11 +129,19 @@ export class ApplicationReviewComponent implements OnInit {
 
   statuses = [
     { value: 'PENDING', label: 'Pending' },
+    { value: 'UNDER_REVIEW', label: 'Under Review' },
+    { value: 'CHANGES_REQUESTED', label: 'Changes Requested' },
     { value: 'APPROVED', label: 'Approved' },
     { value: 'REJECTED', label: 'Rejected' },
     { value: 'AWAITING_ALLOCATION', label: 'Awaiting Allocation' },
     { value: 'ALLOCATED', label: 'Allocated' },
+    { value: 'CHECKED_IN', label: 'Checked In' },
+    { value: 'EXPIRED', label: 'Expired' },
+    { value: 'CANCELLED', label: 'Cancelled' },
   ];
+
+  // The filter the list on screen was actually loaded with, not one still being picked in the panel
+  appliedStatus = '';
 
   allocationStatuses = [
     { value: 'PENDING', label: 'Pending' },
@@ -164,6 +172,7 @@ export class ApplicationReviewComponent implements OnInit {
     this.setupBuildingAutocomplete();
     this.loadApplications();
     this.loadCounts();
+    this.computeActiveFilterCount();
     // valueChanges never completes, so without this the subscription outlives the component
     // and keeps it, its form and its closures alive for the life of the app (GH-157).
     this.filterForm.valueChanges
@@ -249,6 +258,7 @@ export class ApplicationReviewComponent implements OnInit {
     this.isRetrying = true;
 
     const formValue = this.filterForm.value;
+    this.appliedStatus = formValue.status;
     const filters = {
       applicationCode: formValue.applicationCode,
       studentName: formValue.studentName,
@@ -294,7 +304,7 @@ export class ApplicationReviewComponent implements OnInit {
   }
 
   onClearFilters(): void {
-    this.filterForm.reset({ status: 'PENDING' });
+    this.filterForm.reset({ status: '' });
     this.activeFilterCount = 0;
     this.currentPage = 0;
     this.loadApplications();
