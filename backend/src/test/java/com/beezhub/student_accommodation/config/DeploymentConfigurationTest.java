@@ -636,4 +636,70 @@ class DeploymentConfigurationTest {
                 .isLessThan(start.indexOf("docker compose $F up -d"));
         assertThat(start).contains("echo \"schema_before=").contains("echo \"schema_after=");
     }
+
+    /**
+     * Separate state means a NONPROD plan cannot change a PROD resource, even by mistake (#379).
+     */
+    @Test
+    void nonprodTerraform_keepsItsOwnState() throws IOException {
+        assertThat(readLf("infra/terraform/nonprod/versions.tf"))
+                .containsPattern("key\\s+= \"nonprod/terraform\\.tfstate\"");
+    }
+
+    /**
+     * The bucket gets PROD's private baseline (infra/terraform/prod/storage.tf), so NONPROD tests the
+     * same settings. It holds test data, so it can be destroyed and keeps old versions for 7 days
+     * rather than 35.
+     */
+    @Test
+    void nonprodBucket_hasThePrivateBaselineAndCanBeDestroyed() throws IOException {
+        assertThat(readLf("infra/terraform/nonprod/storage.tf"))
+                .contains("object_ownership = \"BucketOwnerEnforced\"")
+                .containsPattern("block_public_acls\\s+= true")
+                .containsPattern("block_public_policy\\s+= true")
+                .containsPattern("ignore_public_acls\\s+= true")
+                .containsPattern("restrict_public_buckets = true")
+                .contains("sse_algorithm = \"AES256\"")
+                .contains("status = \"Enabled\"")
+                .contains("sid       = \"DenyInsecureTransport\"")
+                .contains("noncurrent_days = 7")
+                .doesNotContain("prevent_destroy");
+    }
+
+    /**
+     * The key lives in a file on a host with no instance role, so it may do only what the backend
+     * calls: S3FileStorageService and the health checks on its own bucket, SesApiMailSender from one
+     * sender. An extra action here fails this test on purpose.
+     */
+    @Test
+    void nonprodAppUser_mayOnlyUseItsBucketAndOneSender() throws IOException {
+        String iam = readLf("infra/terraform/nonprod/iam.tf");
+
+        List<String> actions = Pattern.compile("actions\\s+= \\[([^]]*)]").matcher(iam).results()
+                .flatMap(list -> Stream.of(list.group(1).split(",")))
+                .map(action -> action.replace("\"", "").strip())
+                .toList();
+
+        assertThat(actions)
+                .containsExactlyInAnyOrder("s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+                        "ses:SendEmail", "ses:SendRawEmail", "ses:GetAccount");
+        assertThat(Pattern.compile("resources = \\[\"\\*\"]").matcher(iam).results().count())
+                .as("only ses:GetAccount, which has no resource ARN, may use a wildcard")
+                .isEqualTo(1);
+        assertThat(iam)
+                .contains("variable = \"ses:FromAddress\"")
+                .contains("values   = [local.mail_from]")
+                .contains("mail_from = \"nonprod@${var.sending_domain}\"");
+    }
+
+    /**
+     * A person copies the key into /opt/sas/.env from SSM (#379). The secret must never be printed by
+     * `terraform output`, which ends up on screens and in logs.
+     */
+    @Test
+    void nonprodAppKey_secretOnlyReachesAnEncryptedParameter() throws IOException {
+        assertThat(readLf("infra/terraform/nonprod/iam.tf"))
+                .contains("name  = \"/${var.name}/AWS_SECRET_ACCESS_KEY\"\n  type  = \"SecureString\"");
+        assertThat(readLf("infra/terraform/nonprod/outputs.tf")).doesNotContain("aws_iam_access_key");
+    }
 }

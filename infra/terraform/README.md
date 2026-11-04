@@ -1,4 +1,4 @@
-# Terraform: PROD on AWS
+# Terraform: PROD and NONPROD on AWS
 
 The AWS side of `docs/PROD_ENVIRONMENT_PLAN.md`, in `af-south-1`.
 
@@ -7,6 +7,7 @@ The AWS side of `docs/PROD_ENVIRONMENT_PLAN.md`, in `af-south-1`.
 | `bootstrap/` | The S3 bucket every Terraform state lives in. Run once |
 | `prod/` | The PROD environment: VPC, EC2, Elastic IP, RDS, S3, ECR, SES SMTP user, IAM, CloudWatch alarms, the data-out budget |
 | `prod-grafana/` | PROD's alert rules, their email contact point and the dashboards in the Grafana Cloud stack (#340) |
+| `nonprod/` | NONPROD's S3 bucket and the IAM user its backend uses for S3 and SES (#379). The server itself is on Oracle Cloud and is not in Terraform |
 
 Versions are pinned: Terraform `1.16.6`, the AWS provider `6.69.1` and the Grafana provider
 `4.50.0`, with `.terraform.lock.hcl` committed for Linux, macOS and Windows.
@@ -101,6 +102,44 @@ state bucket.
 
 A new or changed file in `tools/grafana/dashboards` reaches PROD at the next `tfg apply`; nothing
 deploys it on its own.
+
+## NONPROD bucket and email user
+
+`nonprod/` has its own state (`nonprod/terraform.tfstate` in the same bucket), so a NONPROD plan
+cannot change a PROD resource. It reads the SES identity that `prod/` owns, so `prod/` comes first.
+
+1. **Plan and apply,** with the `tf` helper above:
+
+   ```bash
+   tf nonprod init
+   tf nonprod plan     # first run: 12 to add, 0 to change, 0 to destroy
+   tf nonprod apply
+   ```
+
+2. **Test the key.** Read it from SSM into a subshell, so it never stays in your shell. Upload one
+   file to the NONPROD bucket, which should work, then try to list the PROD bucket, which should
+   fail with `AccessDenied`:
+
+   ```bash
+   (
+     export AWS_ACCESS_KEY_ID=$(MSYS_NO_PATHCONV=1 aws ssm get-parameter --region af-south-1 \
+       --name /sas-nonprod/AWS_ACCESS_KEY_ID --query Parameter.Value --output text)
+     export AWS_SECRET_ACCESS_KEY=$(MSYS_NO_PATHCONV=1 aws ssm get-parameter --region af-south-1 \
+       --name /sas-nonprod/AWS_SECRET_ACCESS_KEY --with-decryption --query Parameter.Value --output text)
+     unset AWS_SESSION_TOKEN
+     echo test | aws s3 cp - s3://beezhub-sas-nonprod-documents/key-test.txt
+     aws s3 rm s3://beezhub-sas-nonprod-documents/key-test.txt
+     aws s3 ls s3://beezhub-sas-prod-documents
+   )
+   ```
+
+3. **Copy the settings to the server.** `tf nonprod output` lists the non-secret values, and #382
+   covers where they go in `/opt/sas/.env`.
+
+**Only send NONPROD mail to addresses the team owns.** SES production access (#330) applies to the
+whole account in `af-south-1` and is already on, so NONPROD on SES can email anyone. The user may
+send only from `nonprod@beezhub.co.za`, which limits who the mail appears to come from, not who
+receives it.
 
 ## What is protected
 
