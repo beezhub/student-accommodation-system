@@ -159,7 +159,7 @@ export class BuildingManagementComponent implements OnInit {
   deleteBuilding(building: BuildingResponse): void {
     confirmAction(this.dialog, {
       title: 'Delete this building?',
-      message: `"${building.name}" is removed permanently. This cannot be undone.`,
+      message: `"${building.name}" and its rooms are removed permanently. This cannot be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
     }).subscribe((confirmed) => {
@@ -171,9 +171,12 @@ export class BuildingManagementComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to delete building:', error);
-          this.snackBar.open('Failed to delete building. It may have associated rooms.', 'Close', {
-            duration: 5000,
-          });
+          const message: string | undefined = error?.error?.errors?.[0];
+          this.snackBar.open(
+            message || 'Failed to delete building. It may have active allocations.',
+            'Close',
+            { duration: 5000 }
+          );
         },
       });
     });

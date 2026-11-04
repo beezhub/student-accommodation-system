@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
+import com.beezhub.student_accommodation.exceptions.ResourceInUseException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.mapper.BuildingMapper;
@@ -15,6 +16,7 @@ import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.repository.BuildingAttributesRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.InstitutionRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.specification.BuildingBrowseSpecification;
 import com.beezhub.student_accommodation.specification.BuildingSpecification;
@@ -46,6 +48,7 @@ public class BuildingService {
     private final BuildingAttributesRepository buildingAttributesRepository;
     private final InstitutionRepository institutionRepository;
     private final RoomRepository roomRepository;
+    private final RoomAllocationRepository roomAllocationRepository;
     private final BuildingMapper buildingMapper;
     private final RoomMapper roomMapper;
     private final BuildingImageService buildingImageService;
@@ -258,11 +261,28 @@ public class BuildingService {
         return buildingMapper.toResponse(updated);
     }
 
+    /**
+     * Refused while any of the building's rooms holds a live allocation. Otherwise the rooms go with
+     * the building, under the same rule {@code RoomService.deleteRoom} applies to one room.
+     *
+     * <p>Left to the database, {@code room.building_id} is ON DELETE SET NULL, so every room would
+     * survive with no building. Such a room still counts as available and can be offered to a
+     * student, and {@code uq_room_unassigned_room_number} allows only one per room number across
+     * the platform, so a later delete of any building with the same room number fails.
+     */
     public void deleteBuilding(Long id) {
         log.info("Deleting building with id: {}", id);
         Building building = buildingRepository.findById(id)
                 .orElseThrow(() -> new BuildingNotFoundException("Building not found with id: " + id));
         tenantOwnershipGuard.assertOwned(building, "Building", id);
+        long liveAllocations = roomAllocationRepository.countActiveAllocationsByBuildingId(id);
+        if (liveAllocations > 0) {
+            log.warn("action=buildingDeleteRefused buildingId={} liveAllocations={}", id, liveAllocations);
+            throw new ResourceInUseException("Building " + building.getName()
+                    + " cannot be deleted while its rooms have offered, accepted or checked-in students ("
+                    + liveAllocations + "). End, cancel or move those allocations first.");
+        }
+        roomRepository.deleteAll(roomRepository.findByBuildingIdWithAttributes(id));
         buildingRepository.delete(building);
         log.info("Successfully deleted building with id: {}", id);
     }

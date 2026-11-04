@@ -59,6 +59,10 @@ public interface RoomAllocationRepository
        @Query("SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room.id = :roomId AND ra.status IN (com.beezhub.student_accommodation.model.enums.AllocationStatus.ACTIVE, com.beezhub.student_accommodation.model.enums.AllocationStatus.ACCEPTED, com.beezhub.student_accommodation.model.enums.AllocationStatus.OFFERED)")
        long countActiveAllocationsByRoomId(@Param("roomId") Long roomId);
 
+       // The same live set as countActiveAllocationsByRoomId, across every room in a building.
+       @Query("SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room.building.id = :buildingId AND ra.status IN (com.beezhub.student_accommodation.model.enums.AllocationStatus.ACTIVE, com.beezhub.student_accommodation.model.enums.AllocationStatus.ACCEPTED, com.beezhub.student_accommodation.model.enums.AllocationStatus.OFFERED)")
+       long countActiveAllocationsByBuildingId(@Param("buildingId") Long buildingId);
+
        // Find active allocation by student ID with eager loading
        @Query("SELECT ra FROM RoomAllocation ra " +
                      "LEFT JOIN FETCH ra.student s " +
