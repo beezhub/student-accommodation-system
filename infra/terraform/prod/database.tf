@@ -58,3 +58,21 @@ resource "aws_db_instance" "main" {
   skip_final_snapshot       = false
   final_snapshot_identifier = "${var.name}-final"
 }
+
+# RDS rotates the password it manages every 7 days by default. The backend does not read the
+# secret: write-env.sh copies the password into /opt/sas/.env at deploy time, and HikariCP replaces
+# every connection within 10 minutes, so each rotation took the site down about 10 minutes later
+# until the next deploy (#407). Once a year, and on purpose: docs/PROD_RUNBOOK.md, "The database
+# password", rotates it at a quiet time and redeploys straight after. The real fix, the backend
+# reading the secret itself, is its own issue.
+#
+# rotate_immediately defaults to true. Left that way, applying this would rotate the password at
+# once and cause the very outage it prevents.
+resource "aws_secretsmanager_secret_rotation" "db_master" {
+  secret_id          = aws_db_instance.main.master_user_secret[0].secret_arn
+  rotate_immediately = false
+
+  rotation_rules {
+    automatically_after_days = 365
+  }
+}

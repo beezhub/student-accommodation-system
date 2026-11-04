@@ -27,6 +27,11 @@ services:
       replicas: 0
     profiles: ["never"]
 
+  db-tls-cert:
+    deploy:
+      replicas: 0
+    profiles: ["never"]
+
   minio:
     deploy:
       replicas: 0
