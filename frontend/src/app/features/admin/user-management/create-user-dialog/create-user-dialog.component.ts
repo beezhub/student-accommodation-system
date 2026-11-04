@@ -16,6 +16,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TenantService, Tenant } from '../../../../core/services/tenant.service';
+import {
+  PASSWORD_RULES_HINT,
+  strongPasswordValidator,
+} from '../../../../shared/validators/strong-password.validator';
 
 @Component({
   selector: 'app-create-user-dialog',
@@ -40,6 +44,7 @@ export class CreateUserDialogComponent {
   private adminService = inject(AdminService);
   private snackBar = inject(MatSnackBar);
 
+  readonly passwordRulesHint = PASSWORD_RULES_HINT;
   createUserForm: FormGroup;
   isSubmitting = false;
   hidePassword = true;
@@ -83,7 +88,7 @@ export class CreateUserDialogComponent {
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
+      password: ['', [Validators.required, strongPasswordValidator]],
       // Was BUILDING_OWNER, which is in neither availableRoles nor the backend UserRole, so the
       // form opened on a value that could never be submitted.
       userRole: ['BUILDING_STAFF', [Validators.required]],

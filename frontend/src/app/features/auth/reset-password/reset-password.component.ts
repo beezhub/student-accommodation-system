@@ -18,6 +18,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { HttpErrorResponse } from '@angular/common/http';
+import {
+  PASSWORD_RULES_HINT,
+  strongPasswordValidator,
+} from '../../../shared/validators/strong-password.validator';
 
 @Component({
   selector: 'app-reset-password',
@@ -43,6 +47,7 @@ export class ResetPasswordComponent implements OnInit {
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
 
+  readonly passwordRulesHint = PASSWORD_RULES_HINT;
   resetPasswordForm: FormGroup;
   isSubmitting = false;
   isVerifying = true;
@@ -55,7 +60,7 @@ export class ResetPasswordComponent implements OnInit {
   constructor() {
     this.resetPasswordForm = this.fb.group(
       {
-        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        newPassword: ['', [Validators.required, strongPasswordValidator]],
         confirmPassword: ['', [Validators.required]],
       },
       { validators: this.passwordMatchValidator }
@@ -129,9 +134,11 @@ export class ResetPasswordComponent implements OnInit {
         },
         error: (error: HttpErrorResponse) => {
           this.isSubmitting = false;
+          // Validation failures and bad tokens arrive as errors[], with no message. error.message
+          // is Angular's own "Http failure response for ...", which tells the user nothing.
           const errorMessage =
             error?.error?.message ||
-            error?.message ||
+            error?.error?.errors?.[0] ||
             'Failed to reset password. Please try again.';
           this.snackBar.open(errorMessage, 'Close', {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

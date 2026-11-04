@@ -15,6 +15,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../../core/services/auth.service';
+import {
+  PASSWORD_RULES_HINT,
+  strongPasswordValidator,
+} from '../../../../shared/validators/strong-password.validator';
 
 @Component({
   selector: 'app-change-password-dialog',
@@ -73,7 +77,7 @@ import { AuthService } from '../../../../core/services/auth.service';
               matInput
               [type]="hideNewPassword ? 'password' : 'text'"
               formControlName="newPassword"
-              placeholder="At least 8 characters"
+              placeholder="Enter new password"
               autocomplete="new-password"
             />
             <button
@@ -87,8 +91,10 @@ import { AuthService } from '../../../../core/services/auth.service';
             @if (passwordForm.get('newPassword')?.hasError('required') &&
             passwordForm.get('newPassword')?.touched) {
             <mat-error>New password is required</mat-error>
-            } @if (passwordForm.get('newPassword')?.hasError('minlength')) {
-            <mat-error>Password must be at least 8 characters</mat-error>
+            }
+            <mat-hint>{{ passwordRulesHint }}</mat-hint>
+            @if (passwordForm.get('newPassword')?.getError('strongPassword'); as rule) {
+            <mat-error>Password needs {{ rule.missing.join(', ') }}</mat-error>
             }
           </mat-form-field>
 
@@ -289,6 +295,7 @@ export class ChangePasswordDialogComponent {
   private dialogRef = inject<MatDialogRef<ChangePasswordDialogComponent>>(MatDialogRef);
   private authService = inject(AuthService);
 
+  readonly passwordRulesHint = PASSWORD_RULES_HINT;
   passwordForm: FormGroup;
   hideCurrentPassword = true;
   hideNewPassword = true;
@@ -300,7 +307,7 @@ export class ChangePasswordDialogComponent {
     this.passwordForm = this.fb.group(
       {
         currentPassword: ['', Validators.required],
-        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        newPassword: ['', [Validators.required, strongPasswordValidator]],
         confirmPassword: ['', Validators.required],
       },
       { validators: this.passwordMatchValidator }
@@ -346,6 +353,7 @@ export class ChangePasswordDialogComponent {
           this.isSubmitting = false;
           this.errorMessage =
             error.error?.message ||
+            error.error?.errors?.[0] ||
             'Failed to change password. Please check your current password.';
         },
       });
