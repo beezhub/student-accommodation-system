@@ -124,14 +124,14 @@ class DeploymentConfigurationTest {
     }
 
     /**
-     * Grafana builds its redirects from GRAFANA_ROOT_URL, which ends in /grafana. Without sub-path
-     * serving the login page redirects to itself forever; without the Caddy route /grafana reaches
-     * the frontend instead.
+     * No deployed server runs Grafana any more (#381). Without its own route /grafana would reach the
+     * frontend, which answers 200 with the Angular app, so it answers 404 itself.
      */
     @Test
-    void deployOverlay_servesGrafanaUnderTheCaddyRoute() throws IOException {
-        assertThat(read("docker-compose.deploy.yml")).contains("GF_SERVER_SERVE_FROM_SUB_PATH=true");
-        assertThat(read("tools/caddy/Caddyfile")).contains("@grafana path /grafana /grafana/*");
+    void caddy_answers404ForGrafana() throws IOException {
+        assertThat(read("tools/caddy/Caddyfile")).doesNotContain("127.0.0.1:3000");
+        assertThat(readLf("tools/caddy/Caddyfile"))
+                .contains("@grafana path /grafana /grafana/*\n\thandle @grafana {\n\t\trespond 404\n\t}");
     }
 
     @Test
@@ -318,9 +318,11 @@ class DeploymentConfigurationTest {
                 .hasSize(3);
         assertThat(logs).contains("replace    = \"REDACTED\"");
         assertThat(read("tools/alloy/loki-local.alloy")).contains("external_labels = {env = \"nonprod\"}");
-        assertThat(read("tools/alloy/grafana-cloud.alloy").split("external_labels = \\{env = \"prod\"\\}", -1))
-                .as("logs and metrics both carry env=prod")
+        assertThat(read("tools/alloy/grafana-cloud.alloy").split("external_labels = \\{env = sys.env\\(\"ALLOY_ENV\"\\)\\}", -1))
+                .as("logs and metrics both carry the environment's label")
                 .hasSize(3);
+        assertThat(readLf("docker-compose.aws.yml").substring(readLf("docker-compose.aws.yml").indexOf("  alloy:")))
+                .contains("- ALLOY_ENV=prod\n");
     }
 
     /** Alloy does Prometheus's job in PROD, with the same credentials the backend checks. */
@@ -635,5 +637,65 @@ class DeploymentConfigurationTest {
                 .isPositive()
                 .isLessThan(start.indexOf("docker compose $F up -d"));
         assertThat(start).contains("echo \"schema_before=").contains("echo \"schema_after=");
+    }
+
+    /**
+     * NONPROD ships to the same Grafana Cloud stack as PROD (#381), so PROD's own config first runs
+     * somewhere else. Its label must say nonprod, or NONPROD could set off PROD's alerts.
+     */
+    @Test
+    void nonprodOverlay_shipsToGrafanaCloudWithItsOwnLabel() throws IOException {
+        String nonprod = readLf("docker-compose.nonprod.yml");
+
+        assertThat(nonprod)
+                .contains("- ALLOY_ENV=nonprod\n")
+                .contains("- ./tools/alloy/grafana-cloud.alloy:/etc/alloy/conf.d/grafana-cloud.alloy:ro\n")
+                .doesNotContain("loki-local.alloy:")
+                .contains("- /proc:/host/proc:ro\n", "- /sys:/host/sys:ro\n", "- /:/host/root:ro,rslave\n")
+                .contains("- prometheus_scrape_password\n")
+                .contains("- app-network\n")
+                .contains("depends_on: !reset []")
+                .contains("memory: 384M");
+        for (String key : List.of("GRAFANA_CLOUD_LOGS_URL", "GRAFANA_CLOUD_LOGS_USER", "GRAFANA_CLOUD_METRICS_URL",
+                "GRAFANA_CLOUD_METRICS_USER", "GRAFANA_CLOUD_API_KEY")) {
+            assertThat(nonprod).contains("- " + key + "=${" + key + ":?");
+        }
+    }
+
+    /**
+     * Grafana, Prometheus and Loki already run on NONPROD. A profile would leave those containers
+     * running: Compose only removes a running service's container when its replicas drop to zero.
+     */
+    @Test
+    void nonprodOverlay_removesTheRunningMonitoringContainers() throws IOException {
+        String nonprod = readLf("docker-compose.nonprod.yml");
+
+        for (String service : List.of("grafana", "prometheus", "loki")) {
+            assertThat(nonprod).contains("  " + service + ":\n    deploy:\n      replicas: 0\n");
+        }
+        assertThat(nonprod).doesNotContain("profiles:");
+    }
+
+    /** A step that runs Compose without the overlay would bring the local monitoring back. */
+    @Test
+    void nonprodDeploy_usesTheNonprodOverlayInEveryStep() throws IOException {
+        String deploy = readLf(".github/workflows/deploy.yml");
+
+        assertThat(deploy).contains("F=\"docker-compose.yml docker-compose.prod.yml docker-compose.deploy.yml"
+                + " docker-compose.nonprod.yml\"");
+        assertThat(deploy.split("-f docker-compose\\.deploy\\.yml -f docker-compose\\.nonprod\\.yml", -1)).hasSize(4);
+        assertThat(deploy.split("-f docker-compose\\.deploy\\.yml", -1)).hasSize(4);
+    }
+
+    /**
+     * The dashboards' queries carry no labels, and two environments now share the stack, so without
+     * this filter every PROD panel would add NONPROD's numbers to its own.
+     */
+    @Test
+    void prodDashboards_filterOnTheEnvironment() throws IOException {
+        assertThat(readLf("infra/terraform/prod-grafana/dashboards.tf"))
+                .contains("type       = \"adhoc\"")
+                .contains("filters    = [{ key = \"env\", operator = \"=\", value = \"prod\" }]")
+                .contains("templating = { list = [local.env_filter] }");
     }
 }

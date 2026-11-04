@@ -127,6 +127,8 @@ services:
     # Loki is not running here.
     depends_on: !reset []
     environment:
+      # Fixed rather than read from .env, so no setting can make PROD's series look like NONPROD's.
+      - ALLOY_ENV=prod
       - GRAFANA_CLOUD_LOGS_URL=${GRAFANA_CLOUD_LOGS_URL:?GRAFANA_CLOUD_LOGS_URL must be set}
       - GRAFANA_CLOUD_LOGS_USER=${GRAFANA_CLOUD_LOGS_USER:?GRAFANA_CLOUD_LOGS_USER must be set}
       - GRAFANA_CLOUD_METRICS_URL=${GRAFANA_CLOUD_METRICS_URL:?GRAFANA_CLOUD_METRICS_URL must be set}

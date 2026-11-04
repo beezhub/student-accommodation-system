@@ -102,6 +102,10 @@ state bucket.
 A new or changed file in `tools/grafana/dashboards` reaches PROD at the next `tfg apply`; nothing
 deploys it on its own.
 
+NONPROD ships to this stack too (#381). The alert rules only read `env="prod"`, and each dashboard
+has a filter that opens on `env=prod`. Apply these before NONPROD's first deploy to the stack, or the
+dashboards add NONPROD's numbers to PROD's.
+
 ## What is protected
 
 - `disable_api_termination` on the server, `deletion_protection` on RDS, and `prevent_destroy` on

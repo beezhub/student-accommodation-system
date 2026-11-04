@@ -8,9 +8,10 @@
 //      that sees a request before nginx does, and its access log is JSON too.
 //
 // Alloy loads every .alloy file in /etc/alloy/conf.d as one configuration, so this file is shared
-// and the destination is chosen by which second file is mounted next to it: loki-local.alloy on
-// NONPROD (tools/loki/loki.yml on the same host), grafana-cloud.alloy on PROD
-// (docker-compose.aws.yml). PROD therefore runs the exact log pipeline NONPROD has already proven.
+// and the destination is chosen by which second file is mounted next to it: grafana-cloud.alloy on
+// NONPROD and PROD (docker-compose.nonprod.yml, docker-compose.aws.yml), or loki-local.alloy on a
+// server running its own Loki (docker-compose.deploy.yml alone). PROD therefore runs the exact log
+// pipeline NONPROD has already proven.
 //
 // Alloy runs as root in the container because the Docker socket and /var/log/journal are both
 // root-readable on the host. It replaces Promtail, which reached end of life in March 2026.
