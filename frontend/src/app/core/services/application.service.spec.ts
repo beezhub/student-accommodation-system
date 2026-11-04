@@ -299,4 +299,14 @@ describe('ApplicationService', () => {
       req.flush(mockApplication);
     });
   });
+
+  describe('resubmitApplication', () => {
+    it('resubmitApplication_validId_postsToResubmitEndpoint', () => {
+      service.resubmitApplication(1).subscribe();
+
+      const req = httpMock.expectOne(`${apiUrl}/1/resubmit`);
+      expect(req.request.method).toBe('POST');
+      req.flush(mockApplication);
+    });
+  });
 });
