@@ -29,6 +29,51 @@ x-bounded-logs: &bounded-logs
     max-file: "3"
 
 services:
+  # Requires TLS like RDS, so a driver, URL or certificate problem shows on NONPROD first (#380).
+  # Set with `command` and a mounted file, not an init script: init scripts only run on an empty
+  # data directory, and NONPROD's already holds data. PROD switches off db and db-tls-cert.
+  db:
+    depends_on:
+      db-tls-cert:
+        condition: service_completed_successfully
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/var/lib/postgresql/tls/server.crt
+      - -c
+      - ssl_key_file=/var/lib/postgresql/tls/server.key
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+    volumes:
+      - postgres_tls:/var/lib/postgresql/tls:ro
+      - ./tools/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+
+  # postgres:16.2-alpine has no openssl command, so this makes the self-signed certificate once and
+  # exits. It reaches the network for openssl only when there is no certificate yet. uid 70 is the
+  # image's postgres user, which refuses a key other users can read.
+  db-tls-cert:
+    image: alpine:3.22
+    entrypoint:
+      - sh
+      - -ec
+      - |
+        cd /tls
+        if [ ! -s server.key ] || [ ! -s server.crt ]; then
+          apk add --no-cache --quiet openssl
+          openssl req -new -x509 -days 3650 -nodes -newkey rsa:2048 -subj /CN=db \
+            -keyout server.key -out server.crt
+        fi
+        chown 70:70 server.key server.crt
+        chmod 600 server.key
+    volumes:
+      - postgres_tls:/tls
+    restart: "no"
+    logging: *bounded-logs
+    networks:
+      - app-network
+
   # Published on loopback for the host's Caddy, which serves it at /grafana (tools/caddy/Caddyfile).
   # The prod overlay has already taken the base file's 0.0.0.0 publish away.
   grafana:
@@ -101,6 +146,8 @@ services:
   student-accommodation-back-end:
     image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be a registry reference by digest, repo@sha256:...}
     build: !reset null
+    environment:
+      - DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb?sslmode=require
 
   frontend:
     container_name: student-accommodation-frontend
@@ -133,5 +180,6 @@ networks:
         - subnet: 172.28.0.0/16
 
 volumes:
+  postgres_tls:
   loki_data:
   alloy_data:
