@@ -86,7 +86,7 @@ Copying the previous version over the current one keeps the history; nothing is 
 ### Database and documents together
 
 The rule in section 5 holds on PROD too: a database restored to an earlier time has no rows for
-documents uploaded after that time, and `OrphanFileCleanupJob` (daily, 03:00) deletes stored files
+documents uploaded after that time, and `OrphanFileCleanupJob` (daily, 03:00 UTC) deletes stored files
 without a row once they are older than the grace period. Those files are still recoverable as old
 versions for 35 days, but restore the database first and check the documents it references exist in
 the bucket before the next cleanup run.
@@ -136,7 +136,7 @@ restore that omits them is a complete restore.
 The two that matter must be backed up **together and close in time**. A `document` row points at an
 object key; a database restored ahead of the bucket has rows referencing objects that do not exist
 yet, and a bucket restored ahead of the database has objects the orphan cleanup job will delete on
-its next run (03:00 by default). Section 5 covers the ordering that avoids both.
+its next run (03:00 UTC by default). Section 5 covers the ordering that avoids both.
 
 ---
 
@@ -335,10 +335,10 @@ deployment acts on the entire backlog at once. So:
    (3.3).
 4. Set `DOCUMENT_RETENTION_DRY_RUN=false` and restart the backend.
 
-The job then runs nightly at `DOCUMENT_RETENTION_CRON` (03:30 by default, half an hour after the
+The job then runs nightly at `DOCUMENT_RETENTION_CRON` (03:30 UTC by default, half an hour after the
 orphan sweep). It deletes the `document` row and publishes the same after-commit event every other
 deletion path uses, so the object goes only once the row deletion has committed. Anything the event
-misses is an orphan, which the 03:00 sweep collects the next night.
+misses is an orphan, which the 03:00 UTC sweep collects the next night.
 
 Watch `sas_jobs_documentRetention_processed_total` and `sas_jobs_documentRetention_failures_total`
 in Prometheus. A sudden jump in the first is worth looking at before the next night's run.
@@ -354,7 +354,7 @@ Order matters, because the orphan cleanup job deletes objects with no `document`
 2. **Restore MinIO first** (3.2). Extra objects are harmless while the app is down.
 3. **Restore PostgreSQL** (2.4).
 4. **Start the backend.** Flyway migrates and Hibernate validates.
-5. **Check before the next 03:00.** Any object whose row did not come back is now an orphan and
+5. **Check before the next 03:00 UTC.** Any object whose row did not come back is now an orphan and
    will be deleted tonight. If the two backups were not taken close together, set
    `STORAGE_CLEANUP_CRON` to something far off until you have reconciled them.
 

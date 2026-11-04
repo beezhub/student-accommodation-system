@@ -109,7 +109,8 @@ public class DocumentRetentionJob {
             @Value("${app.storage.retention.document-months:12}") int retentionMonths,
             @Value("${app.storage.retention.dry-run:true}") boolean dryRun) {
         this(documentRepository, eventPublisher, requiresNewTransactionTemplate,
-                Period.ofMonths(retentionMonths), dryRun, Clock.systemUTC());
+                // The cutoff is compared with stored timestamps, which carry the JVM's zone.
+                Period.ofMonths(retentionMonths), dryRun, Clock.systemDefaultZone());
     }
 
     DocumentRetentionJob(DocumentRepository documentRepository,

@@ -188,6 +188,21 @@ class EmailServiceTest {
     }
 
     @Test
+    void sendTemplateEmail_withChangesRequestedContext_passesTheReasonAndLinkToTheTemplate() {
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        var ctx = new ApplicationChangesRequestedContext("Student Name", 1L, "Reason", "http://portal/applications/1");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_CHANGES_REQUESTED,
+                "application-changes-requested", ctx);
+
+        org.mockito.ArgumentCaptor<Context> context = org.mockito.ArgumentCaptor.forClass(Context.class);
+        verify(templateEngine).process(eq("email/application-changes-requested"), context.capture());
+        org.assertj.core.api.Assertions.assertThat(context.getValue().getVariable("changesReason")).isEqualTo("Reason");
+        org.assertj.core.api.Assertions.assertThat(context.getValue().getVariable("portalUrl"))
+                .isEqualTo("http://portal/applications/1");
+    }
+
+    @Test
     void sendTemplateEmail_withDocumentVerifiedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var ctx = new DocumentVerifiedContext("Student Name", "ID", "REF", "2023-01-01", "Admin", "url");
@@ -212,7 +227,8 @@ class EmailServiceTest {
     void sendTemplateEmail_withRoomAllocatedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var ctx = new RoomAllocatedContext("Student Name", "101", "Building", 1, "Single",
-                "1", "ALLOC1", "2023-01-01", "2023-12-31", "1 Year", "Office", "Address", "url");
+                "1", "ALLOC1", "2023-01-01", "2023-12-31", "1 Year", "Office", "Address", "url",
+                "01 January 2024 at 12:00 UTC");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ROOM_ALLOCATED, "room-allocated", ctx);
 
@@ -222,7 +238,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withWelcomeContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new WelcomeContext("Student Name", "test@example.com", "ST123", "2023-01-01", "url", "guide_url");
+        var ctx = new WelcomeContext("Student Name", "test@example.com", "ST123", "2023-01-01", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.WELCOME, "welcome", ctx);
 

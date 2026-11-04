@@ -3,11 +3,13 @@ package com.beezhub.student_accommodation.service.notification;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.service.EmailService;
+import com.beezhub.student_accommodation.service.allocation.WaitingListService;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Answers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -136,6 +138,28 @@ class EmailDispatchServiceTest {
     }
 
     @Test
+    void sendApplicationChangesRequestedEmail_validData_sendsReasonAndLinkToTheApplication() {
+        application.setRemarks("Proof of registration is for the wrong year");
+
+        emailDispatchService.sendApplicationChangesRequestedEmail(application, "John Doe", "john@example.com");
+
+        verify(emailService).sendTemplateEmail(
+                eq("john@example.com"),
+                eq(EmailSubjects.APPLICATION_CHANGES_REQUESTED),
+                eq("application-changes-requested"),
+                eq(new ApplicationChangesRequestedContext(
+                        "John Doe",
+                        1L,
+                        "Proof of registration is for the wrong year",
+                        "http://test-url/applications/1")));
+    }
+
+    @Test
+    void applicationPageUrl_returnsTheStudentApplicationRoute() {
+        assertThat(emailDispatchService.applicationPageUrl(9L)).isEqualTo("http://test-url/applications/9");
+    }
+
+    @Test
     void sendDocumentVerifiedEmail_validData_sendsEmail() {
         when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
 
@@ -195,6 +219,22 @@ class EmailDispatchServiceTest {
         );
     }
 
+    /** The email has to name the moment the offer lapses and link to where the student accepts. */
+    @Test
+    void sendRoomAllocatedEmail_offer_carriesTheDeadlineAndTheAcceptLink() {
+        LocalDateTime deadline = LocalDateTime.of(2026, 11, 11, 14, 30);
+        allocation.setOfferExpiryDate(deadline);
+        when(contentBuilder.formatDeadline(deadline)).thenReturn("11 November 2026 at 14:30 UTC");
+
+        emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, "John Doe", "john@example.com");
+
+        ArgumentCaptor<RoomAllocatedContext> ctx = ArgumentCaptor.forClass(RoomAllocatedContext.class);
+        verify(emailService).sendTemplateEmail(
+                eq("john@example.com"), eq(EmailSubjects.ROOM_ALLOCATED), eq("room-allocated"), ctx.capture());
+        assertThat(ctx.getValue().offerExpiryDate()).isEqualTo("11 November 2026 at 14:30 UTC");
+        assertThat(ctx.getValue().portalUrl()).isEqualTo("http://test-url/dashboard");
+    }
+
     @Test
     void sendAllocationProposalEmail_validData_sendsEmail() {
         when(contentBuilder.extractFloorNumber(anyString())).thenReturn(1);
@@ -222,6 +262,36 @@ class EmailDispatchServiceTest {
         );
     }
 
+    /** Declines one and two stay on the list, and the third closes the application (GH-459). */
+    @Test
+    void sendOfferDeclinedRequeueEmail_firstDecline_showsTheTrueCountAndLimit() {
+        OfferDeclinedRequeueContext ctx = requeueContextFor(1);
+
+        assertThat(ctx.totalDeclineCount()).isEqualTo(1);
+        assertThat(ctx.declinesRemaining()).isEqualTo(1);
+        assertThat(ctx.maxDeclines()).isEqualTo(WaitingListService.MAX_DECLINES);
+    }
+
+    @Test
+    void sendOfferDeclinedRequeueEmail_secondDecline_showsNoneLeft() {
+        OfferDeclinedRequeueContext ctx = requeueContextFor(2);
+
+        assertThat(ctx.totalDeclineCount()).isEqualTo(2);
+        assertThat(ctx.declinesRemaining()).isZero();
+        assertThat(ctx.maxDeclines()).isEqualTo(WaitingListService.MAX_DECLINES);
+    }
+
+    private OfferDeclinedRequeueContext requeueContextFor(int totalDeclineCount) {
+        emailDispatchService.sendOfferDeclinedRequeueEmail(
+                allocation, room, "John Doe", "john@example.com", totalDeclineCount, "Reason");
+
+        ArgumentCaptor<OfferDeclinedRequeueContext> ctx = ArgumentCaptor.forClass(OfferDeclinedRequeueContext.class);
+        verify(emailService).sendTemplateEmail(
+                eq("john@example.com"), eq(EmailSubjects.OFFER_DECLINED_REQUEUE), eq("offer-declined-requeue"),
+                ctx.capture());
+        return ctx.getValue();
+    }
+
     /**
      * GH-141: the welcome path was the only live producer of a notification with null template
      * data, so the retry job could not rebuild the email and the row was stranded. This is the
@@ -237,13 +307,12 @@ class EmailDispatchServiceTest {
                 user, "Alice Smith", "alice@example.com");
 
         assertThat(data).containsOnlyKeys("templateName", "studentName", "email", "studentId",
-                "registrationDate", "loginUrl", "guideUrl");
+                "registrationDate", "loginUrl");
         assertThat(data).containsEntry("templateName", "welcome");
         assertThat(data).containsEntry("studentName", "Alice Smith");
         assertThat(data).containsEntry("email", "alice@example.com");
         assertThat(data).containsEntry("registrationDate", "15 Jan 2026");
         assertThat(data).containsEntry("loginUrl", "http://test-url/login");
-        assertThat(data).containsEntry("guideUrl", "http://test-url/guide");
     }
 
     /** What is sent and what is stored come from the same call, so they cannot drift apart. */

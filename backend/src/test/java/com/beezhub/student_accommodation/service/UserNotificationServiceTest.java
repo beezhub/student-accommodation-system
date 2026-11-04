@@ -190,11 +190,25 @@ class UserNotificationServiceTest {
     }
 
     @Test
+    void createRoomOfferNotification_offer_saysToAcceptByTheDeadline() {
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userNotificationRepository.save(any())).thenReturn(notification);
+
+        userNotificationService.createRoomOfferNotification(1L, "101", "Bld A",
+                LocalDateTime.of(2026, 11, 11, 14, 30));
+
+        ArgumentCaptor<UserNotification> saved = ArgumentCaptor.forClass(UserNotification.class);
+        verify(userNotificationRepository).save(saved.capture());
+        assertThat(saved.getValue().getMessage())
+                .contains("Room 101", "Bld A", "accept by 11 Nov 2026, 14:30");
+        assertThat(saved.getValue().getTitle()).contains("Offer");
+    }
+
+    @Test
     void helperMethods_CreateNotificationsWithCorrectData() {
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userNotificationRepository.save(any())).thenReturn(notification);
 
-        userNotificationService.createRoomAllocationNotification(1L, "101", "Bld A");
         userNotificationService.createDocumentStatusNotification(1L, "ID", true, null);
         userNotificationService.createDocumentStatusNotification(1L, "ID", false, "Blurry");
         userNotificationService.createApplicationStatusNotification(1L, 10L, true, null);
@@ -202,7 +216,6 @@ class UserNotificationServiceTest {
         userNotificationService.createPaymentDueNotification(1L, 500.0, "2023-12-01");
         userNotificationService.createSystemAnnouncementNotification(1L, "Alert", "Msg");
         userNotificationService.createAllocationProposalNotification(1L, "101", "Bld");
-        userNotificationService.createAllocationConfirmationNotification(1L, "101", "Bld");
         userNotificationService.createAllocationRejectionNotification(1L, "101", "Full");
         userNotificationService.createAllocationRejectionNotification(1L, "101", null);
         userNotificationService.createRoomMoveNotification(1L, "101", "102", "Request");
@@ -214,6 +227,6 @@ class UserNotificationServiceTest {
         userNotificationService.createCheckInReminderNotification(1L, "101", "Bld");
         userNotificationService.createCheckInConfirmedNotification(1L, "101", "Bld");
 
-        verify(userNotificationRepository, times(19)).save(any(UserNotification.class));
+        verify(userNotificationRepository, times(17)).save(any(UserNotification.class));
     }
 }

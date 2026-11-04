@@ -9,7 +9,6 @@ import {
 } from '../../../core/services/admin.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
 import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
-import { ApplicationService } from '../../../core/services/application.service';
 
 import { Observable, startWith, map, debounceTime, distinctUntilChanged } from 'rxjs';
 
@@ -55,7 +54,6 @@ import {
   PreferencesDialogComponent,
   PreferencesDialogData,
 } from './preferences-dialog/preferences-dialog.component';
-import { askForReason } from '../../../shared/components/reason-dialog/reason-dialog.component';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 
 @Component({
@@ -95,7 +93,6 @@ import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 export class ApplicationReviewComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private adminService = inject(AdminService);
-  private applicationService = inject(ApplicationService);
   private buildingService = inject(BuildingService);
   private stagedAllocationService = inject(StagedAllocationService);
   private fb = inject(FormBuilder);
@@ -132,11 +129,19 @@ export class ApplicationReviewComponent implements OnInit {
 
   statuses = [
     { value: 'PENDING', label: 'Pending' },
+    { value: 'UNDER_REVIEW', label: 'Under Review' },
+    { value: 'CHANGES_REQUESTED', label: 'Changes Requested' },
     { value: 'APPROVED', label: 'Approved' },
     { value: 'REJECTED', label: 'Rejected' },
     { value: 'AWAITING_ALLOCATION', label: 'Awaiting Allocation' },
     { value: 'ALLOCATED', label: 'Allocated' },
+    { value: 'CHECKED_IN', label: 'Checked In' },
+    { value: 'EXPIRED', label: 'Expired' },
+    { value: 'CANCELLED', label: 'Cancelled' },
   ];
+
+  // The filter the list on screen was actually loaded with, not one still being picked in the panel
+  appliedStatus = '';
 
   allocationStatuses = [
     { value: 'PENDING', label: 'Pending' },
@@ -167,6 +172,7 @@ export class ApplicationReviewComponent implements OnInit {
     this.setupBuildingAutocomplete();
     this.loadApplications();
     this.loadCounts();
+    this.computeActiveFilterCount();
     // valueChanges never completes, so without this the subscription outlives the component
     // and keeps it, its form and its closures alive for the life of the app (GH-157).
     this.filterForm.valueChanges
@@ -252,6 +258,7 @@ export class ApplicationReviewComponent implements OnInit {
     this.isRetrying = true;
 
     const formValue = this.filterForm.value;
+    this.appliedStatus = formValue.status;
     const filters = {
       applicationCode: formValue.applicationCode,
       studentName: formValue.studentName,
@@ -297,7 +304,7 @@ export class ApplicationReviewComponent implements OnInit {
   }
 
   onClearFilters(): void {
-    this.filterForm.reset({ status: 'PENDING' });
+    this.filterForm.reset({ status: '' });
     this.activeFilterCount = 0;
     this.currentPage = 0;
     this.loadApplications();
@@ -468,40 +475,5 @@ export class ApplicationReviewComponent implements OnInit {
           this.errorService.showWarning('No suitable room found for auto-allocation.');
         },
       });
-  }
-
-  markUnderReview(application: ApplicationResponse): void {
-    this.applicationService.markUnderReview(application.id).subscribe({
-      next: () => {
-        this.errorService.showSuccess('Application marked as Under Review');
-        this.loadApplications();
-      },
-      error: (error) => {
-        this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-      },
-    });
-  }
-
-  requestChanges(application: ApplicationResponse): void {
-    // The reason reaches the student as the whole explanation of what to fix, so it is validated
-    // rather than accepted as whatever `prompt` returned — which included a single space (GH-157).
-    askForReason(this.dialog, {
-      title: 'Request changes',
-      message: 'The student sees this, and it is the only guidance they get on what to change.',
-      label: 'What needs to change?',
-      placeholder: 'e.g. The proof of registration is for the wrong academic year.',
-      confirmLabel: 'Request changes',
-    }).subscribe((reason) => {
-      if (!reason) return;
-      this.applicationService.requestChanges(application.id, reason).subscribe({
-        next: () => {
-          this.errorService.showSuccess('Changes requested successfully');
-          this.loadApplications();
-        },
-        error: (error) => {
-          this.errorService.showErrorSnackbar(this.errorService.parseError(error));
-        },
-      });
-    });
   }
 }

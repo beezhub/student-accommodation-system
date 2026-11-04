@@ -210,7 +210,7 @@
 |------|--------|-----------------|
 | 1 | Navigate to MailHog UI at `http://localhost:8025` | MailHog inbox loads |
 | 2 | Search for emails to john.doe@test.com | Email(s) listed |
-| 3 | Open the most recent email | Email subject contains "Room Allocation Confirmation" or similar |
+| 3 | Open the most recent email | Email subject contains "Accept Your Room Offer" |
 | 4 | Verify email body contains room details (A-101), building name, allocation date | Room and building information present in email body |
 | 5 | Verify email body contains instructions for accepting/declining the offer | Accept/decline instructions present |
 

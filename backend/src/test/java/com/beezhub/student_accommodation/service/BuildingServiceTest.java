@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
+import com.beezhub.student_accommodation.exceptions.ResourceInUseException;
 import com.beezhub.student_accommodation.mapper.BuildingMapper;
 import com.beezhub.student_accommodation.mapper.RoomMapper;
 import com.beezhub.student_accommodation.model.dto.BuildingRequest;
@@ -8,9 +9,11 @@ import com.beezhub.student_accommodation.model.dto.BuildingResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Institution;
+import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.repository.BuildingAttributesRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.InstitutionRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +52,8 @@ class BuildingServiceTest {
     private InstitutionRepository institutionRepository;
     @Mock
     private RoomRepository roomRepository;
+    @Mock
+    private RoomAllocationRepository roomAllocationRepository;
     @Mock
     private BuildingMapper buildingMapper;
     @Mock
@@ -261,6 +266,32 @@ class BuildingServiceTest {
 
         buildingService.deleteBuilding(1L);
 
+        verify(buildingRepository).delete(building);
+    }
+
+    @Test
+    void deleteBuilding_liveAllocations_refusedBeforeAnyDelete() {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(roomAllocationRepository.countActiveAllocationsByBuildingId(1L)).thenReturn(3L);
+
+        assertThatThrownBy(() -> buildingService.deleteBuilding(1L))
+                .isInstanceOf(ResourceInUseException.class)
+                .hasMessageContaining(building.getName())
+                .hasMessageContaining("(3)");
+
+        verify(roomRepository, never()).deleteAll(any());
+        verify(buildingRepository, never()).delete(any(Building.class));
+    }
+
+    @Test
+    void deleteBuilding_noLiveAllocations_roomsDeletedWithTheBuilding() {
+        List<Room> rooms = List.of(new Room());
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(roomRepository.findByBuildingIdWithAttributes(1L)).thenReturn(rooms);
+
+        buildingService.deleteBuilding(1L);
+
+        verify(roomRepository).deleteAll(rooms);
         verify(buildingRepository).delete(building);
     }
 

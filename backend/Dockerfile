@@ -64,7 +64,9 @@ ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0 -XX:+ExitOnOutOfMemoryError"
 # Every timestamp column is TIMESTAMP without time zone and the application writes them with
 # LocalDateTime.now() in the JVM default zone, so the zone has to be pinned rather than inherited
 # from the base image. Set through the environment rather than a JVM system property, so a
-# deployment can override it; a system property would win and make APP_TIMEZONE inert.
-ENV TZ=UTC
+# deployment can override it; a system property would win and make APP_TIMEZONE inert. South Africa
+# rather than UTC because the API sends these values with no offset, so the browser reads them as
+# its own local time (GH-461). The JVM carries its own zone data, so the image needs no tzdata.
+ENV TZ=Africa/Johannesburg
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

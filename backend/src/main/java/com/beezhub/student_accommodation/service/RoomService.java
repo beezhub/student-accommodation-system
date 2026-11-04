@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
+import com.beezhub.student_accommodation.exceptions.ResourceInUseException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomMapper;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
@@ -239,11 +240,23 @@ public class RoomService {
         return "MAINTENANCE".equalsIgnoreCase(requested) ? "MAINTENANCE" : "AVAILABLE";
     }
 
+    /**
+     * Refused while the room holds a live allocation. {@code room_allocation.room_id} is ON DELETE
+     * CASCADE, so deleting the room would erase the allocation and leave the student's application
+     * ALLOCATED or CHECKED_IN with no room behind it.
+     */
     public void deleteRoom(Long id) {
         log.info("Deleting room with id: {}", id);
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
         tenantOwnershipGuard.assertOwned(room, "Room", id);
+        long liveAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(id);
+        if (liveAllocations > 0) {
+            log.warn("action=roomDeleteRefused roomId={} liveAllocations={}", id, liveAllocations);
+            throw new ResourceInUseException("Room " + room.getRoomNumber()
+                    + " cannot be deleted while it has offered, accepted or checked-in students ("
+                    + liveAllocations + "). End, cancel or move those allocations first.");
+        }
         roomRepository.delete(room);
         log.info("Successfully deleted room with id: {}", id);
     }

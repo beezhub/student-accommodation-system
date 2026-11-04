@@ -139,7 +139,11 @@ export class ChangePasswordComponent implements OnInit {
 
   onCancel(): void {
     if (!this.isForced) {
-      if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
+      if (
+        this.roleService.isPlatformAdmin() ||
+        this.roleService.isPlatformStaff() ||
+        this.roleService.isTenantAdmin()
+      ) {
         this.router.navigate(['/admin']);
       } else {
         this.router.navigate(['/dashboard']);

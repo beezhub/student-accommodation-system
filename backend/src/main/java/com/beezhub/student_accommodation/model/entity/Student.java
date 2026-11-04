@@ -3,6 +3,7 @@ package com.beezhub.student_accommodation.model.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
 
@@ -18,9 +19,8 @@ public class Student {
     private String studentNumber;
     @Column(name = "phone_number")
     private String phoneNumber;
-    @Temporal(TemporalType.DATE)
     @Column(name="date_of_birth")
-    private Date dateOfBirth;
+    private LocalDate dateOfBirth;
     
     @Temporal(TemporalType.DATE)
     @Column(name = "registration_date")

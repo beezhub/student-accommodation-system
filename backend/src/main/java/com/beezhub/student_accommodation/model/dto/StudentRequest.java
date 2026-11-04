@@ -3,7 +3,7 @@ package com.beezhub.student_accommodation.model.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 public class StudentRequest {
@@ -14,7 +14,7 @@ public class StudentRequest {
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits")
     private String phoneNumber;
 
-    private Date dateOfBirth;
+    private LocalDate dateOfBirth;
 
     @NotNull(message = "Institution is required")
     private Long institutionId;

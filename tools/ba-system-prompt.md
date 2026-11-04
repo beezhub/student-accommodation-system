@@ -565,7 +565,7 @@ Document every REST endpoint grouped by controller:
 | app.email-verification.expiry-hours | 24 | Email verification token expiry | application.yml |
 | app.password-reset.expiry-hours | 24 | Password reset token expiry | application.yml |
 | spring.servlet.multipart.max-file-size | 10MB | Max single file upload size | application.yml |
-| spring.servlet.multipart.max-request-size | 20MB | Max total request size | application.yml |
+| spring.servlet.multipart.max-request-size | 51MB | Max total request size, equal to client_max_body_size in frontend/nginx.conf | application.yml |
 | {Continue for ALL configurable parameters...} | | | |
 
 ### 12. Assumptions & Constraints

@@ -15,6 +15,8 @@ import com.beezhub.student_accommodation.service.DocumentTypeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -56,6 +58,8 @@ class ApplicationCoreServiceTest {
         private AuthService authService;
         @Mock
         private AcademicYearService academicYearService;
+        @Mock
+        private com.beezhub.student_accommodation.service.allocation.WaitingListService waitingListService;
 
         @InjectMocks
         private ApplicationCoreService applicationCoreService;
@@ -80,7 +84,7 @@ class ApplicationCoreServiceTest {
                 student.setId(1L);
                 student.setStudentNumber("STU001");
                 student.setPhoneNumber("0123456789");
-                student.setDateOfBirth(new java.util.Date());
+                student.setDateOfBirth(LocalDate.of(2000, 5, 14));
                 student.setGender("Female");
                 // GH-239: a complete profile now includes an emergency contact, so the happy-path
                 // fixture carries one. The gate's own cases below clear it deliberately.
@@ -227,6 +231,16 @@ class ApplicationCoreServiceTest {
                 verify(applicationRepository, never()).delete(any(Application.class));
         }
 
+        @Test
+        void cancelApplication_cancelled_closesTheWaitingListEntry() {
+                when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                applicationCoreService.cancelApplication(1L);
+
+                verify(waitingListService).closeEntriesForApplication(1L);
+        }
+
         /**
          * The old rule was PENDING only, which contradicted the state machine: a student asked to
          * amend their application could not withdraw it instead.
@@ -266,6 +280,66 @@ class ApplicationCoreServiceTest {
 
                 assertThatThrownBy(() -> applicationCoreService.cancelApplication(1L))
                                 .isInstanceOf(InvalidStatusException.class);
+        }
+
+        // ── Resubmit after changes requested ──────────────────────────────────────
+
+        @Test
+        void resubmitApplication_owner_movesToPendingAndKeepsTheReason() {
+                application.setStatus(ApplicationStatus.CHANGES_REQUESTED);
+                application.setRemarks("Proof of registration is for the wrong year");
+                when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+                when(applicationRepository.save(application)).thenReturn(application);
+
+                applicationCoreService.resubmitApplication(1L);
+
+                assertThat(application.getStatus()).isEqualTo(ApplicationStatus.PENDING);
+                assertThat(application.getRemarks()).isEqualTo("Proof of registration is for the wrong year");
+                verify(applicationRepository).save(application);
+                verify(applicationMapper).toResponse(application);
+        }
+
+        @Test
+        void resubmitApplication_anotherStudent_isRefused() {
+                application.setStatus(ApplicationStatus.CHANGES_REQUESTED);
+                AppUser otherUser = new AppUser();
+                otherUser.setId(2L);
+                otherUser.setUserRole(UserRole.STUDENT);
+                when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+                when(authService.getCurrentUser()).thenReturn(otherUser);
+
+                assertThatThrownBy(() -> applicationCoreService.resubmitApplication(1L))
+                                .isInstanceOf(UnauthorizedAccessException.class);
+
+                assertThat(application.getStatus()).isEqualTo(ApplicationStatus.CHANGES_REQUESTED);
+                verify(applicationRepository, never()).save(any(Application.class));
+        }
+
+        /**
+         * UNDER_REVIEW -> PENDING and PENDING -> PENDING are legal in the state machine, so the
+         * transition check alone would let a student pull an application out of an admin's hands.
+         */
+        @ParameterizedTest
+        @EnumSource(value = ApplicationStatus.class, names = "CHANGES_REQUESTED", mode = EnumSource.Mode.EXCLUDE)
+        void resubmitApplication_notChangesRequested_isRefused(ApplicationStatus status) {
+                application.setStatus(status);
+                when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                assertThatThrownBy(() -> applicationCoreService.resubmitApplication(1L))
+                                .isInstanceOf(InvalidStatusException.class);
+
+                assertThat(application.getStatus()).isEqualTo(status);
+                verify(applicationRepository, never()).save(any(Application.class));
+        }
+
+        @Test
+        void resubmitApplication_unknownId_isNotFound() {
+                when(applicationRepository.findById(1L)).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> applicationCoreService.resubmitApplication(1L))
+                                .isInstanceOf(ApplicationNotFoundException.class);
         }
 
         // ── Building preference tests ─────────────────────────────────────────────
