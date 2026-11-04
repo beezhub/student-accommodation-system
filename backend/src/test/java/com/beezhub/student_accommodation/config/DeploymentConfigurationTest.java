@@ -684,6 +684,25 @@ class DeploymentConfigurationTest {
         }
     }
 
+    /**
+     * The compose files write most required keys as ${VAR:?message}, which the preflight's pattern
+     * did not match, so a release with 9 missing keys passed it and replaced the tree (#423). The
+     * image names are left out because the deploy passes them in, and only key names leave the host.
+     */
+    @Test
+    void nonprodPreflight_seesEveryWayOfRequiringAKey() throws IOException {
+        String deploy = readLf(".github/workflows/deploy.yml");
+        String preflight = deploy.substring(deploy.indexOf("- name: Preflight the host environment"),
+                deploy.indexOf("- name: Record the pre-deploy schema version"));
+
+        assertThat(preflight)
+                .contains("grep -hoE '\\$\\{[A-Z0-9_]+(\\}|:?\\?)' $F")
+                .contains("grep -vxE 'BACKEND_IMAGE|FRONTEND_IMAGE'")
+                .as("a ${VAR:?} key with an empty value stops Compose just like a missing one")
+                .contains("MUST_BE_SET=")
+                .contains("=.+$/\\2/p");
+    }
+
     /** On PROD the database is RDS. On NONPROD it stays a container, with no PROD memory limit. */
     @Test
     void nonprodOverlay_runsTheDatabaseAgain() throws IOException {
