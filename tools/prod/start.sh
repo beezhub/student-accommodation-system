@@ -33,6 +33,7 @@ done
 [ "$pulled" = yes ] || { echo "PULL FAILED; the running stack was not touched"; exit 1; }
 echo "pull: OK"
 sudo -u ubuntu docker compose $F up -d --no-build --remove-orphans 2>&1 | tail -6
+bash tools/deploy/restart-changed-config.sh || exit 1
 
 # Generous: on a first boot, or after a large migration, Flyway runs in-process before readiness.
 NET=$(docker inspect student-accommodation-back-end --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')
