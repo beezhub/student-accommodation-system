@@ -301,14 +301,13 @@ Restores, and the order to restore the database and the bucket in, are in
 | What you see | Why | What to do |
 |---|---|---|
 | The **CI passed on these files** job fails | CI failed, was cancelled or never ran on these files | Fix CI on `develop`, then release again |
-| `/opt/sas/.env is missing keys` | A new required key is not on the server yet | Add the named keys, see [Changing a setting](#changing-a-setting), and re-run. Nothing was changed |
+| `/opt/sas/.env is missing keys` or `has empty values` | A new required key is not on the server yet, or has no value | Set the named keys, see [Changing a setting](#changing-a-setting), and re-run. Nothing was changed |
 | `Host key verification failed` | The server's SSH host key changed, usually because it was rebuilt | Run `ssh-keyscan -t ed25519 nonprod.beezhub.co.za` and paste the result into the `SSH_KNOWN_HOSTS` variable |
 | `the images could not be pulled in 3 tries` | The connection dropped, or the disk is full. The running containers were not touched | Check [Disk](#disk), then re-run |
 | `readiness never came up` | The backend did not start, often because a migration failed | Read the logs at the end of the failed run. If a migration ran, fix forward |
 | `No space left on device` | The disk is full | See [Disk](#disk) |
 | The site has no HTTPS | Caddy has a wrong or empty `APP_HOSTNAME`, or port 80 is blocked | Check `journalctl -u caddy -n 50` and `sudo systemctl cat caddy` |
 | `/grafana` returns 502, not 404 | The server's Caddyfile still sends it to the Grafana that was removed | See [Changing Caddy](#changing-caddy) |
-| `the images could not be pulled in 3 tries`, with `GRAFANA_CLOUD_... must be set` in the log | A Grafana Cloud key is not in `.env` | Add it, see [Changing a setting](#changing-a-setting), and re-run. The running containers were not touched |
 | No `env="nonprod"` data in Grafana Cloud | Alloy cannot push, usually a wrong URL, user or token | Check `docker logs --tail 50 student-accommodation-alloy` for `401` or `403` |
 | Emails do not arrive | SES refused the send, usually `AccessDenied` from a wrong key or sender | Search the backend log for `action=verificationEmailFailed`. The sender must be `nonprod@beezhub.co.za` |
 | Uploads or building images fail with `AccessDenied` or `NoSuchBucket` | A wrong key or bucket in `.env`, or the Terraform in `infra/terraform/nonprod` has not been applied | Compare `S3_ACCESS_KEY` and `S3_BUCKET` with `/sas-nonprod/` in SSM and with `tf nonprod output` |
