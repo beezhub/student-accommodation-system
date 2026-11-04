@@ -200,7 +200,8 @@ is `false`. It runs **once**, so the setting comes first:
 - `start.sh` reports readiness and `errors since start: 0`.
 - Register a student with an address you can read: the verification email arrives from
   `no-reply@beezhub.co.za` and the backend logs `action=verificationEmailSent`.
-- An upload and a download of a document work (S3 through the instance role).
+- An upload and a download of a document work (S3 through the instance role). Use a file over 1 MB,
+  so the upload also proves nginx's limit (#450).
 - `docker logs student-accommodation-back-end` shows `action=bucketCreationSkipped` at startup.
 
 ## Known gaps

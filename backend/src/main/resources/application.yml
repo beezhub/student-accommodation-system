@@ -85,7 +85,9 @@ spring:
   servlet:
     multipart:
       max-file-size: ${MAX_FILE_SIZE:10MB}
-      max-request-size: ${MAX_REQUEST_SIZE:20MB}
+      # Fits the largest legitimate request: 10 building images at 5MB each in one request, plus
+      # multipart framing. Equal to client_max_body_size in frontend/nginx.conf (GH-450).
+      max-request-size: ${MAX_REQUEST_SIZE:51MB}
       file-size-threshold: 2MB
 springdoc:
   api-docs:
