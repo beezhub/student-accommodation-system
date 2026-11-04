@@ -15,6 +15,7 @@ import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import com.beezhub.student_accommodation.specification.RoomAllocationSpecification;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ public class RoomAllocationQueryService {
     private final RoomAllocationMapper roomAllocationMapper;
     private final StagedAllocationMapper stagedAllocationMapper;
     private final AllocationAccessGuard allocationAccessGuard;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
 
     public List<RoomAllocationResponse> getAllRoomAllocations() {
         log.info("Fetching all room allocations");
@@ -113,6 +115,7 @@ public class RoomAllocationQueryService {
     public boolean isRoomAvailable(Long roomId) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + roomId));
+        tenantOwnershipGuard.assertReadable(room, "Room", roomId);
 
         long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(roomId);
         boolean available = activeAllocations < room.getCapacity();
@@ -158,6 +161,7 @@ public class RoomAllocationQueryService {
     public RoomAvailabilityResponse getRoomAvailability(Long roomId) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + roomId));
+        tenantOwnershipGuard.assertReadable(room, "Room", roomId);
 
         long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(roomId);
         int availableSpots = room.getCapacity() - (int) activeAllocations;

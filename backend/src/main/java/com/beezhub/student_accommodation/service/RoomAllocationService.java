@@ -183,6 +183,11 @@ public class RoomAllocationService {
     }
 
     @Transactional
+    public MessageResponse enqueueWaitingListForAdmin(Long studentId, Long applicationId) {
+        return allocationLifecycleService.enqueueWaitingListForAdmin(studentId, applicationId);
+    }
+
+    @Transactional
     public MessageResponse enqueueWaitingList(Long studentId, Long applicationId) {
         return allocationLifecycleService.enqueueWaitingList(studentId, applicationId);
     }

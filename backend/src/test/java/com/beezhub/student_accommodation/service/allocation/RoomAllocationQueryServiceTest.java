@@ -18,6 +18,7 @@ import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,6 +59,9 @@ class RoomAllocationQueryServiceTest {
     private StagedAllocationMapper stagedAllocationMapper;
     @Mock
     private AllocationAccessGuard allocationAccessGuard;
+
+    @Mock
+    private TenantOwnershipGuard tenantOwnershipGuard;
 
     @InjectMocks
     private RoomAllocationQueryService queryService;

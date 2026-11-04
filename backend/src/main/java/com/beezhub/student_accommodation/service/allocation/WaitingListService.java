@@ -19,6 +19,7 @@ import com.beezhub.student_accommodation.service.AcademicYearService;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
@@ -48,6 +49,24 @@ public class WaitingListService {
     private final ApplicationEventPublisher eventPublisher;
     private final AuthService authService;
     private final AcademicYearService academicYearService;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
+
+    /**
+     * The admin endpoint, where both ids come straight from the request (GH-490). The checks are
+     * here rather than in {@link #enqueueWaitingList(Long, Long)} because document approval and
+     * auto-allocation call that one with a pair they resolved themselves.
+     */
+    @Transactional
+    public MessageResponse enqueueWaitingListForAdmin(Long studentId, Long applicationId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ApplicationNotFoundException(
+                        "Application not found with id: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
+        if (!application.getStudent().getId().equals(studentId)) {
+            throw new IllegalArgumentException("This application belongs to a different student");
+        }
+        return enqueueWaitingList(studentId, applicationId);
+    }
 
     @Transactional
     public MessageResponse enqueueWaitingList(Long studentId, Long applicationId) {
