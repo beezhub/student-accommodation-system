@@ -90,6 +90,11 @@ public class NotificationEventListener {
             log.info("Sending application status notification to {} for application {}, status: {}",
                     email, application.getId(), newStatus);
 
+            if (newStatus == ApplicationStatus.CHANGES_REQUESTED) {
+                sendChangesRequestedNotification(application, user, studentName, email);
+                return;
+            }
+
             NotificationType notificationType = newStatus == ApplicationStatus.APPROVED
                     ? NotificationType.APPLICATION_APPROVED
                     : NotificationType.APPLICATION_REJECTED;
@@ -109,7 +114,6 @@ public class NotificationEventListener {
                 switch (newStatus) {
                     case APPROVED -> emailDispatchService.sendApplicationApprovedEmail(application, studentName, email);
                     case REJECTED -> emailDispatchService.sendApplicationRejectedEmail(application, studentName, email);
-                    case CHANGES_REQUESTED -> log.debug("Notification for status {} not implemented yet", newStatus);
                     case PENDING -> {
                         log.debug("No notification sent for PENDING status");
                         return;
@@ -125,6 +129,29 @@ public class NotificationEventListener {
             }
         } finally {
             TenantContext.clear();
+        }
+    }
+
+    /**
+     * The stored template data carries everything the template prints, because the retry job
+     * rebuilds the email from this row alone.
+     */
+    private void sendChangesRequestedNotification(Application application, AppUser user, String studentName,
+            String email) {
+        Notification notification = notificationService.createNotification(
+                email,
+                EmailSubjects.APPLICATION_CHANGES_REQUESTED,
+                NotificationType.APPLICATION_CHANGES_REQUESTED,
+                user,
+                application.getId(),
+                "Application",
+                emailDispatchService.applicationChangesRequestedTemplateData(application, studentName));
+
+        try {
+            emailDispatchService.sendApplicationChangesRequestedEmail(application, studentName, email);
+            notificationService.markNotificationAsSent(notification);
+        } catch (Exception e) {
+            notificationService.handleNotificationFailure(notification, e);
         }
     }
 

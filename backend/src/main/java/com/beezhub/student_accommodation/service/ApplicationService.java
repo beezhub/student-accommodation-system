@@ -66,6 +66,10 @@ public class ApplicationService {
         coreService.cancelApplication(applicationId);
     }
 
+    public ApplicationResponse resubmitApplication(Long applicationId) {
+        return coreService.resubmitApplication(applicationId);
+    }
+
     public List<ApplicationResponse> getMyApplications() {
         return coreService.getMyApplications();
     }

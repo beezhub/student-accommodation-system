@@ -39,6 +39,8 @@ import { TimeagoPipe } from '../../../../shared/pipes/timeago.pipe';
 import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { confirmAction } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { askForReason } from '../../../../shared/components/reason-dialog/reason-dialog.component';
+import { ApplicationStatus, canApplicationTransition } from '../../../../core/models/status.model';
 
 export interface ApplicationDetailDialogData {
   applicationId: number;
@@ -101,7 +103,12 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   isRejecting = false;
   isApproving = false;
   isMovingToAllocation = false;
+  isMarkingUnderReview = false;
+  isRequestingChanges = false;
   loadError: string | null = null;
+
+  // Set when the status moved while the dialog stayed open, so closing still refreshes the list
+  private statusMoved = false;
 
   applicationDetails: ApplicationFullDetails | null = null;
   student: StudentProfile | null = null;
@@ -156,6 +163,130 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       },
     });
+  }
+
+  // Review flow. The reviewer claims a pending application, reads the documents, then decides here.
+  get isBusy(): boolean {
+    return (
+      this.isSaving ||
+      this.isMovingToAllocation ||
+      this.isRejecting ||
+      this.isApproving ||
+      this.isMarkingUnderReview ||
+      this.isRequestingChanges
+    );
+  }
+
+  get canMarkUnderReview(): boolean {
+    return canApplicationTransition(
+      this.applicationDetails?.status,
+      ApplicationStatus.UNDER_REVIEW
+    );
+  }
+
+  get canRequestChanges(): boolean {
+    return canApplicationTransition(
+      this.applicationDetails?.status,
+      ApplicationStatus.CHANGES_REQUESTED
+    );
+  }
+
+  // Not the state machine alone: ALLOCATED may also move to AWAITING_ALLOCATION, but that is the
+  // offer-cancelled path, and the move-to-allocation endpoint only accepts APPROVED.
+  get canMoveToAllocation(): boolean {
+    return this.applicationDetails?.status === ApplicationStatus.APPROVED;
+  }
+
+  get canReject(): boolean {
+    return canApplicationTransition(this.applicationDetails?.status, ApplicationStatus.REJECTED);
+  }
+
+  // saveReviewProgress refuses these three statuses, so offering the controls only ends in an error
+  get canReviewDocuments(): boolean {
+    const status = this.applicationDetails?.status;
+    return (
+      status !== ApplicationStatus.REJECTED &&
+      status !== ApplicationStatus.EXPIRED &&
+      status !== ApplicationStatus.CANCELLED
+    );
+  }
+
+  /** What happens next when this dialog has no decision to offer. */
+  get nextStepHint(): string | null {
+    switch (this.applicationDetails?.status) {
+      case ApplicationStatus.CHANGES_REQUESTED:
+        return 'Waiting for the student to make the changes and resubmit.';
+      case ApplicationStatus.AWAITING_ALLOCATION:
+        return 'Ready for a room. Use Manual or Auto Allocation in the row menu of the list.';
+      case ApplicationStatus.ALLOCATED:
+        return 'A room is allocated. Manage it from the allocations screen.';
+      case ApplicationStatus.CHECKED_IN:
+        return 'The student has checked in. The review is complete.';
+      case ApplicationStatus.REJECTED:
+      case ApplicationStatus.EXPIRED:
+      case ApplicationStatus.CANCELLED:
+        return 'This application is closed. No further action is possible.';
+      default:
+        return null;
+    }
+  }
+
+  markUnderReview(): void {
+    this.isMarkingUnderReview = true;
+    this.applicationService.markUnderReview(this.data.applicationId).subscribe({
+      next: (updated) => {
+        this.snackBar.open('Application marked as under review', 'Close', { duration: 3000 });
+        this.isMarkingUnderReview = false;
+        this.recordStatus(updated.status);
+      },
+      error: (error) => {
+        console.error('Failed to mark under review:', error);
+        this.snackBar.open(error.error?.message || 'Failed to mark under review', 'Close', {
+          duration: 5000,
+        });
+        this.isMarkingUnderReview = false;
+      },
+    });
+  }
+
+  requestChanges(): void {
+    // The reason reaches the student as the whole explanation of what to fix, so it is validated
+    // rather than accepted as whatever `prompt` returned, which included a single space (GH-157).
+    askForReason(this.dialog, {
+      title: 'Request changes',
+      message: 'The student sees this, and it is the only guidance they get on what to change.',
+      label: 'What needs to change?',
+      placeholder: 'e.g. The proof of registration is for the wrong academic year.',
+      confirmLabel: 'Request changes',
+    }).subscribe((reason) => {
+      if (!reason) return;
+      this.isRequestingChanges = true;
+      this.applicationService.requestChanges(this.data.applicationId, reason).subscribe({
+        next: (updated) => {
+          this.snackBar.open('Changes requested from the student', 'Close', { duration: 3000 });
+          this.isRequestingChanges = false;
+          this.dialogRef.close({
+            action: 'saved',
+            applicationId: this.data.applicationId,
+            newStatus: updated.status,
+          } as ApplicationDetailDialogResult);
+        },
+        error: (error) => {
+          console.error('Failed to request changes:', error);
+          this.snackBar.open(error.error?.message || 'Failed to request changes', 'Close', {
+            duration: 5000,
+          });
+          this.isRequestingChanges = false;
+        },
+      });
+    });
+  }
+
+  private recordStatus(status: string): void {
+    if (this.applicationDetails) {
+      this.applicationDetails = { ...this.applicationDetails, status };
+    }
+    this.statusMoved = true;
   }
 
   // Document status management
@@ -294,6 +425,11 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
             }
             return doc;
           });
+          // documentChecklist already has these changes applied. Make it the list the next change
+          // rebuilds from, or the next rebuild drops what was just saved.
+          if (this.applicationDetails?.requiredDocumentsChecklist) {
+            this.applicationDetails.requiredDocumentsChecklist.documents = this.documentChecklist;
+          }
           this.documentStatusChanges.clear();
         } else {
           this.snackBar.open('Failed to save progress', 'Close', { duration: 3000 });
@@ -396,18 +532,17 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
           error: (error) => {
             console.error('Failed to move to allocation:', error);
             this.snackBar.open(
-              error.error?.message || 'Failed to move to allocation phase',
+              `Application approved, but not moved to allocation: ${
+                error.error?.message || 'please try again'
+              }`,
               'Close',
               {
                 duration: 5000,
               }
             );
             this.isApproving = false;
-            this.dialogRef.close({
-              action: 'saved',
-              applicationId: this.data.applicationId,
-              newStatus: 'APPROVED',
-            } as ApplicationDetailDialogResult);
+            // Stay open: the approval stands, and Move to Allocation is the way to finish it.
+            this.recordStatus(ApplicationStatus.APPROVED);
           },
         });
       },
@@ -477,10 +612,14 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   }
 
   private close(): void {
-    this.dialogRef.close({
-      action: 'closed',
-      applicationId: this.data.applicationId,
-    } as ApplicationDetailDialogResult);
+    const result: ApplicationDetailDialogResult = this.statusMoved
+      ? {
+          action: 'saved',
+          applicationId: this.data.applicationId,
+          newStatus: this.applicationDetails?.status,
+        }
+      : { action: 'closed', applicationId: this.data.applicationId };
+    this.dialogRef.close(result);
   }
 
   // Utility methods

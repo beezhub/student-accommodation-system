@@ -95,6 +95,33 @@ public class EmailDispatchService {
                 return templateData("document-verified", documentVerifiedContext(document, studentName, documentType));
         }
 
+        /** The page where a student reads the reason and resubmits. */
+        public String applicationPageUrl(Long applicationId) {
+                return baseUrl + "/applications/" + applicationId;
+        }
+
+        public Map<String, Object> applicationChangesRequestedTemplateData(Application application,
+                        String studentName) {
+                return templateData("application-changes-requested",
+                                applicationChangesRequestedContext(application, studentName));
+        }
+
+        public void sendApplicationChangesRequestedEmail(Application application, String studentName, String email) {
+                var ctx = applicationChangesRequestedContext(application, studentName);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.APPLICATION_CHANGES_REQUESTED, "application-changes-requested", ctx));
+                log.info("Application changes requested email sent to {}", email);
+        }
+
+        private ApplicationChangesRequestedContext applicationChangesRequestedContext(Application application,
+                        String studentName) {
+                return new ApplicationChangesRequestedContext(
+                                studentName,
+                                application.getId(),
+                                application.getRemarks(),
+                                applicationPageUrl(application.getId()));
+        }
+
         public void sendDocumentVerifiedEmail(Document document, String studentName, String email,
                         String documentType) {
                 var ctx = documentVerifiedContext(document, studentName, documentType);

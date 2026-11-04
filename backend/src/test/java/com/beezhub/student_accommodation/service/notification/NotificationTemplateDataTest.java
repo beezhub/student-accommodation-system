@@ -111,7 +111,9 @@ class NotificationTemplateDataTest {
                         new ApplicationStatusChangedEvent(application(), ApplicationStatus.PENDING, ApplicationStatus.APPROVED))),
                 emailType("application-rejected", l -> l.handleApplicationStatusChanged(
                         new ApplicationStatusChangedEvent(application(), ApplicationStatus.PENDING, ApplicationStatus.REJECTED))),
-                emailType("document-verified", l -> l.handleDocumentVerification(
+                emailType("application-changes-requested", l -> l.handleApplicationStatusChanged(
+                        new ApplicationStatusChangedEvent(application(), ApplicationStatus.UNDER_REVIEW, ApplicationStatus.CHANGES_REQUESTED))),
+                emailType("document-verified",l -> l.handleDocumentVerification(
                         new DocumentVerificationEvent(document(), DocumentStatus.PENDING, DocumentStatus.APPROVED, null))),
                 emailType("document-rejected", l -> l.handleDocumentVerification(
                         new DocumentVerificationEvent(document(), DocumentStatus.PENDING, DocumentStatus.REJECTED, COMMENT))),

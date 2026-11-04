@@ -188,6 +188,21 @@ class EmailServiceTest {
     }
 
     @Test
+    void sendTemplateEmail_withChangesRequestedContext_passesTheReasonAndLinkToTheTemplate() {
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        var ctx = new ApplicationChangesRequestedContext("Student Name", 1L, "Reason", "http://portal/applications/1");
+
+        emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_CHANGES_REQUESTED,
+                "application-changes-requested", ctx);
+
+        org.mockito.ArgumentCaptor<Context> context = org.mockito.ArgumentCaptor.forClass(Context.class);
+        verify(templateEngine).process(eq("email/application-changes-requested"), context.capture());
+        org.assertj.core.api.Assertions.assertThat(context.getValue().getVariable("changesReason")).isEqualTo("Reason");
+        org.assertj.core.api.Assertions.assertThat(context.getValue().getVariable("portalUrl"))
+                .isEqualTo("http://portal/applications/1");
+    }
+
+    @Test
     void sendTemplateEmail_withDocumentVerifiedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var ctx = new DocumentVerifiedContext("Student Name", "ID", "REF", "2023-01-01", "Admin", "url");

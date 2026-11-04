@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
  * response is to skip that row and keep going.
  */
 @Slf4j
-final class ApplicationStatusValidator {
+public final class ApplicationStatusValidator {
 
     private ApplicationStatusValidator() {
     }
@@ -40,7 +40,7 @@ final class ApplicationStatusValidator {
     }
 
     /** Throws when the write would be illegal. */
-    static void validate(Application application, ApplicationStatus target) {
+    public static void validate(Application application, ApplicationStatus target) {
         if (canApply(application, target)) {
             return;
         }

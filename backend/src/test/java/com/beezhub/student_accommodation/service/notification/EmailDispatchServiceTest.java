@@ -138,6 +138,28 @@ class EmailDispatchServiceTest {
     }
 
     @Test
+    void sendApplicationChangesRequestedEmail_validData_sendsReasonAndLinkToTheApplication() {
+        application.setRemarks("Proof of registration is for the wrong year");
+
+        emailDispatchService.sendApplicationChangesRequestedEmail(application, "John Doe", "john@example.com");
+
+        verify(emailService).sendTemplateEmail(
+                eq("john@example.com"),
+                eq(EmailSubjects.APPLICATION_CHANGES_REQUESTED),
+                eq("application-changes-requested"),
+                eq(new ApplicationChangesRequestedContext(
+                        "John Doe",
+                        1L,
+                        "Proof of registration is for the wrong year",
+                        "http://test-url/applications/1")));
+    }
+
+    @Test
+    void applicationPageUrl_returnsTheStudentApplicationRoute() {
+        assertThat(emailDispatchService.applicationPageUrl(9L)).isEqualTo("http://test-url/applications/9");
+    }
+
+    @Test
     void sendDocumentVerifiedEmail_validData_sendsEmail() {
         when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
 

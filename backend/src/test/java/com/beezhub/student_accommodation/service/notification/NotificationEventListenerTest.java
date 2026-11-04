@@ -9,6 +9,7 @@ import com.beezhub.student_accommodation.service.notification.NotificationPersis
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -140,6 +141,69 @@ class NotificationEventListenerTest {
 
         verify(emailDispatchService).sendApplicationRejectedEmail(eq(application), eq("John Doe"), eq("test@example.com"));
         verify(notificationService).markNotificationAsSent(notification);
+    }
+
+    @Test
+    void handleApplicationStatusChanged_ChangesRequested_sendsTheEmailBeforeMarkingSent() {
+        Application application = createMockApplication();
+        when(application.getRemarks()).thenReturn("Proof of registration is for the wrong year");
+        when(emailDispatchService.applicationPageUrl(10L)).thenReturn("http://portal/applications/10");
+        ApplicationStatusChangedEvent event = new ApplicationStatusChangedEvent(
+                application, ApplicationStatus.UNDER_REVIEW, ApplicationStatus.CHANGES_REQUESTED);
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
+                .thenReturn(notification);
+
+        notificationEventListener.handleApplicationStatusChanged(event);
+
+        InOrder inOrder = inOrder(emailDispatchService, notificationService);
+        inOrder.verify(emailDispatchService).sendApplicationChangesRequestedEmail(application, "John Doe", "test@example.com");
+        inOrder.verify(notificationService).markNotificationAsSent(notification);
+    }
+
+    /**
+     * The retry job rebuilds the email from the stored row alone, so the row has to name the right
+     * template and carry everything that template prints. It used to be typed and templated as a
+     * rejection, so a retry would have told the student they were rejected.
+     */
+    @Test
+    void handleApplicationStatusChanged_ChangesRequested_storesWhatARetryNeeds() {
+        Application application = createMockApplication();
+        java.util.Map<String, Object> templateData = java.util.Map.of("templateName", "application-changes-requested");
+        when(emailDispatchService.applicationChangesRequestedTemplateData(application, "John Doe"))
+                .thenReturn(templateData);
+        ApplicationStatusChangedEvent event = new ApplicationStatusChangedEvent(
+                application, ApplicationStatus.UNDER_REVIEW, ApplicationStatus.CHANGES_REQUESTED);
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
+                .thenReturn(notification);
+
+        notificationEventListener.handleApplicationStatusChanged(event);
+
+        // What the map must contain is checked against the real template in NotificationTemplateDataTest.
+        verify(notificationService).createNotification(
+                eq("test@example.com"),
+                eq(EmailSubjects.APPLICATION_CHANGES_REQUESTED),
+                eq(NotificationType.APPLICATION_CHANGES_REQUESTED),
+                eq(appUser),
+                eq(10L),
+                eq("Application"),
+                eq(templateData));
+    }
+
+    @Test
+    void handleApplicationStatusChanged_ChangesRequestedEmailFails_isNotMarkedSent() {
+        Application application = createMockApplication();
+        ApplicationStatusChangedEvent event = new ApplicationStatusChangedEvent(
+                application, ApplicationStatus.UNDER_REVIEW, ApplicationStatus.CHANGES_REQUESTED);
+        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
+                .thenReturn(notification);
+        RuntimeException failure = new RuntimeException("SMTP down");
+        doThrow(failure).when(emailDispatchService)
+                .sendApplicationChangesRequestedEmail(application, "John Doe", "test@example.com");
+
+        notificationEventListener.handleApplicationStatusChanged(event);
+
+        verify(notificationService).handleNotificationFailure(notification, failure);
+        verify(notificationService, never()).markNotificationAsSent(any());
     }
 
     @Test
