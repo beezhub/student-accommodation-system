@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -81,17 +80,20 @@ class TenantFilterAspectTest {
         verifyNoInteractions(entityManager);
     }
 
+    /**
+     * A session can outlive a tenant switch: the batch job's after-commit refill runs every tenant
+     * group in one session. WaitingListQueueIntegrationTest proves the outcome on a real database.
+     */
     @Test
-    void alreadyEnabledFilter_isNotReapplied() {
-        ReflectionTestUtils.setField(aspect, "entityManager", entityManager);
-        when(entityManager.unwrap(Session.class)).thenReturn(session);
+    void enableTenantFilter_filterAlreadyEnabled_movesItToTheTenantInContext() {
+        givenEntityManager();
         when(session.getEnabledFilter("tenantFilter")).thenReturn(filter);
         TenantContext.setTenantId(TENANT);
         TransactionSynchronizationManager.setActualTransactionActive(true);
 
         aspect.enableTenantFilter();
 
-        verify(session, never()).enableFilter("tenantFilter");
+        verify(filter).setParameter("tenantId", TENANT);
     }
 
     @Test

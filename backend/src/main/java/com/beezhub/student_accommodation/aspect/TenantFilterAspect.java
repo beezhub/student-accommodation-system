@@ -69,11 +69,12 @@ public class TenantFilterAspect {
         }
 
         try {
+            // Set on every call, not only when the filter is off. The batch job changes tenant per
+            // group, and in an after-commit refill all groups share one session, so a filter left on
+            // the first tenant offered that tenant's rooms to the next tenant's students.
             Session session = entityManager.unwrap(Session.class);
-            if (session.getEnabledFilter(TENANT_FILTER_NAME) == null) {
-                session.enableFilter(TENANT_FILTER_NAME).setParameter(TENANT_ID_PARAM, tenantId);
-                log.debug("Tenant filter enabled via AOP: tenantId={}", tenantId);
-            }
+            session.enableFilter(TENANT_FILTER_NAME).setParameter(TENANT_ID_PARAM, tenantId);
+            log.debug("Tenant filter enabled via AOP: tenantId={}", tenantId);
         } catch (Exception e) {
             log.warn("Could not enable tenant filter: {}", e.getMessage());
         }

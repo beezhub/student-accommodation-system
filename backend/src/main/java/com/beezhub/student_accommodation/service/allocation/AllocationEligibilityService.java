@@ -12,6 +12,7 @@ import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -60,6 +61,8 @@ public class AllocationEligibilityService {
         return response;
     }
 
+    /** The room checks read lazy fields of the student, so the student must stay in the session. */
+    @Transactional(readOnly = true)
     public List<EligibleRoomResponse> getEligibleRoomsForStudent(Long studentId, Long buildingId) {
         log.info("Getting eligible rooms for student: {}, building: {}", studentId, buildingId);
 
