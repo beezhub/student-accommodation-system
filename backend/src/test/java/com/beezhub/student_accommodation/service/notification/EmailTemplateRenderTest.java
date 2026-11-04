@@ -351,7 +351,8 @@ class EmailTemplateRenderTest {
         vars.put("roomNumber", "102");
         vars.put("buildingName", "South Wing");
         vars.put("totalDeclineCount", 1);
-        vars.put("declinesRemaining", 2);
+        vars.put("declinesRemaining", 1);
+        vars.put("maxDeclines", 3);
         vars.put("declineReason", "Room too far from campus");
         vars.put("portalUrl", PORTAL_URL);
 
@@ -359,6 +360,34 @@ class EmailTemplateRenderTest {
 
         assertBaseRequirements(html, "offer-declined-requeue");
         assertThat(html).contains("Room too far from campus");
+    }
+
+    @Test
+    void offerDeclinedRequeue_firstDecline_showsTheTrueCountAndLimit() {
+        Map<String, Object> vars = baseContext();
+        vars.put("totalDeclineCount", 1);
+        vars.put("declinesRemaining", 1);
+        vars.put("maxDeclines", 3);
+
+        String html = render("offer-declined-requeue", vars);
+
+        assertThat(html).doesNotContain("of 2");
+        assertThat(html).contains("<strong>1</strong> offer.");
+        assertThat(html).contains("<strong>1</strong> more");
+        assertThat(html).contains("<strong>3</strong> offers");
+    }
+
+    @Test
+    void offerDeclinedRequeue_secondDecline_warnsTheNextOneClosesTheApplication() {
+        Map<String, Object> vars = baseContext();
+        vars.put("totalDeclineCount", 2);
+        vars.put("declinesRemaining", 0);
+        vars.put("maxDeclines", 3);
+
+        String html = render("offer-declined-requeue", vars);
+
+        assertThat(html).contains("<strong>2</strong> offers.");
+        assertThat(html).contains("decline your next offer, your application will be closed");
     }
 
     @Test
@@ -617,7 +646,8 @@ class EmailTemplateRenderTest {
                 vars.put("roomNumber", "101");
                 vars.put("buildingName", "Block A");
                 vars.put("totalDeclineCount", 1);
-                vars.put("declinesRemaining", 2);
+                vars.put("declinesRemaining", 1);
+                vars.put("maxDeclines", 3);
             }
             case "offer-declined-max-reached" -> {
                 vars.put("totalDeclineCount", 3);

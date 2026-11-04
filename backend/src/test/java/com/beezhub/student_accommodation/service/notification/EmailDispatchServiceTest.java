@@ -3,6 +3,7 @@ package com.beezhub.student_accommodation.service.notification;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.service.EmailService;
+import com.beezhub.student_accommodation.service.allocation.WaitingListService;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Answers;
@@ -237,6 +238,36 @@ class EmailDispatchServiceTest {
                 eq("offer-declined-requeue"),
                 any(OfferDeclinedRequeueContext.class)
         );
+    }
+
+    /** Declines one and two stay on the list, and the third closes the application (GH-459). */
+    @Test
+    void sendOfferDeclinedRequeueEmail_firstDecline_showsTheTrueCountAndLimit() {
+        OfferDeclinedRequeueContext ctx = requeueContextFor(1);
+
+        assertThat(ctx.totalDeclineCount()).isEqualTo(1);
+        assertThat(ctx.declinesRemaining()).isEqualTo(1);
+        assertThat(ctx.maxDeclines()).isEqualTo(WaitingListService.MAX_DECLINES);
+    }
+
+    @Test
+    void sendOfferDeclinedRequeueEmail_secondDecline_showsNoneLeft() {
+        OfferDeclinedRequeueContext ctx = requeueContextFor(2);
+
+        assertThat(ctx.totalDeclineCount()).isEqualTo(2);
+        assertThat(ctx.declinesRemaining()).isZero();
+        assertThat(ctx.maxDeclines()).isEqualTo(WaitingListService.MAX_DECLINES);
+    }
+
+    private OfferDeclinedRequeueContext requeueContextFor(int totalDeclineCount) {
+        emailDispatchService.sendOfferDeclinedRequeueEmail(
+                allocation, room, "John Doe", "john@example.com", totalDeclineCount, "Reason");
+
+        ArgumentCaptor<OfferDeclinedRequeueContext> ctx = ArgumentCaptor.forClass(OfferDeclinedRequeueContext.class);
+        verify(emailService).sendTemplateEmail(
+                eq("john@example.com"), eq(EmailSubjects.OFFER_DECLINED_REQUEUE), eq("offer-declined-requeue"),
+                ctx.capture());
+        return ctx.getValue();
     }
 
     /**

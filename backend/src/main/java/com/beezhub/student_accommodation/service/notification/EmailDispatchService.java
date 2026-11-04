@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service.notification;
 
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.service.EmailService;
+import com.beezhub.student_accommodation.service.allocation.WaitingListService;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -304,13 +305,17 @@ public class EmailDispatchService {
                                 ? allocation.getDeclineReason().getDisplayName()
                                 : "Not specified";
                 String portalUrl = baseUrl + "/applications";
+                // Declines that keep the student on the list, counted the way the decline dialog
+                // counts them. The last of MAX_DECLINES closes the application instead.
+                int declinesRemaining = Math.max(0, WaitingListService.MAX_DECLINES - 1 - totalDeclineCount);
 
                 var ctx = new OfferDeclinedRequeueContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
                                 totalDeclineCount,
-                                0,
+                                declinesRemaining,
+                                WaitingListService.MAX_DECLINES,
                                 declineReason,
                                 portalUrl);
 

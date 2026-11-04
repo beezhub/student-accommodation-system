@@ -4,6 +4,7 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.model.event.*;
 import com.beezhub.student_accommodation.repository.NotificationRepository;
+import com.beezhub.student_accommodation.service.allocation.WaitingListService;
 import com.beezhub.student_accommodation.service.notification.NotificationPersistenceService;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
@@ -442,9 +443,45 @@ public class NotificationEventListener {
         TenantContext.setTenantId(allocation.getTenantId());
         try {
             int totalDeclineCount = event.totalDeclineCount();
-            sendOfferDeclinedRequeueNotification(allocation, totalDeclineCount);
+            if (totalDeclineCount >= WaitingListService.MAX_DECLINES) {
+                sendOfferDeclinedMaxReachedNotification(allocation, totalDeclineCount);
+            } else {
+                sendOfferDeclinedRequeueNotification(allocation, totalDeclineCount);
+            }
         } finally {
             TenantContext.clear();
+        }
+    }
+
+    /** The final decline closes the application, so the student is told that, not that they re-queued. */
+    private void sendOfferDeclinedMaxReachedNotification(RoomAllocation allocation, int totalDeclineCount) {
+        Student student = allocation.getStudent();
+        AppUser user = student.getAppUser();
+        Application application = allocation.getApplication();
+
+        String studentName = user.getFirstName() + " " + user.getLastName();
+        String email = user.getEmail();
+
+        log.info("Sending offer declined max reached notification to {} for allocation {}", email, allocation.getId());
+
+        Notification notification = notificationService.createNotification(
+                email,
+                EmailSubjects.OFFER_DECLINED_MAX_REACHED,
+                NotificationType.APPLICATION_REJECTED,
+                user,
+                allocation.getId(),
+                "RoomAllocation",
+                td("offer-declined-max-reached", mapOf("studentName", studentName,
+                        "totalDeclineCount", totalDeclineCount,
+                        "applicationCode", application != null ? application.getApplicationCode() : "N/A",
+                        "email", email)));
+
+        try {
+            emailDispatchService.sendOfferDeclinedMaxReachedEmail(allocation, application, studentName, email,
+                    totalDeclineCount, notification.getSubject());
+            notificationService.markNotificationAsSent(notification);
+        } catch (Exception e) {
+            notificationService.handleNotificationFailure(notification, e);
         }
     }
 

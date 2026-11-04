@@ -3,6 +3,7 @@ package com.beezhub.student_accommodation.service.notification;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.model.event.*;
+import com.beezhub.student_accommodation.service.allocation.WaitingListService;
 import jakarta.persistence.EntityManager;
 import com.beezhub.student_accommodation.service.notification.NotificationPersistenceService;
 import org.junit.jupiter.api.BeforeEach;
@@ -306,20 +307,22 @@ class NotificationEventListenerTest {
         verify(notificationService).markNotificationAsSent(notification);
     }
 
+    /** The third decline closes the application, so saying "back on the waiting list" is false (GH-459). */
     @Test
-    void handleAllocationDeclined_AlwaysRequeues_EvenAfterManyDeclines() throws Exception {
+    void handleAllocationDeclined_finalDecline_sendsMaxReachedEmailNotRequeue() throws Exception {
         RoomAllocation allocation = createMockRoomAllocation();
-        // totalDeclineCount of 3 (previously would have triggered the "max reached" path)
-        AllocationDeclinedEvent event = new AllocationDeclinedEvent(allocation, 3);
+        AllocationDeclinedEvent event = new AllocationDeclinedEvent(allocation, WaitingListService.MAX_DECLINES);
 
         when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
                 .thenReturn(notification);
 
         notificationEventListener.handleAllocationDeclined(event);
 
-        // OFFER-004: no max — always requeue, never call sendOfferDeclinedMaxReachedEmail
-        verify(emailDispatchService).sendOfferDeclinedRequeueEmail(eq(allocation), any(), eq("John Doe"), eq("test@example.com"), eq(3), eq("Test Subject"));
-        verify(emailDispatchService, never()).sendOfferDeclinedMaxReachedEmail(any(), any(), any(), any(), anyInt(), any());
+        verify(emailDispatchService).sendOfferDeclinedMaxReachedEmail(eq(allocation), any(), eq("John Doe"),
+                eq("test@example.com"), eq(WaitingListService.MAX_DECLINES), eq("Test Subject"));
+        verify(emailDispatchService, never()).sendOfferDeclinedRequeueEmail(any(), any(), any(), any(), anyInt(), any());
+        verify(notificationService).createNotification(anyString(), eq(EmailSubjects.OFFER_DECLINED_MAX_REACHED),
+                any(NotificationType.class), any(), anyLong(), anyString(), any());
         verify(notificationService).markNotificationAsSent(notification);
     }
 

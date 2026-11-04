@@ -288,6 +288,7 @@ public class EmailService {
                 vars.put("buildingName", c.buildingName());
                 vars.put("totalDeclineCount", c.totalDeclineCount());
                 vars.put("declinesRemaining", c.declinesRemaining());
+                vars.put("maxDeclines", c.maxDeclines());
                 vars.put("declineReason", c.declineReason());
                 vars.put("portalUrl", c.portalUrl());
             }
