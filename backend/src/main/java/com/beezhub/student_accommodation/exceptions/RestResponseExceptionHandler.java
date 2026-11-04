@@ -145,6 +145,21 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                                 request.getDescription(false)), HttpStatus.CONFLICT);
         }
 
+        /**
+         * An admin account with no company cannot be unlocked: that would open every company's data
+         * to it (#412). 409 rather than 403: the caller may unlock accounts, the account's state is
+         * what refuses, and the message names the way forward.
+         */
+        @ExceptionHandler(UnassignedAdminUnlockException.class)
+        public ResponseEntity<ErrorResponse> handleUnassignedAdminUnlock(
+                        UnassignedAdminUnlockException ex, WebRequest request) {
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false)), HttpStatus.CONFLICT);
+        }
+
         @ExceptionHandler(InvalidStatusException.class)
         public ResponseEntity<ErrorResponse> handleInvalidStatus(InvalidStatusException ex, WebRequest request) {
                 return new ResponseEntity<>(new ErrorResponse(
