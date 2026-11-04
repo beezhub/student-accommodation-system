@@ -15,11 +15,16 @@ public interface WaitingListRepository extends JpaRepository<WaitingListEntry, L
     boolean existsByStudent_IdAndStatus(Long studentId, String status);
     void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 
+    /**
+     * Fetches everything room scoring reads. The batch job calls this with no transaction and scores
+     * in a later session, so anything left lazy here fails with LazyInitializationException.
+     */
     @Query("SELECT w FROM WaitingListEntry w " +
            "LEFT JOIN FETCH w.student s " +
            "LEFT JOIN FETCH s.appUser " +
            "LEFT JOIN FETCH w.application a " +
            "LEFT JOIN FETCH a.preferredBuilding " +
+           "LEFT JOIN FETCH a.buildingPreferences " +
            "WHERE w.status = :status " +
            "ORDER BY w.createdAt ASC")
     List<WaitingListEntry> findByStatusOrderByCreatedAtAsc(@Param("status") String status);
