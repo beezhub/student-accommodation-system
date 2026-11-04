@@ -26,7 +26,7 @@ export interface MoveTenantAdminDialogData {
   selector: 'app-move-tenant-admin-dialog',
   templateUrl: './move-tenant-admin-dialog.component.html',
   // Same look as the sibling "add admin" dialog, so it shares that stylesheet.
-  styleUrls: ['../tenant-admin-form-dialog/tenant-admin-form-dialog.component.scss'],
+  styleUrls: ['../add-existing-admin-dialog/add-existing-admin-dialog.component.scss'],
   standalone: true,
   imports: [
     ReactiveFormsModule,

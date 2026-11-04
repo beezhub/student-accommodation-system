@@ -52,6 +52,8 @@ import java.util.UUID;
 @Slf4j
 public class AuthService {
 
+    private static final int FAILED_LOGIN_LOCK_MINUTES = 15;
+
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -181,7 +183,7 @@ public class AuthService {
                 user.setFailedLoginAttempts(attempts);
 
                 if (attempts >= 5) { // Max attempts from LoginAttemptService is 5
-                    user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(15));
+                    user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(FAILED_LOGIN_LOCK_MINUTES));
                     log.warn("Account locked due to too many failed attempts: {}", user.getId());
                 }
                 userRepository.save(user);
@@ -199,11 +201,16 @@ public class AuthService {
 
         if (isWaitingForACompany(user)) {
             log.warn("action=unlockRefused reason=noCompany userId={} role={}", userId, user.getUserRole());
+            // The company admin screen (#413) offers tenant admins only, so building staff are
+            // still pointed at the API; the screen labels are the ones the admin clicks.
+            String wayOut = user.getUserRole() == UserRole.TENANT_ADMIN
+                    ? "Tenants > Manage admin users > Add Existing Admin"
+                    : "POST /api/admin/unassigned-admins/" + userId + "/assign";
             throw new UnassignedAdminUnlockException(String.format(
                     "%s %s is not linked to a company yet. Unlocking would give them access to every "
-                            + "company's data. Assign them to a company instead, which unlocks the "
-                            + "account too: POST /api/admin/unassigned-admins/%d/assign.",
-                    user.getFirstName(), user.getLastName(), userId));
+                            + "company's data. Add them to a company instead, which unlocks the account "
+                            + "too: %s.",
+                    user.getFirstName(), user.getLastName(), wayOut));
         }
 
         user.setAccountLockedUntil(null);
@@ -518,6 +525,7 @@ public class AuthService {
 
         AppUser user = resetToken.getUser();
         user.setUserPassword(passwordEncoder.encode(newPassword));
+        clearFailedLoginLockout(user);
         userRepository.save(user);
 
         // Mark token as used
@@ -526,6 +534,21 @@ public class AuthService {
 
         log.info("Password reset successful for user: {}", user.getEmail());
         return new MessageResponse("Password has been reset successfully");
+    }
+
+    /**
+     * Without this the correct new password was refused for up to 15 minutes (#440). A lock further
+     * away than a failed-login lock can ever be was set by an administrator (a deactivated account,
+     * an admin with no company, GH-212), so it stays: a reset link only proves the mailbox.
+     */
+    private void clearFailedLoginLockout(AppUser user) {
+        user.setFailedLoginAttempts(0);
+        loginAttemptService.loginSucceeded(user.getId());
+
+        LocalDateTime latestFailedLoginLock = LocalDateTime.now().plusMinutes(FAILED_LOGIN_LOCK_MINUTES);
+        if (user.getAccountLockedUntil() != null && !user.getAccountLockedUntil().isAfter(latestFailedLoginLock)) {
+            user.setAccountLockedUntil(null);
+        }
     }
 
     // ==================== Email Verification Methods ====================

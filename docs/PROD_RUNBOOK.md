@@ -69,8 +69,9 @@ To roll back, run it again with the previous release's NONPROD run id, if the ru
    and names the key.
 
 4. **Pull and start:** `tools/prod/ssmrun.sh tools/prod/start.sh`. It prints `schema_before=`,
-   pulls (three tries, and stops before `up` if all fail), waits for readiness, prints
-   `schema_after=`, and ends with the running digests, the error count and memory.
+   pulls (three tries, and stops before `up` if all fail), restarts any container whose mounted
+   config file changed (#411), waits for readiness, prints `schema_after=`, and ends with the running
+   digests, the error count and memory.
 
 5. **Check from outside:** `curl -sI https://accommodation.beezhub.co.za/` returns 200, and the
    `Content-Security-Policy` header matches the release.
@@ -194,12 +195,45 @@ is `false`. It runs **once**, so the setting comes first:
 3. In the platform admin UI, rename tenant 1 ("Default Tenant") to the real first tenant, and add
    the real institutions and academic year.
 
+## The time zone (#461)
+
+The backend runs in South African time (`TZ=Africa/Johannesburg`). Timestamp columns have no zone and
+the API sends them with no offset, so the browser reads them as its own local time: a server in UTC
+shows every time 2 hours early. The compose default is enough, and no key is required, but a stale
+value wins over the default:
+
+```bash
+MSYS_NO_PATHCONV=1 aws ssm get-parameter --region af-south-1 --name /sas-prod/APP_TIMEZONE \
+  --query Parameter.Value --output text
+```
+
+`ParameterNotFound` or `Africa/Johannesburg` is right. If it says `UTC`, overwrite it (see "Changing a
+setting"). NONPROD's `/opt/sas/.env` is edited by hand: check it for the same line. After a deploy,
+`docker exec student-accommodation-back-end printenv TZ` shows what the backend really got.
+
+**Rows written while the server was on UTC stay as they are.** They now read as South African time, 2
+hours earlier than they really happened. Old timestamps look the same as they always did, because the
+browser was already reading them that way. Deadlines already stored now pass 2 hours sooner than
+before, at the time the UI was showing all along: offers, check-ins, password reset and email
+verification links, and account lockouts. Going back to UTC later would do the reverse to every row
+written in South African time, including after a rollback to a release from before #461, so set
+`APP_TIMEZONE=Africa/Johannesburg` in SSM before rolling back that far.
+
+Before the first release with this change, count the offers and check-ins that would expire at once:
+
+```sql
+SELECT count(*) FROM room_allocation
+WHERE (status = 'OFFERED' AND offer_expiry_date < (now() AT TIME ZONE 'UTC') + interval '2 hours')
+   OR (status = 'ACCEPTED' AND check_in_expiry_date < (now() AT TIME ZONE 'UTC') + interval '2 hours');
+```
+
 ## Checks after any deploy
 
 - `start.sh` reports readiness and `errors since start: 0`.
 - Register a student with an address you can read: the verification email arrives from
   `no-reply@beezhub.co.za` and the backend logs `action=verificationEmailSent`.
-- An upload and a download of a document work (S3 through the instance role).
+- An upload and a download of a document work (S3 through the instance role). Use a file over 1 MB,
+  so the upload also proves nginx's limit (#450).
 - `docker logs student-accommodation-back-end` shows `action=bucketCreationSkipped` at startup.
 
 ## Known gaps

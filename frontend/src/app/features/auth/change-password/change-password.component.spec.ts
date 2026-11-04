@@ -8,6 +8,7 @@ import { of } from 'rxjs';
 import { ChangePasswordComponent } from './change-password.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { RoleService } from '../../../core/services/role.service';
+import { PASSWORD_RULES_HINT } from '../../../shared/validators/strong-password.validator';
 
 /**
  * GH-291: a completed password change used to leave the blacklisted old token in place and send
@@ -27,6 +28,7 @@ describe('ChangePasswordComponent', () => {
     ]);
     roleService = jasmine.createSpyObj<RoleService>('RoleService', [
       'isPlatformAdmin',
+      'isPlatformStaff',
       'isTenantAdmin',
     ]);
 
@@ -49,12 +51,73 @@ describe('ChangePasswordComponent', () => {
     const component = await harness.navigateByUrl(url, ChangePasswordComponent);
     component.changePasswordForm.setValue({
       currentPassword: 'oldPassword1',
-      newPassword: 'newPassword1',
-      confirmPassword: 'newPassword1',
+      newPassword: 'Correct-Horse9',
+      confirmPassword: 'Correct-Horse9',
     });
     component.onSubmit();
     return component;
   }
+
+  /**
+   * #430: this page is forced on everyone at first login, and it asked for 8 characters while the
+   * server's @StrongPassword refuses them, so following the page's advice left them stuck.
+   */
+  describe('password rules', () => {
+    let harness: RouterTestingHarness;
+    let component: ChangePasswordComponent;
+
+    beforeEach(async () => {
+      harness = await RouterTestingHarness.create();
+      component = await harness.navigateByUrl('/change-password', ChangePasswordComponent);
+      harness.detectChanges();
+    });
+
+    function enter(password: string): void {
+      component.changePasswordForm.setValue({
+        currentPassword: 'oldPassword1',
+        newPassword: password,
+        confirmPassword: password,
+      });
+    }
+
+    function pageText(): string {
+      return (harness.routeNativeElement as HTMLElement).textContent ?? '';
+    }
+
+    it('passwordTheServerWouldRefuse_isNotSent', () => {
+      enter('simplepassword');
+
+      component.onSubmit();
+
+      expect(component.changePasswordForm.valid).toBeFalse();
+      expect(authService.changePassword).not.toHaveBeenCalled();
+    });
+
+    it('passwordTheServerWouldRefuse_saysWhichRulesAreMissing', () => {
+      enter('simplepassword');
+      component.changePasswordForm.markAllAsTouched();
+
+      harness.detectChanges();
+
+      expect(pageText()).toContain('Password needs an uppercase letter, a number, a symbol');
+    });
+
+    it('page_describesTheRealRulesAndNotEightCharacters', () => {
+      expect(pageText()).toContain(PASSWORD_RULES_HINT);
+      expect(pageText()).not.toContain('8 characters');
+    });
+  });
+
+  it('onCancel_platformStaff_goesToAdmin', async () => {
+    roleService.isPlatformStaff.and.returnValue(true);
+    const harness = await RouterTestingHarness.create();
+    const component = await harness.navigateByUrl('/change-password', ChangePasswordComponent);
+    const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+
+    component.onCancel();
+
+    expect(navigate).toHaveBeenCalledWith(['/admin']);
+  });
 
   it('success_endsTheLocalSessionInsteadOfNavigatingInWithTheOldToken', async () => {
     await submitFrom('/change-password?forced=true');

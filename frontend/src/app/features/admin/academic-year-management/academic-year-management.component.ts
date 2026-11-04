@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AcademicYearService } from '../../../core/services/academic-year.service';
 import { AcademicYear } from '../../../core/models/academic-year.model';
+import { RoleService } from '../../../core/services/role.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -44,9 +45,19 @@ export class AcademicYearManagementComponent implements OnInit {
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  private roleService = inject(RoleService);
+
+  /** The calendar is platform-wide: the backend refuses writes from a company admin (GH-439). */
+  readonly canManage = this.roleService.isPlatformAdmin() || this.roleService.isPlatformStaff();
 
   academicYears: AcademicYear[] = [];
-  displayedColumns: string[] = ['name', 'dates', 'applicationWindow', 'status', 'actions'];
+  displayedColumns: string[] = [
+    'name',
+    'dates',
+    'applicationWindow',
+    'status',
+    ...(this.canManage ? ['actions'] : []),
+  ];
   isLoading = false;
   filterForm: FormGroup;
 
@@ -62,7 +73,7 @@ export class AcademicYearManagementComponent implements OnInit {
 
   loadAcademicYears(): void {
     this.isLoading = true;
-    this.academicYearService.getAcademicYears().subscribe({
+    this.academicYearService.getAcademicYears(true).subscribe({
       next: (years: AcademicYear[]) => {
         this.academicYears = years;
         this.isLoading = false;

@@ -27,11 +27,20 @@ export interface TenantAdminUser {
   accountLockedUntil?: string;
 }
 
-export interface TenantAdminRequest {
+/**
+ * An admin account with no company yet (#413). Made in user management, it waits locked until a
+ * company's admin screen adds it. The list also holds BUILDING_STAFF and the deprecated ADMIN,
+ * which the company screen does not offer.
+ */
+export interface UnassignedAdmin {
+  id: number;
+  email: string;
   firstName: string;
   lastName: string;
-  email: string;
-  password: string;
+  userRole: string;
+  tenantId: number;
+  createdAt?: string;
+  accountLockedUntil?: string;
 }
 
 @Injectable({
@@ -40,6 +49,7 @@ export interface TenantAdminRequest {
 export class TenantService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/admin/tenants`;
+  private unassignedUrl = `${environment.apiUrl}/admin/unassigned-admins`;
 
   /**
    * Every tenant, active and inactive. This is what the tenant administration screen needs: it is
@@ -101,8 +111,26 @@ export class TenantService {
     });
   }
 
-  createTenantAdmin(tenantId: number, request: TenantAdminRequest): Observable<TenantAdminUser> {
-    return this.http.post<TenantAdminUser>(`${this.apiUrl}/${tenantId}/admins`, request);
+  /**
+   * Admin accounts waiting for a company. Users are created in user management only; a company's
+   * admin screen picks one of these instead (#413). Silent: the picker shows its own message.
+   */
+  listUnassignedAdmins(): Observable<UnassignedAdmin[]> {
+    return this.http.get<UnassignedAdmin[]>(this.unassignedUrl, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
+  }
+
+  /**
+   * Gives a waiting account its company, which also unlocks it. Silent: the picker explains a
+   * refusal inline, including a 409 when someone else assigned the account a moment earlier.
+   */
+  assignAdmin(userId: number, tenantId: number): Observable<UnassignedAdmin> {
+    return this.http.post<UnassignedAdmin>(
+      `${this.unassignedUrl}/${userId}/assign`,
+      { tenantId },
+      { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   deactivateTenantAdmin(tenantId: number, userId: number): Observable<void> {

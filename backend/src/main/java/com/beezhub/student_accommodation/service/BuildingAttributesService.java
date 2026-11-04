@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
+import com.beezhub.student_accommodation.exceptions.InvalidAccessibilityFeaturesException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
 import com.beezhub.student_accommodation.model.dto.BuildingAttributesRequest;
@@ -17,6 +18,10 @@ import com.beezhub.student_accommodation.repository.BuildingAttributesRepository
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.RoomAttributesRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +40,8 @@ public class BuildingAttributesService {
     private final RoomAttributesRepository roomAttributesRepository;
     private final BuildingRepository buildingRepository;
     private final RoomRepository roomRepository;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
+    private final ObjectMapper objectMapper;
 
     // ==================== Building Attributes ====================
 
@@ -50,6 +57,7 @@ public class BuildingAttributesService {
         // Verify building exists
         Building building = buildingRepository.findById(buildingId)
                 .orElseThrow(() -> new BuildingNotFoundException("Building not found with ID: " + buildingId));
+        tenantOwnershipGuard.assertReadable(building, "Building", buildingId);
 
         BuildingAttributes attributes = buildingAttributesRepository.findByBuilding_Id(buildingId)
                 .orElse(null);
@@ -83,6 +91,8 @@ public class BuildingAttributesService {
         // Verify building exists
         Building building = buildingRepository.findById(buildingId)
                 .orElseThrow(() -> new BuildingNotFoundException("Building not found with ID: " + buildingId));
+        tenantOwnershipGuard.assertOwned(building, "Building", buildingId);
+        requireListOfText(request.getAccessibilityFeatures());
 
         // Find existing or create new
         BuildingAttributes attributes = buildingAttributesRepository.findByBuilding_Id(buildingId)
@@ -110,6 +120,26 @@ public class BuildingAttributesService {
         return mapToBuildingAttributesResponse(savedAttributes);
     }
 
+    /** The column is JSONB and the public building page reads a list of text; null leaves it as it is. */
+    private void requireListOfText(String features) {
+        if (features == null) {
+            return;
+        }
+        boolean valid;
+        try {
+            JsonNode parsed = objectMapper.readTree(features);
+            valid = parsed.isArray();
+            for (JsonNode item : parsed) {
+                valid = valid && item.isTextual() && !item.asText().isBlank();
+            }
+        } catch (JsonProcessingException e) {
+            valid = false;
+        }
+        if (!valid) {
+            throw new InvalidAccessibilityFeaturesException("Accessibility features must be a list of text.");
+        }
+    }
+
     // ==================== Room Attributes ====================
 
     /**
@@ -124,6 +154,7 @@ public class BuildingAttributesService {
         // Verify room exists
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with ID: " + roomId));
+        tenantOwnershipGuard.assertReadable(room, "Room", roomId);
 
         RoomAttributes attributes = roomAttributesRepository.findByRoom_Id(roomId)
                 .orElse(null);
@@ -158,6 +189,7 @@ public class BuildingAttributesService {
         // Verify room exists
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with ID: " + roomId));
+        tenantOwnershipGuard.assertOwned(room, "Room", roomId);
 
         // Find existing or create new
         RoomAttributes attributes = roomAttributesRepository.findByRoom_Id(roomId)
@@ -192,9 +224,9 @@ public class BuildingAttributesService {
         log.info("Getting room attributes for building {}", buildingId);
 
         // Verify building exists
-        if (!buildingRepository.existsById(buildingId)) {
-            throw new BuildingNotFoundException("Building not found with ID: " + buildingId);
-        }
+        Building building = buildingRepository.findById(buildingId)
+                .orElseThrow(() -> new BuildingNotFoundException("Building not found with ID: " + buildingId));
+        tenantOwnershipGuard.assertReadable(building, "Building", buildingId);
 
         List<RoomAttributes> attributes = roomAttributesRepository.findByRoom_Building_Id(buildingId);
         log.info("Found {} room attributes for building {}", attributes.size(), buildingId);

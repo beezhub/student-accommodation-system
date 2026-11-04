@@ -60,10 +60,32 @@ export interface StagedAllocation {
   proposedByName?: string;
 }
 
+export interface FailedProposal {
+  studentId: number;
+  studentName: string;
+  reason: string;
+}
+
 export interface BatchAllocationProposal {
   batchId: string;
   proposals: StagedAllocation[];
   warnings: string[];
+  failures: FailedProposal[];
+}
+
+/**
+ * Answer to confirm-all. It is HTTP 200 even when some rows failed, so read the counts.
+ *
+ * <p>confirmedAllocationIds holds the ids of the new room allocations, not of the staged rows, so
+ * it cannot say which row on the review screen was confirmed.
+ */
+export interface BatchConfirmationResult {
+  success: boolean;
+  totalAttempted: number;
+  successCount: number;
+  failureCount: number;
+  errors?: string[];
+  confirmedAllocationIds?: number[];
 }
 
 export interface AllocationAuditLog {

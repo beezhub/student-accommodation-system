@@ -3,6 +3,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AdminService, AdminUser } from '../../../core/services/admin.service';
+import { isWaitingForACompany } from './waiting-for-a-company';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -60,6 +61,29 @@ export class UserManagementComponent implements OnInit {
   displayedColumns: string[] = ['id', 'name', 'email', 'role', 'mustChangePassword', 'actions'];
   isLoading = false;
   filterRole: string = 'all';
+  /** Values are what UserRole.enumRoleOf matches on the backend; anything else answers 409. */
+  readonly roleFilterOptions = [
+    {
+      value: ROLE.PLATFORM_ADMIN,
+      label: 'Platform Admins',
+      icon: 'admin_panel_settings',
+      iconClass: 'admin',
+    },
+    {
+      value: ROLE.PLATFORM_STAFF,
+      label: 'Platform Staff',
+      icon: 'support_agent',
+      iconClass: 'admin',
+    },
+    { value: ROLE.TENANT_ADMIN, label: 'Tenant Admins', icon: 'business', iconClass: 'landlord' },
+    {
+      value: ROLE.BUILDING_STAFF,
+      label: 'Building Staff',
+      icon: 'apartment',
+      iconClass: 'landlord',
+    },
+    { value: ROLE.STUDENT, label: 'Students', icon: 'school', iconClass: 'student' },
+  ];
   // Server-side paging: the list used to arrive whole, however many accounts existed (GH-157).
   pageIndex = 0;
   pageSize = 25;
@@ -215,5 +239,10 @@ export class UserManagementComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  /** A tenant admin with no company yet: it cannot sign in, so it must not look like it can. */
+  isWaitingForACompany(user: AdminUser): boolean {
+    return isWaitingForACompany(user);
   }
 }

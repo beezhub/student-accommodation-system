@@ -4,6 +4,7 @@ import { throwError, Observable } from 'rxjs';
 import { catchError, retry } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { FILE_TOO_LARGE_MESSAGE } from '../services/error-handling.service';
 import { TokenStorageService } from '../services/token-storage.service';
 import { isOurApiRequest } from './api-request';
 
@@ -66,6 +67,8 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
         return 'The requested resource was not found.';
       case 409:
         return 'This operation conflicts with existing data.';
+      case 413:
+        return FILE_TOO_LARGE_MESSAGE;
       case 422:
         return 'Unable to process your request. Please check your input.';
       case 500:

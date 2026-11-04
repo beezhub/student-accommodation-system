@@ -39,6 +39,8 @@ class DocumentCommentServiceTest {
     private AppUserRepository appUserRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentAccessGuard documentAccessGuard;
 
     @InjectMocks
     private DocumentCommentService documentCommentService;
@@ -113,8 +115,10 @@ class DocumentCommentServiceTest {
         AppUser otherUser = AppUser.builder().id(3L).email("other@test.com").userRole(UserRole.STUDENT).build();
         when(appUserRepository.findByEmail("other@test.com")).thenReturn(Optional.of(otherUser));
         when(documentRepository.findById(100L)).thenReturn(Optional.of(document));
+        doThrow(new UnauthorizedAccessException("Unauthorized access to document"))
+                .when(documentAccessGuard).assertCanAccessDocument(document, otherUser);
 
-        assertThrows(UnauthorizedAccessException.class, () -> 
+        assertThrows(UnauthorizedAccessException.class, () ->
             documentCommentService.getCommentsByDocument(100L, "other@test.com"));
     }
 

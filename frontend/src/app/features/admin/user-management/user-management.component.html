@@ -98,24 +98,14 @@
                   All Users
                 </div>
               </mat-option>
-              <mat-option value="ADMIN">
-                <div class="role-option">
-                  <mat-icon class="admin">admin_panel_settings</mat-icon>
-                  Admins Only
-                </div>
-              </mat-option>
-              <mat-option value="LANDLORD">
-                <div class="role-option">
-                  <mat-icon class="landlord">apartment</mat-icon>
-                  Landlords Only
-                </div>
-              </mat-option>
-              <mat-option value="STUDENT">
-                <div class="role-option">
-                  <mat-icon class="student">school</mat-icon>
-                  Students Only
-                </div>
-              </mat-option>
+              @for (option of roleFilterOptions; track option.value) {
+                <mat-option [value]="option.value">
+                  <div class="role-option">
+                    <mat-icon [class]="option.iconClass">{{ option.icon }}</mat-icon>
+                    {{ option.label }}
+                  </div>
+                </mat-option>
+              }
             </mat-select>
           </mat-form-field>
         </div>
@@ -157,6 +147,12 @@
                   </mat-icon>
                   {{ user.userRole }}
                 </span>
+                @if (isWaitingForACompany(user)) {
+                  <span class="password-badge warning" matTooltip="Can't sign in until a company adds them as an admin">
+                    <mat-icon>hourglass_empty</mat-icon>
+                    Waiting for a company
+                  </span>
+                }
               </div>
 
               <div class="mobile-info-grid">
@@ -236,6 +232,12 @@
                   </mat-icon>
                   {{ user.userRole }}
                 </span>
+                @if (isWaitingForACompany(user)) {
+                  <span class="password-badge warning" matTooltip="Can't sign in until a company adds them as an admin">
+                    <mat-icon>hourglass_empty</mat-icon>
+                    Waiting for a company
+                  </span>
+                }
               </td>
             </ng-container>
 

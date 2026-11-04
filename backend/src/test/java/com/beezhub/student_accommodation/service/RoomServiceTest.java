@@ -3,6 +3,7 @@ package com.beezhub.student_accommodation.service;
 import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
 import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
+import com.beezhub.student_accommodation.exceptions.ResourceInUseException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
 import com.beezhub.student_accommodation.mapper.RoomMapper;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
@@ -229,6 +230,19 @@ class RoomServiceTest {
         roomService.deleteRoom(1L);
 
         verify(roomRepository).delete(room);
+    }
+
+    @Test
+    void deleteRoom_liveAllocations_refusedBeforeDelete() {
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L);
+
+        assertThatThrownBy(() -> roomService.deleteRoom(1L))
+                .isInstanceOf(ResourceInUseException.class)
+                .hasMessageContaining(room.getRoomNumber())
+                .hasMessageContaining("(2)");
+
+        verify(roomRepository, never()).delete(any(Room.class));
     }
 
     // ---- createBulkRooms tests ----

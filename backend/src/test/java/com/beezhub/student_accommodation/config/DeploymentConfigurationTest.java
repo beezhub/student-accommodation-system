@@ -419,6 +419,17 @@ class DeploymentConfigurationTest {
                 .contains("GRAFANA_CLOUD_API_KEY=");
     }
 
+    /**
+     * Compose passes a container only the variables it lists, so without this line a value set in
+     * the host .env never reaches the backend and every email footer shows the placeholder from
+     * application.yml. Blank when unset, which hides the phone line rather than print a made-up
+     * number.
+     */
+    @Test
+    void contactPhone_isForwardedToTheBackendAndBlankWhenUnset() throws IOException {
+        assertThat(read("docker-compose.yml")).contains("- APP_CONTACT_PHONE=${APP_CONTACT_PHONE:-}");
+    }
+
     @Test
     void newSettingsAreDocumented() throws IOException {
         String env = read(".env.example");
@@ -487,6 +498,25 @@ class DeploymentConfigurationTest {
         assertThat(readLf("CONTRIBUTING.md")).contains("### Hotfixes")
                 .contains("Branch from `main` and name it `hotfix/TASK-{id}-{slug}`.");
         assertThat(read(".claude/scout/playbook.md")).contains("Scout never opens one");
+    }
+
+    /**
+     * The backend image stored its jar twice (`RUN chown` copied all 95.6 MB into a new layer) and
+     * as one layer, so every deploy downloaded about 191 MB (#374). Spring Boot's layers, least
+     * often changed first, make a code-only deploy replace only the application layer.
+     */
+    @Test
+    void backendImage_copiesTheJarOnceAndInLayers() throws IOException {
+        String dockerfile = readLf("backend/Dockerfile");
+
+        assertThat(dockerfile).doesNotContainPattern("(?m)^RUN .*chown").doesNotContain("--chown");
+        assertThat(dockerfile).contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted");
+        assertThat(dockerfile).contains(String.join("\n",
+                "COPY --from=build /app/extracted/dependencies/ ./",
+                "COPY --from=build /app/extracted/spring-boot-loader/ ./",
+                "COPY --from=build /app/extracted/snapshot-dependencies/ ./",
+                "COPY --from=build /app/extracted/application/ ./"));
+        assertThat(dockerfile).contains("ENTRYPOINT [\"java\", \"-jar\", \"app.jar\"]");
     }
 
     /**
@@ -684,6 +714,25 @@ class DeploymentConfigurationTest {
         }
     }
 
+    /**
+     * The compose files write most required keys as ${VAR:?message}, which the preflight's pattern
+     * did not match, so a release with 9 missing keys passed it and replaced the tree (#423). The
+     * image names are left out because the deploy passes them in, and only key names leave the host.
+     */
+    @Test
+    void nonprodPreflight_seesEveryWayOfRequiringAKey() throws IOException {
+        String deploy = readLf(".github/workflows/deploy.yml");
+        String preflight = deploy.substring(deploy.indexOf("- name: Preflight the host environment"),
+                deploy.indexOf("- name: Record the pre-deploy schema version"));
+
+        assertThat(preflight)
+                .contains("grep -hoE '\\$\\{[A-Z0-9_]+(\\}|:?\\?)' $F")
+                .contains("grep -vxE 'BACKEND_IMAGE|FRONTEND_IMAGE'")
+                .as("a ${VAR:?} key with an empty value stops Compose just like a missing one")
+                .contains("MUST_BE_SET=")
+                .contains("=.+$/\\2/p");
+    }
+
     /** On PROD the database is RDS. On NONPROD it stays a container, with no PROD memory limit. */
     @Test
     void nonprodOverlay_runsTheDatabaseAgain() throws IOException {
@@ -724,6 +773,31 @@ class DeploymentConfigurationTest {
                 .contains("# NONPROD (docker-compose.nonprod.yml)")
                 .contains("beezhub-sas-nonprod-documents")
                 .contains("EXAMPLE_DATA=true");
+    }
+
+    /**
+     * Compose recreates a container when its settings change, not when a mounted file's content
+     * does, so the running container kept the old file. That left NONPROD's Alloy without the token
+     * masking for days (#411). Both deploys must look after `up`, and before readiness is judged.
+     */
+    @Test
+    void deploys_restartContainersWhoseConfigFileChanged() throws IOException {
+        String step = "bash tools/deploy/restart-changed-config.sh";
+        String nonprod = readLf(".github/workflows/deploy.yml");
+        String prod = readLf("tools/prod/start.sh");
+
+        assertThat(nonprod.indexOf(step))
+                .isGreaterThan(nonprod.indexOf("docker compose $F up -d --no-build --remove-orphans"))
+                .isLessThan(nonprod.indexOf("- name: Smoke check"));
+        assertThat(prod.indexOf(step))
+                .isGreaterThan(prod.indexOf("docker compose $F up -d --no-build --remove-orphans"))
+                .isLessThan(prod.indexOf("readiness OK after"));
+        assertThat(readLf("tools/deploy/restart-changed-config.sh"))
+                .contains("{{if eq .Type \"bind\"}}")
+                .contains("sha256sum")
+                .contains("docker restart")
+                .as("docker exec prints failures to stdout; an image with no sha256sum must not look changed")
+                .contains("=~ ^[0-9a-f]{64}$");
     }
 
     /** A step that runs Compose with other files would act on a different stack. */

@@ -5,6 +5,10 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { RoleService } from '../../../core/services/role.service';
+import {
+  PASSWORD_RULES_HINT,
+  strongPasswordValidator,
+} from '../../../shared/validators/strong-password.validator';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -41,6 +45,7 @@ export class ChangePasswordComponent implements OnInit {
   private roleService = inject(RoleService);
   private snackBar = inject(MatSnackBar);
 
+  readonly passwordRulesHint = PASSWORD_RULES_HINT;
   changePasswordForm: FormGroup;
   isSubmitting = false;
   isForced = false;
@@ -52,7 +57,7 @@ export class ChangePasswordComponent implements OnInit {
     this.changePasswordForm = this.fb.group(
       {
         currentPassword: ['', [Validators.required]],
-        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        newPassword: ['', [Validators.required, strongPasswordValidator]],
         confirmPassword: ['', [Validators.required]],
       },
       {
@@ -134,7 +139,11 @@ export class ChangePasswordComponent implements OnInit {
 
   onCancel(): void {
     if (!this.isForced) {
-      if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
+      if (
+        this.roleService.isPlatformAdmin() ||
+        this.roleService.isPlatformStaff() ||
+        this.roleService.isTenantAdmin()
+      ) {
         this.router.navigate(['/admin']);
       } else {
         this.router.navigate(['/dashboard']);

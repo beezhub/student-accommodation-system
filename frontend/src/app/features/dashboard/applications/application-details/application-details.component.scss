@@ -134,6 +134,16 @@
   background: white !important;
 }
 
+.changes-requested-card {
+  border-left: 3px solid vars.$warning !important;
+  background: white !important;
+}
+
+.changes-reason {
+  font-weight: 600;
+  white-space: pre-line;
+}
+
 .action-buttons {
   display: flex;
   flex-direction: column;

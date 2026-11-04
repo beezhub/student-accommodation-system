@@ -495,4 +495,23 @@ class RestResponseExceptionHandlerTest {
 
         assertErrorResponse(response, HttpStatus.CONFLICT, "Thandi Mokoena is not linked to a company yet.");
     }
+
+    @Test
+    void handleResourceInUse_isConflictAndKeepsTheMessage() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleResourceInUse(
+                new ResourceInUseException("Room 101 cannot be deleted while it has students (1)."),
+                webRequest);
+
+        assertErrorResponse(response, HttpStatus.CONFLICT,
+                "Room 101 cannot be deleted while it has students (1).");
+    }
+
+    @Test
+    void handleInvalidAccessibilityFeatures_isBadRequestAndKeepsTheMessage() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleInvalidAccessibilityFeatures(
+                new InvalidAccessibilityFeaturesException("Accessibility features must be a list of text."),
+                webRequest);
+
+        assertErrorResponse(response, HttpStatus.BAD_REQUEST, "Accessibility features must be a list of text.");
+    }
 }

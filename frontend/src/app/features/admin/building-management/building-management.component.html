@@ -23,13 +23,15 @@
           </div>
         </div>
 
-        <button
-          mat-raised-button
-          class="add-btn"
-          (click)="openCreateDialog()">
-          <mat-icon>add</mat-icon>
-          Add Building
-        </button>
+        @if (canAddBuilding) {
+          <button
+            mat-raised-button
+            class="add-btn"
+            (click)="openCreateDialog()">
+            <mat-icon>add</mat-icon>
+            Add Building
+          </button>
+        }
       </div>
     </div>
   </div>
@@ -206,6 +208,10 @@
                       <mat-icon>edit</mat-icon>
                       <span>Edit Building</span>
                     </button>
+                    <button mat-menu-item (click)="openAccessibilityDialog(building)">
+                      <mat-icon>accessible</mat-icon>
+                      <span>Accessibility Features</span>
+                    </button>
 <mat-divider></mat-divider>
                     <button mat-menu-item class="delete-menu-item" (click)="deleteBuilding(building)">
                       <mat-icon>delete_outline</mat-icon>
@@ -234,6 +240,7 @@
           <mat-paginator
             class="table-paginator"
             [length]="totalElements"
+            [pageIndex]="currentPage"
             [pageSize]="pageSize"
             [pageSizeOptions]="[10, 20, 50]"
             (page)="onPageChange($event)"

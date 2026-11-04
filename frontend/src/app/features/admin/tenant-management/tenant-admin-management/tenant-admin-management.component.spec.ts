@@ -116,4 +116,35 @@ describe('TenantAdminManagementComponent', () => {
     expect(tenantService.listTenantAdmins).not.toHaveBeenCalled();
     expect(snackBar.open).not.toHaveBeenCalled();
   });
+
+  /** #413: success names the person and the company, so it is clear who can now do what. */
+  it('openAddDialog_added_namesThePersonAndTheCompany_andReloadsList', async () => {
+    component.tenantName = 'Acme Residences';
+    const thandi = { id: 10, email: 'thandi@acme.test', firstName: 'Thandi', lastName: 'Mokoena' };
+    dialog.open.and.returnValue({ afterClosed: () => of(thandi) } as never);
+    tenantService.listTenantAdmins.calls.reset();
+
+    await component.openAddDialog();
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      jasmine.anything(),
+      jasmine.objectContaining({ data: { tenantId: 1, tenantName: 'Acme Residences' } })
+    );
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Thandi Mokoena is now an admin of Acme Residences.',
+      'Close',
+      jasmine.objectContaining({ panelClass: 'snack-success' })
+    );
+    expect(tenantService.listTenantAdmins).toHaveBeenCalled();
+  });
+
+  it('openAddDialog_cancelled_changesNothing', async () => {
+    dialog.open.and.returnValue({ afterClosed: () => of(undefined) } as never);
+    tenantService.listTenantAdmins.calls.reset();
+
+    await component.openAddDialog();
+
+    expect(tenantService.listTenantAdmins).not.toHaveBeenCalled();
+    expect(snackBar.open).not.toHaveBeenCalled();
+  });
 });

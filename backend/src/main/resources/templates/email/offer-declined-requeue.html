@@ -26,8 +26,12 @@
 
     <div class="warning-box">
         <h3>Decline Status</h3>
-        <p>You have declined <strong th:text="|${totalDeclineCount} of 2|">1 of 2</strong> allowed offers.</p>
-        <p>You have <strong th:text="|${declinesRemaining} decline(s) remaining|">1 decline(s) remaining</strong>.</p>
+        <p>You have declined <strong th:text="${totalDeclineCount}">1</strong> <th:block th:text="${totalDeclineCount == 1 ? 'offer.' : 'offers.'}">offer.</th:block>
+           Your application closes once you have declined <strong th:text="${maxDeclines}">3</strong> offers.</p>
+        <p th:if="${declinesRemaining > 0}">You can decline <strong th:text="${declinesRemaining}">1</strong> more
+           and stay on the waiting list.</p>
+        <p th:if="${declinesRemaining == 0}"><strong>If you decline your next offer, your application will be closed</strong>
+           and you will be removed from the waiting list.</p>
         <p>Your application status has been updated to <strong>AWAITING ALLOCATION</strong> and you have been
            added back to the waiting list. We will notify you when another room becomes available.</p>
     </div>

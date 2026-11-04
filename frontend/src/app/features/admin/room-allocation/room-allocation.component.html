@@ -279,6 +279,7 @@
       <mat-paginator
         class="table-paginator"
         [length]="totalElements"
+        [pageIndex]="currentPage"
         [pageSize]="pageSize"
         [pageSizeOptions]="[10, 20, 50, 100]"
         (page)="onPageChange($event)"

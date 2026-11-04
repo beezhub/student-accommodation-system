@@ -55,4 +55,34 @@ describe('TenantService', () => {
     expect(req.request.headers.has('X-Silent-Error')).toBeTrue();
     req.flush({});
   });
+
+  /**
+   * #413: a company's admin screen adds an existing account instead of creating one. These are
+   * the accounts made in user management with no company yet.
+   */
+  it('listUnassignedAdmins_getsTheAccountsWaitingForACompany_silently', () => {
+    service.listUnassignedAdmins().subscribe();
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/admin/unassigned-admins`);
+    expect(req.request.method).toBe('GET');
+    // The picker shows its own message when the list cannot load.
+    expect(req.request.headers.has('X-Silent-Error')).toBeTrue();
+    req.flush([]);
+  });
+
+  it('assignAdmin_postsTheCompany_andLeavesTheErrorToTheDialog', () => {
+    service.assignAdmin(10, 5).subscribe();
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/admin/unassigned-admins/10/assign`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ tenantId: 5 });
+    // A 409 means someone else assigned the account first; the dialog explains that inline.
+    expect(req.request.headers.has('X-Silent-Error')).toBeTrue();
+    req.flush({});
+  });
+
+  /** Users are created in user management only; the company screen has no way to make one. */
+  it('hasNoWayToCreateAnAdmin', () => {
+    expect((service as unknown as Record<string, unknown>)['createTenantAdmin']).toBeUndefined();
+  });
 });

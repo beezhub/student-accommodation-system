@@ -18,6 +18,7 @@ import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.model.event.AllocationMovedEvent;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import org.springframework.context.ApplicationEventPublisher;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class AllocationMoveService {
     private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
     private final RoomOccupancyManager roomOccupancyManager;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
 
     @Transactional
     public RoomAllocationResponse moveStudent(Long allocationId, Long newRoomId, String reason, Long adminId) {
@@ -53,6 +55,7 @@ public class AllocationMoveService {
         Room oldRoom = allocation.getRoom();
         Room newRoom = roomRepository.findById(newRoomId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + newRoomId));
+        tenantOwnershipGuard.assertOwned(newRoom, "Room", newRoomId);
 
         validateRoomCapacity(newRoom);
         validateHardConstraints(allocation.getStudent(), newRoom);

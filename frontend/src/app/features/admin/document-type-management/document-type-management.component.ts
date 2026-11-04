@@ -72,14 +72,13 @@ export class DocumentTypeManagementComponent implements OnInit {
     return this.roleService.isTenantAdmin();
   }
 
-  /** Returns false for platform-default types when the user is TENANT_ADMIN. */
+  /** Platform-default types can only be changed by PLATFORM_ADMIN (guardPlatformType answers 403). */
   canMutate(docType: DocumentTypeResponse): boolean {
-    if (this.isTenantAdmin && docType.isPlatformDefault) return false;
-    return true;
+    return !docType.isPlatformDefault || this.roleService.isPlatformAdmin();
   }
 
   documentTypes: DocumentTypeResponse[] = [];
-  displayedColumns: string[] = ['typeName', 'description', 'isRequired', 'createdAt', 'actions'];
+  displayedColumns: string[] = ['name', 'description', 'isRequired', 'actions'];
 
   isLoading = false;
   totalElements = 0;
@@ -119,7 +118,7 @@ export class DocumentTypeManagementComponent implements OnInit {
       size: this.pageSize,
     };
 
-    this.documentTypeService.searchDocumentTypes(filters).subscribe({
+    this.documentTypeService.searchDocumentTypes(filters, true).subscribe({
       next: (response: PageResponse<DocumentTypeResponse>) => {
         this.documentTypes = response.content;
         this.totalElements = response.totalElements;
@@ -185,7 +184,7 @@ export class DocumentTypeManagementComponent implements OnInit {
     import('./document-type-form-dialog/document-type-form-dialog.component').then((m) => {
       const dialogRef = this.dialog.open(m.DocumentTypeFormDialogComponent, {
         width: '600px',
-        data: { mode: 'create', prefillName: docType.typeName, shadow: true },
+        data: { mode: 'create', prefillName: docType.name, shadow: true },
       });
 
       dialogRef.afterClosed().subscribe((result) => {
@@ -214,7 +213,7 @@ export class DocumentTypeManagementComponent implements OnInit {
   deleteDocumentType(documentType: DocumentTypeResponse): void {
     confirmAction(this.dialog, {
       title: 'Delete this document type?',
-      message: `"${documentType.typeName}" is removed permanently. This cannot be undone.`,
+      message: `"${documentType.name}" is removed permanently. This cannot be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
     }).subscribe((confirmed) => {

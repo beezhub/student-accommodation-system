@@ -59,6 +59,7 @@ class AllocationMoveServiceTest {
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private UserNotificationService userNotificationService;
     @Mock private RoomOccupancyManager roomOccupancyManager;
+    @Mock private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     @InjectMocks private AllocationMoveService allocationMoveService;
 

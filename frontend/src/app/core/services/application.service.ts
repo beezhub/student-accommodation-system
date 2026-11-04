@@ -285,4 +285,12 @@ export class ApplicationService {
       reason,
     });
   }
+
+  /**
+   * Sends an application with changes requested back to the review queue. Student only.
+   * @param applicationId The application ID
+   */
+  resubmitApplication(applicationId: number): Observable<Application> {
+    return this.http.post<Application>(`${this.apiUrl}/${applicationId}/resubmit`, {});
+  }
 }

@@ -270,7 +270,7 @@
 | 5 | Confirm allocation | Allocation created; success message shown |
 | 6 | Open MailHog at http://localhost:8025 | MailHog inbox loads |
 | 7 | Locate email sent to john.doe@test.com | Email present |
-| 8 | Verify subject contains "Room Allocation Confirmation" | Subject matches |
+| 8 | Verify subject contains "Accept Your Room Offer" | Subject matches |
 | 9 | Verify email body contains building name "Test Building" and room "101" | Details correct |
 | 10 | Verify email contains offer acceptance deadline | Deadline present |
 

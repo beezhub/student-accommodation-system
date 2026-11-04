@@ -153,7 +153,10 @@ before any status change and test both the valid and invalid path.
 **Database.** Flyway migrations in `src/main/resources/db/migration/`, named `V{YYYY_MM_DD_HHMM}__{description}.sql`,
 baselined at `2026.02.19.2100` (`init_full_schema`), with `out-of-order: false` and `validate-on-migrate: true`.
 Hibernate runs `hbm2ddl.auto: validate`, so an entity change without a matching migration fails startup. Never edit an
-applied migration. Enums are stored as strings; no soft deletes.
+applied migration. Enums are stored as strings; no soft deletes. Timestamps are `LocalDateTime` in South African
+time on columns with no zone, and the API sends and receives them with no offset (GH-461): the JVM zone comes from
+`TZ` / `APP_TIMEZONE`, so a frontend value going to the backend must be a local wall clock, never `toISOString()`.
+The nightly crons in `ScheduledJobRunner` are pinned to UTC, so they do not follow it.
 
 ## Backend testing
 
@@ -259,8 +262,11 @@ rules that matter most:
 - Always branch from `develop` and open the pull request back against
   `develop`. The only exception is a hotfix, which a person decides on:
   `hotfix/TASK-{id}-{slug}` from `main`, with its pull request into
-  `main` (`CONTRIBUTING.md`, "Hotfixes"). One issue per pull request, no
-  bundled or drive-by changes.
+  `main` (`CONTRIBUTING.md`, "Hotfixes"). A pull request may close
+  several related issues (same area, same kind of change), one commit
+  per issue, branch named after the first; unrelated issues and drive-by
+  changes still get their own pull request (`CONTRIBUTING.md`, "Pull
+  requests"). Scout still works one issue per run.
 - Write Conventional Commits with an imperative subject of 72
   characters or less. The body says what changed and why, not that a
   tool made it.

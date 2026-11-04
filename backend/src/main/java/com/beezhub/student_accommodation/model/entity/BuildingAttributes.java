@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -35,6 +37,12 @@ public class BuildingAttributes {
     @Builder.Default
     private GenderRestriction genderRestriction = GenderRestriction.ANY;
 
+    /**
+     * A JSON list of text, such as {@code ["Ramp access"]}, shown on the public building page. Without
+     * the type code Hibernate binds a varchar, which PostgreSQL refuses for a JSONB column, so every
+     * save of this entity failed, even with this field empty.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "accessibility_features", columnDefinition = "JSONB")
     private String accessibilityFeatures;
 

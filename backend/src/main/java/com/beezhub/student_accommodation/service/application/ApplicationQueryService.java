@@ -13,6 +13,7 @@ import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.service.AuthService;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class ApplicationQueryService {
     private final ApplicationRepository applicationRepository;
     private final AuthService authService;
     private final ApplicationDocumentService applicationDocumentService;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
 
     /**
      * Gets comprehensive application details including student profile,
@@ -57,6 +59,8 @@ public class ApplicationQueryService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "Application not found with ID: " + applicationId));
+        // findById skips the tenant filter, and isAdmin below is true for every company's admin.
+        tenantOwnershipGuard.assertReadable(application, "Application", applicationId);
 
         // Authorization check: admin or application owner
         boolean isAdmin = currentUser.getUserRole().isAdmin();

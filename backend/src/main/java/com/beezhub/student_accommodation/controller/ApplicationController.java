@@ -208,6 +208,20 @@ public class ApplicationController {
                 return ResponseEntity.noContent().build();
         }
 
+        @Operation(summary = "Resubmit application", description = "Sends an application with changes requested back to the review queue. Students can only resubmit their own applications.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Application resubmitted"),
+                        @ApiResponse(responseCode = "400", description = "Application is not waiting for changes"),
+                        @ApiResponse(responseCode = "403", description = "Unauthorized to resubmit this application"),
+                        @ApiResponse(responseCode = "404", description = "Application not found")
+        })
+        @PostMapping("/{applicationId}/resubmit")
+        @PreAuthorize("hasRole('STUDENT')")
+        public ResponseEntity<ApplicationResponse> resubmitApplication(
+                        @Parameter(description = "ID of the application to resubmit", required = true) @PathVariable("applicationId") Long applicationId) {
+                return ResponseEntity.ok(applicationService.resubmitApplication(applicationId));
+        }
+
         // ==================== Full Details, Review Progress, and Allocation Endpoints
         // ====================
 
@@ -221,7 +235,7 @@ public class ApplicationController {
                         @ApiResponse(responseCode = "404", description = "Application not found")
         })
         @GetMapping("/{applicationId}/full-details")
-        @PreAuthorize("hasAnyRole('STUDENT', 'PLATFORM_ADMIN')")
+        @PreAuthorize("hasAnyRole('STUDENT', 'PLATFORM_ADMIN', 'TENANT_ADMIN')")
         public ResponseEntity<ApplicationFullDetailsResponse> getApplicationFullDetails(
                         @Parameter(description = "ID of the application", required = true) @PathVariable("applicationId") Long applicationId,
                         Authentication authentication) {

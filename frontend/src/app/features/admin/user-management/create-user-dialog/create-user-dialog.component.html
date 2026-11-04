@@ -71,8 +71,9 @@
         @if (createUserForm.get('password')?.hasError('required')) {
           <mat-error>Password is required</mat-error>
         }
-        @if (createUserForm.get('password')?.hasError('minlength')) {
-          <mat-error>Password must be at least 8 characters</mat-error>
+        <mat-hint>{{ passwordRulesHint }}</mat-hint>
+        @if (createUserForm.get('password')?.getError('strongPassword'); as rule) {
+          <mat-error>Password needs {{ rule.missing.join(', ') }}</mat-error>
         }
       </mat-form-field>
 
@@ -97,15 +98,23 @@
       @if (showTenantField) {
         <!-- Tenant Selection. Hidden for PLATFORM_ADMIN, who must be tenant 0. -->
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Tenant</mat-label>
+          <mat-label>Property company</mat-label>
           <mat-icon matPrefix>business</mat-icon>
-          <mat-select formControlName="tenantId" required>
+          <!-- Bound, not a bare attribute: `required` on a reactive control adds a validator of
+               its own, which would keep the company required for a tenant admin (#413). -->
+          <mat-select formControlName="tenantId" [required]="!companyIsOptional">
+            @if (companyIsOptional) {
+              <mat-option [value]="null">None yet</mat-option>
+            }
             @for (tenant of availableTenantsForRole; track tenant.id) {
               <mat-option [value]="tenant.id">{{ tenant.name }}</mat-option>
             }
           </mat-select>
+          @if (companyIsOptional) {
+            <mat-hint>Leave empty to add them from a company's admin screen later. They can't sign in until then.</mat-hint>
+          }
           @if (createUserForm.get('tenantId')?.hasError('required')) {
-            <mat-error>Tenant is required</mat-error>
+            <mat-error>A property company is required</mat-error>
           }
         </mat-form-field>
       }

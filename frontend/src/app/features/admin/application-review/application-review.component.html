@@ -77,6 +77,13 @@
       </button>
     }
 
+    @if (appliedStatus) {
+      <span class="active-status-filter">
+        Showing
+        <app-modern-status-badge [status]="appliedStatus" size="sm"></app-modern-status-badge>
+      </span>
+    }
+
     <div class="result-summary" aria-live="polite">
       @if (!isLoading) {
         <span>{{ totalElements | number }} result{{ totalElements !== 1 ? 's' : '' }}</span>
@@ -199,7 +206,7 @@
                 <div class="mc-student-cell">
                   <div class="avatar-circle" aria-hidden="true">{{ getStudentInitials(app) }}</div>
                   <div class="mc-student-info">
-                    <span class="mc-student-name">{{ app.studentFirstName }} {{ app.studentLastName }}</span>
+                    <span class="mc-student-name">{{ app.studentName }}</span>
                     <span class="mc-app-code">{{ app.applicationCode }}</span>
                   </div>
                 </div>
@@ -270,7 +277,7 @@
                 <div class="student-cell">
                   <div class="avatar-circle" aria-hidden="true">{{ getStudentInitials(application) }}</div>
                   <div class="student-info">
-                    <span class="student-name">{{ application.studentFirstName }} {{ application.studentLastName }}</span>
+                    <span class="student-name">{{ application.studentName }}</span>
                     <span class="student-email">{{ application.studentEmail }}</span>
                   </div>
                 </div>
@@ -414,6 +421,7 @@
           <mat-paginator
             class="table-paginator"
             [length]="totalElements"
+            [pageIndex]="currentPage"
             [pageSize]="pageSize"
             [pageSizeOptions]="[10, 20, 50, 100]"
             (page)="onPageChange($event)"

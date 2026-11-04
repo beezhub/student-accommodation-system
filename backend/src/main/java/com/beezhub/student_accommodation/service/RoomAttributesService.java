@@ -4,11 +4,14 @@ import com.beezhub.student_accommodation.aspect.LogActivity;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.model.dto.RoomAttributesRequest;
 import com.beezhub.student_accommodation.model.dto.RoomAttributesResponse;
+import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAttributes;
 import com.beezhub.student_accommodation.model.enums.GenderRestriction;
+import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.RoomAttributesRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +28,8 @@ public class RoomAttributesService {
 
     private final RoomAttributesRepository roomAttributesRepository;
     private final RoomRepository roomRepository;
+    private final BuildingRepository buildingRepository;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
 
     /**
      * Gets room attributes by room ID. Creates default attributes if none exist.
@@ -37,6 +42,7 @@ public class RoomAttributesService {
 
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + roomId));
+        tenantOwnershipGuard.assertReadable(room, "Room", roomId);
 
         RoomAttributes attributes = roomAttributesRepository.findByRoom_Id(roomId)
                 .orElse(null);
@@ -65,6 +71,10 @@ public class RoomAttributesService {
     public List<RoomAttributesResponse> getAttributesByBuildingId(Long buildingId) {
         log.info("Getting room attributes for building ID: {}", buildingId);
 
+        Building building = buildingRepository.findById(buildingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Building not found with ID: " + buildingId));
+        tenantOwnershipGuard.assertReadable(building, "Building", buildingId);
+
         List<RoomAttributes> attributes = roomAttributesRepository.findByRoom_Building_Id(buildingId);
         return attributes.stream()
                 .map(this::mapToResponse)
@@ -92,6 +102,7 @@ public class RoomAttributesService {
 
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + request.getRoomId()));
+        tenantOwnershipGuard.assertOwned(room, "Room", request.getRoomId());
 
         RoomAttributes attributes = roomAttributesRepository.findByRoom_Id(request.getRoomId())
                 .orElse(RoomAttributes.builder()
@@ -145,7 +156,12 @@ public class RoomAttributesService {
 
         RoomAttributes attributes = roomAttributesRepository.findByRoom_Id(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Room attributes not found for room ID: " + roomId));
+        Room room = attributes.getRoom();
+        tenantOwnershipGuard.assertOwned(room, "Room", roomId);
 
+        // The guard loads the room for a tenant admin, and Room cascades to its attributes. If it
+        // still pointed at them, the flush would cancel this delete and report nothing.
+        room.setAttributes(null);
         roomAttributesRepository.delete(attributes);
         log.info("Deleted attributes for room ID: {}", roomId);
     }

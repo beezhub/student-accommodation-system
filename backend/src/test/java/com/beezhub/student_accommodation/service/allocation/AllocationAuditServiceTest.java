@@ -30,11 +30,18 @@ class AllocationAuditServiceTest {
     @Mock
     private AllocationAuditLogRepository allocationAuditLogRepository;
 
+    @Mock
+    private com.beezhub.student_accommodation.repository.RoomAllocationRepository roomAllocationRepository;
+
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+
     private AllocationAuditService allocationAuditService;
 
     @BeforeEach
     void setUp() {
-        allocationAuditService = new AllocationAuditService(allocationAuditLogRepository);
+        allocationAuditService = new AllocationAuditService(allocationAuditLogRepository, roomAllocationRepository,
+                tenantOwnershipGuard);
     }
 
     @Test
@@ -85,6 +92,8 @@ class AllocationAuditServiceTest {
                 .newStatus(AllocationStatus.ACTIVE)
                 .createdAt(LocalDateTime.now().minusMinutes(5))
                 .build();
+
+        when(roomAllocationRepository.findById(allocationId)).thenReturn(java.util.Optional.of(allocation));
 
         // Repository returns newest-first (DESC order), matching findByAllocation_IdOrderByCreatedAtDesc
         when(allocationAuditLogRepository.findByAllocation_IdOrderByCreatedAtDesc(

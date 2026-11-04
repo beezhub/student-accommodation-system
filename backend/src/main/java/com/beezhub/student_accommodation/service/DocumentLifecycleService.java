@@ -7,7 +7,6 @@ import com.beezhub.student_accommodation.exceptions.DocumentTypeNotFoundExceptio
 import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import com.beezhub.student_accommodation.exceptions.FileValidationException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
-import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
@@ -23,6 +22,7 @@ import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.service.document.DocumentAccessGuard;
 import com.beezhub.student_accommodation.service.document.FileStorageService;
 import com.beezhub.student_accommodation.service.document.FileValidationService;
 import com.beezhub.student_accommodation.service.document.ValidationResult;
@@ -58,6 +58,7 @@ public class DocumentLifecycleService {
     private final StudentRepository studentRepository;
     private final AppUserRepository appUserRepository;
     private final DocumentMapper documentMapper;
+    private final DocumentAccessGuard documentAccessGuard;
 
     @Transactional
     @Timed(value = "service.document.upload", percentiles = {0.5, 0.95, 0.99})
@@ -113,11 +114,9 @@ public class DocumentLifecycleService {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found"));
 
-        boolean isAdmin = user.getUserRole().isAdmin();
-        if (!document.getStudent().getAppUser().equals(user) && !isAdmin) {
-            throw new UnauthorizedAccessException("Unauthorized access to document");
-        }
+        documentAccessGuard.assertCanAccessDocument(document, user);
 
+        boolean isAdmin = user.getUserRole().isAdmin();
         // Admins are not locked out: this is the only way to unlock an approved document while
         // the application is live, since a document cannot be rejected once the application has
         // moved past APPROVED.

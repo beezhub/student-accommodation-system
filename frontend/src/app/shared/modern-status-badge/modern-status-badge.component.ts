@@ -334,6 +334,12 @@ export class ModernStatusBadgeComponent {
         colorClass: 'status-expired',
         emoji: '⏰',
       },
+      cancelled: {
+        icon: 'cancel',
+        label: 'Cancelled',
+        colorClass: 'status-neutral',
+        emoji: '🚫',
+      },
       check_in_expired: {
         icon: 'event_busy',
         label: 'Check-In Expired',

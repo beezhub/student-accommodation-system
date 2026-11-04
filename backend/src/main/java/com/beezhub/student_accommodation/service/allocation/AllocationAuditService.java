@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException;
 import com.beezhub.student_accommodation.model.dto.AllocationAuditLogResponse;
 import com.beezhub.student_accommodation.model.entity.AllocationAuditLog;
 import com.beezhub.student_accommodation.model.entity.AppUser;
@@ -8,6 +9,8 @@ import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.enums.AllocationAuditActionType;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.repository.AllocationAuditLogRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,8 @@ import java.util.stream.Collectors;
 public class AllocationAuditService {
 
     private final AllocationAuditLogRepository allocationAuditLogRepository;
+    private final RoomAllocationRepository roomAllocationRepository;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logAuditAction(RoomAllocation allocation, AllocationAuditActionType actionType,
@@ -105,6 +110,13 @@ public class AllocationAuditService {
      */
     @Transactional(readOnly = true)
     public List<AllocationAuditLogResponse> getHistory(Long allocationId) {
+        // The audit log carries no tenant, so ownership can only be checked on its allocation. An
+        // unknown id is a 404 too: an empty 200 there would tell a caller which ids exist elsewhere.
+        RoomAllocation allocation = roomAllocationRepository.findById(allocationId)
+                .orElseThrow(() -> new RoomAllocationNotFoundException(
+                        "Room allocation not found with id: " + allocationId));
+        tenantOwnershipGuard.assertReadable(allocation, "Room allocation", allocationId);
+
         List<AllocationAuditLog> logs = allocationAuditLogRepository
                 .findByAllocation_IdOrderByCreatedAtDesc(allocationId, org.springframework.data.domain.Pageable.unpaged())
                 .getContent();

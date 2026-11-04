@@ -6,6 +6,7 @@ import {
   BuildingResponse,
   PageResponse,
 } from '../../../core/services/building.service';
+import { RoleService } from '../../../core/services/role.service';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
@@ -55,6 +56,16 @@ export class BuildingManagementComponent implements OnInit {
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  private roleService = inject(RoleService);
+
+  /**
+   * Staff cannot finish adding a building: the backend needs a company named by a platform-level
+   * caller, and the company list is PLATFORM_ADMIN only, so the form can never offer one.
+   */
+  get canAddBuilding(): boolean {
+    return !this.roleService.isPlatformStaff();
+  }
+
   buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
     'name',
@@ -159,7 +170,7 @@ export class BuildingManagementComponent implements OnInit {
   deleteBuilding(building: BuildingResponse): void {
     confirmAction(this.dialog, {
       title: 'Delete this building?',
-      message: `"${building.name}" is removed permanently. This cannot be undone.`,
+      message: `"${building.name}" and its rooms are removed permanently. This cannot be undone.`,
       confirmLabel: 'Delete',
       destructive: true,
     }).subscribe((confirmed) => {
@@ -171,9 +182,12 @@ export class BuildingManagementComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to delete building:', error);
-          this.snackBar.open('Failed to delete building. It may have associated rooms.', 'Close', {
-            duration: 5000,
-          });
+          const message: string | undefined = error?.error?.errors?.[0];
+          this.snackBar.open(
+            message || 'Failed to delete building. It may have active allocations.',
+            'Close',
+            { duration: 5000 }
+          );
         },
       });
     });
@@ -195,6 +209,17 @@ export class BuildingManagementComponent implements OnInit {
     const f = words[0]?.[0] ?? '';
     const l = words[1]?.[0] ?? '';
     return (f + l).toUpperCase();
+  }
+
+  async openAccessibilityDialog(building: BuildingResponse): Promise<void> {
+    const m = await import(
+      './building-accessibility-dialog/building-accessibility-dialog.component'
+    );
+    this.dialog.open(m.BuildingAccessibilityDialogComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+      data: { building },
+    });
   }
 
   openImageDialog(building: BuildingResponse): void {

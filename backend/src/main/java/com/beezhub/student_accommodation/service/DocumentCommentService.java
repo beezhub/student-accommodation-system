@@ -13,6 +13,7 @@ import com.beezhub.student_accommodation.model.event.DocumentCommentEvent;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.DocumentCommentRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
+import com.beezhub.student_accommodation.service.document.DocumentAccessGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,6 +31,7 @@ public class DocumentCommentService {
     private final DocumentRepository documentRepository;
     private final AppUserRepository appUserRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final DocumentAccessGuard documentAccessGuard;
 
     /**
      * Adds a comment to a document.
@@ -69,6 +71,7 @@ public class DocumentCommentService {
         if (!admin.getUserRole().isAdmin()) {
             throw new UnauthorizedAccessException("Only admins can add comments to documents");
         }
+        documentAccessGuard.assertCanAccessDocument(document, admin);
 
         DocumentComment comment = DocumentComment.builder()
                 .document(document)
@@ -107,13 +110,7 @@ public class DocumentCommentService {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new DocumentNotFoundException("Document not found with id: " + documentId));
 
-        // Authorization check: admin or document owner
-        boolean isAdmin = user.getUserRole().isAdmin();
-        boolean isOwner = document.getStudent().getAppUser().getId().equals(user.getId());
-
-        if (!isAdmin && !isOwner) {
-            throw new UnauthorizedAccessException("You are not authorized to view comments for this document");
-        }
+        documentAccessGuard.assertCanAccessDocument(document, user);
 
         List<DocumentComment> comments = documentCommentRepository.findByDocument_IdOrderByCreatedAtDesc(documentId);
         log.info("Found {} comments for document {}", comments.size(), documentId);
@@ -162,6 +159,9 @@ public class DocumentCommentService {
 
         if (!isOwner && !isAdmin) {
             throw new UnauthorizedAccessException("You are not authorized to delete this comment");
+        }
+        if (!isOwner) {
+            documentAccessGuard.assertCanAccessDocument(comment.getDocument(), requestingAdmin);
         }
 
         documentCommentRepository.delete(comment);

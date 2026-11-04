@@ -1,11 +1,11 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 
 import { CreateUserDialogComponent } from './create-user-dialog.component';
-import { AdminService } from '../../../../core/services/admin.service';
+import { AdminService, AdminUser } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TenantService } from '../../../../core/services/tenant.service';
 
@@ -24,6 +24,8 @@ describe('CreateUserDialogComponent tenant scoping', () => {
     getAllTenants: jasmine.Spy;
     getActiveTenants: jasmine.Spy;
   };
+  let fixture: ComponentFixture<CreateUserDialogComponent>;
+  let snackBar: jasmine.SpyObj<MatSnackBar>;
 
   function build(): CreateUserDialogComponent {
     tenantServiceStub = {
@@ -43,11 +45,51 @@ describe('CreateUserDialogComponent tenant scoping', () => {
           provide: TenantService,
           useValue: tenantServiceStub,
         },
-        { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
       ],
     });
-    return TestBed.createComponent(CreateUserDialogComponent).componentInstance;
+    // The component imports MatSnackBarModule itself, and a standalone component's own imports win
+    // over TestBed providers, so the spy has to be an override (as in TenantAdminManagementComponent).
+    snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
+    TestBed.overrideProvider(MatSnackBar, { useValue: snackBar });
+    fixture = TestBed.createComponent(CreateUserDialogComponent);
+    return fixture.componentInstance;
   }
+
+  function fillIn(component: CreateUserDialogComponent, role: string): void {
+    component.createUserForm.patchValue({
+      firstName: 'Thandi',
+      lastName: 'Mokoena',
+      email: 'thandi@acme.test',
+      password: 'Correct-Horse9',
+    });
+    component.createUserForm.get('userRole')?.setValue(role);
+  }
+
+  /** #430: the form asked for 8 characters while the server's @StrongPassword refuses them. */
+  it('passwordTheServerWouldRefuse_isNotSent', () => {
+    const component = build();
+    const adminService = TestBed.inject(AdminService) as jasmine.SpyObj<AdminService>;
+    fillIn(component, 'TENANT_ADMIN');
+    component.createUserForm.get('password')?.setValue('simplepassword');
+
+    component.onSubmit();
+
+    expect(component.createUserForm.valid).toBeFalse();
+    expect(adminService.createUser).not.toHaveBeenCalled();
+  });
+
+  it('passwordTheServerWouldRefuse_saysWhichRulesAreMissing', () => {
+    const component = build();
+    fillIn(component, 'TENANT_ADMIN');
+    component.createUserForm.get('password')?.setValue('simplepassword');
+    component.createUserForm.markAllAsTouched();
+
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Password needs an uppercase letter, a number, a symbol'
+    );
+  });
 
   it('availableRoles_excludesTheDeprecatedAdminRole', () => {
     // The backend mapper rejects ADMIN outright, so it failed every time it was chosen.
@@ -128,7 +170,7 @@ describe('CreateUserDialogComponent tenant scoping', () => {
       firstName: 'Ada',
       lastName: 'Lovelace',
       email: 'ada@example.com',
-      password: 'password123',
+      password: 'Correct-Horse9',
     });
 
     component.createUserForm.get('userRole')?.setValue('PLATFORM_ADMIN');
@@ -142,11 +184,67 @@ describe('CreateUserDialogComponent tenant scoping', () => {
       firstName: 'Ada',
       lastName: 'Lovelace',
       email: 'ada@example.com',
-      password: 'password123',
+      password: 'Correct-Horse9',
     });
 
     component.createUserForm.get('userRole')?.setValue('BUILDING_STAFF');
 
     expect(component.createUserForm.valid).toBeFalse();
+  });
+
+  /**
+   * #413: a tenant admin may be created with no company yet. It waits until a company's admin
+   * screen adds it, which is now the only way a company gets a new admin.
+   */
+  it('tenantAdminRole_isValidWithNoCompany', () => {
+    const component = build();
+
+    fillIn(component, 'TENANT_ADMIN');
+
+    expect(component.createUserForm.valid).toBeTrue();
+  });
+
+  it('tenantAdminRole_explainsWhatLeavingTheCompanyEmptyMeans', () => {
+    const component = build();
+    fillIn(component, 'TENANT_ADMIN');
+
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      "Leave empty to add them from a company's admin screen later. They can't sign in until then."
+    );
+  });
+
+  /** They must not be handed login details that do not work yet, so the message says so. */
+  it('creatingATenantAdminWithNoCompany_saysTheyCannotSignInYet', () => {
+    const component = build();
+    const adminService = TestBed.inject(AdminService) as jasmine.SpyObj<AdminService>;
+    adminService.createUser.and.returnValue(of({} as AdminUser));
+    snackBar.open.and.returnValue({ onAction: () => of() } as never);
+    fillIn(component, 'TENANT_ADMIN');
+
+    component.onSubmit();
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      "Thandi Mokoena created. They can't sign in until a company adds them as an admin.",
+      'Go to companies',
+      jasmine.anything()
+    );
+  });
+
+  it('creatingATenantAdminWithACompany_keepsTheUsualMessage', () => {
+    const component = build();
+    const adminService = TestBed.inject(AdminService) as jasmine.SpyObj<AdminService>;
+    adminService.createUser.and.returnValue(of({} as AdminUser));
+    fillIn(component, 'TENANT_ADMIN');
+    component.createUserForm.get('tenantId')?.setValue(7);
+
+    component.onSubmit();
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'User created successfully!',
+      'Close',
+      jasmine.anything()
+    );
   });
 });

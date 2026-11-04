@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   StagedAllocation,
   BatchAllocationProposal,
+  BatchConfirmationResult,
   WaitingListEntry,
 } from '../models/allocation.models';
 import { RoomAllocationResponse } from './room-allocation.service';
@@ -78,10 +79,8 @@ export class StagedAllocationService {
     );
   }
 
-  confirmBatch(
-    batchId: string
-  ): Observable<{ success: boolean; confirmed: number; failed: number }> {
-    return this.http.post<{ success: boolean; confirmed: number; failed: number }>(
+  confirmBatch(batchId: string): Observable<BatchConfirmationResult> {
+    return this.http.post<BatchConfirmationResult>(
       `${this.apiUrl}/batch/${batchId}/confirm-all`,
       {},
       { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }

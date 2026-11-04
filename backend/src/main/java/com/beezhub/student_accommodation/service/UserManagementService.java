@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +26,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class UserManagementService {
+
+    /** The lock V2026_09_06_1500 puts on an admin account with no company. */
+    private static final LocalDateTime LOCKED_UNTIL_ASSIGNED = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
 
     private final AppUserRepository userRepository;
     private final TenantService tenantService;
@@ -50,7 +54,15 @@ public class UserManagementService {
             passwordEncoder.encode(request.getPassword())
         );
 
-        user.setTenantId(resolveTenantForRole(role, request.getTenantId()));
+        if (role == UserRole.TENANT_ADMIN && request.getTenantId() == null) {
+            // #413: waits for a company's admin screen to pick it. Tenant 0 opens every company's
+            // data (GH-212), so it waits locked, as V2026_09_06_1500 locks such accounts;
+            // UnassignedAdminService.assignTenant sets the company and unlocks it in one step.
+            user.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+            user.setAccountLockedUntil(LOCKED_UNTIL_ASSIGNED);
+        } else {
+            user.setTenantId(resolveTenantForRole(role, request.getTenantId()));
+        }
 
         // Save and return
         AppUser savedUser = userRepository.save(user);

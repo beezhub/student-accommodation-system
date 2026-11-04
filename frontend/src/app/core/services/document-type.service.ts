@@ -1,10 +1,16 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { DocumentType } from '../models/document-type.model';
 export { PageResponse } from '../models/page-response.model';
 import { PageResponse } from '../models/page-response.model';
+
+/**
+ * Asks errorInterceptor not to show its own snackbar (#310). Each write below has one caller, a
+ * reference-data page or form dialog that says what failed; reads take it only when asked.
+ */
+const SILENT = new HttpHeaders({ 'X-Silent-Error': 'true' });
 
 /** The query these paged endpoints accept. Was `any`, which typed nothing (GH-158). */
 export interface DocumentTypeFilters {
@@ -16,12 +22,10 @@ export interface DocumentTypeFilters {
 
 export interface DocumentTypeResponse {
   id: number;
-  typeName: string;
+  name: string;
   description?: string;
   isRequired: boolean;
   isPlatformDefault?: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface DocumentTypeRequest {
@@ -60,7 +64,8 @@ export class DocumentTypeService {
     return this.http.get<PageResponse<DocumentTypeResponse>>(this.apiUrl, { params });
   }
   searchDocumentTypes(
-    filters: DocumentTypeFilters
+    filters: DocumentTypeFilters,
+    silent = false
   ): Observable<PageResponse<DocumentTypeResponse>> {
     let params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
@@ -75,7 +80,10 @@ export class DocumentTypeService {
       params = params.set('isRequired', filters.isRequired.toString());
     }
 
-    return this.http.get<PageResponse<DocumentTypeResponse>>(`${this.apiUrl}/search`, { params });
+    return this.http.get<PageResponse<DocumentTypeResponse>>(`${this.apiUrl}/search`, {
+      params,
+      ...(silent ? { headers: SILENT } : {}),
+    });
   }
 
   getDocumentTypeById(id: number): Observable<DocumentTypeResponse> {
@@ -83,21 +91,24 @@ export class DocumentTypeService {
   }
 
   createDocumentType(request: DocumentTypeRequest): Observable<DocumentTypeResponse> {
-    return this.http.post<DocumentTypeResponse>(this.apiUrl, request);
+    return this.http.post<DocumentTypeResponse>(this.apiUrl, request, { headers: SILENT });
   }
 
   updateDocumentType(id: number, request: DocumentTypeRequest): Observable<DocumentTypeResponse> {
-    return this.http.put<DocumentTypeResponse>(`${this.apiUrl}/${id}`, request);
+    return this.http.put<DocumentTypeResponse>(`${this.apiUrl}/${id}`, request, {
+      headers: SILENT,
+    });
   }
 
   updateRequiredFlag(id: number, required: boolean): Observable<DocumentTypeResponse> {
     return this.http.patch<DocumentTypeResponse>(
       `${this.apiUrl}/${id}/required?required=${required}`,
-      {}
+      {},
+      { headers: SILENT }
     );
   }
 
   deleteDocumentType(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, { headers: SILENT });
   }
 }

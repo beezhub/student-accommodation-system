@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, formatDate } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ActivityLogService } from '../../../core/services/activity-log.service';
 import { ActivityLog, ActivityAction, EntityType } from '../../../core/models/activity-log.model';
@@ -21,6 +21,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+
+/**
+ * YYYY-MM-DD in the user's own time. The picker builds a Date at local midnight, and `toISOString`
+ * converts to UTC first, so in South Africa it gave the day before (GH-462).
+ */
+function toLocalIsoDate(date: Date | null | undefined | ''): string | undefined {
+  return date ? formatDate(date, 'yyyy-MM-dd', 'en-US') : undefined;
+}
 
 @Component({
   selector: 'app-activity-logs',
@@ -104,7 +112,13 @@ export class ActivityLogsComponent implements OnInit {
     'SYSTEM',
   ];
 
-  userRoles: string[] = ['PLATFORM_ADMIN', 'BUILDING_OWNER', 'BUILDING_STAFF', 'STUDENT'];
+  userRoles: string[] = [
+    'PLATFORM_ADMIN',
+    'PLATFORM_STAFF',
+    'TENANT_ADMIN',
+    'BUILDING_STAFF',
+    'STUDENT',
+  ];
 
   constructor() {
     this.filterForm = this.fb.group({
@@ -124,12 +138,8 @@ export class ActivityLogsComponent implements OnInit {
     this.isLoading = true;
     const filters = {
       ...this.filterForm.value,
-      startDate: this.filterForm.value.startDate
-        ? this.filterForm.value.startDate.toISOString().split('T')[0]
-        : undefined,
-      endDate: this.filterForm.value.endDate
-        ? this.filterForm.value.endDate.toISOString().split('T')[0]
-        : undefined,
+      startDate: toLocalIsoDate(this.filterForm.value.startDate),
+      endDate: toLocalIsoDate(this.filterForm.value.endDate),
       page: this.currentPage,
       size: this.pageSize,
     };
@@ -168,12 +178,8 @@ export class ActivityLogsComponent implements OnInit {
   exportLogs(): void {
     const filters = {
       ...this.filterForm.value,
-      startDate: this.filterForm.value.startDate
-        ? this.filterForm.value.startDate.toISOString().split('T')[0]
-        : undefined,
-      endDate: this.filterForm.value.endDate
-        ? this.filterForm.value.endDate.toISOString().split('T')[0]
-        : undefined,
+      startDate: toLocalIsoDate(this.filterForm.value.startDate),
+      endDate: toLocalIsoDate(this.filterForm.value.endDate),
     };
 
     this.activityLogService.exportActivityLogs(filters).subscribe({
@@ -181,7 +187,7 @@ export class ActivityLogsComponent implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `activity-logs-${new Date().toISOString().split('T')[0]}.csv`;
+        link.download = `activity-logs-${toLocalIsoDate(new Date())}.csv`;
         link.click();
         window.URL.revokeObjectURL(url);
         this.snackBar.open('Activity logs exported successfully', 'Close', { duration: 3000 });

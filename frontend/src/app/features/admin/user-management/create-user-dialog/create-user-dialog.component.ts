@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { AdminService } from '../../../../core/services/admin.service';
 
 // Material imports
@@ -15,6 +16,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TenantService, Tenant } from '../../../../core/services/tenant.service';
+import {
+  PASSWORD_RULES_HINT,
+  strongPasswordValidator,
+} from '../../../../shared/validators/strong-password.validator';
 
 @Component({
   selector: 'app-create-user-dialog',
@@ -39,6 +44,7 @@ export class CreateUserDialogComponent {
   private adminService = inject(AdminService);
   private snackBar = inject(MatSnackBar);
 
+  readonly passwordRulesHint = PASSWORD_RULES_HINT;
   createUserForm: FormGroup;
   isSubmitting = false;
   hidePassword = true;
@@ -64,7 +70,15 @@ export class CreateUserDialogComponent {
    */
   private static readonly TENANT_SCOPED_ROLES = ['TENANT_ADMIN', 'BUILDING_STAFF'];
 
+  /**
+   * Of those, the roles that must have a company now. A TENANT_ADMIN may be created without one:
+   * it waits, unable to sign in, until a company's admin screen adds it (#413). BUILDING_STAFF has
+   * no such screen, so it still needs its company here.
+   */
+  private static readonly COMPANY_REQUIRED_ROLES = ['BUILDING_STAFF'];
+
   private authService = inject(AuthService);
+  private router = inject(Router);
   private tenantService = inject(TenantService);
   private destroyRef = inject(DestroyRef);
 
@@ -74,7 +88,7 @@ export class CreateUserDialogComponent {
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
+      password: ['', [Validators.required, strongPasswordValidator]],
       // Was BUILDING_OWNER, which is in neither availableRoles nor the backend UserRole, so the
       // form opened on a value that could never be submitted.
       userRole: ['BUILDING_STAFF', [Validators.required]],
@@ -101,7 +115,7 @@ export class CreateUserDialogComponent {
           const tenantControl = this.createUserForm.get('tenantId');
           if (!tenantControl) return;
           tenantControl.reset(null);
-          if (this.isTenantScoped(role)) {
+          if (CreateUserDialogComponent.COMPANY_REQUIRED_ROLES.includes(role)) {
             tenantControl.setValidators([Validators.required]);
           } else {
             tenantControl.clearValidators();
@@ -120,6 +134,11 @@ export class CreateUserDialogComponent {
     return this.isPlatformAdmin && this.isTenantScoped(this.createUserForm.get('userRole')?.value);
   }
 
+  /** A tenant admin may be left without a company, so the field says what that means. */
+  get companyIsOptional(): boolean {
+    return this.showTenantField && this.createUserForm.get('userRole')?.value === 'TENANT_ADMIN';
+  }
+
   /**
    * The platform tenant is never a valid choice for a tenant-scoped role: 0 is the sentinel that
    * disables the tenant filter, which is the privilege escalation in GH-146.
@@ -132,13 +151,28 @@ export class CreateUserDialogComponent {
     if (this.createUserForm.valid) {
       this.isSubmitting = true;
 
+      const { firstName, lastName, userRole, tenantId } = this.createUserForm.value;
+      const waitsForACompany = userRole === 'TENANT_ADMIN' && !tenantId;
+
       this.adminService.createUser(this.createUserForm.value).subscribe({
         next: () => {
           this.isSubmitting = false;
-          this.snackBar.open('User created successfully!', 'Close', {
-            duration: 3000,
-            panelClass: ['success-snackbar'],
-          });
+          if (waitsForACompany) {
+            // They cannot sign in yet, so nobody should send them their login details yet.
+            this.snackBar
+              .open(
+                `${firstName} ${lastName} created. They can't sign in until a company adds them as an admin.`,
+                'Go to companies',
+                { duration: 8000, panelClass: ['success-snackbar'] }
+              )
+              .onAction()
+              .subscribe(() => this.router.navigate(['/admin/tenants']));
+          } else {
+            this.snackBar.open('User created successfully!', 'Close', {
+              duration: 3000,
+              panelClass: ['success-snackbar'],
+            });
+          }
           this.dialogRef.close(true);
         },
         error: (error) => {

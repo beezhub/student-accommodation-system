@@ -95,7 +95,9 @@ The **Deploy NONPROD** workflow (`.github/workflows/deploy.yml`) then:
 2. Builds both images on GitHub's ARM runners and pushes them to ECR.
 3. Checks that `/opt/sas/.env` has every key the Compose files need, and stops if not. Nothing on
    the server has changed at this point.
-4. Copies the commit to `/opt/sas`, pulls the images and starts them.
+4. Copies the commit to `/opt/sas`, pulls the images and starts them. It then restarts any container
+   whose mounted config file changed, and the log names it (`tools/deploy/restart-changed-config.sh`).
+   Compose would otherwise leave that container running the old file.
 5. Waits for readiness, then saves the release for PROD. The run summary shows the run id to promote.
 
 ```mermaid
@@ -128,10 +130,6 @@ PROD runbook.
 - **It does not write `.env`.** A new required key stops the deploy at step 3. See
   [Changing a setting](#changing-a-setting).
 - **It does not update Caddy.** See [Changing Caddy](#changing-caddy).
-- **It does not pick up a changed config file.** Compose recreates a container when its settings
-  change, not when the content of a mounted file changes. After a release that changes a file under
-  `tools/alloy/` or `tools/postgres/`, run `docker restart` on that container, or it keeps the old
-  file. NONPROD's Alloy ran without the `?token=` masking for this reason.
 - **It does not keep your files.** It deletes every file in `/opt/sas` that is not in the commit.
   Only `.env`, `.env.bak-*`, `.backup-*` and `frontend/node_modules` stay. Keep anything else, such
   as a database dump, outside `/opt/sas`.
@@ -210,20 +208,24 @@ real students' addresses onto NONPROD.
 
 ### Disk
 
-The disk is 45 GB and was 66% full on 2026-11-04. Docker's build cache held 16 GB of that. It is left
-over from when the server built its own images, which stopped in #337, so it is safe to remove:
+The disk is 45 GB and was 35% full on 2026-11-04, after the old build cache and monitoring volumes
+were removed. Check what is using it first:
 
 ```bash
-docker system df                 # see what can be freed first
-docker builder prune --all --force
+df -h /
+docker system df
 ```
 
-Unused images held another 3.4 GB. This removes every image no running container uses, and the next
-deploy pulls what it needs again:
+Old images are what builds up now: each release leaves the previous one behind, and unused images
+held 5.7 GB on that date. This removes every image no running container uses, and the next deploy
+pulls what it needs again:
 
 ```bash
 docker image prune --all
 ```
+
+The build cache should stay empty, because the server has not built its own images since #337. If
+`docker system df` shows one, it is safe to remove with `docker builder prune --all --force`.
 
 Do not use `docker system prune --volumes`. The volumes hold the database.
 
@@ -301,14 +303,13 @@ Restores, and the order to restore the database and the bucket in, are in
 | What you see | Why | What to do |
 |---|---|---|
 | The **CI passed on these files** job fails | CI failed, was cancelled or never ran on these files | Fix CI on `develop`, then release again |
-| `/opt/sas/.env is missing keys` | A new required key is not on the server yet | Add the named keys, see [Changing a setting](#changing-a-setting), and re-run. Nothing was changed |
+| `/opt/sas/.env is missing keys` or `has empty values` | A new required key is not on the server yet, or has no value | Set the named keys, see [Changing a setting](#changing-a-setting), and re-run. Nothing was changed |
 | `Host key verification failed` | The server's SSH host key changed, usually because it was rebuilt | Run `ssh-keyscan -t ed25519 nonprod.beezhub.co.za` and paste the result into the `SSH_KNOWN_HOSTS` variable |
 | `the images could not be pulled in 3 tries` | The connection dropped, or the disk is full. The running containers were not touched | Check [Disk](#disk), then re-run |
 | `readiness never came up` | The backend did not start, often because a migration failed | Read the logs at the end of the failed run. If a migration ran, fix forward |
 | `No space left on device` | The disk is full | See [Disk](#disk) |
 | The site has no HTTPS | Caddy has a wrong or empty `APP_HOSTNAME`, or port 80 is blocked | Check `journalctl -u caddy -n 50` and `sudo systemctl cat caddy` |
 | `/grafana` returns 502, not 404 | The server's Caddyfile still sends it to the Grafana that was removed | See [Changing Caddy](#changing-caddy) |
-| `the images could not be pulled in 3 tries`, with `GRAFANA_CLOUD_... must be set` in the log | A Grafana Cloud key is not in `.env` | Add it, see [Changing a setting](#changing-a-setting), and re-run. The running containers were not touched |
 | No `env="nonprod"` data in Grafana Cloud | Alloy cannot push, usually a wrong URL, user or token | Check `docker logs --tail 50 student-accommodation-alloy` for `401` or `403` |
 | Emails do not arrive | SES refused the send, usually `AccessDenied` from a wrong key or sender | Search the backend log for `action=verificationEmailFailed`. The sender must be `nonprod@beezhub.co.za` |
 | Uploads or building images fail with `AccessDenied` or `NoSuchBucket` | A wrong key or bucket in `.env`, or the Terraform in `infra/terraform/nonprod` has not been applied | Compare `S3_ACCESS_KEY` and `S3_BUCKET` with `/sas-nonprod/` in SSM and with `tf nonprod output` |
@@ -408,6 +409,10 @@ RDS upgrades are still tested only on PROD.
 - **No alerts and no uptime monitor.** NONPROD's metrics reach Grafana Cloud, but the alert rules
   only read `env="prod"`, so nothing tells you if NONPROD goes down. This is deliberate: an outage
   here pages nobody (#381).
+- **Shared Grafana Cloud key.** NONPROD's `GRAFANA_CLOUD_API_KEY` is PROD's key, reused on 2026-11-04
+  to unblock a release. It can only write logs and metrics, but replacing it for one environment
+  affects the other. To fix this, create a key with `logs:write` and `metrics:write`, set it in
+  `.env`, and run **Deploy NONPROD**.
 - **Rebuild not rehearsed.** Nobody has followed [Rebuild from nothing](#rebuild-from-nothing) from
   start to finish.
 - **#264:** Postgres has no developer access from outside the server.

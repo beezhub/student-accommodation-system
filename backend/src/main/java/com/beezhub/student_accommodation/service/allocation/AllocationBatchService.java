@@ -191,11 +191,20 @@ public class AllocationBatchService {
      * <p>Entries whose tenant cannot be determined are skipped rather than matched against every
      * tenant's rooms, and logged so they are visible.
      *
+     * <p>So are entries whose application has ended. {@code createRoomAllocation} would refuse them,
+     * and matching one first spends a seat from the budget, which is the only seat a waiting-list
+     * refill has. Ending an application closes its entry, so this guards against any row that
+     * still got through, such as one a tenant admin's filtered lookup could not see.
+     *
      * @param maxAllocations budget shared across all tenants, spent in waiting-list order
      */
     private List<AllocationPair> matchWithinEachTenant(List<WaitingListEntry> waitingList, int maxAllocations) {
         Map<Long, List<WaitingListEntry>> byTenant = new LinkedHashMap<>();
         for (WaitingListEntry entry : waitingList) {
+            if (applicationHasEnded(entry)) {
+                log.warn("action=batchEntrySkipped reason=applicationEnded waitingListEntryId={}", entry.getId());
+                continue;
+            }
             Long tenantId = tenantIdOf(entry);
             if (tenantId == null) {
                 log.warn("action=batchEntrySkipped reason=noTenant waitingListEntryId={}", entry.getId());
@@ -289,6 +298,11 @@ public class AllocationBatchService {
             }
         }
         return isRealTenant(entry.getTenantId()) ? entry.getTenantId() : null;
+    }
+
+    private static boolean applicationHasEnded(WaitingListEntry entry) {
+        Application application = entry.getApplication();
+        return application != null && application.getStatus() != null && !application.getStatus().isLive();
     }
 
     private static boolean isRealTenant(Long tenantId) {

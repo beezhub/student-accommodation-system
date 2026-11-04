@@ -6,6 +6,7 @@ public record OfferDeclinedRequeueContext(
         String buildingName,
         int totalDeclineCount,
         int declinesRemaining,
+        int maxDeclines,
         String declineReason,
         String portalUrl
 ) implements EmailContext {}
