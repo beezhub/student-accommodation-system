@@ -133,7 +133,7 @@ class HealthProbeConfigurationTest {
         String compose = Files.readString(REPO_ROOT.resolve("docker-compose.yml"), StandardCharsets.UTF_8);
 
         assertThat(compose).contains("stop_grace_period");
-        assertThat(compose).contains("TZ=${APP_TIMEZONE:-UTC}");
+        assertThat(compose).contains("TZ=${APP_TIMEZONE:-Africa/Johannesburg}");
     }
 
     @Test

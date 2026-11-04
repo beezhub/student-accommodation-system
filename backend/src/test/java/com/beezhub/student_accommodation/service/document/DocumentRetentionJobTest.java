@@ -20,6 +20,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +37,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
@@ -111,6 +113,17 @@ class DocumentRetentionJobTest {
         ArgumentCaptor<LocalDateTime> cutoff = ArgumentCaptor.forClass(LocalDateTime.class);
         verify(documentRepository).findExpiredByRetention(any(), any(), cutoff.capture(), any());
         assertThat(cutoff.getValue()).isEqualTo(NOW.minusMonths(12));
+    }
+
+    /** Stored timestamps are written from the JVM default zone, so the cutoff has to be in it too. */
+    @Test
+    void theRealClockUsesTheZoneStoredTimestampsAreWrittenIn() {
+        DocumentRetentionJob wired = new DocumentRetentionJob(documentRepository, eventPublisher,
+                directTemplate(), 12, true);
+
+        Clock clock = (Clock) ReflectionTestUtils.getField(wired, "clock");
+
+        assertThat(clock.getZone()).isEqualTo(ZoneId.systemDefault());
     }
 
     /**
