@@ -188,7 +188,7 @@ class DeploymentConfigurationTest {
     void awsOverlay_switchesOffEveryServiceThatDoesNotRunInProd() throws IOException {
         String aws = readLf("docker-compose.aws.yml");
 
-        for (String service : List.of("db", "minio", "minio-volume-permissions", "prometheus",
+        for (String service : List.of("db", "db-tls-cert", "minio", "minio-volume-permissions", "prometheus",
                 "grafana", "loki")) {
             assertThat(aws)
                     .as(service + " must be scaled to zero behind an unused profile")
@@ -651,5 +651,46 @@ class DeploymentConfigurationTest {
                 .isPositive()
                 .isLessThan(start.indexOf("docker compose $F up -d"));
         assertThat(start).contains("echo \"schema_before=").contains("echo \"schema_after=");
+    }
+
+    /**
+     * RDS rejects connections without TLS, so a driver, URL or certificate problem would otherwise
+     * first appear on PROD (#380). NONPROD's container now asks for TLS and its backend uses it.
+     */
+    @Test
+    void nonprodDatabase_requiresTls() throws IOException {
+        assertThat(readLf("docker-compose.deploy.yml"))
+                .contains("- ssl=on")
+                .contains("- hba_file=/etc/postgresql/pg_hba.conf")
+                .contains("- ./tools/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro")
+                .contains("- DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb?sslmode=require");
+    }
+
+    /**
+     * The order matters: Postgres uses the first line that matches. The network may only use TLS,
+     * and the local socket stays open for the healthcheck, the deploy's schema check and backups.
+     */
+    @Test
+    void nonprodDatabase_acceptsOnlyTlsFromTheNetwork() throws IOException {
+        List<String> rules = readLf("tools/postgres/pg_hba.conf").lines()
+                .filter(line -> !line.isBlank() && !line.startsWith("#"))
+                .map(line -> line.trim().replaceAll("\\s+", " "))
+                .toList();
+
+        assertThat(rules).containsExactly(
+                "local all all trust",
+                "local replication all trust",
+                "hostssl all all all scram-sha-256",
+                "hostnossl all all all reject");
+    }
+
+    /**
+     * Local development keeps plain connections: only the deploy overlay turns TLS on.
+     */
+    @Test
+    void localDatabase_staysWithoutTls() throws IOException {
+        assertThat(readLf("docker-compose.yml"))
+                .contains("- DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb\n")
+                .doesNotContain("ssl=on");
     }
 }

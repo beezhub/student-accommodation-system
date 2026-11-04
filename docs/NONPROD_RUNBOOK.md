@@ -12,7 +12,7 @@ Server details below were checked on the host on 2026-11-04.
 | DNS | A record to `84.12.109.37`, in the `beezhub.co.za` zone at SADomains until #344 |
 | Server | Free Oracle Cloud VM `as-poc-nonprod`, `af-johannesburg-1`, Ampere A1 (`aarch64`), 2 OCPU, 12 GB, no swap, 45 GB disk, Ubuntu 24.04 |
 | Stack | Docker Compose in `/opt/sas`, project `sas`, networks `sas_app-network` and `sas_monitoring-network` |
-| Database | PostgreSQL 16 container `student-accommodation-local-db`, not published outside the server |
+| Database | PostgreSQL 16 container `student-accommodation-local-db`, not published outside the server. Network connections must use TLS |
 | Documents | MinIO container `student-accommodation-minio`, an S3-compatible store |
 | Images | ECR in `af-south-1` (AWS's image registry), pulled by digest (a hash that names one exact build) |
 | Settings | `/opt/sas/.env`, edited by hand on the server |
@@ -382,7 +382,7 @@ already takes the whole monthly budget.
 | | NONPROD now | PROD | Issue |
 |---|---|---|---|
 | Server | Oracle A1, 12 GB | EC2 `t4g.small`, 2 GB + 2 GB swap | #382 adds PROD's memory limits |
-| Database | Postgres container, no TLS | RDS PostgreSQL 16, TLS required | #380 |
+| Database | Postgres container, TLS required | RDS PostgreSQL 16, TLS required | Stays |
 | Documents | MinIO | S3, instance role | #379, #382 |
 | Email | Brevo SMTP | SES API (`MAIL_TRANSPORT=ses-api`) | #382 |
 | Monitoring | Grafana, Prometheus, Loki on the server | Alloy to Grafana Cloud | #381 |
@@ -447,7 +447,6 @@ the images to ECR and deploys over SSH, and the server pulls them from ECR.
 |---|---|---|---|
 | Documents and images | MinIO container | S3 bucket, reached with IAM user `sas-nonprod-app` | #379, #382 |
 | Email | Brevo SMTP | SES API, from one allowed NONPROD sender | #379, #382 |
-| Database | Postgres container, plain connections allowed | Same container, TLS required (`sslmode=require`) | #380 |
 | Monitoring | Grafana, Prometheus and Loki on the server | Alloy sends to Grafana Cloud. `/grafana` on NONPROD returns 404 | #381 |
 | Compose files | `base`, `prod`, `deploy` | Also `aws` and a new `nonprod` overlay | #382 |
 | Memory limits | Backend 1G, frontend 256M, Redis 256M, Alloy 256M | Backend 1G, frontend 128M, Redis 128M, Alloy 384M, as on PROD | #382 |
