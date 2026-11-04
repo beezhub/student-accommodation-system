@@ -246,7 +246,7 @@ manual `workflow_dispatch`, which is free, or GitHub Team at about $4 per user p
 | Budget is about $4 over the original $30 | Budgets alerts. The reservations are what keep it at ~$34 |
 | Reservations lock in a size for a year | Buy them only after the first month on demand |
 | A deploy with a migration cannot be rolled back by redeploying | Record the schema version before each deploy. Point-in-time recovery to just before the deploy is now the undo |
-| S3 downloads are billed as data out | The first 100 GB a month is free and the estimate is ~10 GB. Past that it is $0.154/GB. The Grafana Cloud dashboard should track it |
+| S3 downloads are billed as data out | The first 100 GB a month is free and the estimate is ~10 GB. Past that it is $0.154/GB. The `sas-prod-data-out` budget emails at 80 GB used and when 100 GB is forecast (#340) |
 
 ## Open decisions
 

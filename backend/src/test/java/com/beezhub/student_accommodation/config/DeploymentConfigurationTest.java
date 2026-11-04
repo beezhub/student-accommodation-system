@@ -345,6 +345,22 @@ class DeploymentConfigurationTest {
                         .containsAnyOf("env=\\\"prod\\\"", "${local.backend}", "${local.requests}"));
     }
 
+    /**
+     * A misspelt usage type group is not an error: the budget just measures 0 GB for ever. These
+     * are the names Cost Explorer lists for this account (#340), and both paths out are counted:
+     * pages from the server and documents straight from S3.
+     */
+    @Test
+    void dataOutBudget_countsServerAndS3Downloads() throws IOException {
+        String monitoring = readLf("infra/terraform/prod/monitoring.tf");
+        String budget = monitoring.substring(monitoring.indexOf("resource \"aws_budgets_budget\" \"data_out\""));
+
+        assertThat(budget).contains("budget_type  = \"USAGE\"", "limit_unit   = \"GB\"",
+                "name   = \"UsageTypeGroup\"");
+        assertThat(budget).contains(
+                "values = [\"EC2: Data Transfer - Internet (Out)\", \"S3: Data Transfer - Internet (Out)\"]");
+    }
+
     @Test
     void awsOverlay_settingsAreDocumented() throws IOException {
         String env = read(".env.example");

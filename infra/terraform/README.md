@@ -5,7 +5,7 @@ The AWS side of `docs/PROD_ENVIRONMENT_PLAN.md`, in `af-south-1`.
 | Folder | Creates |
 |---|---|
 | `bootstrap/` | The S3 bucket every Terraform state lives in. Run once |
-| `prod/` | The PROD environment: VPC, EC2, Elastic IP, RDS, S3, ECR, SES SMTP user, IAM, CloudWatch alarms |
+| `prod/` | The PROD environment: VPC, EC2, Elastic IP, RDS, S3, ECR, SES SMTP user, IAM, CloudWatch alarms, the data-out budget |
 | `prod-grafana/` | PROD's alert rules and their email contact point in the Grafana Cloud stack (#340) |
 
 Versions are pinned: Terraform `1.16.6`, the AWS provider `6.69.1` and the Grafana provider
