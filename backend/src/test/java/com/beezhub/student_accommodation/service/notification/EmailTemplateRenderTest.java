@@ -191,6 +191,36 @@ class EmailTemplateRenderTest {
     }
 
     @Test
+    void applicationChangesRequested_rendersReasonAndLink() {
+        Map<String, Object> vars = baseContext();
+        vars.put("studentName", "Test Student");
+        vars.put("applicationId", 43L);
+        vars.put("changesReason", "Proof of registration is for the wrong year");
+        vars.put("portalUrl", "http://portal.example.com/applications/43");
+
+        String html = render("application-changes-requested", vars);
+
+        assertBaseRequirements(html, "application-changes-requested");
+        assertThat(html)
+                .contains("Proof of registration is for the wrong year")
+                .contains("href=\"http://portal.example.com/applications/43\"");
+    }
+
+    /** The reason is free text typed by an admin, and it ends up in an HTML email. */
+    @Test
+    void applicationChangesRequested_escapesTheReason() {
+        Map<String, Object> vars = baseContext();
+        vars.put("studentName", "Test Student");
+        vars.put("applicationId", 43L);
+        vars.put("changesReason", "<script>alert(1)</script>");
+        vars.put("portalUrl", PORTAL_URL);
+
+        String html = render("application-changes-requested", vars);
+
+        assertThat(html).doesNotContain("<script>alert(1)</script>").contains("&lt;script&gt;");
+    }
+
+    @Test
     void documentVerified_rendersCorrectly() {
         Map<String, Object> vars = baseContext();
         vars.put("studentName", "Test Student");
@@ -425,7 +455,7 @@ class EmailTemplateRenderTest {
     void allTemplates_containUniversityName() {
         String[] templates = {
             "welcome", "password-reset",
-            "application-approved", "application-rejected",
+            "application-approved", "application-rejected", "application-changes-requested",
             "document-verified", "document-rejected", "document-comment",
             "room-allocated",
             "allocation-proposal", "allocation-confirmed", "allocation-rejected", "allocation-moved",
@@ -448,7 +478,7 @@ class EmailTemplateRenderTest {
     void allTemplates_doNotContainCenterTag() {
         String[] templates = {
             "welcome", "password-reset",
-            "application-approved", "application-rejected",
+            "application-approved", "application-rejected", "application-changes-requested",
             "document-verified", "document-rejected", "document-comment",
             "room-allocated",
             "allocation-proposal", "allocation-confirmed", "allocation-rejected", "allocation-moved",
@@ -470,7 +500,7 @@ class EmailTemplateRenderTest {
     void footer_doesNotContainHardcodedYear2025() {
         String[] templates = {
             "welcome", "password-reset",
-            "application-approved", "application-rejected",
+            "application-approved", "application-rejected", "application-changes-requested",
             "document-verified", "document-rejected", "document-comment",
             "room-allocated",
             "allocation-proposal", "allocation-confirmed", "allocation-rejected", "allocation-moved",
@@ -524,6 +554,10 @@ class EmailTemplateRenderTest {
                 vars.put("applicationDate", "2026-01-01");
                 vars.put("reviewDate", "2026-01-05");
                 vars.put("nextApplicationPeriod", "March 2026");
+            }
+            case "application-changes-requested" -> {
+                vars.put("applicationId", 1L);
+                vars.put("changesReason", "Test reason");
             }
             case "document-verified" -> {
                 vars.put("documentType", "ID");

@@ -190,6 +190,12 @@ public class EmailService {
                 vars.put("nextApplicationPeriod", c.nextApplicationPeriod());
                 vars.put("portalUrl", c.portalUrl());
             }
+            case ApplicationChangesRequestedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("applicationId", c.applicationId());
+                vars.put("changesReason", c.changesReason());
+                vars.put("portalUrl", c.portalUrl());
+            }
             case DocumentVerifiedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("documentType", c.documentType());

@@ -69,6 +69,22 @@ public class EmailDispatchService {
                 log.info("Application rejected email sent to {}", email);
         }
 
+        /** The page where a student reads the reason and resubmits. */
+        public String applicationPageUrl(Long applicationId) {
+                return baseUrl + "/applications/" + applicationId;
+        }
+
+        public void sendApplicationChangesRequestedEmail(Application application, String studentName, String email) {
+                var ctx = new ApplicationChangesRequestedContext(
+                                studentName,
+                                application.getId(),
+                                application.getRemarks(),
+                                applicationPageUrl(application.getId()));
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.APPLICATION_CHANGES_REQUESTED, "application-changes-requested", ctx));
+                log.info("Application changes requested email sent to {}", email);
+        }
+
         public void sendDocumentVerifiedEmail(Document document, String studentName, String email,
                         String documentType) {
                 String documentReference = "DOC-" + document.getId();

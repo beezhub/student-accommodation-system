@@ -12,6 +12,7 @@ public final class EmailSubjects {
     public static final String PASSWORD_RESET = "Password Reset Request - Student Accommodation System";
     public static final String APPLICATION_APPROVED = "Application Approved - Student Accommodation";
     public static final String APPLICATION_REJECTED = "Application Status Update - Student Accommodation";
+    public static final String APPLICATION_CHANGES_REQUESTED = "Action Required: Changes Needed on Your Application";
     public static final String DOCUMENT_VERIFIED = "Document Verified - Student Accommodation";
     public static final String DOCUMENT_REJECTED = "Document Review Required - Student Accommodation";
     public static final String DOCUMENT_COMMENT = "Document Review: Action Required - Student Accommodation";

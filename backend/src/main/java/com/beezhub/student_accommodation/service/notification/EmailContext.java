@@ -11,6 +11,7 @@ public sealed interface EmailContext permits
         PasswordResetContext,
         ApplicationApprovedContext,
         ApplicationRejectedContext,
+        ApplicationChangesRequestedContext,
         DocumentVerifiedContext,
         DocumentRejectedContext,
         DocumentCommentContext,
