@@ -47,6 +47,9 @@ export interface EligibleRoomResponse {
   maxYearOfStudy?: number;
 }
 
+// Callers of the write methods below show their own failure message.
+const SILENT = { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) };
+
 @Injectable({
   providedIn: 'root',
 })
@@ -96,19 +99,19 @@ export class RoomService {
   }
 
   createRoom(room: RoomRequest): Observable<RoomResponse> {
-    return this.http.post<RoomResponse>(this.apiUrl, room);
+    return this.http.post<RoomResponse>(this.apiUrl, room, SILENT);
   }
 
   updateRoom(id: number, room: RoomRequest): Observable<RoomResponse> {
-    return this.http.put<RoomResponse>(`${this.apiUrl}/${id}`, room);
+    return this.http.put<RoomResponse>(`${this.apiUrl}/${id}`, room, SILENT);
   }
 
   deleteRoom(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, SILENT);
   }
 
   createBulkRooms(rooms: RoomRequest[]): Observable<RoomResponse[]> {
-    return this.http.post<RoomResponse[]>(`${this.apiUrl}/bulk`, rooms);
+    return this.http.post<RoomResponse[]>(`${this.apiUrl}/bulk`, rooms, SILENT);
   }
 
   /**
