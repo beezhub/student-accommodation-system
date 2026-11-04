@@ -20,6 +20,7 @@ import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.service.*;
+import com.beezhub.student_accommodation.service.allocation.WaitingListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -53,13 +54,14 @@ public class ApplicationAdminService {
     private final UserNotificationService userNotificationService;
     private final AuthService authService;
     private final RoomAllocationService roomAllocationService;
+    private final WaitingListService waitingListService;
     private final ApplicationDocumentService applicationDocumentService;
     private final ApplicationQueryService applicationQueryService;
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     /**
      * Application statuses that end the application. Reaching one of these releases any allocation
-     * the application still holds (GH-223).
+     * the application still holds (GH-223) and takes it off the waiting list.
      *
      * <p>Student-initiated cancellation is not routed through here and does not need to be: it is
      * only permitted from PENDING, UNDER_REVIEW and CHANGES_REQUESTED, none of which can hold an
@@ -138,6 +140,7 @@ public class ApplicationAdminService {
                 log.info("action=allocationsReleasedOnTerminalStatus applicationId={} status={} count={}",
                         applicationId, newStatus, released);
             }
+            waitingListService.closeEntriesForApplication(applicationId);
         }
 
         // Attempt auto-allocation if approved

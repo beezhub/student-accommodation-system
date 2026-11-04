@@ -30,6 +30,8 @@ public interface WaitingListRepository extends JpaRepository<WaitingListEntry, L
 
     Optional<WaitingListEntry> findByStudent_IdAndStatus(Long studentId, String status);
 
+    List<WaitingListEntry> findByApplication_IdAndStatus(Long applicationId, String status);
+
     long countByStatus(String status);
 
     /** Total students waiting, scoped to a specific academic year (queue depth). */

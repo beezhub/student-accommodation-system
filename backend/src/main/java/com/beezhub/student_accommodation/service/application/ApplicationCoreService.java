@@ -68,6 +68,7 @@ public class ApplicationCoreService {
         private final ApplicationMapper applicationMapper;
         private final AuthService authService;
         private final AcademicYearService academicYearService;
+        private final com.beezhub.student_accommodation.service.allocation.WaitingListService waitingListService;
 
         /** The student sees the same sentence whether the pre-check or the index refused. */
         private static final String DUPLICATE_APPLICATION_MESSAGE =
@@ -425,6 +426,9 @@ public class ApplicationCoreService {
                 application.setStatus(ApplicationStatus.CANCELLED);
                 application.setRemarks("Cancelled by the student.");
                 applicationRepository.save(application);
+                // An admin can queue an application in any status, so even one that is not yet
+                // approved may have a row here.
+                waitingListService.closeEntriesForApplication(applicationId);
                 log.info("action=applicationCancelled applicationId={}", applicationId);
         }
 

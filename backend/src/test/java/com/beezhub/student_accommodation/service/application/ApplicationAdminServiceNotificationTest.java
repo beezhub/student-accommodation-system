@@ -77,6 +77,9 @@ class ApplicationAdminServiceNotificationTest {
     @Mock
     private com.beezhub.student_accommodation.service.RoomAllocationService roomAllocationService;
 
+    @Mock
+    private com.beezhub.student_accommodation.service.allocation.WaitingListService waitingListService;
+
 
     @InjectMocks
     private ApplicationAdminService applicationAdminService;
