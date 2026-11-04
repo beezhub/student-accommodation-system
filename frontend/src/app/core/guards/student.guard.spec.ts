@@ -21,6 +21,7 @@ describe('StudentGuard', () => {
     roleServiceSpy = jasmine.createSpyObj<RoleService>('RoleService', [
       'isStudent',
       'isPlatformAdmin',
+      'isPlatformStaff',
       'isTenantAdmin',
     ]);
     routerSpy = jasmine.createSpyObj<Router>('Router', ['navigate']);
@@ -59,6 +60,21 @@ describe('StudentGuard', () => {
     ).and.returnValue({ userRole: ROLE.PLATFORM_ADMIN });
     roleServiceSpy.isStudent.and.returnValue(false);
     roleServiceSpy.isPlatformAdmin.and.returnValue(true);
+
+    const result = guard.canActivate(mockRoute, mockState);
+
+    expect(result).toBeFalse();
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/admin']);
+  });
+
+  it('canActivate_platformStaffUser_redirectsToAdmin_returnsFalse', () => {
+    (
+      Object.getOwnPropertyDescriptor(authServiceSpy, 'currentUserValue')!.get as jasmine.Spy
+    ).and.returnValue({ userRole: ROLE.PLATFORM_STAFF });
+    roleServiceSpy.isStudent.and.returnValue(false);
+    roleServiceSpy.isPlatformAdmin.and.returnValue(false);
+    roleServiceSpy.isPlatformStaff.and.returnValue(true);
+    roleServiceSpy.isTenantAdmin.and.returnValue(false);
 
     const result = guard.canActivate(mockRoute, mockState);
 

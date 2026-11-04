@@ -6,6 +6,7 @@ import {
   BuildingResponse,
   PageResponse,
 } from '../../../core/services/building.service';
+import { RoleService } from '../../../core/services/role.service';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
@@ -55,6 +56,16 @@ export class BuildingManagementComponent implements OnInit {
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  private roleService = inject(RoleService);
+
+  /**
+   * Staff cannot finish adding a building: the backend needs a company named by a platform-level
+   * caller, and the company list is PLATFORM_ADMIN only, so the form can never offer one.
+   */
+  get canAddBuilding(): boolean {
+    return !this.roleService.isPlatformStaff();
+  }
+
   buildings: BuildingResponse[] = [];
   displayedColumns: string[] = [
     'name',
