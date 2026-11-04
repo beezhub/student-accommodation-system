@@ -62,7 +62,7 @@ export class AcademicYearManagementComponent implements OnInit {
 
   loadAcademicYears(): void {
     this.isLoading = true;
-    this.academicYearService.getAcademicYears().subscribe({
+    this.academicYearService.getAcademicYears(true).subscribe({
       next: (years: AcademicYear[]) => {
         this.academicYears = years;
         this.isLoading = false;

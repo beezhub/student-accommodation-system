@@ -1,10 +1,16 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Institution } from '../models/institution.model';
 export { PageResponse } from '../models/page-response.model';
 import { PageResponse } from '../models/page-response.model';
+
+/**
+ * Asks errorInterceptor not to show its own snackbar (#310). Each write below has one caller, a
+ * reference-data page or form dialog that says what failed; reads take it only when asked.
+ */
+const SILENT = new HttpHeaders({ 'X-Silent-Error': 'true' });
 
 /** The query these paged endpoints accept. Was `any`, which typed nothing (GH-158). */
 export interface InstitutionFilters {
@@ -59,7 +65,10 @@ export class InstitutionService {
     return this.http.get<PageResponse<InstitutionResponse>>(this.apiUrl, { params });
   }
 
-  searchInstitutions(filters: InstitutionFilters): Observable<PageResponse<InstitutionResponse>> {
+  searchInstitutions(
+    filters: InstitutionFilters,
+    silent = false
+  ): Observable<PageResponse<InstitutionResponse>> {
     let params = new HttpParams()
       .set('page', filters.page?.toString() || '0')
       .set('size', filters.size?.toString() || '20');
@@ -74,7 +83,10 @@ export class InstitutionService {
       params = params.set('contactEmail', filters.contactEmail);
     }
 
-    return this.http.get<PageResponse<InstitutionResponse>>(`${this.apiUrl}/search`, { params });
+    return this.http.get<PageResponse<InstitutionResponse>>(`${this.apiUrl}/search`, {
+      params,
+      ...(silent ? { headers: SILENT } : {}),
+    });
   }
 
   getInstitutionById(id: number): Observable<InstitutionResponse> {
@@ -83,17 +95,17 @@ export class InstitutionService {
 
   createInstitution(request: InstitutionRequest): Observable<InstitutionResponse> {
     this.clearCache();
-    return this.http.post<InstitutionResponse>(this.apiUrl, request);
+    return this.http.post<InstitutionResponse>(this.apiUrl, request, { headers: SILENT });
   }
 
   updateInstitution(id: number, request: InstitutionRequest): Observable<InstitutionResponse> {
     this.clearCache();
-    return this.http.put<InstitutionResponse>(`${this.apiUrl}/${id}`, request);
+    return this.http.put<InstitutionResponse>(`${this.apiUrl}/${id}`, request, { headers: SILENT });
   }
 
   deleteInstitution(id: number): Observable<void> {
     this.clearCache();
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, { headers: SILENT });
   }
 
   clearCache() {
