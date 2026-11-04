@@ -490,6 +490,25 @@ class DeploymentConfigurationTest {
     }
 
     /**
+     * The backend image stored its jar twice (`RUN chown` copied all 95.6 MB into a new layer) and
+     * as one layer, so every deploy downloaded about 191 MB (#374). Spring Boot's layers, least
+     * often changed first, make a code-only deploy replace only the application layer.
+     */
+    @Test
+    void backendImage_copiesTheJarOnceAndInLayers() throws IOException {
+        String dockerfile = readLf("backend/Dockerfile");
+
+        assertThat(dockerfile).doesNotContainPattern("(?m)^RUN .*chown").doesNotContain("--chown");
+        assertThat(dockerfile).contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted");
+        assertThat(dockerfile).contains(String.join("\n",
+                "COPY --from=build /app/extracted/dependencies/ ./",
+                "COPY --from=build /app/extracted/spring-boot-loader/ ./",
+                "COPY --from=build /app/extracted/snapshot-dependencies/ ./",
+                "COPY --from=build /app/extracted/application/ ./"));
+        assertThat(dockerfile).contains("ENTRYPOINT [\"java\", \"-jar\", \"app.jar\"]");
+    }
+
+    /**
      * The first major version of each action that runs on Node 24 or later (#387). Older ones ran
      * on Node 20 only because GitHub forced them onto Node 24, and stop working when it stops.
      * Raise a number here when a workflow moves to a newer major; never lower one.
