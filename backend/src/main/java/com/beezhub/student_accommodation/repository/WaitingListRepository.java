@@ -22,6 +22,7 @@ public interface WaitingListRepository extends JpaRepository<WaitingListEntry, L
     @Query("SELECT w FROM WaitingListEntry w " +
            "LEFT JOIN FETCH w.student s " +
            "LEFT JOIN FETCH s.appUser " +
+           "LEFT JOIN FETCH s.yearOfStudy " +
            "LEFT JOIN FETCH w.application a " +
            "LEFT JOIN FETCH a.preferredBuilding " +
            "LEFT JOIN FETCH a.buildingPreferences " +

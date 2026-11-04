@@ -197,6 +197,59 @@ class WaitingListQueueIntegrationTest extends AbstractIntegrationTest {
 
     // ==================== Batch job ====================
 
+    @Test
+    void batchAllocate_applicantWithBuildingPreference_allocatesStudent() {
+        ff4j.enable(FF4jConfig.FEATURE_AUTO_ALLOCATION);
+        Building building = newBuilding(tenantA);
+        Room room = newRoom(building, tenantA);
+        Student student = newStudent("Ada", null, null);
+        Long entryId = enqueue(student, newApplication(student, tenantA, building, null), tenantA);
+
+        BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(10);
+
+        assertThat(result.getSuccessCount()).isEqualTo(1);
+        assertThat(allocationOf(student)).containsEntry("room_id", room.getId())
+                .containsEntry("tenant_id", tenantA);
+        assertThat(waitingListRepository.findById(entryId).orElseThrow().getStatus()).isEqualTo("ALLOCATED");
+    }
+
+    @Test
+    void batchAllocate_studentWithYearOfStudyAndRestrictedRoom_allocatesStudent() {
+        ff4j.enable(FF4jConfig.FEATURE_AUTO_ALLOCATION);
+        Building building = newBuilding(tenantA);
+        Room room = newRoom(building, tenantA);
+        restrictRoom(room, 2, 3, null);
+        Student student = newStudent("Ada", newYearOfStudy("2"), null);
+        enqueue(student, newApplication(student, tenantA, building, null), tenantA);
+
+        BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(10);
+
+        assertThat(result.getSuccessCount()).isEqualTo(1);
+        assertThat(allocationOf(student)).containsEntry("room_id", room.getId());
+    }
+
+    @Test
+    void batchAllocate_twoTenants_eachStudentGetsARoomOfOwnTenant() {
+        ff4j.enable(FF4jConfig.FEATURE_AUTO_ALLOCATION);
+        Building buildingA = newBuilding(tenantA);
+        Room roomA = newRoom(buildingA, tenantA);
+        Student studentA = newStudent("Ada", null, null);
+        enqueue(studentA, newApplication(studentA, tenantA, buildingA, null), tenantA);
+
+        Building buildingB = newBuilding(tenantB);
+        Room roomB = newRoom(buildingB, tenantB);
+        Student studentB = newStudent("Bea", null, null);
+        enqueue(studentB, newApplication(studentB, tenantB, buildingB, null), tenantB);
+
+        BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(10);
+
+        assertThat(result.getSuccessCount()).isEqualTo(2);
+        assertThat(allocationOf(studentA)).containsEntry("room_id", roomA.getId())
+                .containsEntry("tenant_id", tenantA);
+        assertThat(allocationOf(studentB)).containsEntry("room_id", roomB.getId())
+                .containsEntry("tenant_id", tenantB);
+    }
+
     // ==================== Fixtures ====================
 
     private ResponseEntity<JsonNode> getWaitingListAs(UserRole role, Long tenantId) {
