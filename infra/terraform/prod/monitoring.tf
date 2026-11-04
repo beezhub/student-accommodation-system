@@ -128,3 +128,39 @@ resource "aws_cloudwatch_metric_alarm" "ec2_cpu_credits" {
   alarm_actions       = [aws_sns_topic.alarms.arn]
   ok_actions          = [aws_sns_topic.alarms.arn]
 }
+
+# Data out to the internet: the first 100 GB a month is free across the whole account, then it is
+# $0.154/GB (docs/PROD_ENVIRONMENT_PLAN.md). A CloudWatch alarm cannot see it: documents download
+# straight from S3 through presigned URLs, which never pass the server's NetworkOut. Cost
+# Explorer's usage groups count both paths. Not filtered to PROD, because the free 100 GB is the
+# account's, whatever uses it. Budgets that only notify are free.
+resource "aws_budgets_budget" "data_out" {
+  name         = "${var.name}-data-out"
+  budget_type  = "USAGE"
+  limit_amount = "100"
+  limit_unit   = "GB"
+  time_unit    = "MONTHLY"
+
+  cost_filter {
+    name   = "UsageTypeGroup"
+    values = ["EC2: Data Transfer - Internet (Out)", "S3: Data Transfer - Internet (Out)"]
+  }
+
+  # 80 GB used: time to look before the free allowance runs out.
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.alarm_email]
+  }
+
+  # On course to pass 100 GB this month, which is when it starts to cost money.
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = [var.alarm_email]
+  }
+}

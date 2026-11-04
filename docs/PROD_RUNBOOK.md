@@ -140,5 +140,5 @@ Done on 2026-11-03; kept here to rebuild PROD from nothing.
 ## Known gaps
 
 - #339: no tested restore yet; RDS point-in-time recovery exists but has not been drilled.
-- #340: Grafana Cloud alerts are in `infra/terraform/prod-grafana` (applied by hand: `infra/terraform/README.md`, "Grafana Cloud alerts"); dashboards, UptimeRobot and the data-out alert are not built yet.
+- #340: Grafana Cloud alerts are in `infra/terraform/prod-grafana` (applied by hand: `infra/terraform/README.md`, "Grafana Cloud alerts"), and data out is the `sas-prod-data-out` budget in `prod/monitoring.tf`; dashboards and UptimeRobot are not built yet.
 - #344: DNS is still at the SADomains email hosting package.
