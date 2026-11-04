@@ -1,6 +1,8 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.BuildingNotFoundException;
+import com.beezhub.student_accommodation.exceptions.InvalidAccessibilityFeaturesException;
+import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.RoomNotFoundException;
 import com.beezhub.student_accommodation.model.dto.BuildingAttributesRequest;
 import com.beezhub.student_accommodation.model.dto.BuildingAttributesResponse;
@@ -15,11 +17,16 @@ import com.beezhub.student_accommodation.repository.BuildingAttributesRepository
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.RoomAttributesRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -37,6 +44,8 @@ class BuildingAttributesServiceTest {
     @Mock private RoomAttributesRepository roomAttributesRepository;
     @Mock private BuildingRepository buildingRepository;
     @Mock private RoomRepository roomRepository;
+    @Mock private TenantOwnershipGuard tenantOwnershipGuard;
+    @Spy private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private BuildingAttributesService service;
@@ -105,13 +114,110 @@ class BuildingAttributesServiceTest {
                 .isInstanceOf(BuildingNotFoundException.class);
     }
 
+    // ===== company ownership =====
+
+    /**
+     * Hibernate's tenant filter does not apply to findById, so without the guard one company's admin
+     * could read or change another company's building or room by id (CLAUDE.md, Multi-tenancy).
+     */
+    @Test
+    void getBuildingAttributes_anotherCompanysBuilding_refused() {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(tenantOwnershipGuard.assertReadable(building, "Building", 1L))
+                .thenThrow(new ResourceNotFoundException("Building not found with id: 1"));
+
+        assertThatThrownBy(() -> service.getBuildingAttributes(1L))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(buildingAttributesRepository, never()).findByBuilding_Id(any());
+    }
+
+    @Test
+    void updateBuildingAttributes_anotherCompanysBuilding_refusedAndNotSaved() {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(tenantOwnershipGuard.assertOwned(building, "Building", 1L))
+                .thenThrow(new ResourceNotFoundException("Building not found with id: 1"));
+
+        assertThatThrownBy(() -> service.updateBuildingAttributes(1L, new BuildingAttributesRequest()))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(buildingAttributesRepository, never()).save(any());
+    }
+
+    @Test
+    void getRoomAttributes_anotherCompanysRoom_refused() {
+        when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(tenantOwnershipGuard.assertReadable(room, "Room", 10L))
+                .thenThrow(new ResourceNotFoundException("Room not found with id: 10"));
+
+        assertThatThrownBy(() -> service.getRoomAttributes(10L))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(roomAttributesRepository, never()).findByRoom_Id(any());
+    }
+
+    @Test
+    void updateRoomAttributes_anotherCompanysRoom_refusedAndNotSaved() {
+        when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(tenantOwnershipGuard.assertOwned(room, "Room", 10L))
+                .thenThrow(new ResourceNotFoundException("Room not found with id: 10"));
+
+        assertThatThrownBy(() -> service.updateRoomAttributes(10L, new RoomAttributesRequest()))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(roomAttributesRepository, never()).save(any());
+    }
+
+    @Test
+    void getRoomAttributesByBuilding_anotherCompanysBuilding_refused() {
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(tenantOwnershipGuard.assertReadable(building, "Building", 1L))
+                .thenThrow(new ResourceNotFoundException("Building not found with id: 1"));
+
+        assertThatThrownBy(() -> service.getRoomAttributesByBuilding(1L))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(roomAttributesRepository, never()).findByRoom_Building_Id(any());
+    }
+
+    // ===== accessibility features =====
+
+    /** The column is JSONB and the public page reads a list of text, so nothing else may be stored. */
+    @ParameterizedTest
+    @ValueSource(strings = {"Ramp access", "", "{\"ramp\":true}", "[1,2]", "[\"Lift\",\"  \"]"})
+    void updateBuildingAttributes_featuresNotAListOfText_refusedAndNotSaved(String features) {
+        BuildingAttributesRequest request = new BuildingAttributesRequest();
+        request.setAccessibilityFeatures(features);
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+
+        assertThatThrownBy(() -> service.updateBuildingAttributes(1L, request))
+                .isInstanceOf(InvalidAccessibilityFeaturesException.class)
+                .hasMessage("Accessibility features must be a list of text.");
+
+        verify(buildingAttributesRepository, never()).save(any());
+    }
+
+    @Test
+    void updateBuildingAttributes_emptyFeatureList_clearsThem() {
+        BuildingAttributesRequest request = new BuildingAttributesRequest();
+        request.setAccessibilityFeatures("[]");
+        buildingAttributes.setAccessibilityFeatures("[\"Lift\"]");
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
+        when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.of(buildingAttributes));
+        when(buildingAttributesRepository.save(any(BuildingAttributes.class))).thenReturn(buildingAttributes);
+
+        service.updateBuildingAttributes(1L, request);
+
+        assertThat(buildingAttributes.getAccessibilityFeatures()).isEqualTo("[]");
+    }
+
     // ===== updateBuildingAttributes =====
 
     @Test
     void updateBuildingAttributes_existingAttributes_updatesAndSaves() {
         BuildingAttributesRequest request = new BuildingAttributesRequest();
         request.setGenderRestriction(GenderRestriction.FEMALE_ONLY);
-        request.setAccessibilityFeatures("Ramp access");
+        request.setAccessibilityFeatures("[\"Ramp access\"]");
         request.setDesirabilityScore(8);
         request.setAllowMixedGender(false);
 
@@ -255,7 +361,7 @@ class BuildingAttributesServiceTest {
 
     @Test
     void getRoomAttributesByBuilding_buildingExists_returnsAttributes() {
-        when(buildingRepository.existsById(1L)).thenReturn(true);
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
         when(roomAttributesRepository.findByRoom_Building_Id(1L)).thenReturn(List.of(roomAttributes));
 
         List<RoomAttributesResponse> responses = service.getRoomAttributesByBuilding(1L);
@@ -265,7 +371,7 @@ class BuildingAttributesServiceTest {
 
     @Test
     void getRoomAttributesByBuilding_buildingNotFound_throwsException() {
-        when(buildingRepository.existsById(99L)).thenReturn(false);
+        when(buildingRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getRoomAttributesByBuilding(99L))
                 .isInstanceOf(BuildingNotFoundException.class);
@@ -273,7 +379,7 @@ class BuildingAttributesServiceTest {
 
     @Test
     void getRoomAttributesByBuilding_noRoomAttributes_returnsEmptyList() {
-        when(buildingRepository.existsById(1L)).thenReturn(true);
+        when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
         when(roomAttributesRepository.findByRoom_Building_Id(1L)).thenReturn(List.of());
 
         List<RoomAttributesResponse> responses = service.getRoomAttributesByBuilding(1L);
