@@ -19,6 +19,18 @@ class EmailContentBuilderTest {
     private EmailContentBuilder emailContentBuilder;
 
     @Test
+    void formatDeadline_dateTime_showsTheTimeAndZone() {
+        String deadline = emailContentBuilder.formatDeadline(LocalDateTime.of(2026, 11, 11, 14, 30));
+
+        assertTrue(deadline.startsWith("11 November 2026 at 14:30 "), deadline);
+    }
+
+    @Test
+    void formatDeadline_null_returnsNotAvailable() {
+        assertEquals("N/A", emailContentBuilder.formatDeadline(null));
+    }
+
+    @Test
     void extractFloorNumber_validRoomNumber_returnsFloor() {
         assertEquals(1, emailContentBuilder.extractFloorNumber("101"));
         assertEquals(2, emailContentBuilder.extractFloorNumber("205"));

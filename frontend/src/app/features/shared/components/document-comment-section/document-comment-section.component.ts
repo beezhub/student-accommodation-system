@@ -66,7 +66,12 @@ export class DocumentCommentSectionComponent implements OnInit, OnChanges {
   }
 
   private checkAdminStatus(): void {
-    this.isAdmin = this.roleService.isPlatformAdmin();
+    // The roles DocumentController lets add and delete comments. Not RoleService.isAdmin(): that
+    // also counts BUILDING_STAFF, which the backend refuses here.
+    this.isAdmin =
+      this.roleService.isPlatformAdmin() ||
+      this.roleService.isPlatformStaff() ||
+      this.roleService.isTenantAdmin();
   }
 
   loadComments(): void {

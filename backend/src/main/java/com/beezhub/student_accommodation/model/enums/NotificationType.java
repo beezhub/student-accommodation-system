@@ -6,6 +6,7 @@ import lombok.Getter;
 public enum NotificationType {
     APPLICATION_APPROVED("Application Approved"),
     APPLICATION_REJECTED("Application Rejected"),
+    APPLICATION_CHANGES_REQUESTED("Application Changes Requested"),
     DOCUMENT_VERIFIED("Document Verified"),
     DOCUMENT_REJECTED("Document Rejected"),
     ROOM_ALLOCATED("Room Allocated"),

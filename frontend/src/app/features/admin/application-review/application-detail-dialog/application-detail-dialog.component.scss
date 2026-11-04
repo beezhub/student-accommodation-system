@@ -285,6 +285,21 @@ mat-dialog-content {
 
 // ─── Rejection Banner ─────────────────────────────────────────────────────────
 
+.review-note {
+  background: vars.$slate-50;
+  border-bottom: 1px solid vars.$slate-200;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.8125rem;
+
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: 0.25rem;
+  }
+}
+
 .rejection-banner {
   background: #fff5f5;
   border-bottom: 1px solid #fecaca;

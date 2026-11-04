@@ -23,13 +23,15 @@
           </div>
         </div>
 
-        <button
-          mat-raised-button
-          class="add-btn"
-          (click)="openCreateDialog()">
-          <mat-icon>add</mat-icon>
-          Add Building
-        </button>
+        @if (canAddBuilding) {
+          <button
+            mat-raised-button
+            class="add-btn"
+            (click)="openCreateDialog()">
+            <mat-icon>add</mat-icon>
+            Add Building
+          </button>
+        }
       </div>
     </div>
   </div>

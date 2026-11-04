@@ -55,6 +55,11 @@
                 </div>
 
                 <div class="mobile-card-actions">
+                  @if (app.status === 'CHANGES_REQUESTED') {
+                    <button mat-flat-button color="primary" [routerLink]="['/applications', app.id]">
+                      Review and Resubmit
+                    </button>
+                  }
                   <button mat-stroked-button class="view-btn" [routerLink]="['/applications', app.id]">
                     View Details
                   </button>
@@ -139,6 +144,11 @@
                 <th mat-header-cell *matHeaderCellDef> Actions </th>
                 <td mat-cell *matCellDef="let app">
                   <div class="actions-cell">
+                    @if (app.status === 'CHANGES_REQUESTED') {
+                      <button mat-flat-button color="primary" [routerLink]="['/applications', app.id]">
+                        <mat-icon>edit_note</mat-icon> Review and Resubmit
+                      </button>
+                    }
                     <button mat-flat-button class="view-btn" [routerLink]="['/applications', app.id]">
                       <mat-icon>visibility</mat-icon> View
                     </button>

@@ -100,7 +100,7 @@ class StudentServiceTest {
         student1.setInstitution(institution);
         student1.setYearOfStudy(yearOfStudy);
         student1.setGender("MALE");
-        student1.setDateOfBirth(new java.util.Date());
+        student1.setDateOfBirth(LocalDate.of(2000, 5, 14));
 
         student2 = new Student();
         student2.setId(2L);
@@ -109,7 +109,7 @@ class StudentServiceTest {
         student2.setInstitution(institution);
         student2.setYearOfStudy(yearOfStudy);
         student2.setGender("FEMALE");
-        student2.setDateOfBirth(new java.util.Date());
+        student2.setDateOfBirth(LocalDate.of(2000, 5, 14));
 
         response1 = new StudentResponse();
         response1.setId(1L);

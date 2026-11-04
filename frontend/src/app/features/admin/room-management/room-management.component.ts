@@ -220,9 +220,12 @@ export class RoomManagementComponent implements OnInit {
         },
         error: (error) => {
           console.error('Failed to delete room:', error);
-          this.snackBar.open('Failed to delete room. It may have active allocations.', 'Close', {
-            duration: 5000,
-          });
+          const message: string | undefined = error?.error?.errors?.[0];
+          this.snackBar.open(
+            message || 'Failed to delete room. It may have active allocations.',
+            'Close',
+            { duration: 5000 }
+          );
         },
       });
     });

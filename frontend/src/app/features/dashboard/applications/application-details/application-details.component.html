@@ -54,6 +54,25 @@
             </mat-card-content>
           </mat-card>
         }
+        @if (canResubmit) {
+          <mat-card appearance="outlined" class="changes-requested-card">
+            <mat-card-content>
+              <h3 class="section-title">Changes requested</h3>
+              <mat-divider></mat-divider>
+              <p class="changes-reason">{{ application.remarks }}</p>
+              <p>
+                Make these changes, then resubmit. If a document needs replacing, upload the new one
+                on your <a routerLink="/documents">Documents</a> page first.
+              </p>
+              <div class="action-buttons">
+                <button mat-raised-button color="primary" [disabled]="isResubmitting" (click)="resubmitApplication()">
+                  <mat-icon>send</mat-icon>
+                  Resubmit Application
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
         <!-- Application Overview -->
         <mat-card appearance="outlined">
           <mat-card-content>
@@ -74,7 +93,7 @@
                   <app-modern-status-badge [status]="application.status" size="sm"></app-modern-status-badge>
                 </div>
               </div>
-              @if (application.remarks) {
+              @if (application.remarks && !canResubmit) {
                 <div class="info-item">
                   <div class="label">Remarks</div>
                   <div class="value">{{ application.remarks }}</div>

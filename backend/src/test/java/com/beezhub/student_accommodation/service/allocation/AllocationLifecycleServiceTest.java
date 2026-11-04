@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import com.beezhub.student_accommodation.model.event.AllocationAcceptedEvent;
+import com.beezhub.student_accommodation.model.event.AllocationMovedEvent;
 import com.beezhub.student_accommodation.model.event.RoomVacatedEvent;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -495,6 +496,80 @@ class AllocationLifecycleServiceTest {
                 .isInstanceOf(StudentAlreadyAllocatedException.class);
 
         verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
+    }
+
+    /** The only notice this path gave was the email; nothing appeared in the app (GH-458). */
+    @Test
+    void createRoomAllocation_offerMade_createsInAppOfferNoticeWithTheDeadline() {
+        Building building = new Building();
+        building.setName("Block A");
+        room.setBuilding(building);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
+
+        allocationLifecycleService.createRoomAllocation(allocationRequest);
+
+        ArgumentCaptor<RoomAllocation> saved = ArgumentCaptor.forClass(RoomAllocation.class);
+        verify(roomAllocationRepository).save(saved.capture());
+        verify(userNotificationService).createRoomOfferNotification(
+                1L, "101", "Block A", saved.getValue().getOfferExpiryDate());
+    }
+
+    /**
+     * An ACCEPTED allocation can still be edited. The student has already accepted, so telling them
+     * to accept by a deadline would be wrong: this is a room change (GH-458).
+     */
+    @Test
+    void updateRoomAllocation_acceptedAllocationRoomChanged_sendsRoomChangeNotOffer() {
+        Room newRoom = new Room();
+        newRoom.setId(2L);
+        newRoom.setRoomNumber("102");
+        newRoom.setCapacity(2);
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStatus(AllocationStatus.ACCEPTED);
+        allocation.setStudent(student);
+        allocation.setRoom(room);
+        allocationRequest.setRoomId(2L);
+
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(roomRepository.findById(2L)).thenReturn(Optional.of(newRoom));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
+
+        allocationLifecycleService.updateRoomAllocation(1L, allocationRequest);
+
+        verify(eventPublisher).publishEvent(any(AllocationMovedEvent.class));
+        verify(eventPublisher, never()).publishEvent(any(AllocationCreatedEvent.class));
+    }
+
+    @Test
+    void updateRoomAllocation_offeredAllocationRoomChanged_sendsTheOfferAgain() {
+        Room newRoom = new Room();
+        newRoom.setId(2L);
+        newRoom.setRoomNumber("102");
+        newRoom.setCapacity(2);
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(1L);
+        allocation.setStatus(AllocationStatus.OFFERED);
+        allocation.setStudent(student);
+        allocation.setRoom(room);
+        allocationRequest.setRoomId(2L);
+
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(roomRepository.findById(2L)).thenReturn(Optional.of(newRoom));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(new RoomAllocationResponse());
+
+        allocationLifecycleService.updateRoomAllocation(1L, allocationRequest);
+
+        verify(eventPublisher).publishEvent(any(AllocationCreatedEvent.class));
+        verify(eventPublisher, never()).publishEvent(any(AllocationMovedEvent.class));
     }
 
     @Test

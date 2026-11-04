@@ -8,6 +8,7 @@ import com.beezhub.student_accommodation.model.dto.AcademicYearResponse;
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -85,7 +86,11 @@ public class AcademicYearService {
 
     @Transactional(readOnly = true)
     public List<AcademicYearResponse> getAllAcademicYears() {
-        return academicYearRepository.findAll().stream()
+        Long tenantId = TenantContext.getTenantId();
+        List<AcademicYear> years = tenantId == null || TenantContext.PLATFORM_TENANT_ID.equals(tenantId)
+                ? academicYearRepository.findAll()
+                : academicYearRepository.findVisibleToTenant(tenantId);
+        return years.stream()
                 .map(academicYearMapper::toResponse)
                 .collect(Collectors.toList());
     }

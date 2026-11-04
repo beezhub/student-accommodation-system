@@ -16,6 +16,7 @@ import com.beezhub.student_accommodation.service.allocation.ScoringStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -73,11 +74,17 @@ public class AllocationScoringOrchestrator {
         return capacityMap;
     }
 
+    /** The transaction is what lets the tenant filter scope this to the tenant in context. */
+    @Transactional(readOnly = true)
     public List<Room> getAvailableRoomsForBatch() {
         return roomRepository.findRoomsWithAvailableCapacity();
     }
 
-
+    /**
+     * Read in one transaction so the tenant filter applies: a tenant admin sees only their own queue,
+     * ranked by their own rule. Platform roles have no filter and see every tenant.
+     */
+    @Transactional(readOnly = true)
     public List<WaitingListEntryResponse> getWaitingListWithScores(Long buildingId) {
         log.info("Getting waiting list with scores for building {}", buildingId);
 

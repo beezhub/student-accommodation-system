@@ -81,6 +81,7 @@ export class ApplicationDetailsComponent implements OnInit {
   application: ApplicationResponse | null = null;
   isLoading = false;
   isAdmin = false;
+  isResubmitting = false;
 
   timeline: Array<{
     date: string;
@@ -197,6 +198,21 @@ export class ApplicationDetailsComponent implements OnInit {
         description: 'Application is being reviewed by the housing team',
         icon: 'hourglass_empty',
       });
+    } else if (this.application.status === 'UNDER_REVIEW') {
+      this.timeline.push({
+        date: this.application.updatedAt || this.application.applicationDate,
+        status: 'Under Review',
+        description: 'Application is being reviewed by the housing team',
+        icon: 'hourglass_empty',
+      });
+    } else if (this.application.status === 'CHANGES_REQUESTED') {
+      this.timeline.push({
+        date: this.application.updatedAt || this.application.applicationDate,
+        status: 'Changes Requested',
+        description:
+          this.application.remarks || 'Changes are needed before the review can continue',
+        icon: 'edit_note',
+      });
     } else if (this.application.status === 'ALLOCATED') {
       this.timeline.push({
         date: this.application.updatedAt || this.application.applicationDate,
@@ -223,6 +239,31 @@ export class ApplicationDetailsComponent implements OnInit {
       default:
         return 'status-default';
     }
+  }
+
+  get canResubmit(): boolean {
+    return this.application?.status === 'CHANGES_REQUESTED' && this.roleService.isStudent();
+  }
+
+  resubmitApplication(): void {
+    if (!this.application) return;
+
+    this.isResubmitting = true;
+    this.applicationService.resubmitApplication(this.application.id).subscribe({
+      next: () => {
+        this.snackBar.open('Application resubmitted for review', 'Close', { duration: 3000 });
+        this.isResubmitting = false;
+        this.loadApplicationDetails();
+      },
+      error: (error) => {
+        console.error('Error resubmitting application:', error);
+        this.snackBar.open(error.error?.message || 'Failed to resubmit application', 'Close', {
+          duration: 5000,
+        });
+        this.isResubmitting = false;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   canApproveOrReject(): boolean {

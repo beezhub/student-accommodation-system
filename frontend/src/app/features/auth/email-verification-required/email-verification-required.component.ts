@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ErrorHandlingService } from '../../../core/services/error-handling.service';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,6 +27,7 @@ export class EmailVerificationRequiredComponent {
   private router = inject(Router);
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
+  private errorService = inject(ErrorHandlingService);
 
   isResending = false;
   currentUser = this.authService.currentUserValue;
@@ -69,16 +71,14 @@ export class EmailVerificationRequiredComponent {
   }
 
   checkVerificationStatus(): void {
-    // Refresh user data from the /me endpoint
     this.snackBar.open('Checking verification status...', 'Close', {
       duration: 2000,
     });
 
-    // For now, check localStorage - in production you'd want to call /api/auth/me
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
+    // Asks the backend, because the stored copy cannot know about a link clicked on another
+    // device, and refreshing it is what lets EmailVerifiedGuard through (#442).
+    this.authService.refreshCurrentUser().subscribe({
+      next: (user) => {
         if (user.emailVerified === true) {
           this.snackBar.open('Email verified! Redirecting...', 'Close', {
             duration: 2000,
@@ -95,9 +95,13 @@ export class EmailVerificationRequiredComponent {
             }
           );
         }
-      } catch {
-        // Invalid JSON, ignore
-      }
-    }
+      },
+      error: (error: unknown) => {
+        this.snackBar.open(this.errorService.parseError(error).message, 'Close', {
+          duration: 5000,
+          panelClass: ['error-snackbar'],
+        });
+      },
+    });
   }
 }

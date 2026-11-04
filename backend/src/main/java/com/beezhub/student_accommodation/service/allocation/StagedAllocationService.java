@@ -302,10 +302,11 @@ public class StagedAllocationService {
     private void sendConfirmationNotification(RoomAllocation saved) {
         try {
             eventPublisher.publishEvent(new AllocationCreatedEvent(saved));
-            userNotificationService.createAllocationConfirmationNotification(
+            userNotificationService.createRoomOfferNotification(
                     saved.getStudent().getAppUser().getId(),
                     saved.getRoom().getRoomNumber(),
-                    saved.getRoom().getBuilding().getName());
+                    saved.getRoom().getBuilding().getName(),
+                    saved.getOfferExpiryDate());
         } catch (Exception e) {
             log.error("Failed to send confirmation notification", e);
         }

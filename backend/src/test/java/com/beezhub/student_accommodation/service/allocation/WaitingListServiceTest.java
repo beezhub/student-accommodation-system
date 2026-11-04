@@ -66,6 +66,19 @@ class WaitingListServiceTest {
     @InjectMocks
     private WaitingListService waitingListService;
 
+    @Test
+    void closeEntriesForApplication_waitingEntry_cancelled() {
+        WaitingListEntry entry = new WaitingListEntry();
+        entry.setStatus("WAITING");
+        when(waitingListRepository.findByApplication_IdAndStatus(10L, "WAITING"))
+                .thenReturn(java.util.List.of(entry));
+
+        waitingListService.closeEntriesForApplication(10L);
+
+        assertThat(entry.getStatus()).isEqualTo("CANCELLED");
+        verify(waitingListRepository).save(entry);
+    }
+
     private Student student;
     private AppUser appUser;
     private Application application;

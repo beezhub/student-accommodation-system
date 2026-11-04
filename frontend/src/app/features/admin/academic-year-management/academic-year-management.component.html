@@ -11,7 +11,11 @@
         </div>
         <div class="hero-text">
           <h1 class="hero-title">Academic Year Management</h1>
-          <p class="hero-subtitle">Configure academic years and application windows</p>
+          <p class="hero-subtitle">
+            {{ canManage
+              ? 'Configure academic years and application windows'
+              : 'Academic years and application windows are set by the platform and apply to every company' }}
+          </p>
         </div>
       </div>
 
@@ -23,13 +27,15 @@
           </div>
         </div>
 
-        <button
-          mat-raised-button
-          class="add-btn"
-          (click)="openCreateDialog()">
-          <mat-icon>add</mat-icon>
-          Add Academic Year
-        </button>
+        @if (canManage) {
+          <button
+            mat-raised-button
+            class="add-btn"
+            (click)="openCreateDialog()">
+            <mat-icon>add</mat-icon>
+            Add Academic Year
+          </button>
+        }
       </div>
     </div>
   </div>
@@ -155,7 +161,9 @@
           <app-empty-state
             icon="event_note"
             title="No Academic Years Found"
-            description="No academic years configured yet. Add one to get started."
+            [description]="canManage
+              ? 'No academic years configured yet. Add one to get started.'
+              : 'The platform has not set up any academic years yet.'"
             ctaLabel="Add Academic Year">
           </app-empty-state>
         }

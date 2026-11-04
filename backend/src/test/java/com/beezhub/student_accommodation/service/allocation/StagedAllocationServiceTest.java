@@ -162,6 +162,27 @@ class StagedAllocationServiceTest {
         }
 
         /**
+         * Confirming a proposal creates an OFFERED allocation. Telling the student it "has been
+         * confirmed" hid that they still had to accept before it lapsed (GH-458).
+         */
+        @Test
+        void confirmAllocation_validProposal_tellsTheStudentItIsAnOfferWithADeadline() {
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
+                                .thenReturn(new RoomAllocationResponse());
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+
+                stagedAllocationService.confirmAllocation(1L, 2L);
+
+                ArgumentCaptor<RoomAllocation> saved = ArgumentCaptor.forClass(RoomAllocation.class);
+                verify(roomAllocationRepository).save(saved.capture());
+                verify(userNotificationService).createRoomOfferNotification(1L, room.getRoomNumber(),
+                                building.getName(), saved.getValue().getOfferExpiryDate());
+        }
+
+        /**
          * GH-146: only one of the five construction sites for tenant-owned allocation rows set
          * tenantId. The rest left it null, so TenantListener copied the acting context, which is 0
          * for a platform admin. The owning tenant could not then see the row through any filtered

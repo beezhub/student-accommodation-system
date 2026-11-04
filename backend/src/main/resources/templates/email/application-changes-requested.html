@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Changes Needed on Your Application</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Changes Needed on Your Application</h1>
+<span layout:fragment="email-subtitle">Your application is on hold until you respond</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <p>We have reviewed your application
+       <strong>#<span th:text="${applicationId}">12345</span></strong> and need you to change
+       something before we can continue.</p>
+
+    <div class="warning-box">
+        <h3>What needs to change</h3>
+        <p th:text="${changesReason}">The proof of registration is for the wrong academic year.</p>
+    </div>
+
+    <div class="info-box">
+        <h3>What to do next</h3>
+        <ul>
+            <li>Make the changes described above</li>
+            <li>Open your application and click Resubmit</li>
+        </ul>
+        <p>Your application returns to the review queue once you resubmit it.</p>
+    </div>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">Open Your Application</a>
+    </div>
+</div>
+
+</body>
+</html>

@@ -428,6 +428,42 @@ class AuthServiceExtendedTest {
         assertThat(token.isUsed()).isTrue();
     }
 
+    /** #440: the correct new password was refused with "Invalid email or password" for 15 minutes. */
+    @Test
+    void resetPassword_temporarilyLockedAccount_clearsTheLockout() {
+        user.setFailedLoginAttempts(5);
+        user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(14));
+        stubValidReset();
+
+        authService.resetPassword("valid", "newPass");
+
+        assertThat(user.getAccountLockedUntil()).isNull();
+        assertThat(user.getFailedLoginAttempts()).isZero();
+        verify(loginAttemptService).loginSucceeded(user.getId());
+    }
+
+    /**
+     * The same column deactivates an account and holds an admin with no company (#412, #413). A
+     * reset link needs only the mailbox, so it must not undo a decision an administrator made.
+     */
+    @Test
+    void resetPassword_accountLockedByAnAdministrator_staysLocked() {
+        LocalDateTime deactivated = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
+        user.setAccountLockedUntil(deactivated);
+        stubValidReset();
+
+        authService.resetPassword("valid", "newPass");
+
+        assertThat(user.getAccountLockedUntil()).isEqualTo(deactivated);
+    }
+
+    private void stubValidReset() {
+        PasswordResetToken token = PasswordResetToken.builder()
+                .token("valid").user(user).expiryDate(LocalDateTime.now().plusHours(1)).used(false).build();
+        when(passwordResetTokenRepository.findByToken(SecureTokenHasher.hash("valid"))).thenReturn(Optional.of(token));
+        when(passwordEncoder.encode("newPass")).thenReturn("encoded-new");
+    }
+
     // ─────────────────────────────────────────────────────────────
     // sendVerificationEmail
     // ─────────────────────────────────────────────────────────────

@@ -123,6 +123,52 @@ describe('ErrorHandlingService', () => {
     expect(service.parseError(httpError(409, { unexpected: 'x' })).message).toContain('conflicts');
   });
 
+  /** #441: the backend's ErrorResponse only has errors[], so its reason never reached the user. */
+  it('parseError_errorResponseBody_usesItsErrorsArray', () => {
+    const parsed = service.parseError(
+      httpError(409, { status: 409, errors: ['Missing required documents: ID Copy'] })
+    );
+
+    expect(parsed.message).toBe('Missing required documents: ID Copy');
+  });
+
+  it('parseError_errorsArrayWithNoText_fallsBackToTheDefault', () => {
+    expect(service.parseError(httpError(409, { errors: [{ code: 1 }] })).message).toContain(
+      'conflicts'
+    );
+  });
+
+  /** The inline display prints the message and the details, so one reason would print twice. */
+  it('parseError_singleError_isNotRepeatedAsADetail', () => {
+    const parsed = service.parseError(httpError(400, { errors: ['Name is required'] }));
+
+    expect(parsed.message).toBe('Name is required');
+    expect(parsed.details).toBeUndefined();
+  });
+
+  /** Unreadable success bodies arrive as { error: SyntaxError, text }, and error is no message. */
+  it('parseError_nonStringErrorField_isNotUsedAsTheMessage', () => {
+    const parsed = service.parseError(httpError(409, { error: new SyntaxError('bad json') }));
+
+    expect(parsed.message).toContain('conflicts');
+  });
+
+  /** nginx answers with an HTML page, which HttpClient hands over as a raw string. */
+  it('parseError_htmlBody_isNeverShownToTheUser', () => {
+    const page = '<html>\r\n<head><title>404 Not Found</title></head></html>';
+
+    expect(service.parseError(httpError(404, page)).message).not.toContain('<');
+    expect(service.parseError(httpError(418, `\n  ${page}`)).message).not.toContain('<');
+  });
+
+  it('parseError_payloadTooLarge_saysTheFileIsTooLarge', () => {
+    const page = '<html><head><title>413 Request Entity Too Large</title></head></html>';
+    const parsed = service.parseError(httpError(413, page));
+
+    expect(parsed.message).toContain('That file is too large');
+    expect(parsed.canRetry).toBeFalse();
+  });
+
   // -------------------------------------------------- validation details
 
   it('parseError_errorsArray_becomesDetails', () => {

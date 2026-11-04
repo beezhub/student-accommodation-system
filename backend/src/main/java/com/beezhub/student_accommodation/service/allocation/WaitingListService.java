@@ -106,6 +106,26 @@ public class WaitingListService {
     }
 
     /**
+     * Takes an application that has ended off the waiting list.
+     *
+     * <p>A WAITING row left behind is matched by the allocator, which then refuses the allocation,
+     * and it also stops {@link #enqueueWaitingList(Student, Application)} queueing the student's
+     * next application.
+     *
+     * <p>By application, not by student: a student's row may belong to another application, which
+     * is still going. Runs in the caller's transaction, so the row and the application status
+     * commit together. It sends nothing, so there is nothing to defer to after commit.
+     */
+    @Transactional
+    public void closeEntriesForApplication(Long applicationId) {
+        waitingListRepository.findByApplication_IdAndStatus(applicationId, "WAITING").forEach(entry -> {
+            entry.setStatus("CANCELLED");
+            waitingListRepository.save(entry);
+            log.info("action=waitingEntryClosed entryId={} applicationId={}", entry.getId(), applicationId);
+        });
+    }
+
+    /**
      * How many offers a student may decline before their application is closed.
      *
      * <p>The decline dialog has always told students this: "You have declined N of 2 offers", and

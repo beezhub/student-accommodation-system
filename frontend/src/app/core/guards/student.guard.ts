@@ -20,7 +20,11 @@ export class StudentGuard implements CanActivate {
     }
 
     // Not authorized
-    if (this.roleService.isPlatformAdmin() || this.roleService.isTenantAdmin()) {
+    if (
+      this.roleService.isPlatformAdmin() ||
+      this.roleService.isPlatformStaff() ||
+      this.roleService.isTenantAdmin()
+    ) {
       // Admin trying to access student routes, redirect to admin dashboard
       this.router.navigate(['/admin']);
     } else if (currentUser) {

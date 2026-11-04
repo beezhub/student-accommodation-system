@@ -4,7 +4,7 @@
       layout:decorate="~{email/_layout}"
       lang="en">
 <head>
-    <title>Room Allocation Confirmation</title>
+    <title>Room Offer</title>
     <style>
         .room-highlight {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -44,16 +44,26 @@
 </head>
 <body>
 
-<h1 layout:fragment="email-title">Your Room is Ready!</h1>
-<span layout:fragment="email-subtitle">Room allocation confirmed — welcome home!</span>
+<h1 layout:fragment="email-title">You Have a Room Offer</h1>
+<span layout:fragment="email-subtitle">Accept by the deadline to keep this room</span>
 
 <div layout:fragment="email-content">
     <p style="text-align:center; font-size: 60px; margin: 20px 0;">&#127968;</p>
 
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
-    <p>Congratulations! We are pleased to inform you that a room has been successfully
-       allocated to you. Welcome to your new home away from home!</p>
+    <p>We are pleased to offer you the room below. This room is not yours yet: you must accept
+       this offer before the deadline.</p>
+
+    <div class="danger-box">
+        <h3>Accept by <span th:text="${offerExpiryDate}">11 November 2026 at 14:30 UTC</span></h3>
+        <p>If you do not respond by then, the offer expires, the room is released to other students
+           and your application is cancelled.</p>
+    </div>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">Review and Accept Offer</a>
+    </div>
 
     <div class="room-highlight">
         <h2 th:text="${roomNumber}">Room 204</h2>
@@ -89,17 +99,17 @@
     </div>
 
     <div class="success-box">
-        <h3>Tenancy Period</h3>
+        <h3>Tenancy Period If You Accept</h3>
         <p><strong>Start Date:</strong> <span th:text="${startDate}">2025-02-01</span></p>
         <p><strong>End Date:</strong> <span th:text="${endDate}">2025-11-30</span></p>
         <p><strong>Duration:</strong> <span th:text="${duration}">10 months</span></p>
     </div>
 
     <div class="info-box">
-        <h3>Move-In Instructions</h3>
+        <h3>Move-In Instructions After You Accept</h3>
         <ul>
             <li>Report to the Accommodation Office on your move-in date between 9:00 AM - 4:00 PM</li>
-            <li>Bring your student ID card and a copy of this allocation email</li>
+            <li>Bring your student ID card and a copy of this offer email</li>
             <li>Collect your room key and access card from the office</li>
             <li>Complete the room condition inspection form</li>
             <li>Sign the accommodation agreement</li>
@@ -141,12 +151,8 @@
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">View Full Details</a>
+        <a th:href="${portalUrl}" class="cta-button">Review and Accept Offer</a>
     </div>
-
-    <p style="margin-top: 30px; font-style: italic;">
-        We look forward to welcoming you to your new home. Have a wonderful stay with us!
-    </p>
 </div>
 
 </body>

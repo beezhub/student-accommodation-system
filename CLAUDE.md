@@ -153,7 +153,10 @@ before any status change and test both the valid and invalid path.
 **Database.** Flyway migrations in `src/main/resources/db/migration/`, named `V{YYYY_MM_DD_HHMM}__{description}.sql`,
 baselined at `2026.02.19.2100` (`init_full_schema`), with `out-of-order: false` and `validate-on-migrate: true`.
 Hibernate runs `hbm2ddl.auto: validate`, so an entity change without a matching migration fails startup. Never edit an
-applied migration. Enums are stored as strings; no soft deletes.
+applied migration. Enums are stored as strings; no soft deletes. Timestamps are `LocalDateTime` in South African
+time on columns with no zone, and the API sends and receives them with no offset (GH-461): the JVM zone comes from
+`TZ` / `APP_TIMEZONE`, so a frontend value going to the backend must be a local wall clock, never `toISOString()`.
+The nightly crons in `ScheduledJobRunner` are pinned to UTC, so they do not follow it.
 
 ## Backend testing
 

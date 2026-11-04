@@ -17,6 +17,7 @@ import { BuildingService, BuildingResponse } from '../../../core/services/buildi
 import { DocumentService } from '../../../core/services/document.service';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
+import { parseLocalDate, toLocalDateString } from '../../../core/utils/local-date';
 import { ApplicationDraftService } from '../../../core/services/application-draft.service';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -261,7 +262,7 @@ export class ApplicationSubmissionComponent implements OnInit {
           this.applicationForm.patchValue({ phoneNumber: profile.phoneNumber });
         }
         if (profile.dateOfBirth) {
-          this.applicationForm.patchValue({ dateOfBirth: new Date(profile.dateOfBirth) });
+          this.applicationForm.patchValue({ dateOfBirth: parseLocalDate(profile.dateOfBirth) });
         }
         if (profile.gender) {
           this.applicationForm.patchValue({ gender: profile.gender });
@@ -353,7 +354,8 @@ export class ApplicationSubmissionComponent implements OnInit {
         courseName: formValue.courseName,
         studentNumber: formValue.studentNumber,
         phoneNumber: formValue.phoneNumber,
-        dateOfBirth: formValue.dateOfBirth,
+        // Saved as a calendar day: JSON.stringify would turn the picked Date into a UTC timestamp.
+        dateOfBirth: toLocalDateString(formValue.dateOfBirth),
         gender: formValue.gender,
       };
 
