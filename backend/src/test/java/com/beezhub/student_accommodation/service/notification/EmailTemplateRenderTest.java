@@ -81,6 +81,15 @@ class EmailTemplateRenderTest {
     // -------------------------------------------------------------------------
 
     @Test
+    void layout_blankContactPhone_hidesThePhoneNumber() {
+        Map<String, Object> vars = baseContext();
+        vars.put("contactPhone", "");
+        vars.put("resetUrl", "http://localhost:4200/reset?token=abc123");
+
+        assertThat(render("password-reset", vars)).doesNotContain(CONTACT_PHONE);
+    }
+
+    @Test
     void passwordReset_rendersCorrectly() {
         Map<String, Object> vars = baseContext();
         vars.put("studentName", "Jane Smith");

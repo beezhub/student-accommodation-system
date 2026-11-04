@@ -48,6 +48,7 @@ Write them down; several steps below need them.
 | PROD hostname | same | `app.example.co.za` |
 | `APP_UNIVERSITY_NAME` | every email template | `Example University` |
 | `APP_SUPPORT_EMAIL` | every email template, reply-to | `accommodation@example.co.za` |
+| `APP_CONTACT_PHONE` | every email footer, hidden when blank | the real office number |
 | First platform admin email | `ADMIN_BOOTSTRAP_EMAIL`, the first login | your address |
 
 `ALLOWED_ORIGINS`, `APP_BASE_URL`, `STORAGE_PUBLIC_ORIGIN` and `GRAFANA_ROOT_URL` are all derived
