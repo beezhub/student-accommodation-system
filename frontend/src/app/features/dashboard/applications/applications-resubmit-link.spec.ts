@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { ApplicationsComponent } from './applications.component';
 import { ApplicationService } from '../../../core/services/application.service';
 import { Application } from '../../../core/models/application.model';
@@ -39,5 +39,68 @@ describe('ApplicationsComponent resubmit link', () => {
 
   it('list_otherStatus_hasNoResubmitLink', () => {
     expect(resubmitLinks('PENDING').length).toBe(0);
+  });
+
+  it('list_requiredDocuments_showWhichAreMissing', () => {
+    TestBed.configureTestingModule({
+      imports: [ApplicationsComponent, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ApplicationService,
+          useValue: {
+            getMyApplications: () =>
+              of([
+                { id: 1, status: 'PENDING', createdAt: '2026-01-01', tenantId: 4 } as Application,
+                { id: 2, status: 'PENDING', applicationDate: '2026-02-01' } as Application,
+              ]),
+          },
+        },
+        { provide: AuthService, useValue: { currentUserValue: null } },
+        {
+          provide: DocumentService,
+          useValue: { getUploadedDocuments: () => of([{ documentTypeName: 'ID' }]) },
+        },
+        {
+          provide: DocumentTypeService,
+          useValue: {
+            getRequiredDocumentTypes: () =>
+              of([
+                { id: 10, name: 'ID' },
+                { id: 11, name: 'Proof of registration' },
+              ]),
+          },
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(ApplicationsComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+
+    expect(component.applications.map((a) => a.id)).toEqual([2, 1]);
+    expect(component.getDocRequirements(1).map((r) => r.uploaded)).toEqual([true, false]);
+    expect(component.getMissingCount(1)).toBe(1);
+    expect(component.getDocRequirements(2)).toEqual([]);
+  });
+
+  it('list_backendFails_showsAnEmptyList', () => {
+    TestBed.configureTestingModule({
+      imports: [ApplicationsComponent, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ApplicationService,
+          useValue: { getMyApplications: () => throwError(() => new Error('boom')) },
+        },
+        { provide: AuthService, useValue: { currentUserValue: null } },
+        { provide: DocumentService, useValue: {} },
+        { provide: DocumentTypeService, useValue: {} },
+      ],
+    });
+    const fixture = TestBed.createComponent(ApplicationsComponent);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.applications).toEqual([]);
+    expect(fixture.componentInstance.isLoading).toBeFalse();
   });
 });

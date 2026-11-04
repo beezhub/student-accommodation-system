@@ -131,6 +131,351 @@ describe('ApplicationDetailDialogComponent', () => {
     });
   });
 
+  describe('loading', () => {
+    it('loadApplicationDetails_backendFails_showsTheServerMessage', () => {
+      create(details('PENDING'));
+      applicationService.getApplicationFullDetails.and.returnValue(
+        throwError(() => ({ error: { message: 'Not yours' } }))
+      );
+
+      component.loadApplicationDetails();
+
+      expect(component.loadError).toBe('Not yours');
+      expect(component.isLoading).toBeFalse();
+    });
+
+    it('loadApplicationDetails_noServerMessage_fallsBackToAGenericOne', () => {
+      create(details('PENDING'));
+      applicationService.getApplicationFullDetails.and.returnValue(throwError(() => ({})));
+
+      component.loadApplicationDetails();
+
+      expect(component.loadError).toBe('Failed to load application details');
+    });
+  });
+
+  describe('checklist display', () => {
+    it('getChecklistIcon_coversEveryStatus', () => {
+      create(details('PENDING'));
+
+      expect(component.getChecklistIcon(checklistItem(1, 'APPROVED'))).toBe('check_circle');
+      expect(component.getChecklistIcon(checklistItem(1, 'PENDING'))).toBe('hourglass_empty');
+      expect(component.getChecklistIcon(checklistItem(1, 'REJECTED'))).toBe('cancel');
+      expect(component.getChecklistIcon(checklistItem(1, 'NOT_UPLOADED'))).toBe('cloud_upload');
+      expect(component.getChecklistIcon(checklistItem(1, 'OTHER'))).toBe('help');
+      expect(component.getChecklistClass(checklistItem(1, 'NOT_UPLOADED'))).toBe('not-uploaded');
+    });
+
+    it('checklistProgress_tracksApprovals', () => {
+      create(details('PENDING', 'APPROVED'));
+      expect(component.checklistProgress).toBe(100);
+
+      component.documentChecklist = [];
+      expect(component.checklistProgress).toBe(0);
+    });
+
+    it('toggles_openAndCloseOneDocumentAtATime', () => {
+      create(details('PENDING'));
+
+      component.toggleDocumentExpanded(1);
+      expect(component.expandedDocumentId).toBe(1);
+      component.toggleDocumentExpanded(1);
+      expect(component.expandedDocumentId).toBeNull();
+
+      component.toggleComments(2);
+      expect(component.expandedCommentsId).toBe(2);
+      component.toggleComments(2);
+      expect(component.expandedCommentsId).toBeNull();
+    });
+
+    it('getInitials_handlesAMissingStudent', () => {
+      create(details('PENDING'));
+
+      expect(component.getInitials()).toBe('TM');
+      component.student = null;
+      expect(component.getInitials()).toBe('?');
+    });
+
+    it('formatDate_handlesAMissingDate', () => {
+      create(details('PENDING'));
+
+      expect(component.formatDate(undefined)).toBe('N/A');
+      expect(component.formatDate('2026-01-15')).toContain('2026');
+    });
+  });
+
+  describe('saveProgress failures', () => {
+    it('saveProgress_nothingChanged_callsNothing', () => {
+      create(details('UNDER_REVIEW'));
+
+      component.saveProgress();
+
+      expect(applicationService.saveReviewProgress).not.toHaveBeenCalled();
+    });
+
+    it('saveProgress_backendFails_keepsTheChanges', () => {
+      create(details('UNDER_REVIEW'));
+      applicationService.saveReviewProgress.and.returnValue(
+        throwError(() => ({ error: { message: 'Refused' } }))
+      );
+
+      approveAndSave(1);
+
+      expect(component.hasUnsavedChanges()).toBeTrue();
+      expect(component.isSaving).toBeFalse();
+    });
+
+    it('onDocumentStatusChange_backToOriginal_dropsTheChange', () => {
+      create(details('UNDER_REVIEW'));
+      const doc = component.documents[0];
+
+      component.onDocumentStatusChange(doc, 'APPROVED');
+      expect(component.getDocumentCurrentStatus(doc)).toBe('APPROVED');
+      component.onDocumentStatusChange(doc, 'PENDING');
+
+      expect(component.hasUnsavedChanges()).toBeFalse();
+      expect(component.getDocumentCurrentStatus(doc)).toBe('PENDING');
+    });
+  });
+
+  describe('documents', () => {
+    let downloadedBlob: Blob;
+
+    beforeEach(() => {
+      downloadedBlob = new Blob(['x'], { type: 'application/pdf' });
+      spyOn(URL, 'createObjectURL').and.returnValue('blob:test');
+      spyOn(URL, 'revokeObjectURL');
+    });
+
+    it('downloadDocument_success_savesTheFile', () => {
+      create(details('PENDING'));
+      adminService.downloadDocument.and.returnValue(of(downloadedBlob));
+      const click = spyOn(HTMLAnchorElement.prototype, 'click');
+
+      component.downloadDocument(component.documents[0]);
+
+      expect(click).toHaveBeenCalled();
+    });
+
+    it('downloadDocument_backendFails_doesNotThrow', () => {
+      create(details('PENDING'));
+      adminService.downloadDocument.and.returnValue(throwError(() => new Error('boom')));
+
+      expect(() => component.downloadDocument(component.documents[0])).not.toThrow();
+    });
+
+    function previewOf(type: string, fileName: string): string | undefined {
+      adminService.downloadDocument.and.returnValue(of(new Blob(['x'], { type })));
+      const doc = { ...component.documents[0], fileName };
+      component.viewDocument(doc);
+      const previewType = component.documentPreviewTypes.get(doc.id);
+      component.viewDocument(doc);
+      return previewType;
+    }
+
+    it('viewDocument_picksThePreviewFromTheTypeThenTheFileName', () => {
+      create(details('PENDING'));
+
+      expect(previewOf('application/pdf', 'a.bin')).toBe('pdf');
+      expect(previewOf('image/png', 'a.bin')).toBe('image');
+      expect(previewOf('application/octet-stream', 'a.pdf')).toBe('pdf');
+      expect(previewOf('application/octet-stream', 'a.JPG')).toBe('image');
+      expect(previewOf('application/octet-stream', 'a.bin')).toBe('unknown');
+    });
+
+    it('viewDocument_secondCall_closesThePreviewAndFreesTheUrl', () => {
+      create(details('PENDING'));
+      adminService.downloadDocument.and.returnValue(of(downloadedBlob));
+      const doc = component.documents[0];
+
+      component.viewDocument(doc);
+      expect(component.documentPreviews.has(doc.id)).toBeTrue();
+      component.viewDocument(doc);
+
+      expect(component.documentPreviews.has(doc.id)).toBeFalse();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
+    });
+
+    it('retryPreview_afterAFailure_loadsAgain', () => {
+      create(details('PENDING'));
+      adminService.downloadDocument.and.returnValue(throwError(() => new Error('boom')));
+      const doc = component.documents[0];
+
+      component.viewDocument(doc);
+      expect(component.documentPreviewErrors.get(doc.id)).toBeTrue();
+
+      adminService.downloadDocument.and.returnValue(of(downloadedBlob));
+      component.retryPreview(doc);
+
+      expect(component.documentPreviewErrors.get(doc.id)).toBeFalse();
+      expect(component.documentPreviewTypes.get(doc.id)).toBe('pdf');
+    });
+
+    it('ngOnDestroy_freesOpenPreviews', () => {
+      create(details('PENDING'));
+      adminService.downloadDocument.and.returnValue(of(downloadedBlob));
+      component.viewDocument(component.documents[0]);
+
+      component.ngOnDestroy();
+
+      expect(component.documentPreviews.size).toBe(0);
+    });
+  });
+
+  describe('rejection', () => {
+    it('toggleRejectionForm_closing_clearsTheReason', () => {
+      create(details('PENDING'));
+      component.toggleRejectionForm();
+      component.rejectionForm.patchValue({ reason: 'A long enough reason' });
+
+      component.toggleRejectionForm();
+
+      expect(component.showRejectionForm).toBeFalse();
+      expect(component.rejectionForm.value.reason).toBeNull();
+    });
+
+    it('rejectApplication_noValidReason_callsNothing', () => {
+      create(details('PENDING'));
+
+      component.rejectApplication();
+
+      expect(adminService.updateApplicationStatus).not.toHaveBeenCalled();
+    });
+
+    it('rejectApplication_validReason_sendsItAndCloses', () => {
+      create(details('PENDING'));
+      adminService.updateApplicationStatus.and.returnValue(of({} as ApplicationResponse));
+      component.rejectionForm.patchValue({ reason: 'A long enough reason' });
+
+      component.rejectApplication();
+
+      expect(adminService.updateApplicationStatus).toHaveBeenCalledOnceWith(
+        7,
+        'REJECTED',
+        'A long enough reason'
+      );
+      expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalledOnceWith({
+        action: 'rejected',
+        applicationId: 7,
+        newStatus: 'REJECTED',
+      });
+    });
+
+    it('rejectApplication_backendFails_staysOpen', () => {
+      create(details('PENDING'));
+      adminService.updateApplicationStatus.and.returnValue(throwError(() => ({ error: {} })));
+      component.rejectionForm.patchValue({ reason: 'A long enough reason' });
+
+      component.rejectApplication();
+
+      expect(TestBed.inject(MatDialogRef).close).not.toHaveBeenCalled();
+      expect(component.isRejecting).toBeFalse();
+    });
+  });
+
+  describe('approval guards', () => {
+    it('approveApplication_documentsNotApproved_callsNothing', () => {
+      create(details('UNDER_REVIEW'));
+
+      component.approveApplication();
+
+      expect(adminService.updateApplicationStatus).not.toHaveBeenCalled();
+    });
+
+    it('approveApplication_unsavedChanges_callsNothing', () => {
+      create(details('UNDER_REVIEW', 'APPROVED'));
+      component.onDocumentStatusChange(component.documents[0], 'REJECTED');
+      component.documentChecklist =
+        component.applicationDetails!.requiredDocumentsChecklist.documents;
+
+      component.approveApplication();
+
+      expect(adminService.updateApplicationStatus).not.toHaveBeenCalled();
+    });
+
+    it('approveApplication_autoAllocationAlreadyMovedIt_closesWithThatStatus', () => {
+      create(details('UNDER_REVIEW', 'APPROVED'));
+      adminService.updateApplicationStatus.and.returnValue(
+        of({ id: 7, status: 'AWAITING_ALLOCATION' } as ApplicationResponse)
+      );
+
+      component.approveApplication();
+
+      expect(applicationService.moveToAllocationPhase).not.toHaveBeenCalled();
+      expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalledOnceWith({
+        action: 'allocated',
+        applicationId: 7,
+        newStatus: 'AWAITING_ALLOCATION',
+      });
+    });
+
+    it('approveApplication_firstCallFails_staysAsItWas', () => {
+      create(details('UNDER_REVIEW', 'APPROVED'));
+      adminService.updateApplicationStatus.and.returnValue(throwError(() => ({ error: {} })));
+
+      component.approveApplication();
+
+      expect(component.applicationDetails!.status).toBe('UNDER_REVIEW');
+      expect(component.isApproving).toBeFalse();
+    });
+
+    it('moveToAllocation_documentsNotApproved_callsNothing', () => {
+      create(details('APPROVED'));
+
+      component.moveToAllocation();
+
+      expect(applicationService.moveToAllocationPhase).not.toHaveBeenCalled();
+    });
+
+    it('moveToAllocation_unsavedChanges_callsNothing', () => {
+      create(details('APPROVED', 'APPROVED'));
+      component.onDocumentStatusChange(component.documents[0], 'REJECTED');
+      component.documentChecklist =
+        component.applicationDetails!.requiredDocumentsChecklist.documents;
+
+      component.moveToAllocation();
+
+      expect(applicationService.moveToAllocationPhase).not.toHaveBeenCalled();
+    });
+
+    it('moveToAllocation_backendFails_staysOpen', () => {
+      create(details('APPROVED', 'APPROVED'));
+      applicationService.moveToAllocationPhase.and.returnValue(throwError(() => ({ error: {} })));
+
+      component.moveToAllocation();
+
+      expect(TestBed.inject(MatDialogRef).close).not.toHaveBeenCalled();
+      expect(component.isMovingToAllocation).toBeFalse();
+    });
+
+    it('closeDialog_unsavedChangesKept_staysOpen', () => {
+      create(details('PENDING'));
+      component.onDocumentStatusChange(component.documents[0], 'APPROVED');
+      spyOn(fixture.debugElement.injector.get(MatDialog), 'open').and.returnValue({
+        afterClosed: () => of(false),
+      } as unknown as MatDialogRef<unknown>);
+
+      component.closeDialog();
+
+      expect(TestBed.inject(MatDialogRef).close).not.toHaveBeenCalled();
+    });
+
+    it('closeDialog_unsavedChangesDiscarded_closes', () => {
+      create(details('PENDING'));
+      component.onDocumentStatusChange(component.documents[0], 'APPROVED');
+      spyOn(fixture.debugElement.injector.get(MatDialog), 'open').and.returnValue({
+        afterClosed: () => of(true),
+      } as unknown as MatDialogRef<unknown>);
+
+      component.closeDialog();
+
+      expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalledOnceWith({
+        action: 'closed',
+        applicationId: 7,
+      });
+    });
+  });
+
   describe('review actions', () => {
     const MARK = 'Mark Under Review';
     const REQUEST = 'Request Changes';
@@ -243,6 +588,46 @@ describe('ApplicationDetailDialogComponent', () => {
 
       expect(applicationService.requestChanges).not.toHaveBeenCalled();
       expect(TestBed.inject(MatDialogRef).close).not.toHaveBeenCalled();
+    });
+
+    it('requestChanges_backendFails_staysOpen', () => {
+      create(details('UNDER_REVIEW'));
+      answerReasonDialog('Proof of registration is for the wrong year');
+      applicationService.requestChanges.and.returnValue(throwError(() => ({ error: {} })));
+
+      component.requestChanges();
+
+      expect(TestBed.inject(MatDialogRef).close).not.toHaveBeenCalled();
+      expect(component.isRequestingChanges).toBeFalse();
+    });
+
+    it('markUnderReview_backendFails_keepsTheStatus', () => {
+      create(details('PENDING'));
+      applicationService.markUnderReview.and.returnValue(throwError(() => ({ error: {} })));
+
+      component.markUnderReview();
+
+      expect(component.applicationDetails!.status).toBe('PENDING');
+      expect(component.isMarkingUnderReview).toBeFalse();
+    });
+
+    it('nextStepHint_explainsEveryStatusWithoutADecision', () => {
+      const hinted = [
+        'CHANGES_REQUESTED',
+        'AWAITING_ALLOCATION',
+        'ALLOCATED',
+        'CHECKED_IN',
+        'REJECTED',
+        'EXPIRED',
+        'CANCELLED',
+      ];
+      create(details('PENDING'));
+      expect(component.nextStepHint).toBeNull();
+
+      hinted.forEach((status) => {
+        component.applicationDetails = details(status);
+        expect(component.nextStepHint).withContext(status).toBeTruthy();
+      });
     });
 
     it('requestChanges_unsavedDocumentChanges_isDisabled', () => {
