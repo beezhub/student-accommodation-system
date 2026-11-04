@@ -1,4 +1,4 @@
-# Health alarms for what Grafana Cloud cannot see from inside the server (#340). Five alarms at
+# Health alarms for what Grafana Cloud cannot see from inside the server (#340). Six alarms at
 # $0.10 each a month, plus the backup alarm and its custom metric.
 
 resource "aws_sns_topic" "alarms" {
@@ -107,6 +107,24 @@ resource "aws_cloudwatch_metric_alarm" "db_backup_missing" {
   threshold           = 1
   comparison_operator = "LessThanThreshold"
   treat_missing_data  = "breaching"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+}
+
+# t4g.small in standard mode earns 24 CPU credits an hour and holds at most 576. At zero it is held
+# to its 20% baseline, which looks like a slow site rather than an outage. 100 credits is about an
+# hour of both vCPUs flat out, so there is time to act: find the cause, or switch to unlimited mode.
+resource "aws_cloudwatch_metric_alarm" "ec2_cpu_credits" {
+  alarm_name          = "${var.name}-ec2-cpu-credits"
+  alarm_description   = "PROD server has under 100 CPU credits left; at zero it slows to 20% CPU (#340)"
+  namespace           = "AWS/EC2"
+  metric_name         = "CPUCreditBalance"
+  dimensions          = { InstanceId = aws_instance.app.id }
+  statistic           = "Minimum"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 100
+  comparison_operator = "LessThanThreshold"
   alarm_actions       = [aws_sns_topic.alarms.arn]
   ok_actions          = [aws_sns_topic.alarms.arn]
 }
