@@ -56,6 +56,8 @@ class ApplicationCoreServiceTest {
         private AuthService authService;
         @Mock
         private AcademicYearService academicYearService;
+        @Mock
+        private com.beezhub.student_accommodation.service.allocation.WaitingListService waitingListService;
 
         @InjectMocks
         private ApplicationCoreService applicationCoreService;
@@ -225,6 +227,16 @@ class ApplicationCoreServiceTest {
                 assertThat(application.getStatus()).isEqualTo(ApplicationStatus.CANCELLED);
                 verify(applicationRepository).save(application);
                 verify(applicationRepository, never()).delete(any(Application.class));
+        }
+
+        @Test
+        void cancelApplication_cancelled_closesTheWaitingListEntry() {
+                when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+                when(authService.getCurrentUser()).thenReturn(studentUser);
+
+                applicationCoreService.cancelApplication(1L);
+
+                verify(waitingListService).closeEntriesForApplication(1L);
         }
 
         /**
