@@ -19,6 +19,8 @@ public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpec
 
     Optional<Student> findByAppUser_Id(Long userId);
 
+    boolean existsByAppUser_Id(Long userId);
+
     // ==================================================
     // FULL FETCH (all associations)
     // Use case: Student profile, admin user management

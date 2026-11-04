@@ -1,7 +1,9 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
+import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
 import com.beezhub.student_accommodation.exceptions.InstitutionNotFoundException;
 import com.beezhub.student_accommodation.mapper.StudentMapper;
@@ -38,10 +40,40 @@ public class StudentService {
     private final InstitutionRepository institutionRepository;
     private final YearOfStudyRepository yearOfStudyRepository;
 
+    /**
+     * The owner comes from who is calling, never from the body alone: a student can only create
+     * their own profile. {@code student.user_id} has no unique constraint, so a second profile has
+     * to be refused here or the account ends up with two rows (GH-489).
+     */
+    @Transactional
     public StudentResponse createStudent(StudentRequest studentRequest) {
+        AppUser owner = resolveProfileOwner(studentRequest.getUserId());
+        if (studentRepository.existsByAppUser_Id(owner.getId())) {
+            throw new DuplicateResourceException("A student profile already exists for this account");
+        }
         var entity = studentMapper.toEntity(studentRequest);
+        entity.setAppUser(owner);
         var savedStudent = studentRepository.save(entity);
         return studentMapper.toResponse(savedStudent);
+    }
+
+    private AppUser resolveProfileOwner(Long requestedUserId) {
+        AppUser current = authService.getCurrentUser();
+        if (current.getUserRole() == UserRole.STUDENT) {
+            if (requestedUserId != null && !requestedUserId.equals(current.getId())) {
+                throw new UnauthorizedAccessException("You can only create your own student profile");
+            }
+            return current;
+        }
+        if (requestedUserId == null) {
+            throw new IllegalArgumentException("A user is required to create a student profile");
+        }
+        AppUser owner = userRepository.findById(requestedUserId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + requestedUserId));
+        if (owner.getUserRole() != UserRole.STUDENT) {
+            throw new IllegalArgumentException("A student profile can only be created for a student account");
+        }
+        return owner;
     }
 
     @Transactional(readOnly = true)
