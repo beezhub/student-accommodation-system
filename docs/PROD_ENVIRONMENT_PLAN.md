@@ -107,7 +107,7 @@ through SSM, and RDS has no public address: its security group accepts port 5432
 | Secrets | SSM Parameter Store, standard tier | Free. The deploy writes `/opt/sas/.env` from it instead of hand edits |
 | Monitoring | Grafana Cloud free plan, fed by Alloy | Grafana, Prometheus and Loki do not run on the server |
 | Uptime | UptimeRobot free plan | Outside check, alerts by email |
-| Health alarms | CloudWatch: EC2 status check with auto-recover, RDS CPU, free storage, free memory | |
+| Health alarms | CloudWatch: EC2 status check with auto-recover, EC2 CPU credits, RDS CPU, free storage, free memory | |
 | Deploy access | SSM Run Command from GitHub Actions through an OIDC role | No SSH key stored in GitHub, no open port 22 |
 
 ## Budget

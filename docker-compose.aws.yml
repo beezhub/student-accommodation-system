@@ -115,6 +115,11 @@ services:
       - /var/log/journal:/var/log/journal:ro
       - /etc/machine-id:/etc/machine-id:ro
       - alloy_data:/var/lib/alloy/data
+      # The host's memory, swap, disk and CPU for prometheus.exporter.unix (#340). Read-only;
+      # rslave lets a disk mounted on the host after Alloy starts show up without a restart.
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
     # Loki is not running here.
     depends_on: !reset []
     environment:

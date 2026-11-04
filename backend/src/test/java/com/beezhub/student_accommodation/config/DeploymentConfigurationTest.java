@@ -305,6 +305,46 @@ class DeploymentConfigurationTest {
                 .contains("job_name        = \"student-accommodation-backend\"");
     }
 
+    /**
+     * The memory, swap and disk alerts read the host, not the Alloy container (#340). The exporter's
+     * paths must be the ones compose mounts, read-only, and only the kept series reach Grafana
+     * Cloud, whose free plan counts every series.
+     */
+    @Test
+    void awsOverlay_alloyShipsOnlyTheHostSeriesTheAlertsRead() throws IOException {
+        String aws = readLf("docker-compose.aws.yml");
+        String alloy = aws.substring(aws.indexOf("  alloy:"));
+        String cloud = readLf("tools/alloy/grafana-cloud.alloy");
+
+        assertThat(alloy).contains("- /proc:/host/proc:ro\n", "- /sys:/host/sys:ro\n", "- /:/host/root:ro,rslave\n");
+        assertThat(cloud).contains("procfs_path    = \"/host/proc\"", "sysfs_path     = \"/host/sys\"",
+                "rootfs_path    = \"/host/root\"");
+        assertThat(cloud).contains("forward_to      = [prometheus.relabel.host.receiver]");
+        assertThat(cloud.substring(cloud.indexOf("prometheus.relabel \"host\"")))
+                .contains("action        = \"keep\"")
+                .contains("forward_to = [prometheus.remote_write.default.receiver]");
+    }
+
+    /**
+     * The Grafana alerts keep their own state, so an AWS plan never needs the Grafana token, and
+     * every query is pinned to env="prod" so a second environment on the stack (#381) is ignored.
+     */
+    @Test
+    void prodGrafana_ownStateAndOnlyProdSeries() throws IOException {
+        String versions = readLf("infra/terraform/prod-grafana/versions.tf");
+        String alerts = readLf("infra/terraform/prod-grafana/alerts.tf");
+
+        assertThat(versions).contains("key          = \"prod-grafana/terraform.tfstate\"");
+        assertThat(versions).contains("version = \"4.50.0\"");
+        assertThat(alerts).contains("backend = \"job=\\\"student-accommodation-backend\\\",env=\\\"prod\\\"\"");
+        assertThat(alerts).contains("requests   = \"http_server_requests_seconds_count{${local.backend},");
+        assertThat(alerts).contains("errors_5xx = \"http_server_requests_seconds_count{${local.backend},");
+        assertThat(alerts.lines().filter(line -> line.trim().matches("expr\\s+= \".*")))
+                .hasSize(5)
+                .allSatisfy(line -> assertThat(line)
+                        .containsAnyOf("env=\\\"prod\\\"", "${local.backend}", "${local.requests}"));
+    }
+
     @Test
     void awsOverlay_settingsAreDocumented() throws IOException {
         String env = read(".env.example");
