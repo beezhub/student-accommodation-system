@@ -318,7 +318,7 @@
                       Download
                     </button>
 
-                    <div class="status-selector">
+                    <div class="status-selector" *ngIf="canReviewDocuments">
                       <span class="status-selector-label">Set Status</span>
                       <div class="status-buttons" role="group" [attr.aria-label]="'Status for ' + doc.fileName">
                         <button
@@ -427,7 +427,7 @@
       mat-button
       (click)="toggleRejectionForm()"
       [disabled]="isBusy || showRejectionForm"
-      *ngIf="applicationDetails?.status !== 'REJECTED' && applicationDetails?.status !== 'APPROVED' && applicationDetails?.status !== 'AWAITING_ALLOCATION'"
+      *ngIf="canReject"
       class="footer-btn reject-btn">
       <mat-icon aria-hidden="true">block</mat-icon>
       Reject
@@ -451,6 +451,7 @@
       mat-stroked-button
       (click)="saveProgress()"
       [disabled]="!hasUnsavedChanges() || isBusy"
+      *ngIf="canReviewDocuments"
       class="footer-btn save-btn">
       <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
       <mat-icon *ngIf="!isSaving" aria-hidden="true">save</mat-icon>

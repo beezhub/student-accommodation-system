@@ -194,6 +194,20 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
     return this.applicationDetails?.status === ApplicationStatus.APPROVED;
   }
 
+  get canReject(): boolean {
+    return canApplicationTransition(this.applicationDetails?.status, ApplicationStatus.REJECTED);
+  }
+
+  // saveReviewProgress refuses these three statuses, so offering the controls only ends in an error
+  get canReviewDocuments(): boolean {
+    const status = this.applicationDetails?.status;
+    return (
+      status !== ApplicationStatus.REJECTED &&
+      status !== ApplicationStatus.EXPIRED &&
+      status !== ApplicationStatus.CANCELLED
+    );
+  }
+
   /** What happens next when this dialog has no decision to offer. */
   get nextStepHint(): string | null {
     switch (this.applicationDetails?.status) {
@@ -515,18 +529,17 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
           error: (error) => {
             console.error('Failed to move to allocation:', error);
             this.snackBar.open(
-              error.error?.message || 'Failed to move to allocation phase',
+              `Application approved, but not moved to allocation: ${
+                error.error?.message || 'please try again'
+              }`,
               'Close',
               {
                 duration: 5000,
               }
             );
             this.isApproving = false;
-            this.dialogRef.close({
-              action: 'saved',
-              applicationId: this.data.applicationId,
-              newStatus: 'APPROVED',
-            } as ApplicationDetailDialogResult);
+            // Stay open: the approval stands, and Move to Allocation is the way to finish it.
+            this.recordStatus(ApplicationStatus.APPROVED);
           },
         });
       },

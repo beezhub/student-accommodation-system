@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { ApplicationDetailDialogComponent } from './application-detail-dialog.component';
 import { Application } from '../../../../core/models/application.model';
 import {
@@ -10,7 +10,7 @@ import {
   DocumentChecklistItem,
   DocumentWithComments,
 } from '../../../../core/services/application.service';
-import { AdminService } from '../../../../core/services/admin.service';
+import { AdminService, ApplicationResponse } from '../../../../core/services/admin.service';
 
 function checklistItem(documentId: number, status: string): DocumentChecklistItem {
   return {
@@ -271,6 +271,105 @@ describe('ApplicationDetailDialogComponent', () => {
       create(details('APPROVED', 'PENDING'));
 
       expect(footerButton(MOVE)!.disabled).toBeTrue();
+    });
+
+    const rejectable: Record<string, boolean> = {
+      PENDING: true,
+      UNDER_REVIEW: true,
+      APPROVED: true,
+      AWAITING_ALLOCATION: true,
+      CHANGES_REQUESTED: false,
+      ALLOCATED: false,
+      CHECKED_IN: false,
+      REJECTED: false,
+      EXPIRED: false,
+      CANCELLED: false,
+    };
+
+    Object.entries(rejectable).forEach(([status, expected]) => {
+      it(`reject_${status}_isOfferedOnlyWhereTheBackendAllowsIt`, () => {
+        create(details(status));
+
+        expect(!!footerButton('Reject')).toBe(expected);
+      });
+    });
+
+    const closed: Record<string, boolean> = {
+      PENDING: false,
+      UNDER_REVIEW: false,
+      CHANGES_REQUESTED: false,
+      APPROVED: false,
+      AWAITING_ALLOCATION: false,
+      ALLOCATED: false,
+      CHECKED_IN: false,
+      REJECTED: true,
+      EXPIRED: true,
+      CANCELLED: true,
+    };
+
+    Object.entries(closed).forEach(([status, isClosed]) => {
+      it(`documentReview_${status}_isHiddenOnlyOnceTheBackendRefusesIt`, () => {
+        create(details(status));
+
+        expect(!!footerButton('Save Progress')).toBe(!isClosed);
+        expect(component.canReviewDocuments).toBe(!isClosed);
+      });
+    });
+
+    it('approve_secondCallFails_keepsDialogOpenWithAWayForward', () => {
+      create(details('UNDER_REVIEW', 'APPROVED'));
+      adminService.updateApplicationStatus.and.returnValue(
+        of({ id: 7, status: 'APPROVED' } as ApplicationResponse)
+      );
+      applicationService.moveToAllocationPhase.and.returnValue(
+        throwError(() => ({ error: { message: 'Temporarily unavailable' } }))
+      );
+
+      footerButton('Approve Application')!.click();
+
+      expect(TestBed.inject(MatDialogRef).close).not.toHaveBeenCalled();
+      expect(component.applicationDetails!.status).toBe('APPROVED');
+      expect(footerButton('Approve Application')).toBeUndefined();
+      expect(footerButton(MOVE)!.disabled).toBeFalse();
+      expect(footerButton('Reject')).toBeDefined();
+    });
+
+    it('approve_secondCallFailsThenRetrySucceeds_movesToAllocation', () => {
+      create(details('UNDER_REVIEW', 'APPROVED'));
+      adminService.updateApplicationStatus.and.returnValue(
+        of({ id: 7, status: 'APPROVED' } as ApplicationResponse)
+      );
+      applicationService.moveToAllocationPhase.and.returnValues(
+        throwError(() => ({ error: {} })),
+        of({ id: 7 } as Application)
+      );
+
+      component.approveApplication();
+      footerButton(MOVE)!.click();
+
+      expect(applicationService.moveToAllocationPhase).toHaveBeenCalledTimes(2);
+      expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalledOnceWith({
+        action: 'allocated',
+        applicationId: 7,
+        newStatus: 'AWAITING_ALLOCATION',
+      });
+    });
+
+    it('closeDialog_afterApproveStranded_tellsTheListToReload', () => {
+      create(details('UNDER_REVIEW', 'APPROVED'));
+      adminService.updateApplicationStatus.and.returnValue(
+        of({ id: 7, status: 'APPROVED' } as ApplicationResponse)
+      );
+      applicationService.moveToAllocationPhase.and.returnValue(throwError(() => ({ error: {} })));
+      component.approveApplication();
+
+      component.closeDialog();
+
+      expect(TestBed.inject(MatDialogRef).close).toHaveBeenCalledOnceWith({
+        action: 'saved',
+        applicationId: 7,
+        newStatus: 'APPROVED',
+      });
     });
   });
 });
