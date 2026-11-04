@@ -210,7 +210,8 @@ export class ApplicationDetailsComponent implements OnInit {
       this.timeline.push({
         date: this.application.updatedAt || this.application.applicationDate,
         status: 'Changes Requested',
-        description: this.application.remarks || 'Changes are needed before the review can continue',
+        description:
+          this.application.remarks || 'Changes are needed before the review can continue',
         icon: 'edit_note',
       });
     } else if (this.application.status === 'ALLOCATED') {

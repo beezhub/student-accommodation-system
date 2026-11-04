@@ -178,7 +178,10 @@ export class ApplicationDetailDialogComponent implements OnInit, OnDestroy {
   }
 
   get canMarkUnderReview(): boolean {
-    return canApplicationTransition(this.applicationDetails?.status, ApplicationStatus.UNDER_REVIEW);
+    return canApplicationTransition(
+      this.applicationDetails?.status,
+      ApplicationStatus.UNDER_REVIEW
+    );
   }
 
   get canRequestChanges(): boolean {
