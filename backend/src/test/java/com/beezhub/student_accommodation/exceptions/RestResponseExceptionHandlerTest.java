@@ -495,4 +495,13 @@ class RestResponseExceptionHandlerTest {
 
         assertErrorResponse(response, HttpStatus.CONFLICT, "Thandi Mokoena is not linked to a company yet.");
     }
+
+    @Test
+    void handleInvalidAccessibilityFeatures_isBadRequestAndKeepsTheMessage() {
+        ResponseEntity<ErrorResponse> response = exceptionHandler.handleInvalidAccessibilityFeatures(
+                new InvalidAccessibilityFeaturesException("Accessibility features must be a list of text."),
+                webRequest);
+
+        assertErrorResponse(response, HttpStatus.BAD_REQUEST, "Accessibility features must be a list of text.");
+    }
 }

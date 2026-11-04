@@ -145,6 +145,17 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                                 request.getDescription(false)), HttpStatus.CONFLICT);
         }
 
+        /** The request's value is wrong whatever the state of the building, so 400. */
+        @ExceptionHandler(InvalidAccessibilityFeaturesException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidAccessibilityFeatures(
+                        InvalidAccessibilityFeaturesException ex, WebRequest request) {
+                return new ResponseEntity<>(new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.BAD_REQUEST.value(),
+                                ex.getMessage(),
+                                request.getDescription(false)), HttpStatus.BAD_REQUEST);
+        }
+
         /**
          * An admin account with no company cannot be unlocked: that would open every company's data
          * to it (#412). 409 rather than 403: the caller may unlock accounts, the account's state is
