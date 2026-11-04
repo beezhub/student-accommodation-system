@@ -1,58 +1,67 @@
-# NONPROD overlay: what makes the Oracle server run like PROD (#378). Used only by deploy.yml:
+# NONPROD overlay: PROD's own overlay plus the differences below, so whatever reaches PROD has
+# already run here (#378). Used only by deploy.yml, on top of docker-compose.aws.yml:
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml \
-#     -f docker-compose.nonprod.yml up -d --no-build
+#     -f docker-compose.aws.yml -f docker-compose.nonprod.yml up -d --no-build
 #
-# Today this is monitoring only (#381): Alloy ships to the same Grafana Cloud stack as PROD with the
-# label env=nonprod, and Grafana, Prometheus and Loki stop running here. The alloy block repeats the
-# one in docker-compose.aws.yml because that overlay also switches off the database and MinIO, which
-# NONPROD still needs. When #382 adds the AWS overlay underneath this file, this block shrinks to
-# the ALLOY_ENV line.
+# The differences, all because this is a free Oracle server rather than PROD's AWS one:
+#
+#   - PostgreSQL stays a container, requiring TLS like RDS (#380).
+#   - There is no instance role, so S3 and SES use an IAM user's access key (#379).
+#   - Mail comes from the one sender that user may use.
+#   - Series and log lines are labelled nonprod (#381).
+#
+# Everything else comes from the AWS overlay, including its memory limits. Compose checks every
+# file's required values before it merges them, so .env needs all of them, even DB_URL, which this
+# file then replaces. The NONPROD section of .env.example lists them.
 
 services:
-  alloy:
-    volumes: !override
-      - ./tools/alloy/logs.alloy:/etc/alloy/conf.d/logs.alloy:ro
-      - ./tools/alloy/grafana-cloud.alloy:/etc/alloy/conf.d/grafana-cloud.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/log/journal:/var/log/journal:ro
-      - /etc/machine-id:/etc/machine-id:ro
-      - alloy_data:/var/lib/alloy/data
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/host/root:ro,rslave
-    # Loki is not running here.
-    depends_on: !reset []
-    environment:
-      # PROD's alert rules only read env="prod", so a NONPROD outage pages nobody.
-      - ALLOY_ENV=nonprod
-      - GRAFANA_CLOUD_LOGS_URL=${GRAFANA_CLOUD_LOGS_URL:?GRAFANA_CLOUD_LOGS_URL must be set}
-      - GRAFANA_CLOUD_LOGS_USER=${GRAFANA_CLOUD_LOGS_USER:?GRAFANA_CLOUD_LOGS_USER must be set}
-      - GRAFANA_CLOUD_METRICS_URL=${GRAFANA_CLOUD_METRICS_URL:?GRAFANA_CLOUD_METRICS_URL must be set}
-      - GRAFANA_CLOUD_METRICS_USER=${GRAFANA_CLOUD_METRICS_USER:?GRAFANA_CLOUD_METRICS_USER must be set}
-      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY:?GRAFANA_CLOUD_API_KEY must be set}
-    # Alloy now does Prometheus's job, so it needs the backend's network and the scrape password.
-    secrets:
-      - prometheus_scrape_password
-    networks:
-      - monitoring-network
-      - app-network
-    deploy:
-      resources:
-        limits:
-          memory: 384M
+  # !override drops the base file's memory limit too: on PROD the database is off the server, so
+  # PROD's limits say nothing about it.
+  db:
+    profiles: !reset []
+    deploy: !override
+      replicas: 1
 
-  # Replicas alone, with no profile. These containers are already running on NONPROD, and Compose
-  # leaves a running container alone when a profile switches its service off. It only removes one
-  # when the replicas drop to zero. PROD never had them, so its overlay can use either.
+  db-tls-cert:
+    profiles: !reset []
+    deploy: !override
+      replicas: 1
+
+  student-accommodation-back-end:
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Fixed here, not in .env, so a PROD .env copied by mistake cannot point NONPROD at RDS.
+      - DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb?sslmode=require
+      - S3_CREDENTIALS=static
+      # SES reads the SDK's default credential chain, which looks for these names. One IAM user
+      # covers both S3 and SES (infra/terraform/nonprod/iam.tf).
+      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY:?S3_ACCESS_KEY must be the key from /sas-nonprod/AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY:?S3_SECRET_KEY must be the secret from /sas-nonprod/AWS_SECRET_ACCESS_KEY}
+      # The only sender the IAM user may use, so NONPROD mail can never pass as PROD's no-reply@.
+      - MAIL_FROM=nonprod@beezhub.co.za
+
+  # PROD's alert rules only read env="prod", so a NONPROD outage pages nobody.
+  alloy:
+    environment:
+      - ALLOY_ENV=nonprod
+
+  # The AWS overlay gives these zero replicas and a profile nothing enables. PROD never had them, but
+  # they run here, and Compose leaves a running container alone while a profile disables its service.
+  # Without the profile, the zero replicas remove the container.
+  minio:
+    profiles: !reset []
+
+  minio-volume-permissions:
+    profiles: !reset []
+
   grafana:
-    deploy:
-      replicas: 0
+    profiles: !reset []
 
   prometheus:
-    deploy:
-      replicas: 0
+    profiles: !reset []
 
   loki:
-    deploy:
-      replicas: 0
+    profiles: !reset []

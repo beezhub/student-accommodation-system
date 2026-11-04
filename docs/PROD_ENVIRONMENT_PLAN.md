@@ -162,7 +162,7 @@ are enough, then buy both reservations. Set AWS Budgets alerts at $35 and $45.
 ### MinIO to S3
 
 Done in #331. The backend uses the AWS SDK for Java v2 (`S3Client`, `S3Presigner`) instead of the MinIO SDK.
-The MinIO container stays locally and on NONPROD, where the same client reaches it over the S3 API.
+The MinIO container stays locally, where the same client reaches it over the S3 API. NONPROD moved to its own S3 bucket in #382.
 
 | Where | Result |
 |---|---|

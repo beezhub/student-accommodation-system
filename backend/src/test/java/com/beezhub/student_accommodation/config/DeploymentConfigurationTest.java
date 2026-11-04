@@ -656,50 +656,85 @@ class DeploymentConfigurationTest {
     }
 
     /**
-     * NONPROD ships to the same Grafana Cloud stack as PROD (#381), so PROD's own config first runs
-     * somewhere else. Its label must say nonprod, or NONPROD could set off PROD's alerts.
+     * NONPROD runs PROD's overlay itself (#382), so what reaches PROD has already run here. Its own
+     * file is only the listed differences. The label must say nonprod, or NONPROD could set off
+     * PROD's alerts.
      */
     @Test
-    void nonprodOverlay_shipsToGrafanaCloudWithItsOwnLabel() throws IOException {
+    void nonprodOverlay_isOnlyTheDifferencesFromPROD() throws IOException {
         String nonprod = readLf("docker-compose.nonprod.yml");
 
         assertThat(nonprod)
                 .contains("- ALLOY_ENV=nonprod\n")
-                .contains("- ./tools/alloy/grafana-cloud.alloy:/etc/alloy/conf.d/grafana-cloud.alloy:ro\n")
-                .doesNotContain("loki-local.alloy:")
-                .contains("- /proc:/host/proc:ro\n", "- /sys:/host/sys:ro\n", "- /:/host/root:ro,rslave\n")
-                .contains("- prometheus_scrape_password\n")
-                .contains("- app-network\n")
-                .contains("depends_on: !reset []")
-                .contains("memory: 384M");
-        for (String key : List.of("GRAFANA_CLOUD_LOGS_URL", "GRAFANA_CLOUD_LOGS_USER", "GRAFANA_CLOUD_METRICS_URL",
-                "GRAFANA_CLOUD_METRICS_USER", "GRAFANA_CLOUD_API_KEY")) {
-            assertThat(nonprod).contains("- " + key + "=${" + key + ":?");
-        }
+                .as("Alloy's files, mounts, keys and memory limit come from the AWS overlay")
+                .doesNotContain("grafana-cloud.alloy:", "GRAFANA_CLOUD_", "memory:");
     }
 
     /**
-     * Grafana, Prometheus and Loki already run on NONPROD. A profile would leave those containers
-     * running: Compose only removes a running service's container when its replicas drop to zero.
+     * The AWS overlay switches these off with a profile and zero replicas, and they are running on
+     * NONPROD. Compose leaves a running container alone while a profile disables its service, so the
+     * profile must go for the zero replicas to remove the container.
      */
     @Test
-    void nonprodOverlay_removesTheRunningMonitoringContainers() throws IOException {
+    void nonprodOverlay_removesTheRunningContainersPRODNeverHad() throws IOException {
         String nonprod = readLf("docker-compose.nonprod.yml");
 
-        for (String service : List.of("grafana", "prometheus", "loki")) {
-            assertThat(nonprod).contains("  " + service + ":\n    deploy:\n      replicas: 0\n");
+        for (String service : List.of("minio", "minio-volume-permissions", "grafana", "prometheus", "loki")) {
+            assertThat(nonprod).contains("  " + service + ":\n    profiles: !reset []\n");
         }
-        assertThat(nonprod).doesNotContain("profiles:");
     }
 
-    /** A step that runs Compose without the overlay would bring the local monitoring back. */
+    /** On PROD the database is RDS. On NONPROD it stays a container, with no PROD memory limit. */
     @Test
-    void nonprodDeploy_usesTheNonprodOverlayInEveryStep() throws IOException {
+    void nonprodOverlay_runsTheDatabaseAgain() throws IOException {
+        String nonprod = readLf("docker-compose.nonprod.yml");
+
+        for (String service : List.of("db", "db-tls-cert")) {
+            assertThat(nonprod).contains("  " + service
+                    + ":\n    profiles: !reset []\n    deploy: !override\n      replicas: 1\n");
+        }
+        assertThat(nonprod)
+                .contains("    depends_on:\n      db:\n        condition: service_healthy\n")
+                .as("fixed here, so a PROD .env copied by mistake cannot point NONPROD at RDS")
+                .contains("- DB_URL=jdbc:postgresql://db:5432/studentaccommodationlocaldb?sslmode=require\n");
+    }
+
+    /**
+     * Oracle has no instance role, so the IAM user's key from #379 replaces it for both S3 and SES.
+     * The sender must be the one that user's policy allows, or every email fails with AccessDenied.
+     */
+    @Test
+    void nonprodOverlay_reachesAwsWithTheKeyFromTerraform() throws IOException {
+        String nonprod = readLf("docker-compose.nonprod.yml");
+
+        assertThat(nonprod)
+                .contains("- S3_CREDENTIALS=static\n")
+                .contains("- AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY:?")
+                .contains("- AWS_SECRET_ACCESS_KEY=${S3_SECRET_KEY:?")
+                .contains("- MAIL_FROM=nonprod@beezhub.co.za\n");
+        assertThat(readLf("infra/terraform/nonprod/iam.tf"))
+                .contains("mail_from = \"nonprod@${var.sending_domain}\"");
+        assertThat(readLf("infra/terraform/nonprod/variables.tf")).contains("default     = \"beezhub.co.za\"");
+    }
+
+    /** The AWS overlay checks these before it knows NONPROD overrides or ignores some of them. */
+    @Test
+    void nonprodSettings_areDocumented() throws IOException {
+        assertThat(readLf(".env.example"))
+                .contains("# NONPROD (docker-compose.nonprod.yml)")
+                .contains("beezhub-sas-nonprod-documents")
+                .contains("EXAMPLE_DATA=true");
+    }
+
+    /** A step that runs Compose with other files would act on a different stack. */
+    @Test
+    void nonprodDeploy_usesTheFiveFilesInEveryStep() throws IOException {
         String deploy = readLf(".github/workflows/deploy.yml");
 
         assertThat(deploy).contains("F=\"docker-compose.yml docker-compose.prod.yml docker-compose.deploy.yml"
-                + " docker-compose.nonprod.yml\"");
-        assertThat(deploy.split("-f docker-compose\\.deploy\\.yml -f docker-compose\\.nonprod\\.yml", -1)).hasSize(4);
+                + " docker-compose.aws.yml docker-compose.nonprod.yml\"");
+        assertThat(deploy.split("-f docker-compose\\.deploy\\.yml -f docker-compose\\.aws\\.yml"
+                + " -f docker-compose\\.nonprod\\.yml", -1)).hasSize(4);
         assertThat(deploy.split("-f docker-compose\\.deploy\\.yml", -1)).hasSize(4);
     }
 

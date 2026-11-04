@@ -5,8 +5,9 @@ bucket. It also records what the system does about document retention, and why t
 lifecycle rule expiring documents.
 
 GH-235. **PROD on AWS** (#335, #336) keeps its state in RDS and S3 rather than in containers, and is
-covered first, in the PROD section. Sections 1 to 6 after it describe the compose deployment that
-NONPROD runs, with PostgreSQL and MinIO in containers.
+covered first, in the PROD section. Sections 1 to 6 after it describe a compose deployment with
+PostgreSQL and MinIO in containers. NONPROD keeps its PostgreSQL in a container, so section 2 applies
+to it, but its documents are in S3 (#382), so section 3 does not.
 
 ---
 
