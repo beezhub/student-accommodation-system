@@ -33,23 +33,46 @@ public class EmailDispatchService {
         @Value("${app.contact-phone:+27 (0) 11 000 0000}")
         private String contactPhone;
 
+        public Map<String, Object> applicationApprovedTemplateData(Application application,
+                        String studentName) {
+                return templateData("application-approved", applicationApprovedContext(application, studentName));
+        }
+
         public void sendApplicationApprovedEmail(Application application, String studentName, String email) {
+                var ctx = applicationApprovedContext(application, studentName);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.APPLICATION_APPROVED, "application-approved", ctx));
+                log.info("Application approved email sent to {}", email);
+        }
+
+        private ApplicationApprovedContext applicationApprovedContext(Application application,
+                        String studentName) {
                 String applicationDate = contentBuilder.formatDate(application.getApplicationDate());
                 String portalUrl = baseUrl + "/applications/" + application.getId();
 
-                var ctx = new ApplicationApprovedContext(
+                return new ApplicationApprovedContext(
                                 studentName,
                                 application.getId(),
                                 applicationDate,
                                 contentBuilder.getCurrentAcademicYear(),
                                 contentBuilder.getCurrentSemester(),
                                 portalUrl);
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.APPLICATION_APPROVED, "application-approved", ctx));
-                log.info("Application approved email sent to {}", email);
+        public Map<String, Object> applicationRejectedTemplateData(Application application,
+                        String studentName) {
+                return templateData("application-rejected", applicationRejectedContext(application, studentName));
         }
 
         public void sendApplicationRejectedEmail(Application application, String studentName, String email) {
+                var ctx = applicationRejectedContext(application, studentName);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.APPLICATION_REJECTED, "application-rejected", ctx));
+                log.info("Application rejected email sent to {}", email);
+        }
+
+        private ApplicationRejectedContext applicationRejectedContext(Application application,
+                        String studentName) {
                 String applicationDate = contentBuilder.formatDate(application.getApplicationDate());
                 String reviewDate = contentBuilder.formatDate(LocalDateTime.now());
                 String rejectionReason = application.getRemarks() != null
@@ -57,7 +80,7 @@ public class EmailDispatchService {
                                 : "Your application did not meet the current eligibility criteria.";
                 String portalUrl = baseUrl + "/applications/" + application.getId();
 
-                var ctx = new ApplicationRejectedContext(
+                return new ApplicationRejectedContext(
                                 studentName,
                                 application.getId(),
                                 rejectionReason,
@@ -65,31 +88,51 @@ public class EmailDispatchService {
                                 reviewDate,
                                 contentBuilder.getNextApplicationPeriod(),
                                 portalUrl);
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.APPLICATION_REJECTED, "application-rejected", ctx));
-                log.info("Application rejected email sent to {}", email);
+        public Map<String, Object> documentVerifiedTemplateData(Document document, String studentName,
+                        String documentType) {
+                return templateData("document-verified", documentVerifiedContext(document, studentName, documentType));
         }
 
         public void sendDocumentVerifiedEmail(Document document, String studentName, String email,
+                        String documentType) {
+                var ctx = documentVerifiedContext(document, studentName, documentType);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.DOCUMENT_VERIFIED, "document-verified", ctx));
+                log.info("Document verified email sent to {}", email);
+        }
+
+        private DocumentVerifiedContext documentVerifiedContext(Document document, String studentName,
                         String documentType) {
                 String documentReference = "DOC-" + document.getId();
                 String verificationDate = contentBuilder.formatDate(document.getUpdatedAt());
                 String portalUrl = baseUrl + "/documents";
 
-                var ctx = new DocumentVerifiedContext(
+                return new DocumentVerifiedContext(
                                 studentName,
                                 documentType,
                                 documentReference,
                                 verificationDate,
                                 "Accommodation Office",
                                 portalUrl);
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.DOCUMENT_VERIFIED, "document-verified", ctx));
-                log.info("Document verified email sent to {}", email);
+        public Map<String, Object> documentRejectedTemplateData(Document document, String studentName,
+                        String documentType, String comment) {
+                return templateData("document-rejected", documentRejectedContext(document, studentName, documentType, comment));
         }
 
         public void sendDocumentRejectedEmail(Document document, String studentName, String email, String documentType,
                         String comment) {
+                var ctx = documentRejectedContext(document, studentName, documentType, comment);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.DOCUMENT_REJECTED, "document-rejected", ctx));
+                log.info("Document rejected email sent to {}", email);
+        }
+
+        private DocumentRejectedContext documentRejectedContext(Document document, String studentName,
+                        String documentType, String comment) {
                 String documentReference = "DOC-" + document.getId();
                 String submissionDate = contentBuilder.formatDate(document.getCreatedAt());
                 String reviewDate = contentBuilder.formatDate(document.getUpdatedAt());
@@ -102,7 +145,7 @@ public class EmailDispatchService {
                                 ? contentBuilder.parseFeedbackPoints(comment)
                                 : List.of();
 
-                var ctx = new DocumentRejectedContext(
+                return new DocumentRejectedContext(
                                 studentName,
                                 documentType,
                                 documentReference,
@@ -112,9 +155,6 @@ public class EmailDispatchService {
                                 resubmissionDeadline,
                                 uploadUrl,
                                 feedbackPoints);
-
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.DOCUMENT_REJECTED, "document-rejected", ctx));
-                log.info("Document rejected email sent to {}", email);
         }
 
         public void sendDocumentCommentEmail(Document document, String commentText, String studentName, String email,
@@ -124,8 +164,21 @@ public class EmailDispatchService {
                                 studentName, email, documentName, documentType);
         }
 
+        public Map<String, Object> documentCommentTemplateData(Document document, String commentText,
+                        String reviewerName, String studentName, String documentName, String documentType) {
+                return templateData("document-comment", documentCommentContext(document, commentText, reviewerName, studentName, documentName, documentType));
+        }
+
         public void sendDocumentCommentEmailWithTemplate(Document document, String commentText, String reviewerName,
                         String studentName, String email, String documentName, String documentType) {
+                var ctx = documentCommentContext(document, commentText, reviewerName, studentName, documentName, documentType);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.DOCUMENT_COMMENT, "document-comment", ctx));
+                log.info("Document comment email sent to {}", email);
+        }
+
+        private DocumentCommentContext documentCommentContext(Document document, String commentText,
+                        String reviewerName, String studentName, String documentName, String documentType) {
                 String documentReference = "DOC-" + document.getId();
                 String uploadDate = contentBuilder.formatDate(document.getCreatedAt());
                 String documentStatus = document.getDocumentStatus() != null ? document.getDocumentStatus().name()
@@ -133,7 +186,7 @@ public class EmailDispatchService {
                 String commentDate = contentBuilder.formatDate(LocalDateTime.now());
                 String portalUrl = baseUrl + "/documents";
 
-                var ctx = new DocumentCommentContext(
+                return new DocumentCommentContext(
                                 studentName,
                                 documentType,
                                 documentName,
@@ -144,13 +197,23 @@ public class EmailDispatchService {
                                 reviewerName,
                                 commentDate,
                                 portalUrl);
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.DOCUMENT_COMMENT, "document-comment", ctx));
-                log.info("Document comment email sent to {}", email);
+        public Map<String, Object> roomAllocatedTemplateData(RoomAllocation allocation, Room room,
+                        Building building, String studentName) {
+                return templateData("room-allocated", roomAllocatedContext(allocation, room, building, studentName));
         }
 
         public void sendRoomAllocatedEmail(RoomAllocation allocation, Room room, Building building,
                         String studentName, String email) {
+                var ctx = roomAllocatedContext(allocation, room, building, studentName);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ROOM_ALLOCATED, "room-allocated", ctx));
+                log.info("Room allocation email sent to {}", email);
+        }
+
+        private RoomAllocatedContext roomAllocatedContext(RoomAllocation allocation, Room room,
+                        Building building, String studentName) {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = building.getName();
                 String buildingAddress = building.getAddress() != null ? building.getAddress() : "";
@@ -167,7 +230,7 @@ public class EmailDispatchService {
                 String officeLocation = "Main Administration Building, Ground Floor";
                 String portalUrl = baseUrl + "/dashboard";
 
-                var ctx = new RoomAllocatedContext(
+                return new RoomAllocatedContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
@@ -182,13 +245,23 @@ public class EmailDispatchService {
                                 buildingAddress,
                                 portalUrl,
                                 contentBuilder.formatDeadline(allocation.getOfferExpiryDate()));
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ROOM_ALLOCATED, "room-allocated", ctx));
-                log.info("Room allocation email sent to {}", email);
+        public Map<String, Object> allocationProposalTemplateData(StagedAllocation stagedAllocation,
+                        Room room, Building building, String studentName) {
+                return templateData("allocation-proposal", allocationProposalContext(stagedAllocation, room, building, studentName));
         }
 
         public void sendAllocationProposalEmail(StagedAllocation stagedAllocation, Room room, Building building,
                         String studentName, String email) {
+                var ctx = allocationProposalContext(stagedAllocation, room, building, studentName);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_PROPOSAL, "allocation-proposal", ctx));
+                log.info("Allocation proposal email sent to {}", email);
+        }
+
+        private AllocationProposalContext allocationProposalContext(StagedAllocation stagedAllocation,
+                        Room room, Building building, String studentName) {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = building.getName();
                 Integer floorNumber = contentBuilder.extractFloorNumber(roomNumber);
@@ -199,7 +272,7 @@ public class EmailDispatchService {
                 String moveInDate = null;
                 String portalUrl = baseUrl + "/dashboard";
 
-                var ctx = new AllocationProposalContext(
+                return new AllocationProposalContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
@@ -210,13 +283,23 @@ public class EmailDispatchService {
                                 warnings,
                                 moveInDate,
                                 portalUrl);
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_PROPOSAL, "allocation-proposal", ctx));
-                log.info("Allocation proposal email sent to {}", email);
+        public Map<String, Object> allocationConfirmedTemplateData(RoomAllocation allocation, Room room,
+                        Building building, String studentName) {
+                return templateData("allocation-confirmed", allocationConfirmedContext(allocation, room, building, studentName));
         }
 
         public void sendAllocationConfirmedEmail(RoomAllocation allocation, Room room, Building building,
                         String studentName, String email) {
+                var ctx = allocationConfirmedContext(allocation, room, building, studentName);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_CONFIRMED, "allocation-confirmed", ctx));
+                log.info("Allocation confirmed email sent to {}", email);
+        }
+
+        private AllocationConfirmedContext allocationConfirmedContext(RoomAllocation allocation, Room room,
+                        Building building, String studentName) {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = building.getName();
                 Integer floorNumber = contentBuilder.extractFloorNumber(roomNumber);
@@ -229,7 +312,7 @@ public class EmailDispatchService {
                                 : contentBuilder.formatDate(allocation.getAllocationDate().plusMonths(10));
                 String portalUrl = baseUrl + "/dashboard";
 
-                var ctx = new AllocationConfirmedContext(
+                return new AllocationConfirmedContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
@@ -240,19 +323,31 @@ public class EmailDispatchService {
                                 startDate,
                                 endDate,
                                 portalUrl);
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_CONFIRMED, "allocation-confirmed", ctx));
-                log.info("Allocation confirmed email sent to {}", email);
+        public Map<String, Object> allocationRejectedTemplateData(StagedAllocation stagedAllocation,
+                        Room room, Building building, String studentName, String reason,
+                        Integer waitingListPosition) {
+                return templateData("allocation-rejected", allocationRejectedContext(stagedAllocation, room, building, studentName, reason, waitingListPosition));
         }
 
         public void sendAllocationRejectedEmail(StagedAllocation stagedAllocation, Room room, Building building,
                         String studentName, String email, String reason, Integer waitingListPosition) {
+                var ctx = allocationRejectedContext(stagedAllocation, room, building, studentName, reason, waitingListPosition);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_REJECTED, "allocation-rejected", ctx));
+                log.info("Allocation rejected email sent to {}", email);
+        }
+
+        private AllocationRejectedContext allocationRejectedContext(StagedAllocation stagedAllocation,
+                        Room room, Building building, String studentName, String reason,
+                        Integer waitingListPosition) {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = building.getName();
                 String proposalId = "PROP-" + stagedAllocation.getId();
                 String portalUrl = baseUrl + "/applications";
 
-                var ctx = new AllocationRejectedContext(
+                return new AllocationRejectedContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
@@ -260,14 +355,26 @@ public class EmailDispatchService {
                                 reason,
                                 waitingListPosition,
                                 portalUrl);
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_REJECTED, "allocation-rejected", ctx));
-                log.info("Allocation rejected email sent to {}", email);
+        public Map<String, Object> allocationMovedTemplateData(RoomAllocation newAllocation, Room oldRoom,
+                        Building newBuilding, Building oldBuilding, String studentName,
+                        LocalDateTime effectiveDate, String reason) {
+                return templateData("allocation-moved", allocationMovedContext(newAllocation, oldRoom, newBuilding, oldBuilding, studentName, effectiveDate, reason));
         }
 
         public void sendAllocationMovedEmail(RoomAllocation newAllocation, Room oldRoom, Building newBuilding,
                         Building oldBuilding,
                         String studentName, String email, LocalDateTime effectiveDate, String reason) {
+                var ctx = allocationMovedContext(newAllocation, oldRoom, newBuilding, oldBuilding, studentName, effectiveDate, reason);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_MOVED, "allocation-moved", ctx));
+                log.info("Allocation moved email sent to {}", email);
+        }
+
+        private AllocationMovedContext allocationMovedContext(RoomAllocation newAllocation, Room oldRoom,
+                        Building newBuilding, Building oldBuilding, String studentName,
+                        LocalDateTime effectiveDate, String reason) {
                 String oldRoomNumber = oldRoom.getRoomNumber();
                 String oldBuildingName = oldBuilding.getName();
                 Integer oldFloorNumber = contentBuilder.extractFloorNumber(oldRoomNumber);
@@ -279,7 +386,7 @@ public class EmailDispatchService {
                 String effectiveDateStr = contentBuilder.formatDate(effectiveDate);
                 String portalUrl = baseUrl + "/dashboard";
 
-                var ctx = new AllocationMovedContext(
+                return new AllocationMovedContext(
                                 studentName,
                                 oldRoomNumber,
                                 oldBuildingName,
@@ -291,14 +398,24 @@ public class EmailDispatchService {
                                 effectiveDateStr,
                                 reason,
                                 portalUrl);
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_MOVED, "allocation-moved", ctx));
-                log.info("Allocation moved email sent to {}", email);
+        public Map<String, Object> offerDeclinedRequeueTemplateData(RoomAllocation allocation, Room room,
+                        String studentName, int totalDeclineCount) {
+                return templateData("offer-declined-requeue", offerDeclinedRequeueContext(allocation, room, studentName, totalDeclineCount));
         }
 
         public void sendOfferDeclinedRequeueEmail(RoomAllocation allocation, Room room, String studentName,
                         String email,
                         int totalDeclineCount, String subject) {
+                var ctx = offerDeclinedRequeueContext(allocation, room, studentName, totalDeclineCount);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OFFER_DECLINED_REQUEUE, "offer-declined-requeue", ctx));
+                log.info("Offer declined re-queue email sent to {}", email);
+        }
+
+        private OfferDeclinedRequeueContext offerDeclinedRequeueContext(RoomAllocation allocation, Room room,
+                        String studentName, int totalDeclineCount) {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "";
                 String declineReason = allocation.getDeclineReason() != null
@@ -309,7 +426,7 @@ public class EmailDispatchService {
                 // counts them. The last of MAX_DECLINES closes the application instead.
                 int declinesRemaining = Math.max(0, WaitingListService.MAX_DECLINES - 1 - totalDeclineCount);
 
-                var ctx = new OfferDeclinedRequeueContext(
+                return new OfferDeclinedRequeueContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
@@ -318,24 +435,42 @@ public class EmailDispatchService {
                                 WaitingListService.MAX_DECLINES,
                                 declineReason,
                                 portalUrl);
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OFFER_DECLINED_REQUEUE, "offer-declined-requeue", ctx));
-                log.info("Offer declined re-queue email sent to {}", email);
+        public Map<String, Object> offerDeclinedMaxReachedTemplateData(Application application,
+                        String studentName, int totalDeclineCount) {
+                return templateData("offer-declined-max-reached", offerDeclinedMaxReachedContext(application, studentName, totalDeclineCount));
         }
 
         public void sendOfferDeclinedMaxReachedEmail(RoomAllocation allocation, Application application,
                         String studentName, String email, int totalDeclineCount, String subject) {
+                var ctx = offerDeclinedMaxReachedContext(application, studentName, totalDeclineCount);
+
+                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OFFER_DECLINED_MAX_REACHED, "offer-declined-max-reached", ctx));
+                log.info("Offer declined max reached email sent to {}", email);
+        }
+
+        private OfferDeclinedMaxReachedContext offerDeclinedMaxReachedContext(Application application,
+                        String studentName, int totalDeclineCount) {
                 String applicationCode = application != null ? application.getApplicationCode() : "N/A";
                 String portalUrl = baseUrl + "/applications";
 
-                var ctx = new OfferDeclinedMaxReachedContext(
+                return new OfferDeclinedMaxReachedContext(
                                 studentName,
                                 totalDeclineCount,
                                 applicationCode,
                                 portalUrl);
+        }
 
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OFFER_DECLINED_MAX_REACHED, "offer-declined-max-reached", ctx));
-                log.info("Offer declined max reached email sent to {}", email);
+        /**
+         * The map stored on the notification row, which is all the retry job has to rebuild the
+         * email from. It comes from the same context as the email that is sent, so the two cannot
+         * drift apart.
+         */
+        private static Map<String, Object> templateData(String templateName, EmailContext ctx) {
+                Map<String, Object> data = EmailService.toVariableMap(ctx);
+                data.put("templateName", templateName);
+                return data;
         }
 
         /**
@@ -374,40 +509,60 @@ public class EmailDispatchService {
                 log.info("Password reset email sent to {}", email);
         }
 
+        public Map<String, Object> offerExpiredTemplateData(Application application, Room room,
+                        String studentName) {
+                return templateData("offer-expired", offerExpiredContext(application, room, studentName));
+        }
+
         public void sendOfferExpiredEmail(RoomAllocation allocation, Application application, Room room,
                         String studentName, String email, String subject) {
-                String applicationCode = application != null ? application.getApplicationCode() : "N/A";
-                String roomNumber = room.getRoomNumber();
-                String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
-                String portalUrl = baseUrl + "/applications";
-
-                var ctx = new OfferExpiredContext(
-                                studentName,
-                                applicationCode,
-                                roomNumber,
-                                buildingName,
-                                portalUrl);
+                var ctx = offerExpiredContext(application, room, studentName);
 
                 monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.OFFER_EXPIRED, "offer-expired", ctx));
                 log.info("Offer expired email sent to {}", email);
         }
 
-        public void sendCheckInExpiredEmail(RoomAllocation allocation, Application application, Room room,
-                        String studentName, String email, String subject) {
+        private OfferExpiredContext offerExpiredContext(Application application, Room room,
+                        String studentName) {
                 String applicationCode = application != null ? application.getApplicationCode() : "N/A";
                 String roomNumber = room.getRoomNumber();
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
                 String portalUrl = baseUrl + "/applications";
 
-                var ctx = new CheckInExpiredContext(
+                return new OfferExpiredContext(
                                 studentName,
                                 applicationCode,
                                 roomNumber,
                                 buildingName,
                                 portalUrl);
+        }
+
+        public Map<String, Object> checkInExpiredTemplateData(Application application, Room room,
+                        String studentName) {
+                return templateData("check-in-expired", checkInExpiredContext(application, room, studentName));
+        }
+
+        public void sendCheckInExpiredEmail(RoomAllocation allocation, Application application, Room room,
+                        String studentName, String email, String subject) {
+                var ctx = checkInExpiredContext(application, room, studentName);
 
                 monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.CHECK_IN_EXPIRED, "check-in-expired", ctx));
                 log.info("Check-in expired email sent to {}", email);
+        }
+
+        private CheckInExpiredContext checkInExpiredContext(Application application, Room room,
+                        String studentName) {
+                String applicationCode = application != null ? application.getApplicationCode() : "N/A";
+                String roomNumber = room.getRoomNumber();
+                String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
+                String portalUrl = baseUrl + "/applications";
+
+                return new CheckInExpiredContext(
+                                studentName,
+                                applicationCode,
+                                roomNumber,
+                                buildingName,
+                                portalUrl);
         }
 
         public void sendOfferExpiryReminderEmail(RoomAllocation allocation, Room room,

@@ -158,7 +158,7 @@ public class EmailService {
     // Context mapping — sealed switch exhausts all 22 EmailContext subtypes
     // ──────────────────────────────────────────────────────────────────────────────
 
-    private Map<String, Object> toVariableMap(EmailContext ctx) {
+    public static Map<String, Object> toVariableMap(EmailContext ctx) {
         Map<String, Object> vars = new HashMap<>();
         switch (ctx) {
             case WelcomeContext c -> {

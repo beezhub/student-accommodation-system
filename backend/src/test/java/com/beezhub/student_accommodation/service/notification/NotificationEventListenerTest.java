@@ -152,7 +152,8 @@ class NotificationEventListenerTest {
 
         notificationEventListener.handleApplicationStatusChanged(event);
 
-        verifyNoInteractions(emailDispatchService);
+        verify(emailDispatchService, never()).sendApplicationApprovedEmail(any(), any(), any());
+        verify(emailDispatchService, never()).sendApplicationRejectedEmail(any(), any(), any());
     }
     
     @Test
