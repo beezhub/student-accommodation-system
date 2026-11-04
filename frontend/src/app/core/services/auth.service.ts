@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { BehaviorSubject, map, Observable } from 'rxjs';
+import { BehaviorSubject, map, Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { User } from '../models/user.model';
 import { SignupData } from '../models/signup-data.model';
@@ -239,6 +239,25 @@ export class AuthService {
   isEmailVerified(): boolean {
     const currentUser = this.currentUserValue;
     return currentUser?.emailVerified === true;
+  }
+
+  /** Replaces the stored copy of the user with what the backend says now. */
+  refreshCurrentUser(): Observable<User> {
+    return this.http
+      .get<User>(`${this.apiUrl}/me`, {
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+      })
+      .pipe(
+        tap((user) => {
+          const currentUser = this.currentUserValue;
+          // Null means they signed out while this was in flight; storing it would sign them back in.
+          if (currentUser) {
+            const updated = { ...currentUser, ...user };
+            localStorage.setItem('currentUser', JSON.stringify(updated));
+            this.currentUserSubject.next(updated);
+          }
+        })
+      );
   }
 
   updateEmailVerificationStatus(verified: boolean): void {

@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ErrorHandlingService } from '../../../core/services/error-handling.service';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -35,6 +36,7 @@ export class ForgotPasswordComponent {
   private router = inject(Router);
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
+  private errorService = inject(ErrorHandlingService);
 
   forgotPasswordForm: FormGroup;
   isSubmitting = false;
@@ -67,12 +69,7 @@ export class ForgotPasswordComponent {
         },
         error: (error: HttpErrorResponse) => {
           this.isSubmitting = false;
-          const errorMessage =
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            error?.error?.message ||
-            error?.message ||
-            'Failed to send reset link. Please try again.';
-          this.snackBar.open(errorMessage, 'Close', {
+          this.snackBar.open(this.errorService.parseError(error).message, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar'],
           });
