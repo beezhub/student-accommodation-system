@@ -24,6 +24,7 @@ import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.DocumentCommentRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,7 @@ public class ApplicationDocumentService {
         private final DocumentCommentRepository documentCommentRepository;
         private final AppUserRepository appUserRepository;
         private final com.beezhub.student_accommodation.service.DocumentTypeService documentTypeService;
+        private final TenantOwnershipGuard tenantOwnershipGuard;
 
         /**
          * Gets the required documents checklist for an application.
@@ -159,6 +161,7 @@ public class ApplicationDocumentService {
                 Application application = applicationRepository.findById(applicationId)
                                 .orElseThrow(() -> new ApplicationNotFoundException(
                                                 "Application not found with ID: " + applicationId));
+                tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
                 AppUser admin = appUserRepository.findByEmail(username)
                                 .orElseThrow(() -> new UserNotFoundException("User not found: " + username));

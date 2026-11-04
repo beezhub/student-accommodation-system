@@ -12,6 +12,7 @@ import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +52,7 @@ public class AllocationLifecycleService {
     private final AllocationAccessGuard allocationAccessGuard;
     private final AuthService authService;
     private final UserNotificationService userNotificationService;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
 
     public AllocationLifecycleService(
             RoomAllocationRepository roomAllocationRepository,
@@ -66,7 +68,8 @@ public class AllocationLifecycleService {
             MeterRegistry meterRegistry,
             AllocationAccessGuard allocationAccessGuard,
             AuthService authService,
-            UserNotificationService userNotificationService) {
+            UserNotificationService userNotificationService,
+            TenantOwnershipGuard tenantOwnershipGuard) {
         this.roomAllocationRepository = roomAllocationRepository;
         this.studentRepository = studentRepository;
         this.roomRepository = roomRepository;
@@ -81,6 +84,7 @@ public class AllocationLifecycleService {
         this.allocationAccessGuard = allocationAccessGuard;
         this.authService = authService;
         this.userNotificationService = userNotificationService;
+        this.tenantOwnershipGuard = tenantOwnershipGuard;
     }
 
     /**
@@ -375,6 +379,7 @@ public class AllocationLifecycleService {
 
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with id: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
 
         if (!"APPROVED".equalsIgnoreCase(String.valueOf(application.getStatus()))) {
             throw new ApplicationNotApprovedException(
@@ -455,8 +460,10 @@ public class AllocationLifecycleService {
     }
 
     private Room getRoom(Long id) {
-        return roomRepository.findById(id)
+        Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
+        tenantOwnershipGuard.assertOwned(room, "Room", id);
+        return room;
     }
 
     /**
@@ -525,6 +532,11 @@ public class AllocationLifecycleService {
     private Application validateAndGetApplication(Long applicationId, Long studentId) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with id: " + applicationId));
+        // assertReadable, not assertOwned. The batch job allocates under the tenant it derives from
+        // the preferred building, because applications created by a platform admin are stamped with
+        // the platform tenant (GH-146). The room is held to assertOwned, so the offer stays in the
+        // caller's company either way.
+        tenantOwnershipGuard.assertReadable(application, "Application", applicationId);
 
         if (!application.getStudent().getId().equals(studentId)) {
             throw new IllegalArgumentException("Application does not belong to the specified student");

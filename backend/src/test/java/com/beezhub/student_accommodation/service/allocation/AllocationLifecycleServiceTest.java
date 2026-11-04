@@ -80,6 +80,8 @@ class AllocationLifecycleServiceTest {
     private MeterRegistry meterRegistry;
     @Mock
     private AllocationAccessGuard allocationAccessGuard;
+    @Mock
+    private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
     @InjectMocks
     private AllocationLifecycleService allocationLifecycleService;
