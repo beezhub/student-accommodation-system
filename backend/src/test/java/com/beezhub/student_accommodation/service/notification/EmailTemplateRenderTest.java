@@ -26,7 +26,7 @@ class EmailTemplateRenderTest {
     private static final String UNIVERSITY_NAME = "Test University";
     private static final String SUPPORT_EMAIL   = "test@university.edu";
     private static final String CONTACT_PHONE   = "+27 (0) 11 000 0000";
-    private static final String PORTAL_URL      = "http://localhost:4200/portal";
+    private static final String PORTAL_URL      = "http://localhost:4200";
 
     private TemplateEngine templateEngine;
 
@@ -81,6 +81,15 @@ class EmailTemplateRenderTest {
     // -------------------------------------------------------------------------
 
     @Test
+    void layout_blankContactPhone_hidesThePhoneNumber() {
+        Map<String, Object> vars = baseContext();
+        vars.put("contactPhone", "");
+        vars.put("resetUrl", "http://localhost:4200/reset?token=abc123");
+
+        assertThat(render("password-reset", vars)).doesNotContain(CONTACT_PHONE);
+    }
+
+    @Test
     void passwordReset_rendersCorrectly() {
         Map<String, Object> vars = baseContext();
         vars.put("studentName", "Jane Smith");
@@ -107,7 +116,6 @@ class EmailTemplateRenderTest {
         vars.put("studentId", "N/A");
         vars.put("registrationDate", "15 Jan 2026");
         vars.put("loginUrl", PORTAL_URL + "/login");
-        vars.put("guideUrl", PORTAL_URL + "/guide");
 
         String html = render("welcome", vars);
 
@@ -124,7 +132,6 @@ class EmailTemplateRenderTest {
         vars.put("studentId", "STU-2025-001");
         vars.put("registrationDate", "2026-01-15");
         vars.put("loginUrl", PORTAL_URL + "/login");
-        vars.put("guideUrl", PORTAL_URL + "/guide");
 
         String html = render("welcome", vars);
 
@@ -155,6 +162,26 @@ class EmailTemplateRenderTest {
         assertBaseRequirements(html, "room-allocated");
         assertThat(html).contains("205B");
         assertThat(html).contains("Westview Block");
+    }
+
+    /** This email goes out for an OFFERED allocation, which lapses unless the student accepts it. */
+    @Test
+    void roomAllocated_unansweredOffer_saysToAcceptByTheDeadline() {
+        Map<String, Object> vars = baseContext();
+        vars.put("studentName", "Alice Brown");
+        vars.put("roomNumber", "205B");
+        vars.put("buildingName", "Westview Block");
+        vars.put("portalUrl", PORTAL_URL + "/dashboard");
+        vars.put("offerExpiryDate", "11 November 2026 at 14:30 UTC");
+
+        String html = render("room-allocated", vars);
+
+        assertThat(html).contains("11 November 2026 at 14:30 UTC");
+        assertThat(html).contains("must accept");
+        assertThat(html).contains("Accept Offer");
+        assertThat(html).doesNotContain("Your Room is Ready");
+        assertThat(html).doesNotContain("successfully");
+        assertThat(html).doesNotContain("confirmed");
     }
 
     @Test
@@ -363,7 +390,8 @@ class EmailTemplateRenderTest {
         vars.put("roomNumber", "102");
         vars.put("buildingName", "South Wing");
         vars.put("totalDeclineCount", 1);
-        vars.put("declinesRemaining", 2);
+        vars.put("declinesRemaining", 1);
+        vars.put("maxDeclines", 3);
         vars.put("declineReason", "Room too far from campus");
         vars.put("portalUrl", PORTAL_URL);
 
@@ -371,6 +399,34 @@ class EmailTemplateRenderTest {
 
         assertBaseRequirements(html, "offer-declined-requeue");
         assertThat(html).contains("Room too far from campus");
+    }
+
+    @Test
+    void offerDeclinedRequeue_firstDecline_showsTheTrueCountAndLimit() {
+        Map<String, Object> vars = baseContext();
+        vars.put("totalDeclineCount", 1);
+        vars.put("declinesRemaining", 1);
+        vars.put("maxDeclines", 3);
+
+        String html = render("offer-declined-requeue", vars);
+
+        assertThat(html).doesNotContain("of 2");
+        assertThat(html).contains("<strong>1</strong> offer.");
+        assertThat(html).contains("<strong>1</strong> more");
+        assertThat(html).contains("<strong>3</strong> offers");
+    }
+
+    @Test
+    void offerDeclinedRequeue_secondDecline_warnsTheNextOneClosesTheApplication() {
+        Map<String, Object> vars = baseContext();
+        vars.put("totalDeclineCount", 2);
+        vars.put("declinesRemaining", 0);
+        vars.put("maxDeclines", 3);
+
+        String html = render("offer-declined-requeue", vars);
+
+        assertThat(html).contains("<strong>2</strong> offers.");
+        assertThat(html).contains("decline your next offer, your application will be closed");
     }
 
     @Test
@@ -540,7 +596,6 @@ class EmailTemplateRenderTest {
                 vars.put("studentId", "STU-001");
                 vars.put("registrationDate", "2026-01-01");
                 vars.put("loginUrl", PORTAL_URL);
-                vars.put("guideUrl", PORTAL_URL);
             }
             case "application-approved" -> {
                 vars.put("applicationId", 1L);
@@ -634,7 +689,8 @@ class EmailTemplateRenderTest {
                 vars.put("roomNumber", "101");
                 vars.put("buildingName", "Block A");
                 vars.put("totalDeclineCount", 1);
-                vars.put("declinesRemaining", 2);
+                vars.put("declinesRemaining", 1);
+                vars.put("maxDeclines", 3);
             }
             case "offer-declined-max-reached" -> {
                 vars.put("totalDeclineCount", 3);

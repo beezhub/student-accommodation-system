@@ -227,7 +227,8 @@ class EmailServiceTest {
     void sendTemplateEmail_withRoomAllocatedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var ctx = new RoomAllocatedContext("Student Name", "101", "Building", 1, "Single",
-                "1", "ALLOC1", "2023-01-01", "2023-12-31", "1 Year", "Office", "Address", "url");
+                "1", "ALLOC1", "2023-01-01", "2023-12-31", "1 Year", "Office", "Address", "url",
+                "01 January 2024 at 12:00 UTC");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ROOM_ALLOCATED, "room-allocated", ctx);
 
@@ -237,7 +238,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withWelcomeContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new WelcomeContext("Student Name", "test@example.com", "ST123", "2023-01-01", "url", "guide_url");
+        var ctx = new WelcomeContext("Student Name", "test@example.com", "ST123", "2023-01-01", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.WELCOME, "welcome", ctx);
 

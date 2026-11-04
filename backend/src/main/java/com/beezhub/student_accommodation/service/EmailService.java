@@ -158,7 +158,7 @@ public class EmailService {
     // Context mapping — sealed switch exhausts all 22 EmailContext subtypes
     // ──────────────────────────────────────────────────────────────────────────────
 
-    private Map<String, Object> toVariableMap(EmailContext ctx) {
+    public static Map<String, Object> toVariableMap(EmailContext ctx) {
         Map<String, Object> vars = new HashMap<>();
         switch (ctx) {
             case WelcomeContext c -> {
@@ -167,7 +167,6 @@ public class EmailService {
                 vars.put("studentId", c.studentId());
                 vars.put("registrationDate", c.registrationDate());
                 vars.put("loginUrl", c.loginUrl());
-                vars.put("guideUrl", c.guideUrl());
             }
             case PasswordResetContext c -> {
                 vars.put("studentName", c.studentName());
@@ -241,6 +240,7 @@ public class EmailService {
                 vars.put("officeLocation", c.officeLocation());
                 vars.put("buildingAddress", c.buildingAddress());
                 vars.put("portalUrl", c.portalUrl());
+                vars.put("offerExpiryDate", c.offerExpiryDate());
             }
             case AllocationProposalContext c -> {
                 vars.put("studentName", c.studentName());
@@ -294,6 +294,7 @@ public class EmailService {
                 vars.put("buildingName", c.buildingName());
                 vars.put("totalDeclineCount", c.totalDeclineCount());
                 vars.put("declinesRemaining", c.declinesRemaining());
+                vars.put("maxDeclines", c.maxDeclines());
                 vars.put("declineReason", c.declineReason());
                 vars.put("portalUrl", c.portalUrl());
             }

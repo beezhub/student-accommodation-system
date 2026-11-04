@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import java.util.List;
 public class EmailContentBuilder {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy");
+    private static final DateTimeFormatter DEADLINE_FORMATTER = DateTimeFormatter.ofPattern("dd MMMM yyyy 'at' HH:mm z");
 
     public String formatDate(LocalDateTime dateTime) {
         if (dateTime == null) return "N/A";
@@ -31,6 +33,15 @@ public class EmailContentBuilder {
     public String formatDate(java.time.LocalDate date) {
         if (date == null) return "N/A";
         return date.format(DATE_FORMATTER);
+    }
+
+    /**
+     * A deadline with its time and zone. An offer lapses at an exact moment, so the date alone would
+     * let a student act on the last day after it has already gone.
+     */
+    public String formatDeadline(LocalDateTime dateTime) {
+        if (dateTime == null) return "N/A";
+        return dateTime.atZone(ZoneId.systemDefault()).format(DEADLINE_FORMATTER);
     }
 
     public String getCurrentAcademicYear() {
