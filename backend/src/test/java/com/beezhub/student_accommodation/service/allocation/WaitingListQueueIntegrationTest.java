@@ -138,6 +138,63 @@ class WaitingListQueueIntegrationTest extends AbstractIntegrationTest {
         assertThat(row.get("bestMatchRoomId").asLong()).isEqualTo(room.getId());
     }
 
+    @Test
+    void getWaitingList_tenantAdmin_seesOnlyOwnTenantEntries() {
+        Building buildingA = newBuilding(tenantA);
+        newRoom(buildingA, tenantA);
+        Student ownStudent = newStudent("Ada", null, null);
+        enqueue(ownStudent, newApplication(ownStudent, tenantA, buildingA, null), tenantA);
+
+        Building buildingB = newBuilding(tenantB);
+        newRoom(buildingB, tenantB);
+        Student otherStudent = newStudent("Bea", null, null);
+        enqueue(otherStudent, newApplication(otherStudent, tenantB, buildingB, null), tenantB);
+
+        ResponseEntity<JsonNode> response = getWaitingListAs(UserRole.TENANT_ADMIN, tenantA);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(studentIdsIn(response.getBody())).containsExactly(ownStudent.getId());
+        JsonNode row = rowFor(response.getBody(), ownStudent);
+        // Students are platform-tenant users, so a filtered join must not lose their name.
+        assertThat(row.get("studentName").asText()).startsWith("Ada");
+        assertThat(row.get("studentEmail").asText()).isEqualTo(ownStudent.getAppUser().getEmail());
+    }
+
+    @Test
+    void getWaitingList_tenantAdminAndApplicationStampedPlatform_keepsApplicationOnRow() {
+        // A platform admin's application carries tenant 0 while the entry carries the owning tenant.
+        Building building = newBuilding(tenantA);
+        newRoom(building, tenantA);
+        Student student = newStudent("Ada", null, null);
+        Application application = newApplication(student, 0L, building, null);
+        enqueue(student, application, tenantA);
+
+        ResponseEntity<JsonNode> response = getWaitingListAs(UserRole.TENANT_ADMIN, tenantA);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(rowFor(response.getBody(), student).get("applicationId").asLong())
+                .isEqualTo(application.getId());
+    }
+
+    @Test
+    void getWaitingList_platformAdmin_seesEveryTenant() {
+        Building buildingA = newBuilding(tenantA);
+        newRoom(buildingA, tenantA);
+        Student studentA = newStudent("Ada", null, null);
+        enqueue(studentA, newApplication(studentA, tenantA, buildingA, null), tenantA);
+
+        Building buildingB = newBuilding(tenantB);
+        newRoom(buildingB, tenantB);
+        Student studentB = newStudent("Bea", null, null);
+        enqueue(studentB, newApplication(studentB, tenantB, buildingB, null), tenantB);
+
+        ResponseEntity<JsonNode> response = getWaitingListAs(UserRole.PLATFORM_ADMIN, 0L);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(studentIdsIn(response.getBody()))
+                .containsExactlyInAnyOrder(studentA.getId(), studentB.getId());
+    }
+
     // ==================== Batch job ====================
 
     // ==================== Fixtures ====================
