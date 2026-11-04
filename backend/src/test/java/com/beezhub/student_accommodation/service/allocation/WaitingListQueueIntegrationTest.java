@@ -131,7 +131,9 @@ class WaitingListQueueIntegrationTest extends AbstractIntegrationTest {
         Student student = newStudent("Ada", null, null);
         enqueue(student, newApplication(student, tenantA, building, null), tenantA);
 
-        ResponseEntity<JsonNode> response = getWaitingListAs(UserRole.PLATFORM_ADMIN, 0L);
+        // As a tenant admin: a platform admin scores every room in this shared database, so a room
+        // left by another test class could win the tie.
+        ResponseEntity<JsonNode> response = getWaitingListAs(UserRole.TENANT_ADMIN, tenantA);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         JsonNode row = rowFor(response.getBody(), student);
