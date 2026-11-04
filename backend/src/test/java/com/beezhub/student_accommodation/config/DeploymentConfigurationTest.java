@@ -93,6 +93,37 @@ class DeploymentConfigurationTest {
     }
 
     /**
+     * infra/terraform/prod-grafana/dashboards.tf copies these dashboards to Grafana Cloud (#340) by
+     * rewriting each panel's and each query's data source one level deep. A row, a nested panel or a
+     * panel without its own data source would break that at terraform plan, far from the change
+     * that caused it, so the shape is pinned here.
+     */
+    @Test
+    void grafanaDashboards_haveTheFlatShapeTheProdCopyRewrites() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        try (Stream<Path> files = Files.list(REPO_ROOT.resolve("tools/grafana/dashboards"))) {
+            for (Path file : files.filter(p -> p.toString().endsWith(".json")).toList()) {
+                String name = file.getFileName().toString();
+                var dashboard = mapper.readTree(file.toFile());
+
+                assertThat(dashboard.path("uid").asText()).as(name + " uid").isNotBlank();
+                assertThat(dashboard.path("panels").isArray()).as(name + " panels").isTrue();
+                for (var panel : dashboard.path("panels")) {
+                    String where = name + " panel \"" + panel.path("title").asText() + "\"";
+                    assertThat(panel.path("type").asText()).as(where).isNotEqualTo("row");
+                    assertThat(panel.has("panels")).as(where + " nested panels").isFalse();
+                    assertThat(panel.path("datasource").path("type").asText()).as(where + " datasource")
+                            .isNotBlank();
+                    assertThat(panel.path("targets").isArray()).as(where + " targets").isTrue();
+                    for (var target : panel.path("targets")) {
+                        assertThat(target.has("datasource")).as(where + " query datasource").isTrue();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Grafana builds its redirects from GRAFANA_ROOT_URL, which ends in /grafana. Without sub-path
      * serving the login page redirects to itself forever; without the Caddy route /grafana reaches
      * the frontend instead.
@@ -305,6 +336,62 @@ class DeploymentConfigurationTest {
                 .contains("job_name        = \"student-accommodation-backend\"");
     }
 
+    /**
+     * The memory, swap and disk alerts read the host, not the Alloy container (#340). The exporter's
+     * paths must be the ones compose mounts, read-only, and only the kept series reach Grafana
+     * Cloud, whose free plan counts every series.
+     */
+    @Test
+    void awsOverlay_alloyShipsOnlyTheHostSeriesTheAlertsRead() throws IOException {
+        String aws = readLf("docker-compose.aws.yml");
+        String alloy = aws.substring(aws.indexOf("  alloy:"));
+        String cloud = readLf("tools/alloy/grafana-cloud.alloy");
+
+        assertThat(alloy).contains("- /proc:/host/proc:ro\n", "- /sys:/host/sys:ro\n", "- /:/host/root:ro,rslave\n");
+        assertThat(cloud).contains("procfs_path    = \"/host/proc\"", "sysfs_path     = \"/host/sys\"",
+                "rootfs_path    = \"/host/root\"");
+        assertThat(cloud).contains("forward_to      = [prometheus.relabel.host.receiver]");
+        assertThat(cloud.substring(cloud.indexOf("prometheus.relabel \"host\"")))
+                .contains("action        = \"keep\"")
+                .contains("forward_to = [prometheus.remote_write.default.receiver]");
+    }
+
+    /**
+     * The Grafana alerts keep their own state, so an AWS plan never needs the Grafana token, and
+     * every query is pinned to env="prod" so a second environment on the stack (#381) is ignored.
+     */
+    @Test
+    void prodGrafana_ownStateAndOnlyProdSeries() throws IOException {
+        String versions = readLf("infra/terraform/prod-grafana/versions.tf");
+        String alerts = readLf("infra/terraform/prod-grafana/alerts.tf");
+
+        assertThat(versions).contains("key          = \"prod-grafana/terraform.tfstate\"");
+        assertThat(versions).contains("version = \"4.50.0\"");
+        assertThat(alerts).contains("backend = \"job=\\\"student-accommodation-backend\\\",env=\\\"prod\\\"\"");
+        assertThat(alerts).contains("requests   = \"http_server_requests_seconds_count{${local.backend},");
+        assertThat(alerts).contains("errors_5xx = \"http_server_requests_seconds_count{${local.backend},");
+        assertThat(alerts.lines().filter(line -> line.trim().matches("expr\\s+= \".*")))
+                .hasSize(5)
+                .allSatisfy(line -> assertThat(line)
+                        .containsAnyOf("env=\\\"prod\\\"", "${local.backend}", "${local.requests}"));
+    }
+
+    /**
+     * A misspelt usage type group is not an error: the budget just measures 0 GB for ever. These
+     * are the names Cost Explorer lists for this account (#340), and both paths out are counted:
+     * pages from the server and documents straight from S3.
+     */
+    @Test
+    void dataOutBudget_countsServerAndS3Downloads() throws IOException {
+        String monitoring = readLf("infra/terraform/prod/monitoring.tf");
+        String budget = monitoring.substring(monitoring.indexOf("resource \"aws_budgets_budget\" \"data_out\""));
+
+        assertThat(budget).contains("budget_type  = \"USAGE\"", "limit_unit   = \"GB\"",
+                "name   = \"UsageTypeGroup\"");
+        assertThat(budget).contains(
+                "values = [\"EC2: Data Transfer - Internet (Out)\", \"S3: Data Transfer - Internet (Out)\"]");
+    }
+
     @Test
     void awsOverlay_settingsAreDocumented() throws IOException {
         String env = read(".env.example");
@@ -320,6 +407,24 @@ class DeploymentConfigurationTest {
 
         assertThat(env).contains("APP_CONTACT_PHONE");
         assertThat(env).contains("REDIS_TIMEOUT_MS");
+    }
+
+    /**
+     * The example-data migration runs once (#365). Local and NONPROD keep the rows by default, and
+     * PROD cannot start without saying what it wants: a ${VAR:?} key is what write-env.sh checks
+     * before it changes anything on the server, so a missing value stops the deploy before Flyway.
+     */
+    @Test
+    void exampleData_keptByDefaultAndRequiredOnProd() throws IOException {
+        assertThat(applicationYml()).contains("exampleData: ${EXAMPLE_DATA:true}");
+        assertThat(read("backend/src/main/resources/db/migration/V2026_11_04_1000__remove_example_data.sql"))
+                .contains("IF lower('${exampleData}') = 'true' THEN");
+
+        String aws = readLf("docker-compose.aws.yml");
+        String backend = aws.substring(aws.indexOf("  student-accommodation-back-end:"), aws.indexOf("  alloy:"));
+        assertThat(backend).contains("- EXAMPLE_DATA=${EXAMPLE_DATA:?");
+        assertThat(read("tools/prod/write-env.sh")).contains("grep -hoE '\\$\\{[A-Z0-9_]+(\\}|:?\\?)'");
+        assertThat(read(".env.example")).contains("EXAMPLE_DATA=true");
     }
 
     /**

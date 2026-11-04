@@ -38,6 +38,36 @@ prometheus.scrape "backend" {
 	forward_to = [prometheus.remote_write.default.receiver]
 }
 
+// The server's own memory, swap, disk and CPU, for the alerts in infra/terraform/prod-grafana
+// (#340). NONPROD has no equivalent: its Prometheus scrapes only the backend. The host's /proc,
+// /sys and / are mounted read-only under /host by docker-compose.aws.yml; with rootfs_path the
+// exporter reports mount points as the host sees them, so the root disk is mountpoint="/".
+prometheus.exporter.unix "host" {
+	procfs_path    = "/host/proc"
+	sysfs_path     = "/host/sys"
+	rootfs_path    = "/host/root"
+	set_collectors = ["cpu", "filesystem", "loadavg", "meminfo"]
+}
+
+prometheus.scrape "host" {
+	job_name        = "node"
+	scrape_interval = "60s"
+	targets         = prometheus.exporter.unix.host.targets
+	forward_to      = [prometheus.relabel.host.receiver]
+}
+
+// The four collectors produce about 500 series; the free plan allows 10,000 in all. Keep only
+// what an alert or a dashboard reads, so adding a collector later is a choice, not a surprise.
+prometheus.relabel "host" {
+	rule {
+		source_labels = ["__name__"]
+		regex         = "node_(memory_(MemAvailable|MemTotal|SwapFree|SwapTotal)_bytes|filesystem_(avail|size)_bytes|cpu_seconds_total|load(1|5|15))"
+		action        = "keep"
+	}
+
+	forward_to = [prometheus.remote_write.default.receiver]
+}
+
 prometheus.remote_write "default" {
 	endpoint {
 		url = sys.env("GRAFANA_CLOUD_METRICS_URL")

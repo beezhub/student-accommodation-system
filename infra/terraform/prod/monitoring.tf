@@ -1,4 +1,4 @@
-# Health alarms for what Grafana Cloud cannot see from inside the server (#340). Five alarms at
+# Health alarms for what Grafana Cloud cannot see from inside the server (#340). Six alarms at
 # $0.10 each a month, plus the backup alarm and its custom metric.
 
 resource "aws_sns_topic" "alarms" {
@@ -109,4 +109,58 @@ resource "aws_cloudwatch_metric_alarm" "db_backup_missing" {
   treat_missing_data  = "breaching"
   alarm_actions       = [aws_sns_topic.alarms.arn]
   ok_actions          = [aws_sns_topic.alarms.arn]
+}
+
+# t4g.small in standard mode earns 24 CPU credits an hour and holds at most 576. At zero it is held
+# to its 20% baseline, which looks like a slow site rather than an outage. 100 credits is about an
+# hour of both vCPUs flat out, so there is time to act: find the cause, or switch to unlimited mode.
+resource "aws_cloudwatch_metric_alarm" "ec2_cpu_credits" {
+  alarm_name          = "${var.name}-ec2-cpu-credits"
+  alarm_description   = "PROD server has under 100 CPU credits left; at zero it slows to 20% CPU (#340)"
+  namespace           = "AWS/EC2"
+  metric_name         = "CPUCreditBalance"
+  dimensions          = { InstanceId = aws_instance.app.id }
+  statistic           = "Minimum"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 100
+  comparison_operator = "LessThanThreshold"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+}
+
+# Data out to the internet: the first 100 GB a month is free across the whole account, then it is
+# $0.154/GB (docs/PROD_ENVIRONMENT_PLAN.md). A CloudWatch alarm cannot see it: documents download
+# straight from S3 through presigned URLs, which never pass the server's NetworkOut. Cost
+# Explorer's usage groups count both paths. Not filtered to PROD, because the free 100 GB is the
+# account's, whatever uses it. Budgets that only notify are free.
+resource "aws_budgets_budget" "data_out" {
+  name         = "${var.name}-data-out"
+  budget_type  = "USAGE"
+  limit_amount = "100"
+  limit_unit   = "GB"
+  time_unit    = "MONTHLY"
+
+  cost_filter {
+    name   = "UsageTypeGroup"
+    values = ["EC2: Data Transfer - Internet (Out)", "S3: Data Transfer - Internet (Out)"]
+  }
+
+  # 80 GB used: time to look before the free allowance runs out.
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.alarm_email]
+  }
+
+  # On course to pass 100 GB this month, which is when it starts to cost money.
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = [var.alarm_email]
+  }
 }

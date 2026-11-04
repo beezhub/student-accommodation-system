@@ -110,7 +110,8 @@ Done on 2026-11-03; kept here to rebuild PROD from nothing.
    attempt pointed at `5.240.189.31`, someone else's server.
 3. The `/sas-prod/` settings: generated secrets (`JWT_SECRET`, `REDIS_PASSWORD`,
    `PROMETHEUS_SCRAPE_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`, `ADMIN_BOOTSTRAP_PASSWORD`), the
-   Grafana Cloud values, and the plain settings. The mail parameters come from Terraform.
+   Grafana Cloud values, and the plain settings, including `EXAMPLE_DATA=false` (#365). The mail
+   parameters come from Terraform.
 4. The Grafana Cloud token, entered through a prompt so it never reaches the screen or a transcript:
 
    ```bash
@@ -129,6 +130,27 @@ Done on 2026-11-03; kept here to rebuild PROD from nothing.
      --names /sas-prod/ADMIN_BOOTSTRAP_EMAIL /sas-prod/ADMIN_BOOTSTRAP_PASSWORD
    ```
 
+## Removing the example data (#365, once)
+
+The baseline seed put two example institutions, a "2026" academic year and the locked demo
+administrator on PROD. `V2026_11_04_1000__remove_example_data.sql` removes them when `EXAMPLE_DATA`
+is `false`. It runs **once**, so the setting comes first:
+
+1. Before deploying the first release that carries that migration:
+
+   ```bash
+   MSYS_NO_PATHCONV=1 aws ssm put-parameter --region af-south-1 --name /sas-prod/EXAMPLE_DATA \
+     --type String --value 'false'
+   ```
+
+   Without it the deploy stops at `write-env.sh` with "need keys that /sas-prod/ does not have:
+   EXAMPLE_DATA", and nothing on the server changes.
+2. Deploy. In the backend's startup log, Flyway applies `2026.11.04.1000`. A line with
+   `action=exampleDataKept` names a row it left because something real points at it; look at that
+   row before removing it by hand.
+3. In the platform admin UI, rename tenant 1 ("Default Tenant") to the real first tenant, and add
+   the real institutions and academic year.
+
 ## Checks after any deploy
 
 - `start.sh` reports readiness and `errors since start: 0`.
@@ -140,5 +162,5 @@ Done on 2026-11-03; kept here to rebuild PROD from nothing.
 ## Known gaps
 
 - #339: no tested restore yet; RDS point-in-time recovery exists but has not been drilled.
-- #340: Grafana Cloud dashboards and alerts are not built yet.
+- #340: Grafana Cloud alerts and dashboards are in `infra/terraform/prod-grafana` (applied by hand: `infra/terraform/README.md`, "Grafana Cloud alerts and dashboards"), and data out is the `sas-prod-data-out` budget in `prod/monitoring.tf`; UptimeRobot is not set up yet.
 - #344: DNS is still at the SADomains email hosting package.

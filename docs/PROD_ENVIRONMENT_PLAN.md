@@ -107,7 +107,7 @@ through SSM, and RDS has no public address: its security group accepts port 5432
 | Secrets | SSM Parameter Store, standard tier | Free. The deploy writes `/opt/sas/.env` from it instead of hand edits |
 | Monitoring | Grafana Cloud free plan, fed by Alloy | Grafana, Prometheus and Loki do not run on the server |
 | Uptime | UptimeRobot free plan | Outside check, alerts by email |
-| Health alarms | CloudWatch: EC2 status check with auto-recover, RDS CPU, free storage, free memory | |
+| Health alarms | CloudWatch: EC2 status check with auto-recover, EC2 CPU credits, RDS CPU, free storage, free memory | |
 | Deploy access | SSM Run Command from GitHub Actions through an OIDC role | No SSH key stored in GitHub, no open port 22 |
 
 ## Budget
@@ -246,7 +246,7 @@ manual `workflow_dispatch`, which is free, or GitHub Team at about $4 per user p
 | Budget is about $4 over the original $30 | Budgets alerts. The reservations are what keep it at ~$34 |
 | Reservations lock in a size for a year | Buy them only after the first month on demand |
 | A deploy with a migration cannot be rolled back by redeploying | Record the schema version before each deploy. Point-in-time recovery to just before the deploy is now the undo |
-| S3 downloads are billed as data out | The first 100 GB a month is free and the estimate is ~10 GB. Past that it is $0.154/GB. The Grafana Cloud dashboard should track it |
+| S3 downloads are billed as data out | The first 100 GB a month is free and the estimate is ~10 GB. Past that it is $0.154/GB. The `sas-prod-data-out` budget emails at 80 GB used and when 100 GB is forecast (#340) |
 
 ## Open decisions
 
