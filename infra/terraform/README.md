@@ -6,7 +6,7 @@ The AWS side of `docs/PROD_ENVIRONMENT_PLAN.md`, in `af-south-1`.
 |---|---|
 | `bootstrap/` | The S3 bucket every Terraform state lives in. Run once |
 | `prod/` | The PROD environment: VPC, EC2, Elastic IP, RDS, S3, ECR, SES SMTP user, IAM, CloudWatch alarms, the data-out budget |
-| `prod-grafana/` | PROD's alert rules and their email contact point in the Grafana Cloud stack (#340) |
+| `prod-grafana/` | PROD's alert rules, their email contact point and the dashboards in the Grafana Cloud stack (#340) |
 
 Versions are pinned: Terraform `1.16.6`, the AWS provider `6.69.1` and the Grafana provider
 `4.50.0`, with `.terraform.lock.hcl` committed for Linux, macOS and Windows.
@@ -52,7 +52,7 @@ On Git Bash for Windows, prefix the `docker run` with `MSYS_NO_PATHCONV=1`.
 4. **Confirm the alarm subscription.** AWS emails a confirmation link to `alarm_email`. No alarm
    is delivered until it is clicked.
 
-## Grafana Cloud alerts
+## Grafana Cloud alerts and dashboards
 
 `prod-grafana/` has its own state (`prod-grafana/terraform.tfstate` in the same bucket), so a
 `prod/` plan never asks for the Grafana token. It still needs the AWS credentials above, for the
@@ -71,27 +71,36 @@ state bucket.
 3. **Plan and apply,** with the token read from a prompt so it never reaches the screen, a file or
    the shell history:
 
+   The helper mounts the whole repository, not just this folder, because the dashboards are read
+   from `tools/grafana/dashboards`.
+
    ```bash
    read -rsp "Paste Grafana token: " TF_VAR_grafana_auth && echo && export TF_VAR_grafana_auth
    tfg() {
-     MSYS_NO_PATHCONV=1 docker run --rm -it -v "$(pwd -W 2>/dev/null || pwd):/tf" -w /tf/prod-grafana \
+     MSYS_NO_PATHCONV=1 docker run --rm -it \
+       -v "$(cd ../.. && (pwd -W 2>/dev/null || pwd)):/repo" -w /repo/infra/terraform/prod-grafana \
        -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e TF_VAR_grafana_auth \
        hashicorp/terraform:1.16.6 "$@"
    }
    tfg init
-   tfg plan     # first run: 4 to add, 0 to change, 0 to destroy
+   tfg plan     # first run: 9 to add, 0 to change, 0 to destroy
    tfg apply
    unset TF_VAR_grafana_auth
    ```
 
-   The first plan adds the `PROD alerts` folder, the `PROD alert email` contact point and two
-   rule groups, `server` and `backend`. If it stops at `grafanacloud-friendlysamosa508-prom` not
+   The first plan adds the `PROD alerts` folder, the `PROD alert email` contact point, two rule
+   groups (`server` and `backend`), the `PROD dashboards` folder and one dashboard for each file in
+   `tools/grafana/dashboards`, four today. If it stops at `grafanacloud-friendlysamosa508-prom` not
    found, set `prometheus_data_source` in `terraform.tfvars` to the stack's Prometheus data source
    name (Connections > Data sources).
 
 4. **Test it.** Alerting > Contact points > `PROD alert email` > Test. The mail should arrive within
    a minute. Then check Alerting > Alert rules: every rule should be `Normal`. A rule in `No data`
-   means its series is not reaching the stack.
+   means its series is not reaching the stack. Under Dashboards > `PROD dashboards`, every panel
+   should draw; one that says "data source not found" was not rewritten (`prod-grafana/dashboards.tf`).
+
+A new or changed file in `tools/grafana/dashboards` reaches PROD at the next `tfg apply`; nothing
+deploys it on its own.
 
 ## What is protected
 
