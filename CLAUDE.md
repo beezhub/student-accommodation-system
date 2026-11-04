@@ -259,8 +259,11 @@ rules that matter most:
 - Always branch from `develop` and open the pull request back against
   `develop`. The only exception is a hotfix, which a person decides on:
   `hotfix/TASK-{id}-{slug}` from `main`, with its pull request into
-  `main` (`CONTRIBUTING.md`, "Hotfixes"). One issue per pull request, no
-  bundled or drive-by changes.
+  `main` (`CONTRIBUTING.md`, "Hotfixes"). A pull request may close
+  several related issues (same area, same kind of change), one commit
+  per issue, branch named after the first; unrelated issues and drive-by
+  changes still get their own pull request (`CONTRIBUTING.md`, "Pull
+  requests"). Scout still works one issue per run.
 - Write Conventional Commits with an imperative subject of 72
   characters or less. The body says what changed and why, not that a
   tool made it.
