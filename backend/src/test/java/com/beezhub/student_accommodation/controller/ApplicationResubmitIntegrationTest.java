@@ -29,7 +29,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -171,7 +170,6 @@ class ApplicationResubmitIntegrationTest extends AbstractIntegrationTest {
         saved.setAppUser(user);
         saved.setStudentNumber("S-" + System.nanoTime());
         saved.setPhoneNumber("0123456789");
-        saved.setDateOfBirth(new Date());
         saved.setGender("Female");
         saved = studentRepository.save(saved);
         students.add(saved);
