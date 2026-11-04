@@ -131,6 +131,13 @@ export class ProfileComponent implements OnInit {
           this.isRetrying = false;
           console.error('Error fetching student profile:', error);
           this.loadError = this.errorService.parseError(error);
+
+          // This screen can only update a row, so without one it can never save (#465).
+          // replaceUrl, so the back button does not land here and bounce straight forward again.
+          if (this.loadError.statusCode === 404) {
+            this.errorService.showWarning('Please complete your profile first.');
+            this.router.navigate(['/profile-setup'], { replaceUrl: true });
+          }
           this.cdr.markForCheck();
         },
       });

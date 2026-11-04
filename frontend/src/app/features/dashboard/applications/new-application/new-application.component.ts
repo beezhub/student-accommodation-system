@@ -183,8 +183,10 @@ export class NewApplicationComponent implements OnInit {
         this.loadError = this.errorService.parseError(error);
 
         if (this.loadError.statusCode === 404) {
+          // /profile can only update a row; /profile-setup is the screen that creates one (#465).
+          // replaceUrl, so the back button does not land here and bounce straight forward again.
           this.errorService.showWarning('Please complete your profile first.');
-          this.router.navigate(['/profile']);
+          this.router.navigate(['/profile-setup'], { replaceUrl: true });
         }
         this.cdr.markForCheck();
       },
@@ -200,10 +202,11 @@ export class NewApplicationComponent implements OnInit {
     this.submitError = null;
 
     if (!this.studentId) {
-      this.errorService.showWarning(
-        'Student profile not found. Please complete your profile first.'
-      );
-      this.router.navigate(['/profile']);
+      // No id only means the load has not succeeded. A 404 has already gone to /profile-setup, so
+      // this student may well have a profile, and student.user_id has no unique constraint to
+      // refuse a second row. Ask again: a real 404 redirects from there (#465).
+      this.errorService.showWarning('We could not load your profile yet. Please try again.');
+      this.loadStudentProfile();
       return;
     }
 
