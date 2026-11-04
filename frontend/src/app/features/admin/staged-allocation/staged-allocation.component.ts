@@ -14,7 +14,11 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SelectionModel } from '@angular/cdk/collections';
 
-import { AdminService, ApplicationResponse } from '../../../core/services/admin.service';
+import {
+  AdminService,
+  ApplicationResponse,
+  initialsOf,
+} from '../../../core/services/admin.service';
 import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
 import { StagedAllocation, BatchAllocationProposal } from '../../../core/models/allocation.models';
 import { ModernStatusBadgeComponent } from '../../../shared/modern-status-badge/modern-status-badge.component';
@@ -310,9 +314,7 @@ export class StagedAllocationComponent implements OnInit {
   }
 
   getInitials(app: ApplicationResponse): string {
-    const f = app.studentFirstName?.[0] ?? '';
-    const l = app.studentLastName?.[0] ?? '';
-    return (f + l).toUpperCase();
+    return initialsOf(app.studentName);
   }
 
   getScoreRingStyle(score: number): { [key: string]: string } {

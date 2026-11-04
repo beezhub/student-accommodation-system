@@ -34,8 +34,7 @@ export interface ApplicationResponse {
   status: string;
   remarks?: string;
   studentId: number;
-  studentFirstName: string;
-  studentLastName: string;
+  studentName: string;
   studentEmail: string;
   // Allocation & Review Details
   preferredBuildingName?: string;
@@ -51,6 +50,17 @@ export interface ApplicationResponse {
   preferredBuildings?: BuildingPreferenceResponse[];
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Initials from a full name, using the first and last words: the API sends one `studentName`,
+ * and a surname like "van der Merwe" has several words.
+ */
+export function initialsOf(fullName: string | null | undefined): string {
+  const words = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '';
+  const last = words.length > 1 ? words[words.length - 1][0] : '';
+  return (words[0][0] + last).toUpperCase();
 }
 
 export interface DocumentResponse {

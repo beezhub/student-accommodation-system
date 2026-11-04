@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import {
   AdminService,
   ApplicationResponse,
+  initialsOf,
   PageResponse,
 } from '../../../core/services/admin.service';
 import { BuildingService, BuildingResponse } from '../../../core/services/building.service';
@@ -327,9 +328,7 @@ export class ApplicationReviewComponent implements OnInit {
   }
 
   getStudentInitials(app: ApplicationResponse): string {
-    const first = (app.studentFirstName || '').charAt(0).toUpperCase();
-    const last = (app.studentLastName || '').charAt(0).toUpperCase();
-    return first + last || '?';
+    return initialsOf(app.studentName) || '?';
   }
 
   getScoreRingStyle(score: number | null | undefined): Record<string, string> {
