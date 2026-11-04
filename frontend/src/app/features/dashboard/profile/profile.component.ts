@@ -22,6 +22,7 @@ import { StudentRequest } from '../../../core/models/student.model';
 import { ChangePasswordDialogComponent } from './change-password-dialog/change-password-dialog.component';
 import { DeleteAccountDialogComponent } from './delete-account-dialog/delete-account-dialog.component';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
+import { parseLocalDate, toLocalDateString } from '../../../core/utils/local-date';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 import { User } from '../../../core/models/user.model';
 import { contentOf } from '../../../core/models/page-response.model';
@@ -98,7 +99,7 @@ export class ProfileComponent implements OnInit {
         next: (profile) => {
           this.isRetrying = false;
           // Convert date string to Date object for the datepicker
-          const dateOfBirth = profile.dateOfBirth ? new Date(profile.dateOfBirth) : null;
+          const dateOfBirth = profile.dateOfBirth ? parseLocalDate(profile.dateOfBirth) : null;
           // Normalize gender to match option values (capitalize first letter)
           const normalizedGender = this.normalizeGender(profile.gender);
 
@@ -206,7 +207,7 @@ export class ProfileComponent implements OnInit {
 
   formatDateForDisplay(date: Date | string | null): string {
     if (!date) return 'Not specified';
-    const dateObj = date instanceof Date ? date : new Date(date);
+    const dateObj = date instanceof Date ? date : parseLocalDate(date);
     if (isNaN(dateObj.getTime())) return 'Invalid date';
     return dateObj.toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' });
   }
@@ -216,7 +217,7 @@ export class ProfileComponent implements OnInit {
     if (!this.isEditing && this.studentProfile) {
       // Reset form to original values
       const dateOfBirth = this.studentProfile.dateOfBirth
-        ? new Date(this.studentProfile.dateOfBirth)
+        ? parseLocalDate(this.studentProfile.dateOfBirth)
         : null;
       this.profileForm.patchValue({
         firstName: this.studentProfile.firstName,
@@ -245,11 +246,7 @@ export class ProfileComponent implements OnInit {
       this.isSaving = true;
 
       const formValue = this.profileForm.value;
-      // Format date as YYYY-MM-DD for the API
-      const dateOfBirth =
-        formValue.dateOfBirth instanceof Date
-          ? formValue.dateOfBirth.toISOString().split('T')[0]
-          : formValue.dateOfBirth;
+      const dateOfBirth = toLocalDateString(formValue.dateOfBirth);
       const updateRequest: StudentRequest = {
         firstName: formValue.firstName,
         lastName: formValue.lastName,
