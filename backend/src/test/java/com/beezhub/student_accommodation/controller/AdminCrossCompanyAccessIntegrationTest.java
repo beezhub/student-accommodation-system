@@ -58,7 +58,6 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -745,7 +744,6 @@ class AdminCrossCompanyAccessIntegrationTest extends AbstractIntegrationTest {
         student.setAppUser(saveUser(role, TenantContext.PLATFORM_TENANT_ID));
         student.setStudentNumber("S-" + System.nanoTime());
         student.setPhoneNumber("0123456789");
-        student.setDateOfBirth(new Date());
         student.setGender("Female");
         student = studentRepository.save(student);
         studentIds.add(student.getId());
