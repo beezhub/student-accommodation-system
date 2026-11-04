@@ -119,7 +119,7 @@ export class DocumentTypeManagementComponent implements OnInit {
       size: this.pageSize,
     };
 
-    this.documentTypeService.searchDocumentTypes(filters).subscribe({
+    this.documentTypeService.searchDocumentTypes(filters, true).subscribe({
       next: (response: PageResponse<DocumentTypeResponse>) => {
         this.documentTypes = response.content;
         this.totalElements = response.totalElements;

@@ -1,9 +1,15 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 export { PageResponse } from '../models/page-response.model';
 import { PageResponse } from '../models/page-response.model';
+
+/**
+ * Asks errorInterceptor not to show its own snackbar (#310). Each write below has one caller, a
+ * reference-data page or form dialog that says what failed; reads take it only when asked.
+ */
+const SILENT = new HttpHeaders({ 'X-Silent-Error': 'true' });
 
 export interface AccommodationType {
   id: number;
@@ -37,13 +43,21 @@ export class AccommodationTypeService {
   /**
    * Get all accommodation types with pagination (admin only)
    */
-  getAll(page = 0, size = 20, sort = 'name'): Observable<PageResponse<AccommodationType>> {
+  getAll(
+    page = 0,
+    size = 20,
+    sort = 'name',
+    silent = false
+  ): Observable<PageResponse<AccommodationType>> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString())
       .set('sort', sort);
 
-    return this.http.get<PageResponse<AccommodationType>>(this.apiUrl, { params });
+    return this.http.get<PageResponse<AccommodationType>>(this.apiUrl, {
+      params,
+      ...(silent ? { headers: SILENT } : {}),
+    });
   }
 
   /**
@@ -57,20 +71,20 @@ export class AccommodationTypeService {
    * Create a new accommodation type (admin only)
    */
   create(request: AccommodationTypeRequest): Observable<AccommodationType> {
-    return this.http.post<AccommodationType>(this.apiUrl, request);
+    return this.http.post<AccommodationType>(this.apiUrl, request, { headers: SILENT });
   }
 
   /**
    * Update an existing accommodation type (admin only)
    */
   update(id: number, request: AccommodationTypeRequest): Observable<AccommodationType> {
-    return this.http.put<AccommodationType>(`${this.apiUrl}/${id}`, request);
+    return this.http.put<AccommodationType>(`${this.apiUrl}/${id}`, request, { headers: SILENT });
   }
 
   /**
    * Delete an accommodation type (admin only)
    */
   delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, { headers: SILENT });
   }
 }

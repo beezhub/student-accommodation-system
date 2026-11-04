@@ -92,7 +92,7 @@ export class AccommodationTypeManagementComponent implements OnInit {
   loadAccommodationTypes(): void {
     this.isLoading = true;
 
-    this.accommodationTypeService.getAll(this.currentPage, this.pageSize).subscribe({
+    this.accommodationTypeService.getAll(this.currentPage, this.pageSize, 'name', true).subscribe({
       next: (response: PageResponse<AccommodationType>) => {
         this.accommodationTypes = response.content;
         this.totalElements = response.totalElements;

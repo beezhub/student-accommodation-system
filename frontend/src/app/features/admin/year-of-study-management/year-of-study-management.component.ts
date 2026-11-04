@@ -93,7 +93,7 @@ export class YearOfStudyManagementComponent implements OnInit {
       size: this.pageSize,
     };
 
-    this.yearOfStudyService.searchYearsOfStudy(filters).subscribe({
+    this.yearOfStudyService.searchYearsOfStudy(filters, true).subscribe({
       next: (response: PageResponse<YearOfStudyResponse>) => {
         this.yearsOfStudy = response.content;
         this.totalElements = response.totalElements;
