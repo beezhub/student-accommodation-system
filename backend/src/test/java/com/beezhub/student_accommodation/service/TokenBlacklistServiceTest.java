@@ -8,6 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -67,5 +68,84 @@ class TokenBlacklistServiceTest {
         
         tokenBlacklistService.blacklistToken("test-jti", -10);
         verifyNoInteractions(redisTemplate);
+    }
+
+    @Test
+    void blacklistToken_redisThrows_doesNotPropagate() {
+        when(redisTemplate.opsForValue()).thenThrow(new RuntimeException("Redis down"));
+
+        tokenBlacklistService.blacklistToken("test-jti", 60);
+
+        verify(redisTemplate).opsForValue();
+    }
+
+    @Test
+    void revokeTokensIssuedBefore_validInput_storesCutoffMillis() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        Instant cutoff = Instant.ofEpochMilli(1_700_000_000_000L);
+
+        tokenBlacklistService.revokeTokensIssuedBefore("admin@example.com", cutoff, 3600);
+
+        verify(valueOperations).set(
+                eq("revoked-before:admin@example.com"), eq("1700000000000"), eq(3600L), eq(TimeUnit.SECONDS));
+    }
+
+    @Test
+    void revokeTokensIssuedBefore_nullOrNonPositiveInput_doesNothing() {
+        Instant cutoff = Instant.now();
+
+        tokenBlacklistService.revokeTokensIssuedBefore(null, cutoff, 60);
+        tokenBlacklistService.revokeTokensIssuedBefore("user", null, 60);
+        tokenBlacklistService.revokeTokensIssuedBefore("user", cutoff, 0);
+
+        verifyNoInteractions(redisTemplate);
+    }
+
+    @Test
+    void revokeTokensIssuedBefore_redisThrows_doesNotPropagate() {
+        when(redisTemplate.opsForValue()).thenThrow(new RuntimeException("Redis down"));
+
+        tokenBlacklistService.revokeTokensIssuedBefore("user", Instant.now(), 60);
+
+        verify(redisTemplate).opsForValue();
+    }
+
+    @Test
+    void isRevoked_tokenIssuedBeforeCutoff_returnsTrue() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("revoked-before:user")).thenReturn("2000");
+
+        assertTrue(tokenBlacklistService.isRevoked("user", Instant.ofEpochMilli(1000)));
+    }
+
+    @Test
+    void isRevoked_tokenIssuedAfterCutoff_returnsFalse() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("revoked-before:user")).thenReturn("2000");
+
+        assertFalse(tokenBlacklistService.isRevoked("user", Instant.ofEpochMilli(3000)));
+    }
+
+    @Test
+    void isRevoked_noMarker_returnsFalse() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("revoked-before:user")).thenReturn(null);
+
+        assertFalse(tokenBlacklistService.isRevoked("user", Instant.now()));
+    }
+
+    @Test
+    void isRevoked_nullArguments_returnsFalseWithoutRedis() {
+        assertFalse(tokenBlacklistService.isRevoked(null, Instant.now()));
+        assertFalse(tokenBlacklistService.isRevoked("user", null));
+
+        verifyNoInteractions(redisTemplate);
+    }
+
+    @Test
+    void isRevoked_redisUnavailable_returnsFalse() {
+        when(redisTemplate.opsForValue()).thenThrow(new RuntimeException("Redis down"));
+
+        assertFalse(tokenBlacklistService.isRevoked("user", Instant.now()));
     }
 }
