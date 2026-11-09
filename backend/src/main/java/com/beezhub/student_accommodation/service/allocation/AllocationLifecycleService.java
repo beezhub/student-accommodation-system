@@ -448,6 +448,11 @@ public class AllocationLifecycleService {
     }
 
     @Transactional
+    public MessageResponse enqueueWaitingListForAdmin(Long studentId, Long applicationId) {
+        return waitingListService.enqueueWaitingListForAdmin(studentId, applicationId);
+    }
+
+    @Transactional
     public MessageResponse enqueueWaitingList(Long studentId, Long applicationId) {
         return waitingListService.enqueueWaitingList(studentId, applicationId);
     }

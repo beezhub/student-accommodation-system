@@ -224,7 +224,7 @@ public class StagedAllocationController {
         @Operation(summary = "Add student to waiting list", description = "Adds a student to the waiting list for allocation")
         public ResponseEntity<MessageResponse> enqueueWaitingList(
                         @Valid @RequestBody WaitingListEnqueueRequest request) {
-                MessageResponse response = roomAllocationService.enqueueWaitingList(
+                MessageResponse response = roomAllocationService.enqueueWaitingListForAdmin(
                                 request.getStudentId(),
                                 request.getApplicationId());
                 return ResponseEntity.ok(response);
