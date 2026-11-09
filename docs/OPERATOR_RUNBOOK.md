@@ -87,9 +87,9 @@ deliberately reset a lost platform admin password on the next startup, then clea
 
 `.env.example` documents every variable the application reads, including the ones not listed here.
 
-> `docker-compose.prod.yml` and `CLAUDE.md` both point at a `CREDENTIAL_ROTATION.md` that is not in
-> the repository. Until it exists there is no written rotation procedure; treat every value above as
-> rotatable only by redeploying with a new one.
+> There is no separate rotation document. For the AWS PROD environment, `docs/PROD_RUNBOOK.md`
+> ("Rotating the other PROD secrets") says what each secret affects. Anywhere else, treat every value
+> above as rotatable only by redeploying with a new one.
 
 ---
 
