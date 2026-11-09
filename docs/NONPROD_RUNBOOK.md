@@ -298,6 +298,28 @@ docker exec -i student-accommodation-local-db pg_restore --list < "$DUMP" | tail
 Restores, and the order to restore the database and the bucket in, are in
 [Backup and restore](BACKUP_AND_RESTORE.md#nonprod-and-local-compose).
 
+### Developer access from your laptop
+
+Postgres and the MinIO console have no host port and must never get one. Reach them over an SSH
+tunnel to their fixed addresses on the compose network (`docker-compose.deploy.yml`). The addresses
+do not change when a deploy recreates the containers, so the commands below can be saved in a GUI
+client's connection profile.
+
+```bash
+ssh -N -L 15432:172.28.0.20:5432 nonprod   # Postgres: connect a client to localhost:15432
+ssh -N -L 9001:172.28.0.30:9001 nonprod    # MinIO console: open http://localhost:9001
+```
+
+- Local port 15432, not 5432, on purpose: a local Postgres container already uses 5432, and a
+  tunnel on the same port invites running a migration against the wrong database.
+- Postgres: user `USER_DB`, password `PASSWORD_DB`, both from `/opt/sas/.env` on the server. The
+  server requires TLS, so set the client's SSL mode to `require`.
+- MinIO console: `S3_ACCESS_KEY` and `S3_SECRET_KEY` from the same file.
+- Reading is routine. Do not change the schema by hand: `validate-on-migrate: true` makes the next
+  deploy fail at startup on any DDL Flyway did not apply. Writes need a reason.
+- After a deploy, `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+  student-accommodation-local-db` should still print `172.28.0.20`.
+
 ## When something goes wrong
 
 | What you see | Why | What to do |
