@@ -111,6 +111,22 @@ class ApplicationCoreServiceTest {
                 applicationRequest.setPreferredBuildingIds(List.of(10L));
         }
 
+        /** GH-494: the year comes from the company applied to and the student's institution. */
+        @Test
+        void submitApplication_looksUpTheYearOfTheCompanyForTheStudentsInstitution() {
+                var institution = new com.beezhub.student_accommodation.model.entity.Institution();
+                institution.setId(7L);
+                student.setInstitution(institution);
+                var academicYear = buildOpenAcademicYear();
+                when(buildingRepository.findById(10L)).thenReturn(Optional.of(defaultBuilding));
+                when(buildingPreferenceRepository.saveAll(any())).thenReturn(List.of());
+                stubCommonSubmitMocks(academicYear);
+
+                applicationCoreService.submitApplication(applicationRequest);
+
+                verify(academicYearService).getYearForNewApplication(42L, 7L);
+        }
+
         @Test
         void submitApplication_shouldCreateApplication() {
                 // Arrange
@@ -141,7 +157,7 @@ class ApplicationCoreServiceTest {
                 when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
                 when(authService.getCurrentUser()).thenReturn(studentUser);
                 when(buildingRepository.findById(10L)).thenReturn(Optional.of(defaultBuilding));
-                when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+                when(academicYearService.getYearForNewApplication(anyLong(), any())).thenReturn(academicYear);
                 when(academicYearService.isApplicationWindowOpen(academicYear)).thenReturn(true);
                 when(documentRepository.findDocumentTypeNamesByStudentId(1L)).thenReturn(Set.of());
                 when(documentTypeService.getEffectiveRequiredTypeNames(42L)).thenReturn(Set.of());
@@ -162,7 +178,7 @@ class ApplicationCoreServiceTest {
                 when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
                 when(authService.getCurrentUser()).thenReturn(studentUser);
                 when(buildingRepository.findById(10L)).thenReturn(Optional.of(defaultBuilding));
-                when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+                when(academicYearService.getYearForNewApplication(anyLong(), any())).thenReturn(academicYear);
                 when(academicYearService.isApplicationWindowOpen(academicYear)).thenReturn(true);
                 when(documentRepository.findDocumentTypeNamesByStudentId(1L)).thenReturn(Set.of());
                 when(documentTypeService.getEffectiveRequiredTypeNames(anyLong())).thenReturn(Set.of());
@@ -188,7 +204,7 @@ class ApplicationCoreServiceTest {
                 when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
                 when(authService.getCurrentUser()).thenReturn(studentUser);
                 when(buildingRepository.findById(10L)).thenReturn(Optional.of(defaultBuilding));
-                when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+                when(academicYearService.getYearForNewApplication(anyLong(), any())).thenReturn(academicYear);
                 when(academicYearService.isApplicationWindowOpen(academicYear)).thenReturn(true);
                 when(documentRepository.findDocumentTypeNamesByStudentId(1L)).thenReturn(Set.of());
                 when(documentTypeService.getEffectiveRequiredTypeNames(anyLong())).thenReturn(Set.of());
@@ -352,14 +368,13 @@ class ApplicationCoreServiceTest {
                                 .endDate(LocalDate.now().plusMonths(10))
                                 .applicationOpenDate(LocalDate.now().minusDays(10))
                                 .applicationCloseDate(LocalDate.now().plusDays(30))
-                                .isCurrent(true)
                                 .build();
         }
 
         private void stubCommonSubmitMocks(com.beezhub.student_accommodation.model.entity.AcademicYear academicYear) {
                 when(studentRepository.findStudentWithDetailsById(1L)).thenReturn(Optional.of(student));
                 when(authService.getCurrentUser()).thenReturn(studentUser);
-                when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
+                when(academicYearService.getYearForNewApplication(anyLong(), any())).thenReturn(academicYear);
                 when(academicYearService.isApplicationWindowOpen(academicYear)).thenReturn(true);
                 lenient().when(applicationRepository.nextApplicationCodeSequence()).thenReturn(1L);
                 lenient().when(documentRepository.findDocumentTypeNamesByStudentId(1L)).thenReturn(Set.of());

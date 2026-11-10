@@ -311,6 +311,17 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                 return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
         }
 
+        @ExceptionHandler(InvalidAcademicCalendarException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidAcademicCalendar(
+                        InvalidAcademicCalendarException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.BAD_REQUEST.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
         @ExceptionHandler(DocumentTypeNotFoundException.class)
         public ResponseEntity<ErrorResponse> handleDocumentTypeNotFound(
                         DocumentTypeNotFoundException ex, WebRequest request) {

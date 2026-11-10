@@ -16,6 +16,9 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class AcademicYearRequest {
 
+    /** Empty means every institution the company serves ("All institutions"). */
+    private Long institutionId;
+
     @NotBlank(message = "Name is required")
     @Size(max = 20, message = "Name must be at most 20 characters")
     private String name;
@@ -31,6 +34,4 @@ public class AcademicYearRequest {
 
     @NotNull(message = "Application close date is required")
     private LocalDate applicationCloseDate;
-
-    private Boolean isCurrent;
 }

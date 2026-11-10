@@ -32,10 +32,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Academic years are one platform-wide calendar (GH-439). Applications always take the single
- * current year and its window, whichever company they go to, so a company admin reads the calendar
- * and only platform roles change it. These run over HTTP with real tokens, because the tenant
- * filter and the role check are the behaviour under test.
+ * Academic years belong to each company (GH-494). A company admin sees and manages their own
+ * company's years, can reuse a name another company uses, and has no set-current action, because
+ * the current year follows the dates (GH-439). These run over HTTP with real tokens, because the
+ * tenant filter and the role check are the behaviour under test.
  */
 class AcademicYearAccessIntegrationTest extends AbstractIntegrationTest {
 
@@ -54,19 +54,16 @@ class AcademicYearAccessIntegrationTest extends AbstractIntegrationTest {
     private Long otherCompanyId;
     private String companyAdminToken;
     private String platformAdminToken;
-    private String platformStaffToken;
 
     @BeforeEach
     void setUp() {
         TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
         SecurityContextHolder.clearContext();
-        jdbc.update("UPDATE academic_year SET is_current = FALSE WHERE is_current = TRUE");
 
         companyId = saveCompany();
         otherCompanyId = saveCompany();
         companyAdminToken = tokenFor(UserRole.TENANT_ADMIN, companyId);
         platformAdminToken = tokenFor(UserRole.PLATFORM_ADMIN, TenantContext.PLATFORM_TENANT_ID);
-        platformStaffToken = tokenFor(UserRole.PLATFORM_STAFF, TenantContext.PLATFORM_TENANT_ID);
 
         TenantContext.clear();
     }
@@ -83,142 +80,136 @@ class AcademicYearAccessIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void getAll_companyAdmin_seesPlatformAndOwnYearsButNotAnotherCompanys() {
+    void getAll_companyAdmin_seesOwnYearsOnly() {
         String platformYear = uniqueName();
         String ownYear = uniqueName();
         String otherCompanyYear = uniqueName();
-        insertYear(platformYear, TenantContext.PLATFORM_TENANT_ID, true);
-        insertYear(ownYear, companyId, false);
-        insertYear(otherCompanyYear, otherCompanyId, false);
+        insertYear(platformYear, TenantContext.PLATFORM_TENANT_ID, 2030);
+        insertYear(ownYear, companyId, 2030);
+        insertYear(otherCompanyYear, otherCompanyId, 2030);
 
         ResponseEntity<String> response = get(PATH, companyAdminToken);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).contains(platformYear, ownYear).doesNotContain(otherCompanyYear);
-    }
-
-    /** The first seeded year sits on tenant 1, and is current for every company if it is still there. */
-    @Test
-    void getAll_currentYearOwnedByAnotherCompany_isStillListed() {
-        String currentYear = uniqueName();
-        insertYear(currentYear, otherCompanyId, true);
-
-        ResponseEntity<String> response = get(PATH, companyAdminToken);
-
-        assertThat(response.getBody()).contains(currentYear);
+        assertThat(response.getBody()).contains(ownYear, "\"totalElements\"")
+                .doesNotContain(otherCompanyYear, platformYear);
     }
 
     @Test
     void getAll_platformAdmin_seesEveryCompanysYears() {
         String ownedByCompany = uniqueName();
         String ownedByOtherCompany = uniqueName();
-        insertYear(ownedByCompany, companyId, false);
-        insertYear(ownedByOtherCompany, otherCompanyId, false);
+        insertYear(ownedByCompany, companyId, 2030);
+        insertYear(ownedByOtherCompany, otherCompanyId, 2030);
 
-        ResponseEntity<String> response = get(PATH, platformAdminToken);
+        ResponseEntity<String> response = get(PATH + "?size=500", platformAdminToken);
 
         assertThat(response.getBody()).contains(ownedByCompany, ownedByOtherCompany);
     }
 
+    /** GH-439 comment: GET /current returned 404 for a company admin. */
     @Test
-    void getCurrent_companyAdmin_returnsThePlatformCurrentYear() {
-        String platformYear = uniqueName();
-        insertYear(platformYear, TenantContext.PLATFORM_TENANT_ID, true);
+    void getCurrent_companyAdmin_returnsTheCompanysYearContainingToday() {
+        String ownYear = uniqueName();
+        insertYear(ownYear, companyId, LocalDate.now().minusMonths(1), LocalDate.now().plusMonths(6));
+        insertYear(uniqueName(), companyId, LocalDate.now().plusMonths(7), LocalDate.now().plusMonths(18));
 
         ResponseEntity<String> response = get(PATH + "/current", companyAdminToken);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).contains(platformYear);
+        assertThat(response.getBody()).contains(ownYear);
     }
 
     @Test
-    void create_companyAdminWithNameUsedElsewhere_isForbiddenAndCreatesNothing() {
-        String takenName = uniqueName();
-        insertYear(takenName, TenantContext.PLATFORM_TENANT_ID, false);
+    void create_companyAdminWithNameAnotherCompanyUses_isCreatedForTheCompany() {
+        String sharedName = uniqueName();
+        insertYear(sharedName, otherCompanyId, 2030);
 
-        ResponseEntity<String> response = post(PATH, yearJson(takenName, false), companyAdminToken);
+        ResponseEntity<String> response = post(PATH, yearJson(sharedName, 2031), companyAdminToken);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(countByName(takenName)).isEqualTo(1);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(countByNameAndTenant(sharedName, companyId)).isEqualTo(1);
+        assertThat(countByNameAndTenant(sharedName, otherCompanyId)).isEqualTo(1);
     }
 
     @Test
-    void setCurrent_companyAdminOnOwnYear_isForbiddenAndPlatformYearStaysCurrent() {
-        Long platformYear = insertYear(uniqueName(), TenantContext.PLATFORM_TENANT_ID, true);
-        Long ownYear = insertYear(uniqueName(), companyId, false);
-
-        ResponseEntity<String> response = post(PATH + "/" + ownYear + "/set-current", "{}", companyAdminToken);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(isCurrent(platformYear)).isTrue();
-        assertThat(isCurrent(ownYear)).isFalse();
-    }
-
-    /** With no current year to collide with, the write used to succeed and set the window for every company. */
-    @Test
-    void setCurrent_companyAdminWhenNoYearIsCurrent_isForbiddenAndNothingBecomesCurrent() {
-        Long ownYear = insertYear(uniqueName(), companyId, false);
-
-        ResponseEntity<String> response = post(PATH + "/" + ownYear + "/set-current", "{}", companyAdminToken);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(isCurrent(ownYear)).isFalse();
-    }
-
-    @Test
-    void update_companyAdminOnOwnYear_isForbiddenAndLeavesTheRow() {
+    void create_companyAdminReusingOwnName_isAConflictWithAPlainMessage() {
         String ownName = uniqueName();
-        Long ownYear = insertYear(ownName, companyId, false);
+        insertYear(ownName, companyId, 2030);
+
+        ResponseEntity<String> response = post(PATH, yearJson(ownName, 2031), companyAdminToken);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).contains("All institutions");
+    }
+
+    @Test
+    void create_companyAdminOverlappingOwnYear_isAConflictNamingTheYear() {
+        String ownName = uniqueName();
+        insertYear(ownName, companyId, 2031);
+
+        ResponseEntity<String> response = post(PATH, yearJson(uniqueName(), 2031), companyAdminToken);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).contains(ownName);
+    }
+
+    /** The current year follows the dates; the endpoint that set it for every company is gone. */
+    @Test
+    void setCurrent_companyAdmin_hasNoSuchAction() {
+        Long ownYear = insertYear(uniqueName(), companyId, 2030);
+
+        ResponseEntity<String> response = post(PATH + "/" + ownYear + "/set-current", "{}", companyAdminToken);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isFalse();
+    }
+
+    @Test
+    void update_companyAdminOnOwnYear_isSaved() {
+        Long ownYear = insertYear(uniqueName(), companyId, 2030);
+        String newName = uniqueName();
 
         ResponseEntity<String> response = rest.exchange(PATH + "/" + ownYear, HttpMethod.PUT,
-                new HttpEntity<>(yearJson(uniqueName(), false), jsonHeaders(companyAdminToken)), String.class);
+                new HttpEntity<>(yearJson(newName, 2030), jsonHeaders(companyAdminToken)), String.class);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(countByName(ownName)).isEqualTo(1);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(countByNameAndTenant(newName, companyId)).isEqualTo(1);
     }
 
     @Test
-    void delete_companyAdminOnOwnYear_isForbiddenAndLeavesTheRow() {
+    void update_companyAdminOnAnotherCompanysYear_isNotFoundAndLeavesTheRow() {
+        String otherName = uniqueName();
+        Long otherYear = insertYear(otherName, otherCompanyId, 2030);
+
+        ResponseEntity<String> response = rest.exchange(PATH + "/" + otherYear, HttpMethod.PUT,
+                new HttpEntity<>(yearJson(uniqueName(), 2030), jsonHeaders(companyAdminToken)), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(countByNameAndTenant(otherName, otherCompanyId)).isEqualTo(1);
+    }
+
+    @Test
+    void delete_companyAdminOnAnotherCompanysYear_isNotFoundAndLeavesTheRow() {
+        String otherName = uniqueName();
+        Long otherYear = insertYear(otherName, otherCompanyId, 2030);
+
+        ResponseEntity<String> response = rest.exchange(PATH + "/" + otherYear, HttpMethod.DELETE,
+                new HttpEntity<>(jsonHeaders(companyAdminToken)), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(countByNameAndTenant(otherName, otherCompanyId)).isEqualTo(1);
+    }
+
+    @Test
+    void delete_companyAdminOnOwnYearWithoutApplications_isDeleted() {
         String ownName = uniqueName();
-        Long ownYear = insertYear(ownName, companyId, false);
+        Long ownYear = insertYear(ownName, companyId, 2030);
 
         ResponseEntity<String> response = rest.exchange(PATH + "/" + ownYear, HttpMethod.DELETE,
                 new HttpEntity<>(jsonHeaders(companyAdminToken)), String.class);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(countByName(ownName)).isEqualTo(1);
-    }
-
-    @Test
-    void create_platformAdminWithNameUsedByACompany_isAConflictNotADatabaseError() {
-        String takenName = uniqueName();
-        insertYear(takenName, companyId, false);
-
-        ResponseEntity<String> response = post(PATH, yearJson(takenName, false), platformAdminToken);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-    }
-
-    @Test
-    void setCurrent_platformAdmin_movesCurrentOffACompanyOwnedYear() {
-        Long companyOwnedCurrent = insertYear(uniqueName(), companyId, true);
-        Long platformYear = insertYear(uniqueName(), TenantContext.PLATFORM_TENANT_ID, false);
-
-        ResponseEntity<String> response = post(PATH + "/" + platformYear + "/set-current", "{}", platformAdminToken);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(isCurrent(platformYear)).isTrue();
-        assertThat(isCurrent(companyOwnedCurrent)).isFalse();
-    }
-
-    @Test
-    void setCurrent_platformStaff_isAllowed() {
-        Long platformYear = insertYear(uniqueName(), TenantContext.PLATFORM_TENANT_ID, false);
-
-        ResponseEntity<String> response = post(PATH + "/" + platformYear + "/set-current", "{}", platformStaffToken);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(isCurrent(platformYear)).isTrue();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(countByNameAndTenant(ownName, companyId)).isZero();
     }
 
     private Long saveCompany() {
@@ -245,25 +236,24 @@ class AcademicYearAccessIntegrationTest extends AbstractIntegrationTest {
         return jwtUtil.generateToken(new AppUserDetails(user.getEmail(), "", role.name(), tenantId));
     }
 
-    private Long insertYear(String name, Long tenantId, boolean current) {
+    /** A year running from February to November of {@code year}. */
+    private Long insertYear(String name, Long tenantId, int year) {
+        return insertYear(name, tenantId, LocalDate.of(year, 2, 1), LocalDate.of(year, 11, 30));
+    }
+
+    private Long insertYear(String name, Long tenantId, LocalDate start, LocalDate end) {
         return jdbc.queryForObject("""
                 INSERT INTO academic_year
-                    (name, start_date, end_date, application_open_date, application_close_date, is_current, tenant_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (name, start_date, end_date, application_open_date, application_close_date, tenant_id)
+                VALUES (?, ?, ?, ?, ?, ?)
                 RETURNING id
-                """, Long.class, name,
-                Date.valueOf(LocalDate.of(2030, 2, 1)), Date.valueOf(LocalDate.of(2030, 11, 30)),
-                Date.valueOf(LocalDate.of(2029, 9, 1)), Date.valueOf(LocalDate.of(2030, 1, 31)),
-                current, tenantId);
+                """, Long.class, name, Date.valueOf(start), Date.valueOf(end),
+                Date.valueOf(start.minusMonths(4)), Date.valueOf(start.minusDays(14)), tenantId);
     }
 
-    private boolean isCurrent(Long id) {
-        return Boolean.TRUE.equals(
-                jdbc.queryForObject("SELECT is_current FROM academic_year WHERE id = ?", Boolean.class, id));
-    }
-
-    private int countByName(String name) {
-        Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM academic_year WHERE name = ?", Integer.class, name);
+    private int countByNameAndTenant(String name, Long tenantId) {
+        Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM academic_year WHERE name = ? AND tenant_id = ?",
+                Integer.class, name, tenantId);
         return count == null ? 0 : count;
     }
 
@@ -271,11 +261,11 @@ class AcademicYearAccessIntegrationTest extends AbstractIntegrationTest {
         return "AY-" + UUID.randomUUID().toString().substring(0, 8);
     }
 
-    private String yearJson(String name, boolean current) {
+    private String yearJson(String name, int year) {
         return """
-                {"name":"%s","startDate":"2031-02-01","endDate":"2031-11-30",
-                 "applicationOpenDate":"2030-09-01","applicationCloseDate":"2031-01-31","isCurrent":%s}
-                """.formatted(name, current);
+                {"name":"%s","startDate":"%d-02-01","endDate":"%d-11-30",
+                 "applicationOpenDate":"%d-09-01","applicationCloseDate":"%d-01-31"}
+                """.formatted(name, year, year, year - 1, year);
     }
 
     private ResponseEntity<String> get(String path, String token) {

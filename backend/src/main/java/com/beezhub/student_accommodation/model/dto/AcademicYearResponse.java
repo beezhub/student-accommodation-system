@@ -15,12 +15,15 @@ import java.time.LocalDateTime;
 public class AcademicYearResponse {
 
     private Long id;
+    private Long tenantId;
+    /** Empty means "All institutions". */
+    private Long institutionId;
+    private String institutionName;
     private String name;
     private LocalDate startDate;
     private LocalDate endDate;
     private LocalDate applicationOpenDate;
     private LocalDate applicationCloseDate;
-    private Boolean isCurrent;
     private Boolean isApplicationWindowOpen;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
