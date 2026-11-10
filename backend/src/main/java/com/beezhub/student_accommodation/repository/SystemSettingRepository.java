@@ -31,4 +31,12 @@ public interface SystemSettingRepository extends JpaRepository<SystemSetting, Lo
     @Query(value = "SELECT * FROM system_settings WHERE tenant_id = 0 ORDER BY setting_key",
            nativeQuery = true)
     List<SystemSetting> findAllPlatformSettings();
+
+    /**
+     * One company's own row for {@code key}, with no fallback. Native, so the result does not
+     * depend on whether the tenant filter is on for the caller.
+     */
+    @Query(value = "SELECT * FROM system_settings WHERE tenant_id = :tenantId AND setting_key = :key LIMIT 1",
+           nativeQuery = true)
+    Optional<SystemSetting> findByTenantIdAndKey(@Param("tenantId") Long tenantId, @Param("key") String key);
 }

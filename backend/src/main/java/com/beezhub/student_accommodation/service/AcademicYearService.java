@@ -9,12 +9,16 @@ import com.beezhub.student_accommodation.exceptions.ResourceInUseException;
 import com.beezhub.student_accommodation.mapper.AcademicYearMapper;
 import com.beezhub.student_accommodation.model.dto.AcademicYearRequest;
 import com.beezhub.student_accommodation.model.dto.AcademicYearResponse;
+import com.beezhub.student_accommodation.model.dto.IntakeResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
 import com.beezhub.student_accommodation.model.entity.Institution;
+import com.beezhub.student_accommodation.model.entity.Intake;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.InstitutionRepository;
+import com.beezhub.student_accommodation.repository.IntakeRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import com.beezhub.student_accommodation.util.PageMapper;
@@ -29,8 +33,10 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Academic years belong to one company and, optionally, one institution (GH-494, GH-439).
@@ -49,6 +55,9 @@ public class AcademicYearService {
 
     private final AcademicYearRepository academicYearRepository;
     private final ApplicationRepository applicationRepository;
+    private final RoomAllocationRepository roomAllocationRepository;
+    private final IntakeRepository intakeRepository;
+    private final IntakeWindowPolicy intakeWindowPolicy;
     private final InstitutionRepository institutionRepository;
     private final AcademicYearMapper academicYearMapper;
     private final TenantOwnershipGuard tenantOwnershipGuard;
@@ -61,6 +70,12 @@ public class AcademicYearService {
         AcademicYear academicYear = academicYearMapper.toEntity(request);
         academicYear.setTenantId(callerTenantId());
         applyInstitution(academicYear, request.getInstitutionId());
+        if (academicYear.getApplicationOpenDate() == null || academicYear.getApplicationCloseDate() == null) {
+            IntakeWindowPolicy.Window window =
+                    intakeWindowPolicy.windowFor(academicYear.getTenantId(), academicYear.getStartDate());
+            academicYear.setApplicationOpenDate(window.open());
+            academicYear.setApplicationCloseDate(window.close());
+        }
         validate(academicYear);
 
         AcademicYear saved = academicYearRepository.save(academicYear);
@@ -76,10 +91,22 @@ public class AcademicYearService {
         academicYearMapper.updateEntity(request, academicYear);
         applyInstitution(academicYear, request.getInstitutionId());
         validate(academicYear);
+        intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(id).stream()
+                .filter(intake -> intake.getStayStartDate().isBefore(academicYear.getStartDate())
+                        || intake.getStayEndDate().isAfter(academicYear.getEndDate()))
+                .findFirst()
+                .ifPresent(intake -> {
+                    throw new InvalidAcademicCalendarException(intake.getName() + " (" + intake.getStayStartDate()
+                            + " to " + intake.getStayEndDate() + ") would fall outside the year. "
+                            + "Move or delete it first.");
+                });
 
         AcademicYear saved = academicYearRepository.save(academicYear);
         log.info("action=academicYearUpdated academicYearId={}", saved.getId());
-        return toResponse(saved);
+        AcademicYearResponse response = toResponse(saved);
+        response.setApplicationCount(applicationRepository.countByAcademicYear_Id(id));
+        response.setAllocationCount(roomAllocationRepository.countByAcademicYear_Id(id));
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -100,7 +127,16 @@ public class AcademicYearService {
         Page<AcademicYear> years = isPlatformCaller(tenantId)
                 ? academicYearRepository.findAll(pageable)
                 : academicYearRepository.findByTenantId(tenantId, pageable);
-        return PageMapper.toPageResponse(years.map(this::toResponse));
+        Map<Long, List<IntakeResponse>> intakesByYear = years.isEmpty() ? Map.of()
+                : intakeRepository.findByAcademicYear_IdInOrderByStayStartDateAscNameAsc(
+                                years.map(AcademicYear::getId).getContent()).stream()
+                        .collect(Collectors.groupingBy(i -> i.getAcademicYear().getId(),
+                                Collectors.mapping(this::toIntakeResponse, Collectors.toList())));
+        return PageMapper.toPageResponse(years.map(year -> {
+            AcademicYearResponse response = toResponseWithoutIntakes(year);
+            response.setIntakes(intakesByYear.getOrDefault(year.getId(), List.of()));
+            return response;
+        }));
     }
 
     /**
@@ -156,13 +192,17 @@ public class AcademicYearService {
 
     /** Whether today, in South African time, is inside the year's application window. */
     public boolean isApplicationWindowOpen(AcademicYear academicYear) {
-        if (academicYear == null || academicYear.getApplicationOpenDate() == null
-                || academicYear.getApplicationCloseDate() == null) {
+        return academicYear != null
+                && isOpenToday(academicYear.getApplicationOpenDate(), academicYear.getApplicationCloseDate());
+    }
+
+    /** Whether today, in South African time, is inside a window. Both dates are inclusive. */
+    public boolean isOpenToday(LocalDate open, LocalDate close) {
+        if (open == null || close == null) {
             return false;
         }
         LocalDate today = today();
-        return !today.isBefore(academicYear.getApplicationOpenDate())
-                && !today.isAfter(academicYear.getApplicationCloseDate());
+        return !today.isBefore(open) && !today.isAfter(close);
     }
 
     /** Today in the calendar zone. */
@@ -212,8 +252,30 @@ public class AcademicYearService {
                 });
     }
 
-    /** Maps a year with its window state read from the calendar clock. */
+    /** Maps a year and its intakes, with window states read from the calendar clock. */
     public AcademicYearResponse toResponse(AcademicYear academicYear) {
+        AcademicYearResponse response = toResponseWithoutIntakes(academicYear);
+        response.setIntakes(academicYear.getId() == null ? List.of()
+                : intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(academicYear.getId())
+                        .stream().map(this::toIntakeResponse).toList());
+        return response;
+    }
+
+    public IntakeResponse toIntakeResponse(Intake intake) {
+        return IntakeResponse.builder()
+                .id(intake.getId())
+                .academicYearId(intake.getAcademicYear() != null ? intake.getAcademicYear().getId() : null)
+                .intakeType(intake.getIntakeType())
+                .name(intake.getName())
+                .stayStartDate(intake.getStayStartDate())
+                .stayEndDate(intake.getStayEndDate())
+                .applicationOpenDate(intake.getApplicationOpenDate())
+                .applicationCloseDate(intake.getApplicationCloseDate())
+                .isApplicationWindowOpen(isOpenToday(intake.getApplicationOpenDate(), intake.getApplicationCloseDate()))
+                .build();
+    }
+
+    private AcademicYearResponse toResponseWithoutIntakes(AcademicYear academicYear) {
         AcademicYearResponse response = academicYearMapper.toResponse(academicYear);
         response.setIsApplicationWindowOpen(isApplicationWindowOpen(academicYear));
         return response;
@@ -251,6 +313,15 @@ public class AcademicYearService {
 
     private static boolean contains(AcademicYear year, LocalDate day) {
         return !day.isBefore(year.getStartDate()) && !day.isAfter(year.getEndDate());
+    }
+
+    /**
+     * Readies a year built elsewhere (a pattern or a copy) for {@link #validate}: links the
+     * institution, refusing an unknown one.
+     */
+    public AcademicYear prepareNewYear(AcademicYear year, Long institutionId) {
+        applyInstitution(year, institutionId);
+        return year;
     }
 
     private void applyInstitution(AcademicYear year, Long institutionId) {

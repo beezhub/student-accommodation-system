@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -27,4 +28,9 @@ public class AcademicYearResponse {
     private Boolean isApplicationWindowOpen;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<IntakeResponse> intakes;
+    /** Set on an edit: applications filed under this year, which keep their year and intake. */
+    private Long applicationCount;
+    /** Set on an edit: allocations under this year, which keep their dates. */
+    private Long allocationCount;
 }

@@ -357,4 +357,37 @@ class SystemSettingServiceTest {
         assertThatThrownBy(() -> systemSettingService.deleteSetting("missing"))
                 .isInstanceOf(com.beezhub.student_accommodation.exceptions.ResourceNotFoundException.class);
     }
+
+    // ── GH-494: lookups for a named company ─────────────────────────────────────
+
+    @Test
+    void getSettingForTenant_companyOverride_wins() {
+        when(systemSettingRepository.findByTenantIdAndKey(TENANT_1_ID, "intake_window_open_days_before"))
+                .thenReturn(Optional.of(SystemSetting.builder().tenantId(TENANT_1_ID)
+                        .settingKey("intake_window_open_days_before").settingValue("90").build()));
+
+        assertThat(systemSettingService.getSettingForTenant(TENANT_1_ID, "intake_window_open_days_before"))
+                .isEqualTo("90");
+        verify(systemSettingRepository, never()).findPlatformSettingByKey(anyString());
+    }
+
+    @Test
+    void getSettingForTenant_noOverride_fallsBackToThePlatformDefault() {
+        when(systemSettingRepository.findByTenantIdAndKey(TENANT_1_ID, "intake_window_open_days_before"))
+                .thenReturn(Optional.empty());
+        when(systemSettingRepository.findPlatformSettingByKey("intake_window_open_days_before"))
+                .thenReturn(Optional.of(SystemSetting.builder().tenantId(0L)
+                        .settingKey("intake_window_open_days_before").settingValue("120").build()));
+
+        assertThat(systemSettingService.getSettingForTenant(TENANT_1_ID, "intake_window_open_days_before"))
+                .isEqualTo("120");
+    }
+
+    @Test
+    void getSettingForTenant_platformTenant_readsThePlatformRowOnly() {
+        when(systemSettingRepository.findPlatformSettingByKey("k")).thenReturn(Optional.empty());
+
+        assertThat(systemSettingService.getSettingForTenant(0L, "k")).isNull();
+        verify(systemSettingRepository, never()).findByTenantIdAndKey(anyLong(), anyString());
+    }
 }

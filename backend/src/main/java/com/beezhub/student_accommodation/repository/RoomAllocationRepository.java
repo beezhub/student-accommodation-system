@@ -107,6 +107,8 @@ public interface RoomAllocationRepository
        // used as an "allocation velocity" signal to estimate waitlist wait time.
        long countByAcademicYear_IdAndCreatedAtAfter(Long academicYearId, LocalDateTime createdAt);
 
+       long countByAcademicYear_Id(Long academicYearId);
+
        // Check if a student has previously declined a specific room
        @Query("SELECT COUNT(ra) > 0 FROM RoomAllocation ra WHERE ra.student.id = :studentId AND ra.room.id = :roomId AND ra.status = com.beezhub.student_accommodation.model.enums.AllocationStatus.DECLINED")
        boolean hasStudentDeclinedRoom(@Param("studentId") Long studentId, @Param("roomId") Long roomId);

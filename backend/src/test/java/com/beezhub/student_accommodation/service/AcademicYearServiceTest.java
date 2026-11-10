@@ -16,6 +16,10 @@ import com.beezhub.student_accommodation.model.entity.Institution;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.InstitutionRepository;
+import com.beezhub.student_accommodation.repository.IntakeRepository;
+import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.model.entity.Intake;
+import com.beezhub.student_accommodation.model.enums.IntakeType;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import org.junit.jupiter.api.AfterEach;
@@ -55,6 +59,9 @@ class AcademicYearServiceTest {
     @Mock private ApplicationRepository applicationRepository;
     @Mock private InstitutionRepository institutionRepository;
     @Mock private AcademicYearMapper academicYearMapper;
+    @Mock private RoomAllocationRepository roomAllocationRepository;
+    @Mock private IntakeRepository intakeRepository;
+    @Mock private IntakeWindowPolicy intakeWindowPolicy;
 
     private final TenantOwnershipGuard tenantOwnershipGuard = new TenantOwnershipGuard();
     private AcademicYearService service;
@@ -197,6 +204,73 @@ class AcademicYearServiceTest {
 
         verify(academicYearMapper).updateEntity(request, existing);
         verify(academicYearRepository).existsByTenantIdAndInstitutionIdAndNameAndIdNot(COMPANY, null, "2027", 5L);
+    }
+
+    @Test
+    void createAcademicYear_noWindowGiven_fillsItInFromTheStartDate() {
+        AcademicYearRequest request = request("2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
+        request.setApplicationOpenDate(null);
+        request.setApplicationCloseDate(null);
+        when(academicYearMapper.toEntity(request)).thenReturn(entityFrom(request));
+        when(intakeWindowPolicy.windowFor(COMPANY, LocalDate.of(2027, 2, 1))).thenReturn(
+                new IntakeWindowPolicy.Window(LocalDate.of(2026, 10, 4), LocalDate.of(2027, 1, 18)));
+        when(academicYearRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.createAcademicYear(request);
+
+        verify(academicYearRepository).save(argThatYear(y -> LocalDate.of(2026, 10, 4).equals(y.getApplicationOpenDate())
+                && LocalDate.of(2027, 1, 18).equals(y.getApplicationCloseDate())));
+    }
+
+    @Test
+    void updateAcademicYear_datesMoved_returnsHowManyApplicationsAndAllocationsItHas() {
+        AcademicYear existing = year(5L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
+        when(academicYearRepository.findById(5L)).thenReturn(Optional.of(existing));
+        when(academicYearRepository.save(existing)).thenReturn(existing);
+        when(applicationRepository.countByAcademicYear_Id(5L)).thenReturn(12L);
+        when(roomAllocationRepository.countByAcademicYear_Id(5L)).thenReturn(4L);
+
+        AcademicYearResponse response = service.updateAcademicYear(5L,
+                request("2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 12, 5)));
+
+        assertThat(response.getApplicationCount()).isEqualTo(12L);
+        assertThat(response.getAllocationCount()).isEqualTo(4L);
+    }
+
+    @Test
+    void updateAcademicYear_wouldLeaveAnIntakeOutside_isRefusedNamingIt() {
+        AcademicYear existing = year(5L, "2027", null, LocalDate.of(2027, 8, 1), LocalDate.of(2027, 11, 30));
+        Intake semester2 = Intake.builder().id(9L).name("Semester 2").intakeType(IntakeType.SEMESTER)
+                .stayStartDate(LocalDate.of(2027, 7, 15)).stayEndDate(LocalDate.of(2027, 11, 30)).build();
+        when(academicYearRepository.findById(5L)).thenReturn(Optional.of(existing));
+        when(intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(5L)).thenReturn(List.of(semester2));
+
+        assertThatThrownBy(() -> service.updateAcademicYear(5L,
+                request("2027", null, LocalDate.of(2027, 8, 1), LocalDate.of(2027, 11, 30))))
+                .isInstanceOf(InvalidAcademicCalendarException.class)
+                .hasMessageContaining("Semester 2");
+        verify(academicYearRepository, never()).save(any());
+    }
+
+    @Test
+    void getAllAcademicYears_listsEachYearsIntakesFromOneQuery() {
+        PageRequest page = PageRequest.of(0, 20);
+        AcademicYear y = year(5L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
+        Intake annual = Intake.builder().id(9L).academicYear(y).name("Annual").intakeType(IntakeType.ANNUAL)
+                .stayStartDate(y.getStartDate()).stayEndDate(y.getEndDate())
+                .applicationOpenDate(TODAY.minusDays(1)).applicationCloseDate(TODAY.plusDays(1)).build();
+        when(academicYearRepository.findByTenantId(COMPANY, page)).thenReturn(new PageImpl<>(List.of(y), page, 1));
+        when(intakeRepository.findByAcademicYear_IdInOrderByStayStartDateAscNameAsc(List.of(5L)))
+                .thenReturn(List.of(annual));
+
+        PageResponse<AcademicYearResponse> result = service.getAllAcademicYears(page);
+
+        assertThat(result.getContent().get(0).getIntakes()).singleElement()
+                .satisfies(i -> {
+                    assertThat(i.getName()).isEqualTo("Annual");
+                    assertThat(i.getAcademicYearId()).isEqualTo(5L);
+                    assertThat(i.getIsApplicationWindowOpen()).isTrue();
+                });
     }
 
     @Test
@@ -406,8 +480,9 @@ class AcademicYearServiceTest {
     private AcademicYearService serviceAt(LocalDateTime johannesburgTime) {
         Clock clock = Clock.fixed(ZonedDateTime.of(johannesburgTime, ClockConfig.CALENDAR_ZONE).toInstant(),
                 ClockConfig.CALENDAR_ZONE);
-        return new AcademicYearService(academicYearRepository, applicationRepository, institutionRepository,
-                academicYearMapper, tenantOwnershipGuard, clock);
+        return new AcademicYearService(academicYearRepository, applicationRepository, roomAllocationRepository,
+                intakeRepository, intakeWindowPolicy, institutionRepository, academicYearMapper,
+                tenantOwnershipGuard, clock);
     }
 
     private void stubInstitution() {
