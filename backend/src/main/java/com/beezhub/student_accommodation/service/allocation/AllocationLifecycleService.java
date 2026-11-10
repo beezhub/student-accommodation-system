@@ -147,6 +147,8 @@ public class AllocationLifecycleService {
         allocation.setStatus(AllocationStatus.ACCEPTED);
         allocation.setExpectedCheckInDate(expectedCheckIn);
         allocation.setCheckInExpiryDate(checkInFrom.plusDays(checkInExpiryDays));
+        // Places accepted long before move-in are asked to reconfirm (GH-496).
+        allocation.setAcceptedAt(LocalDateTime.now());
 
         updateApplicationStatus(allocation, com.beezhub.student_accommodation.model.enums.ApplicationStatus.ALLOCATED);
         RoomAllocation saved = roomAllocationRepository.save(allocation);

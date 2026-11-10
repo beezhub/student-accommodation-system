@@ -48,6 +48,12 @@ export interface RoomAllocationResponse {
   stayStartDate?: string;
   /** Planned check-out, 'YYYY-MM-DD': the bed is free again from this date. */
   stayEndDate?: string;
+  /** When the offer was accepted (GH-496). */
+  acceptedAt?: string;
+  /** When the student was asked "Still coming?" before move-in. */
+  reconfirmRequestedAt?: string;
+  /** When the student confirmed they are still coming. */
+  reconfirmedAt?: string;
   declineReason?: DeclineReason;
   declineReasonText?: string;
   /**
@@ -210,6 +216,11 @@ export class RoomAllocationService {
     return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/accept`, {
       expectedCheckInDate,
     });
+  }
+
+  /** The student confirms they are still coming before move-in, so the place keeps its bed (GH-496). */
+  reconfirm(id: number): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/reconfirm`, {});
   }
 
   /**

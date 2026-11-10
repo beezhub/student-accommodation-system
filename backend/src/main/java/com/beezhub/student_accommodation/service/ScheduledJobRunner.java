@@ -4,6 +4,7 @@ import com.beezhub.student_accommodation.service.allocation.AllocationBatchServi
 import com.beezhub.student_accommodation.service.allocation.AllocationExpiryService;
 import com.beezhub.student_accommodation.service.allocation.OfferReminderService;
 import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
+import com.beezhub.student_accommodation.service.allocation.ReconfirmationService;
 import com.beezhub.student_accommodation.service.document.DocumentRetentionJob;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
 import com.beezhub.student_accommodation.service.notification.NotificationRetryService;
@@ -36,6 +37,7 @@ public class ScheduledJobRunner {
     private final OfferReminderService offerReminderService;
     private final CheckInReminderService checkInReminderService;
     private final NotificationRetryService notificationRetryService;
+    private final ReconfirmationService reconfirmationService;
     private final MeterRegistry meterRegistry;
 
     @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
@@ -152,6 +154,26 @@ public class ScheduledJobRunner {
         try {
             notificationRetryService.retryFailedNotifications();
             log.info("job={} action=complete", jobName);
+        } catch (Exception e) {
+            log.error("job={} action=failed", jobName, e);
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
+        }
+    }
+
+    /**
+     * "Still coming?" for places accepted long before move-in, with reminders, and release of those
+     * not reconfirmed in time (GH-496). Daily at 06:00 UTC, 08:00 in South Africa, so the emails
+     * arrive in the morning and the run stays clear of the 01:30 UTC backup. Dates inside the run
+     * are read in South African time; the service sets the tenant context per company.
+     */
+    @Scheduled(cron = "${app.allocation.reconfirm-cron:0 0 6 * * *}", zone = "UTC")
+    public void runReconfirmation() {
+        String jobName = "reconfirmation";
+        log.info("job={} action=start", jobName);
+        try {
+            int processed = reconfirmationService.runDaily();
+            log.info("job={} action=complete processed={}", jobName, processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
         } catch (Exception e) {
             log.error("job={} action=failed", jobName, e);
             meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();

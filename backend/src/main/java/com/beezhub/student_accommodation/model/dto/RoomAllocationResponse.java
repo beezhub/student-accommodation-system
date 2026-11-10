@@ -39,6 +39,11 @@ public class RoomAllocationResponse {
     private LocalDate stayStartDate;
     private LocalDate stayEndDate;
 
+    // Reconfirmation before move-in (GH-496)
+    private LocalDateTime acceptedAt;
+    private LocalDateTime reconfirmRequestedAt;
+    private LocalDateTime reconfirmedAt;
+
     // Decline tracking
     private DeclineReason declineReason;
     private String declineReasonText;

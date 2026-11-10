@@ -108,6 +108,22 @@ public class RoomAllocation implements TenantAware {
     @Column(name = "checkin_reminder_24h_sent", nullable = false)
     private boolean checkInReminder24hSent = false;
 
+    /** When the offer was accepted (GH-496). Empty for places accepted before it was recorded. */
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;
+
+    /** When the student was first asked "Still coming?" before move-in. */
+    @Column(name = "reconfirm_requested_at")
+    private LocalDateTime reconfirmRequestedAt;
+
+    /** When the last reconfirmation reminder was sent. */
+    @Column(name = "reconfirm_reminded_at")
+    private LocalDateTime reconfirmRemindedAt;
+
+    /** When the student confirmed they are still coming. A confirmed place keeps its bed. */
+    @Column(name = "reconfirmed_at")
+    private LocalDateTime reconfirmedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

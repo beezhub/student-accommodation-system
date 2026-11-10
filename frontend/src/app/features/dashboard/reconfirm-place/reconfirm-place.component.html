@@ -1,0 +1,28 @@
+@if (awaitingAnswer) {
+  <div class="reconfirm reconfirm--ask" role="region" aria-label="Confirm your place">
+    <mat-icon class="reconfirm-icon" aria-hidden="true">event_available</mat-icon>
+    <div class="reconfirm-body">
+      <strong>Still coming?</strong>
+      <p>
+        @if (allocation.stayStartDate) {
+          You move in on {{ allocation.stayStartDate | date: 'd MMMM y' }}.
+        }
+        Confirm your place, or it goes to the next student on the waiting list.
+      </p>
+    </div>
+    <button mat-flat-button color="primary" (click)="confirm()" [disabled]="processing">
+      I'm still coming
+    </button>
+  </div>
+}
+@if (confirmed) {
+  <div class="reconfirm reconfirm--done" role="status">
+    <mat-icon class="reconfirm-icon" aria-hidden="true">check_circle</mat-icon>
+    <p class="reconfirm-body">
+      Place confirmed.
+      @if (allocation.stayStartDate) {
+        See you on {{ allocation.stayStartDate | date: 'd MMMM y' }}.
+      }
+    </p>
+  </div>
+}

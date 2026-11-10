@@ -204,4 +204,21 @@ public interface RoomAllocationRepository
         List<RoomAllocation> findCheckInsExpiringSoonWithoutReminder(
             @Param("windowStart") LocalDateTime windowStart,
             @Param("windowEnd") LocalDateTime windowEnd);
+
+        /**
+         * Companies with accepted places that may still have to reconfirm before move-in (GH-496).
+         * The daily job runs once per company with that company in the tenant context.
+         */
+        @Query("SELECT DISTINCT ra.tenantId FROM RoomAllocation ra " +
+               "WHERE ra.status = com.beezhub.student_accommodation.model.enums.AllocationStatus.ACCEPTED " +
+               "AND ra.reconfirmedAt IS NULL AND ra.acceptedAt IS NOT NULL AND ra.stayStartDate > :today")
+        List<Long> findTenantIdsAwaitingReconfirmation(@Param("today") LocalDate today);
+
+        /** One company's accepted places that may still have to reconfirm, by move-in date. */
+        @Query("SELECT ra.id FROM RoomAllocation ra " +
+               "WHERE ra.tenantId = :tenantId " +
+               "AND ra.status = com.beezhub.student_accommodation.model.enums.AllocationStatus.ACCEPTED " +
+               "AND ra.reconfirmedAt IS NULL AND ra.acceptedAt IS NOT NULL AND ra.stayStartDate > :today " +
+               "ORDER BY ra.stayStartDate, ra.id")
+        List<Long> findIdsAwaitingReconfirmation(@Param("tenantId") Long tenantId, @Param("today") LocalDate today);
 }

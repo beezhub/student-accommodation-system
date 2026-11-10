@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Still Coming?</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Still Coming?</h1>
+<span layout:fragment="email-subtitle">Confirm your place before move-in</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <div class="info-box">
+        <h3>Your move-in date is coming up</h3>
+        <p>You have a place in <strong>Room <span th:text="${roomNumber}">101</span></strong>
+           in <strong th:text="${buildingName}">Building A</strong> from
+           <strong th:text="${moveInDate}">01 February 2027</strong>.</p>
+        <p>Please confirm that you are still coming by
+           <strong th:text="${releaseDate}">18 January 2027</strong>.</p>
+    </div>
+
+    <div class="neutral-box">
+        <strong>If you do not confirm in time:</strong>
+        <ul>
+            <li>Your place is released to the next student on the waiting list</li>
+            <li>Your application is closed</li>
+        </ul>
+    </div>
+
+    <p>If your plans have changed, you do not need to do anything.</p>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">Confirm My Place</a>
+    </div>
+</div>
+
+</body>
+</html>

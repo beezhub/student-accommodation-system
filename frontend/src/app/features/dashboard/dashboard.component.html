@@ -78,6 +78,11 @@
               }
             </div>
 
+            <app-reconfirm-place
+              [allocation]="roomAllocation"
+              (reconfirmed)="roomAllocation = $event">
+            </app-reconfirm-place>
+
             @if (roomAllocation.status === AllocationStatus.OFFERED) {
               <app-offer-expiry
                 [expiryDate]="roomAllocation.offerExpiryDate ?? null"
