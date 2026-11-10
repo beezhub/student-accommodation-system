@@ -1,0 +1,21 @@
+<ng-container [formGroup]="group">
+  <mat-form-field appearance="outline">
+    <mat-label>Institution</mat-label>
+    <mat-select formControlName="institutionId">
+      <mat-option value="">All institutions</mat-option>
+      @for (institution of institutions; track institution.id) {
+      <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Intake</mat-label>
+    <mat-select formControlName="intakeId">
+      <mat-option value="">All intakes</mat-option>
+      @for (intake of intakeChoices; track intake.id) {
+      <mat-option [value]="intake.id">{{ intake.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</ng-container>

@@ -64,6 +64,18 @@ public class RoomAllocationService {
                 studentName, roomNumber, status, pageable);
     }
 
+    public PageResponse<RoomAllocationResponse> searchRoomAllocations(Long studentId, Long roomId, Long buildingId,
+            LocalDateTime fromDate, LocalDateTime toDate,
+            String studentName, String roomNumber, String status, Long institutionId, Long intakeId,
+            Pageable pageable) {
+        return roomAllocationQueryService.searchRoomAllocations(studentId, roomId, buildingId, fromDate, toDate,
+                studentName, roomNumber, status, institutionId, intakeId, pageable);
+    }
+
+    public PageResponse<RoomAllocationResponse> getOverdueCheckOuts(Pageable pageable) {
+        return roomAllocationQueryService.getOverdueCheckOuts(pageable);
+    }
+
     public RoomAllocationResponse getRoomAllocationById(Long id) {
         return roomAllocationQueryService.getRoomAllocationById(id);
     }

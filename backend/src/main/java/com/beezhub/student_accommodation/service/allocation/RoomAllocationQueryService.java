@@ -71,11 +71,21 @@ public class RoomAllocationQueryService {
             LocalDateTime fromDate, LocalDateTime toDate,
             String studentName, String roomNumber, String status,
             Pageable pageable) {
+        return searchRoomAllocations(studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber,
+                status, null, null, pageable);
+    }
+
+    /** As above, also filtered by the application's institution and intake (GH-496). */
+    public PageResponse<RoomAllocationResponse> searchRoomAllocations(Long studentId, Long roomId, Long buildingId,
+            LocalDateTime fromDate, LocalDateTime toDate,
+            String studentName, String roomNumber, String status, Long institutionId, Long intakeId,
+            Pageable pageable) {
         log.info(
                 "Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}, studentName: {}, roomNumber: {}, status: {}",
                 studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status);
         Specification<RoomAllocation> spec = RoomAllocationSpecification.filterBy(studentId, roomId, buildingId,
-                fromDate, toDate, studentName, roomNumber, status);
+                fromDate, toDate, studentName, roomNumber, status)
+                .and(RoomAllocationSpecification.forInstitutionAndIntake(institutionId, intakeId));
         Page<RoomAllocation> allocations = roomAllocationRepository.findAll(spec, pageable);
         Page<RoomAllocationResponse> responsePage = allocations.map(roomAllocationMapper::toResponse);
         log.info("Found {} room allocations matching criteria", allocations.getNumberOfElements());
@@ -157,6 +167,20 @@ public class RoomAllocationQueryService {
 
         log.info("Found {} allocations with status: {}", allocations.getNumberOfElements(), status);
         return PageMapper.toPageResponse(responsePage);
+    }
+
+    /**
+     * Students still checked in after their planned stay ended (GH-496), longest overdue first.
+     * Nothing checks them out automatically; the next student's check-in is refused until an admin
+     * does. In a transaction so the tenant filter scopes it to the admin's company.
+     */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public PageResponse<RoomAllocationResponse> getOverdueCheckOuts(Pageable pageable) {
+        Specification<RoomAllocation> spec = RoomAllocationSpecification.overdueCheckOuts(stayCapacityGuard.today());
+        Pageable byStayEnd = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(),
+                pageable.getPageSize(), org.springframework.data.domain.Sort.by("stayEndDate", "id"));
+        Page<RoomAllocation> overdue = roomAllocationRepository.findAll(spec, byStayEnd);
+        return PageMapper.toPageResponse(overdue.map(roomAllocationMapper::toResponse));
     }
 
     public RoomAvailabilityResponse getRoomAvailability(Long roomId) {

@@ -14,6 +14,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 
+import { OverdueCheckOutsComponent } from './overdue-check-outs/overdue-check-outs.component';
+
 @Component({
   selector: 'app-admin-dashboard',
   templateUrl: './admin-dashboard.component.html',
@@ -31,6 +33,7 @@ import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loa
     MatTableModule,
     MatTooltipModule,
     SkeletonLoaderComponent,
+    OverdueCheckOutsComponent,
   ],
 })
 export class AdminDashboardComponent implements OnInit {

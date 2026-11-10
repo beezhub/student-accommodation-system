@@ -375,4 +375,24 @@ class RoomAllocationQueryServiceTest {
 
         verify(roomAllocationMapper).toResponse(offer);
     }
+
+    /** GH-496: overdue check-outs are asked for with today's date, longest overdue first. */
+    @Test
+    void getOverdueCheckOuts_ordersByStayEnd() {
+        RoomAllocation overdue = new RoomAllocation();
+        overdue.setId(20L);
+        when(roomAllocationRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class),
+                any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(overdue)));
+        when(roomAllocationMapper.toResponse(overdue)).thenReturn(new RoomAllocationResponse());
+
+        var page = queryService.getOverdueCheckOuts(org.springframework.data.domain.PageRequest.of(0, 10));
+
+        assertThat(page.getContent()).hasSize(1);
+        org.mockito.ArgumentCaptor<org.springframework.data.domain.Pageable> pageable =
+                org.mockito.ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+        verify(roomAllocationRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class),
+                pageable.capture());
+        assertThat(pageable.getValue().getSort().getOrderFor("stayEndDate")).isNotNull();
+    }
 }

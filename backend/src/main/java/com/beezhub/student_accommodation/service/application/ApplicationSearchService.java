@@ -80,13 +80,24 @@ public class ApplicationSearchService {
             LocalDate startDate,
             LocalDate endDate,
             Pageable pageable) {
+        return searchApplications(applicationCode, studentName, status, allocationStatus, preferredBuilding,
+                startDate, endDate, null, null, pageable);
+    }
+
+    /** As above, also filtered by institution and intake (GH-496). */
+    @Transactional(readOnly = true)
+    public PageResponse<ApplicationResponse> searchApplications(String applicationCode, String studentName,
+            ApplicationStatus status, String allocationStatus, String preferredBuilding,
+            LocalDate startDate, LocalDate endDate, Long institutionId, Long intakeId,
+            Pageable pageable) {
         log.info(
                 "Searching applications with filters - code: {}, student: {}, status: {}, allocationStatus: {}, building: {}, startDate: {}, endDate: {}",
                 applicationCode, studentName, status, allocationStatus, preferredBuilding, startDate,
                 endDate);
         Specification<Application> spec = ApplicationSpecification.filterBy(applicationCode, studentName,
                 status,
-                allocationStatus, preferredBuilding, startDate, endDate);
+                allocationStatus, preferredBuilding, startDate, endDate)
+                .and(ApplicationSpecification.forInstitutionAndIntake(institutionId, intakeId));
         Page<Application> page = applicationRepository.findAll(spec, pageable);
 
         List<ApplicationResponse> responses = enrichApplicationDetails(page.getContent());
