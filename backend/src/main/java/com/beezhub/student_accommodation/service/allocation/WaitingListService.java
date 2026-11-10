@@ -20,6 +20,7 @@ import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
+import com.beezhub.student_accommodation.exceptions.AcademicYearNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -257,7 +259,12 @@ public class WaitingListService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Student is not currently on the waiting list"));
 
-        AcademicYear currentYear = academicYearService.getCurrentAcademicYearEntity();
+        // The queue is the one the student's own application is in. Only an application with no
+        // year (none exist since GH-140) falls back to the company's current year by date.
+        AcademicYear currentYear = Optional.ofNullable(entry.getApplication())
+                .map(Application::getAcademicYear)
+                .or(() -> academicYearService.findCurrentAcademicYear(entry.getTenantId(), null))
+                .orElseThrow(() -> new AcademicYearNotFoundException("No current academic year"));
 
         long position = waitingListRepository.countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
                 "WAITING", currentYear.getId(), entry.getCreatedAt()) + 1;

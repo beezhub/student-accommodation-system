@@ -99,7 +99,7 @@ class WaitingListServiceTest {
         appUser.setLastName("Doe");
         student.setAppUser(appUser);
 
-        academicYear = AcademicYear.builder().id(9L).name("2026/2027").isCurrent(true).build();
+        academicYear = AcademicYear.builder().id(9L).name("2026/2027").build();
 
         // Setup application
         application = new Application();
@@ -406,7 +406,6 @@ class WaitingListServiceTest {
         when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
         when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
                 .thenReturn(Optional.of(waitingEntry));
-        when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
         // 2 entries strictly before this student's createdAt -> position 3
         when(waitingListRepository.countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
                 eq("WAITING"), eq(9L), eq(waitingEntry.getCreatedAt()))).thenReturn(2L);
@@ -428,7 +427,6 @@ class WaitingListServiceTest {
         when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
         when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
                 .thenReturn(Optional.of(waitingEntry));
-        when(academicYearService.getCurrentAcademicYearEntity()).thenReturn(academicYear);
         // Position 1 (no one ahead)
         when(waitingListRepository.countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
                 eq("WAITING"), eq(9L), any(LocalDateTime.class))).thenReturn(0L);
@@ -443,6 +441,49 @@ class WaitingListServiceTest {
         assertThat(result.getEstimatedWaitDays()).isEqualTo(3);
     }
 
+    /** GH-494: the queue is the student's own application's year, not one platform-wide year. */
+    @Test
+    void getMyWaitlistPosition_usesTheApplicationsOwnYear() {
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
+                .thenReturn(Optional.of(waitingEntry));
+
+        waitingListService.getMyWaitlistPosition();
+
+        verify(waitingListRepository).countByStatusAndApplication_AcademicYear_Id("WAITING", 9L);
+        verify(academicYearService, never()).findCurrentAcademicYear(any(), any());
+    }
+
+    @Test
+    void getMyWaitlistPosition_applicationWithoutYear_fallsBackToTheCompanysCurrentYear() {
+        application.setAcademicYear(null);
+        waitingEntry.setTenantId(42L);
+        AcademicYear current = AcademicYear.builder().id(11L).name("2027").build();
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
+                .thenReturn(Optional.of(waitingEntry));
+        when(academicYearService.findCurrentAcademicYear(42L, null)).thenReturn(Optional.of(current));
+
+        waitingListService.getMyWaitlistPosition();
+
+        verify(waitingListRepository).countByStatusAndApplication_AcademicYear_Id("WAITING", 11L);
+    }
+
+    @Test
+    void getMyWaitlistPosition_noYearAtAll_throwsAcademicYearNotFound() {
+        application.setAcademicYear(null);
+        when(authService.getCurrentUser()).thenReturn(appUser);
+        when(studentRepository.findByAppUser_Id(1L)).thenReturn(Optional.of(student));
+        when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
+                .thenReturn(Optional.of(waitingEntry));
+        when(academicYearService.findCurrentAcademicYear(any(), any())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> waitingListService.getMyWaitlistPosition())
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.AcademicYearNotFoundException.class);
+    }
+
     @Test
     void getMyWaitlistPosition_studentNotOnWaitlist_throwsResourceNotFoundException() {
         when(authService.getCurrentUser()).thenReturn(appUser);
@@ -452,7 +493,7 @@ class WaitingListServiceTest {
         assertThatThrownBy(() -> waitingListService.getMyWaitlistPosition())
                 .isInstanceOf(ResourceNotFoundException.class);
 
-        verify(academicYearService, never()).getCurrentAcademicYearEntity();
+        verify(academicYearService, never()).findCurrentAcademicYear(any(), any());
     }
 
     @Test

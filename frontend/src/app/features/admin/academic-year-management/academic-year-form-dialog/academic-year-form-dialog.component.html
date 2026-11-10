@@ -5,8 +5,14 @@
         <mat-icon>{{ isEditMode ? 'edit_calendar' : 'add_circle' }}</mat-icon>
       </div>
       <div class="header-text">
-        <h2 class="dialog-title">{{ isEditMode ? 'Edit' : 'Create' }} Academic Year</h2>
-        <p class="dialog-subtitle">{{ isEditMode ? 'Update academic year details' : 'Define a new academic year with dates' }}</p>
+        <h2 class="dialog-title">{{ isEditMode ? 'Edit year' : 'Create year' }}</h2>
+        <p class="dialog-subtitle">
+          {{
+            isEditMode
+              ? 'Students who already applied keep their intake and dates'
+              : 'Pick the intakes; their dates and application windows are filled in'
+          }}
+        </p>
       </div>
     </div>
   </div>
@@ -14,92 +20,72 @@
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <mat-dialog-content>
       <div class="form-grid">
-        <div class="form-field-wrapper">
-          <label class="field-label">
-            <mat-icon>label</mat-icon>
-            Name
-          </label>
-          <mat-form-field appearance="outline" class="full-width">
-            <input matInput formControlName="name" placeholder="e.g., 2026" />
-            @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
-              <mat-error>Name is required</mat-error>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Institution</mat-label>
+          <mat-select formControlName="institutionId">
+            <mat-option [value]="null">{{ allInstitutions }}</mat-option>
+            @for (institution of institutions; track institution.id) {
+            <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
             }
-          </mat-form-field>
-        </div>
+          </mat-select>
+          <mat-hint>Pick one when its calendar differs from the others</mat-hint>
+        </mat-form-field>
 
-        <div class="section-label">Academic Year Period</div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Name</mat-label>
+          <input matInput formControlName="name" placeholder="e.g. 2027" maxlength="20" />
+          @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+          <mat-error>Name is required</mat-error>
+          }
+        </mat-form-field>
 
+        <div class="section-label">Year</div>
         <div class="date-row">
           <mat-form-field appearance="outline">
-            <mat-label>Start Date</mat-label>
-            <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
-            <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
-            <mat-datepicker #startPicker></mat-datepicker>
-            @if (form.get('startDate')?.hasError('required') && form.get('startDate')?.touched) {
-              <mat-error>Start date is required</mat-error>
-            }
+            <mat-label>Starts</mat-label>
+            <input matInput type="date" formControlName="startDate" />
           </mat-form-field>
-
           <mat-form-field appearance="outline">
-            <mat-label>End Date</mat-label>
-            <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
-            <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker #endPicker></mat-datepicker>
-            @if (form.get('endDate')?.hasError('required') && form.get('endDate')?.touched) {
-              <mat-error>End date is required</mat-error>
-            }
+            <mat-label>Ends</mat-label>
+            <input matInput type="date" formControlName="endDate" />
           </mat-form-field>
         </div>
 
-        <div class="section-label">Application Window</div>
-
-        <div class="date-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Application Open Date</mat-label>
-            <input matInput [matDatepicker]="openPicker" formControlName="applicationOpenDate" />
-            <mat-datepicker-toggle matIconSuffix [for]="openPicker"></mat-datepicker-toggle>
-            <mat-datepicker #openPicker></mat-datepicker>
-            @if (form.get('applicationOpenDate')?.hasError('required') && form.get('applicationOpenDate')?.touched) {
-              <mat-error>Open date is required</mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Application Close Date</mat-label>
-            <input matInput [matDatepicker]="closePicker" formControlName="applicationCloseDate" />
-            <mat-datepicker-toggle matIconSuffix [for]="closePicker"></mat-datepicker-toggle>
-            <mat-datepicker #closePicker></mat-datepicker>
-            @if (form.get('applicationCloseDate')?.hasError('required') && form.get('applicationCloseDate')?.touched) {
-              <mat-error>Close date is required</mat-error>
-            }
-          </mat-form-field>
+        @if (!isEditMode) {
+        <div class="section-label">Intakes</div>
+        <div class="pattern-options">
+          <mat-checkbox formControlName="annual">Annual</mat-checkbox>
+          <mat-checkbox formControlName="semesters">Semesters</mat-checkbox>
+          <mat-checkbox formControlName="trimesters">Trimesters</mat-checkbox>
         </div>
-
-        <div class="current-year-card" [class.active]="form.get('isCurrent')?.value">
-          <mat-checkbox formControlName="isCurrent">
-            <div class="checkbox-content">
-              <mat-icon class="current-icon">star</mat-icon>
-              <div class="checkbox-text">
-                <span class="checkbox-label">Set as current academic year</span>
-                <span class="checkbox-hint">Students will apply under this academic year</span>
-              </div>
-            </div>
-          </mat-checkbox>
-        </div>
+        @if (intakeTypes.length === 0) {
+        <p class="pattern-hint">Tick at least one.</p>
+        } }
       </div>
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="onCancel()"
+        [disabled]="isSubmitting"
+        class="cancel-btn"
+      >
         Cancel
       </button>
-      <button mat-raised-button type="submit" [disabled]="isSubmitting || form.invalid" class="submit-btn">
+      <button
+        mat-raised-button
+        type="submit"
+        [disabled]="isSubmitting || !canSubmit"
+        class="submit-btn"
+      >
         @if (isSubmitting) {
-          <mat-spinner diameter="18"></mat-spinner>
-          <span>{{ isEditMode ? 'Updating...' : 'Creating...' }}</span>
+        <mat-spinner diameter="18"></mat-spinner>
+        <span>Saving...</span>
         } @else {
-          <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
-          <span>{{ isEditMode ? 'Update' : 'Create' }}</span>
+        <mat-icon>{{ isEditMode ? 'save' : 'add' }}</mat-icon>
+        <span>{{ isEditMode ? 'Save' : 'Create year' }}</span>
         }
       </button>
     </mat-dialog-actions>

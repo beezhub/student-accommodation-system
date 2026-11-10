@@ -77,6 +77,8 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      boolean existsByAcademicYear_Id(Long academicYearId);
 
+     long countByAcademicYear_Id(Long academicYearId);
+
      /**
       * Race-free application-code counter; see V2026_09_05_1100__application_code_sequence.sql.
       *

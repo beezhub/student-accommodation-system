@@ -194,9 +194,12 @@ public class ApplicationCoreService {
                 }
                 Long applicationTenantId = resolvedPreferenceBuildings.get(0).getTenantId();
 
-                // Validate application window is open
+                // The company's year by date for the student's institution, preferring one whose
+                // window is open. Falls back to the platform's years while the company has none of
+                // its own (GH-494). Replaced by the intake the student picks in group B.
+                Long institutionId = student.getInstitution() != null ? student.getInstitution().getId() : null;
                 com.beezhub.student_accommodation.model.entity.AcademicYear currentYear = academicYearService
-                                .getCurrentAcademicYearEntity();
+                                .getYearForNewApplication(applicationTenantId, institutionId);
                 if (!academicYearService.isApplicationWindowOpen(currentYear)) {
                         throw new ApplicationWindowClosedException(
                                         "Applications are not currently open. Window: " +

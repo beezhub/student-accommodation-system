@@ -96,14 +96,15 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         buildingA = buildingRepository.save(b);
         createdBuildingIds.add(buildingA.getId());
 
-        // Seed a current AcademicYear — platform-level so no filter applies during service calls
+        // Seed a platform-level year containing today, with its window open. Tenant A has no year of
+        // its own, so submitting falls back to this one (GH-494).
+        LocalDate today = LocalDate.now(com.beezhub.student_accommodation.config.ClockConfig.CALENDAR_ZONE);
         AcademicYear year = AcademicYear.builder()
-                .name("2026 Test " + System.currentTimeMillis() % 10000)
-                .startDate(LocalDate.of(2026, 3, 1))
-                .endDate(LocalDate.of(2026, 12, 31))
-                .applicationOpenDate(LocalDate.of(2026, 1, 1))
-                .applicationCloseDate(LocalDate.of(2026, 12, 31))
-                .isCurrent(true)
+                .name("Test " + System.currentTimeMillis() % 10000)
+                .startDate(today.minusMonths(1))
+                .endDate(today.plusMonths(10))
+                .applicationOpenDate(today.minusMonths(2))
+                .applicationCloseDate(today.plusMonths(1))
                 .tenantId(TenantContext.PLATFORM_TENANT_ID)
                 .build();
         academicYearRepository.save(year);

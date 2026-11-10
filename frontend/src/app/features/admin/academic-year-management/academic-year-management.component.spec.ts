@@ -8,33 +8,59 @@ import { AcademicYearService } from '../../../core/services/academic-year.servic
 import { RoleService } from '../../../core/services/role.service';
 
 describe('AcademicYearManagementComponent', () => {
-  const year = {
+  const allInstitutions: AcademicYear = {
     id: 1,
     name: '2027',
+    institutionId: null,
     startDate: '2027-02-01',
     endDate: '2027-11-30',
-    applicationOpenDate: '2026-09-01',
-    applicationCloseDate: '2027-01-31',
-    isCurrent: true,
+    applicationOpenDate: '2026-10-04',
+    applicationCloseDate: '2027-01-18',
     isApplicationWindowOpen: false,
-  } as AcademicYear;
+    intakes: [
+      {
+        id: 10,
+        academicYearId: 1,
+        intakeType: 'ANNUAL',
+        name: 'Annual',
+        stayStartDate: '2027-02-01',
+        stayEndDate: '2027-11-30',
+        applicationOpenDate: '2026-10-04',
+        applicationCloseDate: '2027-01-18',
+        isApplicationWindowOpen: true,
+      },
+    ],
+  };
+  const universityX: AcademicYear = {
+    ...allInstitutions,
+    id: 2,
+    name: 'UX 2027',
+    institutionId: 7,
+    institutionName: 'University X',
+    intakes: [],
+  };
 
-  function render(role: 'platformAdmin' | 'platformStaff' | 'tenantAdmin', years = [year]) {
+  let service: jasmine.SpyObj<AcademicYearService>;
+
+  function render(
+    role: 'platformAdmin' | 'tenantAdmin' | 'buildingStaff',
+    years: AcademicYear[] = [allInstitutions, universityX]
+  ) {
+    service = jasmine.createSpyObj('AcademicYearService', {
+      getAcademicYears: of(years),
+      copyAcademicYear: of({ ...allInstitutions, id: 3, name: '2028' }),
+    });
     TestBed.configureTestingModule({
       imports: [AcademicYearManagementComponent],
       providers: [
         provideNoopAnimations(),
-        {
-          provide: AcademicYearService,
-          useValue: jasmine.createSpyObj('AcademicYearService', {
-            getAcademicYears: of(years),
-          }),
-        },
+        { provide: AcademicYearService, useValue: service },
         {
           provide: RoleService,
           useValue: {
             isPlatformAdmin: () => role === 'platformAdmin',
-            isPlatformStaff: () => role === 'platformStaff',
+            isPlatformStaff: () => false,
+            isTenantAdmin: () => role === 'tenantAdmin',
           },
         },
       ],
@@ -43,40 +69,57 @@ describe('AcademicYearManagementComponent', () => {
       AcademicYearManagementComponent
     );
     fixture.detectChanges();
-    return fixture.nativeElement as HTMLElement;
+    return fixture;
   }
 
-  it('render_platformAdmin_offersAddAndRowActions', () => {
-    const page = render('platformAdmin');
+  /** GH-439: a company admin manages their own years and has no set-current action. */
+  it('render_tenantAdmin_offersCreateCopyAndEditButNoSetCurrent', () => {
+    const page = render('tenantAdmin').nativeElement as HTMLElement;
 
     expect(page.querySelector('.add-btn')).not.toBeNull();
-    expect(page.querySelector('.action-btn.set-current')).not.toBeNull();
+    expect(page.querySelector('.copy-btn')).not.toBeNull();
+    expect(page.querySelector('.action-btn.edit')).not.toBeNull();
+    expect(page.querySelector('.set-current')).toBeNull();
+    expect(page.textContent).not.toContain('Set as Current');
   });
 
-  it('render_platformStaff_offersAddAndRowActions', () => {
-    const page = render('platformStaff');
+  it('render_groupsYearsByInstitution_allInstitutionsFirst', () => {
+    const page = render('platformAdmin').nativeElement as HTMLElement;
 
-    expect(page.querySelector('.add-btn')).not.toBeNull();
-    expect(page.querySelector('.action-btn.set-current')).not.toBeNull();
+    const titles = Array.from(page.querySelectorAll('.group-title')).map((e) =>
+      e.textContent?.trim()
+    );
+    expect(titles).toEqual(['All institutions', 'University X']);
   });
 
-  it('render_tenantAdmin_listsYearsWithNoWriteActions', () => {
-    const page = render('tenantAdmin');
+  it('render_listsIntakesInPlainWords', () => {
+    const page = render('tenantAdmin').nativeElement as HTMLElement;
 
-    expect(page.querySelector('.year-name')?.textContent).toContain('2027');
+    expect(page.querySelector('.intake-text')?.textContent).toContain(
+      'Annual, 2027. Move in 1 February.'
+    );
+  });
+
+  it('render_withoutAWriteRole_showsNoWriteActions', () => {
+    const page = render('buildingStaff').nativeElement as HTMLElement;
+
     expect(page.querySelector('.add-btn')).toBeNull();
     expect(page.querySelector('.action-btn')).toBeNull();
+    expect(page.querySelector('.intake-edit')).toBeNull();
   });
 
-  it('render_tenantAdmin_saysThePlatformSetsTheCalendar', () => {
-    const page = render('tenantAdmin');
+  it('copyLastYear_copiesTheGroupsNewestYearAndReloads', () => {
+    const fixture = render('tenantAdmin');
 
-    expect(page.querySelector('.hero-subtitle')?.textContent).toContain('set by the platform');
+    fixture.componentInstance.copyLastYear(fixture.componentInstance.groups[0]);
+
+    expect(service.copyAcademicYear).toHaveBeenCalledWith(1);
+    expect(service.getAcademicYears).toHaveBeenCalledTimes(2);
   });
 
-  it('render_tenantAdminWithNoYears_doesNotTellThemToAddOne', () => {
-    const page = render('tenantAdmin', []);
+  it('render_noYears_saysHowToStart', () => {
+    const page = render('tenantAdmin', []).nativeElement as HTMLElement;
 
-    expect(page.querySelector('app-empty-state')?.textContent).not.toContain('Add one');
+    expect(page.querySelector('app-empty-state')).not.toBeNull();
   });
 });
