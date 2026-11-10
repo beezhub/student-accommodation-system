@@ -5,6 +5,6 @@ public record ApplicationApprovedContext(
         Long applicationId,
         String applicationDate,
         String academicYear,
-        String semester,
+        String intake,
         String portalUrl
 ) implements EmailContext {}

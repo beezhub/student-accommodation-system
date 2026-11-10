@@ -191,13 +191,15 @@ class EmailTemplateRenderTest {
         vars.put("applicationId", 42L);
         vars.put("applicationDate", "2026-01-10");
         vars.put("academicYear", "2026");
-        vars.put("semester", "Semester 1");
+        vars.put("intake", "Semester 1");
         vars.put("portalUrl", PORTAL_URL);
 
         String html = render("application-approved", vars);
 
         assertBaseRequirements(html, "application-approved");
         assertThat(html).contains("Test Student");
+        // GH-495: the intake applied for, not a semester guessed from the month.
+        assertThat(html).contains("Intake:").contains("Semester 1").doesNotContain("Semester:</strong>");
     }
 
     @Test
@@ -601,7 +603,7 @@ class EmailTemplateRenderTest {
                 vars.put("applicationId", 1L);
                 vars.put("applicationDate", "2026-01-01");
                 vars.put("academicYear", "2026");
-                vars.put("semester", "Semester 1");
+                vars.put("intake", "Semester 1");
             }
             case "application-rejected" -> {
                 vars.put("applicationId", 1L);

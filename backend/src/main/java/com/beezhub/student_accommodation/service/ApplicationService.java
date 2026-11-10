@@ -14,6 +14,7 @@ import com.beezhub.student_accommodation.service.application.ApplicationCoreServ
 import com.beezhub.student_accommodation.service.application.ApplicationDocumentService;
 import com.beezhub.student_accommodation.service.application.ApplicationQueryService;
 import com.beezhub.student_accommodation.service.application.ApplicationSearchService;
+import com.beezhub.student_accommodation.service.application.ApplicationSubmissionService;
 import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,8 @@ import java.util.List;
  * <p>
  * This facade maintains the original public API while internally delegating
  * to decomposed services:
- * - ApplicationCoreService: Core submission and retrieval operations
+ * - ApplicationSubmissionService: Submitting, one application per company (GH-495)
+ * - ApplicationCoreService: Retrieval, cancel and resubmit
  * - ApplicationSearchService: Search and filtering operations
  * - ApplicationAdminService: Admin-specific operations
  * - ApplicationDocumentService: Document-related operations
@@ -41,6 +43,7 @@ import java.util.List;
 public class ApplicationService {
 
     private final ApplicationCoreService coreService;
+    private final ApplicationSubmissionService submissionService;
     private final ApplicationSearchService searchService;
     private final ApplicationAdminService adminService;
     private final ApplicationDocumentService documentService;
@@ -49,8 +52,8 @@ public class ApplicationService {
     // ==================== Core Operations (Student-facing) ====================
 
     @Timed(value = "service.application.submit", percentiles = {0.5, 0.95, 0.99})
-    public ApplicationResponse submitApplication(ApplicationRequest request) {
-        return coreService.submitApplication(request);
+    public List<ApplicationResponse> submitApplication(ApplicationRequest request) {
+        return submissionService.submitApplication(request);
     }
 
     @Timed(value = "service.application.getById", percentiles = {0.5, 0.95, 0.99})

@@ -323,6 +323,24 @@ class BuildingServiceTest {
         assertThat(result.get(0).getPrimaryImageUrl()).isEqualTo("http://img.url");
     }
 
+    /** GH-495: the application form groups buildings by company, so each carries its company's name. */
+    @Test
+    void toApplicantResponses_namesTheCompany() {
+        BuildingResponse resp = new BuildingResponse();
+        resp.setId(1L);
+        resp.setTenantId(42L);
+        when(buildingMapper.toResponseList(any())).thenReturn(List.of(resp));
+        when(buildingImageService.getPrimaryImageUrl(1L)).thenReturn("http://img.url");
+
+        List<BuildingResponse> result = buildingService.toApplicantResponses(List.of(building),
+                java.util.Map.of(42L, "Company B"));
+
+        assertThat(result).singleElement().satisfies(r -> {
+            assertThat(r.getCompanyName()).isEqualTo("Company B");
+            assertThat(r.getPrimaryImageUrl()).isEqualTo("http://img.url");
+        });
+    }
+
     @Test
     void getAllBuildings_paginatedVersion_returnsPageResponse() {
         Pageable pageable = PageRequest.of(0, 10);

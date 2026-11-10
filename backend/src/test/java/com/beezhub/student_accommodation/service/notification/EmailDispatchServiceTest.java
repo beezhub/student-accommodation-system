@@ -108,8 +108,8 @@ class EmailDispatchServiceTest {
     @Test
     void sendApplicationApprovedEmail_validData_sendsEmail() {
         when(contentBuilder.formatDate(any(java.time.LocalDate.class))).thenReturn("01 January 2026");
-        when(contentBuilder.getCurrentAcademicYear()).thenReturn("2026/2027");
-        when(contentBuilder.getCurrentSemester()).thenReturn("First Semester");
+        when(contentBuilder.academicYearOf(application)).thenReturn("2027");
+        when(contentBuilder.intakeOf(application)).thenReturn("Semester 2");
 
         emailDispatchService.sendApplicationApprovedEmail(application, "John Doe", "john@example.com");
 
@@ -119,6 +119,22 @@ class EmailDispatchServiceTest {
                 eq("application-approved"),
                 any(ApplicationApprovedContext.class)
         );
+    }
+
+    /** GH-495: the email names the application's own year and intake, not the calendar's. */
+    @Test
+    void sendApplicationApprovedEmail_namesTheApplicationsYearAndIntake() {
+        when(contentBuilder.formatDate(any(java.time.LocalDate.class))).thenReturn("01 January 2026");
+        when(contentBuilder.academicYearOf(application)).thenReturn("2027");
+        when(contentBuilder.intakeOf(application)).thenReturn("Semester 2");
+
+        emailDispatchService.sendApplicationApprovedEmail(application, "John Doe", "john@example.com");
+
+        ArgumentCaptor<ApplicationApprovedContext> ctx = ArgumentCaptor.forClass(ApplicationApprovedContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.APPLICATION_APPROVED),
+                eq("application-approved"), ctx.capture());
+        assertThat(ctx.getValue().academicYear()).isEqualTo("2027");
+        assertThat(ctx.getValue().intake()).isEqualTo("Semester 2");
     }
 
     @Test

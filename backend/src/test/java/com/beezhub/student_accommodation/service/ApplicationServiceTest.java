@@ -10,6 +10,7 @@ import com.beezhub.student_accommodation.service.application.ApplicationCoreServ
 import com.beezhub.student_accommodation.service.application.ApplicationDocumentService;
 import com.beezhub.student_accommodation.service.application.ApplicationQueryService;
 import com.beezhub.student_accommodation.service.application.ApplicationSearchService;
+import com.beezhub.student_accommodation.service.application.ApplicationSubmissionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,8 @@ class ApplicationServiceTest {
 
         @Mock
         private ApplicationCoreService coreService;
+        @Mock
+        private ApplicationSubmissionService submissionService;
         @Mock
         private ApplicationSearchService searchService;
         @Mock
@@ -62,13 +65,13 @@ class ApplicationServiceTest {
         }
 
         @Test
-        void submitApplication_shouldDelegateToCoreService() {
-                when(coreService.submitApplication(applicationRequest)).thenReturn(applicationResponse);
+        void submitApplication_shouldDelegateToSubmissionService() {
+                when(submissionService.submitApplication(applicationRequest)).thenReturn(List.of(applicationResponse));
 
-                ApplicationResponse response = applicationService.submitApplication(applicationRequest);
+                List<ApplicationResponse> response = applicationService.submitApplication(applicationRequest);
 
-                assertThat(response).isEqualTo(applicationResponse);
-                verify(coreService).submitApplication(applicationRequest);
+                assertThat(response).containsExactly(applicationResponse);
+                verify(submissionService).submitApplication(applicationRequest);
         }
 
         @Test

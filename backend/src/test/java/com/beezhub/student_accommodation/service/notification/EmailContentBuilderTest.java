@@ -1,5 +1,8 @@
 package com.beezhub.student_accommodation.service.notification;
 
+import com.beezhub.student_accommodation.model.entity.AcademicYear;
+import com.beezhub.student_accommodation.model.entity.Application;
+import com.beezhub.student_accommodation.model.entity.Intake;
 import com.beezhub.student_accommodation.model.entity.Room;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +26,27 @@ class EmailContentBuilderTest {
         String deadline = emailContentBuilder.formatDeadline(LocalDateTime.of(2026, 11, 11, 14, 30));
 
         assertTrue(deadline.startsWith("11 November 2026 at 14:30 "), deadline);
+    }
+
+    /** GH-495: the application's own year and intake, not ones built from today's date. */
+    @Test
+    void academicYearOfAndIntakeOf_readTheApplication() {
+        AcademicYear year = AcademicYear.builder().id(1L).name("2027").build();
+        Application application = Application.builder()
+                .academicYear(year)
+                .intake(Intake.builder().id(2L).name("Semester 2").academicYear(year).build())
+                .build();
+
+        assertEquals("2027", emailContentBuilder.academicYearOf(application));
+        assertEquals("Semester 2", emailContentBuilder.intakeOf(application));
+    }
+
+    @Test
+    void academicYearOfAndIntakeOf_applicationWithoutThem_sayNotAvailable() {
+        Application application = new Application();
+
+        assertEquals("N/A", emailContentBuilder.academicYearOf(application));
+        assertEquals("N/A", emailContentBuilder.intakeOf(application));
     }
 
     @Test

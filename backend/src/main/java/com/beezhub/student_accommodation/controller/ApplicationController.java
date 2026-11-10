@@ -47,9 +47,9 @@ public class ApplicationController {
         private final ApplicationSearchService applicationSearchService;
         private final ApplicationAdminService applicationAdminService;
 
-        @Operation(summary = "Submit a student accommodation application", description = "Submits an application for accommodation. Students can only submit for themselves.")
+        @Operation(summary = "Submit a student accommodation application", description = "Submits up to 3 buildings from any companies and creates one application per company. Nothing is saved if any company refuses. Students can only submit for themselves.")
         @ApiResponses(value = {
-                        @ApiResponse(responseCode = "201", description = "Application submitted successfully"),
+                        @ApiResponse(responseCode = "201", description = "Applications created, one per company"),
                         @ApiResponse(responseCode = "400", description = "Invalid request"),
                         @ApiResponse(responseCode = "403", description = "Unauthorized to submit for this student"),
                         @ApiResponse(responseCode = "404", description = "Student not found"),
@@ -57,9 +57,9 @@ public class ApplicationController {
         })
         @PostMapping("/submit")
         @PreAuthorize("isAuthenticated()")
-        public ResponseEntity<ApplicationResponse> submitApplication(
+        public ResponseEntity<List<ApplicationResponse>> submitApplication(
                         @Valid @RequestBody ApplicationRequest request) {
-                ApplicationResponse response = applicationService.submitApplication(request);
+                List<ApplicationResponse> response = applicationService.submitApplication(request);
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 

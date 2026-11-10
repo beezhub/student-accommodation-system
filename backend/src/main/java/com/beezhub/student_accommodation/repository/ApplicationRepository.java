@@ -48,12 +48,14 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
       */
      @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
              "student", "student.appUser", "preferredBuilding",
-             "buildingPreferences", "buildingPreferences.building"})
+             "buildingPreferences", "buildingPreferences.building",
+             "academicYear", "intake", "tenant"})
      Optional<Application> findWithDetailsById(Long id);
 
      @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
              "student", "student.appUser", "preferredBuilding",
-             "buildingPreferences", "buildingPreferences.building"})
+             "buildingPreferences", "buildingPreferences.building",
+             "academicYear", "intake", "tenant"})
      List<Application> findWithDetailsByStudent_Id(Long studentId);
 
      boolean existsByStudent_IdAndStatus(Long studentId, ApplicationStatus status);

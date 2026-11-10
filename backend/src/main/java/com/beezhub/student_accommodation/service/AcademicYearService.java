@@ -161,23 +161,6 @@ public class AcademicYearService {
         return pickCurrent(candidates(tenantId, institutionId, today), today);
     }
 
-    /**
-     * The year a new application to {@code tenantId} is filed under. Prefers a year whose window is
-     * open today, so a student can apply for next year once its window opens while this year is
-     * still running; otherwise the current year, whose closed window the caller reports.
-     */
-    @Transactional(readOnly = true)
-    public AcademicYear getYearForNewApplication(Long tenantId, Long institutionId) {
-        LocalDate today = today();
-        List<AcademicYear> candidates = candidates(tenantId, institutionId, today);
-        return candidates.stream()
-                .filter(this::isApplicationWindowOpen)
-                .min(priority(today))
-                .or(() -> pickCurrent(candidates, today))
-                .orElseThrow(() -> new AcademicYearNotFoundException(
-                        "No academic year is set up for applications to this company"));
-    }
-
     @Transactional
     @LogActivity(action = "DELETE", entityType = "ACADEMIC_YEAR", description = "Deleted academic year {0}")
     public void deleteAcademicYear(Long id) {

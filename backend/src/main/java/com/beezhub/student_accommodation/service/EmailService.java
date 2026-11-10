@@ -177,7 +177,7 @@ public class EmailService {
                 vars.put("applicationId", c.applicationId());
                 vars.put("applicationDate", c.applicationDate());
                 vars.put("academicYear", c.academicYear());
-                vars.put("semester", c.semester());
+                vars.put("intake", c.intake());
                 vars.put("portalUrl", c.portalUrl());
             }
             case ApplicationRejectedContext c -> {

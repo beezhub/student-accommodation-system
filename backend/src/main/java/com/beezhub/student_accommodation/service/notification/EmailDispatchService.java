@@ -54,8 +54,8 @@ public class EmailDispatchService {
                                 studentName,
                                 application.getId(),
                                 applicationDate,
-                                contentBuilder.getCurrentAcademicYear(),
-                                contentBuilder.getCurrentSemester(),
+                                contentBuilder.academicYearOf(application),
+                                contentBuilder.intakeOf(application),
                                 portalUrl);
         }
 
