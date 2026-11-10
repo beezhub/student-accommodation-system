@@ -9,7 +9,7 @@
 #
 # Set these before using it: JWT_SECRET, PASSWORD_DB, S3_ACCESS_KEY, S3_SECRET_KEY,
 # GRAFANA_ADMIN_PASSWORD, REDIS_PASSWORD, MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD, ALLOWED_ORIGINS,
-# APP_BASE_URL, STORAGE_PUBLIC_ORIGIN. See CREDENTIAL_ROTATION.md before rotating any of them.
+# APP_BASE_URL, STORAGE_PUBLIC_ORIGIN. On PROD, see docs/PROD_RUNBOOK.md before rotating any of them.
 
 # Docker's json-file driver has no cap by default, and the backend logs JSON at production
 # verbosity, so an unbounded log is a slow path to a full disk that takes MinIO and the database
