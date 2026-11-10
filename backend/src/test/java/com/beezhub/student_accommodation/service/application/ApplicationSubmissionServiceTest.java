@@ -242,12 +242,14 @@ class ApplicationSubmissionServiceTest {
         stubLookups();
         when(intakePolicy.resolveIntake(any(), any(), any())).thenReturn(intakeA, intakeB);
         when(intakePolicy.missingDocuments(anyLong(), anySet())).thenReturn(List.of());
-        when(applicationRepository.existsByStudent_IdAndTenantIdAndStatusIn(eq(1L), eq(42L), any())).thenReturn(false);
-        when(applicationRepository.existsByStudent_IdAndTenantIdAndStatusIn(eq(1L), eq(43L), any())).thenReturn(true);
+        when(applicationRepository.existsByStudent_IdAndTenantIdAndAcademicYear_IdAndStatusIn(
+                eq(1L), eq(42L), eq(101L), any())).thenReturn(false);
+        when(applicationRepository.existsByStudent_IdAndTenantIdAndAcademicYear_IdAndStatusIn(
+                eq(1L), eq(43L), eq(201L), any())).thenReturn(true);
 
         assertThatThrownBy(() -> service.submitApplication(request))
                 .isInstanceOf(DuplicateApplicationException.class)
-                .hasMessageContaining("Company B");
+                .hasMessageStartingWith("You already applied to Company B for 2027");
         verify(applicationRepository, never()).saveAndFlush(any());
     }
 
@@ -267,6 +269,19 @@ class ApplicationSubmissionServiceTest {
         assertThatThrownBy(() -> service.submitApplication(request))
                 .isInstanceOf(DuplicateApplicationException.class)
                 .hasMessageContaining("Company B");
+    }
+
+    /** The pre-check is per year: the active application is looked up for the intake's own year. */
+    @Test
+    void submit_checksForAnActiveApplicationInTheIntakesYearOnly() {
+        request.setPreferredBuildingIds(List.of(10L));
+        stubHappyPath();
+
+        service.submitApplication(request);
+
+        verify(applicationRepository).existsByStudent_IdAndTenantIdAndAcademicYear_IdAndStatusIn(
+                1L, 42L, intakeA.getAcademicYear().getId(), ApplicationSubmissionService.ACTIVE_STATUSES);
+        verify(applicationRepository, never()).existsByStudent_IdAndTenantIdAndStatusIn(anyLong(), anyLong(), any());
     }
 
     @Test
@@ -427,8 +442,8 @@ class ApplicationSubmissionServiceTest {
         lenient().when(intakePolicy.resolveIntake(eq(companyA), any(), any())).thenReturn(intakeA);
         lenient().when(intakePolicy.resolveIntake(eq(companyB), any(), any())).thenReturn(intakeB);
         lenient().when(intakePolicy.missingDocuments(anyLong(), anySet())).thenReturn(List.of());
-        lenient().when(applicationRepository.existsByStudent_IdAndTenantIdAndStatusIn(anyLong(), anyLong(), any()))
-                .thenReturn(false);
+        lenient().when(applicationRepository.existsByStudent_IdAndTenantIdAndAcademicYear_IdAndStatusIn(
+                anyLong(), anyLong(), anyLong(), any())).thenReturn(false);
         lenient().when(applicationRepository.nextApplicationCodeSequence()).thenReturn(1L);
         lenient().when(applicationRepository.saveAndFlush(any(Application.class)))
                 .thenAnswer(inv -> withId(inv.getArgument(0)));

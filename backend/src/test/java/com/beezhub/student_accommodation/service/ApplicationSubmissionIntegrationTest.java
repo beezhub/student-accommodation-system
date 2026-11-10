@@ -174,6 +174,66 @@ class ApplicationSubmissionIntegrationTest extends AbstractIntegrationTest {
         assertThat(applicationCount()).isEqualTo(1);
     }
 
+    // ── One active application per company per year ────────────────────────────
+
+    @Test
+    void submit_sameCompanyDifferentYear_isAllowed() {
+        applicationService.submitApplication(request(residence1));
+        Long nextYearIntake = openYear(companyA, null, today.plusMonths(11), today.plusMonths(22));
+        ApplicationRequest nextYear = request(residence3);
+        nextYear.setIntakeIds(Map.of(companyA, nextYearIntake));
+
+        assertThat(applicationService.submitApplication(nextYear)).singleElement()
+                .satisfies(a -> assertThat(a.getIntakeId()).isEqualTo(nextYearIntake));
+        assertThat(applicationCount()).isEqualTo(2);
+    }
+
+    @Test
+    void submit_sameCompanySameYear_isRefusedNamingTheYear() {
+        applicationService.submitApplication(request(residence1));
+
+        assertThatThrownBy(() -> applicationService.submitApplication(request(residence3)))
+                .isInstanceOf(DuplicateApplicationException.class)
+                .hasMessageStartingWith("You already applied to Company A");
+    }
+
+    /**
+     * Two submits for the same company and year at once can both pass the pre-check; the unique
+     * index refuses one of them, and the student sees the duplicate message rather than a 500.
+     */
+    @Test
+    void submit_concurrentForTheSameCompanyAndYear_onlyOneIsSaved() throws Exception {
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        java.util.concurrent.Callable<Throwable> submit = () -> {
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+            start.await();
+            try {
+                applicationService.submitApplication(request(residence1));
+                return null;
+            } catch (Throwable t) {
+                return t;
+            } finally {
+                SecurityContextHolder.clearContext();
+                TenantContext.clear();
+            }
+        };
+        var first = pool.submit(submit);
+        var second = pool.submit(submit);
+        start.countDown();
+        List<Throwable> outcomes = new ArrayList<>();
+        outcomes.add(first.get(30, java.util.concurrent.TimeUnit.SECONDS));
+        outcomes.add(second.get(30, java.util.concurrent.TimeUnit.SECONDS));
+        pool.shutdown();
+
+        assertThat(outcomes).filteredOn(java.util.Objects::isNull).hasSize(1);
+        assertThat(outcomes).filteredOn(java.util.Objects::nonNull).singleElement()
+                .isInstanceOf(DuplicateApplicationException.class);
+        assertThat(applicationCount()).isEqualTo(1);
+    }
+
     // ── The intake ─────────────────────────────────────────────────────────────
 
     @Test

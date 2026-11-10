@@ -66,8 +66,8 @@ public class ApplicationSubmissionService {
     static final List<ApplicationStatus> ACTIVE_STATUSES = List.of(
             PENDING, UNDER_REVIEW, CHANGES_REQUESTED, APPROVED, AWAITING_ALLOCATION, ALLOCATED);
 
-    /** Defined in V2026_09_06_1300__unique_active_application_per_student_tenant.sql. */
-    static final String ACTIVE_APPLICATION_INDEX = "ux_application_student_tenant_active";
+    /** Defined in V2026_11_10_1400__one_active_application_per_company_year.sql. */
+    static final String ACTIVE_APPLICATION_INDEX = "ux_application_student_tenant_year_active";
 
     private final ApplicationRepository applicationRepository;
     private final StudentRepository studentRepository;
@@ -126,8 +126,10 @@ public class ApplicationSubmissionService {
             throw new IllegalArgumentException(company.getName() + " needs these documents before you apply. "
                     + "Missing required documents: " + String.join(", ", missing));
         }
-        if (applicationRepository.existsByStudent_IdAndTenantIdAndStatusIn(
-                student.getId(), company.getId(), ACTIVE_STATUSES)) {
+        // One active application per company per year. This pre-check gives the message; the
+        // unique index is what holds the rule when two submits race (GH-201).
+        if (applicationRepository.existsByStudent_IdAndTenantIdAndAcademicYear_IdAndStatusIn(
+                student.getId(), company.getId(), intake.getAcademicYear().getId(), ACTIVE_STATUSES)) {
             throw new DuplicateApplicationException(duplicateMessage(company, intake));
         }
         return new CompanyPlan(company, intake, buildings);
@@ -229,7 +231,8 @@ public class ApplicationSubmissionService {
     }
 
     private static String duplicateMessage(Tenant company, Intake intake) {
-        return "You already have an active application with " + company.getName();
+        return "You already applied to " + company.getName() + " for " + intake.getAcademicYear().getName()
+                + ". You can apply there again for another year.";
     }
 
     /**
