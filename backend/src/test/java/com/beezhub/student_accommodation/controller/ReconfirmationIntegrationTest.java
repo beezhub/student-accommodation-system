@@ -94,6 +94,8 @@ class ReconfirmationIntegrationTest extends AbstractIntegrationTest {
 
         Student student = studentRepository.findByAppUser_Id(owner.getId()).orElseThrow();
         Application application = applicationRepository.save(Application.builder()
+                .academicYear(testCalendar().year())
+                .intake(testCalendar().intake())
                 .applicationCode("APP-" + System.nanoTime())
                 .applicationDate(LocalDate.now())
                 .status(ApplicationStatus.ALLOCATED)

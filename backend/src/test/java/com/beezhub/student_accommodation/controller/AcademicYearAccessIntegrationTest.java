@@ -244,11 +244,10 @@ class AcademicYearAccessIntegrationTest extends AbstractIntegrationTest {
     private Long insertYear(String name, Long tenantId, LocalDate start, LocalDate end) {
         return jdbc.queryForObject("""
                 INSERT INTO academic_year
-                    (name, start_date, end_date, application_open_date, application_close_date, tenant_id)
-                VALUES (?, ?, ?, ?, ?, ?)
+                    (name, start_date, end_date, tenant_id)
+                VALUES (?, ?, ?, ?)
                 RETURNING id
-                """, Long.class, name, Date.valueOf(start), Date.valueOf(end),
-                Date.valueOf(start.minusMonths(4)), Date.valueOf(start.minusDays(14)), tenantId);
+                """, Long.class, name, Date.valueOf(start), Date.valueOf(end), tenantId);
     }
 
     private int countByNameAndTenant(String name, Long tenantId) {
@@ -263,9 +262,8 @@ class AcademicYearAccessIntegrationTest extends AbstractIntegrationTest {
 
     private String yearJson(String name, int year) {
         return """
-                {"name":"%s","startDate":"%d-02-01","endDate":"%d-11-30",
-                 "applicationOpenDate":"%d-09-01","applicationCloseDate":"%d-01-31"}
-                """.formatted(name, year, year, year - 1, year);
+                {"name":"%s","startDate":"%d-02-01","endDate":"%d-11-30"}
+                """.formatted(name, year, year);
     }
 
     private ResponseEntity<String> get(String path, String token) {

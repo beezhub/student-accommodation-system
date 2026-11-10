@@ -55,8 +55,7 @@ class AdminFilterQueryTest extends AbstractJpaTest {
         college = institution("College Y");
 
         AcademicYear year = AcademicYear.builder().tenantId(tenantId).name("2027")
-                .startDate(LocalDate.of(2027, 1, 1)).endDate(LocalDate.of(2027, 12, 31))
-                .applicationOpenDate(LocalDate.of(2026, 6, 1)).applicationCloseDate(LocalDate.of(2027, 6, 30)).build();
+                .startDate(LocalDate.of(2027, 1, 1)).endDate(LocalDate.of(2027, 12, 31)).build();
         em.persist(year);
         semester1 = intake(year, "Semester 1", LocalDate.of(2027, 2, 1), LocalDate.of(2027, 6, 30));
         semester2 = intake(year, "Semester 2", LocalDate.of(2027, 7, 15), LocalDate.of(2027, 11, 30));

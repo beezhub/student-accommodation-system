@@ -61,7 +61,6 @@ class IntakeServiceTest {
                 roomAllocationRepository, academicYearService, intakeWindowPolicy, new TenantOwnershipGuard());
         year2027 = AcademicYear.builder().id(5L).tenantId(COMPANY).name("2027")
                 .startDate(LocalDate.of(2027, 2, 1)).endDate(LocalDate.of(2027, 11, 30))
-                .applicationOpenDate(LocalDate.of(2026, 10, 4)).applicationCloseDate(LocalDate.of(2027, 1, 18))
                 .build();
         lenient().when(intakeWindowPolicy.windowFor(anyLong(), any())).thenAnswer(inv -> {
             LocalDate start = inv.getArgument(1);
@@ -138,8 +137,6 @@ class IntakeServiceTest {
         ArgumentCaptor<AcademicYear> captor = ArgumentCaptor.forClass(AcademicYear.class);
         verify(academicYearRepository).save(captor.capture());
         List<Intake> intakes = savedIntakes();
-        assertThat(captor.getValue().getApplicationOpenDate()).isEqualTo(intakes.get(0).getApplicationOpenDate());
-        assertThat(captor.getValue().getApplicationCloseDate()).isEqualTo(intakes.get(1).getApplicationCloseDate());
     }
 
     @Test
@@ -193,22 +190,16 @@ class IntakeServiceTest {
     // ── Create, edit, delete ────────────────────────────────────────────────────────────────
 
     @Test
-    void createIntake_noWindowGiven_fillsItInAndWidensTheYearWindow() {
+    void createIntake_noWindowGiven_fillsItIn() {
         when(academicYearService.loadOwned(5L)).thenReturn(year2027);
         IntakeRequest request = IntakeRequest.builder().intakeType(IntakeType.SEMESTER).name("Semester 2")
                 .stayStartDate(LocalDate.of(2027, 7, 15)).stayEndDate(LocalDate.of(2027, 11, 30)).build();
-        Intake existing = intake(8L, "Annual", year2027.getStartDate(), year2027.getEndDate());
-        Intake added = intake(9L, "Semester 2", LocalDate.of(2027, 7, 15), LocalDate.of(2027, 11, 30));
-        when(intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(5L)).thenReturn(List.of(existing, added));
 
         service.createIntake(5L, request);
 
         ArgumentCaptor<Intake> captor = ArgumentCaptor.forClass(Intake.class);
         verify(intakeRepository).save(captor.capture());
-        assertThat(captor.getValue().getApplicationOpenDate()).isEqualTo(LocalDate.of(2027, 3, 17));
-        assertThat(captor.getValue().getApplicationCloseDate()).isEqualTo(LocalDate.of(2027, 7, 1));
         assertThat(captor.getValue().getTenantId()).isEqualTo(COMPANY);
-        assertThat(year2027.getApplicationCloseDate()).isEqualTo(LocalDate.of(2027, 7, 1));
     }
 
     @Test
@@ -310,12 +301,10 @@ class IntakeServiceTest {
         annual.setApplicationOpenDate(LocalDate.of(2026, 10, 1));
         annual.setApplicationCloseDate(LocalDate.of(2027, 1, 18));
         when(intakeRepository.findById(8L)).thenReturn(Optional.of(annual));
-        when(intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(5L)).thenReturn(List.of(annual));
 
         IntakeResponse response = service.closeApplicationsNow(8L);
 
         assertThat(response.getApplicationCloseDate()).isEqualTo(TODAY);
-        assertThat(year2027.getApplicationCloseDate()).isEqualTo(TODAY);
     }
 
     @Test

@@ -72,13 +72,18 @@ public class Application implements TenantAware {
     @Builder.Default
     private List<ApplicationBuildingPreference> buildingPreferences = new ArrayList<>();
 
+    /**
+     * NOT NULL in the database since GH-496 (V2026_11_10_1710), unless that migration found rows it
+     * could not repair. Not marked {@code optional = false} here, so a left-over empty row still
+     * loads.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "academic_year_id")
     private AcademicYear academicYear;
 
     /**
-     * The intake applied for, inside {@link #academicYear} (GH-495). Nullable until every row has
-     * one; new applications always carry it.
+     * The intake applied for, inside {@link #academicYear} (GH-495). NOT NULL in the database since
+     * GH-496, as {@link #academicYear}; new applications always carry it.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "intake_id")

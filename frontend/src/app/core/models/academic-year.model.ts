@@ -29,8 +29,9 @@ export interface AcademicYear {
   name: string;
   startDate: string;
   endDate: string;
-  applicationOpenDate: string;
-  applicationCloseDate: string;
+  /** Worked out from the intakes' windows; empty when the year has no intakes (GH-496). */
+  applicationOpenDate?: string | null;
+  applicationCloseDate?: string | null;
   isApplicationWindowOpen: boolean;
   intakes?: Intake[];
   applicationCount?: number;
@@ -39,14 +40,12 @@ export interface AcademicYear {
   updatedAt?: string;
 }
 
-/** The window may be left out: a new year's is filled in from its start date. */
+/** A year has no window of its own: each intake has one (GH-496). */
 export interface AcademicYearRequest {
   institutionId: number | null;
   name: string;
   startDate: string;
   endDate: string;
-  applicationOpenDate?: string;
-  applicationCloseDate?: string;
 }
 
 /** "Create year" from a pattern: the intakes and their windows are filled in. */

@@ -57,7 +57,6 @@ public class AcademicYearService {
     private final ApplicationRepository applicationRepository;
     private final RoomAllocationRepository roomAllocationRepository;
     private final IntakeRepository intakeRepository;
-    private final IntakeWindowPolicy intakeWindowPolicy;
     private final InstitutionRepository institutionRepository;
     private final AcademicYearMapper academicYearMapper;
     private final TenantOwnershipGuard tenantOwnershipGuard;
@@ -70,12 +69,6 @@ public class AcademicYearService {
         AcademicYear academicYear = academicYearMapper.toEntity(request);
         academicYear.setTenantId(callerTenantId());
         applyInstitution(academicYear, request.getInstitutionId());
-        if (academicYear.getApplicationOpenDate() == null || academicYear.getApplicationCloseDate() == null) {
-            IntakeWindowPolicy.Window window =
-                    intakeWindowPolicy.windowFor(academicYear.getTenantId(), academicYear.getStartDate());
-            academicYear.setApplicationOpenDate(window.open());
-            academicYear.setApplicationCloseDate(window.close());
-        }
         validate(academicYear);
 
         AcademicYear saved = academicYearRepository.save(academicYear);
@@ -132,11 +125,8 @@ public class AcademicYearService {
                                 years.map(AcademicYear::getId).getContent()).stream()
                         .collect(Collectors.groupingBy(i -> i.getAcademicYear().getId(),
                                 Collectors.mapping(this::toIntakeResponse, Collectors.toList())));
-        return PageMapper.toPageResponse(years.map(year -> {
-            AcademicYearResponse response = toResponseWithoutIntakes(year);
-            response.setIntakes(intakesByYear.getOrDefault(year.getId(), List.of()));
-            return response;
-        }));
+        return PageMapper.toPageResponse(years.map(year ->
+                toResponse(year, intakesByYear.getOrDefault(year.getId(), List.of()))));
     }
 
     /**
@@ -173,12 +163,6 @@ public class AcademicYearService {
         log.info("action=academicYearDeleted academicYearId={}", id);
     }
 
-    /** Whether today, in South African time, is inside the year's application window. */
-    public boolean isApplicationWindowOpen(AcademicYear academicYear) {
-        return academicYear != null
-                && isOpenToday(academicYear.getApplicationOpenDate(), academicYear.getApplicationCloseDate());
-    }
-
     /** Whether today, in South African time, is inside a window. Both dates are inclusive. */
     public boolean isOpenToday(LocalDate open, LocalDate close) {
         if (open == null || close == null) {
@@ -210,10 +194,6 @@ public class AcademicYearService {
         if (!year.getStartDate().isBefore(year.getEndDate())) {
             throw new InvalidAcademicCalendarException("The year must start before it ends");
         }
-        if (year.getApplicationOpenDate() != null && year.getApplicationCloseDate() != null
-                && year.getApplicationOpenDate().isAfter(year.getApplicationCloseDate())) {
-            throw new InvalidAcademicCalendarException("Applications must open before they close");
-        }
         boolean nameTaken = year.getId() == null
                 ? academicYearRepository.existsByTenantIdAndInstitutionIdAndName(
                         year.getTenantId(), year.getInstitutionId(), year.getName())
@@ -237,11 +217,9 @@ public class AcademicYearService {
 
     /** Maps a year and its intakes, with window states read from the calendar clock. */
     public AcademicYearResponse toResponse(AcademicYear academicYear) {
-        AcademicYearResponse response = toResponseWithoutIntakes(academicYear);
-        response.setIntakes(academicYear.getId() == null ? List.of()
+        return toResponse(academicYear, academicYear.getId() == null ? List.of()
                 : intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(academicYear.getId())
                         .stream().map(this::toIntakeResponse).toList());
-        return response;
     }
 
     public IntakeResponse toIntakeResponse(Intake intake) {
@@ -258,9 +236,19 @@ public class AcademicYearService {
                 .build();
     }
 
-    private AcademicYearResponse toResponseWithoutIntakes(AcademicYear academicYear) {
+    /**
+     * The year's window is its intakes' (GH-496): from the earliest opening to the latest closing,
+     * and open today when any intake's window is. A year with no intakes has none.
+     */
+    private AcademicYearResponse toResponse(AcademicYear academicYear, List<IntakeResponse> intakes) {
         AcademicYearResponse response = academicYearMapper.toResponse(academicYear);
-        response.setIsApplicationWindowOpen(isApplicationWindowOpen(academicYear));
+        response.setIntakes(intakes);
+        response.setApplicationOpenDate(intakes.stream().map(IntakeResponse::getApplicationOpenDate)
+                .filter(Objects::nonNull).min(java.util.Comparator.naturalOrder()).orElse(null));
+        response.setApplicationCloseDate(intakes.stream().map(IntakeResponse::getApplicationCloseDate)
+                .filter(Objects::nonNull).max(java.util.Comparator.naturalOrder()).orElse(null));
+        response.setIsApplicationWindowOpen(intakes.stream()
+                .anyMatch(i -> Boolean.TRUE.equals(i.getIsApplicationWindowOpen())));
         return response;
     }
 

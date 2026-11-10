@@ -178,6 +178,8 @@ class ApplicationResubmitIntegrationTest extends AbstractIntegrationTest {
 
     private Application saveApplication(ApplicationStatus status) {
         Application application = applicationRepository.save(Application.builder()
+                .academicYear(testCalendar().year())
+                .intake(testCalendar().intake())
                 .applicationCode("APP-" + System.nanoTime())
                 .applicationDate(LocalDate.now())
                 .status(status)

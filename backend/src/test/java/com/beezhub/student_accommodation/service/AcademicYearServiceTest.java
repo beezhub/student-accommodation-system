@@ -157,18 +157,6 @@ class AcademicYearServiceTest {
     }
 
     @Test
-    void createAcademicYear_windowClosesBeforeItOpens_isRefused() {
-        AcademicYearRequest request = request("2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
-        AcademicYear entity = entityFrom(request);
-        entity.setApplicationOpenDate(LocalDate.of(2027, 1, 1));
-        entity.setApplicationCloseDate(LocalDate.of(2026, 12, 1));
-        when(academicYearMapper.toEntity(request)).thenReturn(entity);
-
-        assertThatThrownBy(() -> service.createAcademicYear(request))
-                .isInstanceOf(InvalidAcademicCalendarException.class);
-    }
-
-    @Test
     void createAcademicYear_unknownInstitution_isRefused() {
         AcademicYearRequest request = request("2027", 99L, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
         when(academicYearMapper.toEntity(request)).thenReturn(entityFrom(request));
@@ -204,22 +192,6 @@ class AcademicYearServiceTest {
 
         verify(academicYearMapper).updateEntity(request, existing);
         verify(academicYearRepository).existsByTenantIdAndInstitutionIdAndNameAndIdNot(COMPANY, null, "2027", 5L);
-    }
-
-    @Test
-    void createAcademicYear_noWindowGiven_fillsItInFromTheStartDate() {
-        AcademicYearRequest request = request("2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
-        request.setApplicationOpenDate(null);
-        request.setApplicationCloseDate(null);
-        when(academicYearMapper.toEntity(request)).thenReturn(entityFrom(request));
-        when(intakeWindowPolicy.windowFor(COMPANY, LocalDate.of(2027, 2, 1))).thenReturn(
-                new IntakeWindowPolicy.Window(LocalDate.of(2026, 10, 4), LocalDate.of(2027, 1, 18)));
-        when(academicYearRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        service.createAcademicYear(request);
-
-        verify(academicYearRepository).save(argThatYear(y -> LocalDate.of(2026, 10, 4).equals(y.getApplicationOpenDate())
-                && LocalDate.of(2027, 1, 18).equals(y.getApplicationCloseDate())));
     }
 
     @Test
@@ -415,33 +387,47 @@ class AcademicYearServiceTest {
 
     /** GH-494: "closes 30 June" means midnight in South Africa, not 02:00 the next day. */
     @Test
-    void isApplicationWindowOpen_halfPastMidnightOnFirstJulyInJohannesburg_windowClosing30JuneIsClosed() {
+    void isOpenToday_halfPastMidnightOnFirstJulyInJohannesburg_windowClosing30JuneIsClosed() {
         service = serviceAt(LocalDate.of(2027, 7, 1).atTime(0, 30));
-        AcademicYear year = year(1L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
-        year.setApplicationOpenDate(LocalDate.of(2027, 3, 1));
-        year.setApplicationCloseDate(LocalDate.of(2027, 6, 30));
 
-        assertThat(service.isApplicationWindowOpen(year)).isFalse();
+        assertThat(service.isOpenToday(LocalDate.of(2027, 3, 1), LocalDate.of(2027, 6, 30))).isFalse();
     }
 
     @Test
-    void isApplicationWindowOpen_lateOnTheClosingDay_isOpen() {
+    void isOpenToday_lateOnTheClosingDay_isOpen() {
         service = serviceAt(LocalDate.of(2027, 6, 30).atTime(23, 30));
-        AcademicYear year = year(1L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
-        year.setApplicationOpenDate(LocalDate.of(2027, 3, 1));
-        year.setApplicationCloseDate(LocalDate.of(2027, 6, 30));
 
-        assertThat(service.isApplicationWindowOpen(year)).isTrue();
-        assertThat(service.isApplicationWindowOpen(null)).isFalse();
+        assertThat(service.isOpenToday(LocalDate.of(2027, 3, 1), LocalDate.of(2027, 6, 30))).isTrue();
+        assertThat(service.isOpenToday(null, LocalDate.of(2027, 6, 30))).isFalse();
+    }
+
+    /** GH-496: the year stores no window of its own; the response works it out from the intakes. */
+    @Test
+    void toResponse_windowComesFromTheIntakes() {
+        AcademicYear year = year(1L, "2026", null, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 11, 30));
+        Intake first = Intake.builder().id(10L).academicYear(year).name("Semester 1")
+                .stayStartDate(LocalDate.of(2026, 2, 1)).stayEndDate(LocalDate.of(2026, 6, 30))
+                .applicationOpenDate(TODAY.minusDays(30)).applicationCloseDate(TODAY.minusDays(1)).build();
+        Intake second = Intake.builder().id(11L).academicYear(year).name("Semester 2")
+                .stayStartDate(LocalDate.of(2026, 7, 15)).stayEndDate(LocalDate.of(2026, 11, 30))
+                .applicationOpenDate(TODAY.minusDays(1)).applicationCloseDate(TODAY.plusDays(1)).build();
+        when(intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(1L)).thenReturn(List.of(first, second));
+
+        AcademicYearResponse response = service.toResponse(year);
+
+        assertThat(response.getIsApplicationWindowOpen()).isTrue();
+        assertThat(response.getApplicationOpenDate()).isEqualTo(TODAY.minusDays(30));
+        assertThat(response.getApplicationCloseDate()).isEqualTo(TODAY.plusDays(1));
     }
 
     @Test
-    void toResponse_setsTheWindowFlagFromTheClock() {
+    void toResponse_noIntakes_noWindow() {
         AcademicYear year = year(1L, "2026", null, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 11, 30));
-        year.setApplicationOpenDate(TODAY.minusDays(1));
-        year.setApplicationCloseDate(TODAY.plusDays(1));
 
-        assertThat(service.toResponse(year).getIsApplicationWindowOpen()).isTrue();
+        AcademicYearResponse response = service.toResponse(year);
+
+        assertThat(response.getIsApplicationWindowOpen()).isFalse();
+        assertThat(response.getApplicationOpenDate()).isNull();
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
@@ -450,7 +436,7 @@ class AcademicYearServiceTest {
         Clock clock = Clock.fixed(ZonedDateTime.of(johannesburgTime, ClockConfig.CALENDAR_ZONE).toInstant(),
                 ClockConfig.CALENDAR_ZONE);
         return new AcademicYearService(academicYearRepository, applicationRepository, roomAllocationRepository,
-                intakeRepository, intakeWindowPolicy, institutionRepository, academicYearMapper,
+                intakeRepository, institutionRepository, academicYearMapper,
                 tenantOwnershipGuard, clock);
     }
 
@@ -463,14 +449,12 @@ class AcademicYearServiceTest {
 
     private static AcademicYearRequest request(String name, Long institutionId, LocalDate start, LocalDate end) {
         return AcademicYearRequest.builder().name(name).institutionId(institutionId).startDate(start).endDate(end)
-                .applicationOpenDate(start.minusMonths(4)).applicationCloseDate(start.minusDays(14)).build();
+                .build();
     }
 
     private static AcademicYear entityFrom(AcademicYearRequest request) {
         return AcademicYear.builder().name(request.getName()).institutionId(request.getInstitutionId())
-                .startDate(request.getStartDate()).endDate(request.getEndDate())
-                .applicationOpenDate(request.getApplicationOpenDate())
-                .applicationCloseDate(request.getApplicationCloseDate()).build();
+                .startDate(request.getStartDate()).endDate(request.getEndDate()).build();
     }
 
     private static AcademicYear year(Long id, String name, Long institutionId, LocalDate start, LocalDate end) {
