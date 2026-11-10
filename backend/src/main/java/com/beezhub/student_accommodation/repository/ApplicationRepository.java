@@ -48,12 +48,14 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
       */
      @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
              "student", "student.appUser", "preferredBuilding",
-             "buildingPreferences", "buildingPreferences.building"})
+             "buildingPreferences", "buildingPreferences.building",
+             "academicYear", "intake", "tenant"})
      Optional<Application> findWithDetailsById(Long id);
 
      @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
              "student", "student.appUser", "preferredBuilding",
-             "buildingPreferences", "buildingPreferences.building"})
+             "buildingPreferences", "buildingPreferences.building",
+             "academicYear", "intake", "tenant"})
      List<Application> findWithDetailsByStudent_Id(Long studentId);
 
      boolean existsByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
@@ -70,6 +72,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
      boolean existsByStudent_AppUser_IdAndTenantId(Long appUserId, Long tenantId);
 
      boolean existsByStudent_IdAndTenantIdAndStatusIn(Long studentId, Long tenantId, java.util.Collection<ApplicationStatus> statuses);
+
+     /**
+      * Whether the student has an active application with the company for the year (GH-495). The
+      * tenant is explicit, since students are tenant 0 and the filter does nothing for them.
+      */
+     boolean existsByStudent_IdAndTenantIdAndAcademicYear_IdAndStatusIn(
+                     Long studentId, Long tenantId, Long academicYearId, Collection<ApplicationStatus> statuses);
 
      List<Application> findByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
 

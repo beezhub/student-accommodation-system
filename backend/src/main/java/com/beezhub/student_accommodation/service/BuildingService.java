@@ -151,6 +151,18 @@ public class BuildingService {
         return buildingResponses;
     }
 
+    /**
+     * Buildings as the application form shows them: with image, prices and availability, and the
+     * company each belongs to, since a student can pick buildings of several companies (GH-495).
+     */
+    public List<BuildingResponse> toApplicantResponses(List<Building> buildings, Map<Long, String> companyNames) {
+        List<BuildingResponse> responses = buildingMapper.toResponseList(buildings);
+        responses.forEach(this::enrichWithPrimaryImage);
+        enrichWithPricingAndAvailability(responses);
+        responses.forEach(r -> r.setCompanyName(companyNames.get(r.getTenantId())));
+        return responses;
+    }
+
     public BuildingResponse createBuilding(BuildingRequest request) {
         log.info("Creating new building with name: {}", request.getName());
         Building building = new Building();

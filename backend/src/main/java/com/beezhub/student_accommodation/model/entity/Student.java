@@ -31,7 +31,7 @@ public class Student {
     private String specialRequirements;
 
     // GH-239: who to call if something happens to this student. Nullable — existing students have
-    // no value and none can be invented for them; ApplicationCoreService.submitApplication is what
+    // no value and none can be invented for them; ApplicationSubmissionService.submitApplication is what
     // makes it required going forward. UserAnonymizationService must clear all four: the contact is
     // a third party who never signed up, and leaving their name and number behind after a student
     // is anonymised is precisely the data anonymisation exists to remove.

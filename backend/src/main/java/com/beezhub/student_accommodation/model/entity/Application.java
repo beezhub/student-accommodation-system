@@ -76,6 +76,26 @@ public class Application implements TenantAware {
     @JoinColumn(name = "academic_year_id")
     private AcademicYear academicYear;
 
+    /**
+     * The intake applied for, inside {@link #academicYear} (GH-495). Nullable until every row has
+     * one; new applications always carry it.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "intake_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private Intake intake;
+
+    /**
+     * The student's institution when they applied, from their profile (GH-495). A later change of
+     * institution on the profile does not move existing applications.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "institution_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private Institution institution;
+
     @Column(name = "allocation_method")
     @Enumerated(EnumType.STRING)
     @Builder.Default

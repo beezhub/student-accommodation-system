@@ -57,4 +57,19 @@ public class ApplicationResponse {
     private String allocationStatus;
 
     private Long tenantId;
+
+    /** The company the application is with (GH-495). */
+    private String companyName;
+
+    // The intake applied for and its year (GH-495). Empty only on rows step 3 could not repair.
+    private Long academicYearId;
+    private String academicYearName;
+    private Long intakeId;
+    private String intakeName;
+    private String intakeType;
+    private LocalDate intakeStayStartDate;
+    private LocalDate intakeStayEndDate;
+
+    /** The student's institution when they applied. */
+    private Long institutionId;
 }

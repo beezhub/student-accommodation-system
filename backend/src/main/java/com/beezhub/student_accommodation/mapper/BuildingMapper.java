@@ -23,6 +23,7 @@ public interface BuildingMapper {
     @Mapping(target = "maxMonthlyRate", ignore = true)
     @Mapping(target = "availableRoomCount", ignore = true)
     @Mapping(target = "accessibilityFeatures", ignore = true)
+    @Mapping(target = "companyName", ignore = true)
     BuildingResponse toResponse(Building building);
 
     List<BuildingResponse> toResponseList(List<Building> buildings);

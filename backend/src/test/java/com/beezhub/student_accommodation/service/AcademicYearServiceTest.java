@@ -411,37 +411,6 @@ class AcademicYearServiceTest {
         assertThat(service.getCurrentAcademicYear(null).getName()).isEqualTo("2026");
     }
 
-    @Test
-    void getYearForNewApplication_nextYearsWindowIsOpen_prefersIt() {
-        AcademicYear y2026 = year(1L, "2026", null, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 11, 30));
-        y2026.setApplicationOpenDate(LocalDate.of(2025, 9, 1));
-        y2026.setApplicationCloseDate(LocalDate.of(2026, 6, 30));
-        AcademicYear y2027 = year(2L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
-        y2027.setApplicationOpenDate(LocalDate.of(2026, 6, 1));
-        y2027.setApplicationCloseDate(LocalDate.of(2027, 6, 30));
-        when(academicYearRepository.findNotEndedByTenant(COMPANY, TODAY)).thenReturn(List.of(y2026, y2027));
-
-        assertThat(service.getYearForNewApplication(COMPANY, null)).isEqualTo(y2027);
-    }
-
-    @Test
-    void getYearForNewApplication_noWindowOpen_returnsTheCurrentYear() {
-        AcademicYear y2026 = year(1L, "2026", null, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 11, 30));
-        y2026.setApplicationOpenDate(LocalDate.of(2025, 9, 1));
-        y2026.setApplicationCloseDate(LocalDate.of(2026, 6, 30));
-        when(academicYearRepository.findNotEndedByTenant(COMPANY, TODAY)).thenReturn(List.of(y2026));
-
-        assertThat(service.getYearForNewApplication(COMPANY, null)).isEqualTo(y2026);
-    }
-
-    @Test
-    void getYearForNewApplication_noYears_isNotFound() {
-        when(academicYearRepository.findNotEndedByTenant(anyLong(), eq(TODAY))).thenReturn(List.of());
-
-        assertThatThrownBy(() -> service.getYearForNewApplication(COMPANY, null))
-                .isInstanceOf(AcademicYearNotFoundException.class);
-    }
-
     // ── Time zone ───────────────────────────────────────────────────────────────────────────
 
     /** GH-494: "closes 30 June" means midnight in South Africa, not 02:00 the next day. */

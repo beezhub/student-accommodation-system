@@ -28,6 +28,15 @@ public interface ApplicationMapper {
     @Mapping(target = "remarks", source = "remarks")
     @Mapping(target = "preferredBuildings", expression = "java(mapBuildingPreferences(application.getBuildingPreferences()))")
     @Mapping(target = "tenantId", source = "tenantId")
+    @Mapping(target = "companyName", source = "tenant.name")
+    @Mapping(target = "academicYearId", source = "academicYear.id")
+    @Mapping(target = "academicYearName", source = "academicYear.name")
+    @Mapping(target = "intakeId", source = "intake.id")
+    @Mapping(target = "intakeName", source = "intake.name")
+    @Mapping(target = "intakeType", expression = "java(application.getIntake() != null && application.getIntake().getIntakeType() != null ? application.getIntake().getIntakeType().name() : null)")
+    @Mapping(target = "intakeStayStartDate", source = "intake.stayStartDate")
+    @Mapping(target = "intakeStayEndDate", source = "intake.stayEndDate")
+    @Mapping(target = "institutionId", source = "institution.id")
     ApplicationResponse toResponse(Application application);
 
     default List<BuildingPreferenceResponse> mapBuildingPreferences(

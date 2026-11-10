@@ -1,0 +1,23 @@
+<div class="institution-prompt">
+  <p class="institution-prompt-text">
+    <mat-icon aria-hidden="true">school</mat-icon>
+    Where do you study? We show the residences that take students from your institution.
+  </p>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Institution</mat-label>
+    <mat-select [formControl]="institution">
+      @for (option of institutions; track option.id) {
+      <mat-option [value]="option.id">{{ option.name }}</mat-option>
+      }
+    </mat-select>
+    @if (institution.hasError('required')) {
+    <mat-error>Choose your institution</mat-error>
+    }
+  </mat-form-field>
+  @if (error) {
+  <p class="institution-prompt-error" role="alert">{{ error }}</p>
+  }
+  <button mat-flat-button color="primary" type="button" [disabled]="isSaving" (click)="save()">
+    Save and continue
+  </button>
+</div>
