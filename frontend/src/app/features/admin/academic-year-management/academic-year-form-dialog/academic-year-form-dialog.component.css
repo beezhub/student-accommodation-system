@@ -123,65 +123,19 @@ mat-dialog-content {
   flex: 1;
 }
 
-/* ── Current year checkbox card ───────────────────── */
-.current-year-card {
-  padding: 14px 16px;
-  background: #f8fafc;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  transition: all 0.2s ease;
-}
-
-.current-year-card:hover {
-  border-color: #cbd5e1;
-}
-
-.current-year-card.active {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border-color: #10b981;
-}
-
-.current-year-card ::ng-deep .mdc-form-field {
-  width: 100%;
-}
-
-.checkbox-content {
+/* ── Pattern options ───────────────────── */
+.pattern-options {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.current-icon {
-  font-size: 20px;
-  width: 20px;
-  height: 20px;
-  color: #94a3b8;
-  transition: color 0.2s ease;
+.pattern-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-slate-500, #64748b);
 }
 
-.current-year-card.active .current-icon {
-  color: #10b981;
-}
-
-.checkbox-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.checkbox-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.checkbox-hint {
-  font-size: 12px;
-  color: #64748b;
-}
-
-/* ── Dialog actions ───────────────────────────────── */
 mat-dialog-actions {
   padding: 16px 24px 24px !important;
   gap: 12px;
