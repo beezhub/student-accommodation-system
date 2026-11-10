@@ -388,3 +388,8 @@
     flex-shrink: 0;
   }
 }
+
+// GH-495: one panel per company picked, below the gallery.
+.company-checks {
+  margin-top: vars.$space-4;
+}

@@ -1,3 +1,4 @@
+import { OpenWindowsBannerComponent } from './open-windows-banner/open-windows-banner.component';
 import {
   Component,
   OnInit,
@@ -52,6 +53,7 @@ interface UploadedDocumentRow {
   styleUrls: ['./dashboard.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    OpenWindowsBannerComponent,
     CommonModule,
     RouterModule,
     DocumentViewerComponent,

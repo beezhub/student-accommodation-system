@@ -44,6 +44,15 @@ public class ApplyOptionsController {
         return ResponseEntity.ok(applyOptionsService.getBuildingsForInstitution(institutionId));
     }
 
+    @Operation(summary = "Open application windows for the student",
+            description = "Companies that can take the student's institution with an intake open today that the "
+                    + "student has not applied for. Not paginated: at most one entry per company.")
+    @GetMapping("/open-windows")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<List<CompanyApplyOptionsResponse>> getOpenWindows() {
+        return ResponseEntity.ok(applyOptionsService.getOpenWindows());
+    }
+
     @Operation(summary = "What a student can apply for at a building's company",
             description = "Open intakes for the institution, leaving out years the student already applied for "
                     + "there, which are linked instead; the next window when none is open; missing documents.")

@@ -92,10 +92,36 @@ public class ApplyOptionsService {
         Long institution = resolveInstitution(institutionId, student);
         Building building = buildingRepository.findById(buildingId)
                 .orElseThrow(() -> new BuildingNotFoundException("Building not found with ID: " + buildingId));
-        Long companyId = building.getTenantId();
-        Tenant company = tenantRepository.findById(companyId)
+        Tenant company = tenantRepository.findById(building.getTenantId())
                 .orElseThrow(() -> new BuildingNotFoundException("Building not found with ID: " + buildingId));
+        CompanyApplyOptionsResponse options = optionsFor(student, institution, company);
+        options.setBuildingId(buildingId);
+        options.setMissingDocuments(intakePolicy.missingDocuments(company.getId(), uploadedTypeNames(student)));
+        return options;
+    }
 
+    /**
+     * Companies that can take the student's institution and have an intake open today that the
+     * student has not applied for, for the dashboard banner. Companies with nothing open are left out.
+     */
+    @Transactional(readOnly = true)
+    public List<CompanyApplyOptionsResponse> getOpenWindows() {
+        Student student = currentStudent();
+        Long institution = resolveInstitution(null, student);
+        Set<Long> companyIds = buildingRepository.findTakingInstitution(
+                        institution != null ? institution : NO_INSTITUTION, academicYearService.today()).stream()
+                .map(Building::getTenantId)
+                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+        return tenantRepository.findAllById(companyIds).stream()
+                .sorted(java.util.Comparator.comparing(Tenant::getName))
+                .map(company -> optionsFor(student, institution, company))
+                .filter(options -> !options.getOpenIntakes().isEmpty())
+                .toList();
+    }
+
+    /** Open intakes and existing applications at one company, without the document check. */
+    private CompanyApplyOptionsResponse optionsFor(Student student, Long institution, Tenant company) {
+        Long companyId = company.getId();
         List<Application> active = applicationRepository.findByStudent_IdAndTenantIdAndStatusInOrderByIdDesc(
                 student.getId(), companyId, ApplicationSubmissionService.ACTIVE_STATUSES);
         Set<Long> appliedYearIds = active.stream()
@@ -110,18 +136,19 @@ public class ApplyOptionsService {
                 ? intakePolicy.nextToOpen(companyId, institution, appliedYearIds).map(ApplyOptionsService::toOption)
                         .orElse(null)
                 : null;
-        Set<String> uploaded = documentRepository.findDocumentTypeNamesByStudentId(student.getId()).stream()
-                .map(String::toLowerCase).collect(Collectors.toSet());
-
         return CompanyApplyOptionsResponse.builder()
-                .buildingId(buildingId)
                 .companyId(companyId)
                 .companyName(company.getName())
                 .openIntakes(open)
                 .existingApplications(active.stream().map(ApplyOptionsService::toLink).toList())
                 .nextIntake(next)
-                .missingDocuments(intakePolicy.missingDocuments(companyId, uploaded))
+                .missingDocuments(List.of())
                 .build();
+    }
+
+    private Set<String> uploadedTypeNames(Student student) {
+        return documentRepository.findDocumentTypeNamesByStudentId(student.getId()).stream()
+                .map(String::toLowerCase).collect(Collectors.toSet());
     }
 
     private Student currentStudent() {

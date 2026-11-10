@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service.application;
 
 import com.beezhub.student_accommodation.exceptions.ApplicationWindowClosedException;
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
+import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Intake;
 import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.IntakeType;
@@ -253,14 +254,22 @@ class CompanyIntakePolicyTest {
 
     @Test
     void missingDocuments_requiredTypesNotUploaded_sorted() {
-        when(documentTypeService.getEffectiveRequiredTypeNames(COMPANY))
-                .thenReturn(Set.of("proof of address", "id document", "proof of registration"));
+        when(documentTypeService.getEffectiveDocumentTypes(COMPANY)).thenReturn(List.of(
+                type("Proof of registration", true), type("ID Document", true), type("Proof of address", true),
+                type("Bank statement", false)));
 
         assertThat(policy.missingDocuments(COMPANY, Set.of("id document")))
-                .containsExactly("proof of address", "proof of registration");
+                .containsExactly("Proof of address", "Proof of registration");
     }
 
     // ── Fixtures ───────────────────────────────────────────────────────────────
+
+    private static DocumentType type(String name, boolean required) {
+        DocumentType type = new DocumentType();
+        type.setTypeName(name);
+        type.setIsRequired(required);
+        return type;
+    }
 
     private void stubYears(AcademicYear... years) {
         when(academicYearRepository.findNotEndedByTenant(COMPANY, TODAY)).thenReturn(List.of(years));

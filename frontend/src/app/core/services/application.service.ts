@@ -4,6 +4,7 @@ import { Observable, map, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 import { Application } from '../models/application.model';
+import { ApplicationSubmission } from '../models/apply-options.model';
 import { ApplicationStatus } from '../models/status.model';
 
 export interface BuildingPreferenceResponse {
@@ -131,10 +132,9 @@ export class ApplicationService {
 
   private apiUrl = `${environment.apiUrl}/applications`;
 
-  createApplication(applicationData: Partial<Application>): Observable<Application> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return this.http.post<Application>(`${this.apiUrl}/submit`, applicationData);
+  /** Submits the form; returns the applications created, one per company (GH-495). */
+  createApplication(applicationData: Partial<ApplicationSubmission>): Observable<Application[]> {
+    return this.http.post<Application[]>(`${this.apiUrl}/submit`, applicationData);
   }
 
   getApplicationByStatus(status: string): Observable<Application[]> {

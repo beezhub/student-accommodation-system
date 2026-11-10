@@ -195,6 +195,31 @@ class ApplyOptionsServiceTest {
         assertThatThrownBy(() -> service.getOptionsForBuilding(10L, null)).isInstanceOf(BuildingNotFoundException.class);
     }
 
+    // ── Open windows for the dashboard ─────────────────────────────────────────
+
+    @Test
+    void getOpenWindows_onlyCompaniesWithAnIntakeTheStudentCanStillApplyFor() {
+        Tenant other = Tenant.builder().id(43L).name("Company A").build();
+        Building otherResidence = new Building();
+        otherResidence.setId(11L);
+        otherResidence.setTenantId(43L);
+        Intake annual2027 = intake(21L, year2027, "Annual", LocalDate.of(2026, 6, 1));
+        when(buildingRepository.findTakingInstitution(7L, TODAY)).thenReturn(List.of(residence, otherResidence));
+        when(tenantRepository.findAllById(Set.of(42L, 43L))).thenReturn(List.of(company, other));
+        when(applicationRepository.findByStudent_IdAndTenantIdAndStatusInOrderByIdDesc(anyLong(), anyLong(), any()))
+                .thenReturn(List.of());
+        when(intakePolicy.openIntakes(42L, 7L)).thenReturn(List.of(annual2027));
+        when(intakePolicy.openIntakes(43L, 7L)).thenReturn(List.of());
+        when(intakePolicy.nextToOpen(43L, 7L, Set.of())).thenReturn(Optional.empty());
+
+        List<CompanyApplyOptionsResponse> windows = service.getOpenWindows();
+
+        assertThat(windows).singleElement().satisfies(w -> {
+            assertThat(w.getCompanyName()).isEqualTo("Company B");
+            assertThat(w.getOpenIntakes()).extracting("intakeId").containsExactly(21L);
+        });
+    }
+
     private void stubBuildingAndCompany() {
         when(buildingRepository.findById(10L)).thenReturn(Optional.of(residence));
         when(tenantRepository.findById(42L)).thenReturn(Optional.of(company));

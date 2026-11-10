@@ -1,3 +1,4 @@
+import { ApplyOptionsService } from '../../core/services/apply-options.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { throwError } from 'rxjs';
@@ -83,6 +84,7 @@ describe('DashboardComponent', () => {
         { provide: SystemSettingsService, useValue: systemSettingsService },
         { provide: ErrorHandlingService, useValue: errorService },
         { provide: WaitlistService, useValue: waitlistService },
+        { provide: ApplyOptionsService, useValue: { getOpenWindows: () => of([]) } },
       ],
     });
     // The component imports MatDialogModule itself, and a standalone component's own imports take

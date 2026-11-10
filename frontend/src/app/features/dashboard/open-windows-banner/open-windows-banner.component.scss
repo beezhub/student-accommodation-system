@@ -1,0 +1,27 @@
+@use '../../../../styles/variables' as vars;
+
+.open-windows {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-4;
+  flex-wrap: wrap;
+  padding: vars.$space-3 vars.$space-4;
+  margin-bottom: vars.$space-4;
+  border: 1px solid vars.$slate-200;
+  border-radius: vars.$radius-md;
+  background: vars.$slate-50;
+}
+
+.open-windows-icon {
+  color: vars.$accent-purple-dark;
+}
+
+.open-windows-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.open-windows-list {
+  margin: vars.$space-1 0 0;
+  padding-left: vars.$space-4;
+}

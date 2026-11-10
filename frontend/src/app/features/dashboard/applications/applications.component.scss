@@ -474,3 +474,9 @@
     opacity: 0.8;
   }
 }
+
+// GH-495: the company under the intake.
+.intake-company {
+  font-size: 0.8rem;
+  color: vars.$slate-500;
+}

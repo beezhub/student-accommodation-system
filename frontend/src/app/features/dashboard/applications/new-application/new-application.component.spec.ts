@@ -6,7 +6,7 @@ import { NEVER, Observable, of, throwError } from 'rxjs';
 
 import { NewApplicationComponent } from './new-application.component';
 import { AuthService } from '../../../../core/services/auth.service';
-import { BuildingService } from '../../../../core/services/building.service';
+import { ApplyOptionsService } from '../../../../core/services/apply-options.service';
 import { InstitutionService } from '../../../../core/services/institution.service';
 import { StudentService } from '../../../../core/services/student.service';
 import { StudentResponse } from '../../../../core/models/student.model';
@@ -33,7 +33,10 @@ describe('NewApplicationComponent with no student profile', () => {
         provideRouter([]),
         provideNoopAnimations(),
         { provide: AuthService, useValue: { currentUserValue: { id: '1' } } },
-        { provide: BuildingService, useValue: { getAllBuildingsNoPagination: () => of([]) } },
+        {
+          provide: ApplyOptionsService,
+          useValue: { getBuildings: () => of([]), getOptions: () => of() },
+        },
         { provide: InstitutionService, useValue: { getInstitutions: () => of([]) } },
         { provide: StudentService, useValue: { getStudentProfile } },
       ],

@@ -204,7 +204,7 @@ describe('ApplicationReviewComponent', () => {
     });
 
     it('onSubmit_allGood_clearsTheDraftAndConfirms', () => {
-      applicationService.createApplication.and.returnValue(of({ id: 42 }) as never);
+      applicationService.createApplication.and.returnValue(of([{ id: 42 }]) as never);
       draftService.saveDraft(draftWith('2000-05-14'));
       readyToSubmit();
 
@@ -216,7 +216,7 @@ describe('ApplicationReviewComponent', () => {
     });
 
     it('onSubmit_preferredBuildings_areSentWhenChosen', () => {
-      applicationService.createApplication.and.returnValue(of({ id: 42 }) as never);
+      applicationService.createApplication.and.returnValue(of([{ id: 42 }]) as never);
       readyToSubmit({ ...draftWith('2000-05-14'), preferredBuildingIds: [5] });
 
       component.onSubmit();
@@ -259,7 +259,7 @@ describe('ApplicationReviewComponent', () => {
     });
 
     it('retrySubmit_submitsAgain', () => {
-      applicationService.createApplication.and.returnValue(of({ id: 42 }) as never);
+      applicationService.createApplication.and.returnValue(of([{ id: 42 }]) as never);
       readyToSubmit();
 
       component.retrySubmit();

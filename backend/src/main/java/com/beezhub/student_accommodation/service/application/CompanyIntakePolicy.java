@@ -2,6 +2,7 @@ package com.beezhub.student_accommodation.service.application;
 
 import com.beezhub.student_accommodation.exceptions.ApplicationWindowClosedException;
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
+import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Intake;
 import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
@@ -98,11 +99,17 @@ public class CompanyIntakePolicy {
         return intake;
     }
 
-    /** Required document types of the company the student has not uploaded, by name. */
+    /**
+     * Required document types of the company the student has not uploaded, as the company names
+     * them. Matched by lower-case name against {@code uploadedTypeNames}, the same merged view and
+     * matching as {@code DocumentTypeService.getEffectiveRequiredTypeNames}.
+     */
     public List<String> missingDocuments(Long companyId, Set<String> uploadedTypeNames) {
-        return documentTypeService.getEffectiveRequiredTypeNames(companyId).stream()
-                .filter(name -> !uploadedTypeNames.contains(name))
-                .sorted()
+        return documentTypeService.getEffectiveDocumentTypes(companyId).stream()
+                .filter(type -> Boolean.TRUE.equals(type.getIsRequired()))
+                .map(DocumentType::getTypeName)
+                .filter(name -> !uploadedTypeNames.contains(name.toLowerCase()))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
                 .toList();
     }
 

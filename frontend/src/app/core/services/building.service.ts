@@ -40,6 +40,8 @@ export interface BuildingImageResponse {
 export interface BuildingResponse {
   id: number;
   tenantId?: number;
+  /** The company's name; set where a student picks buildings across companies (GH-495). */
+  companyName?: string | null;
   name: string;
   address?: string;
   latitude?: number;
