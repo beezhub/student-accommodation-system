@@ -40,15 +40,24 @@ public interface WaitingListRepository extends JpaRepository<WaitingListEntry, L
 
     long countByStatus(String status);
 
-    /** Total students waiting, scoped to a specific academic year (queue depth). */
-    long countByStatusAndApplication_AcademicYear_Id(String status, Long academicYearId);
+    /**
+     * Students waiting in an academic year whose stay has not ended (queue depth). An entry for an
+     * intake that is over is never offered a room, so it is not counted (GH-496).
+     */
+    @Query("SELECT COUNT(w) FROM WaitingListEntry w JOIN w.application a LEFT JOIN a.intake i " +
+           "WHERE w.status = 'WAITING' AND a.academicYear.id = :academicYearId " +
+           "AND (i.id IS NULL OR i.stayEndDate > :today)")
+    long countWaitingInYear(@Param("academicYearId") Long academicYearId,
+                            @Param("today") java.time.LocalDate today);
 
     /**
-     * Number of waiting-list entries ahead of the given timestamp within an
-     * academic year — used to compute a student's 1-based queue position
-     * (position = count + 1).
+     * As {@link #countWaitingInYear}, for entries created before {@code createdAt}: the student's
+     * 1-based queue position is this count plus one.
      */
-    long countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
-            String status, Long academicYearId, java.time.LocalDateTime createdAt);
+    @Query("SELECT COUNT(w) FROM WaitingListEntry w JOIN w.application a LEFT JOIN a.intake i " +
+           "WHERE w.status = 'WAITING' AND a.academicYear.id = :academicYearId " +
+           "AND w.createdAt < :createdAt AND (i.id IS NULL OR i.stayEndDate > :today)")
+    long countWaitingInYearBefore(@Param("academicYearId") Long academicYearId,
+                                  @Param("createdAt") java.time.LocalDateTime createdAt,
+                                  @Param("today") java.time.LocalDate today);
 }
-

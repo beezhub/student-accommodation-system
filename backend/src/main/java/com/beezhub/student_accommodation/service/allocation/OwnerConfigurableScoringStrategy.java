@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
  *   <li>Application status is APPROVED</li>
  *   <li>All application documents are VERIFIED</li>
  *   <li>Student has no active allocation</li>
- *   <li>Room has available capacity</li>
+ *   <li>Room has a free bed for the stay applied for (planned dates overlap, GH-496)</li>
  *   <li>Room {@code is_available} flag is true</li>
  *   <li>Gender restriction compatible</li>
  *   <li>Accessibility — if student requires it, room must be compliant</li>
@@ -86,7 +86,7 @@ public class OwnerConfigurableScoringStrategy implements ScoringStrategy {
         log.info("strategy=OwnerConfigurable action=scoreAvailableRooms student={} application={}",
                 student.getId(), application != null ? application.getId() : "N/A");
 
-        List<Room> availableRooms = getAvailableRooms();
+        List<Room> availableRooms = getAvailableRooms(StayPeriod.of(application));
         log.debug("strategy=OwnerConfigurable availableRooms={}", availableRooms.size());
 
         // Batch-load attributes (N+1 prevention)
@@ -232,7 +232,7 @@ public class OwnerConfigurableScoringStrategy implements ScoringStrategy {
                 .add(weightedAccessibility)
                 .setScale(4, RoundingMode.HALF_UP);
 
-        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
+        long activeAllocations = bedsTaken(room, StayPeriod.of(application));
         int  availableSpots    = room.getCapacity() - (int) activeAllocations;
 
         List<String> warnings = buildWarnings(student, application, room, roomAttrs, totalScore);
@@ -433,17 +433,20 @@ public class OwnerConfigurableScoringStrategy implements ScoringStrategy {
 
     // ==================== Utility helpers ====================
 
-    private List<Room> getAvailableRooms() {
+    /**
+     * Rooms open for offers with a free bed for {@code stay}. Any status but MAINTENANCE: FULL and
+     * OCCUPIED describe today (GH-496), and a room full today can still be free for next year.
+     */
+    private List<Room> getAvailableRooms(StayPeriod stay) {
         return roomRepository.findAll().stream()
-                .filter(room -> {
-                    String status = room.getStatus();
-                    if (!"AVAILABLE".equals(status) && !"OCCUPIED".equals(status)) {
-                        return false;
-                    }
-                    long active = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-                    return active < room.getCapacity();
-                })
+                .filter(room -> room.getStatus() != null && !"MAINTENANCE".equals(room.getStatus()))
+                .filter(room -> bedsTaken(room, stay) < room.getCapacity())
                 .collect(Collectors.toList());
+    }
+
+    /** Beds taken in the room during the stay, by planned dates. */
+    private long bedsTaken(Room room, StayPeriod stay) {
+        return roomAllocationRepository.countHoldingBeds(room.getId(), stay.from(), stay.until());
     }
 
     AllocationRule getLatestRuleForBuilding(Long buildingId) {

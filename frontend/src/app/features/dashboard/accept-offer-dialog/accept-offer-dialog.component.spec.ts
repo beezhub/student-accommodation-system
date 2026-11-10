@@ -64,4 +64,20 @@ describe('AcceptOfferDialogComponent date window', () => {
 
     expect(component.maxDate.getTime()).toBeGreaterThan(component.minDate.getTime());
   });
+
+  /** GH-496: an offer made months before move-in counts its window from move-in day. */
+  it('constructor_stayStartsLater_windowStartsOnMoveInDay', () => {
+    const component = build({ id: 1, stayStartDate: '2027-02-01', stayEndDate: '2027-11-30' });
+
+    expect(component.moveInDay).toEqual(new Date(2027, 1, 1));
+    expect(component.minDate).toEqual(new Date(2027, 1, 1));
+    expect(component.maxDate).toEqual(new Date(2027, 1, 7));
+  });
+
+  it('constructor_stayAlreadyStarted_windowStartsToday', () => {
+    const component = build({ id: 1, stayStartDate: '2026-02-01', stayEndDate: '2026-11-30' });
+
+    expect(component.moveInDay).toBeNull();
+    expect(component.minDate).toEqual(midnight(NOW));
+  });
 });

@@ -37,6 +37,7 @@ public class AllocationCheckInService {
     private final RoomOccupancyManager roomOccupancyManager;
     private final AllocationAuditService allocationAuditService;
     private final AuthService authService;
+    private final StayCapacityGuard stayCapacityGuard;
 
     /** Human-readable form for the deadline echoed to the admin who is past it. */
     private static final DateTimeFormatter CHECK_IN_DEADLINE_FORMAT =
@@ -69,6 +70,9 @@ public class AllocationCheckInService {
 
         AllocationStatusValidator.validate(allocation, AllocationStatus.ACTIVE);
         boolean pastDeadline = assertWithinCheckInDeadline(allocation, overrideDeadline);
+        // The offer stands on the planned dates, but nobody moves into a bed a resident still
+        // sleeps in. The admin dashboard lists the overdue check-out (GH-496).
+        stayCapacityGuard.assertBedPhysicallyFree(allocation);
         // After the allocation guard, so an illegal allocation transition still reports as such
         // rather than being masked by the application state (GH-137).
         ApplicationStatusValidator.validate(allocation.getApplication(),

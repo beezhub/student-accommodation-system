@@ -41,6 +41,7 @@ public class AllocationMoveService {
     private final UserNotificationService userNotificationService;
     private final RoomOccupancyManager roomOccupancyManager;
     private final TenantOwnershipGuard tenantOwnershipGuard;
+    private final StayCapacityGuard stayCapacityGuard;
 
     @Transactional
     public RoomAllocationResponse moveStudent(Long allocationId, Long newRoomId, String reason, Long adminId) {
@@ -57,7 +58,10 @@ public class AllocationMoveService {
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + newRoomId));
         tenantOwnershipGuard.assertOwned(newRoom, "Room", newRoomId);
 
-        validateRoomCapacity(newRoom);
+        // Free for the rest of the student's planned stay (GH-496), and free in fact today: a
+        // resident who has not checked out still sleeps there.
+        stayCapacityGuard.assertBedFree(newRoom, StayPeriod.of(allocation));
+        stayCapacityGuard.assertBedPhysicallyFree(newRoom, allocation.getId());
         validateHardConstraints(allocation.getStudent(), newRoom);
 
         allocation.setRoom(newRoom);
@@ -82,16 +86,6 @@ public class AllocationMoveService {
     private void validateMoveEligibility(RoomAllocation allocation) {
         if (!"ACTIVE".equals(allocation.getStatus().name())) {
             throw new InvalidAllocationStatusTransitionException("Can only move ACTIVE allocations");
-        }
-    }
-
-    private void validateRoomCapacity(Room room) {
-        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-        if (activeAllocations >= room.getCapacity()) {
-            log.error("Room {} is at full capacity. Current: {}, Max: {}", room.getRoomNumber(), activeAllocations,
-                    room.getCapacity());
-            throw new RoomCapacityExceededException(
-                    "Room " + room.getRoomNumber() + " is at full capacity (" + room.getCapacity() + " occupants)");
         }
     }
 

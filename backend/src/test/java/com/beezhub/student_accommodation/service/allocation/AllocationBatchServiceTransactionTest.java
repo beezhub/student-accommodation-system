@@ -77,8 +77,8 @@ class AllocationBatchServiceTransactionTest {
                 2L, List.of(scored(102L)),
                 3L, List.of(scored(103L))));
         when(orchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(new Room()));
-        when(orchestrator.buildRoomCapacityMap(any()))
-                .thenReturn(new HashMap<>(Map.of(101L, 1, 102L, 1, 103L, 1)));
+        when(orchestrator.newBedLedger(any()))
+                .thenReturn(BedLedgers.of(Map.of(101L, 1, 102L, 1, 103L, 1)));
 
         // Student 2 cannot be allocated; students 1 and 3 succeed.
         when(lifecycleService.createRoomAllocation(argThat((RoomAllocationRequest r) -> r != null && r.getStudentId() == 2L)))

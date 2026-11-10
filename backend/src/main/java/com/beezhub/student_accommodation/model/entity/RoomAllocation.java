@@ -6,6 +6,7 @@ import com.beezhub.student_accommodation.model.enums.DeclineReason;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -69,8 +70,20 @@ public class RoomAllocation implements TenantAware {
     @Enumerated(EnumType.STRING)
     private AllocationMethod allocationMethod;
 
+    /** When the stay actually ended: check-out, or the offer or check-in lapsing. */
     @Column(name = "end_date")
     private LocalDateTime endDate;
+
+    /**
+     * Planned move-in, copied from the intake when the allocation is made (GH-496). Capacity is
+     * counted by overlapping planned stays, so a 2027 offer does not take a 2026 bed.
+     */
+    @Column(name = "stay_start_date")
+    private LocalDate stayStartDate;
+
+    /** Planned check-out: the bed is free again from this date. */
+    @Column(name = "stay_end_date")
+    private LocalDate stayEndDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "academic_year_id")

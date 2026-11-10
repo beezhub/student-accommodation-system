@@ -42,6 +42,12 @@ export interface RoomAllocationResponse {
   status: string;
   offerExpiryDate?: string;
   checkInExpiryDate?: string;
+  expectedCheckInDate?: string;
+  checkInDate?: string;
+  /** Planned move-in, 'YYYY-MM-DD' (GH-496). */
+  stayStartDate?: string;
+  /** Planned check-out, 'YYYY-MM-DD': the bed is free again from this date. */
+  stayEndDate?: string;
   declineReason?: DeclineReason;
   declineReasonText?: string;
   /**

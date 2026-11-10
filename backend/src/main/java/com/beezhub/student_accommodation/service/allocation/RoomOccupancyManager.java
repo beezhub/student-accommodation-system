@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
+import java.time.LocalDate;
+
 /**
  * The single writer of {@code room.current_occupancy} and {@code room.status}.
  *
@@ -20,6 +23,10 @@ import org.springframework.stereotype.Service;
  *
  * <p>Occupancy is now derived from the count rather than adjusted, which makes it convergent: any
  * call fixes whatever the previous state was.
+ *
+ * <p>It means who is in the room today (GH-496): everyone checked in, and offers and acceptances
+ * whose planned stay includes today. Capacity for an offer is counted separately, by overlapping
+ * stay dates, so a 2027 offer neither fills a 2026 room here nor is blocked by its status.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,9 +40,10 @@ public class RoomOccupancyManager {
 
     private final RoomRepository roomRepository;
     private final RoomAllocationRepository roomAllocationRepository;
+    private final Clock clock;
 
     /**
-     * Recomputes a room's occupancy and status from its live allocation count.
+     * Recomputes a room's occupancy and status from the allocations in it today.
      *
      * <p>Call this inside the caller's transaction and <strong>after</strong> the allocation's
      * status or room has been mutated. The entity is managed, so Hibernate flushes those changes
@@ -50,7 +58,7 @@ public class RoomOccupancyManager {
             return;
         }
 
-        long active = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
+        long active = roomAllocationRepository.countInRoomOn(room.getId(), LocalDate.now(clock));
         int occupancy = (int) active;
         String status = deriveStatus(room, active);
 

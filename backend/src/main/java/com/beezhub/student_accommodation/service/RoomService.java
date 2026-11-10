@@ -12,6 +12,7 @@ import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.service.allocation.RoomOccupancyManager;
+import com.beezhub.student_accommodation.service.allocation.StayPeriod;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
 import com.beezhub.student_accommodation.specification.RoomSpecification;
@@ -44,6 +45,7 @@ public class RoomService {
     private final RoomAllocationRepository roomAllocationRepository;
     private final RoomMapper roomMapper;
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+    private final java.time.Clock clock;
 
     public List<RoomResponse> getAllRooms() {
         log.info("Fetching all rooms");
@@ -72,10 +74,7 @@ public class RoomService {
         // Filter for available rooms if requested
         if (Boolean.TRUE.equals(onlyAvailable)) {
             List<Room> availableRooms = rooms.getContent().stream()
-                    .filter(room -> {
-                        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-                        return activeAllocations < room.getCapacity();
-                    })
+                    .filter(room -> hasFreeBedFromToday(room))
                     .collect(Collectors.toList());
             Page<Room> availableRoomsPage = new PageImpl<>(availableRooms, pageable, availableRooms.size());
             Page<RoomResponse> responsePage = availableRoomsPage.map(roomMapper::toResponse);
@@ -250,7 +249,7 @@ public class RoomService {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + id));
         tenantOwnershipGuard.assertOwned(room, "Room", id);
-        long liveAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(id);
+        long liveAllocations = roomAllocationRepository.countLiveAllocationsByRoomId(id);
         if (liveAllocations > 0) {
             log.warn("action=roomDeleteRefused roomId={} liveAllocations={}", id, liveAllocations);
             throw new ResourceInUseException("Room " + room.getRoomNumber()
@@ -259,5 +258,15 @@ public class RoomService {
         }
         roomRepository.delete(room);
         log.info("Successfully deleted room with id: {}", id);
+    }
+
+    /**
+     * Whether a bed is free from today on, by planned stay dates (GH-496): a stay that has ended no
+     * longer takes a bed, and one already promised for later still does.
+     */
+    private boolean hasFreeBedFromToday(Room room) {
+        StayPeriod fromToday = StayPeriod.startingOn(java.time.LocalDate.now(clock));
+        long taken = roomAllocationRepository.countHoldingBeds(room.getId(), fromToday.from(), fromToday.until());
+        return taken < room.getCapacity();
     }
 }

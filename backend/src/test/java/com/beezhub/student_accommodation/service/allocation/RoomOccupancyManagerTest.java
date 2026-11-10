@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,6 +33,11 @@ class RoomOccupancyManagerTest {
     @Mock
     private RoomAllocationRepository roomAllocationRepository;
 
+    /** 10 November 2026, 10:00 in South Africa. */
+    @org.mockito.Spy
+    private java.time.Clock clock = java.time.Clock.fixed(
+            java.time.Instant.parse("2026-11-10T08:00:00Z"), java.time.ZoneId.of("Africa/Johannesburg"));
+
     @InjectMocks
     private RoomOccupancyManager roomOccupancyManager;
 
@@ -46,7 +52,7 @@ class RoomOccupancyManagerTest {
     }
 
     private void activeAllocations(long count) {
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(count);
+        when(roomAllocationRepository.countInRoomOn(1L, java.time.LocalDate.of(2026, 11, 10))).thenReturn(count);
     }
 
     @Test
@@ -153,5 +159,21 @@ class RoomOccupancyManagerTest {
         roomOccupancyManager.syncOccupancy(room);
 
         verify(roomRepository, never()).save(any(Room.class));
+    }
+
+    /**
+     * GH-496: occupancy is who is in the room today. The query is asked for today's date in South
+     * African time, so a 2027 offer (counted only from its move-in day) does not fill the room now.
+     */
+    @Test
+    void syncOccupancy_countsOnlyStaysThatIncludeToday() {
+        Room room = room(1, 0, "AVAILABLE");
+        when(roomAllocationRepository.countInRoomOn(eq(1L), any())).thenReturn(0L);
+
+        roomOccupancyManager.syncOccupancy(room);
+
+        verify(roomAllocationRepository).countInRoomOn(1L, java.time.LocalDate.of(2026, 11, 10));
+        assertThat(room.getCurrentOccupancy()).isZero();
+        assertThat(room.getStatus()).isEqualTo("AVAILABLE");
     }
 }

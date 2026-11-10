@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
@@ -78,7 +79,7 @@ class AllocationScoringServiceTest {
     @Test
     void scoreAvailableRooms_shouldReturnScoredRooms() {
         when(roomRepository.findAll()).thenReturn(Collections.singletonList(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(allocationRuleRepository.findByBuilding_IdAndActiveTrue(1L)).thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
         when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
@@ -148,7 +149,7 @@ class AllocationScoringServiceTest {
     void scoreAvailableRooms_shouldExcludeDeclinedRooms() {
         // Given: Student has declined this room
         when(roomRepository.findAll()).thenReturn(Collections.singletonList(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
         when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(true);
@@ -169,7 +170,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -187,7 +188,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -209,7 +210,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -231,7 +232,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.of(buildingAttrs));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -251,7 +252,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.of(buildingAttrs));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -268,7 +269,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -291,7 +292,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.of(roomAttrs));
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -312,7 +313,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.of(roomAttrs));
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -333,7 +334,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.of(roomAttrs));
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -354,7 +355,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.of(roomAttrs));
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -379,7 +380,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.of(roomAttrs));
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.of(buildingAttrs));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -406,7 +407,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.of(roomAttrs));
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.of(buildingAttrs));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -430,7 +431,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(customRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -452,7 +453,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(zeroWeightRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -480,7 +481,7 @@ class AllocationScoringServiceTest {
         earlierApp.setCreatedAt(LocalDateTime.now().minusHours(2));
 
         when(roomRepository.findAll()).thenReturn(Arrays.asList(room, room2));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(anyLong())).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(anyLong(), any(), any())).thenReturn(0L);
         when(allocationRuleRepository.findByBuilding_IdAndActiveTrue(1L))
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
@@ -505,7 +506,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room with null application
@@ -526,7 +527,7 @@ class AllocationScoringServiceTest {
                 .thenReturn(Collections.singletonList(allocationRule));
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);
 
         // When: Scoring the room
@@ -553,7 +554,7 @@ class AllocationScoringServiceTest {
     void scoreAvailableRooms_allRoomsFull_returnsEmptyList() {
         // Given: Room is at full capacity
         when(roomRepository.findAll()).thenReturn(Collections.singletonList(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // Capacity is 2
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(2L); // Capacity is 2
 
         // When: Scoring available rooms
         List<ScoredRoom> scores = allocationScoringService.scoreAvailableRooms(student, application, null);
@@ -789,7 +790,7 @@ class AllocationScoringServiceTest {
         room1Attrs.setGenderRestriction(GenderRestriction.FEMALE_ONLY);
 
         when(roomRepository.findAll()).thenReturn(Arrays.asList(room, eligibleRoom));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(anyLong())).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(anyLong(), any(), any())).thenReturn(0L);
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.of(room1Attrs));
         when(roomAttributesRepository.findByRoom_Id(2L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(anyLong())).thenReturn(Optional.empty());
@@ -813,7 +814,7 @@ class AllocationScoringServiceTest {
         room2.setBuilding(building);
 
         when(roomRepository.findByBuildingId(1L)).thenReturn(Arrays.asList(room, room2));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(anyLong())).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(anyLong(), any(), any())).thenReturn(0L);
         when(roomAttributesRepository.findByRoom_Id(anyLong())).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
         when(roomAllocationRepository.hasStudentDeclinedRoom(anyLong(), anyLong())).thenReturn(false);
@@ -835,7 +836,7 @@ class AllocationScoringServiceTest {
         building.setInstitutions(new HashSet<>(Arrays.asList(studentInst)));
 
         when(roomRepository.findAll()).thenReturn(Collections.singletonList(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
         when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
         when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(false);

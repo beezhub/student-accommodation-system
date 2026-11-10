@@ -6,6 +6,7 @@ import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.StagedAllocation;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.service.allocation.StayPeriod;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,9 @@ public class StagedAllocationMapper {
         Room room = staged.getRoom();
         Application application = staged.getApplication();
 
-        long currentOccupancy = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
+        // Beds taken for the stay applied for (GH-496), the count the proposal was made against.
+        StayPeriod stay = StayPeriod.of(application);
+        long currentOccupancy = roomAllocationRepository.countHoldingBeds(room.getId(), stay.from(), stay.until());
 
         return StagedAllocationResponse.builder()
                 .id(staged.getId())

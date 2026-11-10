@@ -93,6 +93,10 @@ class AllocationLifecycleServiceTest {
 
     @BeforeEach
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(allocationLifecycleService, "stayCapacityGuard",
+                new com.beezhub.student_accommodation.service.allocation.StayCapacityGuard(roomAllocationRepository,
+                        java.time.Clock.fixed(java.time.Instant.parse("2026-11-10T08:00:00Z"),
+                                java.time.ZoneId.of("Africa/Johannesburg"))));
         // @Value fields are not populated in plain Mockito tests; mirror the
         // application.yml defaults so check-in window validation behaves as in prod.
         org.springframework.test.util.ReflectionTestUtils.setField(
@@ -129,7 +133,7 @@ class AllocationLifecycleServiceTest {
     void createRoomAllocation_shouldCreateAllocation() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
+        when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(1L), any(), any())).thenReturn(false);
         when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
         when(roomAllocationRepository.existsByApplicationId(1L)).thenReturn(false);
         when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
@@ -158,7 +162,7 @@ class AllocationLifecycleServiceTest {
 
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
+        when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(1L), any(), any())).thenReturn(false);
         when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
         when(roomAllocationRepository.existsByApplicationId(1L)).thenReturn(false);
         when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
@@ -182,8 +186,9 @@ class AllocationLifecycleServiceTest {
         room.setCapacity(1);
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(1L), any(), any())).thenReturn(false);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(1L);
 
         assertThatThrownBy(() -> allocationLifecycleService.createRoomAllocation(allocationRequest))
                 .isInstanceOf(RoomCapacityExceededException.class);
@@ -193,7 +198,8 @@ class AllocationLifecycleServiceTest {
     void createRoomAllocation_shouldThrowException_whenStudentAlreadyAllocated() {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(true);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(1L), any(), any())).thenReturn(true);
 
         assertThatThrownBy(() -> allocationLifecycleService.createRoomAllocation(allocationRequest))
                 .isInstanceOf(StudentAlreadyAllocatedException.class);
@@ -259,6 +265,95 @@ class AllocationLifecycleServiceTest {
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.ALLOCATED);
         verify(roomAllocationRepository).save(allocation);
         verify(eventPublisher).publishEvent(any(AllocationAcceptedEvent.class));
+    }
+
+    // ── GH-496: planned stay dates ───────────────────────────────────────────────────────────
+
+    private void applyingFor(java.time.LocalDate stayStart, java.time.LocalDate stayEnd) {
+        Intake intake = new Intake();
+        intake.setStayStartDate(stayStart);
+        intake.setStayEndDate(stayEnd);
+        application.setIntake(intake);
+    }
+
+    @Test
+    void createRoomAllocation_copiesTheStayDatesFromTheIntake() {
+        applyingFor(java.time.LocalDate.of(2027, 2, 1), java.time.LocalDate.of(2027, 11, 30));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        allocationLifecycleService.createRoomAllocation(allocationRequest);
+
+        ArgumentCaptor<RoomAllocation> saved = ArgumentCaptor.forClass(RoomAllocation.class);
+        verify(roomAllocationRepository).save(saved.capture());
+        assertThat(saved.getValue().getStayStartDate()).isEqualTo(java.time.LocalDate.of(2027, 2, 1));
+        assertThat(saved.getValue().getStayEndDate()).isEqualTo(java.time.LocalDate.of(2027, 11, 30));
+        // Capacity and the one-bed rule were asked about 2027, not about any year.
+        verify(roomAllocationRepository).countHoldingBeds(1L,
+                java.time.LocalDate.of(2027, 2, 1), java.time.LocalDate.of(2027, 11, 30));
+        verify(roomAllocationRepository).existsLiveAllocationForStudentDuring(1L,
+                java.time.LocalDate.of(2027, 2, 1), java.time.LocalDate.of(2027, 11, 30));
+    }
+
+    @Test
+    void createRoomAllocation_stayHasEnded_refusedAndNothingSaved() {
+        applyingFor(java.time.LocalDate.of(2026, 2, 1), java.time.LocalDate.of(2026, 6, 30));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+
+        assertThatThrownBy(() -> allocationLifecycleService.createRoomAllocation(allocationRequest))
+                .isInstanceOf(StayEndedException.class);
+        verify(roomAllocationRepository, never()).save(any());
+    }
+
+    /** An offer accepted months ahead keeps its check-in deadline until the student can arrive. */
+    @Test
+    void acceptOffer_stayStartsLater_checkInDeadlineCountsFromMoveIn() {
+        java.time.LocalDate moveIn = java.time.LocalDate.now().plusMonths(3);
+        RoomAllocation allocation = offeredAllocation();
+        allocation.setStayStartDate(moveIn);
+        allocation.setStayEndDate(moveIn.plusMonths(10));
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        allocationLifecycleService.acceptOffer(1L, new AcceptOfferRequest());
+
+        assertThat(allocation.getExpectedCheckInDate()).isEqualTo(moveIn.atStartOfDay());
+        assertThat(allocation.getCheckInExpiryDate()).isEqualTo(moveIn.atStartOfDay().plusDays(7));
+    }
+
+    @Test
+    void acceptOffer_stayStartsLater_expectedDateBeforeMoveIn_refused() {
+        java.time.LocalDate moveIn = java.time.LocalDate.now().plusMonths(3);
+        RoomAllocation allocation = offeredAllocation();
+        allocation.setStayStartDate(moveIn);
+        allocation.setStayEndDate(moveIn.plusMonths(10));
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        AcceptOfferRequest request = new AcceptOfferRequest();
+        request.setExpectedCheckInDate(LocalDateTime.now().plusDays(1));
+
+        assertThatThrownBy(() -> allocationLifecycleService.acceptOffer(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("move-in day");
+        assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.OFFERED);
+    }
+
+    @Test
+    void acceptOffer_stayAlreadyStarted_checkInDeadlineCountsFromNow() {
+        RoomAllocation allocation = offeredAllocation();
+        allocation.setStayStartDate(java.time.LocalDate.now().minusDays(10));
+        allocation.setStayEndDate(java.time.LocalDate.now().plusMonths(5));
+        when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+        LocalDateTime before = LocalDateTime.now();
+
+        allocationLifecycleService.acceptOffer(1L, new AcceptOfferRequest());
+
+        assertThat(allocation.getCheckInExpiryDate()).isAfterOrEqualTo(before.plusDays(7));
+        assertThat(allocation.getCheckInExpiryDate()).isBefore(before.plusDays(7).plusMinutes(1));
     }
 
     /** Builds an OFFERED allocation wired to the shared fixtures, ready for the accept path. */
@@ -492,7 +587,7 @@ class AllocationLifecycleServiceTest {
         when(roomAllocationRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(allocation));
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(true);
+        when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(1L), any(), any())).thenReturn(true);
 
         assertThatThrownBy(() -> allocationLifecycleService.updateRoomAllocation(1L, allocationRequest))
                 .isInstanceOf(StudentAlreadyAllocatedException.class);

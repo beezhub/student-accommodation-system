@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,6 +70,10 @@ class AllocationMoveServiceTest {
 
     @BeforeEach
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(allocationMoveService, "stayCapacityGuard",
+                new com.beezhub.student_accommodation.service.allocation.StayCapacityGuard(roomAllocationRepository,
+                        java.time.Clock.fixed(java.time.Instant.parse("2026-11-10T08:00:00Z"),
+                                java.time.ZoneId.of("Africa/Johannesburg"))));
         oldRoom = room(1L, "A101", 2);
         newRoom = room(2L, "B202", 2);
 
@@ -86,7 +91,7 @@ class AllocationMoveServiceTest {
 
         when(roomAllocationRepository.findByIdWithDetails(10L)).thenReturn(Optional.of(allocation));
         when(roomRepository.findById(2L)).thenReturn(Optional.of(newRoom));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(2L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(2L), any(), any())).thenReturn(0L);
         when(allocationScoringService.validateHardConstraints(any(), any(), anyBoolean()))
                 .thenReturn(true);
         when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArgument(0));
@@ -127,7 +132,7 @@ class AllocationMoveServiceTest {
 
     @Test
     void moveStudent_destinationAtCapacity_isRefused() {
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(2L)).thenReturn(2L);
+        when(roomAllocationRepository.countHoldingBeds(eq(2L), any(), any())).thenReturn(2L);
 
         assertThatThrownBy(() -> allocationMoveService.moveStudent(10L, 2L, "Maintenance", ADMIN_ID))
                 .isInstanceOf(RoomCapacityExceededException.class);

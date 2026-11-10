@@ -187,7 +187,7 @@ class ApplicationDocumentCoordinatorTest {
     @Test
     void findActiveAllocation_delegatesToRepository() {
         coordinator.findActiveAllocation(10L);
-        verify(roomAllocationRepository).findActiveAllocationByStudentId(10L);
+        verify(roomAllocationRepository).findLiveAllocationsByStudentId(10L);
     }
 
     // ── GH-217 / GH-231: the review lookup ──────────────────────────────────────────────────

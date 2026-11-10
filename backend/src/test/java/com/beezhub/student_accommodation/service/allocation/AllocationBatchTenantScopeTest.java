@@ -75,8 +75,8 @@ class AllocationBatchTenantScopeTest {
             roomQueryTenants.add(TenantContext.getTenantId());
             return List.of(roomFor(TenantContext.getTenantId()));
         });
-        when(orchestrator.buildRoomCapacityMap(any())).thenAnswer(i ->
-                new HashMap<>(Map.of(roomIdFor(TenantContext.getTenantId()), 1)));
+        when(orchestrator.newBedLedger(any())).thenAnswer(i ->
+                BedLedgers.of(Map.of(roomIdFor(TenantContext.getTenantId()), 1)));
         when(orchestrator.buildScoringMatrix(any())).thenAnswer(i -> {
             List<WaitingListEntry> entries = i.getArgument(0);
             Map<Long, List<ScoredRoom>> matrix = new HashMap<>();

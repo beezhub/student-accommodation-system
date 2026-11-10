@@ -66,6 +66,11 @@ class BuildingServiceTest {
     private com.beezhub.student_accommodation.service.tenant.TenantService tenantService;
 
 
+    /** 10 November 2026, 10:00 in South Africa. */
+    @org.mockito.Spy
+    private java.time.Clock clock = java.time.Clock.fixed(
+            java.time.Instant.parse("2026-11-10T08:00:00Z"), java.time.ZoneId.of("Africa/Johannesburg"));
+
     @InjectMocks
     private BuildingService buildingService;
 

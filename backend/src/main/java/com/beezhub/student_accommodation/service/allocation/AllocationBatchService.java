@@ -242,7 +242,9 @@ public class AllocationBatchService {
         }
 
         Map<Long, List<ScoredRoom>> scoringMatrix = allocationScoringOrchestrator.buildScoringMatrix(entries);
-        Map<Long, Integer> roomCapacityRemaining = allocationScoringOrchestrator.buildRoomCapacityMap(availableRooms);
+        // Beds are free for dates, not in general (GH-496): each student's stay is checked against
+        // the allocations overlapping it and the stays already matched in this run.
+        BedLedger beds = allocationScoringOrchestrator.newBedLedger(availableRooms);
 
         // Stated here rather than inherited from the repository method name. This is the order
         // AllocationScoringOrchestrator.getWaitingListWithScores renders, and the two must not
@@ -266,11 +268,10 @@ public class AllocationBatchService {
             if (scoredRooms == null || scoredRooms.isEmpty()) {
                 continue;
             }
+            StayPeriod stay = StayPeriod.of(entry.getApplication());
             for (ScoredRoom scoredRoom : scoredRooms) {
-                Integer remaining = roomCapacityRemaining.get(scoredRoom.getRoomId());
-                if (remaining != null && remaining > 0) {
+                if (beds.tryTake(scoredRoom.getRoomId(), stay)) {
                     pairs.add(new AllocationPair(entry, scoredRoom));
-                    roomCapacityRemaining.put(scoredRoom.getRoomId(), remaining - 1);
                     break; // Move to next student
                 }
             }

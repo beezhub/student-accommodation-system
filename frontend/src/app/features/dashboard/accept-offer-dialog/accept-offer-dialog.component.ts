@@ -31,8 +31,9 @@ export interface AcceptOfferDialogData {
       <div class="dialog-header">
         <h2 mat-dialog-title>Accept Room Offer</h2>
         <p class="text-muted">
-          Confirm your expected check-in date to secure your room. Check-in must occur within 7 days
-          of the offer date.
+          Confirm your expected check-in date to secure your room. @if (moveInDay) { You can move in
+          from {{ moveInDay | date : 'd MMMM y' }}; check in within 7 days of that date. } @else {
+          Check-in must occur within 7 days. }
         </p>
       </div>
       <mat-dialog-content>
@@ -110,6 +111,8 @@ export class AcceptOfferDialogComponent {
   form: FormGroup;
   minDate: Date;
   maxDate: Date;
+  /** Move-in day when the stay starts later than today; the check-in window counts from it. */
+  moveInDay: Date | null = null;
 
   /**
    * Matches app.allocation.check-in-expiry-days on the backend, which is not exposed to the
@@ -129,12 +132,19 @@ export class AcceptOfferDialogComponent {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    this.minDate = today;
+    // An offer made months ahead counts its check-in window from move-in day (GH-496).
+    const moveIn = AcceptOfferDialogComponent.localDay(this.data.allocation?.stayStartDate);
+    if (moveIn && moveIn.getTime() > today.getTime()) {
+      this.moveInDay = moveIn;
+    }
+    const windowStart = this.moveInDay ?? today;
+
+    this.minDate = windowStart;
 
     // One day short of the full window. The emitted time is 23:59, and the backend compares
-    // against now + 7 days at the current time of day, so offering today+7 would be rejected for
-    // any acceptance before 23:59.
-    this.maxDate = new Date(today);
+    // against now (or move-in day) + 7 days, so offering day+7 would be rejected for any
+    // acceptance before 23:59.
+    this.maxDate = new Date(windowStart);
     this.maxDate.setDate(
       this.maxDate.getDate() + AcceptOfferDialogComponent.CHECK_IN_WINDOW_DAYS - 1
     );
@@ -142,6 +152,18 @@ export class AcceptOfferDialogComponent {
     this.form = this.fb.group({
       expectedCheckInDate: [null, Validators.required],
     });
+  }
+
+  /** A 'YYYY-MM-DD' date from the API as local midnight, or null. */
+  private static localDay(value: string | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+    const [year, month, day] = value.split('-').map(Number);
+    if (!year || !month || !day) {
+      return null;
+    }
+    return new Date(year, month - 1, day);
   }
 
   submit() {

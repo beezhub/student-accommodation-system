@@ -132,7 +132,7 @@ class RoomAndBuildingDeleteIntegrationTest extends AbstractIntegrationTest {
         buildingService.deleteBuilding(building.getId());
 
         assertThat(buildingRepository.existsById(building.getId())).isFalse();
-        assertThat(roomRepository.findRoomsWithAvailableCapacity())
+        assertThat(roomRepository.findRoomsOpenForOffers())
                 .extracting(Room::getId)
                 .doesNotContain(empty.getId(), finished.getId());
         assertThat(roomRepository.existsById(empty.getId())).isFalse();

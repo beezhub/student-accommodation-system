@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -278,7 +279,7 @@ class OwnerConfigurableScoringStrategyTest {
         private void stubAvailableRoom() {
             room.setStatus("AVAILABLE");
             when(roomRepository.findAll()).thenReturn(List.of(room));
-            when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+            when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
             when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
             when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
             when(roomAllocationRepository.hasStudentDeclinedRoom(anyLong(), anyLong())).thenReturn(false);
@@ -298,7 +299,7 @@ class OwnerConfigurableScoringStrategyTest {
         void scoreAvailableRooms_excludesDeclinedRoom() {
             room.setStatus("AVAILABLE");
             when(roomRepository.findAll()).thenReturn(List.of(room));
-            when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+            when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
             when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
             when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
             when(roomAllocationRepository.hasStudentDeclinedRoom(1L, 1L)).thenReturn(true);
@@ -311,7 +312,7 @@ class OwnerConfigurableScoringStrategyTest {
         void scoreAvailableRooms_excludesFullRoom() {
             room.setStatus("AVAILABLE");
             when(roomRepository.findAll()).thenReturn(List.of(room)); // capacity = 2
-            when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // full
+            when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(2L); // full
 
             List<ScoredRoom> result = strategy.scoreAvailableRooms(student, application, null);
             assertThat(result).isEmpty();
@@ -339,7 +340,7 @@ class OwnerConfigurableScoringStrategyTest {
 
             when(roomRepository.findAll()).thenReturn(List.of(room));
             room.setStatus("AVAILABLE");
-            when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+            when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
             when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
             when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
             when(roomAllocationRepository.hasStudentDeclinedRoom(anyLong(), anyLong())).thenReturn(false);
@@ -391,7 +392,7 @@ class OwnerConfigurableScoringStrategyTest {
 
             when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
             when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-            when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+            when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
 
             ScoredRoom nsfasScore   = strategy.scoreSingleRoom(nsfasStudent,   nsfasApp,   room, nsfasRule);
             ScoredRoom regularScore = strategy.scoreSingleRoom(regularStudent, regularApp, room, nsfasRule);
@@ -433,7 +434,7 @@ class OwnerConfigurableScoringStrategyTest {
             room.setCapacity(2);
 
             when(roomRepository.findAll()).thenReturn(List.of(room));
-            when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L); // 1 of 2 used
+            when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(1L); // 1 of 2 used
             when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
             when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
             when(roomAllocationRepository.hasStudentDeclinedRoom(anyLong(), anyLong())).thenReturn(false);
@@ -464,7 +465,7 @@ class OwnerConfigurableScoringStrategyTest {
             student.setSpecialRequirements("nsfas funded"); // NSFAS bonus applies to all rooms
 
             when(roomRepository.findAll()).thenReturn(List.of(room, room2));
-            when(roomAllocationRepository.countActiveAllocationsByRoomId(anyLong())).thenReturn(0L);
+            when(roomAllocationRepository.countHoldingBeds(anyLong(), any(), any())).thenReturn(0L);
             when(roomAttributesRepository.findByRoom_IdIn(any())).thenReturn(Collections.emptyList());
             when(buildingAttributesRepository.findByBuilding_IdIn(any())).thenReturn(Collections.emptyList());
             when(roomAllocationRepository.hasStudentDeclinedRoom(anyLong(), anyLong())).thenReturn(false);
@@ -491,7 +492,7 @@ class OwnerConfigurableScoringStrategyTest {
         void scoreSingleRoom_noSpecialConditions_returnsPositiveScore() {
             when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.empty());
             when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-            when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+            when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
 
             ScoredRoom result = strategy.scoreSingleRoom(student, application, room, defaultRule);
 
@@ -509,7 +510,7 @@ class OwnerConfigurableScoringStrategyTest {
 
             when(roomAttributesRepository.findByRoom_Id(1L)).thenReturn(Optional.of(attrs));
             when(buildingAttributesRepository.findByBuilding_Id(1L)).thenReturn(Optional.empty());
-            when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+            when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
 
             AllocationRule accessRule = AllocationRule.builder()
                     .ruleName("Access")

@@ -43,6 +43,7 @@ public class RoomAllocationQueryService {
     private final StagedAllocationMapper stagedAllocationMapper;
     private final AllocationAccessGuard allocationAccessGuard;
     private final TenantOwnershipGuard tenantOwnershipGuard;
+    private final StayCapacityGuard stayCapacityGuard;
 
     public List<RoomAllocationResponse> getAllRoomAllocations() {
         log.info("Fetching all room allocations");
@@ -92,7 +93,7 @@ public class RoomAllocationQueryService {
     public RoomAllocationResponse getActiveAllocationByStudentId(Long studentId) {
         log.info("Fetching active allocation for student: {}", studentId);
         allocationAccessGuard.assertCanAccessStudent(studentId);
-        RoomAllocation allocation = roomAllocationRepository.findActiveAllocationByStudentId(studentId)
+        RoomAllocation allocation = LiveAllocations.primary(roomAllocationRepository.findLiveAllocationsByStudentId(studentId))
                 .orElseThrow(() -> new RoomAllocationNotFoundException(
                         "No active allocation found for student with id: " + studentId));
         return withPreviousDeclineCount(allocation);
@@ -117,7 +118,7 @@ public class RoomAllocationQueryService {
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + roomId));
         tenantOwnershipGuard.assertReadable(room, "Room", roomId);
 
-        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(roomId);
+        long activeAllocations = bedsPromisedFromToday(room);
         boolean available = activeAllocations < room.getCapacity();
 
         log.info("Room {} availability check: {} (Current: {}, Capacity: {})",
@@ -130,7 +131,7 @@ public class RoomAllocationQueryService {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + roomId));
 
-        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(roomId);
+        long activeAllocations = bedsPromisedFromToday(room);
         int available = room.getCapacity() - (int) activeAllocations;
 
         log.info("Room {} has {} available spots (Capacity: {}, Occupied: {})",
@@ -163,7 +164,7 @@ public class RoomAllocationQueryService {
                 .orElseThrow(() -> new RoomNotFoundException("Room not found with id: " + roomId));
         tenantOwnershipGuard.assertReadable(room, "Room", roomId);
 
-        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(roomId);
+        long activeAllocations = bedsPromisedFromToday(room);
         int availableSpots = room.getCapacity() - (int) activeAllocations;
 
         RoomAvailabilityResponse response = new RoomAvailabilityResponse();
@@ -199,5 +200,14 @@ public class RoomAllocationQueryService {
         } else {
             return stagedAllocationRepository.findAll(pageable);
         }
+    }
+
+    /**
+     * Beds promised from today on, by planned stay dates (GH-496). These views ask about no stay in
+     * particular, so a bed taken now or already promised for a later stay counts, and one whose
+     * stay has ended does not.
+     */
+    private long bedsPromisedFromToday(Room room) {
+        return stayCapacityGuard.bedsTaken(room, StayPeriod.startingOn(stayCapacityGuard.today()));
     }
 }
