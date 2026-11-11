@@ -539,6 +539,41 @@ class EmailTemplateRenderTest {
         assertThat(html).contains("APP-2027-001").contains("01 February 2027");
     }
 
+    /** GH-497: the expiry email offers the next open intake when there is one. */
+    @Test
+    void applicationExpired_withNextIntake_offersIt() {
+        Map<String, Object> vars = expiredVars();
+        vars.put("nextIntakeName", "Semester 2, 2027");
+        vars.put("nextMoveInDate", "15 July 2027");
+        vars.put("nextApplyByDate", "01 July 2027");
+
+        String html = render("application-expired", vars);
+
+        assertBaseRequirements(html, "application-expired");
+        assertThat(html).contains("APP-2027-007").contains("30 June 2027").contains("Semester 2, 2027")
+                .contains("15 July 2027").contains("http://localhost:4200/applications/new");
+    }
+
+    @Test
+    void applicationExpired_noIntakeOpen_saysSoAndLinksToApplications() {
+        String html = render("application-expired", expiredVars());
+
+        assertBaseRequirements(html, "application-expired");
+        assertThat(html).contains("No applications are open").doesNotContain("Apply Now");
+    }
+
+    private Map<String, Object> expiredVars() {
+        Map<String, Object> vars = baseContext();
+        vars.put("studentName", "Test Student");
+        vars.put("applicationCode", "APP-2027-007");
+        vars.put("companyName", "Company A");
+        vars.put("intakeName", "Semester 1, 2027");
+        vars.put("stayEndDate", "30 June 2027");
+        vars.put("applyUrl", "http://localhost:4200/applications/new");
+        vars.put("portalUrl", PORTAL_URL);
+        return vars;
+    }
+
     // -------------------------------------------------------------------------
     // Cross-cutting assertions
     // -------------------------------------------------------------------------
@@ -554,7 +589,8 @@ class EmailTemplateRenderTest {
             "offer-declined-requeue", "offer-declined-max-reached",
             "offer-expired", "offer-expiry-reminder",
             "check-in-reminder", "check-in-expired",
-            "reconfirm-request", "reconfirm-reminder", "place-released"
+            "reconfirm-request", "reconfirm-reminder", "place-released",
+            "application-expired"
         };
 
         for (String template : templates) {
@@ -578,7 +614,8 @@ class EmailTemplateRenderTest {
             "offer-declined-requeue", "offer-declined-max-reached",
             "offer-expired", "offer-expiry-reminder",
             "check-in-reminder", "check-in-expired",
-            "reconfirm-request", "reconfirm-reminder", "place-released"
+            "reconfirm-request", "reconfirm-reminder", "place-released",
+            "application-expired"
         };
 
         for (String template : templates) {
@@ -601,7 +638,8 @@ class EmailTemplateRenderTest {
             "offer-declined-requeue", "offer-declined-max-reached",
             "offer-expired", "offer-expiry-reminder",
             "check-in-reminder", "check-in-expired",
-            "reconfirm-request", "reconfirm-reminder", "place-released"
+            "reconfirm-request", "reconfirm-reminder", "place-released",
+            "application-expired"
         };
 
         for (String template : templates) {
@@ -760,6 +798,13 @@ class EmailTemplateRenderTest {
                 vars.put("buildingName", "Block A");
                 vars.put("moveInDate", "01 February 2027");
                 vars.put("releaseDate", "18 January 2027");
+            }
+            case "application-expired" -> {
+                vars.put("applicationCode", "APP-001");
+                vars.put("companyName", "Company A");
+                vars.put("intakeName", "Semester 1, 2027");
+                vars.put("stayEndDate", "30 June 2027");
+                vars.put("applyUrl", PORTAL_URL);
             }
             case "place-released" -> {
                 vars.put("applicationCode", "APP-001");

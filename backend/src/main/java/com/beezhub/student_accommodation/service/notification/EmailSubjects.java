@@ -29,5 +29,6 @@ public final class EmailSubjects {
     public static final String RECONFIRM_REQUEST = "Still Coming? Confirm Your Place Before Move-In";
     public static final String RECONFIRM_REMINDER = "Reminder: Confirm Your Place Before Move-In";
     public static final String PLACE_RELEASED = "Your Place Has Been Released - Not Confirmed Before Move-In";
+    public static final String APPLICATION_EXPIRED = "Your Application Has Expired - The Intake Has Ended";
     public static final String CHECK_IN_EXPIRED = "Check-In Deadline Expired - Application Cancelled";
 }

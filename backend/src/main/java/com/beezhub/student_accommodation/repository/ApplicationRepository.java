@@ -82,6 +82,24 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      List<Application> findByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
 
+     /**
+      * Companies with an application in one of the statuses whose stay ended before {@code today}
+      * (GH-497): the intake's stay end, or the year's end for a row with no intake. Across every
+      * company on purpose; the expiry job then works one company at a time.
+      */
+     @Query("SELECT DISTINCT a.tenantId FROM Application a LEFT JOIN a.intake i LEFT JOIN a.academicYear y "
+                     + "WHERE a.status IN :statuses AND COALESCE(i.stayEndDate, y.endDate) < :today")
+     List<Long> findTenantIdsWithStayEndedBefore(@Param("statuses") Collection<ApplicationStatus> statuses,
+                     @Param("today") java.time.LocalDate today);
+
+     /** As {@link #findTenantIdsWithStayEndedBefore}, the application ids of one company. */
+     @Query("SELECT a.id FROM Application a LEFT JOIN a.intake i LEFT JOIN a.academicYear y "
+                     + "WHERE a.tenantId = :tenantId AND a.status IN :statuses "
+                     + "AND COALESCE(i.stayEndDate, y.endDate) < :today ORDER BY a.id")
+     List<Long> findIdsWithStayEndedBefore(@Param("tenantId") Long tenantId,
+                     @Param("statuses") Collection<ApplicationStatus> statuses,
+                     @Param("today") java.time.LocalDate today);
+
      void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 
      boolean existsByAcademicYear_Id(Long academicYearId);

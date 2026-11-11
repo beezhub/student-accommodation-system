@@ -32,6 +32,9 @@ class NotificationEventListenerTest {
     @Mock
     private EmailDispatchService emailDispatchService;
 
+    @Mock
+    private ApplicationExpiryEmailService applicationExpiryEmailService;
+
     /**
      * Returns null from every {@code find}, so the listener falls back to the entity carried on the
      * event. That keeps these cases asserting on the same instances they always did, and covers the
@@ -113,6 +116,45 @@ class NotificationEventListenerTest {
         when(alloc.getRoom()).thenReturn(room);
         
         return alloc;
+    }
+
+    /** GH-497: an expired application gets the expiry email, never the rejection one. */
+    @Test
+    void handleApplicationStatusChanged_expired_sendsTheExpiryEmail() {
+        Application application = createMockApplication();
+        TemplatedEmail email = new TemplatedEmail("application-expired", EmailSubjects.APPLICATION_EXPIRED,
+                new ApplicationExpiredContext("John Doe", "APP-1", "Company A", "Semester 1, 2027", "30 June 2027",
+                        null, null, null, "http://x/applications/new", "http://x/applications"));
+        when(applicationExpiryEmailService.expired(application, "John Doe")).thenReturn(email);
+        when(notificationService.createNotification(any(), any(), any(NotificationType.class), any(), any(), any(),
+                any())).thenReturn(notification);
+
+        notificationEventListener.handleApplicationStatusChanged(
+                new ApplicationStatusChangedEvent(application, ApplicationStatus.PENDING, ApplicationStatus.EXPIRED));
+
+        verify(notificationService).createNotification(eq("test@example.com"), eq(EmailSubjects.APPLICATION_EXPIRED),
+                eq(NotificationType.GENERAL), eq(appUser), eq(10L), eq("Application"), any());
+        verify(applicationExpiryEmailService).send("test@example.com", email);
+        verify(notificationService).markNotificationAsSent(notification);
+        verify(emailDispatchService, never()).sendApplicationRejectedEmail(any(), any(), any());
+    }
+
+    @Test
+    void handleApplicationStatusChanged_expiredSendFails_recordsTheFailure() {
+        Application application = createMockApplication();
+        TemplatedEmail email = new TemplatedEmail("application-expired", EmailSubjects.APPLICATION_EXPIRED,
+                new ApplicationExpiredContext("John Doe", "APP-1", "Company A", "Semester 1, 2027", "30 June 2027",
+                        null, null, null, "http://x/applications/new", "http://x/applications"));
+        when(applicationExpiryEmailService.expired(application, "John Doe")).thenReturn(email);
+        when(notificationService.createNotification(any(), any(), any(NotificationType.class), any(), any(), any(),
+                any())).thenReturn(notification);
+        RuntimeException failure = new RuntimeException("smtp down");
+        doThrow(failure).when(applicationExpiryEmailService).send("test@example.com", email);
+
+        notificationEventListener.handleApplicationStatusChanged(
+                new ApplicationStatusChangedEvent(application, ApplicationStatus.PENDING, ApplicationStatus.EXPIRED));
+
+        verify(notificationService).handleNotificationFailure(notification, failure);
     }
 
     @Test

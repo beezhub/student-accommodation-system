@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Your Application Has Expired</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Your Application Has Expired</h1>
+<span layout:fragment="email-subtitle">The stay you applied for has ended</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <div class="warning-box">
+        <h3>Application closed</h3>
+        <p>Your application (<strong th:text="${applicationCode}">APP123</strong>) to
+           <strong th:text="${companyName}">Company A</strong> was for
+           <strong th:text="${intakeName}">Semester 1, 2027</strong>, which ended on
+           <strong th:text="${stayEndDate}">30 June 2027</strong>. It was not finished in time,
+           so it has expired and you are no longer on the waiting list for it.</p>
+    </div>
+
+    <div class="info-box" th:if="${nextIntakeName}">
+        <h3>Apply for the next intake</h3>
+        <p>Applications for <strong th:text="${nextIntakeName}">Semester 2, 2027</strong> are open.
+           Move in on <strong th:text="${nextMoveInDate}">15 July 2027</strong>.
+           Apply by <strong th:text="${nextApplyByDate}">30 June 2027</strong>.</p>
+        <div class="cta-section">
+            <a th:href="${applyUrl}" class="cta-button">Apply Now</a>
+        </div>
+    </div>
+
+    <div th:unless="${nextIntakeName}">
+        <p>No applications are open at <span th:text="${companyName}">Company A</span> right now.
+           You can apply again when the next window opens.</p>
+        <div class="cta-section">
+            <a th:href="${portalUrl}" class="cta-button">View My Applications</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

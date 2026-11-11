@@ -7,6 +7,7 @@ import com.beezhub.student_accommodation.model.enums.NotificationType;
 import com.beezhub.student_accommodation.model.event.*;
 import com.beezhub.student_accommodation.service.EmailService;
 import com.beezhub.student_accommodation.service.allocation.WaitingListService;
+import com.beezhub.student_accommodation.service.application.CompanyIntakePolicy;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -34,6 +35,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -92,8 +94,15 @@ class NotificationTemplateDataTest {
                 mock(EmailService.class), new EmailContentBuilder(), new SimpleMeterRegistry());
         ReflectionTestUtils.setField(dispatch, "baseUrl", BASE_URL);
 
+        CompanyIntakePolicy intakePolicy = mock(CompanyIntakePolicy.class);
+        when(intakePolicy.openIntakes(any(), any())).thenReturn(List.of(intake("Semester 2",
+                LocalDate.of(2027, 7, 15), LocalDate.of(2027, 11, 30))));
+        ApplicationExpiryEmailService expiryEmails = new ApplicationExpiryEmailService(
+                mock(EmailService.class), new EmailContentBuilder(), intakePolicy, new SimpleMeterRegistry());
+        ReflectionTestUtils.setField(expiryEmails, "baseUrl", BASE_URL);
+
         // find() returns null, so the listener uses the entity carried on the event.
-        listener = new NotificationEventListener(persistence, dispatch, mock(EntityManager.class));
+        listener = new NotificationEventListener(persistence, dispatch, expiryEmails, mock(EntityManager.class));
 
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
@@ -113,6 +122,8 @@ class NotificationTemplateDataTest {
                         new ApplicationStatusChangedEvent(application(), ApplicationStatus.PENDING, ApplicationStatus.REJECTED))),
                 emailType("application-changes-requested", l -> l.handleApplicationStatusChanged(
                         new ApplicationStatusChangedEvent(application(), ApplicationStatus.UNDER_REVIEW, ApplicationStatus.CHANGES_REQUESTED))),
+                emailType("application-expired", l -> l.handleApplicationStatusChanged(
+                        new ApplicationStatusChangedEvent(expiredApplication(), ApplicationStatus.PENDING, ApplicationStatus.EXPIRED))),
                 emailType("document-verified",l -> l.handleDocumentVerification(
                         new DocumentVerificationEvent(document(), DocumentStatus.PENDING, DocumentStatus.APPROVED, null))),
                 emailType("document-rejected", l -> l.handleDocumentVerification(
@@ -294,6 +305,20 @@ class NotificationTemplateDataTest {
         application.setApplicationCode("APP-10");
         application.setApplicationDate(LocalDate.of(2026, 1, 10));
         return application;
+    }
+
+    /** GH-497: an application for Semester 1, which ended on 30 June 2027. */
+    private static Application expiredApplication() {
+        Application application = application();
+        application.setIntake(intake("Semester 1", LocalDate.of(2027, 2, 1), LocalDate.of(2027, 6, 30)));
+        application.setTenant(Tenant.builder().id(1L).name("Company A").build());
+        return application;
+    }
+
+    private static Intake intake(String name, LocalDate start, LocalDate end) {
+        AcademicYear year = AcademicYear.builder().id(5L).name("2027").build();
+        return Intake.builder().id(6L).name(name).academicYear(year).stayStartDate(start).stayEndDate(end)
+                .applicationOpenDate(start.minusMonths(4)).applicationCloseDate(start.minusDays(14)).build();
     }
 
     private static Document document() {
