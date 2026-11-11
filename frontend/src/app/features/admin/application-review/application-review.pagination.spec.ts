@@ -7,6 +7,7 @@ import { Subject, of } from 'rxjs';
 import { ApplicationReviewComponent } from './application-review.component';
 import { AdminService } from '../../../core/services/admin.service';
 import { BuildingService } from '../../../core/services/building.service';
+import { emptyApplicationStatusCounts } from '../../../core/models/status.model';
 
 const PAGE = {
   content: [{ id: 1, applicationCode: 'APP-1', status: 'PENDING', studentId: 9 }],
@@ -16,12 +17,16 @@ const PAGE = {
 describe('ApplicationReviewComponent paging', () => {
   function setup() {
     const list = new Subject<typeof PAGE>();
-    const admin = jasmine.createSpyObj('AdminService', ['searchApplications']);
-    // The status counters ask for one row at a time and answer at once; the list waits for the
-    // test, so isLoading really is true for a render and the paginator really is destroyed.
-    admin.searchApplications.and.callFake((filters: { size: number }) =>
-      filters.size === 1 ? of(PAGE) : list
+    const admin = jasmine.createSpyObj('AdminService', [
+      'searchApplications',
+      'getApplicationStatusCounts',
+    ]);
+    // The summary counts answer at once; the list waits for the test, so isLoading really is
+    // true for a render and the paginator really is destroyed.
+    admin.getApplicationStatusCounts.and.returnValue(
+      of({ total: 100, byStatus: emptyApplicationStatusCounts() })
     );
+    admin.searchApplications.and.returnValue(list);
     TestBed.configureTestingModule({
       imports: [ApplicationReviewComponent],
       providers: [
