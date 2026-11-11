@@ -37,4 +37,20 @@ export interface Application {
   totalRequiredDocuments?: number;
   allocationStatus?: string;
   tenantId?: number;
+  /** An expiring document of the student has expired at this company (GH-498). */
+  hasExpiredDocuments?: boolean;
+  /** The student had been checked in at this company when they applied (GH-499). */
+  isReturning?: boolean;
+
+  // The company, and the intake and year applied for (GH-495)
+  companyName?: string | null;
+  academicYearId?: number | null;
+  academicYearName?: string | null;
+  intakeId?: number | null;
+  intakeName?: string | null;
+  intakeType?: string | null;
+  intakeStayStartDate?: string | null;
+  intakeStayEndDate?: string | null;
+  institutionId?: number | null;
+  preferredBuildings?: { buildingId: number; buildingName: string; preferenceOrder: number }[];
 }

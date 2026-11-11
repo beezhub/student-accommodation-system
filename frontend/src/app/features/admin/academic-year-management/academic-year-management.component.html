@@ -1,8 +1,4 @@
 <div class="academic-year-page">
-
-  <!-- ══════════════════════════════════════════════════════
-       HERO HEADER BAND
-  ══════════════════════════════════════════════════════ -->
   <div class="page-hero">
     <div class="hero-inner">
       <div class="hero-left">
@@ -10,11 +6,9 @@
           <mat-icon>school</mat-icon>
         </div>
         <div class="hero-text">
-          <h1 class="hero-title">Academic Year Management</h1>
+          <h1 class="hero-title">Academic Years</h1>
           <p class="hero-subtitle">
-            {{ canManage
-              ? 'Configure academic years and application windows'
-              : 'Academic years and application windows are set by the platform and apply to every company' }}
+            Your years and the intakes students apply for. The current year follows the dates.
           </p>
         </div>
       </div>
@@ -28,149 +22,97 @@
         </div>
 
         @if (canManage) {
-          <button
-            mat-raised-button
-            class="add-btn"
-            (click)="openCreateDialog()">
-            <mat-icon>add</mat-icon>
-            Add Academic Year
-          </button>
+        <button mat-raised-button class="add-btn" (click)="openCreateDialog()">
+          <mat-icon>add</mat-icon>
+          Create year
+        </button>
         }
       </div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════
-       DATA TABLE CARD
-  ══════════════════════════════════════════════════════ -->
-  <mat-card class="table-card">
-    <mat-card-content>
-
-      @if (isLoading) {
+  <div class="groups">
+    @if (isLoading) {
+    <mat-card class="table-card">
+      <mat-card-content>
         <div class="loading-container">
           <app-skeleton-loader type="table-row" [count]="5"></app-skeleton-loader>
         </div>
-      }
-
-      @if (!isLoading) {
-
-        <div class="table-container">
-          <table mat-table [dataSource]="academicYears" class="years-table" aria-label="Academic years list">
-
-            <!-- Name Column -->
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef>Year</th>
-              <td mat-cell *matCellDef="let year">
-                <div class="year-cell">
-                  <div class="year-avatar" aria-hidden="true">
-                    <mat-icon>event_note</mat-icon>
-                  </div>
-                  <span class="year-name">{{ year.name }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Dates Column -->
-            <ng-container matColumnDef="dates">
-              <th mat-header-cell *matHeaderCellDef>Academic Period</th>
-              <td mat-cell *matCellDef="let year">
-                <div class="date-cell">
-                  <mat-icon class="date-icon" aria-hidden="true">calendar_month</mat-icon>
-                  <span>{{ formatDate(year.startDate) }} &ndash; {{ formatDate(year.endDate) }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Application Window Column -->
-            <ng-container matColumnDef="applicationWindow">
-              <th mat-header-cell *matHeaderCellDef>Application Window</th>
-              <td mat-cell *matCellDef="let year">
-                <div class="date-cell">
-                  <mat-icon class="date-icon" aria-hidden="true">event_available</mat-icon>
-                  <span>{{ formatDate(year.applicationOpenDate) }} &ndash; {{ formatDate(year.applicationCloseDate) }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Status Column -->
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Status</th>
-              <td mat-cell *matCellDef="let year">
-                <div class="status-chips">
-                  @if (year.isCurrent) {
-                    <span class="status-badge current-badge">
-                      <mat-icon>star</mat-icon>
-                      Current
-                    </span>
-                  }
-                  @if (year.isApplicationWindowOpen) {
-                    <span class="status-badge open-badge">
-                      <mat-icon>lock_open</mat-icon>
-                      Open
-                    </span>
-                  } @else {
-                    <span class="status-badge closed-badge">
-                      <mat-icon>lock</mat-icon>
-                      Closed
-                    </span>
-                  }
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Actions Column -->
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef></th>
-              <td mat-cell *matCellDef="let year">
-                <div class="actions-cell">
-                  <button
-                    mat-icon-button
-                    class="action-btn edit"
-                    (click)="openEditDialog(year)"
-                    matTooltip="Edit"
-                    aria-label="Edit academic year">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    class="action-btn set-current"
-                    (click)="setAsCurrent(year)"
-                    [disabled]="year.isCurrent"
-                    matTooltip="Set as Current"
-                    aria-label="Set as current year">
-                    <mat-icon>check_circle</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    class="action-btn delete"
-                    (click)="deleteAcademicYear(year)"
-                    matTooltip="Delete"
-                    aria-label="Delete academic year">
-                    <mat-icon>delete_outline</mat-icon>
-                  </button>
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns" class="data-row"></tr>
-          </table>
+      </mat-card-content>
+    </mat-card>
+    } @else { @for (group of groups; track group.institutionId) {
+    <mat-card class="table-card institution-group">
+      <mat-card-content>
+        <div class="group-header">
+          <h2 class="group-title">{{ group.label }}</h2>
+          @if (canManage) {
+          <div class="group-actions">
+            <button mat-stroked-button class="copy-btn" (click)="copyLastYear(group)">
+              <mat-icon>content_copy</mat-icon>
+              Copy last year
+            </button>
+            <button
+              mat-stroked-button
+              class="group-create-btn"
+              (click)="openCreateDialog(group.institutionId)"
+            >
+              <mat-icon>add</mat-icon>
+              Create year
+            </button>
+          </div>
+          }
         </div>
 
-        @if (academicYears.length === 0) {
-          <app-empty-state
-            icon="event_note"
-            title="No Academic Years Found"
-            [description]="canManage
-              ? 'No academic years configured yet. Add one to get started.'
-              : 'The platform has not set up any academic years yet.'"
-            ctaLabel="Add Academic Year">
-          </app-empty-state>
+        @for (year of group.years; track year.id) {
+        <section class="year-block" [attr.aria-label]="year.name">
+          <div class="year-header">
+            <div>
+              <h3 class="year-name">{{ year.name }}</h3>
+              <p class="year-dates">{{ describeDates(year) }}</p>
+            </div>
+            @if (canManage) {
+            <div class="actions-cell">
+              <button
+                mat-icon-button
+                class="action-btn edit"
+                (click)="openEditDialog(year)"
+                matTooltip="Edit year"
+                [attr.aria-label]="'Edit ' + year.name"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                class="action-btn delete"
+                (click)="deleteAcademicYear(year)"
+                matTooltip="Delete year"
+                [attr.aria-label]="'Delete ' + year.name"
+              >
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+            }
+          </div>
+          <app-intake-list
+            [year]="year"
+            [canManage]="canManage"
+            (changed)="loadAcademicYears()"
+          ></app-intake-list>
+        </section>
         }
-
-      }
-
-    </mat-card-content>
-  </mat-card>
-
+      </mat-card-content>
+    </mat-card>
+    } @empty {
+    <mat-card class="table-card">
+      <mat-card-content>
+        <app-empty-state
+          icon="event_note"
+          title="No academic years yet"
+          description="Create a year for the institutions you serve. Pick Annual, Semesters or Trimesters and the dates are filled in."
+        >
+        </app-empty-state>
+      </mat-card-content>
+    </mat-card>
+    } }
+  </div>
 </div>

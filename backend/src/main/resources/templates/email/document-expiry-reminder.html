@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Upload Your New Document</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Upload Your New Document</h1>
+<span layout:fragment="email-subtitle" th:text="${companyName}">Company A</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <div class="info-box" th:if="${!expired}">
+        <h3>Your document expires soon</h3>
+        <p>Your <strong th:text="${documentName}">proof of registration</strong> expires on
+           <strong th:text="${expiryDate}">30 November 2026</strong>. Upload the new one.</p>
+    </div>
+
+    <div class="info-box" th:if="${expired}">
+        <h3>Your document has expired</h3>
+        <p>Your <strong th:text="${documentName}">proof of registration</strong> expired on
+           <strong th:text="${expiryDate}">30 November 2026</strong>. Upload the new one.</p>
+    </div>
+
+    <div class="neutral-box">
+        <strong>What happens next:</strong>
+        <ul>
+            <li>The new document replaces the old one and is checked by the accommodation office</li>
+            <li>Room offers and check-in wait until an approved document is in place</li>
+        </ul>
+    </div>
+
+    <div class="cta-section">
+        <a th:href="${documentsUrl}" class="cta-button">Upload My Document</a>
+    </div>
+</div>
+
+</body>
+</html>

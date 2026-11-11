@@ -72,9 +72,42 @@ public class Application implements TenantAware {
     @Builder.Default
     private List<ApplicationBuildingPreference> buildingPreferences = new ArrayList<>();
 
+    /**
+     * NOT NULL in the database since GH-496 (V2026_11_10_1710), unless that migration found rows it
+     * could not repair. Not marked {@code optional = false} here, so a left-over empty row still
+     * loads.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "academic_year_id")
     private AcademicYear academicYear;
+
+    /**
+     * The intake applied for, inside {@link #academicYear} (GH-495). NOT NULL in the database since
+     * GH-496, as {@link #academicYear}; new applications always carry it.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "intake_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private Intake intake;
+
+    /**
+     * The student's institution when they applied, from their profile (GH-495). A later change of
+     * institution on the profile does not move existing applications.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "institution_id")
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private Institution institution;
+
+    /**
+     * The student had been checked in at this company, in an earlier year or now, when they applied
+     * (GH-499). Set at submit; history only, with no effect on scoring, windows or rooms.
+     */
+    @Column(name = "is_returning", nullable = false)
+    @Builder.Default
+    private Boolean isReturning = false;
 
     @Column(name = "allocation_method")
     @Enumerated(EnumType.STRING)

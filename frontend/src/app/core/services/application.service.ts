@@ -4,6 +4,7 @@ import { Observable, map, catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 import { Application } from '../models/application.model';
+import { ApplicationSubmission } from '../models/apply-options.model';
 import { ApplicationStatus } from '../models/status.model';
 
 export interface BuildingPreferenceResponse {
@@ -70,6 +71,10 @@ export interface ApplicationFullDetails {
   documents: DocumentWithComments[];
   requiredDocumentsChecklist: RequiredDocumentsChecklist;
   allocationEligibility: AllocationEligibility;
+  /** An expiring document of the student has expired at this company (GH-498). */
+  hasExpiredDocuments?: boolean;
+  /** The student had been checked in at this company when they applied (GH-499). */
+  isReturning?: boolean;
 }
 
 export interface DocumentWithComments {
@@ -80,6 +85,9 @@ export interface DocumentWithComments {
   uploadedAt: string;
   documentTypeId: number;
   documentTypeName: string;
+  /** For an expiring type, the last day it is valid at this company, 'YYYY-MM-DD' (GH-498). */
+  expiryDate?: string;
+  expired?: boolean;
   comments: DocumentComment[];
 }
 
@@ -131,10 +139,9 @@ export class ApplicationService {
 
   private apiUrl = `${environment.apiUrl}/applications`;
 
-  createApplication(applicationData: Partial<Application>): Observable<Application> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return this.http.post<Application>(`${this.apiUrl}/submit`, applicationData);
+  /** Submits the form; returns the applications created, one per company (GH-495). */
+  createApplication(applicationData: Partial<ApplicationSubmission>): Observable<Application[]> {
+    return this.http.post<Application[]>(`${this.apiUrl}/submit`, applicationData);
   }
 
   getApplicationByStatus(status: string): Observable<Application[]> {

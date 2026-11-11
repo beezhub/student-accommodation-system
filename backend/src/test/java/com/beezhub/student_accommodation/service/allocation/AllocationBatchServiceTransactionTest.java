@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.service.document.DocumentReadinessGuard;
 import com.beezhub.student_accommodation.config.FF4jConfig;
 import com.beezhub.student_accommodation.config.TransactionTemplateConfig;
 import com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException;
@@ -77,8 +78,8 @@ class AllocationBatchServiceTransactionTest {
                 2L, List.of(scored(102L)),
                 3L, List.of(scored(103L))));
         when(orchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(new Room()));
-        when(orchestrator.buildRoomCapacityMap(any()))
-                .thenReturn(new HashMap<>(Map.of(101L, 1, 102L, 1, 103L, 1)));
+        when(orchestrator.newBedLedger(any()))
+                .thenReturn(BedLedgers.of(Map.of(101L, 1, 102L, 1, 103L, 1)));
 
         // Student 2 cannot be allocated; students 1 and 3 succeed.
         when(lifecycleService.createRoomAllocation(argThat((RoomAllocationRequest r) -> r != null && r.getStudentId() == 2L)))
@@ -89,7 +90,8 @@ class AllocationBatchServiceTransactionTest {
 
     private AllocationBatchService serviceUsing(TransactionTemplate template) {
         return new AllocationBatchService(waitingListRepository, lifecycleService, featureFlagService, template,
-                environment, orchestrator, stagedAllocationService, roomAllocationMapper, new SimpleMeterRegistry(), neutralPriorityScorer());
+                environment, orchestrator, stagedAllocationService, roomAllocationMapper, new SimpleMeterRegistry(), neutralPriorityScorer(),
+                mock(DocumentReadinessGuard.class));
     }
 
     @Test

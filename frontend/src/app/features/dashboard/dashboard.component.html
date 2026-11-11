@@ -39,6 +39,8 @@
   <!-- ── Content ───────────────────────────────────────────────────────────── -->
   <div class="dash-content">
 
+    <app-open-windows-banner></app-open-windows-banner>
+
     <div class="dash-grid">
 
       <!-- PRIMARY: My Room -->
@@ -75,6 +77,16 @@
                 </div>
               }
             </div>
+
+            <app-reconfirm-place
+              [allocation]="roomAllocation"
+              (reconfirmed)="roomAllocation = $event">
+            </app-reconfirm-place>
+
+            <app-stay-extension
+              [allocation]="roomAllocation"
+              (extended)="roomAllocation = $event">
+            </app-stay-extension>
 
             @if (roomAllocation.status === AllocationStatus.OFFERED) {
               <app-offer-expiry

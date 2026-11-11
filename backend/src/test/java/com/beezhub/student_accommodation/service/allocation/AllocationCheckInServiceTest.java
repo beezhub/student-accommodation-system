@@ -58,9 +58,78 @@ class AllocationCheckInServiceTest {
     private AllocationAuditService allocationAuditService;
     @Mock
     private com.beezhub.student_accommodation.service.AuthService authService;
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentReadinessGuard documentReadinessGuard;
 
     @InjectMocks
     private AllocationCheckInService allocationCheckInService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void useRealStayGuard() {
+        org.springframework.test.util.ReflectionTestUtils.setField(allocationCheckInService, "stayCapacityGuard",
+                new StayCapacityGuard(roomAllocationRepository, java.time.Clock.fixed(
+                        java.time.Instant.parse("2026-11-10T08:00:00Z"), java.time.ZoneId.of("Africa/Johannesburg"))));
+    }
+
+    /** GH-496: the offer stands on the planned dates, but nobody moves into a bed still slept in. */
+    @Test
+    void checkIn_bedStillPhysicallyOccupied_refused() {
+        com.beezhub.student_accommodation.model.entity.Room room = new com.beezhub.student_accommodation.model.entity.Room();
+        room.setId(5L);
+        room.setRoomNumber("12");
+        room.setCapacity(1);
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(2L);
+        allocation.setStatus(AllocationStatus.ACCEPTED);
+        allocation.setRoom(room);
+        allocation.setApplication(new Application());
+        when(roomAllocationRepository.findByIdWithDetails(2L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.countByRoom_IdAndStatus(5L, AllocationStatus.ACTIVE)).thenReturn(1L);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> allocationCheckInService.confirmCheckIn(2L, false))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.RoomStillOccupiedException.class)
+                .hasMessageContaining("still occupied");
+
+        org.mockito.Mockito.verify(roomAllocationRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    /** GH-498: an expired or pending required expiring document refuses the check-in. */
+    @Test
+    void checkIn_documentsNotReady_refusedAndNothingSaved() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(4L);
+        allocation.setStatus(AllocationStatus.ACCEPTED);
+        allocation.setApplication(new Application());
+        when(roomAllocationRepository.findByIdWithDetails(4L)).thenReturn(Optional.of(allocation));
+        org.mockito.Mockito.doThrow(new com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException(
+                "The student cannot check in")).when(documentReadinessGuard).assertReadyForCheckIn(allocation);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> allocationCheckInService.confirmCheckIn(4L, true))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException.class);
+
+        org.mockito.Mockito.verify(roomAllocationRepository, org.mockito.Mockito.never()).save(any());
+        org.assertj.core.api.Assertions.assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.ACCEPTED);
+    }
+
+    @Test
+    void checkIn_bedFreedByCheckOut_succeeds() {
+        com.beezhub.student_accommodation.model.entity.Room room = new com.beezhub.student_accommodation.model.entity.Room();
+        room.setId(5L);
+        room.setRoomNumber("12");
+        room.setCapacity(1);
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(3L);
+        allocation.setStatus(AllocationStatus.ACCEPTED);
+        allocation.setRoom(room);
+        allocation.setApplication(new Application());
+        when(roomAllocationRepository.findByIdWithDetails(3L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.countByRoom_IdAndStatus(5L, AllocationStatus.ACTIVE)).thenReturn(0L);
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(allocation);
+
+        allocationCheckInService.confirmCheckIn(3L, false);
+
+        org.assertj.core.api.Assertions.assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.ACTIVE);
+    }
 
     @Test
     void checkIn_acceptedAllocation_statusActive() {

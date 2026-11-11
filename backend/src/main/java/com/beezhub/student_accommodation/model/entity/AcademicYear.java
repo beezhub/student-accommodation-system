@@ -26,7 +26,16 @@ public class AcademicYear implements TenantAware {
     @Column(name = "tenant_id")
     private Long tenantId;
 
-    @Column(nullable = false, unique = true, length = 20)
+    /**
+     * The institution whose calendar this year follows. Empty means every institution the company
+     * serves, shown as "All institutions". A year for a specific institution takes priority over an
+     * "All institutions" year for that institution's students.
+     */
+    @Column(name = "institution_id")
+    private Long institutionId;
+
+    /** Unique per company and institution ({@code uq_academic_year_tenant_institution_name}). */
+    @Column(nullable = false, length = 20)
     private String name;
 
     @Column(name = "start_date", nullable = false)
@@ -34,16 +43,6 @@ public class AcademicYear implements TenantAware {
 
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
-
-    @Column(name = "application_open_date", nullable = false)
-    private LocalDate applicationOpenDate;
-
-    @Column(name = "application_close_date", nullable = false)
-    private LocalDate applicationCloseDate;
-
-    @Column(name = "is_current")
-    @Builder.Default
-    private Boolean isCurrent = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -54,6 +53,12 @@ public class AcademicYear implements TenantAware {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", nullable = false, insertable = false, updatable = false)
     private Tenant tenant;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "institution_id", insertable = false, updatable = false)
+    @lombok.ToString.Exclude
+    @lombok.EqualsAndHashCode.Exclude
+    private Institution institution;
 
     @PrePersist
     protected void onCreate() {

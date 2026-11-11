@@ -72,6 +72,8 @@ class StagedAllocationServiceTest {
         private RoomOccupancyManager roomOccupancyManager;
     @Mock
     private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentReadinessGuard documentReadinessGuard;
 
 
         @InjectMocks
@@ -86,6 +88,10 @@ class StagedAllocationServiceTest {
 
         @BeforeEach
         void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(stagedAllocationService, "stayCapacityGuard",
+                new com.beezhub.student_accommodation.service.allocation.StayCapacityGuard(roomAllocationRepository,
+                        java.time.Clock.fixed(java.time.Instant.parse("2026-11-10T08:00:00Z"),
+                                java.time.ZoneId.of("Africa/Johannesburg"))));
                 // Setup student
                 student = new Student();
                 student.setId(1L);
@@ -138,7 +144,7 @@ class StagedAllocationServiceTest {
         void confirmAllocation_validProposal_createsAllocation() {
                 // Arrange
                 when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
                 when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
                 when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
                                 .thenReturn(new RoomAllocationResponse());
@@ -168,7 +174,7 @@ class StagedAllocationServiceTest {
         @Test
         void confirmAllocation_validProposal_tellsTheStudentItIsAnOfferWithADeadline() {
                 when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
                 when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
                 when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
                                 .thenReturn(new RoomAllocationResponse());
@@ -197,7 +203,7 @@ class StagedAllocationServiceTest {
                 room.setTenantId(7L);
                 stagedAllocation.setTenantId(0L);
                 when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
                 when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
                 when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
                                 .thenReturn(new RoomAllocationResponse());
@@ -227,7 +233,7 @@ class StagedAllocationServiceTest {
                 // GH-128: proposals go stale. The batch job or a manual allocation may have offered
                 // this student a room since the proposal was made.
                 when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
-                when(roomAllocationRepository.existsActiveAllocationByStudentId(student.getId())).thenReturn(true);
+                when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(student.getId()), any(), any())).thenReturn(true);
 
                 assertThatThrownBy(() -> stagedAllocationService.confirmAllocation(1L, 2L))
                                 .isInstanceOf(StudentAlreadyAllocatedException.class);
@@ -242,8 +248,8 @@ class StagedAllocationServiceTest {
                 // GH-128: the manual path does this inside createRoomAllocation; the staged path
                 // skipped it, leaving the student WAITING and eligible for a second offer.
                 when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
-                when(roomAllocationRepository.existsActiveAllocationByStudentId(student.getId())).thenReturn(false);
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(student.getId()), any(), any())).thenReturn(false);
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
                 when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
                 when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
                                 .thenReturn(new RoomAllocationResponse());
@@ -258,7 +264,7 @@ class StagedAllocationServiceTest {
         void confirmAllocation_roomFull_throwsException() {
                 // Arrange
                 when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // Room at capacity
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(2L); // Room at capacity
 
                 // Act & Assert
                 assertThatThrownBy(() -> stagedAllocationService.confirmAllocation(1L, 2L))
@@ -299,7 +305,7 @@ class StagedAllocationServiceTest {
                 List<String> constraintsBypassed = Arrays.asList("GENDER_RESTRICTION", "YEAR_OF_STUDY");
                 when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
                 when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
                 when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
                 when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
 
@@ -337,7 +343,8 @@ class StagedAllocationServiceTest {
                 // Arrange
                 when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
                 when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // Room full
+                when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(2L); // Room full
 
                 // Act & Assert
                 assertThatThrownBy(() -> stagedAllocationService.overrideConstraints(
@@ -380,7 +387,7 @@ class StagedAllocationServiceTest {
                 when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
                 when(studentRepository.findById(2L)).thenReturn(Optional.of(student2));
                 when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-                when(roomAllocationRepository.existsActiveAllocationByStudentId(anyLong())).thenReturn(false);
+                when(roomAllocationRepository.existsLiveAllocationForStudentDuring(anyLong(), any(), any())).thenReturn(false);
                 when(stagedAllocationRepository.findByStudent_IdAndStatus(anyLong(),
                                 eq(StagedAllocationStatus.PROPOSED)))
                                 .thenReturn(Optional.empty());
@@ -416,7 +423,7 @@ class StagedAllocationServiceTest {
                 when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
                 when(buildingRepository.findById(1L)).thenReturn(Optional.of(building));
                 when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
-                when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(false);
+                when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(1L), any(), any())).thenReturn(false);
                 when(stagedAllocationRepository.findByStudent_IdAndStatus(1L, StagedAllocationStatus.PROPOSED))
                                 .thenReturn(Optional.empty());
                 when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
@@ -430,6 +437,45 @@ class StagedAllocationServiceTest {
                 assertThat(response).isNotNull();
                 assertThat(response.getFailedProposals()).isEqualTo(1);
                 verify(waitingListService).enqueueWaitingList(student, application);
+        }
+
+        /** GH-498: a student whose documents are not in order is skipped and not queued again. */
+        @Test
+        void proposeAllocation_documentsNotReady_skippedWithoutScoringOrQueueing() {
+                BatchAllocationRequest request = new BatchAllocationRequest();
+                request.setBatchId("BATCH-004");
+                request.setStudentIds(Arrays.asList(1L));
+                application.setTenantId(7L);
+
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+                when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+                when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(1L), any(), any())).thenReturn(false);
+                when(stagedAllocationRepository.findByStudent_IdAndStatus(1L, StagedAllocationStatus.PROPOSED))
+                                .thenReturn(Optional.empty());
+                when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
+                org.mockito.Mockito.doThrow(new com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException(
+                                "Proof of Registration (expired on 30 November 2026)"))
+                                .when(documentReadinessGuard).assertReadyForRoom(student, 7L, application);
+
+                BatchAllocationProposalResponse response = stagedAllocationService.proposeAllocation(request, 2L);
+
+                assertThat(response.getFailedProposals()).isEqualTo(1);
+                verify(allocationScoringService, never()).scoreAvailableRooms(any(), any(), any());
+                verify(waitingListService, never()).enqueueWaitingList(any(Student.class), any(Application.class));
+        }
+
+        @Test
+        void confirmAllocation_documentsNotReady_refusedAndNothingSaved() {
+                room.setTenantId(7L);
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
+                org.mockito.Mockito.doThrow(new com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException("pending"))
+                                .when(documentReadinessGuard).assertReadyForRoom(student, 7L, application);
+
+                assertThatThrownBy(() -> stagedAllocationService.confirmAllocation(1L, 2L))
+                                .isInstanceOf(com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException.class);
+                verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
+                assertThat(stagedAllocation.getStatus()).isEqualTo(StagedAllocationStatus.PROPOSED);
         }
 
         @Test
@@ -457,7 +503,7 @@ class StagedAllocationServiceTest {
                                 .thenReturn(Arrays.asList(staged1, staged2));
                 when(stagedAllocationRepository.findById(anyLong()))
                                 .thenReturn(Optional.of(staged1), Optional.of(staged2));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
                 when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
                 when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
                                 .thenReturn(new RoomAllocationResponse());
@@ -495,7 +541,7 @@ class StagedAllocationServiceTest {
                                 .thenReturn(Arrays.asList(staged1, staged2));
                 when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(staged1));
                 when(stagedAllocationRepository.findById(2L)).thenThrow(new RuntimeException("Allocation failed"));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
                 when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
                 when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
                                 .thenReturn(new RoomAllocationResponse());
@@ -527,7 +573,7 @@ class StagedAllocationServiceTest {
                                 .thenReturn(Arrays.asList(staged1, staged2));
                 when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(staged1));
                 when(stagedAllocationRepository.findById(2L)).thenReturn(Optional.of(staged2));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
                 when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
                 when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(resp1, resp2);
                 when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
@@ -562,7 +608,7 @@ class StagedAllocationServiceTest {
                                 .thenReturn(Arrays.asList(staged1, staged2));
                 when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(staged1));
                 when(stagedAllocationRepository.findById(2L)).thenThrow(new RuntimeException("Room full"));
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
                 when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
                 when(roomAllocationMapper.toResponse(any(RoomAllocation.class))).thenReturn(resp1);
                 when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));

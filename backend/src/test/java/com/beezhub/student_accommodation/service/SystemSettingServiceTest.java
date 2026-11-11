@@ -249,4 +249,145 @@ class SystemSettingServiceTest {
 
         verify(systemSettingRepository).save(any(SystemSetting.class));
     }
+
+    // ── Platform-level and cascade paths ─────────────────────────────────────
+
+    @Test
+    @DisplayName("getPlatformSetting_whenRowExists_returnsValue")
+    void getPlatformSetting_whenRowExists_returnsValue() {
+        when(systemSettingRepository.findPlatformSettingByKey("k")).thenReturn(Optional.of(tenant1Setting));
+
+        assertThat(systemSettingService.getPlatformSetting("k")).isEqualTo("true");
+    }
+
+    @Test
+    @DisplayName("getPlatformSetting_whenRowAbsent_returnsNull")
+    void getPlatformSetting_whenRowAbsent_returnsNull() {
+        when(systemSettingRepository.findPlatformSettingByKey("k")).thenReturn(Optional.empty());
+
+        assertThat(systemSettingService.getPlatformSetting("k")).isNull();
+    }
+
+    @Test
+    @DisplayName("getAllPlatformSettings_returnsKeyValueMap")
+    void getAllPlatformSettings_returnsKeyValueMap() {
+        when(systemSettingRepository.findAllPlatformSettings()).thenReturn(List.of(tenant1Setting));
+
+        assertThat(systemSettingService.getAllPlatformSettings()).containsExactly(Map.entry(KEY, "true"));
+    }
+
+    @Test
+    @DisplayName("getSetting_whenNoTenantRow_fallsBackToPlatformValue")
+    void getSetting_whenNoTenantRow_fallsBackToPlatformValue() {
+        when(systemSettingRepository.findBySettingKey("k")).thenReturn(Optional.empty());
+        when(systemSettingRepository.findPlatformSettingByKey("k")).thenReturn(Optional.of(tenant2Setting));
+
+        assertThat(systemSettingService.getSetting("k")).isEqualTo("false");
+    }
+
+    @Test
+    @DisplayName("getAllSettings_tenantRowOverridesPlatformValue")
+    void getAllSettings_tenantRowOverridesPlatformValue() {
+        SystemSetting platformOnly = SystemSetting.builder()
+                .tenantId(0L).settingKey("platform_only").settingValue("p").build();
+        SystemSetting platformDefault = SystemSetting.builder()
+                .tenantId(0L).settingKey(KEY).settingValue("default").build();
+        when(systemSettingRepository.findAllPlatformSettings()).thenReturn(List.of(platformOnly, platformDefault));
+        when(systemSettingRepository.findAll()).thenReturn(List.of(tenant1Setting));
+
+        assertThat(systemSettingService.getAllSettings())
+                .containsEntry("platform_only", "p")
+                .containsEntry(KEY, "true");
+    }
+
+    @Test
+    @DisplayName("updatePlatformSetting_whenRowExists_updatesValue")
+    void updatePlatformSetting_whenRowExists_updatesValue() {
+        when(systemSettingRepository.findPlatformSettingByKey(KEY)).thenReturn(Optional.of(tenant1Setting));
+
+        systemSettingService.updatePlatformSetting(KEY, "changed");
+
+        assertThat(tenant1Setting.getSettingValue()).isEqualTo("changed");
+        verify(systemSettingRepository).save(tenant1Setting);
+    }
+
+    @Test
+    @DisplayName("updatePlatformSetting_whenRowAbsent_createsRowOnPlatformTenant")
+    void updatePlatformSetting_whenRowAbsent_createsRowOnPlatformTenant() {
+        when(systemSettingRepository.findPlatformSettingByKey("new_key")).thenReturn(Optional.empty());
+
+        systemSettingService.updatePlatformSetting("new_key", "v");
+
+        verify(systemSettingRepository).save(argThat(s ->
+                Long.valueOf(0L).equals(s.getTenantId())
+                        && "new_key".equals(s.getSettingKey())
+                        && "v".equals(s.getSettingValue())));
+    }
+
+    @Test
+    @DisplayName("deleteSetting_whenTenantOverrideExists_deletesIt")
+    void deleteSetting_whenTenantOverrideExists_deletesIt() {
+        when(systemSettingRepository.findBySettingKey("application_review_days"))
+                .thenReturn(Optional.of(tenant1Setting));
+
+        systemSettingService.deleteSetting("application_review_days");
+
+        verify(systemSettingRepository).delete(tenant1Setting);
+    }
+
+    @Test
+    @DisplayName("deleteSetting_whenOnlyPlatformRowFound_throwsNotFoundAndKeepsRow")
+    void deleteSetting_whenOnlyPlatformRowFound_throwsNotFoundAndKeepsRow() {
+        SystemSetting platformRow = SystemSetting.builder()
+                .tenantId(0L).settingKey("application_review_days").settingValue("5").build();
+        when(systemSettingRepository.findBySettingKey("application_review_days"))
+                .thenReturn(Optional.of(platformRow));
+
+        assertThatThrownBy(() -> systemSettingService.deleteSetting("application_review_days"))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.ResourceNotFoundException.class);
+
+        verify(systemSettingRepository, never()).delete(any(SystemSetting.class));
+    }
+
+    @Test
+    @DisplayName("deleteSetting_whenNoRowFound_throwsNotFound")
+    void deleteSetting_whenNoRowFound_throwsNotFound() {
+        when(systemSettingRepository.findBySettingKey("missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> systemSettingService.deleteSetting("missing"))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.ResourceNotFoundException.class);
+    }
+
+    // ── GH-494: lookups for a named company ─────────────────────────────────────
+
+    @Test
+    void getSettingForTenant_companyOverride_wins() {
+        when(systemSettingRepository.findByTenantIdAndKey(TENANT_1_ID, "intake_window_open_days_before"))
+                .thenReturn(Optional.of(SystemSetting.builder().tenantId(TENANT_1_ID)
+                        .settingKey("intake_window_open_days_before").settingValue("90").build()));
+
+        assertThat(systemSettingService.getSettingForTenant(TENANT_1_ID, "intake_window_open_days_before"))
+                .isEqualTo("90");
+        verify(systemSettingRepository, never()).findPlatformSettingByKey(anyString());
+    }
+
+    @Test
+    void getSettingForTenant_noOverride_fallsBackToThePlatformDefault() {
+        when(systemSettingRepository.findByTenantIdAndKey(TENANT_1_ID, "intake_window_open_days_before"))
+                .thenReturn(Optional.empty());
+        when(systemSettingRepository.findPlatformSettingByKey("intake_window_open_days_before"))
+                .thenReturn(Optional.of(SystemSetting.builder().tenantId(0L)
+                        .settingKey("intake_window_open_days_before").settingValue("120").build()));
+
+        assertThat(systemSettingService.getSettingForTenant(TENANT_1_ID, "intake_window_open_days_before"))
+                .isEqualTo("120");
+    }
+
+    @Test
+    void getSettingForTenant_platformTenant_readsThePlatformRowOnly() {
+        when(systemSettingRepository.findPlatformSettingByKey("k")).thenReturn(Optional.empty());
+
+        assertThat(systemSettingService.getSettingForTenant(0L, "k")).isNull();
+        verify(systemSettingRepository, never()).findByTenantIdAndKey(anyLong(), anyString());
+    }
 }

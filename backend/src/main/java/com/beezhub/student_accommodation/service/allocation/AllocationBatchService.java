@@ -9,6 +9,7 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.FeatureFlagService;
+import com.beezhub.student_accommodation.service.document.DocumentReadinessGuard;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.util.PageMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -40,6 +41,7 @@ public class AllocationBatchService {
     private final RoomAllocationMapper roomAllocationMapper;
     private final MeterRegistry meterRegistry;
     private final ApplicantPriorityScorer applicantPriorityScorer;
+    private final DocumentReadinessGuard documentReadinessGuard;
 
     public AllocationBatchService(
             WaitingListRepository waitingListRepository,
@@ -51,7 +53,8 @@ public class AllocationBatchService {
             StagedAllocationService stagedAllocationService,
             RoomAllocationMapper roomAllocationMapper,
             MeterRegistry meterRegistry,
-            ApplicantPriorityScorer applicantPriorityScorer) {
+            ApplicantPriorityScorer applicantPriorityScorer,
+            DocumentReadinessGuard documentReadinessGuard) {
         this.waitingListRepository = waitingListRepository;
         this.allocationLifecycleService = allocationLifecycleService;
         this.featureFlagService = featureFlagService;
@@ -62,6 +65,7 @@ public class AllocationBatchService {
         this.roomAllocationMapper = roomAllocationMapper;
         this.meterRegistry = meterRegistry;
         this.applicantPriorityScorer = applicantPriorityScorer;
+        this.documentReadinessGuard = documentReadinessGuard;
     }
 
     /**
@@ -242,7 +246,9 @@ public class AllocationBatchService {
         }
 
         Map<Long, List<ScoredRoom>> scoringMatrix = allocationScoringOrchestrator.buildScoringMatrix(entries);
-        Map<Long, Integer> roomCapacityRemaining = allocationScoringOrchestrator.buildRoomCapacityMap(availableRooms);
+        // Beds are free for dates, not in general (GH-496): each student's stay is checked against
+        // the allocations overlapping it and the stays already matched in this run.
+        BedLedger beds = allocationScoringOrchestrator.newBedLedger(availableRooms);
 
         // Stated here rather than inherited from the repository method name. This is the order
         // AllocationScoringOrchestrator.getWaitingListWithScores renders, and the two must not
@@ -266,11 +272,15 @@ public class AllocationBatchService {
             if (scoredRooms == null || scoredRooms.isEmpty()) {
                 continue;
             }
+            // Skipped, not dropped: the entry stays WAITING and keeps its place (GH-498).
+            if (!documentReadinessGuard.issuesForRoom(entry.getStudent(), tenantId, entry.getApplication()).isEmpty()) {
+                log.info("action=batchEntrySkipped reason=documentsNotReady waitingListEntryId={}", entry.getId());
+                continue;
+            }
+            StayPeriod stay = StayPeriod.of(entry.getApplication());
             for (ScoredRoom scoredRoom : scoredRooms) {
-                Integer remaining = roomCapacityRemaining.get(scoredRoom.getRoomId());
-                if (remaining != null && remaining > 0) {
+                if (beds.tryTake(scoredRoom.getRoomId(), stay)) {
                     pairs.add(new AllocationPair(entry, scoredRoom));
-                    roomCapacityRemaining.put(scoredRoom.getRoomId(), remaining - 1);
                     break; // Move to next student
                 }
             }

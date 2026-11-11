@@ -11,4 +11,6 @@ public class DocumentTypeRequest {
     private String description;
     @NotNull(message = "isRequired flag is required")
     private Boolean isRequired;
+    /** Expires with the academic year it was uploaded in (GH-498). Left out means unchanged. */
+    private Boolean isExpiring;
 }

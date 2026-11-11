@@ -56,6 +56,11 @@ class RoomServiceTest {
     private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
 
 
+    /** 10 November 2026, 10:00 in South Africa. */
+    @org.mockito.Spy
+    private java.time.Clock clock = java.time.Clock.fixed(
+            java.time.Instant.parse("2026-11-10T08:00:00Z"), java.time.ZoneId.of("Africa/Johannesburg"));
+
     @InjectMocks
     private RoomService roomService;
 
@@ -235,7 +240,7 @@ class RoomServiceTest {
     @Test
     void deleteRoom_liveAllocations_refusedBeforeDelete() {
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L);
+        when(roomAllocationRepository.countLiveAllocationsByRoomId(1L)).thenReturn(2L);
 
         assertThatThrownBy(() -> roomService.deleteRoom(1L))
                 .isInstanceOf(ResourceInUseException.class)
@@ -362,7 +367,7 @@ class RoomServiceTest {
         Page<Room> page = new PageImpl<>(Collections.singletonList(room));
         
         when(roomRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(0L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
         when(roomMapper.toResponse(any(Room.class))).thenReturn(new RoomResponse());
 
         PageResponse<RoomResponse> response = roomService.searchRooms(

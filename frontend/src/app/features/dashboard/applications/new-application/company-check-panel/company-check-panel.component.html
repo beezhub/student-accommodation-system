@@ -1,0 +1,50 @@
+<section
+  class="company-check"
+  [class.company-check--blocked]="problems.length > 0"
+  [attr.aria-label]="check.companyName"
+>
+  <header class="company-head">
+    <mat-icon class="company-icon" aria-hidden="true">business</mat-icon>
+    <div class="company-title">
+      <strong>{{ check.companyName }}</strong>
+      <span class="company-buildings">{{ buildingNames }}</span>
+    </div>
+    <button mat-button type="button" class="company-remove" (click)="removeCompany.emit()">
+      <mat-icon>close</mat-icon>
+      Remove
+    </button>
+  </header>
+
+  @if (check.loading) {
+  <p class="company-note">
+    <mat-spinner diameter="16"></mat-spinner>
+    Checking {{ check.companyName }}…
+  </p>
+  } @for (problem of problems; track problem) {
+  <p class="company-problem" role="alert">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span>{{ problem }}</span>
+  </p>
+  } @if (openIntakes.length === 0) { @for (link of check.options?.existingApplications ?? []; track
+  link.applicationId) {
+  <a mat-stroked-button class="company-link" [routerLink]="['/applications', link.applicationId]">
+    View application
+  </a>
+  } } @if (missesDocuments) {
+  <a mat-stroked-button class="company-link" routerLink="/documents">Upload documents</a>
+  } @if (openIntakes.length === 1) {
+  <p class="company-intake">
+    <mat-icon aria-hidden="true">event</mat-icon>
+    <span>{{ describeIntake(openIntakes[0]) }}</span>
+  </p>
+  } @else if (openIntakes.length > 1) {
+  <mat-form-field appearance="outline" class="company-intake-select">
+    <mat-label>Which intake at {{ check.companyName }}?</mat-label>
+    <mat-select [value]="check.chosenIntakeId" (selectionChange)="intakeChosen.emit($event.value)">
+      @for (intake of openIntakes; track intake.intakeId) {
+      <mat-option [value]="intake.intakeId">{{ describeIntake(intake) }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+  }
+</section>

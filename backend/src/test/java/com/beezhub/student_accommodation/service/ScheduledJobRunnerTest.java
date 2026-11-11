@@ -41,6 +41,12 @@ class ScheduledJobRunnerTest {
     private CheckInReminderService checkInReminderService;
     @Mock
     private NotificationRetryService notificationRetryService;
+    @Mock
+    private com.beezhub.student_accommodation.service.allocation.ReconfirmationService reconfirmationService;
+    @Mock
+    private com.beezhub.student_accommodation.service.application.IntakeExpiryService intakeExpiryService;
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentExpiryReminderService documentExpiryReminderService;
 
     private MeterRegistry meterRegistry;
     private ScheduledJobRunner scheduledJobRunner;
@@ -56,6 +62,9 @@ class ScheduledJobRunnerTest {
                 offerReminderService,
                 checkInReminderService,
                 notificationRetryService,
+                reconfirmationService,
+                intakeExpiryService,
+                documentExpiryReminderService,
                 meterRegistry);
     }
 
@@ -241,5 +250,65 @@ class ScheduledJobRunnerTest {
         Counter processed = meterRegistry.find("sas.jobs.checkInReminder.processed").counter();
         assertThat(processed).isNotNull();
         assertThat(processed.count()).isEqualTo(3.0);
+    }
+
+    // --- reconfirmation (GH-496) ---
+
+    @Test
+    void runReconfirmation_countsWhatTheJobProcessed() {
+        when(reconfirmationService.runDaily()).thenReturn(4);
+
+        scheduledJobRunner.runReconfirmation();
+
+        assertThat(meterRegistry.find("sas.jobs.reconfirmation.processed").counter().count()).isEqualTo(4.0);
+    }
+
+    @Test
+    void runReconfirmation_whenServiceThrows_failureCounted_noExceptionPropagated() {
+        when(reconfirmationService.runDaily()).thenThrow(new RuntimeException("db down"));
+
+        assertThatCode(() -> scheduledJobRunner.runReconfirmation()).doesNotThrowAnyException();
+
+        assertThat(meterRegistry.find("sas.jobs.reconfirmation.failures").counter().count()).isEqualTo(1.0);
+    }
+
+    // --- intake expiry (GH-497) ---
+
+    @Test
+    void runIntakeExpiry_countsWhatTheJobProcessed() {
+        when(intakeExpiryService.runDaily()).thenReturn(3);
+
+        scheduledJobRunner.runIntakeExpiry();
+
+        assertThat(meterRegistry.find("sas.jobs.intakeExpiry.processed").counter().count()).isEqualTo(3.0);
+    }
+
+    @Test
+    void runIntakeExpiry_whenServiceThrows_failureCounted_noExceptionPropagated() {
+        when(intakeExpiryService.runDaily()).thenThrow(new RuntimeException("db down"));
+
+        assertThatCode(() -> scheduledJobRunner.runIntakeExpiry()).doesNotThrowAnyException();
+
+        assertThat(meterRegistry.find("sas.jobs.intakeExpiry.failures").counter().count()).isEqualTo(1.0);
+    }
+
+    // --- documentExpiryReminder (GH-498) ---
+
+    @Test
+    void runDocumentExpiryReminders_countsWhatTheJobProcessed() {
+        when(documentExpiryReminderService.runDaily()).thenReturn(4);
+
+        scheduledJobRunner.runDocumentExpiryReminders();
+
+        assertThat(meterRegistry.find("sas.jobs.documentExpiryReminder.processed").counter().count()).isEqualTo(4.0);
+    }
+
+    @Test
+    void runDocumentExpiryReminders_whenServiceThrows_failureCounted_noExceptionPropagated() {
+        when(documentExpiryReminderService.runDaily()).thenThrow(new RuntimeException("db down"));
+
+        assertThatCode(() -> scheduledJobRunner.runDocumentExpiryReminders()).doesNotThrowAnyException();
+
+        assertThat(meterRegistry.find("sas.jobs.documentExpiryReminder.failures").counter().count()).isEqualTo(1.0);
     }
 }

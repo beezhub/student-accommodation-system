@@ -1,3 +1,4 @@
+import { describeSubmitted } from '../../../core/utils/apply-wording';
 import {
   Component,
   OnInit,
@@ -175,7 +176,7 @@ export class ApplicationReviewComponent implements OnInit {
       requiresAccessibility: this.draft!.requiresAccessibility,
       preferredBuildingIds: this.draft!.preferredBuildingIds?.length
         ? this.draft!.preferredBuildingIds
-        : null,
+        : undefined,
       specialRequirements: this.draft!.specialRequirements || null,
       institutionName: this.draft!.institutionName,
       courseName: this.draft!.courseName,
@@ -183,10 +184,12 @@ export class ApplicationReviewComponent implements OnInit {
 
     this.applicationService.createApplication(applicationData).subscribe({
       next: (created) => {
+        // GH-495: one application per company. Each company's intake is its one open intake,
+        // since this flow does not ask; the confirmation shows the first application.
         this.isSubmitting = false;
         this.draftService.clearDraft();
-        this.errorService.showSuccess('Application submitted successfully!');
-        this.router.navigate(['/application-confirmation', created.id]);
+        this.errorService.showSuccess(describeSubmitted(created));
+        this.router.navigate(['/application-confirmation', created[0]?.id]);
       },
       error: (error) => {
         this.isSubmitting = false;

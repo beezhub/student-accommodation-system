@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { BuildingPreferenceResponse } from './application.service';
+import { RoomAllocationResponse } from './room-allocation.service';
 export { PageResponse } from '../models/page-response.model';
 import { PageResponse } from '../models/page-response.model';
 
@@ -43,6 +44,10 @@ export interface ApplicationResponse {
   totalRequiredDocuments?: number;
   allocationStatus?: string; // PENDING_ALLOCATION, ALLOCATED, REJECTED
   allocationScore?: number; // Priority score for allocation (0-100)
+  /** An expiring document of the student has expired at this company (GH-498). */
+  hasExpiredDocuments?: boolean;
+  /** The student had been checked in at this company when they applied (GH-499). */
+  isReturning?: boolean;
   // Preference fields for quick view
   requiresAccessibility?: boolean;
   specialRequirements?: string;
@@ -197,6 +202,8 @@ export class AdminService {
       preferredBuilding?: string;
       startDate?: string;
       endDate?: string;
+      institutionId?: number;
+      intakeId?: number;
       page?: number;
       size?: number;
     },
@@ -214,6 +221,9 @@ export class AdminService {
       params = params.set('preferredBuilding', filters.preferredBuilding);
     if (filters.startDate) params = params.set('startDate', filters.startDate);
     if (filters.endDate) params = params.set('endDate', filters.endDate);
+    if (filters.institutionId)
+      params = params.set('institutionId', filters.institutionId.toString());
+    if (filters.intakeId) params = params.set('intakeId', filters.intakeId.toString());
 
     return this.http.get<PageResponse<ApplicationResponse>>(`${this.applicationApiUrl}/search`, {
       params,
@@ -282,6 +292,15 @@ export class AdminService {
   // Statistics
   getDashboardStats(): Observable<DashboardStats> {
     return this.http.get<DashboardStats>(`${environment.apiUrl}/admin/stats`);
+  }
+
+  /** Students still checked in after their stay ended, longest overdue first (GH-496). */
+  getOverdueCheckOuts(page = 0, size = 10): Observable<PageResponse<RoomAllocationResponse>> {
+    const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
+    return this.http.get<PageResponse<RoomAllocationResponse>>(
+      `${environment.apiUrl}/admin/stats/overdue-check-outs`,
+      { params, headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
+    );
   }
 
   getOccupancyStats(): Observable<OccupancyStats> {

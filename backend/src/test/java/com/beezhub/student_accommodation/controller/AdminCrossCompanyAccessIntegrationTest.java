@@ -79,6 +79,7 @@ class AdminCrossCompanyAccessIntegrationTest extends AbstractIntegrationTest {
 
     private static final String ADMIN_REVIEW_ROUTE = "/api/admin/applications/%d/save-review-progress";
     private static final String REVIEW_ROUTE = "/api/applications/%d/save-review-progress";
+    private static final String ENQUEUE_ROUTE = "/api/admin/allocation/waiting-list/enqueue";
 
     /** Whoever is allowed in, paired by {@link #allowed(Caller)} with a company they may work on. */
     enum Caller { TENANT_ADMIN_ON_OWN_COMPANY, PLATFORM_ADMIN, PLATFORM_STAFF }
@@ -554,7 +555,85 @@ class AdminCrossCompanyAccessIntegrationTest extends AbstractIntegrationTest {
         assertThat(response.getBody()).contains(company.admin().getEmail());
     }
 
+    // ==================== Waiting list enqueue (GH-490) ====================
+
+    @Test
+    void enqueueWaitingList_otherCompanyApplication_returnsNotFoundAndQueuesNothing() {
+        ResponseEntity<String> response = send(HttpMethod.POST, ENQUEUE_ROUTE,
+                enqueueBody(other.applicant(), other.application()), own.adminToken());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(waitingListCount(other.applicant())).isZero();
+    }
+
+    /** Otherwise a company could queue any student, who would then be offered its rooms. */
+    @Test
+    void enqueueWaitingList_applicationOfAnotherStudent_isRefusedAndQueuesNothing() {
+        ResponseEntity<String> response = send(HttpMethod.POST, ENQUEUE_ROUTE,
+                enqueueBody(other.applicant(), own.application()), own.adminToken());
+
+        assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+        assertThat(waitingListCount(other.applicant())).isZero();
+    }
+
+    @ParameterizedTest
+    @EnumSource(Caller.class)
+    void enqueueWaitingList_allowedCaller_queuesTheStudent(Caller caller) {
+        Access access = allowed(caller);
+        Company company = access.company();
+
+        ResponseEntity<String> response = send(HttpMethod.POST, ENQUEUE_ROUTE,
+                enqueueBody(company.applicant(), company.application()), access.token());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(waitingListCount(company.applicant())).isEqualTo(1);
+    }
+
+    // ==================== Room availability and eligible rooms (GH-490) ====================
+
+    @ParameterizedTest
+    @ValueSource(strings = {"availability", "is-available"})
+    void roomAvailability_otherCompanyRoom_returnsNotFound(String check) {
+        ResponseEntity<String> response = send(HttpMethod.GET,
+                "/api/room-allocation/room/" + other.room().getId() + "/" + check, null, own.adminToken());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @ParameterizedTest
+    @EnumSource(Caller.class)
+    void roomAvailability_allowedCaller_returnsAvailability(Caller caller) {
+        Access access = allowed(caller);
+        Long roomId = access.company().room().getId();
+
+        for (String check : List.of("availability", "is-available")) {
+            ResponseEntity<String> response = send(HttpMethod.GET,
+                    "/api/room-allocation/room/" + roomId + "/" + check, null, access.token());
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        }
+    }
+
+    @Test
+    void eligibleRooms_otherCompanyBuilding_doesNotListItsRooms() {
+        ResponseEntity<String> response = send(HttpMethod.GET,
+                "/api/room-allocation/admin/student/" + own.applicant().getId() + "/eligible-rooms?buildingId="
+                        + other.building().getId(),
+                null, own.adminToken());
+
+        assertThat(String.valueOf(response.getBody())).doesNotContain(other.room().getRoomNumber());
+    }
+
     // ==================== Helpers ====================
+
+    private static String enqueueBody(Student student, Application application) {
+        return "{\"studentId\":" + student.getId() + ",\"applicationId\":" + application.getId() + "}";
+    }
+
+    private int waitingListCount(Student student) {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM waiting_list_entry WHERE student_id = ?", Integer.class,
+                student.getId());
+    }
 
     private Access allowed(Caller caller) {
         return switch (caller) {
@@ -752,6 +831,8 @@ class AdminCrossCompanyAccessIntegrationTest extends AbstractIntegrationTest {
 
     private Application saveApplication(Student student, Long tenantId, ApplicationStatus status) {
         return applicationRepository.save(Application.builder()
+                .academicYear(testCalendar().year())
+                .intake(testCalendar().intake())
                 .applicationCode("APP-" + System.nanoTime())
                 .applicationDate(LocalDate.now())
                 .status(status)

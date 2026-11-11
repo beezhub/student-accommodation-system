@@ -170,7 +170,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withApplicationApprovedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new ApplicationApprovedContext("Student Name", 1L, "2023-01-01", "2023", "Spring", "url");
+        var ctx = new ApplicationApprovedContext("Student Name", 1L, "2023-01-01", "2023", "Semester 1", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_APPROVED, "application-approved", ctx);
 

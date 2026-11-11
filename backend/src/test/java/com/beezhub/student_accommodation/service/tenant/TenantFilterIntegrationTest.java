@@ -315,8 +315,6 @@ class TenantFilterIntegrationTest extends AbstractJpaTest {
                 .name(name)
                 .startDate(base)
                 .endDate(base.plusMonths(11))
-                .applicationOpenDate(base.minusMonths(3))
-                .applicationCloseDate(base.minusMonths(1))
                 .build();
     }
 

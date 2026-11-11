@@ -12,6 +12,7 @@ import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import com.beezhub.student_accommodation.service.document.DocumentReadinessGuard;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +54,8 @@ public class AllocationLifecycleService {
     private final AuthService authService;
     private final UserNotificationService userNotificationService;
     private final TenantOwnershipGuard tenantOwnershipGuard;
+    private final StayCapacityGuard stayCapacityGuard;
+    private final DocumentReadinessGuard documentReadinessGuard;
 
     public AllocationLifecycleService(
             RoomAllocationRepository roomAllocationRepository,
@@ -69,7 +72,9 @@ public class AllocationLifecycleService {
             AllocationAccessGuard allocationAccessGuard,
             AuthService authService,
             UserNotificationService userNotificationService,
-            TenantOwnershipGuard tenantOwnershipGuard) {
+            TenantOwnershipGuard tenantOwnershipGuard,
+            StayCapacityGuard stayCapacityGuard,
+            DocumentReadinessGuard documentReadinessGuard) {
         this.roomAllocationRepository = roomAllocationRepository;
         this.studentRepository = studentRepository;
         this.roomRepository = roomRepository;
@@ -85,6 +90,8 @@ public class AllocationLifecycleService {
         this.authService = authService;
         this.userNotificationService = userNotificationService;
         this.tenantOwnershipGuard = tenantOwnershipGuard;
+        this.stayCapacityGuard = stayCapacityGuard;
+        this.documentReadinessGuard = documentReadinessGuard;
     }
 
     /**
@@ -98,14 +105,22 @@ public class AllocationLifecycleService {
         Student student = getStudent(request.getStudentId());
         Room room = getRoom(request.getRoomId());
 
-        validateAllocationPrerequisites(student, room);
-
         Application application = null;
         if (request.getApplicationId() != null) {
             application = validateAndGetApplication(request.getApplicationId(), student.getId());
         }
 
+        // Capacity and the one-bed-per-student rule follow the planned stay (GH-496), so a 2026
+        // resident can be offered a 2027 room and a 2027 offer does not take a 2026 bed.
+        StayPeriod stay = StayPeriod.of(application);
+        stayCapacityGuard.assertNotEnded(stay);
+        stayCapacityGuard.assertStudentFree(student.getId(), stay);
+        stayCapacityGuard.assertBedFree(room, stay);
+        // Batch, manual, staged and per-application offers all come through here (GH-498).
+        documentReadinessGuard.assertReadyForRoom(student, room.getTenantId(), application);
+
         RoomAllocation allocation = buildNewAllocation(request, student, room, application);
+        stay.applyTo(allocation);
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         allocationAuditService.logStatusChange(saved, null, AllocationStatus.OFFERED);
@@ -127,12 +142,19 @@ public class AllocationLifecycleService {
         RoomAllocation allocation = getAllocation(id);
         allocationAccessGuard.assertCanAccessAllocation(allocation);
 
-        validateOfferAcceptance(allocation, request);
+        // The check-in clock starts on move-in day, not today, so an offer accepted months ahead
+        // keeps its deadline until the student can arrive (GH-496).
+        LocalDateTime checkInFrom = stayCapacityGuard.checkInFrom(StayPeriod.of(allocation));
+        LocalDateTime expectedCheckIn = request.getExpectedCheckInDate() != null
+                ? request.getExpectedCheckInDate() : checkInFrom;
+        validateOfferAcceptance(allocation, expectedCheckIn, checkInFrom);
 
         AllocationStatus previousStatus = allocation.getStatus();
         allocation.setStatus(AllocationStatus.ACCEPTED);
-        allocation.setExpectedCheckInDate(request.getExpectedCheckInDate());
-        allocation.setCheckInExpiryDate(LocalDateTime.now().plusDays(checkInExpiryDays));
+        allocation.setExpectedCheckInDate(expectedCheckIn);
+        allocation.setCheckInExpiryDate(checkInFrom.plusDays(checkInExpiryDays));
+        // Places accepted long before move-in are asked to reconfirm (GH-496).
+        allocation.setAcceptedAt(LocalDateTime.now());
 
         updateApplicationStatus(allocation, com.beezhub.student_accommodation.model.enums.ApplicationStatus.ALLOCATED);
         RoomAllocation saved = roomAllocationRepository.save(allocation);
@@ -415,11 +437,12 @@ public class AllocationLifecycleService {
         Student student = getStudent(request.getStudentId());
         Room newRoom = getRoom(request.getRoomId());
 
-        validateStudentChange(allocation, student);
+        StayPeriod stay = StayPeriod.of(allocation);
+        validateStudentChange(allocation, student, stay);
 
         boolean roomChanged = false;
         if (!oldRoom.getId().equals(newRoom.getId())) {
-            validateRoomCapacity(newRoom);
+            stayCapacityGuard.assertBedFree(newRoom, stay);
             roomChanged = true;
         }
 
@@ -445,6 +468,11 @@ public class AllocationLifecycleService {
         }
 
         return roomAllocationMapper.toResponse(updated);
+    }
+
+    @Transactional
+    public MessageResponse enqueueWaitingListForAdmin(Long studentId, Long applicationId) {
+        return waitingListService.enqueueWaitingListForAdmin(studentId, applicationId);
     }
 
     @Transactional
@@ -490,15 +518,12 @@ public class AllocationLifecycleService {
      * otherwise the update would give one student two active allocations. An ACTIVE allocation is
      * moved between rooms through {@code AllocationMoveService}, which keeps its own audit trail.
      */
-    private void validateStudentChange(RoomAllocation allocation, Student newStudent) {
+    private void validateStudentChange(RoomAllocation allocation, Student newStudent, StayPeriod stay) {
         Student current = allocation.getStudent();
         if (current != null && current.getId().equals(newStudent.getId())) {
             return;
         }
-        if (roomAllocationRepository.existsActiveAllocationByStudentId(newStudent.getId())) {
-            throw new StudentAlreadyAllocatedException(
-                    "Student with ID " + newStudent.getId() + " already has an active room allocation");
-        }
+        stayCapacityGuard.assertStudentFree(newStudent.getId(), stay);
     }
 
     private static Long roomIdOf(RoomAllocation allocation) {
@@ -508,25 +533,6 @@ public class AllocationLifecycleService {
     private RoomAllocation getAllocation(Long id) {
         return roomAllocationRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RoomAllocationNotFoundException("Room allocation not found with id: " + id));
-    }
-
-    private void validateAllocationPrerequisites(Student student, Room room) {
-        if (roomAllocationRepository.existsActiveAllocationByStudentId(student.getId())) {
-            log.error("Student {} already has an active room allocation", student.getId());
-            throw new StudentAlreadyAllocatedException(
-                    "Student with ID " + student.getId() + " already has an active room allocation");
-        }
-        validateRoomCapacity(room);
-    }
-
-    private void validateRoomCapacity(Room room) {
-        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-        if (activeAllocations >= room.getCapacity()) {
-            log.error("Room {} is at full capacity. Current: {}, Max: {}", room.getRoomNumber(), activeAllocations,
-                    room.getCapacity());
-            throw new RoomCapacityExceededException(
-                    "Room " + room.getRoomNumber() + " is at full capacity (" + room.getCapacity() + " occupants)");
-        }
     }
 
     private Application validateAndGetApplication(Long applicationId, Long studentId) {
@@ -607,12 +613,13 @@ public class AllocationLifecycleService {
         }
     }
 
-    private void validateOfferAcceptance(RoomAllocation allocation, AcceptOfferRequest request) {
+    private void validateOfferAcceptance(RoomAllocation allocation, LocalDateTime expectedCheckIn,
+            LocalDateTime checkInFrom) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime maxDate = now.plusDays(checkInExpiryDays);
-        if (request.getExpectedCheckInDate().isBefore(now.minusHours(1))
-                || request.getExpectedCheckInDate().isAfter(maxDate)) {
-            throw new IllegalArgumentException("Expected check-in date must be within " + checkInExpiryDays + " days from now");
+        LocalDateTime maxDate = checkInFrom.plusDays(checkInExpiryDays);
+        if (expectedCheckIn.isBefore(checkInFrom.minusHours(1)) || expectedCheckIn.isAfter(maxDate)) {
+            throw new IllegalArgumentException("Expected check-in date must be within " + checkInExpiryDays
+                    + " days from " + (checkInFrom.isAfter(now) ? "move-in day" : "now"));
         }
         if (allocation.getStatus() != AllocationStatus.OFFERED) {
             throw new IllegalStateException(

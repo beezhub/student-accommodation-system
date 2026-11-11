@@ -12,6 +12,7 @@ import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.specification.BuildingBrowseSpecification;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -31,7 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * view repeated the same test by hand.
  *
  * <p>All three now derive from the live allocation count, the same set
- * {@code countActiveAllocationsByRoomId} counts and that occupancy is written from, so read and
+ * {@code countHoldingBeds} counts and that occupancy is written from, so read and
  * write agree.
  */
 class RoomAvailabilityQueryTest extends AbstractJpaTest {
@@ -42,6 +43,8 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
     @Autowired private StudentRepository studentRepository;
     @Autowired private AppUserRepository appUserRepository;
     @Autowired private TenantRepository tenantRepository;
+
+    private static final LocalDate TODAY = LocalDate.of(2026, 11, 10);
 
     private Building building;
     private Long tenantId;
@@ -71,7 +74,7 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
         Room shared = room("S1", 2, "OCCUPIED");
         hold(shared, AllocationStatus.ACTIVE);
 
-        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId())).isEqualTo(1L);
+        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId(), TODAY)).isEqualTo(1L);
     }
 
     @Test
@@ -79,14 +82,14 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
         Room full = room("F1", 1, "FULL");
         hold(full, AllocationStatus.ACTIVE);
 
-        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId())).isZero();
+        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId(), TODAY)).isZero();
     }
 
     @Test
     void anEmptyRoomCounts() {
         room("E1", 2, "AVAILABLE");
 
-        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId())).isEqualTo(1L);
+        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId(), TODAY)).isEqualTo(1L);
     }
 
     /** An administrative decision about the room, not a statement about how many students are in it. */
@@ -94,7 +97,7 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
     void aMaintenanceRoomNeverCountsHoweverEmpty() {
         room("M1", 5, "MAINTENANCE");
 
-        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId())).isZero();
+        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId(), TODAY)).isZero();
     }
 
     /**
@@ -107,7 +110,7 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
         Room single = room("H1", 1, "OCCUPIED");
         hold(single, holding);
 
-        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId())).isZero();
+        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId(), TODAY)).isZero();
     }
 
     @ParameterizedTest
@@ -116,7 +119,7 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
         Room single = room("R1", 1, "OCCUPIED");
         hold(single, finished);
 
-        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId())).isEqualTo(1L);
+        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId(), TODAY)).isEqualTo(1L);
     }
 
     /** The list view and the detail view must not disagree about the same building. */
@@ -127,8 +130,8 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
         room("E1", 2, "AVAILABLE");
         room("M1", 5, "MAINTENANCE");
 
-        long single = roomRepository.countAvailableRoomsByBuildingId(building.getId());
-        long grouped = roomRepository.findAvailableRoomCountByBuilding().stream()
+        long single = roomRepository.countAvailableRoomsByBuildingId(building.getId(), TODAY);
+        long grouped = roomRepository.findAvailableRoomCountByBuilding(TODAY).stream()
                 .filter(row -> building.getId().equals(row[0]))
                 .map(row -> (Long) row[1])
                 .findFirst()
@@ -170,10 +173,28 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
         room("M1", 5, "MAINTENANCE");
         room("E1", 2, "AVAILABLE");
 
-        List<Room> candidates = roomRepository.findRoomsWithAvailableCapacity();
+        List<Room> candidates = roomRepository.findRoomsOpenForOffers();
 
         assertThat(candidates).extracting(Room::getStatus).doesNotContain("MAINTENANCE");
         assertThat(candidates).extracting(Room::getRoomNumber).contains("E1");
+    }
+
+    /** GH-496: a stay that has ended no longer takes the bed, even before the row is closed. */
+    @Test
+    void aStayThatHasEndedReleasesItsBed() {
+        Room single = room("P1", 1, "FULL");
+        hold(single, AllocationStatus.ACCEPTED, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 11, 10));
+
+        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId(), TODAY)).isEqualTo(1L);
+    }
+
+    /** GH-496: a bed already promised for next year is not shown as free today. */
+    @Test
+    void aBedPromisedForNextYearStillCounts() {
+        Room single = room("N1", 1, "AVAILABLE");
+        hold(single, AllocationStatus.ACCEPTED, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
+
+        assertThat(roomRepository.countAvailableRoomsByBuildingId(building.getId(), TODAY)).isZero();
     }
 
     private Room room(String number, int capacity, String status) {
@@ -188,6 +209,10 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
     }
 
     private void hold(Room room, AllocationStatus status) {
+        hold(room, status, null, null);
+    }
+
+    private void hold(Room room, AllocationStatus status, LocalDate stayStart, LocalDate stayEnd) {
         AppUser user = new AppUser();
         user.setEmail("avail-" + room.getRoomNumber() + status + "@test.local");
         user.setUserPassword("not-a-real-password");
@@ -208,6 +233,8 @@ class RoomAvailabilityQueryTest extends AbstractJpaTest {
         allocation.setTenantId(tenantId);
         allocation.setStatus(status);
         allocation.setAllocationDate(LocalDateTime.now());
+        allocation.setStayStartDate(stayStart);
+        allocation.setStayEndDate(stayEnd);
         roomAllocationRepository.saveAndFlush(allocation);
     }
 }

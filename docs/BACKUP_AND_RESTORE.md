@@ -113,8 +113,9 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 Adapt the container names if you run these services another way. The credentials these commands
 need are the ones in your `.env`; `.env.example` documents every variable.
 
-> `docker-compose.prod.yml` points at a `CREDENTIAL_ROTATION.md` that is not in the repository. If
-> you have a rotation procedure elsewhere, it governs any credential used below.
+> Rotating a credential used below: for PROD see `docs/PROD_RUNBOOK.md`, "Rotating the other PROD
+> secrets" and "The database password". For NONPROD and local, change the value in `.env` and
+> redeploy.
 
 ---
 

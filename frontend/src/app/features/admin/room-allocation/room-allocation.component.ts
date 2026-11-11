@@ -29,6 +29,8 @@ import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loa
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
+import { InstitutionIntakeFilterComponent } from '../../../shared/components/institution-intake-filter/institution-intake-filter.component';
+
 @Component({
   selector: 'app-room-allocation',
   templateUrl: './room-allocation.component.html',
@@ -36,6 +38,7 @@ import { confirmAction } from '../../../shared/components/confirm-dialog/confirm
   standalone: true,
   imports: [
     CommonModule,
+    InstitutionIntakeFilterComponent,
     ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
@@ -104,6 +107,8 @@ export class RoomAllocationComponent implements OnInit {
       roomNumber: [''],
       buildingId: [''],
       status: [''],
+      institutionId: [''],
+      intakeId: [''],
     });
   }
 
@@ -340,9 +345,14 @@ export class RoomAllocationComponent implements OnInit {
 
   get activeFilterCount(): number {
     const v = this.filterForm.value;
-    return [v.studentName, v.roomNumber, v.buildingId, v.status].filter(
-      (x) => x !== null && x !== '' && x !== undefined
-    ).length;
+    return [
+      v.studentName,
+      v.roomNumber,
+      v.buildingId,
+      v.status,
+      v.institutionId,
+      v.intakeId,
+    ].filter((x) => x !== null && x !== '' && x !== undefined).length;
   }
 
   toggleFilters(): void {

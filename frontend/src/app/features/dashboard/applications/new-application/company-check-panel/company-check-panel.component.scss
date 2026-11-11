@@ -1,0 +1,57 @@
+@use '../../../../../../styles/variables' as vars;
+
+.company-check {
+  border: 1px solid vars.$slate-200;
+  border-radius: vars.$radius-md;
+  padding: vars.$space-3 vars.$space-4;
+  margin-bottom: vars.$space-3;
+
+  &--blocked {
+    border-color: vars.$warning;
+  }
+}
+
+.company-head {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-3;
+}
+
+.company-icon {
+  color: vars.$accent-purple-dark;
+}
+
+.company-title {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.company-buildings {
+  font-size: 0.85rem;
+  color: vars.$slate-500;
+}
+
+.company-note,
+.company-problem,
+.company-intake {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+  margin: vars.$space-2 0 0;
+  font-size: 0.9rem;
+}
+
+.company-problem {
+  color: vars.$warning;
+}
+
+.company-link {
+  margin: vars.$space-2 vars.$space-2 0 0;
+}
+
+.company-intake-select {
+  width: 100%;
+  margin-top: vars.$space-3;
+}

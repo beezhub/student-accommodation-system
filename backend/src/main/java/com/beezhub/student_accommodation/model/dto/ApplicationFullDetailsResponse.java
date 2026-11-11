@@ -53,6 +53,12 @@ public class ApplicationFullDetailsResponse {
     // Allocation eligibility status
     private AllocationEligibility allocationEligibility;
 
+    /** An expiring document of the student has expired at this company (GH-498). */
+    private Boolean hasExpiredDocuments;
+
+    /** The student had been checked in at this company when they applied (GH-499). */
+    private Boolean isReturning;
+
     /**
      * Nested student profile information.
      */

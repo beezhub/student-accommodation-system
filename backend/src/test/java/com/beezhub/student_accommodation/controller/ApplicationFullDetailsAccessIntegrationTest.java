@@ -203,6 +203,8 @@ class ApplicationFullDetailsAccessIntegrationTest extends AbstractIntegrationTes
 
     private Application saveApplication(Student student, Tenant tenant) {
         Application application = applicationRepository.save(Application.builder()
+                .academicYear(testCalendar().year())
+                .intake(testCalendar().intake())
                 .applicationCode("APP-" + System.nanoTime())
                 .applicationDate(LocalDate.now())
                 .status(ApplicationStatus.PENDING)

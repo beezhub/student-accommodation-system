@@ -1,0 +1,101 @@
+<ul class="intake-list" aria-label="Intakes">
+  @for (intake of intakes; track intake.id) {
+  <li class="intake-row">
+    @if (editing === intake.id) {
+    <ng-container [ngTemplateOutlet]="editor"></ng-container>
+    } @else {
+    <div class="intake-summary">
+      <span class="intake-text">{{ describe(intake) }}</span>
+      <span class="window-badge" [class.open]="intake.isApplicationWindowOpen">
+        {{ intake.isApplicationWindowOpen ? 'Taking applications' : 'Not taking applications' }}
+      </span>
+    </div>
+    @if (canManage) {
+    <div class="intake-actions">
+      <button
+        mat-icon-button
+        class="intake-edit"
+        (click)="startEdit(intake)"
+        matTooltip="Edit"
+        [attr.aria-label]="'Edit ' + intake.name"
+      >
+        <mat-icon>edit</mat-icon>
+      </button>
+      @if (intake.isApplicationWindowOpen) {
+      <button
+        mat-icon-button
+        class="intake-close"
+        (click)="closeNow(intake)"
+        matTooltip="Close applications now"
+        [attr.aria-label]="'Close applications for ' + intake.name"
+      >
+        <mat-icon>event_busy</mat-icon>
+      </button>
+      }
+      <button
+        mat-icon-button
+        class="intake-delete"
+        (click)="remove(intake)"
+        matTooltip="Delete"
+        [attr.aria-label]="'Delete ' + intake.name"
+      >
+        <mat-icon>delete_outline</mat-icon>
+      </button>
+    </div>
+    } }
+  </li>
+  } @empty {
+  <li class="intake-empty">
+    No intakes yet. Students cannot apply for this year until it has one.
+  </li>
+  } @if (editing === 'new') {
+  <li class="intake-row">
+    <ng-container [ngTemplateOutlet]="editor"></ng-container>
+  </li>
+  }
+</ul>
+
+@if (canManage && editing === null) {
+<button mat-stroked-button class="add-intake" (click)="startAdd()">
+  <mat-icon>add</mat-icon>
+  Add intake
+</button>
+}
+
+<ng-template #editor>
+  <form class="intake-form" [formGroup]="form" (ngSubmit)="save()">
+    <mat-form-field appearance="outline">
+      <mat-label>Type</mat-label>
+      <mat-select formControlName="intakeType">
+        @for (type of types; track type.value) {
+        <mat-option [value]="type.value">{{ type.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" placeholder="Semester 2" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Move in</mat-label>
+      <input matInput type="date" formControlName="stayStartDate" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Move out</mat-label>
+      <input matInput type="date" formControlName="stayEndDate" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Applications open</mat-label>
+      <input matInput type="date" formControlName="applicationOpenDate" />
+      <mat-hint>Empty: filled in from move-in</mat-hint>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Applications close</mat-label>
+      <input matInput type="date" formControlName="applicationCloseDate" />
+    </mat-form-field>
+    <div class="form-actions">
+      <button mat-button type="button" (click)="cancel()">Cancel</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="isSaving">Save</button>
+    </div>
+  </form>
+</ng-template>

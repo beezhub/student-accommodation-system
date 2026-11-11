@@ -126,8 +126,19 @@ public class ApplicationDocumentCoordinator {
             } else {
                 roomAllocationService.enqueueWaitingList(student.getId(), application.getId());
             }
+        } catch (com.beezhub.student_accommodation.exceptions.RoomCapacityExceededException e) {
+            // The room is free today but already promised for the stay applied for (GH-496), so
+            // the student waits for a bed like anyone else rather than being dropped.
+            log.info("action=autoAllocateRoomFullForStay studentId={} applicationId={}",
+                    student.getId(), application.getId());
+            roomAllocationService.enqueueWaitingList(student.getId(), application.getId());
+        } catch (com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException e) {
+            // A required expiring document has expired (GH-498). The student waits in the queue,
+            // and the batch offers them a room once a replacement is approved.
+            log.info("action=autoAllocateDocumentsNotReady studentId={} applicationId={}",
+                    student.getId(), application.getId());
+            roomAllocationService.enqueueWaitingList(student.getId(), application.getId());
         } catch (com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException |
-                 com.beezhub.student_accommodation.exceptions.RoomCapacityExceededException |
                  com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException e) {
             log.error("Failed to auto-allocate room for student {}", student.getId(), e);
         }
@@ -135,6 +146,7 @@ public class ApplicationDocumentCoordinator {
 
     @Transactional(readOnly = true)
     public RoomAllocation findActiveAllocation(Long studentId) {
-        return roomAllocationRepository.findActiveAllocationByStudentId(studentId).orElse(null);
+        return com.beezhub.student_accommodation.service.allocation.LiveAllocations
+                .primary(roomAllocationRepository.findLiveAllocationsByStudentId(studentId)).orElse(null);
     }
 }

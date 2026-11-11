@@ -19,6 +19,8 @@ import com.beezhub.student_accommodation.service.AcademicYearService;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
+import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
+import com.beezhub.student_accommodation.exceptions.AcademicYearNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ApplicationNotFoundException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
 import com.beezhub.student_accommodation.exceptions.StudentNotFoundException;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +51,24 @@ public class WaitingListService {
     private final ApplicationEventPublisher eventPublisher;
     private final AuthService authService;
     private final AcademicYearService academicYearService;
+    private final TenantOwnershipGuard tenantOwnershipGuard;
+
+    /**
+     * The admin endpoint, where both ids come straight from the request (GH-490). The checks are
+     * here rather than in {@link #enqueueWaitingList(Long, Long)} because document approval and
+     * auto-allocation call that one with a pair they resolved themselves.
+     */
+    @Transactional
+    public MessageResponse enqueueWaitingListForAdmin(Long studentId, Long applicationId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ApplicationNotFoundException(
+                        "Application not found with id: " + applicationId));
+        tenantOwnershipGuard.assertOwned(application, "Application", applicationId);
+        if (!application.getStudent().getId().equals(studentId)) {
+            throw new IllegalArgumentException("This application belongs to a different student");
+        }
+        return enqueueWaitingList(studentId, applicationId);
+    }
 
     @Transactional
     public MessageResponse enqueueWaitingList(Long studentId, Long applicationId) {
@@ -63,7 +84,7 @@ public class WaitingListService {
             return new MessageResponse("Student is already on the waiting list");
         }
 
-        if (roomAllocationRepository.existsActiveAllocationByStudentId(studentId)) {
+        if (holdsBedForStay(studentId, application)) {
             log.info("Student {} has an active allocation; cannot add to waiting list", studentId);
             return new MessageResponse("Student already has an active allocation offer");
         }
@@ -81,7 +102,7 @@ public class WaitingListService {
 
         // Do not enqueue if student already has an active offer (OFFERED/ACCEPTED/ACTIVE).
         // They must accept or decline their current offer before re-entering the queue.
-        if (roomAllocationRepository.existsActiveAllocationByStudentId(student.getId())) {
+        if (holdsBedForStay(student.getId(), application)) {
             log.info("Student {} has an active allocation; skipping waiting-list enqueue", student.getId());
             return;
         }
@@ -93,6 +114,15 @@ public class WaitingListService {
         entry.setTenantId(resolveOwningTenantId(student, application));
         waitingListRepository.save(entry);
         log.warn("No rooms available; student {} placed on waiting list", student.getId());
+    }
+
+    /**
+     * Whether the student already holds a bed for dates overlapping the application's stay
+     * (GH-496). A 2026 resident can wait for a 2027 room.
+     */
+    private boolean holdsBedForStay(Long studentId, Application application) {
+        StayPeriod stay = StayPeriod.of(application);
+        return roomAllocationRepository.existsLiveAllocationForStudentDuring(studentId, stay.from(), stay.until());
     }
 
     @Transactional
@@ -238,12 +268,18 @@ public class WaitingListService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Student is not currently on the waiting list"));
 
-        AcademicYear currentYear = academicYearService.getCurrentAcademicYearEntity();
+        // The queue is the one the student's own application is in. Only an application with no
+        // year (none exist since GH-140) falls back to the company's current year by date.
+        AcademicYear currentYear = Optional.ofNullable(entry.getApplication())
+                .map(Application::getAcademicYear)
+                .or(() -> academicYearService.findCurrentAcademicYear(entry.getTenantId(), null))
+                .orElseThrow(() -> new AcademicYearNotFoundException("No current academic year"));
 
-        long position = waitingListRepository.countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
-                "WAITING", currentYear.getId(), entry.getCreatedAt()) + 1;
-        long totalInQueue = waitingListRepository.countByStatusAndApplication_AcademicYear_Id(
-                "WAITING", currentYear.getId());
+        // Entries whose stay has ended are never offered a room, so they are not ahead (GH-496).
+        java.time.LocalDate today = academicYearService.today();
+        long position = waitingListRepository.countWaitingInYearBefore(
+                currentYear.getId(), entry.getCreatedAt(), today) + 1;
+        long totalInQueue = waitingListRepository.countWaitingInYear(currentYear.getId(), today);
 
         Integer estimatedWaitDays = estimateWaitDays(position, currentYear.getId());
 

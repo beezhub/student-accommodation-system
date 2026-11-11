@@ -8,8 +8,10 @@ import com.beezhub.student_accommodation.model.entity.AcademicYear;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
+import com.beezhub.student_accommodation.model.entity.Intake;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.entity.Tenant;
+import com.beezhub.student_accommodation.model.enums.IntakeType;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
@@ -17,6 +19,7 @@ import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.BuildingRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
+import com.beezhub.student_accommodation.repository.IntakeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.TenantRepository;
 import com.beezhub.student_accommodation.security.jwt.JwtUtil;
@@ -56,6 +59,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
     @Autowired private TenantRepository tenantRepository;
     @Autowired private DocumentTypeRepository documentTypeRepository;
     @Autowired private DocumentRepository documentRepository;
+    @Autowired private IntakeRepository intakeRepository;
     @Autowired private DocumentLifecycleService documentLifecycleService;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private TestRestTemplate rest;
@@ -96,17 +100,9 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         buildingA = buildingRepository.save(b);
         createdBuildingIds.add(buildingA.getId());
 
-        // Seed a current AcademicYear — platform-level so no filter applies during service calls
-        AcademicYear year = AcademicYear.builder()
-                .name("2026 Test " + System.currentTimeMillis() % 10000)
-                .startDate(LocalDate.of(2026, 3, 1))
-                .endDate(LocalDate.of(2026, 12, 31))
-                .applicationOpenDate(LocalDate.of(2026, 1, 1))
-                .applicationCloseDate(LocalDate.of(2026, 12, 31))
-                .isCurrent(true)
-                .tenantId(TenantContext.PLATFORM_TENANT_ID)
-                .build();
-        academicYearRepository.save(year);
+        // GH-495: a company takes applications only for its own years, so tenant A has a year
+        // containing today with one Annual intake whose window is open.
+        seedOpenYear(tenantA);
 
         // Seed a platform-level student
         AppUser user = new AppUser();
@@ -138,6 +134,34 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
     }
 
+    /** A year of the company containing today, with one Annual intake whose window is open. */
+    private Intake seedOpenYear(Tenant company) {
+        LocalDate today = LocalDate.now(com.beezhub.student_accommodation.config.ClockConfig.CALENDAR_ZONE);
+        AcademicYear year = academicYearRepository.save(AcademicYear.builder()
+                .name("Y" + System.nanoTime() % 1_000_000_000L)
+                .startDate(today.minusMonths(1))
+                .endDate(today.plusMonths(10))
+                .tenantId(company.getId())
+                .build());
+        return intakeRepository.save(Intake.builder()
+                .tenantId(company.getId())
+                .academicYear(year)
+                .intakeType(IntakeType.ANNUAL)
+                .name("Annual")
+                .stayStartDate(year.getStartDate())
+                .stayEndDate(year.getEndDate())
+                .applicationOpenDate(today.minusMonths(2))
+                .applicationCloseDate(today.plusMonths(1))
+                .build());
+    }
+
+    /** The one application a single-company submission creates. */
+    private ApplicationResponse submitOne(ApplicationRequest request) {
+        List<ApplicationResponse> created = applicationService.submitApplication(request);
+        assertThat(created).hasSize(1);
+        return created.get(0);
+    }
+
     @AfterEach
     void tearDown() {
         applicationRepository.deleteAll();
@@ -165,7 +189,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         request.setRequiresAccessibility(false);
         request.setPreferredBuildingIds(List.of(buildingA.getId()));
 
-        ApplicationResponse response = applicationService.submitApplication(request);
+        ApplicationResponse response = submitOne(request);
 
         assertThat(response.getSpecialRequirements()).isEqualTo("Near elevator");
         var saved = applicationRepository.findAll().stream()
@@ -187,13 +211,14 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Submission with buildings from two different tenants throws IllegalArgumentException")
-    void submitApplication_rejectsCrossTenantPreferences() {
+    @DisplayName("GH-495: buildings at two companies create one application each, with only their own buildings")
+    void submitApplication_twoCompanies_createsOneApplicationPerCompany() {
         Tenant tenantB = tenantRepository.save(Tenant.builder()
                 .name("Property Co B " + System.currentTimeMillis())
                 .isActive(true)
                 .build());
         createdTenantIds.add(tenantB.getId());
+        seedOpenYear(tenantB);
 
         Building buildingB = new Building();
         buildingB.setName("Beta House " + System.currentTimeMillis());
@@ -203,11 +228,21 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
 
         ApplicationRequest request = new ApplicationRequest();
         request.setStudentId(student.getId());
-        request.setPreferredBuildingIds(List.of(buildingA.getId(), buildingB.getId()));
+        request.setPreferredBuildingIds(List.of(buildingB.getId(), buildingA.getId()));
 
-        assertThatThrownBy(() -> applicationService.submitApplication(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("same property company");
+        List<ApplicationResponse> created = applicationService.submitApplication(request);
+
+        assertThat(created).extracting(ApplicationResponse::getTenantId)
+                .containsExactly(tenantB.getId(), tenantA.getId());
+        assertThat(created.get(0).getPreferredBuildings()).singleElement().satisfies(p -> {
+            assertThat(p.getBuildingId()).isEqualTo(buildingB.getId());
+            assertThat(p.getPreferenceOrder()).isEqualTo(1);
+        });
+        assertThat(created.get(1).getPreferredBuildings()).singleElement().satisfies(p -> {
+            assertThat(p.getBuildingId()).isEqualTo(buildingA.getId());
+            assertThat(p.getPreferenceOrder()).isEqualTo(1);
+        });
+        assertThat(created).allSatisfy(a -> assertThat(a.getIntakeName()).isEqualTo("Annual"));
     }
 
     @Test
@@ -225,6 +260,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
                 .isActive(true)
                 .build());
         createdTenantIds.add(tenantB.getId());
+        seedOpenYear(tenantB);
 
         Building buildingB = new Building();
         buildingB.setName("Beta House 2 " + System.currentTimeMillis());
@@ -236,7 +272,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         ApplicationRequest requestB = new ApplicationRequest();
         requestB.setStudentId(student.getId());
         requestB.setPreferredBuildingIds(List.of(buildingB.getId()));
-        ApplicationResponse responseB = applicationService.submitApplication(requestB);
+        ApplicationResponse responseB = submitOne(requestB);
 
         assertThat(responseB).isNotNull();
         assertThat(responseB.getApplicationCode()).isNotNull();
@@ -264,7 +300,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         ApplicationRequest request = new ApplicationRequest();
         request.setStudentId(student.getId());
         request.setPreferredBuildingIds(List.of(buildingA.getId()));
-        ApplicationResponse submitted = applicationService.submitApplication(request);
+        ApplicationResponse submitted = submitOne(request);
 
         // Seed tenant B with a building but no application
         Tenant tenantB = tenantRepository.save(Tenant.builder()
@@ -308,7 +344,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         ApplicationRequest request = new ApplicationRequest();
         request.setStudentId(student.getId());
         request.setPreferredBuildingIds(List.of(buildingA.getId()));
-        ApplicationResponse submitted = applicationService.submitApplication(request);
+        ApplicationResponse submitted = submitOne(request);
 
         Long appId = applicationRepository.findAll().stream()
                 .filter(a -> a.getApplicationCode().equals(submitted.getApplicationCode()))
@@ -389,7 +425,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         request.setInstitutionName("Test U");
         request.setRequiresAccessibility(false);
 
-        ApplicationResponse response = applicationService.submitApplication(request);
+        ApplicationResponse response = submitOne(request);
 
         assertThat(response).isNotNull();
         assertThat(response.getApplicationCode()).isNotBlank();
@@ -426,7 +462,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         request.setStudentId(student.getId());
         request.setPreferredBuildingIds(List.of(buildingA.getId()));
 
-        ApplicationResponse response = applicationService.submitApplication(request);
+        ApplicationResponse response = submitOne(request);
 
         assertThat(response).isNotNull();
         assertThat(response.getApplicationCode()).isNotBlank();
@@ -456,7 +492,7 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
         request.setPreferredBuildingIds(List.of(buildingA.getId()));
 
         // Should succeed: Tenant A has no required types, so Tenant B's types are irrelevant
-        ApplicationResponse response = applicationService.submitApplication(request);
+        ApplicationResponse response = submitOne(request);
 
         assertThat(response).isNotNull();
         assertThat(response.getApplicationCode()).isNotBlank();

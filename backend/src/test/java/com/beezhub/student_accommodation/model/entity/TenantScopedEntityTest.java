@@ -74,7 +74,8 @@ class TenantScopedEntityTest {
 
     @ParameterizedTest
     @ValueSource(classes = {Building.class, Room.class, Application.class, RoomAllocation.class,
-            AcademicYear.class, AllocationRule.class, StagedAllocation.class, WaitingListEntry.class})
+            AcademicYear.class, AllocationRule.class, StagedAllocation.class, WaitingListEntry.class,
+            Intake.class})
     void establishedTenantEntities_keepTheirFilter(Class<?> entity) {
         // Guards against a filter being dropped while refactoring an entity.
         Filter filter = entity.getAnnotation(Filter.class);

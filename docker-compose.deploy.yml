@@ -29,6 +29,10 @@ x-bounded-logs: &bounded-logs
     max-file: "3"
 
 services:
+  # Fixed addresses for db and minio so a developer's SSH tunnel has a target that survives a deploy
+  # (#264). Neither has a host port; docs/NONPROD_RUNBOOK.md, "Developer access from your laptop",
+  # has the commands.
+
   # Requires TLS like RDS, so a driver, URL or certificate problem shows on NONPROD first (#380).
   # Set with `command` and a mounted file, not an init script: init scripts only run on an empty
   # data directory, and NONPROD's already holds data. PROD switches off db and db-tls-cert.
@@ -49,6 +53,14 @@ services:
     volumes:
       - postgres_tls:/var/lib/postgresql/tls:ro
       - ./tools/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    networks:
+      app-network:
+        ipv4_address: 172.28.0.20
+
+  minio:
+    networks:
+      app-network:
+        ipv4_address: 172.28.0.30
 
   # postgres:16.2-alpine has no openssl command, so this makes the self-signed certificate once and
   # exits. It reaches the network for openssl only when there is no certificate yet. uid 70 is the

@@ -3,8 +3,10 @@ package com.beezhub.student_accommodation.repository;
 import com.beezhub.student_accommodation.model.entity.Room;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -57,19 +59,15 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
     boolean existsByRoomNumberAndBuilding_IdAndIdNot(String roomNumber, Long buildingId, Long excludeId);
 
     /**
-     * Rooms that still have space: capacity above the live count of allocations holding a bed.
+     * Rooms that can take an offer for some dates: every room not in MAINTENANCE. Whether a bed is
+     * free is a question about a stay's dates (GH-496), so the batch job checks each student's stay
+     * against {@code RoomAllocationRepository.countHoldingBeds} as it matches them.
      *
-     * <p>ACTIVE, ACCEPTED and OFFERED all hold one — an offer reserves the bed until it lapses, or
-     * two students could be offered the last one. This is the same set
-     * {@code countActiveAllocationsByRoomId} counts, and the one {@code RoomOccupancyManager}
-     * derives occupancy from, so the read and the write agree.
-     *
-     * <p>MAINTENANCE is excluded. It was not before, and nothing downstream filtered it either, so
-     * auto-allocation could place a student in a room an admin had deliberately parked (GH-221).
+     * <p>MAINTENANCE is excluded, so auto-allocation never places a student in a room an admin has
+     * deliberately parked (GH-221).
      */
-    @Query("SELECT r FROM Room r WHERE r.status <> 'MAINTENANCE' AND r.capacity > " +
-           "(SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room.id = r.id AND ra.status IN ('ACTIVE', 'ACCEPTED', 'OFFERED'))")
-    List<Room> findRoomsWithAvailableCapacity();
+    @Query("SELECT r FROM Room r WHERE r.status <> 'MAINTENANCE'")
+    List<Room> findRoomsOpenForOffers();
 
     // Pricing summary per building: [buildingId, minMonthlyRate, maxMonthlyRate]
     @Query("SELECT r.building.id, MIN(r.monthlyRate), MAX(r.monthlyRate) " +
@@ -84,12 +82,17 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
      * derived by {@code RoomOccupancyManager.deriveStatus}, which only says AVAILABLE when the room
      * is completely empty — so a two-bed room with one occupant read as having no space at all, and
      * every shared room was undercounted here (GH-221).
+     *
+     * <p>A bed counts as taken when any live allocation holds it from {@code today} on (GH-496): a
+     * stay that has ended no longer takes it, while one planned for next year still does, so a
+     * room is never shown as free when it is already promised.
      */
     @Query("SELECT r.building.id, COUNT(r) FROM Room r " +
            "WHERE r.building IS NOT NULL AND r.status <> 'MAINTENANCE' AND r.capacity > " +
-           "(SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room.id = r.id AND ra.status IN ('ACTIVE', 'ACCEPTED', 'OFFERED')) " +
+           "(SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room.id = r.id AND ra.status IN ('ACTIVE', 'ACCEPTED', 'OFFERED') " +
+           "AND (ra.stayEndDate IS NULL OR ra.stayEndDate > :today)) " +
            "GROUP BY r.building.id")
-    List<Object[]> findAvailableRoomCountByBuilding();
+    List<Object[]> findAvailableRoomCountByBuilding(@Param("today") java.time.LocalDate today);
 
     /**
      * How many rooms in one building still have space. Same definition as
@@ -97,6 +100,17 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
      */
     @Query("SELECT COUNT(r) FROM Room r " +
            "WHERE r.building.id = :buildingId AND r.status <> 'MAINTENANCE' AND r.capacity > " +
-           "(SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room.id = r.id AND ra.status IN ('ACTIVE', 'ACCEPTED', 'OFFERED'))")
-    long countAvailableRoomsByBuildingId(@Param("buildingId") Long buildingId);
+           "(SELECT COUNT(ra) FROM RoomAllocation ra WHERE ra.room.id = r.id AND ra.status IN ('ACTIVE', 'ACCEPTED', 'OFFERED') " +
+           "AND (ra.stayEndDate IS NULL OR ra.stayEndDate > :today))")
+    long countAvailableRoomsByBuildingId(@Param("buildingId") Long buildingId,
+                                         @Param("today") java.time.LocalDate today);
+
+    /**
+     * Loads a room and locks its row until the transaction ends (GH-498). Two students asking for
+     * the last bed of the same stay at once are served one after the other, so the second sees the
+     * first one's extension in its count.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Room r WHERE r.id = :id")
+    Optional<Room> findByIdForUpdate(@Param("id") Long id);
 }

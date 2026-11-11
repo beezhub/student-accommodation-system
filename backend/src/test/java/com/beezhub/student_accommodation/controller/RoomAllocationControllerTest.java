@@ -84,10 +84,10 @@ class RoomAllocationControllerTest {
     @Test
     void searchRoomAllocations() {
         PageResponse<RoomAllocationResponse> page = new PageResponse<>();
-        when(roomAllocationService.searchRoomAllocations(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(page);
+        when(roomAllocationService.searchRoomAllocations(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(page);
 
         ResponseEntity<PageResponse<RoomAllocationResponse>> response = controller.searchRoomAllocations(
-                1L, 2L, 3L, LocalDateTime.now(), LocalDateTime.now(), "John", "101", "ACTIVE", Pageable.unpaged());
+                1L, 2L, 3L, LocalDateTime.now(), LocalDateTime.now(), "John", "101", "ACTIVE", 4L, 5L, Pageable.unpaged());
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }

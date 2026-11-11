@@ -3,6 +3,7 @@ package com.beezhub.student_accommodation.model.dto;
 import com.beezhub.student_accommodation.model.enums.DeclineReason;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -31,6 +32,17 @@ public class RoomAllocationResponse {
     // Expiry tracking
     private LocalDateTime offerExpiryDate;
     private LocalDateTime checkInExpiryDate;
+    private LocalDateTime expectedCheckInDate;
+    private LocalDateTime checkInDate;
+
+    // Planned stay (GH-496): move-in, and the date the bed is free again
+    private LocalDate stayStartDate;
+    private LocalDate stayEndDate;
+
+    // Reconfirmation before move-in (GH-496)
+    private LocalDateTime acceptedAt;
+    private LocalDateTime reconfirmRequestedAt;
+    private LocalDateTime reconfirmedAt;
 
     // Decline tracking
     private DeclineReason declineReason;

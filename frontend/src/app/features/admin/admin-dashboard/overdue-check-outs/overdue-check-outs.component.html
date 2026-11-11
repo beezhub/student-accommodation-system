@@ -1,0 +1,24 @@
+@if (total > 0) {
+<section class="overdue" aria-label="Overdue check-outs">
+  <div class="overdue-header">
+    <mat-icon class="overdue-icon" aria-hidden="true">warning</mat-icon>
+    <h3>Overdue check-outs ({{ total }})</h3>
+  </div>
+  <p class="overdue-hint">
+    These students are still checked in after their stay ended. The next student cannot check into
+    their bed until they check out.
+  </p>
+  <ul class="overdue-list">
+    @for (allocation of overdue; track allocation.id) {
+    <li>
+      <span class="overdue-name"
+        >{{ allocation.studentFirstName }} {{ allocation.studentLastName }}</span
+      >
+      <span>Room {{ allocation.roomNumber }}, {{ allocation.buildingName }}</span>
+      <span class="overdue-date">Stay ended {{ allocation.stayEndDate | date : 'd MMM y' }}</span>
+    </li>
+    }
+  </ul>
+  <a routerLink="/admin/room-allocations" class="overdue-link">Go to allocations to check out</a>
+</section>
+}

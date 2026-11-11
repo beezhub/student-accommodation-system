@@ -11,6 +11,9 @@ import java.util.Map;
 public class BuildingResponse {
     private Long id;
     private Long tenantId;
+
+    /** The company's name. Filled in only where a student picks buildings across companies (GH-495). */
+    private String companyName;
     private String name;
     private String address;
     private BigDecimal latitude;

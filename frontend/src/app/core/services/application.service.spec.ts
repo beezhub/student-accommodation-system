@@ -42,17 +42,18 @@ describe('ApplicationService', () => {
 
   describe('createApplication', () => {
     it('createApplication_validData_postsToSubmitEndpoint', () => {
-      const data = { preferredBuildingId: 5 };
-      let result: Application | undefined;
+      const data = { preferredBuildingIds: [5], intakeIds: { 10: 3 } };
+      let result: Application[] | undefined;
 
-      service.createApplication(data).subscribe((app) => (result = app));
+      service.createApplication(data).subscribe((apps) => (result = apps));
 
       const req = httpMock.expectOne(`${apiUrl}/submit`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(data);
-      req.flush(mockApplication);
+      req.flush([mockApplication]);
 
-      expect(result).toEqual(mockApplication);
+      // GH-495: one application per company.
+      expect(result).toEqual([mockApplication]);
     });
   });
 

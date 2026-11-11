@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.service.document.DocumentReadinessGuard;
 import com.beezhub.student_accommodation.config.FF4jConfig;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationRequest;
@@ -65,7 +66,8 @@ class AllocationBatchTenantScopeTest {
     void setUp() {
         service = new AllocationBatchService(waitingListRepository, lifecycleService, featureFlagService,
                 transactionTemplate, environment, orchestrator, stagedAllocationService, roomAllocationMapper,
-                new SimpleMeterRegistry(), neutralPriorityScorer());
+                new SimpleMeterRegistry(), neutralPriorityScorer(),
+                mock(DocumentReadinessGuard.class));
 
         when(featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
         when(transactionTemplate.execute(any())).thenAnswer(i ->
@@ -75,8 +77,8 @@ class AllocationBatchTenantScopeTest {
             roomQueryTenants.add(TenantContext.getTenantId());
             return List.of(roomFor(TenantContext.getTenantId()));
         });
-        when(orchestrator.buildRoomCapacityMap(any())).thenAnswer(i ->
-                new HashMap<>(Map.of(roomIdFor(TenantContext.getTenantId()), 1)));
+        when(orchestrator.newBedLedger(any())).thenAnswer(i ->
+                BedLedgers.of(Map.of(roomIdFor(TenantContext.getTenantId()), 1)));
         when(orchestrator.buildScoringMatrix(any())).thenAnswer(i -> {
             List<WaitingListEntry> entries = i.getArgument(0);
             Map<Long, List<ScoredRoom>> matrix = new HashMap<>();

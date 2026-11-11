@@ -67,12 +67,15 @@ public class RoomAllocationController {
                         @RequestParam(required = false) String studentName,
                         @RequestParam(required = false) String roomNumber,
                         @RequestParam(required = false) String status,
+                        @RequestParam(required = false) Long institutionId,
+                        @RequestParam(required = false) Long intakeId,
                         @PageableDefault(size = 20, sort = "allocationDate") Pageable pageable) {
-                log.info("Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}, studentName: {}, roomNumber: {}, status: {}",
-                                studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status);
+                log.info("Searching room allocations with filters - studentId: {}, roomId: {}, buildingId: {}, fromDate: {}, toDate: {}, studentName: {}, roomNumber: {}, status: {}, institutionId: {}, intakeId: {}",
+                                studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status,
+                                institutionId, intakeId);
                 PageResponse<RoomAllocationResponse> page = roomAllocationService.searchRoomAllocations(
                                 studentId, roomId, buildingId, fromDate, toDate, studentName, roomNumber, status,
-                                pageable);
+                                institutionId, intakeId, pageable);
                 return ResponseEntity.ok(page);
         }
 

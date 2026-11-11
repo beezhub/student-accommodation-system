@@ -1,0 +1,14 @@
+@if (windows.length > 0) {
+<aside class="open-windows" aria-label="Applications open now">
+  <mat-icon class="open-windows-icon" aria-hidden="true">campaign</mat-icon>
+  <div class="open-windows-body">
+    <strong>Applications are open</strong>
+    <ul class="open-windows-list">
+      @for (window of windows; track window.companyId) {
+      <li>{{ describe(window) }}</li>
+      }
+    </ul>
+  </div>
+  <a mat-flat-button color="primary" routerLink="/applications/new">Apply now</a>
+</aside>
+}

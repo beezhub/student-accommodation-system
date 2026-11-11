@@ -7,6 +7,7 @@ import com.beezhub.student_accommodation.model.enums.NotificationType;
 import com.beezhub.student_accommodation.model.event.*;
 import com.beezhub.student_accommodation.service.EmailService;
 import com.beezhub.student_accommodation.service.allocation.WaitingListService;
+import com.beezhub.student_accommodation.service.application.CompanyIntakePolicy;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -34,6 +35,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -74,7 +76,8 @@ class NotificationTemplateDataTest {
      * (GH-141). The reminder jobs write no row: an unsent reminder is simply picked up on the next run.
      */
     private static final Set<String> NOT_RETRIED_FROM_A_ROW =
-            Set.of("password-reset", "offer-expiry-reminder", "check-in-reminder");
+            Set.of("password-reset", "offer-expiry-reminder", "check-in-reminder",
+                    DocumentExpiryNotificationListener.TEMPLATE);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private NotificationPersistenceService persistence;
@@ -92,8 +95,15 @@ class NotificationTemplateDataTest {
                 mock(EmailService.class), new EmailContentBuilder(), new SimpleMeterRegistry());
         ReflectionTestUtils.setField(dispatch, "baseUrl", BASE_URL);
 
+        CompanyIntakePolicy intakePolicy = mock(CompanyIntakePolicy.class);
+        when(intakePolicy.openIntakes(any(), any())).thenReturn(List.of(intake("Semester 2",
+                LocalDate.of(2027, 7, 15), LocalDate.of(2027, 11, 30))));
+        ApplicationExpiryEmailService expiryEmails = new ApplicationExpiryEmailService(
+                mock(EmailService.class), new EmailContentBuilder(), intakePolicy, new SimpleMeterRegistry());
+        ReflectionTestUtils.setField(expiryEmails, "baseUrl", BASE_URL);
+
         // find() returns null, so the listener uses the entity carried on the event.
-        listener = new NotificationEventListener(persistence, dispatch, mock(EntityManager.class));
+        listener = new NotificationEventListener(persistence, dispatch, expiryEmails, mock(EntityManager.class));
 
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
@@ -113,6 +123,8 @@ class NotificationTemplateDataTest {
                         new ApplicationStatusChangedEvent(application(), ApplicationStatus.PENDING, ApplicationStatus.REJECTED))),
                 emailType("application-changes-requested", l -> l.handleApplicationStatusChanged(
                         new ApplicationStatusChangedEvent(application(), ApplicationStatus.UNDER_REVIEW, ApplicationStatus.CHANGES_REQUESTED))),
+                emailType("application-expired", l -> l.handleApplicationStatusChanged(
+                        new ApplicationStatusChangedEvent(expiredApplication(), ApplicationStatus.PENDING, ApplicationStatus.EXPIRED))),
                 emailType("document-verified",l -> l.handleDocumentVerification(
                         new DocumentVerificationEvent(document(), DocumentStatus.PENDING, DocumentStatus.APPROVED, null))),
                 emailType("document-rejected", l -> l.handleDocumentVerification(
@@ -180,10 +192,104 @@ class NotificationTemplateDataTest {
                 .collect(Collectors.toSet());
 
         Set<String> accountedFor = emailTypes().map(type -> (String) type.get()[0]).collect(Collectors.toSet());
+        reconfirmationEmailTypes().map(type -> (String) type.get()[0]).forEach(accountedFor::add);
+        accountedFor.add(WithdrawalNotificationListener.TEMPLATE);
+        accountedFor.add(StayExtensionNotificationListener.TEMPLATE);
         accountedFor.add("welcome");
         accountedFor.addAll(NOT_RETRIED_FROM_A_ROW);
 
         assertThat(accountedFor).containsExactlyInAnyOrderElementsOf(onDisk);
+    }
+
+    /** GH-496: the reconfirmation emails go through their own listener. */
+    static Stream<Arguments> reconfirmationEmailTypes() {
+        return Stream.of(
+                Arguments.of("reconfirm-request", (Consumer<ReconfirmationNotificationListener>) l ->
+                        l.handleReconfirmationRequested(new ReconfirmationRequestedEvent(
+                                reconfirmAllocation(), false, LocalDate.of(2027, 1, 18)))),
+                Arguments.of("reconfirm-reminder", (Consumer<ReconfirmationNotificationListener>) l ->
+                        l.handleReconfirmationRequested(new ReconfirmationRequestedEvent(
+                                reconfirmAllocation(), true, LocalDate.of(2027, 1, 18)))),
+                Arguments.of("place-released", (Consumer<ReconfirmationNotificationListener>) l ->
+                        l.handlePlaceReleased(new PlaceReleasedEvent(reconfirmAllocation()))));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("reconfirmationEmailTypes")
+    @SuppressWarnings("unchecked")
+    void storedTemplateData_reconfirmationEmails_carryEveryVariableAndRender(
+            String template, Consumer<ReconfirmationNotificationListener> fire) throws IOException {
+        ReconfirmationEmailService emails = new ReconfirmationEmailService(
+                mock(EmailService.class), new EmailContentBuilder(), new SimpleMeterRegistry());
+        ReflectionTestUtils.setField(emails, "baseUrl", BASE_URL);
+        fire.accept(new ReconfirmationNotificationListener(persistence, emails, mock(EntityManager.class)));
+        ArgumentCaptor<Map<String, Object>> captured = ArgumentCaptor.forClass(Map.class);
+        verify(persistence).createNotification(any(), any(), any(NotificationType.class), any(), any(), any(),
+                captured.capture());
+        Map<String, Object> stored = captured.getValue();
+
+        assertThat(stored).containsEntry("templateName", template);
+        assertThat(stored).containsKeys(variablesReadBy(template).toArray(String[]::new));
+        assertThat(renderRetry(template, stored)).contains("href=\"" + BASE_URL + "/").contains("01 February 2027");
+    }
+
+    /** GH-497: the withdrawal email goes through its own listener and lists every application. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void storedTemplateData_applicationsWithdrawn_carriesEveryVariableAndRenders() throws IOException {
+        EntityManager entityManager = mock(EntityManager.class);
+        when(entityManager.find(Student.class, 1L)).thenReturn(student());
+        when(entityManager.find(RoomAllocation.class, 30L)).thenReturn(allocation());
+        WithdrawalNotificationListener withdrawal = new WithdrawalNotificationListener(persistence,
+                mock(EmailService.class), mock(com.beezhub.student_accommodation.service.UserNotificationService.class),
+                mock(com.beezhub.student_accommodation.repository.AppUserRepository.class), entityManager,
+                new SimpleMeterRegistry());
+        ReflectionTestUtils.setField(withdrawal, "baseUrl", BASE_URL);
+
+        withdrawal.handleApplicationsWithdrawn(new ApplicationsWithdrawnEvent(1L, 30L, List.of(
+                new ApplicationsWithdrawnEvent.Withdrawn(11L, "APP-11", 8L, "Company B", "Semester 1, 2027", 0))));
+        ArgumentCaptor<Map<String, Object>> captured = ArgumentCaptor.forClass(Map.class);
+        verify(persistence).createNotification(any(), any(), any(NotificationType.class), any(), any(), any(),
+                captured.capture());
+        Map<String, Object> stored = captured.getValue();
+
+        assertThat(stored).containsEntry("templateName", "applications-withdrawn");
+        assertThat(stored).containsKeys(variablesReadBy("applications-withdrawn").toArray(String[]::new));
+        assertThat(renderRetry("applications-withdrawn", stored)).contains("href=\"" + BASE_URL + "/")
+                .contains("APP-11 at Company B, Semester 1, 2027");
+    }
+
+    /** GH-498: the stay-extended confirmation is stored for retry and renders from the stored row. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void storedTemplateData_stayExtended_carriesEveryVariableAndRenders() throws IOException {
+        EntityManager entityManager = mock(EntityManager.class);
+        when(entityManager.find(RoomAllocation.class, 30L)).thenReturn(allocation());
+        StayExtensionNotificationListener stayListener = new StayExtensionNotificationListener(persistence,
+                mock(EmailService.class), new EmailContentBuilder(),
+                mock(com.beezhub.student_accommodation.service.UserNotificationService.class),
+                mock(com.beezhub.student_accommodation.repository.AppUserRepository.class), entityManager,
+                new SimpleMeterRegistry());
+        ReflectionTestUtils.setField(stayListener, "baseUrl", BASE_URL);
+
+        stayListener.handleStayExtended(new StayExtendedEvent(30L, "Semester 2",
+                LocalDate.of(2027, 6, 30), LocalDate.of(2027, 11, 30)));
+        ArgumentCaptor<Map<String, Object>> captured = ArgumentCaptor.forClass(Map.class);
+        verify(persistence).createNotification(any(), any(), any(NotificationType.class), any(), any(), any(),
+                captured.capture());
+        Map<String, Object> stored = captured.getValue();
+
+        assertThat(stored).containsEntry("templateName", "stay-extended");
+        assertThat(stored).containsKeys(variablesReadBy("stay-extended").toArray(String[]::new));
+        assertThat(renderRetry("stay-extended", stored)).contains("href=\"" + BASE_URL + "/")
+                .contains("30 November 2027");
+    }
+
+    private static RoomAllocation reconfirmAllocation() {
+        RoomAllocation allocation = allocation();
+        allocation.setStayStartDate(LocalDate.of(2027, 2, 1));
+        allocation.setStayEndDate(LocalDate.of(2027, 11, 30));
+        return allocation;
     }
 
     private static Arguments emailType(String template, Consumer<NotificationEventListener> fire) {
@@ -254,6 +360,20 @@ class NotificationTemplateDataTest {
         application.setApplicationCode("APP-10");
         application.setApplicationDate(LocalDate.of(2026, 1, 10));
         return application;
+    }
+
+    /** GH-497: an application for Semester 1, which ended on 30 June 2027. */
+    private static Application expiredApplication() {
+        Application application = application();
+        application.setIntake(intake("Semester 1", LocalDate.of(2027, 2, 1), LocalDate.of(2027, 6, 30)));
+        application.setTenant(Tenant.builder().id(1L).name("Company A").build());
+        return application;
+    }
+
+    private static Intake intake(String name, LocalDate start, LocalDate end) {
+        AcademicYear year = AcademicYear.builder().id(5L).name("2027").build();
+        return Intake.builder().id(6L).name(name).academicYear(year).stayStartDate(start).stayEndDate(end)
+                .applicationOpenDate(start.minusMonths(4)).applicationCloseDate(start.minusDays(14)).build();
     }
 
     private static Document document() {

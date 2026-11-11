@@ -17,7 +17,13 @@ describe('DocumentTypeFormDialogComponent', () => {
           provide: MAT_DIALOG_DATA,
           useValue: {
             mode: 'edit',
-            documentType: { id: 3, name: 'ID Copy', description: 'A copy', isRequired: true },
+            documentType: {
+              id: 3,
+              name: 'ID Copy',
+              description: 'A copy',
+              isRequired: true,
+              isExpiring: true,
+            },
           },
         },
       ],
@@ -29,6 +35,7 @@ describe('DocumentTypeFormDialogComponent', () => {
       name: 'ID Copy',
       description: 'A copy',
       isRequired: true,
+      isExpiring: true,
     });
   });
 });

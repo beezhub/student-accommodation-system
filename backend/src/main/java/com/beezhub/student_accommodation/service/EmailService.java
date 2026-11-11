@@ -155,7 +155,7 @@ public class EmailService {
     }
 
     // ──────────────────────────────────────────────────────────────────────────────
-    // Context mapping — sealed switch exhausts all 22 EmailContext subtypes
+    // Context mapping: the sealed switch exhausts all 26 EmailContext subtypes
     // ──────────────────────────────────────────────────────────────────────────────
 
     public static Map<String, Object> toVariableMap(EmailContext ctx) {
@@ -177,7 +177,7 @@ public class EmailService {
                 vars.put("applicationId", c.applicationId());
                 vars.put("applicationDate", c.applicationDate());
                 vars.put("academicYear", c.academicYear());
-                vars.put("semester", c.semester());
+                vars.put("intake", c.intake());
                 vars.put("portalUrl", c.portalUrl());
             }
             case ApplicationRejectedContext c -> {
@@ -330,6 +330,64 @@ public class EmailService {
                 vars.put("applicationCode", c.applicationCode());
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case ReconfirmRequestContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("moveInDate", c.moveInDate());
+                vars.put("releaseDate", c.releaseDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case ReconfirmReminderContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("moveInDate", c.moveInDate());
+                vars.put("releaseDate", c.releaseDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case PlaceReleasedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("applicationCode", c.applicationCode());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("moveInDate", c.moveInDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case ApplicationExpiredContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("applicationCode", c.applicationCode());
+                vars.put("companyName", c.companyName());
+                vars.put("intakeName", c.intakeName());
+                vars.put("stayEndDate", c.stayEndDate());
+                vars.put("nextIntakeName", c.nextIntakeName());
+                vars.put("nextMoveInDate", c.nextMoveInDate());
+                vars.put("nextApplyByDate", c.nextApplyByDate());
+                vars.put("applyUrl", c.applyUrl());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case ApplicationsWithdrawnContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("acceptedPlace", c.acceptedPlace());
+                vars.put("withdrawn", c.withdrawn());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case DocumentExpiryReminderContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("documentName", c.documentName());
+                vars.put("expiryDate", c.expiryDate());
+                vars.put("expired", c.expired());
+                vars.put("companyName", c.companyName());
+                vars.put("documentsUrl", c.documentsUrl());
+            }
+            case StayExtendedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("intakeName", c.intakeName());
+                vars.put("stayEndDate", c.stayEndDate());
                 vars.put("portalUrl", c.portalUrl());
             }
         }

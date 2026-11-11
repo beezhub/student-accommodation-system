@@ -1,3 +1,4 @@
+import { applicationIntakeLabel } from '../../../core/utils/apply-wording';
 import {
   Component,
   OnInit,
@@ -86,6 +87,9 @@ export class ApplicationsComponent implements OnInit {
     'actions',
   ] as const;
   dataSource = new MatTableDataSource<Application>(this.applications);
+
+  /** "Annual, 2027" on each card (GH-495). */
+  readonly intakeLabel = applicationIntakeLabel;
 
   ngOnInit() {
     this.currentUser = this.authService.currentUserValue;

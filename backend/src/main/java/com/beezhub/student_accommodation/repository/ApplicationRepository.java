@@ -48,12 +48,14 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
       */
      @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
              "student", "student.appUser", "preferredBuilding",
-             "buildingPreferences", "buildingPreferences.building"})
+             "buildingPreferences", "buildingPreferences.building",
+             "academicYear", "intake", "tenant"})
      Optional<Application> findWithDetailsById(Long id);
 
      @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
              "student", "student.appUser", "preferredBuilding",
-             "buildingPreferences", "buildingPreferences.building"})
+             "buildingPreferences", "buildingPreferences.building",
+             "academicYear", "intake", "tenant"})
      List<Application> findWithDetailsByStudent_Id(Long studentId);
 
      boolean existsByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
@@ -71,11 +73,48 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      boolean existsByStudent_IdAndTenantIdAndStatusIn(Long studentId, Long tenantId, java.util.Collection<ApplicationStatus> statuses);
 
+     /**
+      * Whether the student has an active application with the company for the year (GH-495). The
+      * tenant is explicit, since students are tenant 0 and the filter does nothing for them.
+      */
+     boolean existsByStudent_IdAndTenantIdAndAcademicYear_IdAndStatusIn(
+                     Long studentId, Long tenantId, Long academicYearId, Collection<ApplicationStatus> statuses);
+
      List<Application> findByStudent_IdAndStatus(Long studentId, ApplicationStatus status);
+
+     /**
+      * Companies with an application in one of the statuses whose stay ended before {@code today}
+      * (GH-497): the intake's stay end, or the year's end for a row with no intake. Across every
+      * company on purpose; the expiry job then works one company at a time.
+      */
+     @Query("SELECT DISTINCT a.tenantId FROM Application a LEFT JOIN a.intake i LEFT JOIN a.academicYear y "
+                     + "WHERE a.status IN :statuses AND COALESCE(i.stayEndDate, y.endDate) < :today")
+     List<Long> findTenantIdsWithStayEndedBefore(@Param("statuses") Collection<ApplicationStatus> statuses,
+                     @Param("today") java.time.LocalDate today);
+
+     /** As {@link #findTenantIdsWithStayEndedBefore}, the application ids of one company. */
+     @Query("SELECT a.id FROM Application a LEFT JOIN a.intake i LEFT JOIN a.academicYear y "
+                     + "WHERE a.tenantId = :tenantId AND a.status IN :statuses "
+                     + "AND COALESCE(i.stayEndDate, y.endDate) < :today ORDER BY a.id")
+     List<Long> findIdsWithStayEndedBefore(@Param("tenantId") Long tenantId,
+                     @Param("statuses") Collection<ApplicationStatus> statuses,
+                     @Param("today") java.time.LocalDate today);
+
+     /** Companies with an application in one of the statuses (GH-498), across every company. */
+     @Query("SELECT DISTINCT a.tenantId FROM Application a WHERE a.status IN :statuses")
+     List<Long> findTenantIdsWithStatusIn(@Param("statuses") Collection<ApplicationStatus> statuses);
+
+     /** One company's applications in the statuses, with the student and institution loaded. */
+     @Query("SELECT a FROM Application a JOIN FETCH a.student s LEFT JOIN FETCH s.institution "
+                     + "LEFT JOIN FETCH a.institution WHERE a.tenantId = :tenantId AND a.status IN :statuses")
+     List<Application> findByTenantIdAndStatusInWithStudent(@Param("tenantId") Long tenantId,
+                     @Param("statuses") Collection<ApplicationStatus> statuses);
 
      void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 
      boolean existsByAcademicYear_Id(Long academicYearId);
+
+     long countByAcademicYear_Id(Long academicYearId);
 
      /**
       * Race-free application-code counter; see V2026_09_05_1100__application_code_sequence.sql.

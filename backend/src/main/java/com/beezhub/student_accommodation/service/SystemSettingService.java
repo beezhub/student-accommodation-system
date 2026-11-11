@@ -96,6 +96,21 @@ public class SystemSettingService {
     }
 
     /**
+     * Cascade lookup for a named company rather than the caller: that company's value, else the
+     * platform default. Used where a platform admin acts on a company's data, such as filling in
+     * an intake's window for that company's year (GH-494).
+     */
+    public String getSettingForTenant(Long tenantId, String key) {
+        if (tenantId != null && !TenantContext.PLATFORM_TENANT_ID.equals(tenantId)) {
+            Optional<SystemSetting> own = systemSettingRepository.findByTenantIdAndKey(tenantId, key);
+            if (own.isPresent() && own.get().getSettingValue() != null) {
+                return own.get().getSettingValue();
+            }
+        }
+        return getPlatformSetting(key);
+    }
+
+    /**
      * Returns a merged map of effective settings for the current tenant.
      * Platform defaults are the base; tenant-specific rows override matching keys.
      */

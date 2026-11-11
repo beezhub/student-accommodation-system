@@ -56,5 +56,26 @@ public class ApplicationResponse {
 
     private String allocationStatus;
 
+    /** A required or other expiring document of the student has expired at this company (GH-498). */
+    private Boolean hasExpiredDocuments;
+
+    /** The student had been checked in at this company when they applied (GH-499). */
+    private Boolean isReturning;
+
     private Long tenantId;
+
+    /** The company the application is with (GH-495). */
+    private String companyName;
+
+    // The intake applied for and its year (GH-495). Empty only on rows step 3 could not repair.
+    private Long academicYearId;
+    private String academicYearName;
+    private Long intakeId;
+    private String intakeName;
+    private String intakeType;
+    private LocalDate intakeStayStartDate;
+    private LocalDate intakeStayEndDate;
+
+    /** The student's institution when they applied. */
+    private Long institutionId;
 }

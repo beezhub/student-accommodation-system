@@ -68,10 +68,10 @@ public enum ApplicationStatus {
      *
      * <p>Valid transitions, matching the switch below rather than an older draft of it:
      * <ul>
-     *   <li>PENDING -> UNDER_REVIEW, APPROVED, REJECTED, CANCELLED</li>
-     *   <li>UNDER_REVIEW -> PENDING, CHANGES_REQUESTED, APPROVED, REJECTED</li>
-     *   <li>CHANGES_REQUESTED -> PENDING, CANCELLED</li>
-     *   <li>APPROVED -> AWAITING_ALLOCATION, ALLOCATED, REJECTED, CANCELLED</li>
+     *   <li>PENDING -> UNDER_REVIEW, APPROVED, REJECTED, EXPIRED, CANCELLED</li>
+     *   <li>UNDER_REVIEW -> PENDING, CHANGES_REQUESTED, APPROVED, REJECTED, EXPIRED, CANCELLED</li>
+     *   <li>CHANGES_REQUESTED -> PENDING, EXPIRED, CANCELLED</li>
+     *   <li>APPROVED -> AWAITING_ALLOCATION, ALLOCATED, REJECTED, EXPIRED, CANCELLED</li>
      *   <li>AWAITING_ALLOCATION -> ALLOCATED, REJECTED, EXPIRED, CANCELLED</li>
      *   <li>ALLOCATED -> CHECKED_IN, AWAITING_ALLOCATION, EXPIRED, CANCELLED</li>
      *   <li>CHECKED_IN, REJECTED, EXPIRED, CANCELLED -> terminal</li>
@@ -82,6 +82,11 @@ public enum ApplicationStatus {
      * still APPROVED when the student accepts. Requiring AWAITING_ALLOCATION first would have made
      * the ordinary accept path illegal rather than describing it (GH-137).
      *
+     * <p>EXPIRED from the four unfinished statuses before AWAITING_ALLOCATION is how an application
+     * ends when its intake's stay is over and nobody finished it (GH-497). UNDER_REVIEW to CANCELLED
+     * is how an application under review is withdrawn when the student accepts a place elsewhere for
+     * overlapping dates; every other unfinished status could already be cancelled.
+     *
      * <p>The javadoc above also previously omitted three transitions the switch has always
      * allowed, which is how the issue came to describe a legal expiry transition as illegal.
      */
@@ -91,12 +96,14 @@ public enum ApplicationStatus {
             return true;
 
         return switch (this) {
-            case PENDING -> target == UNDER_REVIEW || target == APPROVED || target == REJECTED || target == CANCELLED;
+            case PENDING -> target == UNDER_REVIEW || target == APPROVED || target == REJECTED || target == EXPIRED
+                    || target == CANCELLED;
             case UNDER_REVIEW ->
-                target == PENDING || target == CHANGES_REQUESTED || target == APPROVED || target == REJECTED;
-            case CHANGES_REQUESTED -> target == PENDING || target == CANCELLED;
+                target == PENDING || target == CHANGES_REQUESTED || target == APPROVED || target == REJECTED
+                        || target == EXPIRED || target == CANCELLED;
+            case CHANGES_REQUESTED -> target == PENDING || target == EXPIRED || target == CANCELLED;
             case APPROVED ->
-                target == AWAITING_ALLOCATION || target == ALLOCATED || target == REJECTED
+                target == AWAITING_ALLOCATION || target == ALLOCATED || target == REJECTED || target == EXPIRED
                         || target == CANCELLED;
             case AWAITING_ALLOCATION ->
                 target == ALLOCATED || target == REJECTED || target == EXPIRED || target == CANCELLED;

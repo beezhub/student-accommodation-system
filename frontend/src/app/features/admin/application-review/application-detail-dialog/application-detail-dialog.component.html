@@ -17,6 +17,9 @@
             *ngIf="applicationDetails"
             [status]="applicationDetails.status">
           </app-modern-status-badge>
+          <app-application-flags *ngIf="applicationDetails"
+            [expired]="applicationDetails.hasExpiredDocuments"
+            [returning]="applicationDetails.isReturning"></app-application-flags>
         </div>
         <div class="header-meta" *ngIf="applicationDetails && student">
           <span class="app-code">{{ applicationDetails.applicationCode }}</span>
@@ -292,6 +295,11 @@
                   </mat-panel-title>
                   <mat-panel-description class="doc-panel-desc">
                     <span class="doc-type-label">{{ doc.documentTypeName }}</span>
+                    @if (doc.expiryDate) {
+                      <span class="doc-type-label" [class.doc-expired]="doc.expired">
+                        {{ doc.expired ? 'Expired' : 'Expires' }} {{ doc.expiryDate | date: 'd MMM y' }}
+                      </span>
+                    }
                     <app-modern-status-badge [status]="getDocumentCurrentStatus(doc)" size="sm" />
                   </mat-panel-description>
                 </mat-expansion-panel-header>

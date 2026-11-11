@@ -41,9 +41,15 @@
                 
                 <div class="mobile-card-body">
                   <div class="mobile-info-row">
-                    <span class="label">Year</span>
-                    <span class="value">{{(app.applicationDate || app.createdAt || '') | date:'yyyy'}}</span>
+                    <span class="label">Intake</span>
+                    <span class="value">{{ intakeLabel(app) }}</span>
                   </div>
+                  @if (app.companyName) {
+                    <div class="mobile-info-row">
+                      <span class="label">Company</span>
+                      <span class="value">{{ app.companyName }}</span>
+                    </div>
+                  }
                   <div class="mobile-info-row">
                     <span class="label">Date</span>
                     <span class="value">{{(app.applicationDate || app.createdAt) | date:'mediumDate'}}</span>
@@ -90,9 +96,12 @@
 
               <!-- Year Column -->
               <ng-container matColumnDef="year">
-                <th mat-header-cell *matHeaderCellDef> Year </th>
+                <th mat-header-cell *matHeaderCellDef> Intake </th>
                 <td mat-cell *matCellDef="let app">
-                  <span class="year-badge"><mat-icon>calendar_today</mat-icon> {{(app.applicationDate || app.createdAt || '') | date:'yyyy'}}</span>
+                  <span class="year-badge"><mat-icon>calendar_today</mat-icon> {{ intakeLabel(app) }}</span>
+                  @if (app.companyName) {
+                    <div class="intake-company">{{ app.companyName }}</div>
+                  }
                 </td>
               </ng-container>
 

@@ -1,5 +1,8 @@
 package com.beezhub.student_accommodation.service.notification;
 
+import com.beezhub.student_accommodation.model.entity.AcademicYear;
+import com.beezhub.student_accommodation.model.entity.Application;
+import com.beezhub.student_accommodation.model.entity.Intake;
 import com.beezhub.student_accommodation.model.entity.Room;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,14 +47,22 @@ public class EmailContentBuilder {
         return dateTime.atZone(ZoneId.systemDefault()).format(DEADLINE_FORMATTER);
     }
 
-    public String getCurrentAcademicYear() {
-        int currentYear = LocalDateTime.now().getYear();
-        return currentYear + "/" + (currentYear + 1);
+    /**
+     * The academic year the application is for (GH-495). This used to be built from the calendar,
+     * so a student applying for next year was told this year.
+     */
+    public String academicYearOf(Application application) {
+        AcademicYear year = application.getAcademicYear();
+        return year != null && year.getName() != null ? year.getName() : "N/A";
     }
 
-    public String getCurrentSemester() {
-        int currentMonth = LocalDateTime.now().getMonthValue();
-        return currentMonth >= 1 && currentMonth <= 6 ? "First Semester" : "Second Semester";
+    /**
+     * The intake the application is for, for example "Semester 2" (GH-495). This used to be
+     * guessed from the month, which was wrong for Annual and Trimester intakes.
+     */
+    public String intakeOf(Application application) {
+        Intake intake = application.getIntake();
+        return intake != null && intake.getName() != null ? intake.getName() : "N/A";
     }
 
     public String getNextApplicationPeriod() {

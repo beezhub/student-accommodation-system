@@ -77,6 +77,9 @@ jobs:
         run: ./gradlew jacocoTestReport
         if: always()
 
+      - name: Verify coverage minimums
+        run: ./gradlew jacocoTestCoverageVerification
+
       - name: Upload test results
         uses: actions/upload-artifact@v7
         if: always()

@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.exceptions.UnauthorizedAccessException;
 import com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse;
 import com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse.AllocationEligibility;
 import com.beezhub.student_accommodation.model.dto.ApplicationFullDetailsResponse.StudentProfile;
+import com.beezhub.student_accommodation.model.dto.DocumentExpiryResponse;
 import com.beezhub.student_accommodation.model.dto.DocumentWithCommentsResponse;
 import com.beezhub.student_accommodation.model.dto.RequiredDocumentsChecklistResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
@@ -13,6 +14,7 @@ import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.UserRole;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.service.AuthService;
+import com.beezhub.student_accommodation.service.document.DocumentExpiryQueryService;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 import static com.beezhub.student_accommodation.model.enums.ApplicationStatus.*;
 
@@ -41,6 +44,7 @@ public class ApplicationQueryService {
     private final AuthService authService;
     private final ApplicationDocumentService applicationDocumentService;
     private final TenantOwnershipGuard tenantOwnershipGuard;
+    private final DocumentExpiryQueryService documentExpiryQueryService;
 
     /**
      * Gets comprehensive application details including student profile,
@@ -81,6 +85,8 @@ public class ApplicationQueryService {
         List<DocumentWithCommentsResponse> documentsWithComments = applicationDocumentService
                 .getDocumentsWithComments(applicationId);
 
+        boolean anyExpired = markExpiry(application, documentsWithComments);
+
         // Get required documents checklist (Delegated)
         RequiredDocumentsChecklistResponse checklist = applicationDocumentService
                 .getRequiredDocumentsChecklist(applicationId);
@@ -91,9 +97,29 @@ public class ApplicationQueryService {
         // Build response
         ApplicationFullDetailsResponse response = buildApplicationFullDetailsResponse(
                 application, studentProfile, documentsWithComments, checklist, allocationEligibility);
+        response.setHasExpiredDocuments(anyExpired);
 
         log.info("Returning enhanced full details for application {}", applicationId);
         return response;
+    }
+
+    /**
+     * Marks each expiring document with its expiry at the application's company (GH-498).
+     *
+     * @return whether any of them has expired
+     */
+    private boolean markExpiry(Application application, List<DocumentWithCommentsResponse> documents) {
+        Map<Long, DocumentExpiryResponse> expiries = documentExpiryQueryService.expiriesFor(application);
+        boolean anyExpired = false;
+        for (DocumentWithCommentsResponse document : documents) {
+            DocumentExpiryResponse expiry = expiries.get(document.getId());
+            if (expiry != null) {
+                document.setExpiryDate(expiry.getExpiryDate());
+                document.setExpired(expiry.getExpired());
+                anyExpired |= Boolean.TRUE.equals(expiry.getExpired());
+            }
+        }
+        return anyExpired;
     }
 
     /**
@@ -182,6 +208,7 @@ public class ApplicationQueryService {
                 .documents(documentsWithComments)
                 .requiredDocumentsChecklist(checklist)
                 .allocationEligibility(allocationEligibility)
+                .isReturning(Boolean.TRUE.equals(application.getIsReturning()))
                 .build();
     }
 }

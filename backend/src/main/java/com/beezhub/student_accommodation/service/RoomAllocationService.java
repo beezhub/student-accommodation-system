@@ -64,6 +64,18 @@ public class RoomAllocationService {
                 studentName, roomNumber, status, pageable);
     }
 
+    public PageResponse<RoomAllocationResponse> searchRoomAllocations(Long studentId, Long roomId, Long buildingId,
+            LocalDateTime fromDate, LocalDateTime toDate,
+            String studentName, String roomNumber, String status, Long institutionId, Long intakeId,
+            Pageable pageable) {
+        return roomAllocationQueryService.searchRoomAllocations(studentId, roomId, buildingId, fromDate, toDate,
+                studentName, roomNumber, status, institutionId, intakeId, pageable);
+    }
+
+    public PageResponse<RoomAllocationResponse> getOverdueCheckOuts(Pageable pageable) {
+        return roomAllocationQueryService.getOverdueCheckOuts(pageable);
+    }
+
     public RoomAllocationResponse getRoomAllocationById(Long id) {
         return roomAllocationQueryService.getRoomAllocationById(id);
     }
@@ -180,6 +192,11 @@ public class RoomAllocationService {
     @Timed(value = "service.allocation.batchAllocate", percentiles = {0.5, 0.95, 0.99})
     public BatchAllocationResult batchAllocateFromWaitingList(int maxAllocations) {
         return allocationBatchService.batchAllocateFromWaitingList(maxAllocations);
+    }
+
+    @Transactional
+    public MessageResponse enqueueWaitingListForAdmin(Long studentId, Long applicationId) {
+        return allocationLifecycleService.enqueueWaitingListForAdmin(studentId, applicationId);
     }
 
     @Transactional

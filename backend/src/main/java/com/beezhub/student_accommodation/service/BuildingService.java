@@ -54,6 +54,7 @@ public class BuildingService {
     private final BuildingImageService buildingImageService;
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
     private final TenantService tenantService;
+    private final java.time.Clock clock;
 
     public List<BuildingResponse> getAllBuildings() {
         log.info("Fetching all buildings");
@@ -149,6 +150,18 @@ public class BuildingService {
         enrichWithPricingAndAvailability(buildingResponses);
         log.info("Found {} buildings for institution {}", buildings.size(), institutionId);
         return buildingResponses;
+    }
+
+    /**
+     * Buildings as the application form shows them: with image, prices and availability, and the
+     * company each belongs to, since a student can pick buildings of several companies (GH-495).
+     */
+    public List<BuildingResponse> toApplicantResponses(List<Building> buildings, Map<Long, String> companyNames) {
+        List<BuildingResponse> responses = buildingMapper.toResponseList(buildings);
+        responses.forEach(this::enrichWithPrimaryImage);
+        enrichWithPricingAndAvailability(responses);
+        responses.forEach(r -> r.setCompanyName(companyNames.get(r.getTenantId())));
+        return responses;
     }
 
     public BuildingResponse createBuilding(BuildingRequest request) {
@@ -312,7 +325,7 @@ public class BuildingService {
 
         // Batch query: available room counts
         Map<Long, Long> availabilityMap = new HashMap<>();
-        for (Object[] row : roomRepository.findAvailableRoomCountByBuilding()) {
+        for (Object[] row : roomRepository.findAvailableRoomCountByBuilding(java.time.LocalDate.now(clock))) {
             Long buildingId = (Long) row[0];
             Long count = (Long) row[1];
             availabilityMap.put(buildingId, count);
@@ -358,6 +371,6 @@ public class BuildingService {
         response.setMinMonthlyRate(min);
         response.setMaxMonthlyRate(max);
         response.setAvailableRoomCount(
-                (int) roomRepository.countAvailableRoomsByBuildingId(response.getId()));
+                (int) roomRepository.countAvailableRoomsByBuildingId(response.getId(), java.time.LocalDate.now(clock)));
     }
 }

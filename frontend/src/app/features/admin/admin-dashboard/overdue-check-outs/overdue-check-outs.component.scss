@@ -1,0 +1,46 @@
+@use '../../../../../styles/variables' as vars;
+
+.overdue {
+  padding: vars.$space-4;
+  margin-bottom: vars.$space-4;
+  border: 1px solid vars.$slate-200;
+  border-radius: vars.$radius-md;
+  background: vars.$slate-50;
+}
+
+.overdue-header {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.overdue-icon {
+  color: vars.$accent-purple-dark;
+}
+
+.overdue-hint {
+  margin: vars.$space-2 0;
+}
+
+.overdue-list {
+  margin: 0 0 vars.$space-2;
+  padding-left: vars.$space-4;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: vars.$space-3;
+  }
+}
+
+.overdue-name {
+  font-weight: 600;
+}
+
+.overdue-date {
+  color: vars.$slate-600;
+}

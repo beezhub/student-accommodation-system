@@ -425,6 +425,8 @@ class WaitingListQueueIntegrationTest extends AbstractIntegrationTest {
 
     private Application newApplication(Student student, Long tenantId, Building preferred, String requirements) {
         Application application = new Application();
+        application.setAcademicYear(testCalendar().year());
+        application.setIntake(testCalendar().intake());
         application.setApplicationCode("Q-" + System.nanoTime());
         application.setApplicationDate(LocalDate.now());
         application.setStatus(ApplicationStatus.APPROVED);

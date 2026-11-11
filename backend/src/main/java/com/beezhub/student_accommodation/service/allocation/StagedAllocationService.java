@@ -29,6 +29,8 @@ import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.util.PageMapper;
+import com.beezhub.student_accommodation.service.document.DocumentExpiryPolicy;
+import com.beezhub.student_accommodation.service.document.DocumentReadinessGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -68,17 +70,25 @@ public class StagedAllocationService {
     private int offerExpiryDays;
     private final WaitingListService waitingListService;
     private final RoomOccupancyManager roomOccupancyManager;
+    private final StayCapacityGuard stayCapacityGuard;
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+    private final DocumentReadinessGuard documentReadinessGuard;
 
     @Transactional
     public RoomAllocationResponse confirmAllocation(Long stagedAllocationId, Long adminId) {
         log.info("Confirming allocation {} by admin {}", stagedAllocationId, adminId);
         StagedAllocation staged = getStagedAllocation(stagedAllocationId);
         validateStagedStatus(staged, StagedAllocationStatus.PROPOSED);
-        validateStudentNotAlreadyAllocated(staged);
-        validateRoomCapacity(staged.getRoom());
+        // By the stay applied for (GH-496): a proposal for 2027 is not blocked by a 2026 room.
+        StayPeriod stay = StayPeriod.of(staged.getApplication());
+        stayCapacityGuard.assertNotEnded(stay);
+        validateStudentNotAlreadyAllocated(staged, stay);
+        stayCapacityGuard.assertBedFree(staged.getRoom(), stay);
+        documentReadinessGuard.assertReadyForRoom(staged.getStudent(), staged.getRoom().getTenantId(),
+                staged.getApplication());
 
         RoomAllocation allocation = createConfirmedAllocation(staged);
+        stay.applyTo(allocation);
         RoomAllocation saved = roomAllocationRepository.save(allocation);
 
         updateStagedStatus(staged, StagedAllocationStatus.CONFIRMED);
@@ -113,9 +123,9 @@ public class StagedAllocationService {
         log.info("Override allocation for student {} to room {} by admin {}: {}", studentId, roomId, adminId, reason);
         Student student = getStudent(studentId);
         Room room = getRoom(roomId);
-        validateRoomCapacity(room);
 
         Application application = getAwaitingApplication(studentId);
+        stayCapacityGuard.assertBedFree(room, StayPeriod.of(application));
         AppUser admin = getAdmin(adminId);
 
         StagedAllocation staged = createOverrideProposal(student, room, application, admin, constraintsBypassed);
@@ -236,23 +246,15 @@ public class StagedAllocationService {
         }
     }
 
-    private void validateRoomCapacity(Room room) {
-        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-        if (activeAllocations >= room.getCapacity()) {
-            throw new RoomCapacityExceededException(
-                    "Room " + room.getRoomNumber() + " is at full capacity");
-        }
-    }
-
     /**
      * A proposal can sit in PROPOSED for a long time. In the meantime the batch job, a manual
      * allocation or another confirmation in the same batch may already have offered this student a
      * room, and confirming anyway produced two live OFFERED rows for one student. Capacity was
      * re-checked here but this was not (GH-128).
      */
-    private void validateStudentNotAlreadyAllocated(StagedAllocation staged) {
+    private void validateStudentNotAlreadyAllocated(StagedAllocation staged, StayPeriod stay) {
         Long studentId = staged.getStudent().getId();
-        if (roomAllocationRepository.existsActiveAllocationByStudentId(studentId)) {
+        if (roomAllocationRepository.existsLiveAllocationForStudentDuring(studentId, stay.from(), stay.until())) {
             log.warn("action=stagedConfirmRejected reason=studentAlreadyAllocated stagedId={} studentId={}",
                     staged.getId(), studentId);
             throw new StudentAlreadyAllocatedException(
@@ -324,9 +326,13 @@ public class StagedAllocationService {
     }
 
     private Application getAwaitingApplication(Long studentId) {
+        // A student can wait for two stays at once, say Semester 2 and next year (GH-496). The
+        // earliest stay that has not ended comes first; one that has ended is never offered.
+        java.time.LocalDate today = stayCapacityGuard.today();
         return applicationRepository.findByStudent_Id(studentId).stream()
                 .filter(app -> app.getStatus() == ApplicationStatus.AWAITING_ALLOCATION)
-                .findFirst()
+                .filter(app -> !StayPeriod.of(app).hasEnded(today))
+                .min(java.util.Comparator.comparing(app -> StayPeriod.of(app).from()))
                 .orElseThrow(() -> new ApplicationNotFoundException(
                         "No application awaiting allocation found for student ID: " + studentId));
     }
@@ -415,10 +421,15 @@ public class StagedAllocationService {
     private StagedAllocationResponse createProposalForStudent(Long studentId, String batchId,
             Building preferredBuilding, AppUser admin) {
         Student student = getStudent(studentId);
-        validateNoActiveAllocation(student.getId());
         validateNoPendingProposal(student.getId());
 
         Application application = getAwaitingApplication(studentId);
+        StayPeriod stay = StayPeriod.of(application);
+        stayCapacityGuard.assertNotEnded(stay);
+        validateNoActiveAllocation(student.getId(), stay);
+        // Before scoring, which queues the student when no room fits: a student whose documents
+        // are not in order is skipped and keeps whatever queue place they have (GH-498).
+        documentReadinessGuard.assertReadyForRoom(student, DocumentExpiryPolicy.companyOf(application), application);
         Building effectiveBuilding = preferredBuilding != null ? preferredBuilding : application.getPreferredBuilding();
 
         List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application,
@@ -449,8 +460,8 @@ public class StagedAllocationService {
         return stagedAllocationMapper.toResponse(saved);
     }
 
-    private void validateNoActiveAllocation(Long studentId) {
-        if (roomAllocationRepository.existsActiveAllocationByStudentId(studentId)) {
+    private void validateNoActiveAllocation(Long studentId, StayPeriod stay) {
+        if (roomAllocationRepository.existsLiveAllocationForStudentDuring(studentId, stay.from(), stay.until())) {
             throw new StudentAlreadyAllocatedException("Student already has active allocation");
         }
     }
