@@ -5,42 +5,6 @@
       lang="en">
 <head>
     <title>Room Offer</title>
-    <style>
-        .room-highlight {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .room-highlight h2 { margin: 0 0 10px 0; font-size: 36px; }
-        .room-highlight p { margin: 5px 0; font-size: 18px; }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .info-item {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            border-left: 3px solid #667eea;
-        }
-        .info-item strong { display: block; color: #667eea; margin-bottom: 5px; }
-        .amenity-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .amenity-item { display: flex; align-items: center; font-size: 14px; }
-        .amenity-item::before { content: "✓"; color: #28a745; font-weight: bold; margin-right: 8px; }
-        @media screen and (max-width: 600px) {
-            .info-grid, .amenity-grid { grid-template-columns: 1fr; }
-        }
-    </style>
 </head>
 <body>
 
@@ -48,110 +12,44 @@
 <span layout:fragment="email-subtitle">Accept by the deadline to keep this room</span>
 
 <div layout:fragment="email-content">
-    <p style="text-align:center; font-size: 60px; margin: 20px 0;">&#127968;</p>
-
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
     <p>We are pleased to offer you the room below. This room is not yours yet: you must accept
        this offer before the deadline.</p>
 
     <div class="danger-box">
-        <h3>Accept by <span th:text="${offerExpiryDate}">11 November 2026 at 14:30 UTC</span></h3>
+        <h3>Accept by <span th:text="${offerExpiryDate}">11 November 2026 at 14:30 SAST</span></h3>
         <p>If you do not respond by then, the offer expires, the room is released to other students
            and your application is cancelled.</p>
-    </div>
-
-    <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">Review and Accept Offer</a>
     </div>
 
     <div class="room-highlight">
         <h2 th:text="${roomNumber}">Room 204</h2>
         <p th:text="${buildingName}">Building A</p>
-        <p>Floor <span th:text="${floorNumber}">2</span></p>
+        <p th:if="${roomType != null}" th:text="${roomType}">Single</p>
     </div>
 
-    <div class="info-grid">
-        <div class="info-item">
-            <strong>Building</strong>
-            <span th:text="${buildingName}">Building A</span>
-        </div>
-        <div class="info-item">
-            <strong>Room Number</strong>
-            <span th:text="${roomNumber}">204</span>
-        </div>
-        <div class="info-item">
-            <strong>Floor</strong>
-            <span th:text="${floorNumber}">2</span>
-        </div>
-        <div class="info-item">
-            <strong>Room Type</strong>
-            <span th:text="${roomType}">Single</span>
-        </div>
-        <div class="info-item">
-            <strong>Bed Number</strong>
-            <span th:text="${bedNumber}">1</span>
-        </div>
-        <div class="info-item">
-            <strong>Allocation ID</strong>
-            <span th:text="${allocationId}">ALLOC-2025-001</span>
-        </div>
+    <div class="success-box" th:if="${startDate != null and endDate != null}">
+        <h3>Your Stay If You Accept</h3>
+        <p><strong>From:</strong> <span th:text="${startDate}">15 January 2027</span></p>
+        <p><strong>To:</strong> <span th:text="${endDate}">15 December 2027</span></p>
+        <p th:if="${duration != null}"><strong>Length:</strong> <span th:text="${duration}">11 months</span></p>
     </div>
 
-    <div class="success-box">
-        <h3>Tenancy Period If You Accept</h3>
-        <p><strong>Start Date:</strong> <span th:text="${startDate}">2025-02-01</span></p>
-        <p><strong>End Date:</strong> <span th:text="${endDate}">2025-11-30</span></p>
-        <p><strong>Duration:</strong> <span th:text="${duration}">10 months</span></p>
+    <div class="neutral-box" th:if="${buildingAddress != null and !#strings.isEmpty(buildingAddress)}">
+        <h3>Address</h3>
+        <p th:text="${buildingAddress}">123 University Street, Campus, City</p>
+        <p th:if="${mapsUrl != null}"><a th:href="${mapsUrl}">Open in Google Maps</a></p>
     </div>
 
     <div class="info-box">
-        <h3>Move-In Instructions After You Accept</h3>
-        <ul>
-            <li>Report to the Accommodation Office on your move-in date between 9:00 AM - 4:00 PM</li>
-            <li>Bring your student ID card and a copy of this offer email</li>
-            <li>Collect your room key and access card from the office</li>
-            <li>Complete the room condition inspection form</li>
-            <li>Sign the accommodation agreement</li>
-            <li>Check that your emergency contact details are still correct</li>
-            <li>Attend the mandatory orientation session at 2:00 PM</li>
-        </ul>
-        <p><strong>Office Location:</strong> <span th:text="${officeLocation}">Main Administration Building, Ground Floor</span></p>
-    </div>
-
-    <div class="warning-box">
-        <h3>Building Amenities</h3>
-        <div class="amenity-grid">
-            <div class="amenity-item">Wi-Fi Access</div>
-            <div class="amenity-item">Common Room</div>
-            <div class="amenity-item">Study Area</div>
-            <div class="amenity-item">Laundry Facilities</div>
-            <div class="amenity-item">24/7 Security</div>
-            <div class="amenity-item">Kitchen Access</div>
-            <div class="amenity-item">Parking Available</div>
-            <div class="amenity-item">Gym Access</div>
-        </div>
-    </div>
-
-    <div class="danger-box">
-        <h3>Important Reminders</h3>
-        <ul>
-            <li>Payment must be completed before move-in date</li>
-            <li>Late check-in requires prior notification</li>
-            <li>Read the accommodation rules and regulations carefully</li>
-            <li>Ensure all outstanding documents are submitted</li>
-            <li>Bring necessary bedding and personal items</li>
-        </ul>
-    </div>
-
-    <div class="neutral-box" th:if="${buildingAddress != null}">
-        <p><strong>Building Address:</strong></p>
-        <p th:text="${buildingAddress}">123 University Street, Campus, City</p>
-        <p style="margin-top: 10px;">View map in your student portal</p>
+        <h3>What Happens Next</h3>
+        <p>Accept the offer in your student portal before the deadline. Once you accept, we will
+           email you your check-in details.</p>
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">Review and Accept Offer</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">Review and Accept Offer</a>
     </div>
 </div>
 

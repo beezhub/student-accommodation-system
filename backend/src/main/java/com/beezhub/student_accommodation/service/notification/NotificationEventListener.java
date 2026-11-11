@@ -562,21 +562,11 @@ public class NotificationEventListener {
         }
     }
 
-    @Async("notificationExecutor")
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleStagedAllocationConfirmed(StagedAllocationConfirmedEvent event) {
-        RoomAllocation roomAllocation = reload(event.roomAllocation());
-        if (roomAllocation != null) {
-            TenantContext.setTenantId(roomAllocation.getTenantId());
-            try {
-                sendAllocationConfirmedNotification(roomAllocation);
-            } finally {
-                TenantContext.clear();
-            }
-        }
-    }
-
+    /**
+     * "Allocation Confirmed" is sent only from {@link #handleAllocationAccepted}. An admin confirming
+     * a proposal creates an offer the student has not accepted yet, so it sends the offer alone
+     * (GH-530).
+     */
     private void sendAllocationConfirmedNotification(RoomAllocation allocation) {
         Student student = allocation.getStudent();
         AppUser user = student.getAppUser();
@@ -612,14 +602,13 @@ public class NotificationEventListener {
         StagedAllocation stagedAllocation = reload(event.stagedAllocation());
         TenantContext.setTenantId(stagedAllocation.getTenantId());
         try {
-            sendAllocationRejectedNotification(stagedAllocation, event.reason(), 0);
+            sendAllocationRejectedNotification(stagedAllocation);
         } finally {
             TenantContext.clear();
         }
     }
 
-    private void sendAllocationRejectedNotification(StagedAllocation stagedAllocation, String reason,
-            Integer waitingListPosition) {
+    private void sendAllocationRejectedNotification(StagedAllocation stagedAllocation) {
         Student student = stagedAllocation.getStudent();
         AppUser user = student.getAppUser();
         Room room = stagedAllocation.getRoom();
@@ -638,12 +627,10 @@ public class NotificationEventListener {
                 user,
                 stagedAllocation.getId(),
                 "StagedAllocation",
-                emailDispatchService.allocationRejectedTemplateData(stagedAllocation, room, building, studentName,
-                        reason, waitingListPosition));
+                emailDispatchService.allocationRejectedTemplateData(room, building, studentName));
 
         try {
-            emailDispatchService.sendAllocationRejectedEmail(stagedAllocation, room, building, studentName, email,
-                    reason, waitingListPosition);
+            emailDispatchService.sendAllocationRejectedEmail(room, building, studentName, email);
             notificationService.markNotificationAsSent(notification);
         } catch (Exception e) {
             notificationService.handleNotificationFailure(notification, e);

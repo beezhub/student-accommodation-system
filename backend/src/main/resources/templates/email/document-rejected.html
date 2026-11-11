@@ -31,20 +31,6 @@
         <p th:text="${rejectionReason}">
             The document provided does not meet our verification requirements.
         </p>
-        <div th:if="${feedbackPoints != null and !feedbackPoints.isEmpty()}">
-            <h4>Specific Issues:</h4>
-            <ul>
-                <li th:each="point : ${feedbackPoints}" th:text="${point}">Issue point</li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="warning-box">
-        <h3>Resubmission Deadline</h3>
-        <p style="font-size: 18px; font-weight: bold; margin: 10px 0;">
-            <span th:text="${resubmissionDeadline}">2025-01-27</span>
-        </p>
-        <p>Failure to resubmit by this date may result in your application being cancelled.</p>
     </div>
 
     <div class="info-box">
@@ -60,16 +46,15 @@
                     <li>Valid and not expired</li>
                     <li>Complete (all pages included)</li>
                     <li>Correct format (PDF, JPG, or PNG)</li>
-                    <li>File size under 5MB</li>
+                    <li th:if="${maxFileSize != null}">File size up to <span th:text="${maxFileSize}">10 MB</span></li>
                 </ul>
             </li>
-            <li>Upload the corrected document</li>
-            <li>Submit for review</li>
+            <li>Upload the corrected document. It goes to the office for review straight away.</li>
         </ul>
     </div>
 
     <div class="cta-section">
-        <a th:href="${uploadUrl}" class="cta-button">Resubmit Document Now</a>
+        <a th:href="${uploadUrl}" class="cta-button" style="color: #ffffff;">Resubmit Document Now</a>
     </div>
 
     <p style="margin-top: 30px; font-style: italic;">

@@ -9,62 +9,29 @@
 <body>
 
 <h1 layout:fragment="email-title">Room Allocation Update</h1>
-<span layout:fragment="email-subtitle">Proposed allocation not confirmed</span>
+<span layout:fragment="email-subtitle">The room we were reviewing for you was not confirmed</span>
 
 <div layout:fragment="email-content">
-    <p style="text-align:center; font-size: 60px; margin: 20px 0;">&#128203;</p>
-
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
-    <p>We regret to inform you that your proposed room allocation was not confirmed.
-       We understand this may be disappointing, but we want to assure you that we are
-       working to find suitable accommodation for you.</p>
+    <p>The accommodation office did not confirm the room we were reviewing for you.</p>
 
-    <div class="danger-box">
-        <h3>Allocation Not Confirmed</h3>
-        <p>Your proposed room allocation could not be confirmed at this time.</p>
-        <p th:if="${roomNumber != null}"><strong>Proposed Room:</strong>
-           <span th:text="${roomNumber}">204</span> — <span th:text="${buildingName}">Building A</span></p>
-        <p th:if="${proposalId != null}"><strong>Proposal Reference:</strong>
-           <span th:text="${proposalId}">PROP-2025-001</span></p>
+    <div class="neutral-box" th:if="${roomNumber != null}">
+        <p><strong>Room:</strong>
+           <span th:text="${roomNumber}">204</span>, <span th:text="${buildingName}">Building A</span></p>
     </div>
 
-    <div class="warning-box" th:if="${reason != null}">
-        <h3>Reason</h3>
-        <p th:text="${reason}">The room has been assigned to another student with higher priority.</p>
-    </div>
-
-    <div class="info-box" th:if="${waitingListPosition != null}">
-        <h3>Waiting List Status</h3>
-        <p>You have been placed on the waiting list.</p>
-        <p><strong>Current Position:</strong> <span th:text="${waitingListPosition}">#5</span></p>
-        <p style="font-size: 14px;">We will notify you as soon as a suitable room becomes available.</p>
-    </div>
-
-    <div class="info-box" th:if="${waitingListPosition == null}">
-        <h3>What Happens Next?</h3>
-        <p>Your application remains active in our system. You may be considered for alternative
-           accommodation as rooms become available.</p>
-    </div>
-
-    <div class="neutral-box">
-        <h3>Recommended Actions</h3>
-        <ul>
-            <li>Review your accommodation preferences in the portal</li>
-            <li>Consider updating your preferences to increase matching options</li>
-            <li>Check the portal regularly for updates on your application</li>
-            <li>Contact the accommodation office if you have urgent housing needs</li>
-        </ul>
+    <div class="info-box">
+        <h3>What Happens Next</h3>
+        <p>Your application stays active. When another room is available for you, we will email
+           you a room offer.</p>
+        <p>If you have urgent housing needs, contact the accommodation office using the details
+           below.</p>
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">View Application Status</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">View My Applications</a>
     </div>
-
-    <p style="margin-top: 30px; font-style: italic;">
-        We appreciate your patience and understanding. Our team is committed to finding
-        suitable accommodation for all students.
-    </p>
 </div>
 
 </body>

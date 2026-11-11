@@ -15,7 +15,7 @@
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
     <p>We have reviewed your application
-       <strong>#<span th:text="${applicationId}">12345</span></strong> and need you to change
+       <strong th:text="${applicationCode} ?: ('#' + ${applicationId})">APP-2026-001</strong> and need you to change
        something before we can continue.</p>
 
     <div class="warning-box">
@@ -26,14 +26,15 @@
     <div class="info-box">
         <h3>What to do next</h3>
         <ul>
-            <li>Make the changes described above</li>
+            <li>Make the changes described above: upload a replacement document on the Documents page,
+                or update your profile</li>
             <li>Open your application and click Resubmit</li>
         </ul>
         <p>Your application returns to the review queue once you resubmit it.</p>
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">Open Your Application</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">Open Your Application</a>
     </div>
 </div>
 

@@ -19,14 +19,14 @@
         <p>We asked you to confirm your place in <strong>Room <span th:text="${roomNumber}">101</span></strong>
            in <strong th:text="${buildingName}">Building A</strong> from
            <strong th:text="${moveInDate}">01 February 2027</strong>, and did not hear back in time.</p>
-        <p>The place has been offered to the next student on the waiting list, and your application
+        <p>The place has been released to other students, and your application
            (<strong th:text="${applicationCode}">APP123</strong>) is now closed.</p>
     </div>
 
     <p>If you still need accommodation, you can apply again while an application window is open.</p>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">View My Applications</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">View My Applications</a>
     </div>
 </div>
 

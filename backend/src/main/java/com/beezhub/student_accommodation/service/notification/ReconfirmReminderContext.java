@@ -7,5 +7,6 @@ public record ReconfirmReminderContext(
         String buildingName,
         String moveInDate,
         String releaseDate,
+        String confirmByDate,
         String portalUrl
 ) implements EmailContext {}

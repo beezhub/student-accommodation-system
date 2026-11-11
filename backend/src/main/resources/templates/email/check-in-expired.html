@@ -9,17 +9,17 @@
 <body>
 
 <h1 layout:fragment="email-title">Check-In Deadline Expired</h1>
-<span layout:fragment="email-subtitle">Application Cancelled</span>
+<span layout:fragment="email-subtitle">Your application is closed</span>
 
 <div layout:fragment="email-content">
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
     <div class="danger-box">
         <h3>Check-In Deadline Missed</h3>
-        <p>You failed to check in to <strong>Room <span th:text="${roomNumber}">101</span></strong>
-           in <strong th:text="${buildingName}">Building A</strong> within 7 days of accepting the offer.</p>
-        <p>As a result, your application (<strong th:text="${applicationCode}">APP123</strong>) has been
-           <strong>CANCELLED</strong>.</p>
+        <p>You did not check in to <strong>Room <span th:text="${roomNumber}">101</span></strong>
+           in <strong th:text="${buildingName}">Building A</strong> before your check-in deadline.</p>
+        <p>The room has been released to other students, and your application
+           (<strong th:text="${applicationCode}">APP123</strong>) is now closed.</p>
     </div>
 
     <div class="neutral-box">
@@ -36,7 +36,7 @@
     <p>If you have any questions or concerns, please contact our accommodation office.</p>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">View Application</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">View Application</a>
     </div>
 </div>
 

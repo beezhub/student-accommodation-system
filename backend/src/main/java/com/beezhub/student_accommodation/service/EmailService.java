@@ -175,6 +175,7 @@ public class EmailService {
             case ApplicationApprovedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("applicationId", c.applicationId());
+                vars.put("applicationCode", c.applicationCode());
                 vars.put("applicationDate", c.applicationDate());
                 vars.put("academicYear", c.academicYear());
                 vars.put("intake", c.intake());
@@ -183,15 +184,16 @@ public class EmailService {
             case ApplicationRejectedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("applicationId", c.applicationId());
+                vars.put("applicationCode", c.applicationCode());
                 vars.put("rejectionReason", c.rejectionReason());
                 vars.put("applicationDate", c.applicationDate());
                 vars.put("reviewDate", c.reviewDate());
-                vars.put("nextApplicationPeriod", c.nextApplicationPeriod());
                 vars.put("portalUrl", c.portalUrl());
             }
             case ApplicationChangesRequestedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("applicationId", c.applicationId());
+                vars.put("applicationCode", c.applicationCode());
                 vars.put("changesReason", c.changesReason());
                 vars.put("portalUrl", c.portalUrl());
             }
@@ -210,9 +212,8 @@ public class EmailService {
                 vars.put("submissionDate", c.submissionDate());
                 vars.put("reviewDate", c.reviewDate());
                 vars.put("rejectionReason", c.rejectionReason());
-                vars.put("resubmissionDeadline", c.resubmissionDeadline());
                 vars.put("uploadUrl", c.uploadUrl());
-                vars.put("feedbackPoints", c.feedbackPoints());
+                vars.put("maxFileSize", c.maxFileSize());
             }
             case DocumentCommentContext c -> {
                 vars.put("studentName", c.studentName());
@@ -230,59 +231,44 @@ public class EmailService {
                 vars.put("studentName", c.studentName());
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
-                vars.put("floorNumber", c.floorNumber());
                 vars.put("roomType", c.roomType());
-                vars.put("bedNumber", c.bedNumber());
-                vars.put("allocationId", c.allocationId());
                 vars.put("startDate", c.startDate());
                 vars.put("endDate", c.endDate());
                 vars.put("duration", c.duration());
-                vars.put("officeLocation", c.officeLocation());
                 vars.put("buildingAddress", c.buildingAddress());
                 vars.put("portalUrl", c.portalUrl());
                 vars.put("offerExpiryDate", c.offerExpiryDate());
+                vars.put("mapsUrl", c.mapsUrl());
             }
             case AllocationProposalContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
-                vars.put("floorNumber", c.floorNumber());
                 vars.put("roomCapacity", c.roomCapacity());
-                vars.put("proposalId", c.proposalId());
-                vars.put("score", c.score());
-                vars.put("warnings", c.warnings());
-                vars.put("moveInDate", c.moveInDate());
                 vars.put("portalUrl", c.portalUrl());
             }
             case AllocationConfirmedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
-                vars.put("floorNumber", c.floorNumber());
                 vars.put("roomType", c.roomType());
-                vars.put("allocationId", c.allocationId());
-                vars.put("moveInDate", c.moveInDate());
                 vars.put("startDate", c.startDate());
                 vars.put("endDate", c.endDate());
+                vars.put("checkInDeadline", c.checkInDeadline());
                 vars.put("portalUrl", c.portalUrl());
             }
             case AllocationRejectedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
-                vars.put("proposalId", c.proposalId());
-                vars.put("reason", c.reason());
-                vars.put("waitingListPosition", c.waitingListPosition());
                 vars.put("portalUrl", c.portalUrl());
             }
             case AllocationMovedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("oldRoomNumber", c.oldRoomNumber());
                 vars.put("oldBuildingName", c.oldBuildingName());
-                vars.put("oldFloorNumber", c.oldFloorNumber());
                 vars.put("newRoomNumber", c.newRoomNumber());
                 vars.put("newBuildingName", c.newBuildingName());
-                vars.put("newFloorNumber", c.newFloorNumber());
                 vars.put("newRoomType", c.newRoomType());
                 vars.put("effectiveDate", c.effectiveDate());
                 vars.put("reason", c.reason());
@@ -338,6 +324,7 @@ public class EmailService {
                 vars.put("buildingName", c.buildingName());
                 vars.put("moveInDate", c.moveInDate());
                 vars.put("releaseDate", c.releaseDate());
+                vars.put("confirmByDate", c.confirmByDate());
                 vars.put("portalUrl", c.portalUrl());
             }
             case ReconfirmReminderContext c -> {
@@ -346,6 +333,7 @@ public class EmailService {
                 vars.put("buildingName", c.buildingName());
                 vars.put("moveInDate", c.moveInDate());
                 vars.put("releaseDate", c.releaseDate());
+                vars.put("confirmByDate", c.confirmByDate());
                 vars.put("portalUrl", c.portalUrl());
             }
             case PlaceReleasedContext c -> {
