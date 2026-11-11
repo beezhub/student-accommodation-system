@@ -208,6 +208,7 @@ public class ApplicationQueryService {
                 .documents(documentsWithComments)
                 .requiredDocumentsChecklist(checklist)
                 .allocationEligibility(allocationEligibility)
+                .isReturning(Boolean.TRUE.equals(application.getIsReturning()))
                 .build();
     }
 }

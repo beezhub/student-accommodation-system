@@ -28,3 +28,8 @@
   color: vars.$error;
   background: rgba(vars.$error, 0.08);
 }
+
+.app-flag--returning {
+  color: vars.$accent-purple-dark;
+  background: rgba(vars.$accent-purple-dark, 0.08);
+}

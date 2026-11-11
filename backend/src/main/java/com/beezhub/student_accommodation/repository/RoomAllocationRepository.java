@@ -232,4 +232,8 @@ public interface RoomAllocationRepository
                "WHERE ra.tenantId = :tenantId AND ra.status IN :statuses")
         List<RoomAllocation> findByTenantIdAndStatusInWithStudent(@Param("tenantId") Long tenantId,
                         @Param("statuses") Collection<AllocationStatus> statuses);
+
+        /** Whether the student has held an allocation in one of the statuses at a company (GH-499). */
+        boolean existsByStudent_IdAndTenantIdAndStatusIn(Long studentId, Long tenantId,
+                        Collection<AllocationStatus> statuses);
 }

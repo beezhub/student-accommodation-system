@@ -16,7 +16,18 @@ describe('ApplicationFlagsComponent', () => {
     expect(build({ expired: true })).toContain('Expired document');
   });
 
+  it('returning resident: shows the badge', () => {
+    expect(build({ returning: true })).toContain('Returning');
+  });
+
+  it('both flags: shows both', () => {
+    const text = build({ expired: true, returning: true });
+
+    expect(text).toContain('Returning');
+    expect(text).toContain('Expired document');
+  });
+
   it('no flags: shows nothing', () => {
-    expect(build({ expired: false })).toBe('');
+    expect(build({ expired: false, returning: false })).toBe('');
   });
 });

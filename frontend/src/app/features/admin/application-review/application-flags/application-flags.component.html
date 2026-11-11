@@ -1,3 +1,10 @@
+@if (returning) {
+  <span class="app-flag app-flag--returning"
+    matTooltip="Has lived with you before: checked in at your residence in an earlier year or now.">
+    <mat-icon aria-hidden="true">history</mat-icon>
+    Returning
+  </span>
+}
 @if (expired) {
   <span class="app-flag app-flag--expired"
     matTooltip="A document has expired. Room offers and check-in wait for an approved replacement.">

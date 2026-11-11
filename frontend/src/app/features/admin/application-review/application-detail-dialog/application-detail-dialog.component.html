@@ -18,7 +18,8 @@
             [status]="applicationDetails.status">
           </app-modern-status-badge>
           <app-application-flags *ngIf="applicationDetails"
-            [expired]="applicationDetails.hasExpiredDocuments"></app-application-flags>
+            [expired]="applicationDetails.hasExpiredDocuments"
+            [returning]="applicationDetails.isReturning"></app-application-flags>
         </div>
         <div class="header-meta" *ngIf="applicationDetails && student">
           <span class="app-code">{{ applicationDetails.applicationCode }}</span>

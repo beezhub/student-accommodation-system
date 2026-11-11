@@ -68,6 +68,7 @@ class ApplicationSubmissionServiceTest {
     @Mock private AuthService authService;
     @Mock private CompanyIntakePolicy intakePolicy;
     @Mock private ApplicationPreferenceWriter preferenceWriter;
+    @Mock private ReturningResidentPolicy returningResidentPolicy;
 
     private ApplicationSubmissionService service;
 
@@ -89,7 +90,7 @@ class ApplicationSubmissionServiceTest {
                 ClockConfig.CALENDAR_ZONE);
         service = new ApplicationSubmissionService(applicationRepository, studentRepository, buildingRepository,
                 tenantRepository, documentRepository, applicationMapper, authService, intakePolicy,
-                preferenceWriter, clock);
+                preferenceWriter, returningResidentPolicy, clock);
 
         studentUser = new AppUser();
         studentUser.setId(1L);
@@ -165,6 +166,21 @@ class ApplicationSubmissionServiceTest {
         assertThat(application.getApplicationDate()).isEqualTo(TODAY);
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.PENDING);
         assertThat(application.getTenant()).isEqualTo(companyA);
+    }
+
+    /** GH-499: each company's application records whether the student lived with that company. */
+    @Test
+    void submit_flagsTheApplicationAsReturningOnlyAtTheCompanyTheyLivedWith() {
+        stubHappyPath();
+        when(returningResidentPolicy.isReturning(1L, 42L)).thenReturn(true);
+
+        service.submitApplication(request);
+
+        ArgumentCaptor<Application> saved = ArgumentCaptor.forClass(Application.class);
+        verify(applicationRepository, times(2)).saveAndFlush(saved.capture());
+        assertThat(saved.getAllValues()).extracting(Application::getTenantId, Application::getIsReturning)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(42L, true),
+                        org.assertj.core.groups.Tuple.tuple(43L, false));
     }
 
     @Test
