@@ -7,15 +7,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title layout:title-pattern="$CONTENT_TITLE - Student Accommodation">Student Accommodation</title>
     <style>
+        /*
+         * Colours are the app's tokens (frontend/src/styles/_variables.scss): primary #7c3aed,
+         * success #059669, warning #d97706, error #dc2626, info #0284c7, slate greys. Box
+         * backgrounds and headings are the light and dark shades of the same families.
+         * Keep every colour in this file, as flat background-color values: Outlook drops
+         * blended backgrounds and shows none at all.
+         */
+
         /* ===== RESET & BASE ===== */
         * { box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #334155;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            background-color: #f1f5f9;
         }
 
         /* ===== LAYOUT ===== */
@@ -25,12 +33,12 @@
             background-color: #ffffff;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
         }
 
         /* ===== HEADER ===== */
         .email-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #7c3aed;
             color: #ffffff;
             padding: 32px 30px;
             text-align: center;
@@ -56,66 +64,95 @@
 
         /* ===== COMMON BOXES ===== */
         .info-box {
-            background-color: #e7f3ff;
-            border-left: 4px solid #2196F3;
+            background-color: #f0f9ff;
+            border-left: 4px solid #0284c7;
             padding: 16px 20px;
             margin: 20px 0;
             border-radius: 4px;
         }
         .info-box h3 {
             margin: 0 0 8px 0;
-            color: #1976D2;
+            color: #075985;
         }
         .success-box {
-            background-color: #d4edda;
-            border-left: 4px solid #28a745;
+            background-color: #ecfdf5;
+            border-left: 4px solid #059669;
             padding: 16px 20px;
             margin: 20px 0;
             border-radius: 4px;
         }
         .success-box h3 {
             margin: 0 0 8px 0;
-            color: #155724;
+            color: #065f46;
         }
         .warning-box {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
+            background-color: #fffbeb;
+            border-left: 4px solid #d97706;
             padding: 16px 20px;
             margin: 20px 0;
             border-radius: 4px;
         }
         .warning-box h3 {
             margin: 0 0 8px 0;
-            color: #856404;
+            color: #92400e;
         }
         .danger-box {
-            background-color: #f8d7da;
-            border-left: 4px solid #dc3545;
+            background-color: #fef2f2;
+            border-left: 4px solid #dc2626;
             padding: 16px 20px;
             margin: 20px 0;
             border-radius: 4px;
         }
         .danger-box h3 {
             margin: 0 0 8px 0;
-            color: #721c24;
+            color: #991b1b;
         }
         .neutral-box {
-            background-color: #f8f9fa;
-            border-left: 4px solid #6c757d;
+            background-color: #f8fafc;
+            border-left: 4px solid #64748b;
             padding: 16px 20px;
             margin: 20px 0;
             border-radius: 4px;
         }
 
+        /* ===== ROOM SUMMARY ===== */
+        .room-highlight {
+            background-color: #f5f3ff;
+            border: 1px solid #7c3aed;
+            color: #1e293b;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .room-highlight h2 { margin: 0 0 6px 0; font-size: 28px; color: #6d28d9; }
+        .room-highlight p { margin: 4px 0; font-size: 16px; }
+        .text-success { color: #059669; font-weight: bold; }
+        .text-muted { color: #64748b; font-size: 14px; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .info-item {
+            background-color: #f8fafc;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 3px solid #7c3aed;
+        }
+        .info-item strong { display: block; color: #6d28d9; margin-bottom: 5px; }
+
         /* ===== CTA BUTTON ===== */
+        /* The colour is repeated inline on each button: Gmail paints links its own blue otherwise. */
         .cta-section {
             text-align: center;
             margin: 24px 0;
         }
         .cta-button {
             display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff;
+            background-color: #7c3aed;
+            color: #ffffff !important;
             padding: 13px 32px;
             text-decoration: none;
             border-radius: 5px;
@@ -131,26 +168,26 @@
         }
         .data-table td {
             padding: 8px 12px;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: 1px solid #e2e8f0;
             font-size: 14px;
         }
         .data-table td:first-child {
             font-weight: bold;
-            color: #495057;
+            color: #475569;
             width: 40%;
         }
 
         /* ===== FOOTER ===== */
         .email-footer {
-            background-color: #f8f9fa;
+            background-color: #f8fafc;
             padding: 20px 30px;
             text-align: center;
             font-size: 13px;
-            color: #666;
-            border-top: 1px solid #e9ecef;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
         }
         .email-footer a {
-            color: #667eea;
+            color: #7c3aed;
             text-decoration: none;
         }
         .email-footer .contact-info {
@@ -162,6 +199,7 @@
             .email-wrapper { margin: 0; border-radius: 0; }
             .email-content { padding: 20px; }
             .email-header { padding: 24px 20px; }
+            .info-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -189,11 +227,6 @@
             </th:block>
         </p>
         <p>&copy; <span th:text="${currentYear}">2025</span> <span th:text="${universityName}">Student Accommodation System</span>. All rights reserved.</p>
-        <p>
-            <a href="#">Privacy Policy</a> |
-            <a href="#">Terms of Service</a> |
-            <a href="#">Help Centre</a>
-        </p>
     </div>
 
 </div>

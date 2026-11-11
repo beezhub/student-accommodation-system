@@ -19,14 +19,16 @@
         <p>You have a place in <strong>Room <span th:text="${roomNumber}">101</span></strong>
            in <strong th:text="${buildingName}">Building A</strong> from
            <strong th:text="${moveInDate}">01 February 2027</strong>.</p>
-        <p>Please confirm that you are still coming by
+        <p th:if="${confirmByDate != null}">Please confirm that you are still coming by
+           <strong th:text="${confirmByDate}">17 January 2027</strong>.</p>
+        <p th:unless="${confirmByDate != null}">Please confirm that you are still coming before
            <strong th:text="${releaseDate}">18 January 2027</strong>.</p>
     </div>
 
     <div class="neutral-box">
         <strong>If you do not confirm in time:</strong>
         <ul>
-            <li>Your place is released to the next student on the waiting list</li>
+            <li>Your place is released to other students</li>
             <li>Your application is closed</li>
         </ul>
     </div>
@@ -34,7 +36,7 @@
     <p>If your plans have changed, you do not need to do anything.</p>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">Confirm My Place</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">Confirm My Place</a>
     </div>
 </div>
 

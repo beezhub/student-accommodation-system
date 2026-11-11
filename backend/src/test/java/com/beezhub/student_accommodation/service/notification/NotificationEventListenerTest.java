@@ -448,21 +448,6 @@ class NotificationEventListenerTest {
     }
 
     @Test
-    void handleStagedAllocationConfirmed() throws Exception {
-        StagedAllocation stagedAllocation = createMockStagedAllocation();
-        RoomAllocation allocation = createMockRoomAllocation();
-        StagedAllocationConfirmedEvent event = new StagedAllocationConfirmedEvent(stagedAllocation, allocation);
-
-        when(notificationService.createNotification(anyString(), anyString(), any(NotificationType.class), any(), anyLong(), anyString(), any()))
-                .thenReturn(notification);
-
-        notificationEventListener.handleStagedAllocationConfirmed(event);
-
-        verify(emailDispatchService).sendAllocationConfirmedEmail(eq(allocation), any(), any(), eq("John Doe"), eq("test@example.com"));
-        verify(notificationService).markNotificationAsSent(notification);
-    }
-
-    @Test
     void handleStagedAllocationRejected() throws Exception {
         StagedAllocation allocation = createMockStagedAllocation();
         StagedAllocationRejectedEvent event = new StagedAllocationRejectedEvent(allocation, "Full");
@@ -472,7 +457,7 @@ class NotificationEventListenerTest {
 
         notificationEventListener.handleStagedAllocationRejected(event);
 
-        verify(emailDispatchService).sendAllocationRejectedEmail(eq(allocation), any(), any(), eq("John Doe"), eq("test@example.com"), eq("Full"), eq(0));
+        verify(emailDispatchService).sendAllocationRejectedEmail(any(), any(), eq("John Doe"), eq("test@example.com"));
         verify(notificationService).markNotificationAsSent(notification);
     }
 }

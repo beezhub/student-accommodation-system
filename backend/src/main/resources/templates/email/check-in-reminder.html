@@ -9,7 +9,7 @@
 <body>
 
 <h1 layout:fragment="email-title">Check-In Deadline Approaching</h1>
-<span layout:fragment="email-subtitle">Action required — check in before the deadline</span>
+<span layout:fragment="email-subtitle">Action required: check in before the deadline</span>
 
 <div layout:fragment="email-content">
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
@@ -19,8 +19,8 @@
         <p>You must check in to <strong>Room <span th:text="${roomNumber}">101</span></strong>
            in <strong th:text="${buildingName}">Building A</strong> by
            <strong th:text="${deadlineDate}">01 January 2026</strong>.</p>
-        <p>Please proceed to your assigned room and complete the check-in process before the deadline
-           to keep your room allocation active.</p>
+        <p>Arrive before the deadline and report to residence staff, who will check you in. This
+           keeps your room.</p>
     </div>
 
     <div class="neutral-box">
@@ -35,7 +35,7 @@
     <p>If you have already checked in, please disregard this reminder.</p>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">View My Allocation</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">View My Allocation</a>
     </div>
 </div>
 

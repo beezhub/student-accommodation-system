@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +33,10 @@ public class EmailDispatchService {
         @Value("${app.contact-phone:+27 (0) 11 000 0000}")
         private String contactPhone;
 
+        /** The same limit AllowListFileValidationService enforces on upload. */
+        @Value("${app.documents.max-file-size-bytes:10485760}")
+        private long maxFileSizeBytes;
+
         public Map<String, Object> applicationApprovedTemplateData(Application application,
                         String studentName) {
                 return templateData("application-approved", applicationApprovedContext(application, studentName));
@@ -53,6 +57,7 @@ public class EmailDispatchService {
                 return new ApplicationApprovedContext(
                                 studentName,
                                 application.getId(),
+                                application.getApplicationCode(),
                                 applicationDate,
                                 contentBuilder.academicYearOf(application),
                                 contentBuilder.intakeOf(application),
@@ -83,10 +88,10 @@ public class EmailDispatchService {
                 return new ApplicationRejectedContext(
                                 studentName,
                                 application.getId(),
+                                application.getApplicationCode(),
                                 rejectionReason,
                                 applicationDate,
                                 reviewDate,
-                                contentBuilder.getNextApplicationPeriod(),
                                 portalUrl);
         }
 
@@ -118,6 +123,7 @@ public class EmailDispatchService {
                 return new ApplicationChangesRequestedContext(
                                 studentName,
                                 application.getId(),
+                                application.getApplicationCode(),
                                 application.getRemarks(),
                                 applicationPageUrl(application.getId()));
         }
@@ -166,11 +172,7 @@ public class EmailDispatchService {
                 String rejectionReason = comment != null && !comment.isEmpty()
                                 ? comment
                                 : "The document does not meet our verification requirements.";
-                String resubmissionDeadline = contentBuilder.formatDate(LocalDateTime.now().plusDays(7));
                 String uploadUrl = baseUrl + "/documents";
-                List<String> feedbackPoints = (comment != null && !comment.isEmpty())
-                                ? contentBuilder.parseFeedbackPoints(comment)
-                                : List.of();
 
                 return new DocumentRejectedContext(
                                 studentName,
@@ -179,9 +181,8 @@ public class EmailDispatchService {
                                 submissionDate,
                                 reviewDate,
                                 rejectionReason,
-                                resubmissionDeadline,
                                 uploadUrl,
-                                feedbackPoints);
+                                (maxFileSizeBytes / (1024 * 1024)) + " MB");
         }
 
         public void sendDocumentCommentEmail(Document document, String commentText, String studentName, String email,
@@ -208,8 +209,8 @@ public class EmailDispatchService {
                         String reviewerName, String studentName, String documentName, String documentType) {
                 String documentReference = "DOC-" + document.getId();
                 String uploadDate = contentBuilder.formatDate(document.getCreatedAt());
-                String documentStatus = document.getDocumentStatus() != null ? document.getDocumentStatus().name()
-                                : "PENDING_REVIEW";
+                String documentStatus = document.getDocumentStatus() != null ? document.getDocumentStatus().getStatus()
+                                : null;
                 String commentDate = contentBuilder.formatDate(LocalDateTime.now());
                 String portalUrl = baseUrl + "/documents";
 
@@ -239,39 +240,44 @@ public class EmailDispatchService {
                 log.info("Room allocation email sent to {}", email);
         }
 
+        /**
+         * Everything here comes from the allocation, the room or the building (GH-529). The stay is
+         * the one the student applied for; the offer date is not the start of anything.
+         */
         private RoomAllocatedContext roomAllocatedContext(RoomAllocation allocation, Room room,
                         Building building, String studentName) {
-                String roomNumber = room.getRoomNumber();
-                String buildingName = building.getName();
-                String buildingAddress = building.getAddress() != null ? building.getAddress() : "";
-                Integer floorNumber = contentBuilder.extractFloorNumber(roomNumber);
-                String roomType = contentBuilder.determineRoomType(room);
-                String bedNumber = "1";
-                String allocationId = "ALLOC-" + allocation.getId();
-                String startDate = contentBuilder.formatDate(allocation.getAllocationDate());
-                String endDate = allocation.getEndDate() != null
-                                ? contentBuilder.formatDate(allocation.getEndDate())
-                                : contentBuilder.formatDate(allocation.getAllocationDate().plusMonths(10));
-                String duration = contentBuilder.calculateDuration(allocation.getAllocationDate(),
-                                allocation.getEndDate());
-                String officeLocation = "Main Administration Building, Ground Floor";
-                String portalUrl = baseUrl + "/dashboard";
+                LocalDate stayStart = allocation.getStayStartDate();
+                LocalDate stayEnd = allocation.getStayEndDate();
 
                 return new RoomAllocatedContext(
                                 studentName,
-                                roomNumber,
-                                buildingName,
-                                floorNumber,
-                                roomType,
-                                bedNumber,
-                                allocationId,
-                                startDate,
-                                endDate,
-                                duration,
-                                officeLocation,
-                                buildingAddress,
-                                portalUrl,
-                                contentBuilder.formatDeadline(allocation.getOfferExpiryDate()));
+                                room.getRoomNumber(),
+                                building.getName(),
+                                contentBuilder.determineRoomType(room),
+                                stayStart != null ? contentBuilder.formatDate(stayStart) : null,
+                                stayEnd != null ? contentBuilder.formatDate(stayEnd) : null,
+                                contentBuilder.calculateDuration(stayStart, stayEnd),
+                                addressOf(building),
+                                baseUrl + "/dashboard",
+                                contentBuilder.formatDeadline(allocation.getOfferExpiryDate()),
+                                mapsUrlOf(building));
+        }
+
+        /** The geocoded address when there is one, since it is the complete form. */
+        private static String addressOf(Building building) {
+                if (building.getFormattedAddress() != null && !building.getFormattedAddress().isBlank()) {
+                        return building.getFormattedAddress();
+                }
+                return building.getAddress() != null && !building.getAddress().isBlank() ? building.getAddress() : null;
+        }
+
+        /** A Google Maps link to the building, or null when it was never geocoded. */
+        private static String mapsUrlOf(Building building) {
+                if (building.getLatitude() == null || building.getLongitude() == null) {
+                        return null;
+                }
+                return "https://www.google.com/maps/search/?api=1&query="
+                                + building.getLatitude().toPlainString() + "," + building.getLongitude().toPlainString();
         }
 
         public Map<String, Object> allocationProposalTemplateData(StagedAllocation stagedAllocation,
@@ -287,29 +293,18 @@ public class EmailDispatchService {
                 log.info("Allocation proposal email sent to {}", email);
         }
 
+        /**
+         * Only what a student can use. The staged allocation's score, scoring warnings and id are
+         * for admins (GH-528), so none of them go into the email.
+         */
         private AllocationProposalContext allocationProposalContext(StagedAllocation stagedAllocation,
                         Room room, Building building, String studentName) {
-                String roomNumber = room.getRoomNumber();
-                String buildingName = building.getName();
-                Integer floorNumber = contentBuilder.extractFloorNumber(roomNumber);
-                Integer roomCapacity = room.getCapacity();
-                String proposalId = "PROP-" + stagedAllocation.getId();
-                BigDecimal score = stagedAllocation.getScore();
-                List<String> warnings = contentBuilder.parseWarnings(stagedAllocation.getWarnings());
-                String moveInDate = null;
-                String portalUrl = baseUrl + "/dashboard";
-
                 return new AllocationProposalContext(
                                 studentName,
-                                roomNumber,
-                                buildingName,
-                                floorNumber,
-                                roomCapacity,
-                                proposalId,
-                                score,
-                                warnings,
-                                moveInDate,
-                                portalUrl);
+                                room.getRoomNumber(),
+                                building.getName(),
+                                room.getCapacity(),
+                                baseUrl + "/dashboard");
         }
 
         public Map<String, Object> allocationConfirmedTemplateData(RoomAllocation allocation, Room room,
@@ -325,63 +320,45 @@ public class EmailDispatchService {
                 log.info("Allocation confirmed email sent to {}", email);
         }
 
+        /** The stay and the check-in deadline, the one date the student still acts on (GH-530). */
         private AllocationConfirmedContext allocationConfirmedContext(RoomAllocation allocation, Room room,
                         Building building, String studentName) {
-                String roomNumber = room.getRoomNumber();
-                String buildingName = building.getName();
-                Integer floorNumber = contentBuilder.extractFloorNumber(roomNumber);
-                String roomType = contentBuilder.determineRoomType(room);
-                String allocationId = "ALLOC-" + allocation.getId();
-                String moveInDate = contentBuilder.formatDate(allocation.getAllocationDate());
-                String startDate = contentBuilder.formatDate(allocation.getAllocationDate());
-                String endDate = allocation.getEndDate() != null
-                                ? contentBuilder.formatDate(allocation.getEndDate())
-                                : contentBuilder.formatDate(allocation.getAllocationDate().plusMonths(10));
-                String portalUrl = baseUrl + "/dashboard";
+                LocalDate stayStart = allocation.getStayStartDate();
+                LocalDate stayEnd = allocation.getStayEndDate();
+                LocalDateTime checkInBy = allocation.getCheckInExpiryDate();
 
                 return new AllocationConfirmedContext(
                                 studentName,
-                                roomNumber,
-                                buildingName,
-                                floorNumber,
-                                roomType,
-                                allocationId,
-                                moveInDate,
-                                startDate,
-                                endDate,
-                                portalUrl);
+                                room.getRoomNumber(),
+                                building.getName(),
+                                contentBuilder.determineRoomType(room),
+                                stayStart != null ? contentBuilder.formatDate(stayStart) : null,
+                                stayEnd != null ? contentBuilder.formatDate(stayEnd) : null,
+                                checkInBy != null ? contentBuilder.formatDeadline(checkInBy) : null,
+                                baseUrl + "/dashboard");
         }
 
-        public Map<String, Object> allocationRejectedTemplateData(StagedAllocation stagedAllocation,
-                        Room room, Building building, String studentName, String reason,
-                        Integer waitingListPosition) {
-                return templateData("allocation-rejected", allocationRejectedContext(stagedAllocation, room, building, studentName, reason, waitingListPosition));
+        public Map<String, Object> allocationRejectedTemplateData(Room room, Building building, String studentName) {
+                return templateData("allocation-rejected", allocationRejectedContext(room, building, studentName));
         }
 
-        public void sendAllocationRejectedEmail(StagedAllocation stagedAllocation, Room room, Building building,
-                        String studentName, String email, String reason, Integer waitingListPosition) {
-                var ctx = allocationRejectedContext(stagedAllocation, room, building, studentName, reason, waitingListPosition);
+        public void sendAllocationRejectedEmail(Room room, Building building, String studentName, String email) {
+                var ctx = allocationRejectedContext(room, building, studentName);
 
                 monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_REJECTED, "allocation-rejected", ctx));
                 log.info("Allocation rejected email sent to {}", email);
         }
 
-        private AllocationRejectedContext allocationRejectedContext(StagedAllocation stagedAllocation,
-                        Room room, Building building, String studentName, String reason,
-                        Integer waitingListPosition) {
-                String roomNumber = room.getRoomNumber();
-                String buildingName = building.getName();
-                String proposalId = "PROP-" + stagedAllocation.getId();
-                String portalUrl = baseUrl + "/applications";
-
+        /**
+         * No reason and no waiting-list position (GH-532). Reviewing a proposal is the office's own
+         * step, and the admin screen sends one fixed reason; the position was always 0.
+         */
+        private AllocationRejectedContext allocationRejectedContext(Room room, Building building, String studentName) {
                 return new AllocationRejectedContext(
                                 studentName,
-                                roomNumber,
-                                buildingName,
-                                proposalId,
-                                reason,
-                                waitingListPosition,
-                                portalUrl);
+                                room.getRoomNumber(),
+                                building.getName(),
+                                baseUrl + "/applications");
         }
 
         public Map<String, Object> allocationMovedTemplateData(RoomAllocation newAllocation, Room oldRoom,
@@ -404,11 +381,9 @@ public class EmailDispatchService {
                         LocalDateTime effectiveDate, String reason) {
                 String oldRoomNumber = oldRoom.getRoomNumber();
                 String oldBuildingName = oldBuilding.getName();
-                Integer oldFloorNumber = contentBuilder.extractFloorNumber(oldRoomNumber);
                 Room newRoom = newAllocation.getRoom();
                 String newRoomNumber = newRoom.getRoomNumber();
                 String newBuildingName = newBuilding.getName();
-                Integer newFloorNumber = contentBuilder.extractFloorNumber(newRoomNumber);
                 String newRoomType = contentBuilder.determineRoomType(newRoom);
                 String effectiveDateStr = contentBuilder.formatDate(effectiveDate);
                 String portalUrl = baseUrl + "/dashboard";
@@ -417,10 +392,8 @@ public class EmailDispatchService {
                                 studentName,
                                 oldRoomNumber,
                                 oldBuildingName,
-                                oldFloorNumber,
                                 newRoomNumber,
                                 newBuildingName,
-                                newFloorNumber,
                                 newRoomType,
                                 effectiveDateStr,
                                 reason,
@@ -597,7 +570,7 @@ public class EmailDispatchService {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
                 String expiryDate = allocation.getOfferExpiryDate() != null
-                                ? contentBuilder.formatDate(allocation.getOfferExpiryDate())
+                                ? contentBuilder.formatDeadline(allocation.getOfferExpiryDate())
                                 : "soon";
                 String portalUrl = baseUrl + "/dashboard";
 
@@ -617,7 +590,7 @@ public class EmailDispatchService {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
                 String deadlineDate = allocation.getCheckInExpiryDate() != null
-                                ? contentBuilder.formatDate(allocation.getCheckInExpiryDate())
+                                ? contentBuilder.formatDeadline(allocation.getCheckInExpiryDate())
                                 : "soon";
                 String portalUrl = baseUrl + "/dashboard";
 

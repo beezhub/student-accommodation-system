@@ -16,7 +16,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -170,7 +169,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withApplicationApprovedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new ApplicationApprovedContext("Student Name", 1L, "2023-01-01", "2023", "Semester 1", "url");
+        var ctx = new ApplicationApprovedContext("Student Name", 1L, "APP-1", "2023-01-01", "2023", "Semester 1", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_APPROVED, "application-approved", ctx);
 
@@ -180,7 +179,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withApplicationRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new ApplicationRejectedContext("Student Name", 1L, "Reason", "2023-01-01", "2023-01-02", "Fall", "url");
+        var ctx = new ApplicationRejectedContext("Student Name", 1L, "APP-1", "Reason", "2023-01-01", "2023-01-02", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_REJECTED, "application-rejected", ctx);
 
@@ -190,7 +189,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withChangesRequestedContext_passesTheReasonAndLinkToTheTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new ApplicationChangesRequestedContext("Student Name", 1L, "Reason", "http://portal/applications/1");
+        var ctx = new ApplicationChangesRequestedContext("Student Name", 1L, "APP-1", "Reason", "http://portal/applications/1");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_CHANGES_REQUESTED,
                 "application-changes-requested", ctx);
@@ -216,7 +215,7 @@ class EmailServiceTest {
     void sendTemplateEmail_withDocumentRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var ctx = new DocumentRejectedContext("Student Name", "ID", "REF", "2023-01-01",
-                "2023-01-02", "Blurry", "2023-01-10", "url", List.of());
+                "2023-01-02", "Blurry", "url", "10 MB");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.DOCUMENT_REJECTED, "document-rejected", ctx);
 
@@ -226,9 +225,9 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withRoomAllocatedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new RoomAllocatedContext("Student Name", "101", "Building", 1, "Single",
-                "1", "ALLOC1", "2023-01-01", "2023-12-31", "1 Year", "Office", "Address", "url",
-                "01 January 2024 at 12:00 UTC");
+        var ctx = new RoomAllocatedContext("Student Name", "101", "Building", "Single",
+                "2023-01-01", "2023-12-31", "1 Year", "Address", "url",
+                "01 January 2024 at 12:00 UTC", "https://www.google.com/maps/search/?api=1&query=0,0");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ROOM_ALLOCATED, "room-allocated", ctx);
 
@@ -248,8 +247,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withAllocationProposalContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new AllocationProposalContext("Student Name", "101", "Building", 1, 2,
-                "PROP1", new BigDecimal("100"), List.of("Warning"), "2023-01-01", "url");
+        var ctx = new AllocationProposalContext("Student Name", "101", "Building", 2, "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_PROPOSAL, "allocation-proposal", ctx);
 
@@ -259,8 +257,8 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withAllocationConfirmedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new AllocationConfirmedContext("Student", "101", "Building", 1, "Single",
-                "ALLOC1", "2023-01-01", "2023-01-01", "2023-12-31", "url");
+        var ctx = new AllocationConfirmedContext("Student", "101", "Building", "Single", "2023-01-01", "2023-12-31",
+                "22 January 2024 at 00:00 SAST", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_CONFIRMED, "allocation-confirmed", ctx);
 
@@ -270,7 +268,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withAllocationRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new AllocationRejectedContext("Student", "101", "Building", "PROP1", "Full", 5, "url");
+        var ctx = new AllocationRejectedContext("Student", "101", "Building", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_REJECTED, "allocation-rejected", ctx);
 
@@ -280,7 +278,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withAllocationMovedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new AllocationMovedContext("Student", "101", "Bld1", 1, "201", "Bld2", 2,
+        var ctx = new AllocationMovedContext("Student", "101", "Bld1", "201", "Bld2",
                 "Double", "2023-01-01", "Maintenance", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_MOVED, "allocation-moved", ctx);
