@@ -135,8 +135,9 @@ Every test case in the linked files follows this standard template:
 | 18 | [18-JOB.md](18-JOB.md) | Scheduled Jobs | 15 | ☐ |
 | 19 | [19-SEC.md](19-SEC.md) | Security & Authorization | 30 | ☐ |
 | 20 | [20-XFW.md](20-XFW.md) | Cross-Feature Workflows | 25 | ☐ |
+| 21 | [21-REL-NEXT.md](21-REL-NEXT.md) | Release Next: Academic Years, Intakes and Stays | 74 | ☐ |
 
-**Total: 626 test cases**
+**Total: 700 test cases**
 
 ---
 
@@ -164,7 +165,8 @@ Every test case in the linked files follows this standard template:
 | Scheduled Jobs | 15 | | | | 15 |
 | Security & Authorization | 30 | | | | 30 |
 | Cross-Feature Workflows | 25 | | | | 25 |
-| **TOTALS** | **626** | **0** | **0** | **0** | **626** |
+| Release Next: Academic Years, Intakes and Stays | 74 | | | | 74 |
+| **TOTALS** | **700** | **0** | **0** | **0** | **700** |
 
 ---
 
