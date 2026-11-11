@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.service.allocation.AllocationExpiryServ
 import com.beezhub.student_accommodation.service.allocation.OfferReminderService;
 import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
 import com.beezhub.student_accommodation.service.allocation.ReconfirmationService;
+import com.beezhub.student_accommodation.service.allocation.RoomOccupancyRecountService;
 import com.beezhub.student_accommodation.service.application.IntakeExpiryService;
 import com.beezhub.student_accommodation.service.document.DocumentExpiryReminderService;
 import com.beezhub.student_accommodation.service.document.DocumentRetentionJob;
@@ -42,6 +43,7 @@ public class ScheduledJobRunner {
     private final ReconfirmationService reconfirmationService;
     private final IntakeExpiryService intakeExpiryService;
     private final DocumentExpiryReminderService documentExpiryReminderService;
+    private final RoomOccupancyRecountService roomOccupancyRecountService;
     private final MeterRegistry meterRegistry;
 
     @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
@@ -216,6 +218,26 @@ public class ScheduledJobRunner {
         log.info("job={} action=start", jobName);
         try {
             int processed = documentExpiryReminderService.runDaily();
+            log.info("job={} action=complete processed={}", jobName, processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
+        } catch (Exception e) {
+            log.error("job={} action=failed", jobName, e);
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
+        }
+    }
+
+    /**
+     * Recounts every room's occupancy (GH-541). An accepted place starts counting on its stay start
+     * date and stops on its end date, but nothing writes to the room on those dates. Daily at 22:05
+     * UTC, 00:05 in South Africa, just after the date the count is taken on has changed, and clear
+     * of the 01:30 UTC backup. Processed is the number of rooms that were wrong and got corrected.
+     */
+    @Scheduled(cron = "${app.allocation.occupancy-recount-cron:0 5 22 * * *}", zone = "UTC")
+    public void runOccupancyRecount() {
+        String jobName = "occupancyRecount";
+        log.info("job={} action=start", jobName);
+        try {
+            int processed = roomOccupancyRecountService.recountAll();
             log.info("job={} action=complete processed={}", jobName, processed);
             meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
         } catch (Exception e) {
