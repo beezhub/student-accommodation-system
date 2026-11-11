@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Your Other Applications Have Been Withdrawn</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Your Other Applications Have Been Withdrawn</h1>
+<span layout:fragment="email-subtitle">You accepted a place for the same dates</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <div class="success-box">
+        <h3>Place accepted</h3>
+        <p>You accepted <strong th:text="${acceptedPlace}">Room 12, West Residence</strong>.</p>
+    </div>
+
+    <div class="info-box">
+        <h3>Withdrawn for the same dates</h3>
+        <p>You can only live in one place at a time, so these applications have been withdrawn,
+           along with any room offers on them:</p>
+        <ul>
+            <li th:each="item : ${withdrawn}" th:text="${item}">APP123 at Company B, Semester 1, 2027</li>
+        </ul>
+        <p>Each residence has been told.</p>
+    </div>
+
+    <p>Applications for other dates are not affected.</p>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">View My Applications</a>
+    </div>
+</div>
+
+</body>
+</html>

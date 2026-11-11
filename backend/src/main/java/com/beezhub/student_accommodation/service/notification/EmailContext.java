@@ -28,5 +28,7 @@ public sealed interface EmailContext permits
         CheckInExpiredContext,
         ReconfirmRequestContext,
         ReconfirmReminderContext,
-        PlaceReleasedContext {
+        PlaceReleasedContext,
+        ApplicationExpiredContext,
+        ApplicationsWithdrawnContext {
 }

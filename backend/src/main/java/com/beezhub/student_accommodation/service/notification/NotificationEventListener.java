@@ -26,6 +26,7 @@ public class NotificationEventListener {
 
     private final NotificationPersistenceService notificationService;
     private final EmailDispatchService emailDispatchService;
+    private final ApplicationExpiryEmailService applicationExpiryEmailService;
 
     /** The shared, transaction-bound EntityManager proxy; see {@link #reload(Application)}. */
     private final EntityManager entityManager;
@@ -94,6 +95,10 @@ public class NotificationEventListener {
                 sendChangesRequestedNotification(application, user, studentName, email);
                 return;
             }
+            if (newStatus == ApplicationStatus.EXPIRED) {
+                sendExpiredNotification(application, user, studentName, email);
+                return;
+            }
 
             NotificationType notificationType = newStatus == ApplicationStatus.APPROVED
                     ? NotificationType.APPLICATION_APPROVED
@@ -149,6 +154,19 @@ public class NotificationEventListener {
 
         try {
             emailDispatchService.sendApplicationChangesRequestedEmail(application, studentName, email);
+            notificationService.markNotificationAsSent(notification);
+        } catch (Exception e) {
+            notificationService.handleNotificationFailure(notification, e);
+        }
+    }
+
+    /** Expired with its intake (GH-497): the email offers the next open intake at that company. */
+    private void sendExpiredNotification(Application application, AppUser user, String studentName, String email) {
+        TemplatedEmail expired = applicationExpiryEmailService.expired(application, studentName);
+        Notification notification = notificationService.createNotification(email, expired.subject(),
+                NotificationType.GENERAL, user, application.getId(), "Application", expired.templateData());
+        try {
+            applicationExpiryEmailService.send(email, expired);
             notificationService.markNotificationAsSent(notification);
         } catch (Exception e) {
             notificationService.handleNotificationFailure(notification, e);

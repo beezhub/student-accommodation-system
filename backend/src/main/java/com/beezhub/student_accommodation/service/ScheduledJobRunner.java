@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.service.allocation.AllocationExpiryServ
 import com.beezhub.student_accommodation.service.allocation.OfferReminderService;
 import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
 import com.beezhub.student_accommodation.service.allocation.ReconfirmationService;
+import com.beezhub.student_accommodation.service.application.IntakeExpiryService;
 import com.beezhub.student_accommodation.service.document.DocumentRetentionJob;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
 import com.beezhub.student_accommodation.service.notification.NotificationRetryService;
@@ -38,6 +39,7 @@ public class ScheduledJobRunner {
     private final CheckInReminderService checkInReminderService;
     private final NotificationRetryService notificationRetryService;
     private final ReconfirmationService reconfirmationService;
+    private final IntakeExpiryService intakeExpiryService;
     private final MeterRegistry meterRegistry;
 
     @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
@@ -172,6 +174,26 @@ public class ScheduledJobRunner {
         log.info("job={} action=start", jobName);
         try {
             int processed = reconfirmationService.runDaily();
+            log.info("job={} action=complete processed={}", jobName, processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
+        } catch (Exception e) {
+            log.error("job={} action=failed", jobName, e);
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
+        }
+    }
+
+    /**
+     * Expires unfinished applications the day after their intake's stay ends (GH-497). Daily at
+     * 05:00 UTC, 07:00 in South Africa: after midnight there, so an intake that ended yesterday is
+     * caught the same morning, before the reconfirmation run, and clear of the 01:30 UTC backup. Dates
+     * inside the run are read in South African time; the service sets the tenant context per company.
+     */
+    @Scheduled(cron = "${app.application.intake-expiry-cron:0 0 5 * * *}", zone = "UTC")
+    public void runIntakeExpiry() {
+        String jobName = "intakeExpiry";
+        log.info("job={} action=start", jobName);
+        try {
+            int processed = intakeExpiryService.runDaily();
             log.info("job={} action=complete processed={}", jobName, processed);
             meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
         } catch (Exception e) {

@@ -155,7 +155,7 @@ public class EmailService {
     }
 
     // ──────────────────────────────────────────────────────────────────────────────
-    // Context mapping — sealed switch exhausts all 22 EmailContext subtypes
+    // Context mapping — sealed switch exhausts all 24 EmailContext subtypes
     // ──────────────────────────────────────────────────────────────────────────────
 
     public static Map<String, Object> toVariableMap(EmailContext ctx) {
@@ -354,6 +354,24 @@ public class EmailService {
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
                 vars.put("moveInDate", c.moveInDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case ApplicationExpiredContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("applicationCode", c.applicationCode());
+                vars.put("companyName", c.companyName());
+                vars.put("intakeName", c.intakeName());
+                vars.put("stayEndDate", c.stayEndDate());
+                vars.put("nextIntakeName", c.nextIntakeName());
+                vars.put("nextMoveInDate", c.nextMoveInDate());
+                vars.put("nextApplyByDate", c.nextApplyByDate());
+                vars.put("applyUrl", c.applyUrl());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case ApplicationsWithdrawnContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("acceptedPlace", c.acceptedPlace());
+                vars.put("withdrawn", c.withdrawn());
                 vars.put("portalUrl", c.portalUrl());
             }
         }
