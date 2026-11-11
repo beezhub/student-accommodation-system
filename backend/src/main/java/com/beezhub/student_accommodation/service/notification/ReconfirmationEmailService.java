@@ -34,18 +34,24 @@ public class ReconfirmationEmailService {
     @Value("${app.base-url}")
     private String baseUrl;
 
-    /** The request or a reminder: the template name, the subject and the context. */
+    /**
+     * The request or a reminder: the template name, the subject and the context.
+     *
+     * <p>The release job frees the place on {@code releaseDate} itself, early in the morning, so
+     * the email names the day before as the last day to confirm (GH-531).
+     */
     public Email request(RoomAllocation allocation, boolean reminder, LocalDate releaseDate, String studentName) {
         Room room = allocation.getRoom();
         String moveIn = contentBuilder.formatDate(allocation.getStayStartDate());
         String release = contentBuilder.formatDate(releaseDate);
+        String confirmBy = releaseDate != null ? contentBuilder.formatDate(releaseDate.minusDays(1)) : null;
         String portalUrl = baseUrl + "/dashboard";
         if (reminder) {
             return new Email(REMINDER_TEMPLATE, EmailSubjects.RECONFIRM_REMINDER, new ReconfirmReminderContext(
-                    studentName, room.getRoomNumber(), buildingName(room), moveIn, release, portalUrl));
+                    studentName, room.getRoomNumber(), buildingName(room), moveIn, release, confirmBy, portalUrl));
         }
         return new Email(REQUEST_TEMPLATE, EmailSubjects.RECONFIRM_REQUEST, new ReconfirmRequestContext(
-                studentName, room.getRoomNumber(), buildingName(room), moveIn, release, portalUrl));
+                studentName, room.getRoomNumber(), buildingName(room), moveIn, release, confirmBy, portalUrl));
     }
 
     /** The notice that the place was released. */

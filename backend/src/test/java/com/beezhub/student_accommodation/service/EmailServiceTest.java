@@ -215,7 +215,7 @@ class EmailServiceTest {
     void sendTemplateEmail_withDocumentRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var ctx = new DocumentRejectedContext("Student Name", "ID", "REF", "2023-01-01",
-                "2023-01-02", "Blurry", "2023-01-10", "url", List.of());
+                "2023-01-02", "Blurry", "url", List.of());
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.DOCUMENT_REJECTED, "document-rejected", ctx);
 

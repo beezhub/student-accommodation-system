@@ -19,7 +19,9 @@
         <p>You have a place in <strong>Room <span th:text="${roomNumber}">101</span></strong>
            in <strong th:text="${buildingName}">Building A</strong> from
            <strong th:text="${moveInDate}">01 February 2027</strong>.</p>
-        <p>Please confirm that you are still coming by
+        <p th:if="${confirmByDate != null}">Please confirm that you are still coming by
+           <strong th:text="${confirmByDate}">17 January 2027</strong>.</p>
+        <p th:unless="${confirmByDate != null}">Please confirm that you are still coming before
            <strong th:text="${releaseDate}">18 January 2027</strong>.</p>
     </div>
 

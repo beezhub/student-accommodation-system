@@ -169,7 +169,6 @@ public class EmailDispatchService {
                 String rejectionReason = comment != null && !comment.isEmpty()
                                 ? comment
                                 : "The document does not meet our verification requirements.";
-                String resubmissionDeadline = contentBuilder.formatDate(LocalDateTime.now().plusDays(7));
                 String uploadUrl = baseUrl + "/documents";
                 List<String> feedbackPoints = (comment != null && !comment.isEmpty())
                                 ? contentBuilder.parseFeedbackPoints(comment)
@@ -182,7 +181,6 @@ public class EmailDispatchService {
                                 submissionDate,
                                 reviewDate,
                                 rejectionReason,
-                                resubmissionDeadline,
                                 uploadUrl,
                                 feedbackPoints);
         }
@@ -579,7 +577,7 @@ public class EmailDispatchService {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
                 String expiryDate = allocation.getOfferExpiryDate() != null
-                                ? contentBuilder.formatDate(allocation.getOfferExpiryDate())
+                                ? contentBuilder.formatDeadline(allocation.getOfferExpiryDate())
                                 : "soon";
                 String portalUrl = baseUrl + "/dashboard";
 
@@ -599,7 +597,7 @@ public class EmailDispatchService {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = room.getBuilding() != null ? room.getBuilding().getName() : "Unknown Building";
                 String deadlineDate = allocation.getCheckInExpiryDate() != null
-                                ? contentBuilder.formatDate(allocation.getCheckInExpiryDate())
+                                ? contentBuilder.formatDeadline(allocation.getCheckInExpiryDate())
                                 : "soon";
                 String portalUrl = baseUrl + "/dashboard";
 

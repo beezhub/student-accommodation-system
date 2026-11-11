@@ -330,6 +330,35 @@ class EmailDispatchServiceTest {
         assertThat(ctx.getValue().checkInDeadline()).isEqualTo("22 January 2027 at 00:00 SAST");
     }
 
+    /** GH-531: sent within a day of an exact deadline, so the time matters as much as the date. */
+    @Test
+    void sendOfferExpiryReminderEmail_givesTheDeadlineWithItsTime() {
+        LocalDateTime expiry = LocalDateTime.of(2026, 11, 18, 17, 34);
+        allocation.setOfferExpiryDate(expiry);
+        when(contentBuilder.formatDeadline(expiry)).thenReturn("18 November 2026 at 17:34 SAST");
+
+        emailDispatchService.sendOfferExpiryReminderEmail(allocation, room, "John Doe", "john@example.com", "s");
+
+        ArgumentCaptor<OfferExpiryReminderContext> ctx = ArgumentCaptor.forClass(OfferExpiryReminderContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.OFFER_EXPIRY_REMINDER),
+                eq("offer-expiry-reminder"), ctx.capture());
+        assertThat(ctx.getValue().expiryDate()).isEqualTo("18 November 2026 at 17:34 SAST");
+    }
+
+    @Test
+    void sendCheckInReminderEmail_givesTheDeadlineWithItsTime() {
+        LocalDateTime deadline = LocalDateTime.of(2027, 1, 22, 0, 0);
+        allocation.setCheckInExpiryDate(deadline);
+        when(contentBuilder.formatDeadline(deadline)).thenReturn("22 January 2027 at 00:00 SAST");
+
+        emailDispatchService.sendCheckInReminderEmail(allocation, room, "John Doe", "john@example.com", "s");
+
+        ArgumentCaptor<CheckInReminderContext> ctx = ArgumentCaptor.forClass(CheckInReminderContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.CHECK_IN_REMINDER),
+                eq("check-in-reminder"), ctx.capture());
+        assertThat(ctx.getValue().deadlineDate()).isEqualTo("22 January 2027 at 00:00 SAST");
+    }
+
     private RoomAllocatedContext sentRoomAllocatedContext() {
         emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, "John Doe", "john@example.com");
         ArgumentCaptor<RoomAllocatedContext> ctx = ArgumentCaptor.forClass(RoomAllocatedContext.class);

@@ -213,7 +213,6 @@ public class EmailService {
                 vars.put("submissionDate", c.submissionDate());
                 vars.put("reviewDate", c.reviewDate());
                 vars.put("rejectionReason", c.rejectionReason());
-                vars.put("resubmissionDeadline", c.resubmissionDeadline());
                 vars.put("uploadUrl", c.uploadUrl());
                 vars.put("feedbackPoints", c.feedbackPoints());
             }
@@ -328,6 +327,7 @@ public class EmailService {
                 vars.put("buildingName", c.buildingName());
                 vars.put("moveInDate", c.moveInDate());
                 vars.put("releaseDate", c.releaseDate());
+                vars.put("confirmByDate", c.confirmByDate());
                 vars.put("portalUrl", c.portalUrl());
             }
             case ReconfirmReminderContext c -> {
@@ -336,6 +336,7 @@ public class EmailService {
                 vars.put("buildingName", c.buildingName());
                 vars.put("moveInDate", c.moveInDate());
                 vars.put("releaseDate", c.releaseDate());
+                vars.put("confirmByDate", c.confirmByDate());
                 vars.put("portalUrl", c.portalUrl());
             }
             case PlaceReleasedContext c -> {

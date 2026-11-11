@@ -856,6 +856,62 @@ class EmailTemplateRenderTest {
         assertThat(html.split("301A", -1)).as("room number shown once").hasSize(2);
     }
 
+    /** GH-531: the last day to confirm, not the release date, which is already too late. */
+    @Test
+    void reconfirmEmails_nameTheLastDayToConfirm() {
+        for (String template : List.of("reconfirm-request", "reconfirm-reminder")) {
+            Map<String, Object> vars = minimalVars(template);
+            vars.put("releaseDate", "18 January 2027");
+            vars.put("confirmByDate", "17 January 2027");
+
+            String html = render(template, vars);
+
+            assertThat(html).as(template).containsPattern("by\\s+<strong>17 January 2027</strong>")
+                    .doesNotContainPattern("by\\s+<strong>18 January 2027</strong>");
+        }
+    }
+
+    /** Older notification rows have only the release date: confirming before it is still true. */
+    @Test
+    void reconfirmEmails_olderRowWithOnlyTheReleaseDate_saysBeforeIt() {
+        Map<String, Object> vars = minimalVars("reconfirm-request");
+        vars.put("releaseDate", "18 January 2027");
+
+        assertThat(render("reconfirm-request", vars)).containsPattern("before\\s+<strong>18 January 2027</strong>");
+    }
+
+    /**
+     * GH-531: the offer and check-in windows come from config and admins can extend an offer,
+     * and the check-in clock starts on move-in day, so no email states a fixed number of days.
+     */
+    @Test
+    void expiryEmails_doNotStateAFixedNumberOfDays() {
+        for (String template : List.of("offer-expired", "check-in-expired")) {
+            assertThat(render(template, minimalVars(template))).as(template)
+                    .doesNotContain("7 days")
+                    .doesNotContain("of accepting the offer");
+        }
+    }
+
+    /** GH-531: nothing stores or enforces a resubmission deadline. */
+    @Test
+    void documentRejected_inventsNoDeadline() {
+        Map<String, Object> vars = minimalVars("document-rejected");
+        vars.put("resubmissionDeadline", "20 January 2026");
+
+        assertThat(render("document-rejected", vars))
+                .doesNotContain("Resubmission Deadline")
+                .doesNotContain("20 January 2026")
+                .doesNotContain("Failure to resubmit");
+    }
+
+    /** GH-531: the room is already switched when this is sent; there is nothing to finish by a date. */
+    @Test
+    void allocationMoved_setsNoDeadline() {
+        assertThat(render("allocation-moved", minimalVars("allocation-moved")))
+                .doesNotContain("complete the room change by");
+    }
+
     /** By approval the documents are uploaded, and checking them is the office's job (GH-526). */
     @Test
     void applicationApproved_nextStepsAreWhatHappensNext() {

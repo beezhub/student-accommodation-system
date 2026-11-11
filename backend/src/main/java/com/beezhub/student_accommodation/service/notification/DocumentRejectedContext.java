@@ -9,7 +9,6 @@ public record DocumentRejectedContext(
         String submissionDate,
         String reviewDate,
         String rejectionReason,
-        String resubmissionDeadline,
         String uploadUrl,
         List<String> feedbackPoints
 ) implements EmailContext {}
