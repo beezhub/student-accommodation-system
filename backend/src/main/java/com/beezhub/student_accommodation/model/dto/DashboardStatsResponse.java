@@ -1,9 +1,12 @@
 package com.beezhub.student_accommodation.model.dto;
 
+import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.Map;
 
 @Data
 @Builder
@@ -12,11 +15,8 @@ import lombok.NoArgsConstructor;
 public class DashboardStatsResponse {
     // Application stats
     private Long totalApplications;
-    private Long pendingApplications;
-    private Long approvedApplications;
-    private Long rejectedApplications;
-    private Long inReviewApplications;
-    private Long allocatedApplications;
+    /** Every {@link ApplicationStatus}, zeros included; the values add up to totalApplications. */
+    private Map<ApplicationStatus, Long> applicationsByStatus;
 
     // Document stats
     private Long totalDocuments;
