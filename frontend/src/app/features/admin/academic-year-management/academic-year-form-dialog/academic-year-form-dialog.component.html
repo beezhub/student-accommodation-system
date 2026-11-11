@@ -10,7 +10,7 @@
           {{
             isEditMode
               ? 'Students who already applied keep their intake and dates'
-              : 'Pick the intakes; their dates and application windows are filled in'
+              : 'Set when students live in residence, then choose how the year is split'
           }}
         </p>
       </div>
@@ -20,46 +20,95 @@
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <mat-dialog-content>
       <div class="form-grid">
-        <mat-form-field appearance="outline" class="full-width">
+        <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
           <mat-label>Institution</mat-label>
-          <mat-select formControlName="institutionId">
+          <mat-select formControlName="institutionId" [matTooltip]="institutionName">
             <mat-option [value]="null">{{ allInstitutions }}</mat-option>
             @for (institution of institutions; track institution.id) {
             <mat-option [value]="institution.id">{{ institution.name }}</mat-option>
             }
           </mat-select>
-          <mat-hint>Pick one when its calendar differs from the others</mat-hint>
+          <mat-hint>
+            Keep {{ allInstitutions }} unless one institution has different dates. Then create a
+            separate year for it.
+          </mat-hint>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Name</mat-label>
           <input matInput formControlName="name" placeholder="e.g. 2027" maxlength="20" />
-          @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+          <mat-hint>A short label such as 2027</mat-hint>
+          @if (form.controls.name.hasError('required')) {
           <mat-error>Name is required</mat-error>
           }
         </mat-form-field>
 
-        <div class="section-label">Year</div>
+        <div class="section-label">Residence dates</div>
         <div class="date-row">
           <mat-form-field appearance="outline">
-            <mat-label>Starts</mat-label>
-            <input matInput type="date" formControlName="startDate" />
+            <mat-label>First move-in day</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+            @if (form.controls.startDate.hasError('matDatepickerParse')) {
+            <mat-error>Enter a valid date</mat-error>
+            } @else if (form.controls.startDate.hasError('required')) {
+            <mat-error>Pick the first move-in day</mat-error>
+            }
           </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Ends</mat-label>
-            <input matInput type="date" formControlName="endDate" />
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Last move-out day</mat-label>
+            <input
+              matInput
+              [matDatepicker]="endPicker"
+              formControlName="endDate"
+              [errorStateMatcher]="endDateErrorState"
+            />
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+            @if (form.controls.endDate.hasError('matDatepickerParse')) {
+            <mat-error>Enter a valid date</mat-error>
+            } @else if (form.controls.endDate.hasError('required')) {
+            <mat-error>Pick the last move-out day</mat-error>
+            } @else if (form.hasError('dateOrder')) {
+            <mat-error>The last move-out day must be after the first move-in day</mat-error>
+            }
           </mat-form-field>
         </div>
 
         @if (!isEditMode) {
         <div class="section-label">Intakes</div>
+        <p class="pattern-hint">
+          An intake is a group of students who move in on the same day. Tick every split you need.
+        </p>
         <div class="pattern-options">
-          <mat-checkbox formControlName="annual">Annual</mat-checkbox>
-          <mat-checkbox formControlName="semesters">Semesters</mat-checkbox>
-          <mat-checkbox formControlName="trimesters">Trimesters</mat-checkbox>
+          @for (option of intakeOptions; track option.control) {
+          <div class="pattern-option">
+            <mat-checkbox [formControlName]="option.control">{{ option.label }}</mat-checkbox>
+            <span class="pattern-option-help">{{ option.help }}</span>
+          </div>
+          }
         </div>
         @if (intakeTypes.length === 0) {
-        <p class="pattern-hint">Tick at least one.</p>
+        <p class="pattern-hint pattern-hint--warn">Tick at least one.</p>
+        }
+
+        @if (preview.length > 0) {
+        <div class="preview" aria-live="polite">
+          <div class="preview-title">What will be created</div>
+          <ul class="preview-list">
+            @for (intake of preview; track $index) {
+            <li class="preview-row">
+              <span class="preview-name">{{ intake.name }}</span>
+              <span class="preview-dates">{{ describeStay(intake) }}</span>
+            </li>
+            }
+          </ul>
+          <p class="pattern-hint">
+            Applications for each intake open and close a set number of days before its move-in
+            day. You can change any intake after saving.
+          </p>
+        </div>
         } }
       </div>
     </mat-dialog-content>

@@ -92,4 +92,13 @@ describe('ChangePasswordDialogComponent', () => {
 
     expect(component.errorMessage).toBe('Password must be at least 12 characters');
   });
+
+  it('passwordHint_wrapsOntoTwoLines_growsInsteadOfCoveringTheNextField', () => {
+    const hint = [...(fixture.nativeElement as HTMLElement).querySelectorAll('mat-hint')].find(
+      (element) => element.textContent?.trim() === PASSWORD_RULES_HINT
+    );
+    const subscript = hint?.closest('.mat-mdc-form-field-subscript-wrapper');
+
+    expect(subscript?.classList).toContain('mat-mdc-form-field-subscript-dynamic-size');
+  });
 });

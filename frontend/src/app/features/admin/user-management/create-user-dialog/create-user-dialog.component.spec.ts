@@ -5,6 +5,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 
 import { CreateUserDialogComponent } from './create-user-dialog.component';
+import { PASSWORD_RULES_HINT } from '../../../../shared/validators/strong-password.validator';
 import { AdminService, AdminUser } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { TenantService } from '../../../../core/services/tenant.service';
@@ -246,5 +247,17 @@ describe('CreateUserDialogComponent tenant scoping', () => {
       'Close',
       jasmine.anything()
     );
+  });
+
+  it('passwordHint_wrapsOntoTwoLines_growsInsteadOfCoveringTheNextField', () => {
+    build();
+    fixture.detectChanges();
+
+    const hint = [...(fixture.nativeElement as HTMLElement).querySelectorAll('mat-hint')].find(
+      (element) => element.textContent?.trim() === PASSWORD_RULES_HINT
+    );
+    const subscript = hint?.closest('.mat-mdc-form-field-subscript-wrapper');
+
+    expect(subscript?.classList).toContain('mat-mdc-form-field-subscript-dynamic-size');
   });
 });

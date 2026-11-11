@@ -128,4 +128,13 @@ describe('ResetPasswordComponent', () => {
       jasmine.anything()
     );
   });
+
+  it('passwordHint_wrapsOntoTwoLines_growsInsteadOfCoveringTheNextField', () => {
+    const hint = [...(harness.routeNativeElement as HTMLElement).querySelectorAll('mat-hint')].find(
+      (element) => element.textContent?.trim() === PASSWORD_RULES_HINT
+    );
+    const subscript = hint?.closest('.mat-mdc-form-field-subscript-wrapper');
+
+    expect(subscript?.classList).toContain('mat-mdc-form-field-subscript-dynamic-size');
+  });
 });

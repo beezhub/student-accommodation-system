@@ -130,10 +130,65 @@ mat-dialog-content {
   gap: 1rem;
 }
 
+.pattern-option {
+  display: flex;
+  flex-direction: column;
+  min-width: 9rem;
+}
+
+.pattern-option-help {
+  padding-left: 2.5rem;
+  font-size: 0.75rem;
+  color: var(--color-slate-500, #64748b);
+}
+
 .pattern-hint {
   margin: 0;
   font-size: 0.75rem;
   color: var(--color-slate-500, #64748b);
+}
+
+.pattern-hint--warn {
+  color: #b45309;
+}
+
+/* ── Preview of the intakes ─────────────── */
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.preview-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.preview-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.preview-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.preview-name {
+  font-weight: 600;
+  color: #0f172a;
 }
 
 mat-dialog-actions {
