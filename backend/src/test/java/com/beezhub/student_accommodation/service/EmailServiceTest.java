@@ -179,7 +179,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withApplicationRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new ApplicationRejectedContext("Student Name", 1L, "APP-1", "Reason", "2023-01-01", "2023-01-02", "Fall", "url");
+        var ctx = new ApplicationRejectedContext("Student Name", 1L, "APP-1", "Reason", "2023-01-01", "2023-01-02", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_REJECTED, "application-rejected", ctx);
 
@@ -215,7 +215,7 @@ class EmailServiceTest {
     void sendTemplateEmail_withDocumentRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var ctx = new DocumentRejectedContext("Student Name", "ID", "REF", "2023-01-01",
-                "2023-01-02", "Blurry", "url", List.of());
+                "2023-01-02", "Blurry", "url", "10 MB");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.DOCUMENT_REJECTED, "document-rejected", ctx);
 
@@ -268,7 +268,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withAllocationRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new AllocationRejectedContext("Student", "101", "Building", "Full", 5, "url");
+        var ctx = new AllocationRejectedContext("Student", "101", "Building", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_REJECTED, "allocation-rejected", ctx);
 

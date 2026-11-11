@@ -457,7 +457,7 @@ class NotificationEventListenerTest {
 
         notificationEventListener.handleStagedAllocationRejected(event);
 
-        verify(emailDispatchService).sendAllocationRejectedEmail(eq(allocation), any(), any(), eq("John Doe"), eq("test@example.com"), eq("Full"), eq(0));
+        verify(emailDispatchService).sendAllocationRejectedEmail(any(), any(), eq("John Doe"), eq("test@example.com"));
         verify(notificationService).markNotificationAsSent(notification);
     }
 }

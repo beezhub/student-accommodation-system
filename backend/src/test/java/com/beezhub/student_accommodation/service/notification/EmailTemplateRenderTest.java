@@ -362,7 +362,8 @@ class EmailTemplateRenderTest {
         String html = render("allocation-rejected", vars);
 
         assertBaseRequirements(html, "allocation-rejected");
-        assertThat(html).contains("Higher priority student assigned");
+        // GH-532: the admin's reason is for admins; the student sees the room and what happens next.
+        assertThat(html).contains("201").contains("North Block").doesNotContain("Higher priority student assigned");
     }
 
     @Test
@@ -910,6 +911,129 @@ class EmailTemplateRenderTest {
     void allocationMoved_setsNoDeadline() {
         assertThat(render("allocation-moved", minimalVars("allocation-moved")))
                 .doesNotContain("complete the room change by");
+    }
+
+    // ---- GH-532: outcomes that did not happen and steps the student cannot take ----
+
+    /** The position was hardcoded to 0 and the reason is the admin UI's fixed text. */
+    @Test
+    void allocationRejected_showsNoFakePositionReasonOrImpossibleSteps() {
+        Map<String, Object> vars = minimalVars("allocation-rejected");
+        vars.put("waitingListPosition", 0);
+        vars.put("reason", "Admin rejected from pending proposals");
+
+        assertThat(render("allocation-rejected", vars))
+                .doesNotContain("Position")
+                .doesNotContain("Admin rejected from pending proposals")
+                .doesNotContain("preferences")
+                .contains("room offer");
+    }
+
+    /** Sent on every approved document, not once the application reaches the queue. */
+    @Test
+    void documentVerified_doesNotClaimTheApplicationIsQueued() {
+        assertThat(render("document-verified", minimalVars("document-verified")))
+                .doesNotContain("allocation queue")
+                .doesNotContain("2-3 business days")
+                .doesNotContain("View Application Status")
+                .contains("View Documents");
+    }
+
+    /** The waiting list is only refilled when auto-allocation is on, and it ships off. */
+    @Test
+    void releaseEmails_doNotClaimTheNextStudentGotThePlace() {
+        for (String template : List.of("place-released", "reconfirm-request", "reconfirm-reminder")) {
+            assertThat(render(template, minimalVars(template))).as(template)
+                    .doesNotContain("next student on the waiting list")
+                    .contains("released to other students");
+        }
+    }
+
+    @Test
+    void offerDeclinedRequeue_usesPlainWordsNotAStatusCode() {
+        assertThat(render("offer-declined-requeue", minimalVars("offer-declined-requeue")))
+                .doesNotContain("AWAITING ALLOCATION")
+                .doesNotContain("you have been\n           added back");
+    }
+
+    /** The expiry jobs skip the cancel when the application was already closed, so say closed. */
+    @Test
+    void expiredEmails_sayTheApplicationIsClosed() {
+        for (String template : List.of("offer-expired", "check-in-expired")) {
+            assertThat(render(template, minimalVars(template))).as(template)
+                    .doesNotContain("CANCELLED")
+                    .doesNotContain("Application Cancelled")
+                    .contains("closed");
+        }
+    }
+
+    /** Also sent for approved and waiting applications, where the student finished everything. */
+    @Test
+    void applicationExpired_doesNotBlameTheStudent() {
+        assertThat(render("application-expired", minimalVars("application-expired")))
+                .doesNotContain("not finished in time");
+    }
+
+    /** Only residence staff can check a student in. */
+    @Test
+    void checkInReminder_doesNotAskTheStudentToCheckThemselvesIn() {
+        assertThat(render("check-in-reminder", minimalVars("check-in-reminder")))
+                .doesNotContain("complete the check-in process")
+                .contains("residence staff");
+    }
+
+    /** A student can replace documents and edit their profile, not the submitted application. */
+    @Test
+    void applicationChangesRequested_namesWhatTheStudentCanChange() {
+        assertThat(render("application-changes-requested", minimalVars("application-changes-requested")))
+                .contains("replacement document")
+                .contains("profile");
+    }
+
+    @Test
+    void documentComment_doesNotAlwaysAskForAResubmission() {
+        assertThat(render("document-comment", minimalVars("document-comment")))
+                .doesNotContain("You may need to resubmit")
+                .doesNotContain("&mdash;")
+                .doesNotContain("—");
+    }
+
+    @Test
+    void documentRejected_showsTheReasonOnceAndTheRealLimit() {
+        Map<String, Object> vars = minimalVars("document-rejected");
+        vars.put("rejectionReason", "Blurry scan;Wrong year");
+        vars.put("feedbackPoints", List.of("Blurry scan", "Wrong year"));
+        vars.put("maxFileSize", "10 MB");
+
+        String html = render("document-rejected", vars);
+
+        assertThat(html)
+                .doesNotContain("Specific Issues")
+                .doesNotContain("5MB")
+                .doesNotContain("Submit for review")
+                .contains("10 MB");
+        assertThat(html.split("Wrong year", -1)).as("reason shown once").hasSize(2);
+    }
+
+    /** The period was guessed from the calendar month, not from any real intake. */
+    @Test
+    void applicationRejected_doesNotGuessTheNextApplicationPeriod() {
+        Map<String, Object> vars = minimalVars("application-rejected");
+        vars.put("nextApplicationPeriod", "June 2026");
+
+        assertThat(render("application-rejected", vars))
+                .doesNotContain("Next Application Period")
+                .doesNotContain("June 2026");
+    }
+
+    /** Also sent to students who have not moved in, who have no old room or key. */
+    @Test
+    void allocationMoved_listsNoInventedProcedure() {
+        assertThat(render("allocation-moved", minimalVars("allocation-moved")))
+                .doesNotContain("room key")
+                .doesNotContain("checkout")
+                .doesNotContain("within 24 hours")
+                .doesNotContain("charges");
     }
 
     /** By approval the documents are uploaded, and checking them is the office's job (GH-526). */

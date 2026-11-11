@@ -19,8 +19,9 @@
         <p>Your application (<strong th:text="${applicationCode}">APP123</strong>) to
            <strong th:text="${companyName}">Company A</strong> was for
            <strong th:text="${intakeName}">Semester 1, 2027</strong>, which ended on
-           <strong th:text="${stayEndDate}">30 June 2027</strong>. It was not finished in time,
-           so it has expired and you are no longer on the waiting list for it.</p>
+           <strong th:text="${stayEndDate}">30 June 2027</strong>. The stay ended
+           before a place was confirmed for you, so the application has expired and you are no
+           longer on the waiting list for it.</p>
     </div>
 
     <div class="info-box" th:if="${nextIntakeName}">

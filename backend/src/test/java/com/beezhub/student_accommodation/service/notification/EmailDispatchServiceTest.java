@@ -141,7 +141,6 @@ class EmailDispatchServiceTest {
     void sendApplicationRejectedEmail_validData_sendsEmail() {
         when(contentBuilder.formatDate(any(java.time.LocalDate.class))).thenReturn("01 January 2026");
         when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
-        when(contentBuilder.getNextApplicationPeriod()).thenReturn("June 2026");
 
         emailDispatchService.sendApplicationRejectedEmail(application, "John Doe", "john@example.com");
 
@@ -194,7 +193,6 @@ class EmailDispatchServiceTest {
     @Test
     void sendDocumentRejectedEmail_validData_sendsEmail() {
         when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
-        when(contentBuilder.parseFeedbackPoints(any())).thenReturn(List.of("Fix this"));
 
         emailDispatchService.sendDocumentRejectedEmail(document, "John Doe", "john@example.com", "ID Document", "Invalid file");
 
@@ -357,6 +355,33 @@ class EmailDispatchServiceTest {
         verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.CHECK_IN_REMINDER),
                 eq("check-in-reminder"), ctx.capture());
         assertThat(ctx.getValue().deadlineDate()).isEqualTo("22 January 2027 at 00:00 SAST");
+    }
+
+    /** GH-532: the email said 5MB while the upload limit is the configured one, 10 MB by default. */
+    @Test
+    void sendDocumentRejectedEmail_givesTheConfiguredFileSizeLimit() {
+        ReflectionTestUtils.setField(emailDispatchService, "maxFileSizeBytes", 10_485_760L);
+
+        emailDispatchService.sendDocumentRejectedEmail(document, "John Doe", "john@example.com", "ID", "Blurry");
+
+        ArgumentCaptor<DocumentRejectedContext> ctx = ArgumentCaptor.forClass(DocumentRejectedContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.DOCUMENT_REJECTED),
+                eq("document-rejected"), ctx.capture());
+        assertThat(ctx.getValue().maxFileSize()).isEqualTo("10 MB");
+    }
+
+    /** GH-532: the status in words, not the enum name, and no made-up PENDING_REVIEW. */
+    @Test
+    void sendDocumentCommentEmail_showsTheStatusInWords() {
+        document.setDocumentStatus(com.beezhub.student_accommodation.model.enums.DocumentStatus.REJECTED);
+
+        emailDispatchService.sendDocumentCommentEmailWithTemplate(document, "Please rescan", "Office",
+                "John Doe", "john@example.com", "id.pdf", "ID");
+
+        ArgumentCaptor<DocumentCommentContext> ctx = ArgumentCaptor.forClass(DocumentCommentContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.DOCUMENT_COMMENT),
+                eq("document-comment"), ctx.capture());
+        assertThat(ctx.getValue().documentStatus()).isEqualTo("Rejected");
     }
 
     private RoomAllocatedContext sentRoomAllocatedContext() {

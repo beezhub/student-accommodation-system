@@ -33,6 +33,10 @@ public class EmailDispatchService {
         @Value("${app.contact-phone:+27 (0) 11 000 0000}")
         private String contactPhone;
 
+        /** The same limit AllowListFileValidationService enforces on upload. */
+        @Value("${app.documents.max-file-size-bytes:10485760}")
+        private long maxFileSizeBytes;
+
         public Map<String, Object> applicationApprovedTemplateData(Application application,
                         String studentName) {
                 return templateData("application-approved", applicationApprovedContext(application, studentName));
@@ -88,7 +92,6 @@ public class EmailDispatchService {
                                 rejectionReason,
                                 applicationDate,
                                 reviewDate,
-                                contentBuilder.getNextApplicationPeriod(),
                                 portalUrl);
         }
 
@@ -170,9 +173,6 @@ public class EmailDispatchService {
                                 ? comment
                                 : "The document does not meet our verification requirements.";
                 String uploadUrl = baseUrl + "/documents";
-                List<String> feedbackPoints = (comment != null && !comment.isEmpty())
-                                ? contentBuilder.parseFeedbackPoints(comment)
-                                : List.of();
 
                 return new DocumentRejectedContext(
                                 studentName,
@@ -182,7 +182,7 @@ public class EmailDispatchService {
                                 reviewDate,
                                 rejectionReason,
                                 uploadUrl,
-                                feedbackPoints);
+                                (maxFileSizeBytes / (1024 * 1024)) + " MB");
         }
 
         public void sendDocumentCommentEmail(Document document, String commentText, String studentName, String email,
@@ -209,8 +209,8 @@ public class EmailDispatchService {
                         String reviewerName, String studentName, String documentName, String documentType) {
                 String documentReference = "DOC-" + document.getId();
                 String uploadDate = contentBuilder.formatDate(document.getCreatedAt());
-                String documentStatus = document.getDocumentStatus() != null ? document.getDocumentStatus().name()
-                                : "PENDING_REVIEW";
+                String documentStatus = document.getDocumentStatus() != null ? document.getDocumentStatus().getStatus()
+                                : null;
                 String commentDate = contentBuilder.formatDate(LocalDateTime.now());
                 String portalUrl = baseUrl + "/documents";
 
@@ -338,34 +338,27 @@ public class EmailDispatchService {
                                 baseUrl + "/dashboard");
         }
 
-        public Map<String, Object> allocationRejectedTemplateData(StagedAllocation stagedAllocation,
-                        Room room, Building building, String studentName, String reason,
-                        Integer waitingListPosition) {
-                return templateData("allocation-rejected", allocationRejectedContext(stagedAllocation, room, building, studentName, reason, waitingListPosition));
+        public Map<String, Object> allocationRejectedTemplateData(Room room, Building building, String studentName) {
+                return templateData("allocation-rejected", allocationRejectedContext(room, building, studentName));
         }
 
-        public void sendAllocationRejectedEmail(StagedAllocation stagedAllocation, Room room, Building building,
-                        String studentName, String email, String reason, Integer waitingListPosition) {
-                var ctx = allocationRejectedContext(stagedAllocation, room, building, studentName, reason, waitingListPosition);
+        public void sendAllocationRejectedEmail(Room room, Building building, String studentName, String email) {
+                var ctx = allocationRejectedContext(room, building, studentName);
 
                 monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.ALLOCATION_REJECTED, "allocation-rejected", ctx));
                 log.info("Allocation rejected email sent to {}", email);
         }
 
-        private AllocationRejectedContext allocationRejectedContext(StagedAllocation stagedAllocation,
-                        Room room, Building building, String studentName, String reason,
-                        Integer waitingListPosition) {
-                String roomNumber = room.getRoomNumber();
-                String buildingName = building.getName();
-                String portalUrl = baseUrl + "/applications";
-
+        /**
+         * No reason and no waiting-list position (GH-532). Reviewing a proposal is the office's own
+         * step, and the admin screen sends one fixed reason; the position was always 0.
+         */
+        private AllocationRejectedContext allocationRejectedContext(Room room, Building building, String studentName) {
                 return new AllocationRejectedContext(
                                 studentName,
-                                roomNumber,
-                                buildingName,
-                                reason,
-                                waitingListPosition,
-                                portalUrl);
+                                room.getRoomNumber(),
+                                building.getName(),
+                                baseUrl + "/applications");
         }
 
         public Map<String, Object> allocationMovedTemplateData(RoomAllocation newAllocation, Room oldRoom,

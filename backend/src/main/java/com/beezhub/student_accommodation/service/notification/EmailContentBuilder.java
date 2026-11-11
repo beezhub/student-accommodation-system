@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 /**
  * Utility class for building common email content fragments.
@@ -63,31 +62,6 @@ public class EmailContentBuilder {
     public String intakeOf(Application application) {
         Intake intake = application.getIntake();
         return intake != null && intake.getName() != null ? intake.getName() : "N/A";
-    }
-
-    public String getNextApplicationPeriod() {
-        int currentMonth = LocalDateTime.now().getMonthValue();
-        int currentYear = LocalDateTime.now().getYear();
-
-        if (currentMonth >= 1 && currentMonth <= 6) {
-            return "June " + currentYear;
-        } else {
-            return "January " + (currentYear + 1);
-        }
-    }
-
-    public List<String> parseFeedbackPoints(String comment) {
-        if (comment == null || comment.isEmpty()) {
-            return List.of();
-        }
-
-        if (comment.contains(";")) {
-            return List.of(comment.split(";"));
-        } else if (comment.contains("\n")) {
-            return List.of(comment.split("\n"));
-        }
-
-        return List.of();
     }
 
     public String determineRoomType(Room room) {

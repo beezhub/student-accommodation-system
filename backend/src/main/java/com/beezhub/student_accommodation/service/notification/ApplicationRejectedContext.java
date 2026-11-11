@@ -7,6 +7,5 @@ public record ApplicationRejectedContext(
         String rejectionReason,
         String applicationDate,
         String reviewDate,
-        String nextApplicationPeriod,
         String portalUrl
 ) implements EmailContext {}

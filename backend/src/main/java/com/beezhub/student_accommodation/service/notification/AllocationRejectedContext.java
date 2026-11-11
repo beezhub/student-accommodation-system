@@ -4,7 +4,5 @@ public record AllocationRejectedContext(
         String studentName,
         String roomNumber,
         String buildingName,
-        String reason,
-        Integer waitingListPosition,
         String portalUrl
 ) implements EmailContext {}

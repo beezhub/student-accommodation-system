@@ -188,7 +188,6 @@ public class EmailService {
                 vars.put("rejectionReason", c.rejectionReason());
                 vars.put("applicationDate", c.applicationDate());
                 vars.put("reviewDate", c.reviewDate());
-                vars.put("nextApplicationPeriod", c.nextApplicationPeriod());
                 vars.put("portalUrl", c.portalUrl());
             }
             case ApplicationChangesRequestedContext c -> {
@@ -214,7 +213,7 @@ public class EmailService {
                 vars.put("reviewDate", c.reviewDate());
                 vars.put("rejectionReason", c.rejectionReason());
                 vars.put("uploadUrl", c.uploadUrl());
-                vars.put("feedbackPoints", c.feedbackPoints());
+                vars.put("maxFileSize", c.maxFileSize());
             }
             case DocumentCommentContext c -> {
                 vars.put("studentName", c.studentName());
@@ -262,8 +261,6 @@ public class EmailService {
                 vars.put("studentName", c.studentName());
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
-                vars.put("reason", c.reason());
-                vars.put("waitingListPosition", c.waitingListPosition());
                 vars.put("portalUrl", c.portalUrl());
             }
             case AllocationMovedContext c -> {
