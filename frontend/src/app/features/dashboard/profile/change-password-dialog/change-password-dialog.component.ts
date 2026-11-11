@@ -71,7 +71,7 @@ import {
 
           <div class="field-gap"></div>
 
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
             <mat-label>New Password</mat-label>
             <input
               matInput
