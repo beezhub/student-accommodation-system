@@ -726,6 +726,59 @@ class EmailTemplateRenderTest {
         }
     }
 
+    /**
+     * GH-528: a proposal is a draft the office still reviews. The scoring engine's codes and
+     * score are for admins. Older notification rows still carry these keys, which is why they
+     * are passed here: the template itself must not show them.
+     */
+    @Test
+    void allocationProposal_showsNoInternalScoringData() {
+        Map<String, Object> vars = minimalVars("allocation-proposal");
+        vars.put("roomNumber", "301A");
+        vars.put("buildingName", "Eastview Hall");
+        vars.put("score", new BigDecimal("87.50"));
+        vars.put("warnings", List.of("BUILDING_MISMATCH", "CONSTRAINT_OVERRIDE: gender"));
+        vars.put("proposalId", "PROP-2026-010");
+        vars.put("floorNumber", 3);
+        vars.put("moveInDate", "01 February 2027");
+
+        String html = render("allocation-proposal", vars);
+
+        assertThat(html)
+                .doesNotContain("87.5")
+                .doesNotContain("Match Score")
+                .doesNotContain("BUILDING_MISMATCH")
+                .doesNotContain("CONSTRAINT_OVERRIDE")
+                .doesNotContain("PROP-")
+                .doesNotContain("Floor")
+                .doesNotContain("Move-In")
+                .doesNotContain("Great news")
+                .contains("reviewing");
+        assertThat(html.split("301A", -1)).as("room number shown once").hasSize(2);
+        assertThat(html.split("Eastview Hall", -1)).as("building shown once").hasSize(2);
+    }
+
+    @Test
+    void allocationRejected_doesNotShowTheProposalId() {
+        Map<String, Object> vars = minimalVars("allocation-rejected");
+        vars.put("proposalId", "PROP-2026-005");
+
+        assertThat(render("allocation-rejected", vars)).doesNotContain("PROP-");
+    }
+
+    /** Rooms store no floor; the old one was guessed from the room number's first digit (GH-528). */
+    @Test
+    void roomEmails_doNotShowAGuessedFloor() {
+        for (String template : List.of("room-allocated", "allocation-confirmed", "allocation-moved")) {
+            Map<String, Object> vars = minimalVars(template);
+            vars.put("floorNumber", 1);
+            vars.put("oldFloorNumber", 1);
+            vars.put("newFloorNumber", 2);
+
+            assertThat(render(template, vars)).as(template).doesNotContain("Floor");
+        }
+    }
+
     /** By approval the documents are uploaded, and checking them is the office's job (GH-526). */
     @Test
     void applicationApproved_nextStepsAreWhatHappensNext() {

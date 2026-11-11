@@ -22,7 +22,6 @@
     <div class="room-highlight">
         <h2 th:text="${roomNumber}">Room 204</h2>
         <p th:text="${buildingName}">Building A</p>
-        <p th:if="${floorNumber != null}">Floor <span th:text="${floorNumber}">2</span></p>
     </div>
 
     <div class="success-box">
@@ -39,10 +38,6 @@
         <div class="info-item">
             <strong>Room Number</strong>
             <span th:text="${roomNumber}">204</span>
-        </div>
-        <div class="info-item" th:if="${floorNumber != null}">
-            <strong>Floor</strong>
-            <span th:text="${floorNumber}">2</span>
         </div>
         <div class="info-item" th:if="${roomType != null}">
             <strong>Room Type</strong>

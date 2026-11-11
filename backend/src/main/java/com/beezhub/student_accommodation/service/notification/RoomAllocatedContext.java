@@ -4,7 +4,6 @@ public record RoomAllocatedContext(
         String studentName,
         String roomNumber,
         String buildingName,
-        Integer floorNumber,
         String roomType,
         String bedNumber,
         String allocationId,

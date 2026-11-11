@@ -222,7 +222,6 @@ class EmailDispatchServiceTest {
 
     @Test
     void sendRoomAllocatedEmail_validData_sendsEmail() {
-        when(contentBuilder.extractFloorNumber(anyString())).thenReturn(1);
         when(contentBuilder.determineRoomType(any(Room.class))).thenReturn("Single");
         when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
         when(contentBuilder.calculateDuration(any(), any())).thenReturn("1 year");
@@ -255,8 +254,6 @@ class EmailDispatchServiceTest {
 
     @Test
     void sendAllocationProposalEmail_validData_sendsEmail() {
-        when(contentBuilder.extractFloorNumber(anyString())).thenReturn(1);
-        when(contentBuilder.parseWarnings(any())).thenReturn(List.of());
 
         emailDispatchService.sendAllocationProposalEmail(stagedAllocation, room, building, "John Doe", "john@example.com");
 

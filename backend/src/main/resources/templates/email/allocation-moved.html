@@ -59,14 +59,12 @@
             <h3>Previous Room</h3>
             <h2 th:text="${oldRoomNumber}">Room 204</h2>
             <p th:text="${oldBuildingName}">Building A</p>
-            <p th:if="${oldFloorNumber != null}">Floor <span th:text="${oldFloorNumber}">2</span></p>
         </div>
         <div class="arrow">&#10145;</div>
         <div class="room-box new">
             <h3>New Room</h3>
             <h2 th:text="${newRoomNumber}">Room 305</h2>
             <p th:text="${newBuildingName}">Building B</p>
-            <p th:if="${newFloorNumber != null}">Floor <span th:text="${newFloorNumber}">3</span></p>
         </div>
     </div>
 
@@ -84,10 +82,6 @@
         <div class="info-item">
             <strong>New Room Number</strong>
             <span th:text="${newRoomNumber}">305</span>
-        </div>
-        <div class="info-item" th:if="${newFloorNumber != null}">
-            <strong>New Floor</strong>
-            <span th:text="${newFloorNumber}">3</span>
         </div>
         <div class="info-item" th:if="${newRoomType != null}">
             <strong>Room Type</strong>

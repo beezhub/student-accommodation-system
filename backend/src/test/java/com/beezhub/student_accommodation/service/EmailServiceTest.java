@@ -16,7 +16,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -226,7 +225,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withRoomAllocatedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new RoomAllocatedContext("Student Name", "101", "Building", 1, "Single",
+        var ctx = new RoomAllocatedContext("Student Name", "101", "Building", "Single",
                 "1", "ALLOC1", "2023-01-01", "2023-12-31", "1 Year", "Office", "Address", "url",
                 "01 January 2024 at 12:00 UTC");
 
@@ -248,8 +247,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withAllocationProposalContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new AllocationProposalContext("Student Name", "101", "Building", 1, 2,
-                "PROP1", new BigDecimal("100"), List.of("Warning"), "2023-01-01", "url");
+        var ctx = new AllocationProposalContext("Student Name", "101", "Building", 2, "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_PROPOSAL, "allocation-proposal", ctx);
 
@@ -259,7 +257,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withAllocationConfirmedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new AllocationConfirmedContext("Student", "101", "Building", 1, "Single",
+        var ctx = new AllocationConfirmedContext("Student", "101", "Building", "Single",
                 "ALLOC1", "2023-01-01", "2023-01-01", "2023-12-31", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_CONFIRMED, "allocation-confirmed", ctx);
@@ -270,7 +268,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withAllocationRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new AllocationRejectedContext("Student", "101", "Building", "PROP1", "Full", 5, "url");
+        var ctx = new AllocationRejectedContext("Student", "101", "Building", "Full", 5, "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_REJECTED, "allocation-rejected", ctx);
 
@@ -280,7 +278,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withAllocationMovedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new AllocationMovedContext("Student", "101", "Bld1", 1, "201", "Bld2", 2,
+        var ctx = new AllocationMovedContext("Student", "101", "Bld1", "201", "Bld2",
                 "Double", "2023-01-01", "Maintenance", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_MOVED, "allocation-moved", ctx);

@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -247,7 +246,6 @@ public class EmailDispatchService {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = building.getName();
                 String buildingAddress = building.getAddress() != null ? building.getAddress() : "";
-                Integer floorNumber = contentBuilder.extractFloorNumber(roomNumber);
                 String roomType = contentBuilder.determineRoomType(room);
                 String bedNumber = "1";
                 String allocationId = "ALLOC-" + allocation.getId();
@@ -264,7 +262,6 @@ public class EmailDispatchService {
                                 studentName,
                                 roomNumber,
                                 buildingName,
-                                floorNumber,
                                 roomType,
                                 bedNumber,
                                 allocationId,
@@ -290,29 +287,18 @@ public class EmailDispatchService {
                 log.info("Allocation proposal email sent to {}", email);
         }
 
+        /**
+         * Only what a student can use. The staged allocation's score, scoring warnings and id are
+         * for admins (GH-528), so none of them go into the email.
+         */
         private AllocationProposalContext allocationProposalContext(StagedAllocation stagedAllocation,
                         Room room, Building building, String studentName) {
-                String roomNumber = room.getRoomNumber();
-                String buildingName = building.getName();
-                Integer floorNumber = contentBuilder.extractFloorNumber(roomNumber);
-                Integer roomCapacity = room.getCapacity();
-                String proposalId = "PROP-" + stagedAllocation.getId();
-                BigDecimal score = stagedAllocation.getScore();
-                List<String> warnings = contentBuilder.parseWarnings(stagedAllocation.getWarnings());
-                String moveInDate = null;
-                String portalUrl = baseUrl + "/dashboard";
-
                 return new AllocationProposalContext(
                                 studentName,
-                                roomNumber,
-                                buildingName,
-                                floorNumber,
-                                roomCapacity,
-                                proposalId,
-                                score,
-                                warnings,
-                                moveInDate,
-                                portalUrl);
+                                room.getRoomNumber(),
+                                building.getName(),
+                                room.getCapacity(),
+                                baseUrl + "/dashboard");
         }
 
         public Map<String, Object> allocationConfirmedTemplateData(RoomAllocation allocation, Room room,
@@ -332,7 +318,6 @@ public class EmailDispatchService {
                         Building building, String studentName) {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = building.getName();
-                Integer floorNumber = contentBuilder.extractFloorNumber(roomNumber);
                 String roomType = contentBuilder.determineRoomType(room);
                 String allocationId = "ALLOC-" + allocation.getId();
                 String moveInDate = contentBuilder.formatDate(allocation.getAllocationDate());
@@ -346,7 +331,6 @@ public class EmailDispatchService {
                                 studentName,
                                 roomNumber,
                                 buildingName,
-                                floorNumber,
                                 roomType,
                                 allocationId,
                                 moveInDate,
@@ -374,14 +358,12 @@ public class EmailDispatchService {
                         Integer waitingListPosition) {
                 String roomNumber = room.getRoomNumber();
                 String buildingName = building.getName();
-                String proposalId = "PROP-" + stagedAllocation.getId();
                 String portalUrl = baseUrl + "/applications";
 
                 return new AllocationRejectedContext(
                                 studentName,
                                 roomNumber,
                                 buildingName,
-                                proposalId,
                                 reason,
                                 waitingListPosition,
                                 portalUrl);
@@ -407,11 +389,9 @@ public class EmailDispatchService {
                         LocalDateTime effectiveDate, String reason) {
                 String oldRoomNumber = oldRoom.getRoomNumber();
                 String oldBuildingName = oldBuilding.getName();
-                Integer oldFloorNumber = contentBuilder.extractFloorNumber(oldRoomNumber);
                 Room newRoom = newAllocation.getRoom();
                 String newRoomNumber = newRoom.getRoomNumber();
                 String newBuildingName = newBuilding.getName();
-                Integer newFloorNumber = contentBuilder.extractFloorNumber(newRoomNumber);
                 String newRoomType = contentBuilder.determineRoomType(newRoom);
                 String effectiveDateStr = contentBuilder.formatDate(effectiveDate);
                 String portalUrl = baseUrl + "/dashboard";
@@ -420,10 +400,8 @@ public class EmailDispatchService {
                                 studentName,
                                 oldRoomNumber,
                                 oldBuildingName,
-                                oldFloorNumber,
                                 newRoomNumber,
                                 newBuildingName,
-                                newFloorNumber,
                                 newRoomType,
                                 effectiveDateStr,
                                 reason,

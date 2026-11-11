@@ -10,7 +10,6 @@ import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,19 +54,6 @@ class EmailContentBuilderTest {
     }
 
     @Test
-    void extractFloorNumber_validRoomNumber_returnsFloor() {
-        assertEquals(1, emailContentBuilder.extractFloorNumber("101"));
-        assertEquals(2, emailContentBuilder.extractFloorNumber("205"));
-    }
-
-    @Test
-    void extractFloorNumber_invalidRoomNumber_returns1() {
-        assertEquals(1, emailContentBuilder.extractFloorNumber("Invalid"));
-        assertEquals(1, emailContentBuilder.extractFloorNumber(""));
-        assertEquals(1, emailContentBuilder.extractFloorNumber(null));
-    }
-
-    @Test
     void determineRoomType_capacity1_returnsSingle() {
         Room room = new Room();
         room.setCapacity(1);
@@ -93,20 +79,5 @@ class EmailContentBuilderTest {
         LocalDateTime start = LocalDateTime.of(2026, 1, 1, 0, 0);
         LocalDateTime end = LocalDateTime.of(2027, 1, 1, 0, 0);
         assertEquals("1 year", emailContentBuilder.calculateDuration(start, end));
-    }
-
-    @Test
-    void parseWarnings_validJson_returnsList() {
-        String json = "[\"Warning 1\", \"Warning 2\"]";
-        List<String> result = emailContentBuilder.parseWarnings(json);
-        assertEquals(2, result.size());
-        assertEquals("Warning 1", result.get(0));
-    }
-
-    @Test
-    void parseWarnings_invalidJson_returnsEmptyList() {
-        String json = "Invalid JSON";
-        List<String> result = emailContentBuilder.parseWarnings(json);
-        assertTrue(result.isEmpty());
     }
 }

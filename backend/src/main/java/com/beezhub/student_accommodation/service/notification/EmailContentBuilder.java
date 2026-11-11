@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -90,17 +89,6 @@ public class EmailContentBuilder {
         return List.of();
     }
 
-    public Integer extractFloorNumber(String roomNumber) {
-        if (roomNumber == null || roomNumber.length() < 2) return 1;
-
-        try {
-            String floorPart = roomNumber.substring(0, 1);
-            return Integer.parseInt(floorPart);
-        } catch (NumberFormatException e) {
-            return 1;
-        }
-    }
-
     public String determineRoomType(Room room) {
         if (room.getCapacity() == null) return "Standard";
 
@@ -133,18 +121,5 @@ public class EmailContentBuilder {
 
         return years + " year" + (years > 1 ? "s" : "") + " and " +
                remainingMonths + " month" + (remainingMonths > 1 ? "s" : "");
-    }
-
-    public List<String> parseWarnings(String warningsJson) {
-        if (warningsJson == null || warningsJson.isEmpty()) {
-            return new ArrayList<>();
-        }
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            return mapper.readValue(warningsJson, new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
-        } catch (Exception e) {
-            log.warn("Failed to parse warnings JSON: {}", warningsJson, e);
-            return new ArrayList<>();
-        }
     }
 }

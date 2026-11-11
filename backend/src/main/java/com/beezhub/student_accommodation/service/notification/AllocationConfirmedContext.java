@@ -4,7 +4,6 @@ public record AllocationConfirmedContext(
         String studentName,
         String roomNumber,
         String buildingName,
-        Integer floorNumber,
         String roomType,
         String allocationId,
         String moveInDate,

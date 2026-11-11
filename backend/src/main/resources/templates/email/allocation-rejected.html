@@ -24,9 +24,7 @@
         <h3>Allocation Not Confirmed</h3>
         <p>Your proposed room allocation could not be confirmed at this time.</p>
         <p th:if="${roomNumber != null}"><strong>Proposed Room:</strong>
-           <span th:text="${roomNumber}">204</span> — <span th:text="${buildingName}">Building A</span></p>
-        <p th:if="${proposalId != null}"><strong>Proposal Reference:</strong>
-           <span th:text="${proposalId}">PROP-2025-001</span></p>
+           <span th:text="${roomNumber}">204</span>, <span th:text="${buildingName}">Building A</span></p>
     </div>
 
     <div class="warning-box" th:if="${reason != null}">

@@ -233,7 +233,6 @@ public class EmailService {
                 vars.put("studentName", c.studentName());
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
-                vars.put("floorNumber", c.floorNumber());
                 vars.put("roomType", c.roomType());
                 vars.put("bedNumber", c.bedNumber());
                 vars.put("allocationId", c.allocationId());
@@ -249,19 +248,13 @@ public class EmailService {
                 vars.put("studentName", c.studentName());
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
-                vars.put("floorNumber", c.floorNumber());
                 vars.put("roomCapacity", c.roomCapacity());
-                vars.put("proposalId", c.proposalId());
-                vars.put("score", c.score());
-                vars.put("warnings", c.warnings());
-                vars.put("moveInDate", c.moveInDate());
                 vars.put("portalUrl", c.portalUrl());
             }
             case AllocationConfirmedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
-                vars.put("floorNumber", c.floorNumber());
                 vars.put("roomType", c.roomType());
                 vars.put("allocationId", c.allocationId());
                 vars.put("moveInDate", c.moveInDate());
@@ -273,7 +266,6 @@ public class EmailService {
                 vars.put("studentName", c.studentName());
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
-                vars.put("proposalId", c.proposalId());
                 vars.put("reason", c.reason());
                 vars.put("waitingListPosition", c.waitingListPosition());
                 vars.put("portalUrl", c.portalUrl());
@@ -282,10 +274,8 @@ public class EmailService {
                 vars.put("studentName", c.studentName());
                 vars.put("oldRoomNumber", c.oldRoomNumber());
                 vars.put("oldBuildingName", c.oldBuildingName());
-                vars.put("oldFloorNumber", c.oldFloorNumber());
                 vars.put("newRoomNumber", c.newRoomNumber());
                 vars.put("newBuildingName", c.newBuildingName());
-                vars.put("newFloorNumber", c.newFloorNumber());
                 vars.put("newRoomType", c.newRoomType());
                 vars.put("effectiveDate", c.effectiveDate());
                 vars.put("reason", c.reason());
