@@ -5,32 +5,6 @@
       lang="en">
 <head>
     <title>Room Allocation Confirmed</title>
-    <style>
-        .room-highlight {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: #ffffff;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .room-highlight h2 { margin: 0 0 10px 0; font-size: 36px; }
-        .room-highlight p { margin: 5px 0; font-size: 18px; }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .info-item {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            border-left: 3px solid #28a745;
-        }
-        .info-item strong { display: block; color: #28a745; margin-bottom: 5px; }
-        @media screen and (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
-    </style>
 </head>
 <body>
 
@@ -86,7 +60,6 @@
     <div class="warning-box">
         <h3>Next Steps</h3>
         <ul>
-            <li>Complete any outstanding payment requirements</li>
             <li>Prepare required documents for check-in</li>
             <li>Review the accommodation rules and regulations</li>
             <li>Report to the accommodation office on your move-in date</li>
@@ -96,7 +69,7 @@
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">View Allocation Details</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">View Allocation Details</a>
     </div>
 
     <p style="margin-top: 30px; font-style: italic;">

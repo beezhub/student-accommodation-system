@@ -17,17 +17,15 @@
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
     <p>We are delighted to inform you that your accommodation application
-       <strong>#<span th:text="${applicationId}">12345</span></strong> has been
-       <strong style="color: #28a745;">APPROVED</strong>!</p>
+       <strong th:text="${applicationCode} ?: ('#' + ${applicationId})">APP-2026-001</strong> has been
+       <span class="text-success">APPROVED</span>!</p>
 
     <div class="info-box">
-        <h3>Next Steps</h3>
+        <h3>What Happens Next</h3>
         <ul>
-            <li>Complete your document verification within 7 days</li>
-            <li>Upload all required documents in your student portal</li>
-            <li>Wait for room allocation (typically within 2-3 business days)</li>
-            <li>Review and accept the accommodation terms and conditions</li>
-            <li>Complete the initial payment as per the fee structure</li>
+            <li>We finish checking your documents. If one needs to be replaced, we will email you.</li>
+            <li>When a room is available for you, we will email you a room offer.</li>
+            <li>Accept the room offer in your student portal before its deadline.</li>
         </ul>
     </div>
 
@@ -39,7 +37,7 @@
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">Access Your Portal</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">Access Your Portal</a>
     </div>
 </div>
 

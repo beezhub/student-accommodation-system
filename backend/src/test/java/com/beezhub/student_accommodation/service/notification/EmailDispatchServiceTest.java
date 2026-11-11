@@ -156,6 +156,7 @@ class EmailDispatchServiceTest {
     @Test
     void sendApplicationChangesRequestedEmail_validData_sendsReasonAndLinkToTheApplication() {
         application.setRemarks("Proof of registration is for the wrong year");
+        application.setApplicationCode("APP-2026-001");
 
         emailDispatchService.sendApplicationChangesRequestedEmail(application, "John Doe", "john@example.com");
 
@@ -166,6 +167,7 @@ class EmailDispatchServiceTest {
                 eq(new ApplicationChangesRequestedContext(
                         "John Doe",
                         1L,
+                        "APP-2026-001",
                         "Proof of registration is for the wrong year",
                         "http://test-url/applications/1")));
     }

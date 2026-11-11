@@ -53,6 +53,7 @@ public class EmailDispatchService {
                 return new ApplicationApprovedContext(
                                 studentName,
                                 application.getId(),
+                                application.getApplicationCode(),
                                 applicationDate,
                                 contentBuilder.academicYearOf(application),
                                 contentBuilder.intakeOf(application),
@@ -83,6 +84,7 @@ public class EmailDispatchService {
                 return new ApplicationRejectedContext(
                                 studentName,
                                 application.getId(),
+                                application.getApplicationCode(),
                                 rejectionReason,
                                 applicationDate,
                                 reviewDate,
@@ -118,6 +120,7 @@ public class EmailDispatchService {
                 return new ApplicationChangesRequestedContext(
                                 studentName,
                                 application.getId(),
+                                application.getApplicationCode(),
                                 application.getRemarks(),
                                 applicationPageUrl(application.getId()));
         }

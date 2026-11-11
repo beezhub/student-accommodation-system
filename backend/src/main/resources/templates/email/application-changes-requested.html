@@ -15,7 +15,7 @@
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
     <p>We have reviewed your application
-       <strong>#<span th:text="${applicationId}">12345</span></strong> and need you to change
+       <strong th:text="${applicationCode} ?: ('#' + ${applicationId})">APP-2026-001</strong> and need you to change
        something before we can continue.</p>
 
     <div class="warning-box">
@@ -33,7 +33,7 @@
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">Open Your Application</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">Open Your Application</a>
     </div>
 </div>
 

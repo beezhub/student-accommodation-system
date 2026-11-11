@@ -5,33 +5,6 @@
       lang="en">
 <head>
     <title>Room Allocation Proposal</title>
-    <style>
-        .room-highlight {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .room-highlight h2 { margin: 0 0 10px 0; font-size: 36px; }
-        .room-highlight p { margin: 5px 0; font-size: 18px; }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .info-item {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            border-left: 3px solid #667eea;
-        }
-        .info-item strong { display: block; color: #667eea; margin-bottom: 5px; }
-        .score-value { font-size: 24px; font-weight: bold; color: #28a745; }
-        @media screen and (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
-    </style>
 </head>
 <body>
 
@@ -74,7 +47,7 @@
     <div class="success-box" th:if="${score != null}">
         <h3>Match Score</h3>
         <p>Your room match score: <span class="score-value" th:text="${score}">85.5</span></p>
-        <p style="font-size: 14px; color: #666;">This score reflects how well the room matches your preferences and requirements.</p>
+        <p class="text-muted">This score reflects how well the room matches your preferences and requirements.</p>
     </div>
 
     <div class="warning-box" th:if="${warnings != null and !warnings.isEmpty()}">
@@ -94,11 +67,11 @@
     <div class="neutral-box" th:if="${moveInDate != null}">
         <h3>Preferred Move-In Date</h3>
         <p>Your preferred move-in date: <strong th:text="${moveInDate}">2025-02-01</strong></p>
-        <p style="font-size: 14px; color: #666;">Final move-in details will be provided upon confirmation.</p>
+        <p class="text-muted">Final move-in details will be provided upon confirmation.</p>
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">View Proposal Details</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">View Proposal Details</a>
     </div>
 
     <p style="margin-top: 30px; font-style: italic;">

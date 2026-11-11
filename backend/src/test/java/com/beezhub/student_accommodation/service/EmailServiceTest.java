@@ -170,7 +170,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withApplicationApprovedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new ApplicationApprovedContext("Student Name", 1L, "2023-01-01", "2023", "Semester 1", "url");
+        var ctx = new ApplicationApprovedContext("Student Name", 1L, "APP-1", "2023-01-01", "2023", "Semester 1", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_APPROVED, "application-approved", ctx);
 
@@ -180,7 +180,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withApplicationRejectedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new ApplicationRejectedContext("Student Name", 1L, "Reason", "2023-01-01", "2023-01-02", "Fall", "url");
+        var ctx = new ApplicationRejectedContext("Student Name", 1L, "APP-1", "Reason", "2023-01-01", "2023-01-02", "Fall", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_REJECTED, "application-rejected", ctx);
 
@@ -190,7 +190,7 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withChangesRequestedContext_passesTheReasonAndLinkToTheTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new ApplicationChangesRequestedContext("Student Name", 1L, "Reason", "http://portal/applications/1");
+        var ctx = new ApplicationChangesRequestedContext("Student Name", 1L, "APP-1", "Reason", "http://portal/applications/1");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.APPLICATION_CHANGES_REQUESTED,
                 "application-changes-requested", ctx);

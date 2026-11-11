@@ -13,6 +13,8 @@ import java.time.Year;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -631,6 +633,110 @@ class EmailTemplateRenderTest {
     // -------------------------------------------------------------------------
     // Cross-cutting assertions
     // -------------------------------------------------------------------------
+
+    /**
+     * Every template a student is actually sent. welcome and password-reset are left out: nothing
+     * sends them, and GH-533 deletes them.
+     */
+    private static final List<String> SENT_TEMPLATES = List.of(
+            "application-approved", "application-rejected", "application-changes-requested",
+            "document-verified", "document-rejected", "document-comment",
+            "room-allocated",
+            "allocation-proposal", "allocation-confirmed", "allocation-rejected", "allocation-moved",
+            "offer-declined-requeue", "offer-declined-max-reached",
+            "offer-expired", "offer-expiry-reminder",
+            "check-in-reminder", "check-in-expired",
+            "reconfirm-request", "reconfirm-reminder", "place-released",
+            "application-expired", "applications-withdrawn",
+            "document-expiry-reminder", "stay-extended");
+
+    /**
+     * The app's colour tokens (frontend/src/styles/_variables.scss: primary #7c3aed, success
+     * #059669, warning #d97706, error #dc2626, info #0284c7, the slate greys) plus light and
+     * dark shades from the same palette families for box backgrounds and headings (GH-526).
+     */
+    private static final Set<String> SYSTEM_COLOURS = Set.of(
+            "#ffffff",
+            "#f8fafc", "#f1f5f9", "#e2e8f0", "#cbd5e1", "#64748b", "#475569", "#334155", "#1e293b",
+            "#7c3aed", "#6d28d9", "#f5f3ff",
+            "#059669", "#ecfdf5", "#065f46",
+            "#d97706", "#fffbeb", "#92400e",
+            "#dc2626", "#fef2f2", "#991b1b",
+            "#0284c7", "#f0f9ff", "#075985");
+
+    /** A CSS hex colour, but not an HTML character reference such as &#127968;. */
+    private static final Pattern HEX_COLOUR = Pattern.compile("(?<!&)#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\\b");
+
+    @Test
+    void sentTemplates_useOnlySystemColours() {
+        for (String template : SENT_TEMPLATES) {
+            String html = render(template, minimalVars(template));
+            List<String> colours = HEX_COLOUR.matcher(html).results()
+                    .map(m -> m.group().toLowerCase()).distinct().toList();
+
+            assertThat(colours).as("colours in %s", template).allMatch(SYSTEM_COLOURS::contains);
+            // Outlook ignores CSS gradients, so a gradient header renders as no colour at all.
+            assertThat(html).as("gradients in %s", template).doesNotContain("gradient");
+        }
+    }
+
+    /** Gmail draws links in its own blue unless the colour is on the element itself. */
+    @Test
+    void sentTemplates_buttonTextColourIsInline() {
+        Pattern button = Pattern.compile("<a[^>]*class=\"cta-button\"[^>]*>");
+        for (String template : SENT_TEMPLATES) {
+            String html = render(template, minimalVars(template));
+            List<String> buttons = button.matcher(html).results().map(m -> m.group()).toList();
+
+            assertThat(buttons).as("buttons in %s", template)
+                    .allMatch(tag -> tag.contains("color: #ffffff"));
+        }
+    }
+
+    /** No terms to accept, no payment taken, no amenities stored, no policy pages (GH-526). */
+    @Test
+    void sentTemplates_doNotPromiseThingsThatDoNotExist() {
+        for (String template : SENT_TEMPLATES) {
+            String html = render(template, minimalVars(template)).toLowerCase();
+
+            assertThat(html).as(template)
+                    .doesNotContain("terms and conditions")
+                    .doesNotContain("payment")
+                    .doesNotContain("fee structure")
+                    .doesNotContain("amenities")
+                    .doesNotContain("gym access")
+                    .doesNotContain("privacy policy")
+                    .doesNotContain("terms of service")
+                    .doesNotContain("href=\"#\"");
+        }
+    }
+
+    /** The student knows their application by its code, as the dashboard shows it (GH-526). */
+    @Test
+    void applicationEmails_showTheApplicationCodeNotTheDatabaseId() {
+        for (String template : List.of("application-approved", "application-rejected",
+                "application-changes-requested")) {
+            Map<String, Object> vars = minimalVars(template);
+            vars.put("applicationId", 9876L);
+            vars.put("applicationCode", "APP-2026-001");
+
+            String html = render(template, vars);
+
+            assertThat(html).as(template).contains("APP-2026-001").doesNotContain("9876");
+        }
+    }
+
+    /** By approval the documents are uploaded, and checking them is the office's job (GH-526). */
+    @Test
+    void applicationApproved_nextStepsAreWhatHappensNext() {
+        String html = render("application-approved", minimalVars("application-approved"));
+
+        assertThat(html)
+                .doesNotContain("Upload all required documents")
+                .doesNotContain("within 7 days")
+                .doesNotContain("2-3 business days")
+                .contains("room offer");
+    }
 
     @Test
     void allTemplates_containUniversityName() {

@@ -15,7 +15,7 @@
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
     <p>Thank you for your interest in student accommodation. We have carefully reviewed your
-       application <strong>#<span th:text="${applicationId}">12345</span></strong>.</p>
+       application <strong th:text="${applicationCode} ?: ('#' + ${applicationId})">APP-2026-001</strong>.</p>
 
     <p>Unfortunately, we regret to inform you that we are unable to approve your application at this time.</p>
 
@@ -28,7 +28,7 @@
 
     <div class="info-box">
         <h3>Application Details</h3>
-        <p><strong>Application ID:</strong> <span th:text="${applicationId}">12345</span></p>
+        <p><strong>Application:</strong> <span th:text="${applicationCode} ?: ('#' + ${applicationId})">APP-2026-001</span></p>
         <p><strong>Submission Date:</strong> <span th:text="${applicationDate}">2025-01-15</span></p>
         <p><strong>Review Date:</strong> <span th:text="${reviewDate}">2025-01-20</span></p>
     </div>
@@ -47,7 +47,7 @@
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">Visit Student Portal</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">Visit Student Portal</a>
     </div>
 
     <p style="margin-top: 30px; font-style: italic;">

@@ -175,6 +175,7 @@ public class EmailService {
             case ApplicationApprovedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("applicationId", c.applicationId());
+                vars.put("applicationCode", c.applicationCode());
                 vars.put("applicationDate", c.applicationDate());
                 vars.put("academicYear", c.academicYear());
                 vars.put("intake", c.intake());
@@ -183,6 +184,7 @@ public class EmailService {
             case ApplicationRejectedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("applicationId", c.applicationId());
+                vars.put("applicationCode", c.applicationCode());
                 vars.put("rejectionReason", c.rejectionReason());
                 vars.put("applicationDate", c.applicationDate());
                 vars.put("reviewDate", c.reviewDate());
@@ -192,6 +194,7 @@ public class EmailService {
             case ApplicationChangesRequestedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("applicationId", c.applicationId());
+                vars.put("applicationCode", c.applicationCode());
                 vars.put("changesReason", c.changesReason());
                 vars.put("portalUrl", c.portalUrl());
             }

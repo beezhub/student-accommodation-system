@@ -5,42 +5,6 @@
       lang="en">
 <head>
     <title>Room Offer</title>
-    <style>
-        .room-highlight {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .room-highlight h2 { margin: 0 0 10px 0; font-size: 36px; }
-        .room-highlight p { margin: 5px 0; font-size: 18px; }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .info-item {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            border-left: 3px solid #667eea;
-        }
-        .info-item strong { display: block; color: #667eea; margin-bottom: 5px; }
-        .amenity-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .amenity-item { display: flex; align-items: center; font-size: 14px; }
-        .amenity-item::before { content: "✓"; color: #28a745; font-weight: bold; margin-right: 8px; }
-        @media screen and (max-width: 600px) {
-            .info-grid, .amenity-grid { grid-template-columns: 1fr; }
-        }
-    </style>
 </head>
 <body>
 
@@ -62,7 +26,7 @@
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">Review and Accept Offer</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">Review and Accept Offer</a>
     </div>
 
     <div class="room-highlight">
@@ -119,24 +83,9 @@
         <p><strong>Office Location:</strong> <span th:text="${officeLocation}">Main Administration Building, Ground Floor</span></p>
     </div>
 
-    <div class="warning-box">
-        <h3>Building Amenities</h3>
-        <div class="amenity-grid">
-            <div class="amenity-item">Wi-Fi Access</div>
-            <div class="amenity-item">Common Room</div>
-            <div class="amenity-item">Study Area</div>
-            <div class="amenity-item">Laundry Facilities</div>
-            <div class="amenity-item">24/7 Security</div>
-            <div class="amenity-item">Kitchen Access</div>
-            <div class="amenity-item">Parking Available</div>
-            <div class="amenity-item">Gym Access</div>
-        </div>
-    </div>
-
     <div class="danger-box">
         <h3>Important Reminders</h3>
         <ul>
-            <li>Payment must be completed before move-in date</li>
             <li>Late check-in requires prior notification</li>
             <li>Read the accommodation rules and regulations carefully</li>
             <li>Ensure all outstanding documents are submitted</li>
@@ -151,7 +100,7 @@
     </div>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">Review and Accept Offer</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">Review and Accept Offer</a>
     </div>
 </div>
 
