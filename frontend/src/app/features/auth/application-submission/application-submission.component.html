@@ -226,16 +226,24 @@
         </div>
         }
 
+        <!-- Confirmation: Continue to Review submits the application (#538) -->
+        <div class="confirm-section">
+          <mat-checkbox formControlName="termsAccepted" color="primary" class="confirm-checkbox">
+            I confirm that all the information provided is accurate and complete
+          </mat-checkbox>
+        </div>
+
         <div class="step-card-footer">
           <div></div>
-          <button
-            mat-flat-button
-            type="submit"
-            [disabled]="!applicationForm.valid || !hasAllRequiredDocs"
-            class="submit-btn"
-          >
-            <span>Continue to Review</span>
-            <mat-icon>arrow_forward</mat-icon>
+          <button mat-flat-button type="submit"
+            [disabled]="!applicationForm.valid || !hasAllRequiredDocs || isSubmitting" class="submit-btn">
+            @if (isSubmitting) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              <span>Submitting...</span>
+            } @else {
+              <span>Continue to Review</span>
+              <mat-icon>arrow_forward</mat-icon>
+            }
           </button>
         </div>
       </form>

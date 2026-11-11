@@ -17,8 +17,9 @@ import { BuildingService, BuildingResponse } from '../../../core/services/buildi
 import { DocumentService } from '../../../core/services/document.service';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
-import { parseLocalDate, toLocalDateString } from '../../../core/utils/local-date';
-import { ApplicationDraftService } from '../../../core/services/application-draft.service';
+import { parseLocalDate } from '../../../core/utils/local-date';
+import { ApplicationWizardService } from '../../../core/services/application-wizard.service';
+import { describeSubmitted } from '../../../core/utils/apply-wording';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -73,7 +74,7 @@ export class ApplicationSubmissionComponent implements OnInit {
   private readonly documentService = inject(DocumentService);
   private readonly documentTypeService = inject(DocumentTypeService);
   private readonly errorService = inject(ErrorHandlingService);
-  private readonly draftService = inject(ApplicationDraftService);
+  private readonly wizardService = inject(ApplicationWizardService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   applicationForm: FormGroup;
@@ -122,6 +123,8 @@ export class ApplicationSubmissionComponent implements OnInit {
       preferredBuildingIds: [[]],
       specialRequirements: [''],
       courseName: ['', Validators.required],
+      // On this step rather than the review page, because Continue to Review submits (#538)
+      termsAccepted: [false, Validators.requiredTrue],
     });
   }
 
@@ -335,32 +338,58 @@ export class ApplicationSubmissionComponent implements OnInit {
       return;
     }
 
-    if (this.applicationForm.valid) {
-      const formValue = this.applicationForm.value;
-
-      // Save draft to localStorage and navigate to review step
-      const draft: import('../../../core/services/application-draft.service').ApplicationDraft = {
-        studentId: this.studentId,
-        requiresAccessibility: formValue.requiresAccessibility || false,
-        preferredBuildingIds: formValue.preferredBuildingIds?.length
-          ? formValue.preferredBuildingIds
-          : [],
-        specialRequirements: formValue.specialRequirements || null,
-        institutionName: this.institutionName || 'Not specified',
-        courseName: formValue.courseName,
-        studentNumber: formValue.studentNumber,
-        phoneNumber: formValue.phoneNumber,
-        // Saved as a calendar day: JSON.stringify would turn the picked Date into a UTC timestamp.
-        dateOfBirth: toLocalDateString(formValue.dateOfBirth),
-        gender: formValue.gender,
-      };
-
-      this.draftService.saveDraft(draft);
-      this.router.navigate(['/application-review']);
-    } else {
+    if (!this.applicationForm.valid) {
       this.applicationForm.markAllAsTouched();
       this.errorService.showWarning('Please fill in all required fields correctly');
+      return;
     }
+
+    const user = this.currentUser;
+    const institutionId = this.studentProfile?.institutionId;
+    const yearOfStudyId = this.studentProfile?.yearOfStudyId;
+    if (!user || institutionId == null || yearOfStudyId == null) {
+      this.errorService.showWarning(
+        'Your profile is missing institution details. Please complete profile setup first.'
+      );
+      return;
+    }
+
+    // #538: save the profile and create the application here, so nothing the student entered
+    // lives only in this browser. The review page shows what the server saved.
+    const formValue = this.applicationForm.value;
+    this.isSubmitting = true;
+    this.wizardService
+      .submit(user, {
+        studentId: this.studentId,
+        institutionId,
+        yearOfStudyId,
+        institutionName: this.institutionName || 'Not specified',
+        studentNumber: formValue.studentNumber,
+        phoneNumber: formValue.phoneNumber,
+        dateOfBirth: formValue.dateOfBirth,
+        gender: formValue.gender,
+        courseName: formValue.courseName,
+        requiresAccessibility: formValue.requiresAccessibility || false,
+        preferredBuildingIds: formValue.preferredBuildingIds ?? [],
+        specialRequirements: formValue.specialRequirements || null,
+      })
+      .subscribe({
+        next: (created) => {
+          this.isSubmitting = false;
+          this.errorService.showSuccess(describeSubmitted(created));
+          this.router.navigate(['/application-review'], {
+            queryParams: { ids: created.map((a) => a.id).join(',') },
+          });
+        },
+        error: (error) => {
+          this.isSubmitting = false;
+          this.submitError = this.errorService.parseError(error);
+          if (this.submitError.type !== 'validation') {
+            this.errorService.showErrorSnackbar(this.submitError);
+          }
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   onBuildingSelectionChanged(buildingIds: number[]): void {
