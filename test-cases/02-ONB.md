@@ -631,7 +631,8 @@
 | 3 | Leave **Requires Accessibility** checkbox unchecked | Checkbox remains unchecked (default) |
 | 4 | Select `Residence Hall Alpha` and `Residence Hall Beta` from Preferred Buildings | Both buildings selected and shown as selected |
 | 5 | Enter `Quiet floor preferred` in Special Requirements textarea | Text accepted |
-| 6 | Tick **I confirm that all the information provided is accurate and complete**, then click **Continue to Review** | Profile and application are saved on the server; success message displayed; user redirected to `/application-review` showing the saved application |
+| 6 | Refresh the page | Every value entered in steps 2-5, and the personal information fields, are shown again; the confirmation checkbox is unticked |
+| 7 | Tick **I confirm that all the information provided is accurate and complete**, then click **Continue to Review** | Profile and application are saved on the server; success message displayed; user redirected to `/application-review` showing the saved application |
 
 | Field | Value |
 |-------|-------|
