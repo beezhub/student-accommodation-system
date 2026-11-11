@@ -8,68 +8,37 @@
 </head>
 <body>
 
-<h1 layout:fragment="email-title">Allocation Confirmed!</h1>
-<span layout:fragment="email-subtitle">Welcome to your new home away from home</span>
+<h1 layout:fragment="email-title">Your Room Is Confirmed</h1>
+<span layout:fragment="email-subtitle">You accepted your room offer</span>
 
 <div layout:fragment="email-content">
-    <p style="text-align:center; font-size: 60px; margin: 20px 0;">&#9989;</p>
-
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
 
-    <p>Congratulations! Your room allocation has been officially confirmed.
-       Welcome to your new home away from home!</p>
+    <p>Thank you for accepting your room offer. The room below is now yours for your stay.</p>
 
     <div class="room-highlight">
         <h2 th:text="${roomNumber}">Room 204</h2>
         <p th:text="${buildingName}">Building A</p>
+        <p th:if="${roomType != null}" th:text="${roomType}">Single</p>
     </div>
 
-    <div class="success-box">
-        <h3>Confirmed!</h3>
-        <p>Your room assignment is now official. This allocation is final and has been recorded in our system.</p>
-        <p th:if="${allocationId != null}"><strong>Allocation Reference:</strong> <span th:text="${allocationId}">ALLOC-2025-001</span></p>
+    <div class="info-box" th:if="${startDate != null and endDate != null}">
+        <h3>Your Stay</h3>
+        <p><strong>From:</strong> <span th:text="${startDate}">15 January 2027</span></p>
+        <p><strong>To:</strong> <span th:text="${endDate}">15 December 2027</span></p>
     </div>
 
-    <div class="info-grid">
-        <div class="info-item">
-            <strong>Building</strong>
-            <span th:text="${buildingName}">Building A</span>
-        </div>
-        <div class="info-item">
-            <strong>Room Number</strong>
-            <span th:text="${roomNumber}">204</span>
-        </div>
-        <div class="info-item" th:if="${roomType != null}">
-            <strong>Room Type</strong>
-            <span th:text="${roomType}">Single</span>
-        </div>
+    <div class="warning-box" th:if="${checkInDeadline != null}">
+        <h3>Check In Before <span th:text="${checkInDeadline}">22 January 2027 at 00:00 SAST</span></h3>
+        <p>Residence staff check you in when you arrive. If you have not checked in by then, your
+           place is released to other students.</p>
     </div>
 
-    <div class="info-box">
-        <h3>Important Dates</h3>
-        <p th:if="${moveInDate != null}"><strong>Move-In Date:</strong> <span th:text="${moveInDate}">2025-02-01</span></p>
-        <p th:if="${startDate != null}"><strong>Tenancy Start:</strong> <span th:text="${startDate}">2025-02-01</span></p>
-        <p th:if="${endDate != null}"><strong>Tenancy End:</strong> <span th:text="${endDate}">2025-11-30</span></p>
-    </div>
-
-    <div class="warning-box">
-        <h3>Next Steps</h3>
-        <ul>
-            <li>Prepare required documents for check-in</li>
-            <li>Review the accommodation rules and regulations</li>
-            <li>Report to the accommodation office on your move-in date</li>
-            <li>Bring your student ID and this confirmation email</li>
-            <li>Attend the mandatory orientation session</li>
-        </ul>
-    </div>
+    <p>If you have any questions, contact the accommodation office using the details below.</p>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">View Allocation Details</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">Go to Your Dashboard</a>
     </div>
-
-    <p style="margin-top: 30px; font-style: italic;">
-        We look forward to welcoming you. Have a wonderful stay!
-    </p>
 </div>
 
 </body>

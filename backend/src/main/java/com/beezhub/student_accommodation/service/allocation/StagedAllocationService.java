@@ -21,7 +21,6 @@ import com.beezhub.student_accommodation.model.dto.ScoredRoom;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.event.AllocationCreatedEvent;
-import com.beezhub.student_accommodation.model.event.StagedAllocationConfirmedEvent;
 import com.beezhub.student_accommodation.model.event.StagedAllocationProposedEvent;
 import com.beezhub.student_accommodation.model.event.StagedAllocationRejectedEvent;
 import com.beezhub.student_accommodation.model.enums.*;
@@ -98,8 +97,8 @@ public class StagedAllocationService {
         waitingListService.updateStatusToAllocated(staged.getStudent().getId());
 
         logConfirmationAudit(saved, staged, adminId);
+        // The offer only. "Allocation Confirmed" waits for the student to accept (GH-530).
         sendConfirmationNotification(saved);
-        eventPublisher.publishEvent(new StagedAllocationConfirmedEvent(staged, saved));
 
         log.info("Confirmed allocation {} for student {} to room {}",
                 saved.getId(), staged.getStudent().getId(), staged.getRoom().getRoomNumber());

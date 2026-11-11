@@ -305,6 +305,31 @@ class EmailDispatchServiceTest {
         assertThat(ctx.mapsUrl()).isNull();
     }
 
+    /**
+     * GH-530: the confirmed email showed the offer date as both move-in and tenancy start, and
+     * never mentioned the check-in deadline, the one date the student still has to act on.
+     */
+    @Test
+    void sendAllocationConfirmedEmail_showsTheStayAndTheCheckInDeadline() {
+        allocation.setAllocationDate(LocalDateTime.of(2026, 11, 11, 17, 34));
+        allocation.setStayStartDate(java.time.LocalDate.of(2027, 1, 15));
+        allocation.setStayEndDate(java.time.LocalDate.of(2027, 12, 15));
+        allocation.setCheckInExpiryDate(LocalDateTime.of(2027, 1, 22, 0, 0));
+        when(contentBuilder.formatDate(java.time.LocalDate.of(2027, 1, 15))).thenReturn("15 January 2027");
+        when(contentBuilder.formatDate(java.time.LocalDate.of(2027, 12, 15))).thenReturn("15 December 2027");
+        when(contentBuilder.formatDeadline(LocalDateTime.of(2027, 1, 22, 0, 0)))
+                .thenReturn("22 January 2027 at 00:00 SAST");
+
+        emailDispatchService.sendAllocationConfirmedEmail(allocation, room, building, "John Doe", "john@example.com");
+
+        ArgumentCaptor<AllocationConfirmedContext> ctx = ArgumentCaptor.forClass(AllocationConfirmedContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.ALLOCATION_CONFIRMED),
+                eq("allocation-confirmed"), ctx.capture());
+        assertThat(ctx.getValue().startDate()).isEqualTo("15 January 2027");
+        assertThat(ctx.getValue().endDate()).isEqualTo("15 December 2027");
+        assertThat(ctx.getValue().checkInDeadline()).isEqualTo("22 January 2027 at 00:00 SAST");
+    }
+
     private RoomAllocatedContext sentRoomAllocatedContext() {
         emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, "John Doe", "john@example.com");
         ArgumentCaptor<RoomAllocatedContext> ctx = ArgumentCaptor.forClass(RoomAllocatedContext.class);

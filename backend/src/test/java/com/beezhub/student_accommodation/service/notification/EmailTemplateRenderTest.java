@@ -828,6 +828,34 @@ class EmailTemplateRenderTest {
         assertThat(render("room-allocated", vars)).doesNotContain("Tenancy");
     }
 
+    /**
+     * GH-530: sent once the student accepts. It names the stay and the check-in deadline, and
+     * nothing the system does not supply. Older rows still carry allocationId and moveInDate.
+     */
+    @Test
+    void allocationConfirmed_namesTheCheckInDeadlineAndNothingInvented() {
+        Map<String, Object> vars = minimalVars("allocation-confirmed");
+        vars.put("roomNumber", "301A");
+        vars.put("allocationId", "ALLOC-2026-010");
+        vars.put("moveInDate", "11 November 2026");
+        vars.put("startDate", "15 January 2027");
+        vars.put("endDate", "15 December 2027");
+        vars.put("checkInDeadline", "22 January 2027 at 00:00 SAST");
+
+        String html = render("allocation-confirmed", vars);
+
+        assertThat(html)
+                .contains("15 January 2027").contains("15 December 2027")
+                .contains("22 January 2027 at 00:00 SAST")
+                .doesNotContain("ALLOC-")
+                .doesNotContain("Move-In Date")
+                .doesNotContain("11 November 2026")
+                .doesNotContain("orientation")
+                .doesNotContain("rules and regulations")
+                .doesNotContain("Prepare required documents");
+        assertThat(html.split("301A", -1)).as("room number shown once").hasSize(2);
+    }
+
     /** By approval the documents are uploaded, and checking them is the office's job (GH-526). */
     @Test
     void applicationApproved_nextStepsAreWhatHappensNext() {

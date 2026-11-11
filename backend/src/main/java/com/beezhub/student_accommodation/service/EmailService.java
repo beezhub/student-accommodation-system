@@ -254,10 +254,9 @@ public class EmailService {
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
                 vars.put("roomType", c.roomType());
-                vars.put("allocationId", c.allocationId());
-                vars.put("moveInDate", c.moveInDate());
                 vars.put("startDate", c.startDate());
                 vars.put("endDate", c.endDate());
+                vars.put("checkInDeadline", c.checkInDeadline());
                 vars.put("portalUrl", c.portalUrl());
             }
             case AllocationRejectedContext c -> {

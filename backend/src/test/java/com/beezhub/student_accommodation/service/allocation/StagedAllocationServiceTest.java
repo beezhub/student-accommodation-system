@@ -189,6 +189,28 @@ class StagedAllocationServiceTest {
         }
 
         /**
+         * GH-530: confirming a proposal used to publish a second event that sent "Allocation
+         * Confirmed: this allocation is final" in the same second as the offer saying the room was
+         * not theirs yet. The confirmed email belongs to the student accepting, so the only event
+         * here is the one that sends the offer.
+         */
+        @Test
+        void confirmAllocation_validProposal_publishesOnlyTheOffer() {
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
+                when(roomAllocationRepository.save(any(RoomAllocation.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(roomAllocationMapper.toResponse(any(RoomAllocation.class)))
+                                .thenReturn(new RoomAllocationResponse());
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+
+                stagedAllocationService.confirmAllocation(1L, 2L);
+
+                ArgumentCaptor<Object> events = ArgumentCaptor.forClass(Object.class);
+                verify(eventPublisher, atLeastOnce()).publishEvent(events.capture());
+                assertThat(events.getAllValues()).hasSize(1).allMatch(AllocationCreatedEvent.class::isInstance);
+        }
+
+        /**
          * GH-146: only one of the five construction sites for tenant-owned allocation rows set
          * tenantId. The rest left it null, so TenantListener copied the acting context, which is 0
          * for a platform admin. The owning tenant could not then see the row through any filtered

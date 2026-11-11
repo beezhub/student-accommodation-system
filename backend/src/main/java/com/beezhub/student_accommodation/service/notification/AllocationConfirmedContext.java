@@ -5,9 +5,8 @@ public record AllocationConfirmedContext(
         String roomNumber,
         String buildingName,
         String roomType,
-        String allocationId,
-        String moveInDate,
         String startDate,
         String endDate,
+        String checkInDeadline,
         String portalUrl
 ) implements EmailContext {}

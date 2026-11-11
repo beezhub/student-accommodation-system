@@ -562,21 +562,11 @@ public class NotificationEventListener {
         }
     }
 
-    @Async("notificationExecutor")
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleStagedAllocationConfirmed(StagedAllocationConfirmedEvent event) {
-        RoomAllocation roomAllocation = reload(event.roomAllocation());
-        if (roomAllocation != null) {
-            TenantContext.setTenantId(roomAllocation.getTenantId());
-            try {
-                sendAllocationConfirmedNotification(roomAllocation);
-            } finally {
-                TenantContext.clear();
-            }
-        }
-    }
-
+    /**
+     * "Allocation Confirmed" is sent only from {@link #handleAllocationAccepted}. An admin confirming
+     * a proposal creates an offer the student has not accepted yet, so it sends the offer alone
+     * (GH-530).
+     */
     private void sendAllocationConfirmedNotification(RoomAllocation allocation) {
         Student student = allocation.getStudent();
         AppUser user = student.getAppUser();

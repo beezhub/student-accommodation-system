@@ -322,29 +322,22 @@ public class EmailDispatchService {
                 log.info("Allocation confirmed email sent to {}", email);
         }
 
+        /** The stay and the check-in deadline, the one date the student still acts on (GH-530). */
         private AllocationConfirmedContext allocationConfirmedContext(RoomAllocation allocation, Room room,
                         Building building, String studentName) {
-                String roomNumber = room.getRoomNumber();
-                String buildingName = building.getName();
-                String roomType = contentBuilder.determineRoomType(room);
-                String allocationId = "ALLOC-" + allocation.getId();
-                String moveInDate = contentBuilder.formatDate(allocation.getAllocationDate());
-                String startDate = contentBuilder.formatDate(allocation.getAllocationDate());
-                String endDate = allocation.getEndDate() != null
-                                ? contentBuilder.formatDate(allocation.getEndDate())
-                                : contentBuilder.formatDate(allocation.getAllocationDate().plusMonths(10));
-                String portalUrl = baseUrl + "/dashboard";
+                LocalDate stayStart = allocation.getStayStartDate();
+                LocalDate stayEnd = allocation.getStayEndDate();
+                LocalDateTime checkInBy = allocation.getCheckInExpiryDate();
 
                 return new AllocationConfirmedContext(
                                 studentName,
-                                roomNumber,
-                                buildingName,
-                                roomType,
-                                allocationId,
-                                moveInDate,
-                                startDate,
-                                endDate,
-                                portalUrl);
+                                room.getRoomNumber(),
+                                building.getName(),
+                                contentBuilder.determineRoomType(room),
+                                stayStart != null ? contentBuilder.formatDate(stayStart) : null,
+                                stayEnd != null ? contentBuilder.formatDate(stayEnd) : null,
+                                checkInBy != null ? contentBuilder.formatDeadline(checkInBy) : null,
+                                baseUrl + "/dashboard");
         }
 
         public Map<String, Object> allocationRejectedTemplateData(StagedAllocation stagedAllocation,

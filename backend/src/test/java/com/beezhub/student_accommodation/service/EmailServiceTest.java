@@ -257,8 +257,8 @@ class EmailServiceTest {
     @Test
     void sendTemplateEmail_withAllocationConfirmedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new AllocationConfirmedContext("Student", "101", "Building", "Single",
-                "ALLOC1", "2023-01-01", "2023-01-01", "2023-12-31", "url");
+        var ctx = new AllocationConfirmedContext("Student", "101", "Building", "Single", "2023-01-01", "2023-12-31",
+                "22 January 2024 at 00:00 SAST", "url");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ALLOCATION_CONFIRMED, "allocation-confirmed", ctx);
 
