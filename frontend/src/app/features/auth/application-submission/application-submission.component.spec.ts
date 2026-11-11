@@ -5,7 +5,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 
 import { ApplicationSubmissionComponent } from './application-submission.component';
-import { ApplicationDraftService } from '../../../core/services/application-draft.service';
+import { ApplicationWizardService } from '../../../core/services/application-wizard.service';
 import { ApplicationService } from '../../../core/services/application.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { BuildingService } from '../../../core/services/building.service';
@@ -14,6 +14,7 @@ import { DocumentTypeService } from '../../../core/services/document-type.servic
 import { ErrorHandlingService } from '../../../core/services/error-handling.service';
 import { InstitutionService } from '../../../core/services/institution.service';
 import { StudentService } from '../../../core/services/student.service';
+import { StudentResponse } from '../../../core/models/student.model';
 import { User } from '../../../core/models/user.model';
 
 describe('ApplicationSubmissionComponent', () => {
@@ -27,6 +28,8 @@ describe('ApplicationSubmissionComponent', () => {
   let documentTypeService: jasmine.SpyObj<DocumentTypeService>;
   let institutionService: jasmine.SpyObj<InstitutionService>;
   let studentService: jasmine.SpyObj<StudentService>;
+  let wizardService: jasmine.SpyObj<ApplicationWizardService>;
+  let showErrorSnackbar: jasmine.Spy;
   let navigate: jasmine.Spy;
   let showWarning: jasmine.Spy;
   let component: ApplicationSubmissionComponent;
@@ -44,6 +47,8 @@ describe('ApplicationSubmissionComponent', () => {
     documentTypeService = jasmine.createSpyObj('DocumentTypeService', ['getRequiredDocumentTypes']);
     institutionService = jasmine.createSpyObj('InstitutionService', ['getInstitutions']);
     studentService = jasmine.createSpyObj('StudentService', ['getStudentProfile']);
+    wizardService = jasmine.createSpyObj('ApplicationWizardService', ['submit']);
+    wizardService.submit.and.returnValue(of([{ id: 42 }, { id: 43 }]) as never);
 
     applicationService.hasActiveApplication.and.returnValue(of(false) as never);
     buildingService.getBuildingsByInstitution.and.returnValue(of([building]) as never);
@@ -66,10 +71,14 @@ describe('ApplicationSubmissionComponent', () => {
         { provide: DocumentTypeService, useValue: documentTypeService },
         { provide: InstitutionService, useValue: institutionService },
         { provide: StudentService, useValue: studentService },
+        { provide: ApplicationWizardService, useValue: wizardService },
       ],
     });
     navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
-    showWarning = spyOn(TestBed.inject(ErrorHandlingService), 'showWarning');
+    const errorService = TestBed.inject(ErrorHandlingService);
+    showWarning = spyOn(errorService, 'showWarning');
+    showErrorSnackbar = spyOn(errorService, 'showErrorSnackbar');
+    spyOn(errorService, 'showSuccess');
     component = TestBed.createComponent(ApplicationSubmissionComponent).componentInstance;
   });
 
@@ -78,7 +87,9 @@ describe('ApplicationSubmissionComponent', () => {
   function fillInTheForm(): void {
     component.studentId = 7;
     component.currentUser = { emailVerified: true } as User;
+    component.studentProfile = { institutionId: 1, yearOfStudyId: 2 } as StudentResponse;
     component.applicationForm.patchValue({
+      termsAccepted: true,
       studentNumber: 'S1',
       phoneNumber: '0821234567',
       dateOfBirth: new Date(2000, 4, 14),
@@ -88,27 +99,14 @@ describe('ApplicationSubmissionComponent', () => {
   }
 
   /**
-   * #464: the picked date went into the draft through JSON.stringify, which converts it to UTC, so
-   * a student in South Africa who picked the 14th had the 13th saved.
+   * #464: a student in South Africa who picked the 14th had the 13th saved. Sending the day is
+   * covered in application-wizard.service.spec.ts.
    */
   describe('date of birth', () => {
     it('loadStudentProfile_apiDate_becomesLocalMidnightOfThatDay', () => {
       component.loadStudentProfile();
 
       expect(component.applicationForm.value.dateOfBirth).toEqual(new Date(2000, 4, 14));
-    });
-
-    /**
-     * Answers as a browser in South Africa does, whatever zone runs this test: local midnight on
-     * the 14th is 22:00 UTC on the 13th.
-     */
-    it('onSubmit_pickedDate_isSavedInTheDraftAsThatCalendarDay', () => {
-      fillInTheForm();
-      spyOn(Date.prototype, 'toISOString').and.returnValue('2000-05-13T22:00:00.000Z');
-
-      component.onSubmit();
-
-      expect(TestBed.inject(ApplicationDraftService).getDraft()?.dateOfBirth).toBe('2000-05-14');
     });
   });
 
@@ -310,13 +308,60 @@ describe('ApplicationSubmissionComponent', () => {
   });
 
   describe('submitting', () => {
-    it('onSubmit_validForm_savesTheDraftAndGoesToReview', () => {
+    it('onSubmit_validForm_savesAndShowsWhatWasSaved', () => {
       fillInTheForm();
 
       component.onSubmit();
 
-      expect(TestBed.inject(ApplicationDraftService).getDraft()?.courseName).toBe('BSc');
-      expect(navigate).toHaveBeenCalledWith(['/application-review']);
+      const step = wizardService.submit.calls.mostRecent().args[1];
+      expect(step.courseName).toBe('BSc');
+      expect(step.institutionId).toBe(1);
+      expect(component.isSubmitting).toBeFalse();
+      expect(navigate).toHaveBeenCalledWith(['/application-review'], {
+        queryParams: { ids: '42,43' },
+      });
+    });
+
+    it('onSubmit_termsNotAccepted_doesNotSave', () => {
+      fillInTheForm();
+      component.applicationForm.patchValue({ termsAccepted: false });
+
+      component.onSubmit();
+
+      expect(wizardService.submit).not.toHaveBeenCalled();
+      expect(showWarning).toHaveBeenCalled();
+    });
+
+    it('onSubmit_profileHasNoInstitution_warnsAndDoesNotSave', () => {
+      fillInTheForm();
+      component.studentProfile = {} as StudentResponse;
+
+      component.onSubmit();
+
+      expect(wizardService.submit).not.toHaveBeenCalled();
+      expect(showWarning).toHaveBeenCalled();
+    });
+
+    it('onSubmit_serverFails_showsTheErrorAndStays', () => {
+      wizardService.submit.and.returnValue(failure() as never);
+      fillInTheForm();
+
+      component.onSubmit();
+
+      expect(component.isSubmitting).toBeFalse();
+      expect(component.submitError?.type).toBe('server');
+      expect(showErrorSnackbar).toHaveBeenCalled();
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('onSubmit_validationError_staysInline', () => {
+      wizardService.submit.and.returnValue(failure(400) as never);
+      fillInTheForm();
+
+      component.onSubmit();
+
+      expect(component.submitError?.type).toBe('validation');
+      expect(showErrorSnackbar).not.toHaveBeenCalled();
     });
 
     it('onSubmit_noStudentId_goesToProfileSetup', () => {
@@ -349,7 +394,7 @@ describe('ApplicationSubmissionComponent', () => {
 
       component.retrySubmit();
 
-      expect(navigate).toHaveBeenCalledWith(['/application-review']);
+      expect(wizardService.submit).toHaveBeenCalled();
     });
 
     it('dismissError_clearsTheError', () => {
