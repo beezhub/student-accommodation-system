@@ -33,5 +33,6 @@ public final class EmailSubjects {
     public static final String APPLICATIONS_WITHDRAWN = "Place Accepted - Your Other Applications Were Withdrawn";
     public static final String DOCUMENT_EXPIRING = "Action Required: Upload Your New Document";
     public static final String DOCUMENT_EXPIRED = "Your Document Has Expired - Upload the New One";
+    public static final String STAY_EXTENDED = "Your Stay Has Been Extended - Same Room";
     public static final String CHECK_IN_EXPIRED = "Check-In Deadline Expired - Application Cancelled";
 }

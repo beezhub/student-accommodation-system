@@ -194,6 +194,7 @@ class NotificationTemplateDataTest {
         Set<String> accountedFor = emailTypes().map(type -> (String) type.get()[0]).collect(Collectors.toSet());
         reconfirmationEmailTypes().map(type -> (String) type.get()[0]).forEach(accountedFor::add);
         accountedFor.add(WithdrawalNotificationListener.TEMPLATE);
+        accountedFor.add(StayExtensionNotificationListener.TEMPLATE);
         accountedFor.add("welcome");
         accountedFor.addAll(NOT_RETRIED_FROM_A_ROW);
 
@@ -256,6 +257,32 @@ class NotificationTemplateDataTest {
         assertThat(stored).containsKeys(variablesReadBy("applications-withdrawn").toArray(String[]::new));
         assertThat(renderRetry("applications-withdrawn", stored)).contains("href=\"" + BASE_URL + "/")
                 .contains("APP-11 at Company B, Semester 1, 2027");
+    }
+
+    /** GH-498: the stay-extended confirmation is stored for retry and renders from the stored row. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void storedTemplateData_stayExtended_carriesEveryVariableAndRenders() throws IOException {
+        EntityManager entityManager = mock(EntityManager.class);
+        when(entityManager.find(RoomAllocation.class, 30L)).thenReturn(allocation());
+        StayExtensionNotificationListener stayListener = new StayExtensionNotificationListener(persistence,
+                mock(EmailService.class), new EmailContentBuilder(),
+                mock(com.beezhub.student_accommodation.service.UserNotificationService.class),
+                mock(com.beezhub.student_accommodation.repository.AppUserRepository.class), entityManager,
+                new SimpleMeterRegistry());
+        ReflectionTestUtils.setField(stayListener, "baseUrl", BASE_URL);
+
+        stayListener.handleStayExtended(new StayExtendedEvent(30L, "Semester 2",
+                LocalDate.of(2027, 6, 30), LocalDate.of(2027, 11, 30)));
+        ArgumentCaptor<Map<String, Object>> captured = ArgumentCaptor.forClass(Map.class);
+        verify(persistence).createNotification(any(), any(), any(NotificationType.class), any(), any(), any(),
+                captured.capture());
+        Map<String, Object> stored = captured.getValue();
+
+        assertThat(stored).containsEntry("templateName", "stay-extended");
+        assertThat(stored).containsKeys(variablesReadBy("stay-extended").toArray(String[]::new));
+        assertThat(renderRetry("stay-extended", stored)).contains("href=\"" + BASE_URL + "/")
+                .contains("30 November 2027");
     }
 
     private static RoomAllocation reconfirmAllocation() {

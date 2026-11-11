@@ -1,0 +1,29 @@
+@if (stayedFor) {
+<div class="stay stay--done" role="status">
+  <mat-icon class="stay-icon" aria-hidden="true">check_circle</mat-icon>
+  <p class="stay-body">
+    You are staying for {{ stayedFor.name }}, in the same room until
+    {{ stayedFor.until | date : 'd MMMM y' }}.
+  </p>
+</div>
+} @else if (option?.allowed) {
+<div class="stay" role="region" aria-label="Stay for the next intake">
+  <mat-icon class="stay-icon" aria-hidden="true">event_repeat</mat-icon>
+  <p class="stay-body">
+    Keep this room until {{ option?.nextStayEndDate | date : 'd MMMM y' }}, through the break.
+  </p>
+  <button mat-flat-button color="primary" (click)="stay()" [disabled]="processing">
+    Stay for {{ option?.nextIntakeName }}
+  </button>
+</div>
+} @else if (option?.nextIntakeName) {
+<div class="stay" role="region" aria-label="Apply for the next intake">
+  <mat-icon class="stay-icon" aria-hidden="true">event_note</mat-icon>
+  <p class="stay-body">
+    @if (refusal) {
+    {{ refusal }}
+    } @else { Want to stay on? Apply for the next intake. }
+  </p>
+  <a mat-stroked-button routerLink="/applications/new">Apply for {{ option?.nextIntakeName }}</a>
+</div>
+}

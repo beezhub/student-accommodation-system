@@ -83,6 +83,11 @@
               (reconfirmed)="roomAllocation = $event">
             </app-reconfirm-place>
 
+            <app-stay-extension
+              [allocation]="roomAllocation"
+              (extended)="roomAllocation = $event">
+            </app-stay-extension>
+
             @if (roomAllocation.status === AllocationStatus.OFFERED) {
               <app-offer-expiry
                 [expiryDate]="roomAllocation.offerExpiryDate ?? null"

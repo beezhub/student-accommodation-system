@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Your Stay Has Been Extended</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Your Stay Has Been Extended</h1>
+<span layout:fragment="email-subtitle">Same room, no new application</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <div class="info-box">
+        <h3>You are staying for <span th:text="${intakeName}">Semester 2</span></h3>
+        <p>You keep <strong>Room <span th:text="${roomNumber}">101</span></strong>
+           in <strong th:text="${buildingName}">Building A</strong> until
+           <strong th:text="${stayEndDate}">30 November 2027</strong>, including the break between
+           the two intakes.</p>
+    </div>
+
+    <p>There is nothing else to do. Keep your documents up to date so nothing holds your room up.</p>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">View My Room</a>
+    </div>
+</div>
+
+</body>
+</html>

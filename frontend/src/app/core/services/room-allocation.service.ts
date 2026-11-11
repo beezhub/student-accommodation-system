@@ -65,6 +65,20 @@ export interface RoomAllocationResponse {
   updatedAt: string;
 }
 
+/** Whether a student can stay on in their room for the next intake (GH-498). */
+export interface StayExtensionResponse {
+  allocationId: number;
+  allowed: boolean;
+  /** Why not, when refused. */
+  reason?: string | null;
+  currentStayEndDate?: string | null;
+  /** The next intake of the same type in the same year; absent for an Annual stay. */
+  nextIntakeId?: number | null;
+  nextIntakeName?: string | null;
+  nextStayStartDate?: string | null;
+  nextStayEndDate?: string | null;
+}
+
 export interface RoomAvailabilityResponse {
   roomId: number;
   roomNumber: string;
@@ -226,6 +240,27 @@ export class RoomAllocationService {
   /** The student confirms they are still coming before move-in, so the place keeps its bed (GH-496). */
   reconfirm(id: number): Observable<RoomAllocationResponse> {
     return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/reconfirm`, {});
+  }
+
+  /** Whether the student can stay on for the next intake (GH-498). Silent: the card shows nothing on failure. */
+  getStayExtension(id: number): Observable<StayExtensionResponse> {
+    return this.http.get<StayExtensionResponse>(`${this.apiUrl}/${id}/stay-extension`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
+  }
+
+  /**
+   * Stays on for the next intake, same room. Silent because a refusal (the bed was taken since the
+   * page loaded) is shown in the card, with the link to apply instead.
+   */
+  extendStay(id: number): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(
+      `${this.apiUrl}/${id}/stay-extension`,
+      {},
+      {
+        headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+      }
+    );
   }
 
   /**

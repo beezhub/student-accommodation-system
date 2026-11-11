@@ -599,6 +599,23 @@ class EmailTemplateRenderTest {
         assertThat(expired).contains("expired on").contains("30 November 2026");
     }
 
+    /** GH-498: the confirmation names the intake, the room and the new check-out date. */
+    @Test
+    void stayExtended_confirmsTheRoomAndTheNewDate() {
+        Map<String, Object> vars = baseContext();
+        vars.put("studentName", "Test Student");
+        vars.put("roomNumber", "12");
+        vars.put("buildingName", "West Residence");
+        vars.put("intakeName", "Semester 2");
+        vars.put("stayEndDate", "30 November 2027");
+        vars.put("portalUrl", PORTAL_URL);
+
+        String html = render("stay-extended", vars);
+
+        assertBaseRequirements(html, "stay-extended");
+        assertThat(html).contains("Semester 2").contains("West Residence").contains("30 November 2027");
+    }
+
     private Map<String, Object> expiredVars() {
         Map<String, Object> vars = baseContext();
         vars.put("studentName", "Test Student");
@@ -628,7 +645,7 @@ class EmailTemplateRenderTest {
             "check-in-reminder", "check-in-expired",
             "reconfirm-request", "reconfirm-reminder", "place-released",
             "application-expired", "applications-withdrawn",
-            "document-expiry-reminder"
+            "document-expiry-reminder", "stay-extended"
         };
 
         for (String template : templates) {
@@ -654,7 +671,7 @@ class EmailTemplateRenderTest {
             "check-in-reminder", "check-in-expired",
             "reconfirm-request", "reconfirm-reminder", "place-released",
             "application-expired", "applications-withdrawn",
-            "document-expiry-reminder"
+            "document-expiry-reminder", "stay-extended"
         };
 
         for (String template : templates) {
@@ -679,7 +696,7 @@ class EmailTemplateRenderTest {
             "check-in-reminder", "check-in-expired",
             "reconfirm-request", "reconfirm-reminder", "place-released",
             "application-expired", "applications-withdrawn",
-            "document-expiry-reminder"
+            "document-expiry-reminder", "stay-extended"
         };
 
         for (String template : templates) {
@@ -856,6 +873,12 @@ class EmailTemplateRenderTest {
                 vars.put("expired", false);
                 vars.put("companyName", "Company A");
                 vars.put("documentsUrl", PORTAL_URL);
+            }
+            case "stay-extended" -> {
+                vars.put("roomNumber", "101");
+                vars.put("buildingName", "Block A");
+                vars.put("intakeName", "Semester 2");
+                vars.put("stayEndDate", "30 November 2027");
             }
             case "place-released" -> {
                 vars.put("applicationCode", "APP-001");
