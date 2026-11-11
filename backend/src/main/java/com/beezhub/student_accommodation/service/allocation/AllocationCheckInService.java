@@ -15,6 +15,7 @@ import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.enums.AllocationAuditActionType;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import com.beezhub.student_accommodation.service.document.DocumentReadinessGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,6 +39,7 @@ public class AllocationCheckInService {
     private final AllocationAuditService allocationAuditService;
     private final AuthService authService;
     private final StayCapacityGuard stayCapacityGuard;
+    private final DocumentReadinessGuard documentReadinessGuard;
 
     /** Human-readable form for the deadline echoed to the admin who is past it. */
     private static final DateTimeFormatter CHECK_IN_DEADLINE_FORMAT =
@@ -73,6 +75,9 @@ public class AllocationCheckInService {
         // The offer stands on the planned dates, but nobody moves into a bed a resident still
         // sleeps in. The admin dashboard lists the overdue check-out (GH-496).
         stayCapacityGuard.assertBedPhysicallyFree(allocation);
+        // An expired or unapproved required document holds the check-in back (GH-498). Not
+        // covered by the deadline override: the replacement needs approving first.
+        documentReadinessGuard.assertReadyForCheckIn(allocation);
         // After the allocation guard, so an illegal allocation transition still reports as such
         // rather than being masked by the application state (GH-137).
         ApplicationStatusValidator.validate(allocation.getApplication(),

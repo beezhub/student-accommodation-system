@@ -768,6 +768,11 @@ mat-dialog-content {
 .doc-type-label {
   font-size: 0.75rem;
   color: vars.$slate-500;
+
+  &.doc-expired {
+    color: vars.$error;
+    font-weight: 600;
+  }
 }
 
 // Document Body

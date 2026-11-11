@@ -221,4 +221,15 @@ public interface RoomAllocationRepository
                "AND ra.reconfirmedAt IS NULL AND ra.acceptedAt IS NOT NULL AND ra.stayStartDate > :today " +
                "ORDER BY ra.stayStartDate, ra.id")
         List<Long> findIdsAwaitingReconfirmation(@Param("tenantId") Long tenantId, @Param("today") LocalDate today);
+
+        /** Companies with an allocation in one of the statuses (GH-498), across every company. */
+        @Query("SELECT DISTINCT ra.tenantId FROM RoomAllocation ra WHERE ra.status IN :statuses")
+        List<Long> findTenantIdsWithStatusIn(@Param("statuses") Collection<AllocationStatus> statuses);
+
+        /** One company's allocations in the statuses, with the student and application loaded. */
+        @Query("SELECT ra FROM RoomAllocation ra JOIN FETCH ra.student s LEFT JOIN FETCH s.institution " +
+               "LEFT JOIN FETCH ra.application a LEFT JOIN FETCH a.institution " +
+               "WHERE ra.tenantId = :tenantId AND ra.status IN :statuses")
+        List<RoomAllocation> findByTenantIdAndStatusInWithStudent(@Param("tenantId") Long tenantId,
+                        @Param("statuses") Collection<AllocationStatus> statuses);
 }

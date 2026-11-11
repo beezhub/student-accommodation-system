@@ -72,6 +72,8 @@ class StagedAllocationServiceTest {
         private RoomOccupancyManager roomOccupancyManager;
     @Mock
     private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentReadinessGuard documentReadinessGuard;
 
 
         @InjectMocks
@@ -435,6 +437,45 @@ class StagedAllocationServiceTest {
                 assertThat(response).isNotNull();
                 assertThat(response.getFailedProposals()).isEqualTo(1);
                 verify(waitingListService).enqueueWaitingList(student, application);
+        }
+
+        /** GH-498: a student whose documents are not in order is skipped and not queued again. */
+        @Test
+        void proposeAllocation_documentsNotReady_skippedWithoutScoringOrQueueing() {
+                BatchAllocationRequest request = new BatchAllocationRequest();
+                request.setBatchId("BATCH-004");
+                request.setStudentIds(Arrays.asList(1L));
+                application.setTenantId(7L);
+
+                when(appUserRepository.findById(2L)).thenReturn(Optional.of(admin));
+                when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+                when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(1L), any(), any())).thenReturn(false);
+                when(stagedAllocationRepository.findByStudent_IdAndStatus(1L, StagedAllocationStatus.PROPOSED))
+                                .thenReturn(Optional.empty());
+                when(applicationRepository.findByStudent_Id(1L)).thenReturn(Arrays.asList(application));
+                org.mockito.Mockito.doThrow(new com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException(
+                                "Proof of Registration (expired on 30 November 2026)"))
+                                .when(documentReadinessGuard).assertReadyForRoom(student, 7L, application);
+
+                BatchAllocationProposalResponse response = stagedAllocationService.proposeAllocation(request, 2L);
+
+                assertThat(response.getFailedProposals()).isEqualTo(1);
+                verify(allocationScoringService, never()).scoreAvailableRooms(any(), any(), any());
+                verify(waitingListService, never()).enqueueWaitingList(any(Student.class), any(Application.class));
+        }
+
+        @Test
+        void confirmAllocation_documentsNotReady_refusedAndNothingSaved() {
+                room.setTenantId(7L);
+                when(stagedAllocationRepository.findById(1L)).thenReturn(Optional.of(stagedAllocation));
+                when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(0L);
+                org.mockito.Mockito.doThrow(new com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException("pending"))
+                                .when(documentReadinessGuard).assertReadyForRoom(student, 7L, application);
+
+                assertThatThrownBy(() -> stagedAllocationService.confirmAllocation(1L, 2L))
+                                .isInstanceOf(com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException.class);
+                verify(roomAllocationRepository, never()).save(any(RoomAllocation.class));
+                assertThat(stagedAllocation.getStatus()).isEqualTo(StagedAllocationStatus.PROPOSED);
         }
 
         @Test

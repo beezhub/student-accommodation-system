@@ -367,6 +367,37 @@ class AcademicYearServiceTest {
         assertThat(service.findCurrentAcademicYear(COMPANY, null)).contains(platformYear);
     }
 
+    // ── A company's year on a given day, for expiring documents (GH-498) ───────────────────────
+
+    @Test
+    void findCompanyYearOn_juneUpload_isThatYear() {
+        LocalDate june = LocalDate.of(2026, 6, 10);
+        AcademicYear y2026 = year(1L, "2026", null, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 11, 30));
+        AcademicYear y2027 = year(2L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
+        when(academicYearRepository.findNotEndedByTenant(COMPANY, june)).thenReturn(List.of(y2026, y2027));
+
+        assertThat(service.findCompanyYearOn(COMPANY, UNIVERSITY, june)).contains(y2026);
+    }
+
+    @Test
+    void findCompanyYearOn_uploadBetweenTwoYears_isTheNextOne() {
+        LocalDate december = LocalDate.of(2026, 12, 15);
+        AcademicYear y2027 = year(2L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
+        when(academicYearRepository.findNotEndedByTenant(COMPANY, december)).thenReturn(List.of(y2027));
+
+        assertThat(service.findCompanyYearOn(COMPANY, null, december)).contains(y2027);
+    }
+
+    @Test
+    void findCompanyYearOn_companyHasNoLaterYear_isEmptyWithoutAPlatformFallback() {
+        LocalDate december = LocalDate.of(2026, 12, 15);
+        when(academicYearRepository.findNotEndedByTenant(COMPANY, december)).thenReturn(List.of());
+
+        assertThat(service.findCompanyYearOn(COMPANY, null, december)).isEmpty();
+        assertThat(service.findCompanyYearOn(null, null, december)).isEmpty();
+        verify(academicYearRepository, never()).findNotEndedByTenant(PLATFORM, december);
+    }
+
     @Test
     void getCurrentAcademicYear_none_isNotFound() {
         when(academicYearRepository.findNotEndedByTenant(anyLong(), eq(TODAY))).thenReturn(List.of());

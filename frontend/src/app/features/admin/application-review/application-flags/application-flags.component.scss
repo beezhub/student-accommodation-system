@@ -1,0 +1,30 @@
+@use '../../../../../styles/variables' as vars;
+
+:host {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: vars.$space-1;
+}
+
+.app-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px vars.$space-2;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+
+  mat-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+  }
+}
+
+.app-flag--expired {
+  color: vars.$error;
+  background: rgba(vars.$error, 0.08);
+}

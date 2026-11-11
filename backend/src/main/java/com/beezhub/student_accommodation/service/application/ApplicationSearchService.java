@@ -15,6 +15,7 @@ import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StagedAllocationRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.service.document.DocumentExpiryQueryService;
 import com.beezhub.student_accommodation.specification.ApplicationSpecification;
 import com.beezhub.student_accommodation.util.PageMapper;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,7 @@ public class ApplicationSearchService {
     private final ApplicationMapper applicationMapper;
     private final DocumentTypeRepository documentTypeRepository;
     private final com.beezhub.student_accommodation.service.DocumentTypeService documentTypeService;
+    private final DocumentExpiryQueryService documentExpiryQueryService;
 
     /**
      * Retrieves all applications with pagination.
@@ -168,6 +170,10 @@ public class ApplicationSearchService {
         Map<Long, List<Document>> documentsByStudent = allDocuments.stream()
                 .collect(Collectors.groupingBy(doc -> doc.getStudent().getId()));
 
+        // The expired badge, read for each application's company (GH-498).
+        Map<Long, Boolean> expiredByApplication =
+                documentExpiryQueryService.expiredByApplication(applications, documentsByStudent);
+
         // Fetch staged allocations in batch
         List<Long> appIds = applications.stream().map(Application::getId).collect(Collectors.toList());
         List<StagedAllocation> allStaged = stagedAllocationRepository.findByApplication_IdIn(appIds);
@@ -189,6 +195,7 @@ public class ApplicationSearchService {
             response.setApprovedDocuments((int) approvedCount);
             response.setTotalRequiredDocuments(requiredDocCount);
             response.setDocumentCompletionPercent(requiredDocCount == 0 ? 0 : (int) ((approvedCount * 100) / requiredDocCount));
+            response.setHasExpiredDocuments(expiredByApplication.getOrDefault(app.getId(), false));
 
             // Handle Allocation
             if (app.getStatus() == ApplicationStatus.ALLOCATED) {

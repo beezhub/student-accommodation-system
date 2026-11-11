@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.exceptions.FileStorageException;
 import com.beezhub.student_accommodation.exceptions.FileValidationException;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.entity.AppUser;
+import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
@@ -17,6 +18,7 @@ import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
+import com.beezhub.student_accommodation.service.document.DocumentExpiryPolicy;
 import com.beezhub.student_accommodation.service.document.FileStorageService;
 import com.beezhub.student_accommodation.service.document.FileValidationService;
 import com.beezhub.student_accommodation.service.document.ValidationResult;
@@ -33,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,6 +65,8 @@ class DocumentLifecycleServiceTest {
     ApplicationEventPublisher eventPublisher;
     @Mock
     com.beezhub.student_accommodation.service.document.DocumentAccessGuard documentAccessGuard;
+    @Mock
+    DocumentExpiryPolicy documentExpiryPolicy;
 
     @InjectMocks
     DocumentLifecycleService documentLifecycleService;
@@ -312,6 +317,67 @@ class DocumentLifecycleServiceTest {
         assertFalse(statuses.getValue().contains(ApplicationStatus.REJECTED));
         assertFalse(statuses.getValue().contains(ApplicationStatus.EXPIRED));
         assertFalse(statuses.getValue().contains(ApplicationStatus.CANCELLED));
+    }
+
+    // --------------------------------------------------------- GH-498 expiring documents
+
+    /** An approved document, a live application at company 7, and an upload replacing it. */
+    private MultipartFile givenReplacementOfApprovedDocumentOnALiveApplication(boolean dueForReplacement)
+            throws Exception {
+        document.setDocumentStatus(DocumentStatus.APPROVED);
+        MultipartFile file = mock(MultipartFile.class);
+        lenient().when(file.getOriginalFilename()).thenReturn("new.pdf");
+        lenient().when(file.getSize()).thenReturn(10L);
+        lenient().when(file.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[] { 1 }));
+        when(appUserRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(documentTypeRepository.findById(2L)).thenReturn(Optional.of(docType));
+        when(studentRepository.findByAppUser(user)).thenReturn(Optional.of(student));
+        when(documentRepository.findByStudentIdAndDocumentTypeId(10L, 2L)).thenReturn(Optional.of(document));
+        when(applicationRepository.existsByStudent_IdAndStatusIn(eq(10L), any())).thenReturn(true);
+        Application live = Application.builder().id(30L).tenantId(7L).student(student).build();
+        when(applicationRepository.findByStudent_IdAndStatusInOrderByIdDesc(eq(10L), any())).thenReturn(List.of(live));
+        DocumentExpiryPolicy.CompanyRules rules = mock(DocumentExpiryPolicy.CompanyRules.class);
+        when(documentExpiryPolicy.forCompany(7L)).thenReturn(rules);
+        when(rules.isDueForReplacement(document, null)).thenReturn(dueForReplacement);
+        return file;
+    }
+
+    /** Expired, or expiring within the reminder period, at the live application's company. */
+    @Test
+    void uploadSingleDocument_approvedButDueForReplacement_isReplacedDuringALiveApplication() throws Exception {
+        MultipartFile file = givenReplacementOfApprovedDocumentOnALiveApplication(true);
+        when(fileValidationService.scanFile(any(), anyString(), anyLong())).thenReturn(ValidationResult.valid("application/pdf"));
+        when(documentRepository.save(any(Document.class))).thenAnswer(i -> i.getArgument(0));
+
+        documentLifecycleService.uploadSingleDocument(file, "user@example.com", 2L);
+
+        verify(documentRepository).delete(document);
+        ArgumentCaptor<Document> saved = ArgumentCaptor.forClass(Document.class);
+        verify(documentRepository).save(saved.capture());
+        assertEquals(DocumentStatus.PENDING, saved.getValue().getDocumentStatus());
+    }
+
+    /** A current approved document stays locked while the application is live. */
+    @Test
+    void uploadSingleDocument_approvedAndCurrent_isRefusedDuringALiveApplication() throws Exception {
+        MultipartFile file = givenReplacementOfApprovedDocumentOnALiveApplication(false);
+
+        assertThrows(DocumentLockedException.class,
+                () -> documentLifecycleService.uploadSingleDocument(file, "user@example.com", 2L));
+
+        verify(documentRepository, never()).delete(any(Document.class));
+        verify(documentRepository, never()).save(any(Document.class));
+    }
+
+    /** Only the upload path is relaxed: deleting still waits for an administrator. */
+    @Test
+    void deleteDocument_approvedOnALiveApplication_doesNotConsultExpiry() {
+        givenApprovedDocumentOnALiveApplication();
+
+        assertThrows(DocumentLockedException.class,
+                () -> documentLifecycleService.deleteDocument(100L, "user@example.com"));
+
+        verifyNoInteractions(documentExpiryPolicy);
     }
 
     // --------------------------------------------------------- GH-144 stored content type

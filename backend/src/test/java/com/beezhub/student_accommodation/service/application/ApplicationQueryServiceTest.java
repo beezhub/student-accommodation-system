@@ -45,6 +45,8 @@ class ApplicationQueryServiceTest {
     private ApplicationDocumentService applicationDocumentService;
     @Spy
     private TenantOwnershipGuard tenantOwnershipGuard = new TenantOwnershipGuard();
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentExpiryQueryService documentExpiryQueryService;
 
     @InjectMocks
     private ApplicationQueryService applicationQueryService;
@@ -147,6 +149,34 @@ class ApplicationQueryServiceTest {
         assertThat(response.getAllocationEligibility().getEligible()).isFalse();
         assertThat(response.getAllocationEligibility().getApplicationApproved()).isFalse();
         assertThat(response.getAllocationEligibility().getAllDocumentsApproved()).isFalse();
+    }
+
+    /** GH-498: each expiring document carries its expiry, and the detail carries the badge. */
+    @Test
+    void getApplicationFullDetailsEnhanced_expiredDocument_marksItAndTheApplication() {
+        AppUser adminUser = new AppUser();
+        adminUser.setId(200L);
+        adminUser.setUserRole(UserRole.ADMIN);
+        com.beezhub.student_accommodation.model.dto.DocumentWithCommentsResponse proof =
+                com.beezhub.student_accommodation.model.dto.DocumentWithCommentsResponse.builder().id(50L).build();
+        com.beezhub.student_accommodation.model.dto.DocumentWithCommentsResponse id =
+                com.beezhub.student_accommodation.model.dto.DocumentWithCommentsResponse.builder().id(51L).build();
+        when(authService.getCurrentUser()).thenReturn(adminUser);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(applicationDocumentService.getDocumentsWithComments(1L)).thenReturn(java.util.List.of(proof, id));
+        when(applicationDocumentService.getRequiredDocumentsChecklist(1L))
+                .thenReturn(RequiredDocumentsChecklistResponse.builder().allApproved(true).build());
+        when(documentExpiryQueryService.expiriesFor(application)).thenReturn(java.util.Map.of(50L,
+                com.beezhub.student_accommodation.model.dto.DocumentExpiryResponse.builder()
+                        .documentId(50L).expiryDate(java.time.LocalDate.of(2026, 11, 30)).expired(true).build()));
+
+        ApplicationFullDetailsResponse response =
+                applicationQueryService.getApplicationFullDetailsEnhanced(1L, "admin@example.com");
+
+        assertThat(response.getHasExpiredDocuments()).isTrue();
+        assertThat(proof.getExpired()).isTrue();
+        assertThat(proof.getExpiryDate()).isEqualTo(java.time.LocalDate.of(2026, 11, 30));
+        assertThat(id.getExpiryDate()).isNull();
     }
 
     @Test

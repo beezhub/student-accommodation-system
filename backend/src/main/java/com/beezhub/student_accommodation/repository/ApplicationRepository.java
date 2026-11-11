@@ -100,6 +100,16 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
                      @Param("statuses") Collection<ApplicationStatus> statuses,
                      @Param("today") java.time.LocalDate today);
 
+     /** Companies with an application in one of the statuses (GH-498), across every company. */
+     @Query("SELECT DISTINCT a.tenantId FROM Application a WHERE a.status IN :statuses")
+     List<Long> findTenantIdsWithStatusIn(@Param("statuses") Collection<ApplicationStatus> statuses);
+
+     /** One company's applications in the statuses, with the student and institution loaded. */
+     @Query("SELECT a FROM Application a JOIN FETCH a.student s LEFT JOIN FETCH s.institution "
+                     + "LEFT JOIN FETCH a.institution WHERE a.tenantId = :tenantId AND a.status IN :statuses")
+     List<Application> findByTenantIdAndStatusInWithStudent(@Param("tenantId") Long tenantId,
+                     @Param("statuses") Collection<ApplicationStatus> statuses);
+
      void deleteByStudent(com.beezhub.student_accommodation.model.entity.Student student);
 
      boolean existsByAcademicYear_Id(Long academicYearId);

@@ -12,6 +12,7 @@ import com.beezhub.student_accommodation.model.enums.*;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.AuthService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
+import com.beezhub.student_accommodation.service.document.DocumentReadinessGuard;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +55,7 @@ public class AllocationLifecycleService {
     private final UserNotificationService userNotificationService;
     private final TenantOwnershipGuard tenantOwnershipGuard;
     private final StayCapacityGuard stayCapacityGuard;
+    private final DocumentReadinessGuard documentReadinessGuard;
 
     public AllocationLifecycleService(
             RoomAllocationRepository roomAllocationRepository,
@@ -71,7 +73,8 @@ public class AllocationLifecycleService {
             AuthService authService,
             UserNotificationService userNotificationService,
             TenantOwnershipGuard tenantOwnershipGuard,
-            StayCapacityGuard stayCapacityGuard) {
+            StayCapacityGuard stayCapacityGuard,
+            DocumentReadinessGuard documentReadinessGuard) {
         this.roomAllocationRepository = roomAllocationRepository;
         this.studentRepository = studentRepository;
         this.roomRepository = roomRepository;
@@ -88,6 +91,7 @@ public class AllocationLifecycleService {
         this.userNotificationService = userNotificationService;
         this.tenantOwnershipGuard = tenantOwnershipGuard;
         this.stayCapacityGuard = stayCapacityGuard;
+        this.documentReadinessGuard = documentReadinessGuard;
     }
 
     /**
@@ -112,6 +116,8 @@ public class AllocationLifecycleService {
         stayCapacityGuard.assertNotEnded(stay);
         stayCapacityGuard.assertStudentFree(student.getId(), stay);
         stayCapacityGuard.assertBedFree(room, stay);
+        // Batch, manual, staged and per-application offers all come through here (GH-498).
+        documentReadinessGuard.assertReadyForRoom(student, room.getTenantId(), application);
 
         RoomAllocation allocation = buildNewAllocation(request, student, room, application);
         stay.applyTo(allocation);

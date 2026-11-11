@@ -57,6 +57,20 @@
             </div>
           </mat-checkbox>
         </div>
+
+        <div class="checkbox-card" [class.active]="documentTypeForm.get('isExpiring')?.value">
+          <mat-checkbox formControlName="isExpiring">
+            <div class="checkbox-content">
+              <div class="checkbox-icon">
+                <mat-icon>{{ documentTypeForm.get('isExpiring')?.value ? 'event_busy' : 'radio_button_unchecked' }}</mat-icon>
+              </div>
+              <div class="checkbox-text">
+                <span class="checkbox-label">Expires with the academic year</span>
+                <span class="checkbox-hint">For example proof of registration. It expires at the end of the academic year it was uploaded in, and students are reminded to upload the new one.</span>
+              </div>
+            </div>
+          </mat-checkbox>
+        </div>
       </div>
     </form>
   </mat-dialog-content>

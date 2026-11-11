@@ -43,6 +43,8 @@
 
     <!-- Document Pack — one row per document type -->
     @else {
+      <app-document-expiry-notice [pack]="slots" (upload)="openUploadFor($event)"></app-document-expiry-notice>
+
       <mat-card class="documents-card">
         <div class="card-header">
           <h3 class="card-title">

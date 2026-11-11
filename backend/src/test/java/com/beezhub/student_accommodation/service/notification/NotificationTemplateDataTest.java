@@ -76,7 +76,8 @@ class NotificationTemplateDataTest {
      * (GH-141). The reminder jobs write no row: an unsent reminder is simply picked up on the next run.
      */
     private static final Set<String> NOT_RETRIED_FROM_A_ROW =
-            Set.of("password-reset", "offer-expiry-reminder", "check-in-reminder");
+            Set.of("password-reset", "offer-expiry-reminder", "check-in-reminder",
+                    DocumentExpiryNotificationListener.TEMPLATE);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private NotificationPersistenceService persistence;

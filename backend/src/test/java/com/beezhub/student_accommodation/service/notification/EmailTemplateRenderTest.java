@@ -578,6 +578,27 @@ class EmailTemplateRenderTest {
                 .contains("APP-2 at Company C, Annual, 2027");
     }
 
+    /** GH-498: one date and one action, before expiry and after it. */
+    @Test
+    void documentExpiryReminder_beforeAndAfterExpiry_saysWhenAndWhatToDo() {
+        Map<String, Object> vars = baseContext();
+        vars.put("studentName", "Test Student");
+        vars.put("documentName", "Proof of Registration");
+        vars.put("expiryDate", "30 November 2026");
+        vars.put("companyName", "Company A");
+        vars.put("documentsUrl", "http://localhost:4200/documents");
+
+        vars.put("expired", false);
+        String soon = render("document-expiry-reminder", vars);
+        vars.put("expired", true);
+        String expired = render("document-expiry-reminder", vars);
+
+        assertBaseRequirements(soon, "document-expiry-reminder");
+        assertThat(soon).contains("expires on").contains("30 November 2026").contains("Upload the new one")
+                .contains("http://localhost:4200/documents").doesNotContain("expired on");
+        assertThat(expired).contains("expired on").contains("30 November 2026");
+    }
+
     private Map<String, Object> expiredVars() {
         Map<String, Object> vars = baseContext();
         vars.put("studentName", "Test Student");
@@ -606,7 +627,8 @@ class EmailTemplateRenderTest {
             "offer-expired", "offer-expiry-reminder",
             "check-in-reminder", "check-in-expired",
             "reconfirm-request", "reconfirm-reminder", "place-released",
-            "application-expired", "applications-withdrawn"
+            "application-expired", "applications-withdrawn",
+            "document-expiry-reminder"
         };
 
         for (String template : templates) {
@@ -631,7 +653,8 @@ class EmailTemplateRenderTest {
             "offer-expired", "offer-expiry-reminder",
             "check-in-reminder", "check-in-expired",
             "reconfirm-request", "reconfirm-reminder", "place-released",
-            "application-expired", "applications-withdrawn"
+            "application-expired", "applications-withdrawn",
+            "document-expiry-reminder"
         };
 
         for (String template : templates) {
@@ -655,7 +678,8 @@ class EmailTemplateRenderTest {
             "offer-expired", "offer-expiry-reminder",
             "check-in-reminder", "check-in-expired",
             "reconfirm-request", "reconfirm-reminder", "place-released",
-            "application-expired", "applications-withdrawn"
+            "application-expired", "applications-withdrawn",
+            "document-expiry-reminder"
         };
 
         for (String template : templates) {
@@ -825,6 +849,13 @@ class EmailTemplateRenderTest {
                 vars.put("intakeName", "Semester 1, 2027");
                 vars.put("stayEndDate", "30 June 2027");
                 vars.put("applyUrl", PORTAL_URL);
+            }
+            case "document-expiry-reminder" -> {
+                vars.put("documentName", "Proof of Registration");
+                vars.put("expiryDate", "30 November 2026");
+                vars.put("expired", false);
+                vars.put("companyName", "Company A");
+                vars.put("documentsUrl", PORTAL_URL);
             }
             case "place-released" -> {
                 vars.put("applicationCode", "APP-001");

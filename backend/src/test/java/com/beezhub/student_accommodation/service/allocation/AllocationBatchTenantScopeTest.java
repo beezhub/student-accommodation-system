@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.service.document.DocumentReadinessGuard;
 import com.beezhub.student_accommodation.config.FF4jConfig;
 import com.beezhub.student_accommodation.mapper.RoomAllocationMapper;
 import com.beezhub.student_accommodation.model.dto.RoomAllocationRequest;
@@ -65,7 +66,8 @@ class AllocationBatchTenantScopeTest {
     void setUp() {
         service = new AllocationBatchService(waitingListRepository, lifecycleService, featureFlagService,
                 transactionTemplate, environment, orchestrator, stagedAllocationService, roomAllocationMapper,
-                new SimpleMeterRegistry(), neutralPriorityScorer());
+                new SimpleMeterRegistry(), neutralPriorityScorer(),
+                mock(DocumentReadinessGuard.class));
 
         when(featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
         when(transactionTemplate.execute(any())).thenAnswer(i ->

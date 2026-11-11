@@ -83,6 +83,17 @@ public class DocumentTypeService {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * The names of a company's expiring document types (merged view, lower case), matched by name
+     * like {@link #getEffectiveRequiredTypeNames} (GH-498).
+     */
+    public Set<String> getEffectiveExpiringTypeNames(Long tenantId) {
+        return getEffectiveDocumentTypes(tenantId).stream()
+                .filter(dt -> Boolean.TRUE.equals(dt.getIsExpiring()))
+                .map(dt -> dt.getTypeName().toLowerCase())
+                .collect(Collectors.toSet());
+    }
+
     // -------------------------------------------------------------------------
     // Public-facing list/search methods
     // -------------------------------------------------------------------------
@@ -154,6 +165,7 @@ public class DocumentTypeService {
         documentType.setTypeName(request.getName());
         documentType.setDescription(request.getDescription());
         documentType.setIsRequired(request.getIsRequired());
+        documentType.setIsExpiring(Boolean.TRUE.equals(request.getIsExpiring()));
         documentType.setTenantId(resolveWriteTenantId());
         DocumentType saved = documentTypeRepository.save(documentType);
         return documentTypeMapper.toDto(saved);
@@ -166,8 +178,20 @@ public class DocumentTypeService {
         documentType.setTypeName(request.getName());
         documentType.setDescription(request.getDescription());
         documentType.setIsRequired(request.getIsRequired());
+        if (request.getIsExpiring() != null) {
+            documentType.setIsExpiring(request.getIsExpiring());
+        }
         DocumentType updated = documentTypeRepository.save(documentType);
         return documentTypeMapper.toDto(updated);
+    }
+
+    /** Marks a type as expiring with the academic year it was uploaded in, or not (GH-498). */
+    public DocumentTypeResponse updateExpiringFlag(Long id, boolean expiring) {
+        DocumentType documentType = documentTypeRepository.findById(id)
+                .orElseThrow(() -> new DocumentTypeNotFoundException("Document type not found"));
+        guardPlatformType(documentType);
+        documentType.setIsExpiring(expiring);
+        return documentTypeMapper.toDto(documentTypeRepository.save(documentType));
     }
 
     public DocumentTypeResponse updateRequiredFlag(Long id, boolean required) {

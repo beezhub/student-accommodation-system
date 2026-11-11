@@ -323,4 +323,60 @@ class DocumentTypeServiceTest {
         assertDoesNotThrow(() -> documentTypeService.deleteDocumentType(5L));
         verify(documentTypeRepository).delete(tenantType);
     }
+
+    // -------------------------------------------------------------------------
+    // Expiring types (GH-498)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void getEffectiveExpiringTypeNames_tenantShadowDecides() {
+        platformType1.setIsExpiring(false);
+        tenantType.setIsExpiring(true);
+        platformType2.setIsExpiring(true);
+        when(documentTypeRepository.findAllByTenantIdIn(List.of(0L, 42L)))
+                .thenReturn(List.of(platformType1, platformType2, tenantType));
+
+        assertEquals(java.util.Set.of("id document", "proof of income"),
+                documentTypeService.getEffectiveExpiringTypeNames(42L));
+    }
+
+    @Test
+    void updateExpiringFlag_companyAdminOnOwnType_switchesItOn() {
+        when(documentTypeRepository.findById(5L)).thenReturn(Optional.of(tenantType));
+        when(documentTypeRepository.save(tenantType)).thenReturn(tenantType);
+
+        documentTypeService.updateExpiringFlag(5L, true);
+
+        assertTrue(tenantType.getIsExpiring());
+    }
+
+    @Test
+    void updateExpiringFlag_tenantAdminOnPlatformType_throwsForbidden() {
+        AppUser tenantAdmin = new AppUser();
+        tenantAdmin.setUserRole(UserRole.TENANT_ADMIN);
+        when(documentTypeRepository.findById(1L)).thenReturn(Optional.of(platformType1));
+        when(authService.getCurrentUser()).thenReturn(tenantAdmin);
+
+        assertThrows(ResponseStatusException.class, () -> documentTypeService.updateExpiringFlag(1L, true));
+    }
+
+    @Test
+    void createAndUpdate_carryTheExpiringFlag_andAnUpdateWithoutItKeepsIt() {
+        AppUser platformAdmin = new AppUser();
+        platformAdmin.setUserRole(UserRole.PLATFORM_ADMIN);
+        when(authService.getCurrentUser()).thenReturn(platformAdmin);
+        when(documentTypeRepository.save(any(DocumentType.class))).thenAnswer(inv -> inv.getArgument(0));
+        request.setIsExpiring(true);
+
+        documentTypeService.createDocumentType(request);
+        org.mockito.ArgumentCaptor<DocumentType> created = org.mockito.ArgumentCaptor.forClass(DocumentType.class);
+        verify(documentTypeRepository).save(created.capture());
+        assertTrue(created.getValue().getIsExpiring());
+
+        tenantType.setIsExpiring(true);
+        when(documentTypeRepository.findById(5L)).thenReturn(Optional.of(tenantType));
+        request.setIsExpiring(null);
+        documentTypeService.updateDocumentType(5L, request);
+        assertTrue(tenantType.getIsExpiring());
+    }
 }

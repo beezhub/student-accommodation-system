@@ -35,7 +35,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { User } from '../../../core/models/user.model';
-import { DocumentData, DocumentPreview } from '../../../core/models/document.model';
+import { DocumentData, DocumentExpiry, DocumentPreview } from '../../../core/models/document.model';
+import { DocumentExpiryNoticeComponent } from './document-expiry-notice/document-expiry-notice.component';
 import { contentOf } from '../../../core/models/page-response.model';
 
 /** Merged view of a document type slot — either empty or populated by an uploaded document. */
@@ -75,6 +76,7 @@ export interface DocumentSlot {
     ErrorDisplayComponent,
     SkeletonLoaderComponent,
     EmptyStateComponent,
+    DocumentExpiryNoticeComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -207,6 +209,15 @@ export class DocumentsComponent implements OnInit {
     this.fileValidationErrors = [];
     this.uploadProgress = 0;
     this.uploadStatus = 'idle';
+  }
+
+  /** The new copy of an expiring document, which may replace an approved one (GH-498). */
+  openUploadFor(expiry: DocumentExpiry): void {
+    const name = expiry.documentTypeName.toLowerCase();
+    const slot = this.slots.find(
+      (s) => s.typeId === expiry.documentTypeId || s.typeName.toLowerCase() === name
+    );
+    if (slot) this.openUploadModal(slot);
   }
 
   closeUploadModal(): void {

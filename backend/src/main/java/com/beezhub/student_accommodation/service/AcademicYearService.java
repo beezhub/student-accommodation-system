@@ -151,6 +151,20 @@ public class AcademicYearService {
         return pickCurrent(candidates(tenantId, institutionId, today), today);
     }
 
+    /**
+     * The company's own year for an institution on {@code day}: the year containing that day, or
+     * the next one when it falls between two years, with the same priority as the current year. No
+     * platform fallback: an expiring document expires with the company's own calendar (GH-498), and
+     * a company with no year covering the day gives none.
+     */
+    @Transactional(readOnly = true)
+    public Optional<AcademicYear> findCompanyYearOn(Long tenantId, Long institutionId, LocalDate day) {
+        if (tenantId == null || day == null) {
+            return Optional.empty();
+        }
+        return pickCurrent(applicable(academicYearRepository.findNotEndedByTenant(tenantId, day), institutionId), day);
+    }
+
     @Transactional
     @LogActivity(action = "DELETE", entityType = "ACADEMIC_YEAR", description = "Deleted academic year {0}")
     public void deleteAcademicYear(Long id) {

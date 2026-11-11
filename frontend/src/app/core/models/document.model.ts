@@ -36,3 +36,18 @@ export interface DocumentPreview {
   status?: string;
   size?: string;
 }
+
+/**
+ * When one of the student's documents expires (GH-498), read for the companies they are applying
+ * to or living with; the earliest date where those differ.
+ */
+export interface DocumentExpiry {
+  documentId: number;
+  documentTypeId: number;
+  documentTypeName: string;
+  /** The last day the document is valid, 'YYYY-MM-DD'. */
+  expiryDate: string;
+  expired: boolean;
+  /** Expired, or expiring soon: the new one can be uploaded now. */
+  dueForReplacement: boolean;
+}

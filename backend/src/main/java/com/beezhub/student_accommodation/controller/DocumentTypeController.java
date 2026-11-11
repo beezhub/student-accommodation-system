@@ -91,6 +91,15 @@ public class DocumentTypeController {
         return ResponseEntity.ok(documentTypeService.updateRequiredFlag(id, required));
     }
 
+    @PatchMapping("/{id}/expiring")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    @Operation(summary = "Update expiring flag",
+            description = "An expiring document expires at the end of the company's academic year it was uploaded in. Admin only.")
+    public ResponseEntity<DocumentTypeResponse> updateExpiringFlag(@PathVariable Long id,
+                                                                   @RequestParam("expiring") boolean expiring) {
+        return ResponseEntity.ok(documentTypeService.updateExpiringFlag(id, expiring));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     @Operation(summary = "Delete document type",

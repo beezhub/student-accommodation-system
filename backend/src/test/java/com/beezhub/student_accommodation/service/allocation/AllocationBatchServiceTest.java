@@ -93,6 +93,8 @@ class AllocationBatchServiceTest {
     private ObjectMapper objectMapper;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private MeterRegistry meterRegistry;
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentReadinessGuard documentReadinessGuard;
 
     @InjectMocks
     private AllocationBatchService allocationBatchService;
@@ -148,6 +150,40 @@ class AllocationBatchServiceTest {
         assertEquals(0, result.getFailureCount());
         verify(allocationLifecycleService).createRoomAllocation(any());
         verify(waitingListRepository).save(entry);
+    }
+
+    /**
+     * GH-498: a student whose required expiring document is expired or not yet approved is skipped.
+     * Their entry stays WAITING, so they keep their place, and the bed goes to the next student.
+     */
+    @Test
+    void batchAllocateFromWaitingList_documentsNotReady_skippedAndKeepsTheirPlace() {
+        WaitingListEntry skipped = waitingEntry(1L, 10L, ApplicationStatus.AWAITING_ALLOCATION,
+                LocalDateTime.now().minusDays(2));
+        WaitingListEntry served = waitingEntry(2L, 11L, ApplicationStatus.AWAITING_ALLOCATION,
+                LocalDateTime.now().minusDays(1));
+        Room room = new Room();
+        room.setId(100L);
+        room.setCapacity(1);
+        ScoredRoom scoredRoom = ScoredRoom.builder().roomId(100L).totalScore(new BigDecimal("90.0")).build();
+
+        when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(skipped, served));
+        when(allocationScoringOrchestrator.buildScoringMatrix(any()))
+                .thenReturn(java.util.Map.of(1L, List.of(scoredRoom), 2L, List.of(scoredRoom)));
+        when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(room));
+        when(allocationScoringOrchestrator.newBedLedger(any())).thenReturn(BedLedgers.of(java.util.Map.of(100L, 1)));
+        when(documentReadinessGuard.issuesForRoom(skipped.getStudent(), 1L, skipped.getApplication())).thenReturn(List.of(
+                new com.beezhub.student_accommodation.service.document.DocumentExpiryPolicy.DocumentIssue(
+                        "Proof of Registration",
+                        com.beezhub.student_accommodation.service.document.DocumentExpiryPolicy.Problem.EXPIRED,
+                        java.time.LocalDate.of(2026, 11, 30))));
+
+        BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(1);
+
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(List.of(2L), result.getAllocatedStudentIds());
+        assertEquals("WAITING", skipped.getStatus());
+        verify(waitingListRepository, never()).save(skipped);
     }
 
     /**

@@ -11,6 +11,7 @@ import com.beezhub.student_accommodation.exceptions.UserNotFoundException;
 import com.beezhub.student_accommodation.mapper.DocumentMapper;
 import com.beezhub.student_accommodation.model.dto.DocumentResponse;
 import com.beezhub.student_accommodation.model.entity.AppUser;
+import com.beezhub.student_accommodation.model.entity.Application;
 import com.beezhub.student_accommodation.model.entity.Document;
 import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.entity.Student;
@@ -23,6 +24,7 @@ import com.beezhub.student_accommodation.repository.DocumentRepository;
 import com.beezhub.student_accommodation.repository.DocumentTypeRepository;
 import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.service.document.DocumentAccessGuard;
+import com.beezhub.student_accommodation.service.document.DocumentExpiryPolicy;
 import com.beezhub.student_accommodation.service.document.FileStorageService;
 import com.beezhub.student_accommodation.service.document.FileValidationService;
 import com.beezhub.student_accommodation.service.document.ValidationResult;
@@ -37,7 +39,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -59,6 +63,7 @@ public class DocumentLifecycleService {
     private final AppUserRepository appUserRepository;
     private final DocumentMapper documentMapper;
     private final DocumentAccessGuard documentAccessGuard;
+    private final DocumentExpiryPolicy documentExpiryPolicy;
 
     @Transactional
     @Timed(value = "service.document.upload", percentiles = {0.5, 0.95, 0.99})
@@ -94,7 +99,7 @@ public class DocumentLifecycleService {
 
         if (existing.isPresent()) {
             Document old = existing.get();
-            assertNotLockedByReview(old, student.getId());
+            assertNotLockedByReview(old, student.getId(), true);
             String oldPath = old.getDocumentPath();
             documentRepository.delete(old);
             documentRepository.flush();
@@ -121,7 +126,7 @@ public class DocumentLifecycleService {
         // the application is live, since a document cannot be rejected once the application has
         // moved past APPROVED.
         if (!isAdmin) {
-            assertNotLockedByReview(document, document.getStudent().getId());
+            assertNotLockedByReview(document, document.getStudent().getId(), false);
         }
 
         String objectPath = document.getDocumentPath();
@@ -156,11 +161,19 @@ public class DocumentLifecycleService {
      * logical document be re-uploaded against a sibling type. Name is also how the checklist and
      * the allocation gate read the pack, so this matches what actually consumes it.
      */
-    private void assertNotLockedByReview(Document document, Long studentId) {
+    private void assertNotLockedByReview(Document document, Long studentId, boolean replacing) {
         if (document.getDocumentStatus() != DocumentStatus.APPROVED) {
             return;
         }
         if (!applicationRepository.existsByStudent_IdAndStatusIn(studentId, LIVE_APPLICATION_STATUSES)) {
+            return;
+        }
+        // An expiring document that has expired, or expires within the reminder period, at any
+        // company the student has a live application with, may be replaced (GH-498). The
+        // replacement starts as PENDING. A current approved document stays locked.
+        if (replacing && isDueForReplacement(document, studentId)) {
+            log.info("action=documentReplaceAllowed reason=expiring documentId={} studentId={}",
+                    document.getId(), studentId);
             return;
         }
         String typeName = document.getDocumentType() != null
@@ -171,6 +184,19 @@ public class DocumentLifecycleService {
         throw new DocumentLockedException(
                 "Your " + typeName + " has already been approved and cannot be changed while your "
                         + "application is active. Ask an administrator to remove it before uploading a new one.");
+    }
+
+    private boolean isDueForReplacement(Document document, Long studentId) {
+        Map<Long, DocumentExpiryPolicy.CompanyRules> rulesByCompany = new HashMap<>();
+        for (Application application : applicationRepository.findByStudent_IdAndStatusInOrderByIdDesc(
+                studentId, LIVE_APPLICATION_STATUSES)) {
+            DocumentExpiryPolicy.CompanyRules rules = rulesByCompany.computeIfAbsent(
+                    DocumentExpiryPolicy.companyOf(application), documentExpiryPolicy::forCompany);
+            if (rules.isDueForReplacement(document, DocumentExpiryPolicy.institutionOf(application, null))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Document validateAndUploadFile(MultipartFile file, AppUser user, DocumentType docType) {

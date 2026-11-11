@@ -7,6 +7,7 @@ import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Student;
 import com.beezhub.student_accommodation.model.enums.AllocationMethod;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
+import com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException;
 import com.beezhub.student_accommodation.exceptions.RoomCapacityExceededException;
 import com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
@@ -116,6 +117,11 @@ public class AutoAllocationService {
         } catch (RoomCapacityExceededException e) {
             log.warn("Auto-allocation race condition for application {}: {}. Enqueueing waiting list.",
                     application.getId(), e.getMessage());
+            setAwaitingAndEnqueueWaitingList(application, student);
+
+        } catch (DocumentsNotReadyException e) {
+            // An expired or unapproved required expiring document (GH-498): queued, not dropped.
+            log.info("action=autoAllocationSkipped reason=documentsNotReady applicationId={}", application.getId());
             setAwaitingAndEnqueueWaitingList(application, student);
 
         } catch (StudentAlreadyAllocatedException e) {

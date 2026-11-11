@@ -111,4 +111,21 @@ class AutoAllocationServiceTest {
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
         verify(allocationLifecycleService).enqueueWaitingList(anyLong(), anyLong());
     }
+
+    /** GH-498: an expired required expiring document queues the student; nothing is offered. */
+    @Test
+    void flagEnabled_documentsNotReadyForAnOffer_queuesTheStudent() {
+        when(featureFlagService.isEnabled(FF4jConfig.FEATURE_AUTO_ALLOCATION)).thenReturn(true);
+        when(applicationDocumentService.areAllRequiredDocumentsApproved(7L)).thenReturn(true);
+        when(allocationScoringService.scoreAvailableRooms(any(), any(), any())).thenReturn(List.of(
+                com.beezhub.student_accommodation.model.dto.ScoredRoom.builder().roomId(5L).roomNumber("12")
+                        .totalScore(java.math.BigDecimal.TEN).build()));
+        when(allocationLifecycleService.createRoomAllocation(any())).thenThrow(
+                new com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException("expired"));
+
+        autoAllocationService.attemptAutoAllocation(application);
+
+        assertThat(application.getStatus()).isEqualTo(ApplicationStatus.AWAITING_ALLOCATION);
+        verify(allocationLifecycleService).enqueueWaitingList(1L, 7L);
+    }
 }

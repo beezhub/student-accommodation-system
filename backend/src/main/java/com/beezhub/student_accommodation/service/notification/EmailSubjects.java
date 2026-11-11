@@ -31,5 +31,7 @@ public final class EmailSubjects {
     public static final String PLACE_RELEASED = "Your Place Has Been Released - Not Confirmed Before Move-In";
     public static final String APPLICATION_EXPIRED = "Your Application Has Expired - The Intake Has Ended";
     public static final String APPLICATIONS_WITHDRAWN = "Place Accepted - Your Other Applications Were Withdrawn";
+    public static final String DOCUMENT_EXPIRING = "Action Required: Upload Your New Document";
+    public static final String DOCUMENT_EXPIRED = "Your Document Has Expired - Upload the New One";
     public static final String CHECK_IN_EXPIRED = "Check-In Deadline Expired - Application Cancelled";
 }

@@ -58,6 +58,8 @@ class AllocationCheckInServiceTest {
     private AllocationAuditService allocationAuditService;
     @Mock
     private com.beezhub.student_accommodation.service.AuthService authService;
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentReadinessGuard documentReadinessGuard;
 
     @InjectMocks
     private AllocationCheckInService allocationCheckInService;
@@ -89,6 +91,24 @@ class AllocationCheckInServiceTest {
                 .hasMessageContaining("still occupied");
 
         org.mockito.Mockito.verify(roomAllocationRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    /** GH-498: an expired or pending required expiring document refuses the check-in. */
+    @Test
+    void checkIn_documentsNotReady_refusedAndNothingSaved() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(4L);
+        allocation.setStatus(AllocationStatus.ACCEPTED);
+        allocation.setApplication(new Application());
+        when(roomAllocationRepository.findByIdWithDetails(4L)).thenReturn(Optional.of(allocation));
+        org.mockito.Mockito.doThrow(new com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException(
+                "The student cannot check in")).when(documentReadinessGuard).assertReadyForCheckIn(allocation);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> allocationCheckInService.confirmCheckIn(4L, true))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException.class);
+
+        org.mockito.Mockito.verify(roomAllocationRepository, org.mockito.Mockito.never()).save(any());
+        org.assertj.core.api.Assertions.assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.ACCEPTED);
     }
 
     @Test

@@ -1,0 +1,14 @@
+@for (expiry of expiries; track expiry.documentId) {
+  <div class="expiry-notice" [class.expiry-notice--expired]="expiry.expired" role="status">
+    <mat-icon class="expiry-notice__icon" aria-hidden="true">event_busy</mat-icon>
+    <p class="expiry-notice__text">
+      Your {{ expiry.documentTypeName | lowercase }}
+      {{ expiry.expired ? 'expired' : 'expires' }} on {{ expiry.expiryDate | date: 'd MMMM' }}.
+      Upload the new one.
+    </p>
+    <button mat-flat-button color="primary" (click)="upload.emit(expiry)">
+      <mat-icon>upload_file</mat-icon>
+      Upload
+    </button>
+  </div>
+}

@@ -30,6 +30,10 @@ public class DocumentWithCommentsResponse {
     private Long documentTypeId;
     private String documentTypeName;
 
+    /** For an expiring type, the last day it is valid at the application's company (GH-498). */
+    private java.time.LocalDate expiryDate;
+    private Boolean expired;
+
     private List<CommentResponse> comments;
 
     /**
