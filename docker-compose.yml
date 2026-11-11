@@ -19,8 +19,9 @@ services:
     healthcheck:
       # Name the database: without -d, pg_isready asks for one named after the user, and
       # Postgres logs "FATAL: database ... does not exist" on every check (#519).
-      # $$VAR with no braces: the deploy preflight treats every ${VAR} as a key the host
-      # .env must carry, and these two exist only inside the container.
+      # Doubled dollar, no braces: the deploy preflight reads every braced variable in
+      # these files, comments included, as a key the host .env must carry, and these
+      # two exist only inside the container. Never write a braced example here either.
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
