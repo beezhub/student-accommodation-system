@@ -17,7 +17,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${USER_DB:-localadmin}"]
+      # Name the database: without -d, pg_isready asks for one named after the user, and
+      # Postgres logs "FATAL: database ... does not exist" on every check (#519).
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s
       timeout: 5s
       retries: 5
