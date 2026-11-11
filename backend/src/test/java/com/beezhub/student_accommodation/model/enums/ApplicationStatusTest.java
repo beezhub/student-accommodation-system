@@ -27,4 +27,24 @@ class ApplicationStatusTest {
     void canTransitionTo_fromExpired_isRefused(ApplicationStatus to) {
         assertThat(ApplicationStatus.EXPIRED.canTransitionTo(to)).isFalse();
     }
+
+    /** GH-497: an application under review is withdrawn when the student accepts elsewhere. */
+    @ParameterizedTest(name = "{0} -> CANCELLED")
+    @CsvSource({"PENDING", "UNDER_REVIEW", "CHANGES_REQUESTED", "APPROVED", "AWAITING_ALLOCATION", "ALLOCATED"})
+    void canTransitionTo_cancelledFromAnActiveStatus_isAllowed(ApplicationStatus from) {
+        assertThat(from.canTransitionTo(ApplicationStatus.CANCELLED)).isTrue();
+    }
+
+    @ParameterizedTest(name = "{0} -> CANCELLED")
+    @CsvSource({"CHECKED_IN", "REJECTED", "EXPIRED"})
+    void canTransitionTo_cancelledFromAFinishedStatus_isRefused(ApplicationStatus from) {
+        assertThat(from.canTransitionTo(ApplicationStatus.CANCELLED)).isFalse();
+    }
+
+    @ParameterizedTest(name = "CANCELLED -> {0}")
+    @CsvSource({"PENDING", "UNDER_REVIEW", "CHANGES_REQUESTED", "APPROVED", "AWAITING_ALLOCATION", "ALLOCATED",
+            "CHECKED_IN", "REJECTED", "EXPIRED"})
+    void canTransitionTo_fromCancelled_isRefused(ApplicationStatus to) {
+        assertThat(ApplicationStatus.CANCELLED.canTransitionTo(to)).isFalse();
+    }
 }

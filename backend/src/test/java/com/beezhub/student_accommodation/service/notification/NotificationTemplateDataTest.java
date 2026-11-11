@@ -192,6 +192,7 @@ class NotificationTemplateDataTest {
 
         Set<String> accountedFor = emailTypes().map(type -> (String) type.get()[0]).collect(Collectors.toSet());
         reconfirmationEmailTypes().map(type -> (String) type.get()[0]).forEach(accountedFor::add);
+        accountedFor.add(WithdrawalNotificationListener.TEMPLATE);
         accountedFor.add("welcome");
         accountedFor.addAll(NOT_RETRIED_FROM_A_ROW);
 
@@ -228,6 +229,32 @@ class NotificationTemplateDataTest {
         assertThat(stored).containsEntry("templateName", template);
         assertThat(stored).containsKeys(variablesReadBy(template).toArray(String[]::new));
         assertThat(renderRetry(template, stored)).contains("href=\"" + BASE_URL + "/").contains("01 February 2027");
+    }
+
+    /** GH-497: the withdrawal email goes through its own listener and lists every application. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void storedTemplateData_applicationsWithdrawn_carriesEveryVariableAndRenders() throws IOException {
+        EntityManager entityManager = mock(EntityManager.class);
+        when(entityManager.find(Student.class, 1L)).thenReturn(student());
+        when(entityManager.find(RoomAllocation.class, 30L)).thenReturn(allocation());
+        WithdrawalNotificationListener withdrawal = new WithdrawalNotificationListener(persistence,
+                mock(EmailService.class), mock(com.beezhub.student_accommodation.service.UserNotificationService.class),
+                mock(com.beezhub.student_accommodation.repository.AppUserRepository.class), entityManager,
+                new SimpleMeterRegistry());
+        ReflectionTestUtils.setField(withdrawal, "baseUrl", BASE_URL);
+
+        withdrawal.handleApplicationsWithdrawn(new ApplicationsWithdrawnEvent(1L, 30L, List.of(
+                new ApplicationsWithdrawnEvent.Withdrawn(11L, "APP-11", 8L, "Company B", "Semester 1, 2027", 0))));
+        ArgumentCaptor<Map<String, Object>> captured = ArgumentCaptor.forClass(Map.class);
+        verify(persistence).createNotification(any(), any(), any(NotificationType.class), any(), any(), any(),
+                captured.capture());
+        Map<String, Object> stored = captured.getValue();
+
+        assertThat(stored).containsEntry("templateName", "applications-withdrawn");
+        assertThat(stored).containsKeys(variablesReadBy("applications-withdrawn").toArray(String[]::new));
+        assertThat(renderRetry("applications-withdrawn", stored)).contains("href=\"" + BASE_URL + "/")
+                .contains("APP-11 at Company B, Semester 1, 2027");
     }
 
     private static RoomAllocation reconfirmAllocation() {

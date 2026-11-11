@@ -69,7 +69,7 @@ public enum ApplicationStatus {
      * <p>Valid transitions, matching the switch below rather than an older draft of it:
      * <ul>
      *   <li>PENDING -> UNDER_REVIEW, APPROVED, REJECTED, EXPIRED, CANCELLED</li>
-     *   <li>UNDER_REVIEW -> PENDING, CHANGES_REQUESTED, APPROVED, REJECTED, EXPIRED</li>
+     *   <li>UNDER_REVIEW -> PENDING, CHANGES_REQUESTED, APPROVED, REJECTED, EXPIRED, CANCELLED</li>
      *   <li>CHANGES_REQUESTED -> PENDING, EXPIRED, CANCELLED</li>
      *   <li>APPROVED -> AWAITING_ALLOCATION, ALLOCATED, REJECTED, EXPIRED, CANCELLED</li>
      *   <li>AWAITING_ALLOCATION -> ALLOCATED, REJECTED, EXPIRED, CANCELLED</li>
@@ -83,7 +83,9 @@ public enum ApplicationStatus {
      * the ordinary accept path illegal rather than describing it (GH-137).
      *
      * <p>EXPIRED from the four unfinished statuses before AWAITING_ALLOCATION is how an application
-     * ends when its intake's stay is over and nobody finished it (GH-497).
+     * ends when its intake's stay is over and nobody finished it (GH-497). UNDER_REVIEW to CANCELLED
+     * is how an application under review is withdrawn when the student accepts a place elsewhere for
+     * overlapping dates; every other unfinished status could already be cancelled.
      *
      * <p>The javadoc above also previously omitted three transitions the switch has always
      * allowed, which is how the issue came to describe a legal expiry transition as illegal.
@@ -98,7 +100,7 @@ public enum ApplicationStatus {
                     || target == CANCELLED;
             case UNDER_REVIEW ->
                 target == PENDING || target == CHANGES_REQUESTED || target == APPROVED || target == REJECTED
-                        || target == EXPIRED;
+                        || target == EXPIRED || target == CANCELLED;
             case CHANGES_REQUESTED -> target == PENDING || target == EXPIRED || target == CANCELLED;
             case APPROVED ->
                 target == AWAITING_ALLOCATION || target == ALLOCATED || target == REJECTED || target == EXPIRED
