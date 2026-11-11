@@ -6,6 +6,7 @@ import { BuildingPreferenceResponse } from './application.service';
 import { RoomAllocationResponse } from './room-allocation.service';
 export { PageResponse } from '../models/page-response.model';
 import { PageResponse } from '../models/page-response.model';
+import { ApplicationStatusCounts } from '../models/status.model';
 
 export interface CreateUserRequest {
   firstName: string;
@@ -86,11 +87,8 @@ export interface DocumentResponse {
 export interface DashboardStats {
   // Application stats
   totalApplications: number;
-  pendingApplications: number;
-  approvedApplications: number;
-  rejectedApplications: number;
-  inReviewApplications: number;
-  allocatedApplications: number;
+  /** Every status, zeros included; the values add up to totalApplications. */
+  applicationsByStatus: ApplicationStatusCounts;
   // Document stats
   totalDocuments: number;
   pendingDocuments: number;

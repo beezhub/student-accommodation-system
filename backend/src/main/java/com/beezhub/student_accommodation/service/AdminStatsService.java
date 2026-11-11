@@ -10,7 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,14 +39,14 @@ public class AdminStatsService {
         Long totalOccupancy = roomRepository.sumTotalOccupancy();
         Double occupancyRate = totalCapacity > 0 ? (double) totalOccupancy / totalCapacity * 100.0 : 0.0;
 
+        // The total is the sum of the per-status counts, so the chart breakdown always adds up to it
+        Map<ApplicationStatus, Long> applicationsByStatus = countApplicationsByStatus();
+        long totalApplications = applicationsByStatus.values().stream().mapToLong(Long::longValue).sum();
+
         return DashboardStatsResponse.builder()
                 // Application stats
-                .totalApplications(applicationRepository.count())
-                .pendingApplications(applicationRepository.countByStatus(ApplicationStatus.PENDING))
-                .approvedApplications(applicationRepository.countByStatus(ApplicationStatus.APPROVED))
-                .rejectedApplications(applicationRepository.countByStatus(ApplicationStatus.REJECTED))
-                .inReviewApplications(applicationRepository.countByStatus(ApplicationStatus.AWAITING_ALLOCATION))
-                .allocatedApplications(applicationRepository.countByStatus(ApplicationStatus.ALLOCATED))
+                .totalApplications(totalApplications)
+                .applicationsByStatus(applicationsByStatus)
                 // Document stats
                 .totalDocuments(documentRepository.count())
                 .pendingDocuments(documentRepository.countByDocumentStatus(DocumentStatus.PENDING))
@@ -67,6 +69,23 @@ public class AdminStatsService {
                 .totalOccupancy(totalOccupancy)
                 .overallOccupancyRate(Math.round(occupancyRate * 10.0) / 10.0)
                 .build();
+    }
+
+    /**
+     * Application count for every status, zeros included, in one grouped query. Runs in a read-only
+     * transaction so the tenant filter applies: a tenant admin counts only their own tenant's
+     * applications, a platform admin counts all of them.
+     */
+    @Transactional(readOnly = true)
+    public Map<ApplicationStatus, Long> countApplicationsByStatus() {
+        Map<ApplicationStatus, Long> counts = new EnumMap<>(ApplicationStatus.class);
+        for (ApplicationStatus status : ApplicationStatus.values()) {
+            counts.put(status, 0L);
+        }
+        for (Object[] row : applicationRepository.countGroupedByStatus()) {
+            counts.put((ApplicationStatus) row[0], (Long) row[1]);
+        }
+        return counts;
     }
 
     @Transactional(readOnly = true)

@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -39,12 +40,12 @@ class AdminStatsServiceTest {
         when(roomRepository.countByStatus("MAINTENANCE")).thenReturn(2L);
         when(roomRepository.sumTotalCapacity()).thenReturn(100L);
         when(roomRepository.sumTotalOccupancy()).thenReturn(75L);
-        when(applicationRepository.count()).thenReturn(200L);
-        when(applicationRepository.countByStatus(ApplicationStatus.PENDING)).thenReturn(10L);
-        when(applicationRepository.countByStatus(ApplicationStatus.APPROVED)).thenReturn(50L);
-        when(applicationRepository.countByStatus(ApplicationStatus.REJECTED)).thenReturn(15L);
-        when(applicationRepository.countByStatus(ApplicationStatus.AWAITING_ALLOCATION)).thenReturn(30L);
-        when(applicationRepository.countByStatus(ApplicationStatus.ALLOCATED)).thenReturn(95L);
+        when(applicationRepository.countGroupedByStatus()).thenReturn(rows(
+                ApplicationStatus.PENDING, 10L,
+                ApplicationStatus.APPROVED, 50L,
+                ApplicationStatus.REJECTED, 15L,
+                ApplicationStatus.AWAITING_ALLOCATION, 30L,
+                ApplicationStatus.ALLOCATED, 95L));
         when(documentRepository.count()).thenReturn(500L);
         when(documentRepository.countByDocumentStatus(DocumentStatus.PENDING)).thenReturn(20L);
         when(documentRepository.countByDocumentStatus(DocumentStatus.APPROVED)).thenReturn(450L);
@@ -76,8 +77,7 @@ class AdminStatsServiceTest {
         when(roomRepository.sumTotalOccupancy()).thenReturn(0L);
         when(roomRepository.count()).thenReturn(0L);
         when(roomRepository.countByStatus(any())).thenReturn(0L);
-        when(applicationRepository.count()).thenReturn(0L);
-        when(applicationRepository.countByStatus(any())).thenReturn(0L);
+        when(applicationRepository.countGroupedByStatus()).thenReturn(List.of());
         when(documentRepository.count()).thenReturn(0L);
         when(documentRepository.countByDocumentStatus(any())).thenReturn(0L);
         when(applicationRepository.countDistinctStudents()).thenReturn(0L);
@@ -87,6 +87,60 @@ class AdminStatsServiceTest {
         DashboardStatsResponse stats = service.getDashboardStats();
 
         assertThat(stats.getOverallOccupancyRate()).isEqualTo(0.0);
+    }
+
+    @Test
+    void getDashboardStats_everyStatus_perStatusCountsAddUpToTotal() {
+        stubNonApplicationStats();
+        when(applicationRepository.countGroupedByStatus()).thenReturn(rows(
+                ApplicationStatus.PENDING, 1L,
+                ApplicationStatus.UNDER_REVIEW, 2L,
+                ApplicationStatus.CHANGES_REQUESTED, 3L,
+                ApplicationStatus.APPROVED, 4L,
+                ApplicationStatus.AWAITING_ALLOCATION, 5L,
+                ApplicationStatus.ALLOCATED, 6L,
+                ApplicationStatus.CHECKED_IN, 7L,
+                ApplicationStatus.REJECTED, 8L,
+                ApplicationStatus.EXPIRED, 9L,
+                ApplicationStatus.CANCELLED, 10L));
+
+        DashboardStatsResponse stats = service.getDashboardStats();
+
+        Map<ApplicationStatus, Long> byStatus = stats.getApplicationsByStatus();
+        assertThat(byStatus).containsOnlyKeys(ApplicationStatus.values());
+        assertThat(byStatus.get(ApplicationStatus.CHECKED_IN)).isEqualTo(7L);
+        assertThat(byStatus.values().stream().mapToLong(Long::longValue).sum())
+                .isEqualTo(stats.getTotalApplications())
+                .isEqualTo(55L);
+    }
+
+    @Test
+    void getDashboardStats_checkedInApplication_isInBreakdownAndTotal() {
+        // The QA case from the issue: pending 1, allocated 1, checked in 1, total 3
+        stubNonApplicationStats();
+        when(applicationRepository.countGroupedByStatus()).thenReturn(rows(
+                ApplicationStatus.PENDING, 1L,
+                ApplicationStatus.ALLOCATED, 1L,
+                ApplicationStatus.CHECKED_IN, 1L));
+
+        DashboardStatsResponse stats = service.getDashboardStats();
+
+        assertThat(stats.getTotalApplications()).isEqualTo(3L);
+        assertThat(stats.getApplicationsByStatus())
+                .containsEntry(ApplicationStatus.PENDING, 1L)
+                .containsEntry(ApplicationStatus.ALLOCATED, 1L)
+                .containsEntry(ApplicationStatus.CHECKED_IN, 1L)
+                .containsEntry(ApplicationStatus.APPROVED, 0L);
+    }
+
+    @Test
+    void countApplicationsByStatus_noApplications_everyStatusPresentWithZero() {
+        when(applicationRepository.countGroupedByStatus()).thenReturn(List.of());
+
+        Map<ApplicationStatus, Long> counts = service.countApplicationsByStatus();
+
+        assertThat(counts).containsOnlyKeys(ApplicationStatus.values());
+        assertThat(counts.values()).containsOnly(0L);
     }
 
     @Test
@@ -146,5 +200,26 @@ class AdminStatsServiceTest {
         OccupancyStatsResponse stats = service.getOccupancyStats();
 
         assertThat(stats.getBuildingOccupancies()).isEmpty();
+    }
+
+    private void stubNonApplicationStats() {
+        when(roomRepository.sumTotalCapacity()).thenReturn(0L);
+        when(roomRepository.sumTotalOccupancy()).thenReturn(0L);
+        when(roomRepository.count()).thenReturn(0L);
+        when(roomRepository.countByStatus(any())).thenReturn(0L);
+        when(documentRepository.count()).thenReturn(0L);
+        when(documentRepository.countByDocumentStatus(any())).thenReturn(0L);
+        when(applicationRepository.countDistinctStudents()).thenReturn(0L);
+        when(appUserRepository.countByUserRole(any())).thenReturn(0L);
+        when(buildingRepository.count()).thenReturn(0L);
+    }
+
+    /** Rows as the grouped JPQL query returns them: alternating status and count. */
+    private static List<Object[]> rows(Object... statusAndCount) {
+        List<Object[]> rows = new ArrayList<>();
+        for (int i = 0; i < statusAndCount.length; i += 2) {
+            rows.add(new Object[]{statusAndCount[i], statusAndCount[i + 1]});
+        }
+        return rows;
     }
 }
