@@ -84,6 +84,12 @@ export interface DocumentResponse {
   uploadDate: string;
 }
 
+/** Unfiltered application counts for the caller's tenant; byStatus adds up to total. */
+export interface ApplicationStatusCountsResponse {
+  total: number;
+  byStatus: ApplicationStatusCounts;
+}
+
 export interface DashboardStats {
   // Application stats
   totalApplications: number;
@@ -290,6 +296,12 @@ export class AdminService {
   // Statistics
   getDashboardStats(): Observable<DashboardStats> {
     return this.http.get<DashboardStats>(`${environment.apiUrl}/admin/stats`);
+  }
+
+  getApplicationStatusCounts(): Observable<ApplicationStatusCountsResponse> {
+    return this.http.get<ApplicationStatusCountsResponse>(
+      `${environment.apiUrl}/admin/stats/applications`
+    );
   }
 
   /** Students still checked in after their stay ended, longest overdue first (GH-496). */

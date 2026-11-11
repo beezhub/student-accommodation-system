@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.model.dto.ApplicationStatusCountsResponse;
 import com.beezhub.student_accommodation.model.dto.DashboardStatsResponse;
 import com.beezhub.student_accommodation.model.dto.OccupancyStatsResponse;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
@@ -39,14 +40,12 @@ public class AdminStatsService {
         Long totalOccupancy = roomRepository.sumTotalOccupancy();
         Double occupancyRate = totalCapacity > 0 ? (double) totalOccupancy / totalCapacity * 100.0 : 0.0;
 
-        // The total is the sum of the per-status counts, so the chart breakdown always adds up to it
-        Map<ApplicationStatus, Long> applicationsByStatus = countApplicationsByStatus();
-        long totalApplications = applicationsByStatus.values().stream().mapToLong(Long::longValue).sum();
+        ApplicationStatusCountsResponse applications = getApplicationStatusCounts();
 
         return DashboardStatsResponse.builder()
                 // Application stats
-                .totalApplications(totalApplications)
-                .applicationsByStatus(applicationsByStatus)
+                .totalApplications(applications.getTotal())
+                .applicationsByStatus(applications.getByStatus())
                 // Document stats
                 .totalDocuments(documentRepository.count())
                 .pendingDocuments(documentRepository.countByDocumentStatus(DocumentStatus.PENDING))
@@ -69,6 +68,17 @@ public class AdminStatsService {
                 .totalOccupancy(totalOccupancy)
                 .overallOccupancyRate(Math.round(occupancyRate * 10.0) / 10.0)
                 .build();
+    }
+
+    /**
+     * Per-status application counts with their total. The total is the sum of the per-status
+     * counts, so a breakdown built from them always adds up to it.
+     */
+    @Transactional(readOnly = true)
+    public ApplicationStatusCountsResponse getApplicationStatusCounts() {
+        Map<ApplicationStatus, Long> byStatus = countApplicationsByStatus();
+        long total = byStatus.values().stream().mapToLong(Long::longValue).sum();
+        return ApplicationStatusCountsResponse.builder().total(total).byStatus(byStatus).build();
     }
 
     /**

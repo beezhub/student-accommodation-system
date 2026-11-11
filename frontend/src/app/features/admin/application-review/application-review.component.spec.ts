@@ -14,7 +14,7 @@ import {
 } from '../../../core/services/admin.service';
 import { BuildingResponse, BuildingService } from '../../../core/services/building.service';
 import { StagedAllocationService } from '../../../core/services/staged-allocation.service';
-import { ApplicationStatus } from '../../../core/models/status.model';
+import { ApplicationStatus, emptyApplicationStatusCounts } from '../../../core/models/status.model';
 
 describe('ApplicationReviewComponent status filter', () => {
   let fixture: ComponentFixture<ApplicationReviewComponent>;
@@ -29,9 +29,23 @@ describe('ApplicationReviewComponent status filter', () => {
       'confirmAllocation',
       'enqueueWaitingList',
     ]);
-    adminService = jasmine.createSpyObj<AdminService>('AdminService', ['searchApplications']);
+    adminService = jasmine.createSpyObj<AdminService>('AdminService', [
+      'searchApplications',
+      'getApplicationStatusCounts',
+    ]);
     adminService.searchApplications.and.returnValue(
       of({ content: [], totalElements: 0 } as unknown as PageResponse<ApplicationResponse>)
+    );
+    adminService.getApplicationStatusCounts.and.returnValue(
+      of({
+        total: 3,
+        byStatus: {
+          ...emptyApplicationStatusCounts(),
+          PENDING: 1,
+          ALLOCATED: 1,
+          CHECKED_IN: 1,
+        },
+      })
     );
 
     TestBed.configureTestingModule({
@@ -64,11 +78,38 @@ describe('ApplicationReviewComponent status filter', () => {
   });
 
   it('defaultFilter_onLoad_isCountedAndVisibleWithThePanelCollapsed', () => {
-    // The first call is the list. The ones after it fetch the summary counts.
     expect(adminService.searchApplications.calls.first().args[0].status).toBe('PENDING');
     expect(component.filtersVisible).toBeFalse();
     expect(component.activeFilterCount).toBe(1);
     expect(statusChip()!.textContent).toContain('Pending');
+  });
+
+  function tile(label: string): string | undefined {
+    fixture.detectChanges();
+    const chips: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('.metric-chip'));
+    const chip = chips.find((c) => c.querySelector('.metric-label')?.textContent?.trim() === label);
+    return chip?.querySelector('.metric-value')?.textContent?.trim();
+  }
+
+  it('summaryTiles_comeFromOneCountsRequestNotTheListSearches', () => {
+    expect(adminService.getApplicationStatusCounts).toHaveBeenCalledTimes(1);
+    // Only the list itself is searched
+    expect(adminService.searchApplications).toHaveBeenCalledTimes(1);
+    expect(tile('Total')).toBe('3');
+    expect(tile('Pending')).toBe('1');
+    expect(tile('Awaiting Alloc.')).toBe('0');
+    expect(tile('Allocated')).toBe('1');
+  });
+
+  it('totalTile_withAFilterOn_stillCountsEveryApplication', () => {
+    adminService.searchApplications.and.returnValue(
+      of({ content: [], totalElements: 1 } as unknown as PageResponse<ApplicationResponse>)
+    );
+    component.filterForm.patchValue({ status: 'PENDING' });
+    component.onFilter();
+
+    expect(component.totalElements).toBe(1);
+    expect(tile('Total')).toBe('3');
   });
 
   it('clearFilters_removesTheStatusFilterToo', () => {
@@ -329,6 +370,7 @@ describe('ApplicationReviewComponent student names', () => {
           provide: AdminService,
           useValue: jasmine.createSpyObj('AdminService', {
             searchApplications: of({ content: [APPLICATION], totalElements: 1 }),
+            getApplicationStatusCounts: of({ total: 1, byStatus: emptyApplicationStatusCounts() }),
           }),
         },
         {

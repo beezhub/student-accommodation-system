@@ -128,7 +128,7 @@ export class ApplicationReviewComponent implements OnInit {
   filtersVisible = false;
   activeFilterCount = 0;
 
-  // Metric counts
+  // Summary tile counts, unfiltered
   counts = { total: 0, pending: 0, awaitingAllocation: 0, allocated: 0 };
 
   filterForm: FormGroup;
@@ -207,20 +207,16 @@ export class ApplicationReviewComponent implements OnInit {
     this.activeFilterCount = count;
   }
 
+  /** The summary tiles count every application, whatever filter the list below has on. */
   loadCounts(): void {
-    const fetch = (status: string) =>
-      this.adminService.searchApplications({ status, page: 0, size: 1 });
-
-    fetch('PENDING').subscribe({
-      next: (r) => (this.counts.pending = r.totalElements),
-      error: () => {},
-    });
-    fetch('AWAITING_ALLOCATION').subscribe({
-      next: (r) => (this.counts.awaitingAllocation = r.totalElements),
-      error: () => {},
-    });
-    fetch('ALLOCATED').subscribe({
-      next: (r) => (this.counts.allocated = r.totalElements),
+    this.adminService.getApplicationStatusCounts().subscribe({
+      next: ({ total, byStatus }) =>
+        (this.counts = {
+          total,
+          pending: byStatus.PENDING,
+          awaitingAllocation: byStatus.AWAITING_ALLOCATION,
+          allocated: byStatus.ALLOCATED,
+        }),
       error: () => {},
     });
   }
@@ -290,7 +286,6 @@ export class ApplicationReviewComponent implements OnInit {
       next: (response: PageResponse<ApplicationResponse>) => {
         this.applications = response.content;
         this.totalElements = response.totalElements;
-        this.counts.total = response.totalElements;
         this.isLoading = false;
         this.isRetrying = false;
       },

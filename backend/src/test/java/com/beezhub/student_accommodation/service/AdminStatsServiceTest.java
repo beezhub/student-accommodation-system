@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service;
 
+import com.beezhub.student_accommodation.model.dto.ApplicationStatusCountsResponse;
 import com.beezhub.student_accommodation.model.dto.DashboardStatsResponse;
 import com.beezhub.student_accommodation.model.dto.OccupancyStatsResponse;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
@@ -141,6 +142,23 @@ class AdminStatsServiceTest {
 
         assertThat(counts).containsOnlyKeys(ApplicationStatus.values());
         assertThat(counts.values()).containsOnly(0L);
+    }
+
+    @Test
+    void getApplicationStatusCounts_someStatuses_totalIsSumAndEveryStatusPresent() {
+        when(applicationRepository.countGroupedByStatus()).thenReturn(rows(
+                ApplicationStatus.PENDING, 1L,
+                ApplicationStatus.ALLOCATED, 1L,
+                ApplicationStatus.CHECKED_IN, 1L));
+
+        ApplicationStatusCountsResponse counts = service.getApplicationStatusCounts();
+
+        assertThat(counts.getTotal()).isEqualTo(3L);
+        assertThat(counts.getByStatus())
+                .containsOnlyKeys(ApplicationStatus.values())
+                .containsEntry(ApplicationStatus.PENDING, 1L)
+                .containsEntry(ApplicationStatus.AWAITING_ALLOCATION, 0L);
+        verify(applicationRepository, never()).count();
     }
 
     @Test
