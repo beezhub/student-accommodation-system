@@ -36,6 +36,7 @@ import { BuildingGalleryComponent } from '../../dashboard/applications/building-
 import { User } from '../../../core/models/user.model';
 import { contentOf } from '../../../core/models/page-response.model';
 import { StudentResponse } from '../../../core/models/student.model';
+import { GENDER_OPTIONS, normalizeGender } from '../../../core/utils/gender';
 
 @Component({
   selector: 'app-application-submission',
@@ -107,12 +108,7 @@ export class ApplicationSubmissionComponent implements OnInit {
   /** Student profile data — used for pre-populating deferred fields */
   studentProfile: StudentResponse | null = null;
 
-  readonly genderOptions = [
-    { value: 'male', viewValue: 'Male' },
-    { value: 'female', viewValue: 'Female' },
-    { value: 'other', viewValue: 'Other' },
-    { value: 'prefer-not-to-say', viewValue: 'Prefer not to say' },
-  ] as const;
+  readonly genderOptions = GENDER_OPTIONS;
 
   constructor() {
     this.applicationForm = this.fb.group({
@@ -265,7 +261,7 @@ export class ApplicationSubmissionComponent implements OnInit {
           this.applicationForm.patchValue({ dateOfBirth: parseLocalDate(profile.dateOfBirth) });
         }
         if (profile.gender) {
-          this.applicationForm.patchValue({ gender: profile.gender });
+          this.applicationForm.patchValue({ gender: normalizeGender(profile.gender) });
         }
         if (profile.specialRequirements) {
           this.applicationForm.patchValue({ specialRequirements: profile.specialRequirements });

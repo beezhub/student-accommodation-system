@@ -23,7 +23,7 @@
 | Date of birth | `2000-01-15` |
 | Institutions | University of Cape Town, Stellenbosch University, Wits University |
 | Years of study | 1st Year, 2nd Year, 3rd Year, 4th Year, Postgraduate |
-| Gender options | Male, Female, Other, Prefer not to say |
+| Gender options | Male, Female |
 | Buildings | Residence Hall Alpha, Residence Hall Beta, Residence Hall Gamma |
 | Required documents | National ID, Proof of Enrollment, Proof of Funding |
 | Optional documents | Medical Certificate |
@@ -424,7 +424,7 @@
 | **Module** | Student Onboarding |
 | **Priority** | Medium |
 | **Preconditions** | User `newstudent@test.com` is logged in, email verified. On `/profile-setup`. |
-| **Test Data** | Student number: `STU004`, Phone: `0712345678`, DOB: `2000-01-15`, Institution: `Wits University`, Year: `2nd Year`, Gender: `Prefer not to say`, Special requirements: (empty) |
+| **Test Data** | Student number: `STU004`, Phone: `0712345678`, DOB: `2000-01-15`, Institution: `Wits University`, Year: `2nd Year`, Gender: `Female`, Special requirements: (empty) |
 
 | Step | Action | Expected Result |
 |------|--------|-----------------|

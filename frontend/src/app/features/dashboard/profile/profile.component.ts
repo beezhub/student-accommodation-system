@@ -23,6 +23,7 @@ import { ChangePasswordDialogComponent } from './change-password-dialog/change-p
 import { DeleteAccountDialogComponent } from './delete-account-dialog/delete-account-dialog.component';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { parseLocalDate, toLocalDateString } from '../../../core/utils/local-date';
+import { GENDER_OPTIONS, normalizeGender } from '../../../core/utils/gender';
 import { ErrorDisplayComponent } from '../../../shared/error-display/error-display.component';
 import { User } from '../../../core/models/user.model';
 import { contentOf } from '../../../core/models/page-response.model';
@@ -35,6 +36,7 @@ import { contentOf } from '../../../core/models/page-response.model';
   imports: [RouterModule, ReactiveFormsModule, MaterialModule, ErrorDisplayComponent],
 })
 export class ProfileComponent implements OnInit {
+  readonly genderOptions = GENDER_OPTIONS;
   private readonly authService = inject(AuthService);
   private readonly studentService = inject(StudentService);
   private readonly institutionService = inject(InstitutionService);
@@ -100,8 +102,8 @@ export class ProfileComponent implements OnInit {
           this.isRetrying = false;
           // Convert date string to Date object for the datepicker
           const dateOfBirth = profile.dateOfBirth ? parseLocalDate(profile.dateOfBirth) : null;
-          // Normalize gender to match option values (capitalize first letter)
-          const normalizedGender = this.normalizeGender(profile.gender);
+          // Anything other than male or female comes back empty, so the student picks again (#539)
+          const normalizedGender = normalizeGender(profile.gender);
 
           this.studentProfile = {
             ...profile,
@@ -200,16 +202,6 @@ export class ProfileComponent implements OnInit {
     }
     const year = this.yearsOfStudy.find((y) => String(y.id) === String(id));
     return year ? year.yearOfStudy : 'Not found';
-  }
-
-  private normalizeGender(gender: string | undefined | null): string {
-    if (!gender) return '';
-    // Handle different backend formats (MALE, male, Male, etc.)
-    const normalized = gender.toLowerCase();
-    if (normalized === 'male') return 'Male';
-    if (normalized === 'female') return 'Female';
-    if (normalized === 'other') return 'Other';
-    return gender; // Return as-is if doesn't match known values
   }
 
   formatDateForDisplay(date: Date | string | null): string {
