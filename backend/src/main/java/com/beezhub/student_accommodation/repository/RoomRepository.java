@@ -105,6 +105,10 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
     long countAvailableRoomsByBuildingId(@Param("buildingId") Long buildingId,
                                          @Param("today") java.time.LocalDate today);
 
+    /** Every room id, for the nightly occupancy recount (GH-541). */
+    @Query("SELECT r.id FROM Room r ORDER BY r.id")
+    List<Long> findAllIds();
+
     /**
      * Loads a room and locks its row until the transaction ends (GH-498). Two students asking for
      * the last bed of the same stay at once are served one after the other, so the second sees the

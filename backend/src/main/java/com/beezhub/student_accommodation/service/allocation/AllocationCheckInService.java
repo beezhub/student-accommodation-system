@@ -93,6 +93,9 @@ public class AllocationCheckInService {
         }
 
         RoomAllocation saved = roomAllocationRepository.save(allocation);
+        // Every other allocation change recounts the room; check-in did not, so a room whose
+        // residents had all checked in still read as empty on the admin dashboard (GH-541).
+        roomOccupancyManager.syncOccupancy(saved.getRoom());
         log.info("Successfully checked in allocation with id: {}", id);
 
         if (pastDeadline) {
