@@ -11,6 +11,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -28,7 +29,12 @@ import {
 } from '../../../../core/models/academic-year.model';
 import { AcademicYearService } from '../../../../core/services/academic-year.service';
 import { confirmAction } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
-import { describeAffected, describeIntake } from '../academic-year-wording';
+import {
+  describeAffected,
+  describeIntake,
+  parseApiDate,
+  toApiDate,
+} from '../academic-year-wording';
 
 /**
  * The intakes inside one year, edited in place (GH-494). A new intake's window may be left empty:
@@ -44,6 +50,7 @@ import { describeAffected, describeIntake } from '../academic-year-wording';
     NgTemplateOutlet,
     ReactiveFormsModule,
     MatButtonModule,
+    MatDatepickerModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -77,10 +84,10 @@ export class IntakeListComponent {
   form = this.fb.nonNullable.group({
     intakeType: ['SEMESTER' as IntakeType, Validators.required],
     name: ['', [Validators.required, Validators.maxLength(50)]],
-    stayStartDate: ['', Validators.required],
-    stayEndDate: ['', Validators.required],
-    applicationOpenDate: [''],
-    applicationCloseDate: [''],
+    stayStartDate: [null as Date | null, Validators.required],
+    stayEndDate: [null as Date | null, Validators.required],
+    applicationOpenDate: [null as Date | null],
+    applicationCloseDate: [null as Date | null],
   });
 
   get intakes(): Intake[] {
@@ -91,10 +98,10 @@ export class IntakeListComponent {
     this.form.reset({
       intakeType: 'SEMESTER',
       name: '',
-      stayStartDate: this.year.startDate,
-      stayEndDate: this.year.endDate,
-      applicationOpenDate: '',
-      applicationCloseDate: '',
+      stayStartDate: parseApiDate(this.year.startDate),
+      stayEndDate: parseApiDate(this.year.endDate),
+      applicationOpenDate: null,
+      applicationCloseDate: null,
     });
     this.editing = 'new';
   }
@@ -103,10 +110,10 @@ export class IntakeListComponent {
     this.form.reset({
       intakeType: intake.intakeType,
       name: intake.name,
-      stayStartDate: intake.stayStartDate,
-      stayEndDate: intake.stayEndDate,
-      applicationOpenDate: intake.applicationOpenDate,
-      applicationCloseDate: intake.applicationCloseDate,
+      stayStartDate: parseApiDate(intake.stayStartDate),
+      stayEndDate: parseApiDate(intake.stayEndDate),
+      applicationOpenDate: parseApiDate(intake.applicationOpenDate),
+      applicationCloseDate: parseApiDate(intake.applicationCloseDate),
     });
     this.editing = intake.id;
   }
@@ -124,10 +131,10 @@ export class IntakeListComponent {
     const request: IntakeRequest = {
       intakeType: value.intakeType,
       name: value.name.trim(),
-      stayStartDate: value.stayStartDate,
-      stayEndDate: value.stayEndDate,
-      applicationOpenDate: value.applicationOpenDate || undefined,
-      applicationCloseDate: value.applicationCloseDate || undefined,
+      stayStartDate: toApiDate(value.stayStartDate),
+      stayEndDate: toApiDate(value.stayEndDate),
+      applicationOpenDate: toApiDate(value.applicationOpenDate) || undefined,
+      applicationCloseDate: toApiDate(value.applicationCloseDate) || undefined,
     };
     const call =
       this.editing === 'new'

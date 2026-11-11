@@ -4,6 +4,7 @@ import {
   describeIntake,
   groupByInstitution,
   parseApiDate,
+  previewIntakes,
   toApiDate,
 } from './academic-year-wording';
 
@@ -72,5 +73,27 @@ describe('academic-year-wording', () => {
       'Zed College',
     ]);
     expect(groups[0].years.map((y) => y.id)).toEqual([3, 2]);
+  });
+
+  it('previewIntakes_annualAndSemesters_splitsTheYearLikeTheServer', () => {
+    expect(previewIntakes('2027-02-01', '2027-11-30', ['ANNUAL', 'SEMESTER'])).toEqual([
+      { name: 'Annual', stayStartDate: '2027-02-01', stayEndDate: '2027-11-30' },
+      { name: 'Semester 1', stayStartDate: '2027-02-01', stayEndDate: '2027-07-01' },
+      { name: 'Semester 2', stayStartDate: '2027-07-02', stayEndDate: '2027-11-30' },
+    ]);
+  });
+
+  it('previewIntakes_trimesters_coverTheYearInThreeParts', () => {
+    expect(previewIntakes('2027-01-15', '2027-12-10', ['TRIMESTER'])).toEqual([
+      { name: 'Trimester 1', stayStartDate: '2027-01-15', stayEndDate: '2027-05-04' },
+      { name: 'Trimester 2', stayStartDate: '2027-05-05', stayEndDate: '2027-08-22' },
+      { name: 'Trimester 3', stayStartDate: '2027-08-23', stayEndDate: '2027-12-10' },
+    ]);
+  });
+
+  it('previewIntakes_datesMissingReversedOrTooShort_isEmpty', () => {
+    expect(previewIntakes('', '2027-11-30', ['ANNUAL'])).toEqual([]);
+    expect(previewIntakes('2027-11-30', '2027-02-01', ['ANNUAL'])).toEqual([]);
+    expect(previewIntakes('2027-02-01', '2027-02-03', ['SEMESTER'])).toEqual([]);
   });
 });
