@@ -505,6 +505,40 @@ class EmailTemplateRenderTest {
         assertThat(html).contains("APP-2026-052");
     }
 
+    /** GH-496: "Still coming?" names the move-in and release dates. */
+    @Test
+    void reconfirmRequest_rendersCorrectly() {
+        Map<String, Object> vars = baseContext();
+        vars.put("studentName", "Test Student");
+        vars.put("roomNumber", "12");
+        vars.put("buildingName", "West Residence");
+        vars.put("moveInDate", "01 February 2027");
+        vars.put("releaseDate", "18 January 2027");
+        vars.put("portalUrl", PORTAL_URL);
+
+        for (String template : List.of("reconfirm-request", "reconfirm-reminder")) {
+            String html = render(template, vars);
+            assertBaseRequirements(html, template);
+            assertThat(html).contains("01 February 2027").contains("18 January 2027").contains("Still Coming?");
+        }
+    }
+
+    @Test
+    void placeReleased_rendersCorrectly() {
+        Map<String, Object> vars = baseContext();
+        vars.put("studentName", "Test Student");
+        vars.put("applicationCode", "APP-2027-001");
+        vars.put("roomNumber", "12");
+        vars.put("buildingName", "West Residence");
+        vars.put("moveInDate", "01 February 2027");
+        vars.put("portalUrl", PORTAL_URL);
+
+        String html = render("place-released", vars);
+
+        assertBaseRequirements(html, "place-released");
+        assertThat(html).contains("APP-2027-001").contains("01 February 2027");
+    }
+
     // -------------------------------------------------------------------------
     // Cross-cutting assertions
     // -------------------------------------------------------------------------
@@ -519,7 +553,8 @@ class EmailTemplateRenderTest {
             "allocation-proposal", "allocation-confirmed", "allocation-rejected", "allocation-moved",
             "offer-declined-requeue", "offer-declined-max-reached",
             "offer-expired", "offer-expiry-reminder",
-            "check-in-reminder", "check-in-expired"
+            "check-in-reminder", "check-in-expired",
+            "reconfirm-request", "reconfirm-reminder", "place-released"
         };
 
         for (String template : templates) {
@@ -542,7 +577,8 @@ class EmailTemplateRenderTest {
             "allocation-proposal", "allocation-confirmed", "allocation-rejected", "allocation-moved",
             "offer-declined-requeue", "offer-declined-max-reached",
             "offer-expired", "offer-expiry-reminder",
-            "check-in-reminder", "check-in-expired"
+            "check-in-reminder", "check-in-expired",
+            "reconfirm-request", "reconfirm-reminder", "place-released"
         };
 
         for (String template : templates) {
@@ -564,7 +600,8 @@ class EmailTemplateRenderTest {
             "allocation-proposal", "allocation-confirmed", "allocation-rejected", "allocation-moved",
             "offer-declined-requeue", "offer-declined-max-reached",
             "offer-expired", "offer-expiry-reminder",
-            "check-in-reminder", "check-in-expired"
+            "check-in-reminder", "check-in-expired",
+            "reconfirm-request", "reconfirm-reminder", "place-released"
         };
 
         for (String template : templates) {
@@ -717,6 +754,18 @@ class EmailTemplateRenderTest {
                 vars.put("applicationCode", "APP-001");
                 vars.put("roomNumber", "101");
                 vars.put("buildingName", "Block A");
+            }
+            case "reconfirm-request", "reconfirm-reminder" -> {
+                vars.put("roomNumber", "101");
+                vars.put("buildingName", "Block A");
+                vars.put("moveInDate", "01 February 2027");
+                vars.put("releaseDate", "18 January 2027");
+            }
+            case "place-released" -> {
+                vars.put("applicationCode", "APP-001");
+                vars.put("roomNumber", "101");
+                vars.put("buildingName", "Block A");
+                vars.put("moveInDate", "01 February 2027");
             }
             default -> { /* no extra vars */ }
         }

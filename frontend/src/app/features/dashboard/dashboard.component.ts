@@ -1,4 +1,5 @@
 import { OpenWindowsBannerComponent } from './open-windows-banner/open-windows-banner.component';
+import { ReconfirmPlaceComponent } from './reconfirm-place/reconfirm-place.component';
 import {
   Component,
   OnInit,
@@ -54,6 +55,7 @@ interface UploadedDocumentRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     OpenWindowsBannerComponent,
+    ReconfirmPlaceComponent,
     CommonModule,
     RouterModule,
     DocumentViewerComponent,

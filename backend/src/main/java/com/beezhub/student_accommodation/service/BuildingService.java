@@ -54,6 +54,7 @@ public class BuildingService {
     private final BuildingImageService buildingImageService;
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
     private final TenantService tenantService;
+    private final java.time.Clock clock;
 
     public List<BuildingResponse> getAllBuildings() {
         log.info("Fetching all buildings");
@@ -324,7 +325,7 @@ public class BuildingService {
 
         // Batch query: available room counts
         Map<Long, Long> availabilityMap = new HashMap<>();
-        for (Object[] row : roomRepository.findAvailableRoomCountByBuilding()) {
+        for (Object[] row : roomRepository.findAvailableRoomCountByBuilding(java.time.LocalDate.now(clock))) {
             Long buildingId = (Long) row[0];
             Long count = (Long) row[1];
             availabilityMap.put(buildingId, count);
@@ -370,6 +371,6 @@ public class BuildingService {
         response.setMinMonthlyRate(min);
         response.setMaxMonthlyRate(max);
         response.setAvailableRoomCount(
-                (int) roomRepository.countAvailableRoomsByBuildingId(response.getId()));
+                (int) roomRepository.countAvailableRoomsByBuildingId(response.getId(), java.time.LocalDate.now(clock)));
     }
 }

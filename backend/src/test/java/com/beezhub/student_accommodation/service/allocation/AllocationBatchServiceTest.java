@@ -138,7 +138,7 @@ class AllocationBatchServiceTest {
         when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
         when(allocationScoringOrchestrator.buildScoringMatrix(any())).thenReturn(java.util.Map.of(1L, List.of(scoredRoom)));
         when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(room));
-        when(allocationScoringOrchestrator.buildRoomCapacityMap(any())).thenReturn(new java.util.HashMap<>(java.util.Map.of(100L, 1)));
+        when(allocationScoringOrchestrator.newBedLedger(any())).thenReturn(BedLedgers.of(java.util.Map.of(100L, 1)));
 
         // Act
         BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(10);
@@ -173,8 +173,8 @@ class AllocationBatchServiceTest {
         when(allocationScoringOrchestrator.buildScoringMatrix(any()))
                 .thenReturn(java.util.Map.of(1L, List.of(scoredRoom), 2L, List.of(scoredRoom)));
         when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(room));
-        when(allocationScoringOrchestrator.buildRoomCapacityMap(any()))
-                .thenReturn(new java.util.HashMap<>(java.util.Map.of(100L, 1)));
+        when(allocationScoringOrchestrator.newBedLedger(any()))
+                .thenReturn(BedLedgers.of(java.util.Map.of(100L, 1)));
 
         BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(1);
 
@@ -259,7 +259,7 @@ class AllocationBatchServiceTest {
         when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenReturn(List.of(entry));
         when(allocationScoringOrchestrator.buildScoringMatrix(any())).thenReturn(java.util.Map.of(1L, List.of(scoredRoom)));
         when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(room));
-        when(allocationScoringOrchestrator.buildRoomCapacityMap(any())).thenReturn(new java.util.HashMap<>(java.util.Map.of(100L, 1)));
+        when(allocationScoringOrchestrator.newBedLedger(any())).thenReturn(BedLedgers.of(java.util.Map.of(100L, 1)));
 
         // Act
         allocationBatchService.allocateNextFromWaitingList();
@@ -362,8 +362,8 @@ class AllocationBatchServiceTest {
         when(allocationScoringOrchestrator.buildScoringMatrix(any()))
                 .thenReturn(java.util.Map.of(1L, List.of(scoredRoom)));
         when(allocationScoringOrchestrator.getAvailableRoomsForBatch()).thenReturn(List.of(room));
-        when(allocationScoringOrchestrator.buildRoomCapacityMap(any()))
-                .thenReturn(new java.util.HashMap<>(java.util.Map.of(100L, 1)));
+        when(allocationScoringOrchestrator.newBedLedger(any()))
+                .thenReturn(BedLedgers.of(java.util.Map.of(100L, 1)));
 
         BatchAllocationResult result = allocationBatchService.batchAllocateFromWaitingList(10);
 

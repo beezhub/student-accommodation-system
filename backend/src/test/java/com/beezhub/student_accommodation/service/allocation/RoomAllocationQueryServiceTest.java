@@ -14,6 +14,7 @@ import com.beezhub.student_accommodation.model.entity.Building;
 import com.beezhub.student_accommodation.model.entity.Room;
 import com.beezhub.student_accommodation.model.entity.RoomAllocation;
 import com.beezhub.student_accommodation.model.entity.StagedAllocation;
+import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.StagedAllocationStatus;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.repository.RoomRepository;
@@ -74,6 +75,10 @@ class RoomAllocationQueryServiceTest {
 
     @BeforeEach
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(queryService, "stayCapacityGuard",
+                new com.beezhub.student_accommodation.service.allocation.StayCapacityGuard(roomAllocationRepository,
+                        java.time.Clock.fixed(java.time.Instant.parse("2026-11-10T08:00:00Z"),
+                                java.time.ZoneId.of("Africa/Johannesburg"))));
         Building building = new Building();
         building.setId(1L);
         building.setName("Building A");
@@ -151,7 +156,7 @@ class RoomAllocationQueryServiceTest {
 
         assertThrows(UnauthorizedAccessException.class, () -> queryService.getActiveAllocationByStudentId(42L));
 
-        verify(roomAllocationRepository, never()).findActiveAllocationByStudentId(any());
+        verify(roomAllocationRepository, never()).findLiveAllocationsByStudentId(any());
     }
 
     @Test
@@ -161,7 +166,7 @@ class RoomAllocationQueryServiceTest {
         Application application = new Application();
         application.setId(7L);
         allocation.setApplication(application);
-        when(roomAllocationRepository.findActiveAllocationByStudentId(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.findLiveAllocationsByStudentId(1L)).thenReturn(List.of(allocation));
         when(roomAllocationMapper.toResponse(allocation)).thenReturn(allocationResponse);
         when(roomAllocationRepository.countDeclinedAllocationsByApplicationId(7L)).thenReturn(2L);
 
@@ -185,7 +190,7 @@ class RoomAllocationQueryServiceTest {
     @Test
     void getActiveAllocationByStudentId_withoutApplication_declineCountIsZeroAndNotQueried() {
         allocation.setApplication(null);
-        when(roomAllocationRepository.findActiveAllocationByStudentId(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.findLiveAllocationsByStudentId(1L)).thenReturn(List.of(allocation));
         when(roomAllocationMapper.toResponse(allocation)).thenReturn(allocationResponse);
 
         RoomAllocationResponse result = queryService.getActiveAllocationByStudentId(1L);
@@ -213,7 +218,7 @@ class RoomAllocationQueryServiceTest {
 
     @Test
     void getActiveAllocationByStudentId_Existing_ReturnsResponse() {
-        when(roomAllocationRepository.findActiveAllocationByStudentId(1L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.findLiveAllocationsByStudentId(1L)).thenReturn(List.of(allocation));
         when(roomAllocationMapper.toResponse(any())).thenReturn(allocationResponse);
 
         RoomAllocationResponse result = queryService.getActiveAllocationByStudentId(1L);
@@ -223,7 +228,7 @@ class RoomAllocationQueryServiceTest {
 
     @Test
     void getActiveAllocationByStudentId_NotFound_ThrowsException() {
-        when(roomAllocationRepository.findActiveAllocationByStudentId(1L)).thenReturn(Optional.empty());
+        when(roomAllocationRepository.findLiveAllocationsByStudentId(1L)).thenReturn(List.of());
 
         assertThrows(RoomAllocationNotFoundException.class, () -> queryService.getActiveAllocationByStudentId(1L));
     }
@@ -231,7 +236,7 @@ class RoomAllocationQueryServiceTest {
     @Test
     void isRoomAvailable_RoomExistsAndAvailable_ReturnsTrue() {
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L); // capacity is 2
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(1L); // capacity is 2
 
         boolean result = queryService.isRoomAvailable(1L);
 
@@ -241,7 +246,7 @@ class RoomAllocationQueryServiceTest {
     @Test
     void isRoomAvailable_RoomExistsAndFull_ReturnsFalse() {
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // capacity is 2
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(2L); // capacity is 2
 
         boolean result = queryService.isRoomAvailable(1L);
 
@@ -258,7 +263,7 @@ class RoomAllocationQueryServiceTest {
     @Test
     void getRoomAvailableCapacity_ReturnsCorrectValue() {
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(1L);
 
         int result = queryService.getRoomAvailableCapacity(1L);
 
@@ -297,7 +302,7 @@ class RoomAllocationQueryServiceTest {
     @Test
     void getRoomAvailability_ReturnsAvailabilityResponse() {
         when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L);
+        when(roomAllocationRepository.countHoldingBeds(eq(1L), any(), any())).thenReturn(1L);
 
         RoomAvailabilityResponse result = queryService.getRoomAvailability(1L);
 
@@ -348,5 +353,46 @@ class RoomAllocationQueryServiceTest {
         PageResponse<StagedAllocationResponse> result = queryService.getStagedAllocations(null, null, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(1);
+    }
+
+    /** GH-496: a resident with an offer for next year sees the offer first, since it lapses within days. */
+    @Test
+    void getActiveAllocationByStudentId_residentWithOfferForNextYear_returnsTheOffer() {
+        RoomAllocation living = new RoomAllocation();
+        living.setId(10L);
+        living.setStatus(AllocationStatus.ACTIVE);
+        living.setStayStartDate(java.time.LocalDate.of(2026, 2, 1));
+        living.setStayEndDate(java.time.LocalDate.of(2026, 11, 30));
+        RoomAllocation offer = new RoomAllocation();
+        offer.setId(11L);
+        offer.setStatus(AllocationStatus.OFFERED);
+        offer.setStayStartDate(java.time.LocalDate.of(2027, 2, 1));
+        offer.setStayEndDate(java.time.LocalDate.of(2027, 11, 30));
+        when(roomAllocationRepository.findLiveAllocationsByStudentId(1L)).thenReturn(List.of(living, offer));
+        when(roomAllocationMapper.toResponse(offer)).thenReturn(new RoomAllocationResponse());
+
+        queryService.getActiveAllocationByStudentId(1L);
+
+        verify(roomAllocationMapper).toResponse(offer);
+    }
+
+    /** GH-496: overdue check-outs are asked for with today's date, longest overdue first. */
+    @Test
+    void getOverdueCheckOuts_ordersByStayEnd() {
+        RoomAllocation overdue = new RoomAllocation();
+        overdue.setId(20L);
+        when(roomAllocationRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class),
+                any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(overdue)));
+        when(roomAllocationMapper.toResponse(overdue)).thenReturn(new RoomAllocationResponse());
+
+        var page = queryService.getOverdueCheckOuts(org.springframework.data.domain.PageRequest.of(0, 10));
+
+        assertThat(page.getContent()).hasSize(1);
+        org.mockito.ArgumentCaptor<org.springframework.data.domain.Pageable> pageable =
+                org.mockito.ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+        verify(roomAllocationRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class),
+                pageable.capture());
+        assertThat(pageable.getValue().getSort().getOrderFor("stayEndDate")).isNotNull();
     }
 }

@@ -26,5 +26,8 @@ public final class EmailSubjects {
     public static final String OFFER_EXPIRED = "Room Offer Expired - Student Accommodation";
     public static final String OFFER_EXPIRY_REMINDER = "Action Required: Room Offer Expiring Soon";
     public static final String CHECK_IN_REMINDER = "Reminder: Check-In Deadline Approaching";
+    public static final String RECONFIRM_REQUEST = "Still Coming? Confirm Your Place Before Move-In";
+    public static final String RECONFIRM_REMINDER = "Reminder: Confirm Your Place Before Move-In";
+    public static final String PLACE_RELEASED = "Your Place Has Been Released - Not Confirmed Before Move-In";
     public static final String CHECK_IN_EXPIRED = "Check-In Deadline Expired - Application Cancelled";
 }

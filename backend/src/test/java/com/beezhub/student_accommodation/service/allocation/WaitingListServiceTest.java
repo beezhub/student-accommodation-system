@@ -407,9 +407,9 @@ class WaitingListServiceTest {
         when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
                 .thenReturn(Optional.of(waitingEntry));
         // 2 entries strictly before this student's createdAt -> position 3
-        when(waitingListRepository.countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
-                eq("WAITING"), eq(9L), eq(waitingEntry.getCreatedAt()))).thenReturn(2L);
-        when(waitingListRepository.countByStatusAndApplication_AcademicYear_Id("WAITING", 9L)).thenReturn(12L);
+        when(waitingListRepository.countWaitingInYearBefore(
+                eq(9L), eq(waitingEntry.getCreatedAt()), any())).thenReturn(2L);
+        when(waitingListRepository.countWaitingInYear(eq(9L), any())).thenReturn(12L);
         // Fewer than 5 recent allocations -> estimate unavailable
         when(roomAllocationRepository.countByAcademicYear_IdAndCreatedAtAfter(eq(9L), any(LocalDateTime.class)))
                 .thenReturn(2L);
@@ -428,9 +428,9 @@ class WaitingListServiceTest {
         when(waitingListRepository.findByStudent_IdAndStatus(1L, "WAITING"))
                 .thenReturn(Optional.of(waitingEntry));
         // Position 1 (no one ahead)
-        when(waitingListRepository.countByStatusAndApplication_AcademicYear_IdAndCreatedAtLessThan(
-                eq("WAITING"), eq(9L), any(LocalDateTime.class))).thenReturn(0L);
-        when(waitingListRepository.countByStatusAndApplication_AcademicYear_Id("WAITING", 9L)).thenReturn(1L);
+        when(waitingListRepository.countWaitingInYearBefore(
+                eq(9L), any(LocalDateTime.class), any())).thenReturn(0L);
+        when(waitingListRepository.countWaitingInYear(eq(9L), any())).thenReturn(1L);
         // 10 allocations in the last 30 days -> avg interval = 3 days -> position(1) * 3 = 3
         when(roomAllocationRepository.countByAcademicYear_IdAndCreatedAtAfter(eq(9L), any(LocalDateTime.class)))
                 .thenReturn(10L);
@@ -451,7 +451,7 @@ class WaitingListServiceTest {
 
         waitingListService.getMyWaitlistPosition();
 
-        verify(waitingListRepository).countByStatusAndApplication_AcademicYear_Id("WAITING", 9L);
+        verify(waitingListRepository).countWaitingInYear(eq(9L), any());
         verify(academicYearService, never()).findCurrentAcademicYear(any(), any());
     }
 
@@ -468,7 +468,7 @@ class WaitingListServiceTest {
 
         waitingListService.getMyWaitlistPosition();
 
-        verify(waitingListRepository).countByStatusAndApplication_AcademicYear_Id("WAITING", 11L);
+        verify(waitingListRepository).countWaitingInYear(eq(11L), any());
     }
 
     @Test

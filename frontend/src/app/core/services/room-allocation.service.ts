@@ -42,6 +42,18 @@ export interface RoomAllocationResponse {
   status: string;
   offerExpiryDate?: string;
   checkInExpiryDate?: string;
+  expectedCheckInDate?: string;
+  checkInDate?: string;
+  /** Planned move-in, 'YYYY-MM-DD' (GH-496). */
+  stayStartDate?: string;
+  /** Planned check-out, 'YYYY-MM-DD': the bed is free again from this date. */
+  stayEndDate?: string;
+  /** When the offer was accepted (GH-496). */
+  acceptedAt?: string;
+  /** When the student was asked "Still coming?" before move-in. */
+  reconfirmRequestedAt?: string;
+  /** When the student confirmed they are still coming. */
+  reconfirmedAt?: string;
   declineReason?: DeclineReason;
   declineReasonText?: string;
   /**
@@ -106,6 +118,8 @@ export class RoomAllocationService {
     studentName?: string;
     roomNumber?: string;
     status?: string;
+    institutionId?: number;
+    intakeId?: number;
     page?: number;
     size?: number;
   }): Observable<PageResponse<RoomAllocationResponse>> {
@@ -121,6 +135,9 @@ export class RoomAllocationService {
     if (filters.studentName) params = params.set('studentName', filters.studentName);
     if (filters.roomNumber) params = params.set('roomNumber', filters.roomNumber);
     if (filters.status) params = params.set('status', filters.status);
+    if (filters.institutionId)
+      params = params.set('institutionId', filters.institutionId.toString());
+    if (filters.intakeId) params = params.set('intakeId', filters.intakeId.toString());
 
     return this.http.get<PageResponse<RoomAllocationResponse>>(`${this.apiUrl}/search`, {
       params,
@@ -204,6 +221,11 @@ export class RoomAllocationService {
     return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/accept`, {
       expectedCheckInDate,
     });
+  }
+
+  /** The student confirms they are still coming before move-in, so the place keeps its bed (GH-496). */
+  reconfirm(id: number): Observable<RoomAllocationResponse> {
+    return this.http.post<RoomAllocationResponse>(`${this.apiUrl}/${id}/reconfirm`, {});
   }
 
   /**

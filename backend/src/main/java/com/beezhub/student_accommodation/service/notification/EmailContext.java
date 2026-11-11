@@ -25,5 +25,8 @@ public sealed interface EmailContext permits
         OfferExpiredContext,
         OfferExpiryReminderContext,
         CheckInReminderContext,
-        CheckInExpiredContext {
+        CheckInExpiredContext,
+        ReconfirmRequestContext,
+        ReconfirmReminderContext,
+        PlaceReleasedContext {
 }

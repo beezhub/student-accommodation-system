@@ -77,4 +77,21 @@ public class ApplicationSpecification {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }
+
+    /**
+     * Applications for one institution and/or one intake (GH-496). Either may be null to leave
+     * that side unfiltered.
+     */
+    public static Specification<Application> forInstitutionAndIntake(Long institutionId, Long intakeId) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (institutionId != null) {
+                predicates.add(cb.equal(root.get("institution").get("id"), institutionId));
+            }
+            if (intakeId != null) {
+                predicates.add(cb.equal(root.get("intake").get("id"), intakeId));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
 }

@@ -28,13 +28,4 @@ public class AcademicYearRequest {
 
     @NotNull(message = "End date is required")
     private LocalDate endDate;
-
-    /**
-     * Optional. Left empty on a new year, it is filled in from the start date with the company's
-     * lead-time settings; on an edit, the stored window is kept. Once a year has intakes, its
-     * window follows theirs.
-     */
-    private LocalDate applicationOpenDate;
-
-    private LocalDate applicationCloseDate;
 }

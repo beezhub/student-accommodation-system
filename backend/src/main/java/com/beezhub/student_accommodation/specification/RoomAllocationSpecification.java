@@ -77,4 +77,35 @@ public class RoomAllocationSpecification {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }
+
+    /**
+     * Allocations whose application is for one institution and/or one intake (GH-496). Either may
+     * be null to leave that side unfiltered. An allocation with no application matches neither.
+     */
+    public static Specification<RoomAllocation> forInstitutionAndIntake(Long institutionId, Long intakeId) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (institutionId != null || intakeId != null) {
+                var application = root.join("application", jakarta.persistence.criteria.JoinType.INNER);
+                if (institutionId != null) {
+                    predicates.add(cb.equal(application.get("institution").get("id"), institutionId));
+                }
+                if (intakeId != null) {
+                    predicates.add(cb.equal(application.get("intake").get("id"), intakeId));
+                }
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    /**
+     * Overdue check-outs (GH-496): students still checked in after their planned stay ended. The
+     * bed is free from the end date, so an allocation whose end date is today is already overdue.
+     */
+    public static Specification<RoomAllocation> overdueCheckOuts(java.time.LocalDate today) {
+        return (root, query, cb) -> cb.and(
+                cb.equal(root.get("status"), com.beezhub.student_accommodation.model.enums.AllocationStatus.ACTIVE),
+                cb.isNotNull(root.get("stayEndDate")),
+                cb.lessThanOrEqualTo(root.get("stayEndDate"), today));
+    }
 }

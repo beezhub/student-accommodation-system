@@ -332,6 +332,30 @@ public class EmailService {
                 vars.put("buildingName", c.buildingName());
                 vars.put("portalUrl", c.portalUrl());
             }
+            case ReconfirmRequestContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("moveInDate", c.moveInDate());
+                vars.put("releaseDate", c.releaseDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case ReconfirmReminderContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("moveInDate", c.moveInDate());
+                vars.put("releaseDate", c.releaseDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
+            case PlaceReleasedContext c -> {
+                vars.put("studentName", c.studentName());
+                vars.put("applicationCode", c.applicationCode());
+                vars.put("roomNumber", c.roomNumber());
+                vars.put("buildingName", c.buildingName());
+                vars.put("moveInDate", c.moveInDate());
+                vars.put("portalUrl", c.portalUrl());
+            }
         }
         return vars;
     }

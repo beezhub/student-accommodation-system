@@ -141,8 +141,6 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
                 .name("Y" + System.nanoTime() % 1_000_000_000L)
                 .startDate(today.minusMonths(1))
                 .endDate(today.plusMonths(10))
-                .applicationOpenDate(today.minusMonths(2))
-                .applicationCloseDate(today.plusMonths(1))
                 .tenantId(company.getId())
                 .build());
         return intakeRepository.save(Intake.builder()
@@ -152,8 +150,8 @@ class ApplicationServiceIntegrationTest extends AbstractIntegrationTest {
                 .name("Annual")
                 .stayStartDate(year.getStartDate())
                 .stayEndDate(year.getEndDate())
-                .applicationOpenDate(year.getApplicationOpenDate())
-                .applicationCloseDate(year.getApplicationCloseDate())
+                .applicationOpenDate(today.minusMonths(2))
+                .applicationCloseDate(today.plusMonths(1))
                 .build());
     }
 

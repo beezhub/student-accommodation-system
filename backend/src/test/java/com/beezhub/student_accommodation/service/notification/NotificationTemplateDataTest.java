@@ -180,10 +180,50 @@ class NotificationTemplateDataTest {
                 .collect(Collectors.toSet());
 
         Set<String> accountedFor = emailTypes().map(type -> (String) type.get()[0]).collect(Collectors.toSet());
+        reconfirmationEmailTypes().map(type -> (String) type.get()[0]).forEach(accountedFor::add);
         accountedFor.add("welcome");
         accountedFor.addAll(NOT_RETRIED_FROM_A_ROW);
 
         assertThat(accountedFor).containsExactlyInAnyOrderElementsOf(onDisk);
+    }
+
+    /** GH-496: the reconfirmation emails go through their own listener. */
+    static Stream<Arguments> reconfirmationEmailTypes() {
+        return Stream.of(
+                Arguments.of("reconfirm-request", (Consumer<ReconfirmationNotificationListener>) l ->
+                        l.handleReconfirmationRequested(new ReconfirmationRequestedEvent(
+                                reconfirmAllocation(), false, LocalDate.of(2027, 1, 18)))),
+                Arguments.of("reconfirm-reminder", (Consumer<ReconfirmationNotificationListener>) l ->
+                        l.handleReconfirmationRequested(new ReconfirmationRequestedEvent(
+                                reconfirmAllocation(), true, LocalDate.of(2027, 1, 18)))),
+                Arguments.of("place-released", (Consumer<ReconfirmationNotificationListener>) l ->
+                        l.handlePlaceReleased(new PlaceReleasedEvent(reconfirmAllocation()))));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("reconfirmationEmailTypes")
+    @SuppressWarnings("unchecked")
+    void storedTemplateData_reconfirmationEmails_carryEveryVariableAndRender(
+            String template, Consumer<ReconfirmationNotificationListener> fire) throws IOException {
+        ReconfirmationEmailService emails = new ReconfirmationEmailService(
+                mock(EmailService.class), new EmailContentBuilder(), new SimpleMeterRegistry());
+        ReflectionTestUtils.setField(emails, "baseUrl", BASE_URL);
+        fire.accept(new ReconfirmationNotificationListener(persistence, emails, mock(EntityManager.class)));
+        ArgumentCaptor<Map<String, Object>> captured = ArgumentCaptor.forClass(Map.class);
+        verify(persistence).createNotification(any(), any(), any(NotificationType.class), any(), any(), any(),
+                captured.capture());
+        Map<String, Object> stored = captured.getValue();
+
+        assertThat(stored).containsEntry("templateName", template);
+        assertThat(stored).containsKeys(variablesReadBy(template).toArray(String[]::new));
+        assertThat(renderRetry(template, stored)).contains("href=\"" + BASE_URL + "/").contains("01 February 2027");
+    }
+
+    private static RoomAllocation reconfirmAllocation() {
+        RoomAllocation allocation = allocation();
+        allocation.setStayStartDate(LocalDate.of(2027, 2, 1));
+        allocation.setStayEndDate(LocalDate.of(2027, 11, 30));
+        return allocation;
     }
 
     private static Arguments emailType(String template, Consumer<NotificationEventListener> fire) {

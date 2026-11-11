@@ -11,7 +11,8 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 
 /**
  * {@code isApplicationWindowOpen} is left to {@code AcademicYearService}, which reads the date
- * from the calendar {@code Clock} rather than the JVM zone (GH-494).
+ * from the calendar {@code Clock} rather than the JVM zone (GH-494). The year's window is worked
+ * out there from its intakes, since the year no longer stores one (GH-496).
  */
 @Mapper(componentModel = "spring")
 public interface AcademicYearMapper {
@@ -26,6 +27,8 @@ public interface AcademicYearMapper {
 
     @Mapping(target = "institutionName", source = "institution.name")
     @Mapping(target = "isApplicationWindowOpen", ignore = true)
+    @Mapping(target = "applicationOpenDate", ignore = true)
+    @Mapping(target = "applicationCloseDate", ignore = true)
     @Mapping(target = "intakes", ignore = true)
     @Mapping(target = "applicationCount", ignore = true)
     @Mapping(target = "allocationCount", ignore = true)

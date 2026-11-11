@@ -44,12 +44,6 @@ public class AcademicYear implements TenantAware {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
-    @Column(name = "application_open_date", nullable = false)
-    private LocalDate applicationOpenDate;
-
-    @Column(name = "application_close_date", nullable = false)
-    private LocalDate applicationCloseDate;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

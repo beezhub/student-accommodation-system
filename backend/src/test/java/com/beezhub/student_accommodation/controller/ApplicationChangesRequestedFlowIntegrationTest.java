@@ -81,6 +81,8 @@ class ApplicationChangesRequestedFlowIntegrationTest extends AbstractIntegration
         student.setGender("Female");
         student = studentRepository.save(student);
         application = applicationRepository.save(Application.builder()
+                .academicYear(testCalendar().year())
+                .intake(testCalendar().intake())
                 .applicationCode("APP-" + System.nanoTime())
                 .applicationDate(LocalDate.now())
                 .status(ApplicationStatus.PENDING)

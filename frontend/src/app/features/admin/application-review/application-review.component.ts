@@ -57,6 +57,8 @@ import {
 } from './preferences-dialog/preferences-dialog.component';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 
+import { InstitutionIntakeFilterComponent } from '../../../shared/components/institution-intake-filter/institution-intake-filter.component';
+
 @Component({
   selector: 'app-application-review',
   templateUrl: './application-review.component.html',
@@ -64,6 +66,7 @@ import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
   standalone: true,
   imports: [
     CommonModule,
+    InstitutionIntakeFilterComponent,
     ReactiveFormsModule,
     MatCardModule,
     MatProgressBarModule,
@@ -165,6 +168,8 @@ export class ApplicationReviewComponent implements OnInit {
       preferredBuilding: [''],
       startDate: [''],
       endDate: [''],
+      institutionId: [''],
+      intakeId: [''],
     });
   }
 
@@ -195,6 +200,8 @@ export class ApplicationReviewComponent implements OnInit {
     if (v.preferredBuilding) count++;
     if (v.startDate) count++;
     if (v.endDate) count++;
+    if (v.institutionId) count++;
+    if (v.intakeId) count++;
     this.activeFilterCount = count;
   }
 
@@ -271,6 +278,8 @@ export class ApplicationReviewComponent implements OnInit {
           : formValue.preferredBuilding || undefined,
       startDate: formValue.startDate ? this.formatDate(formValue.startDate) : undefined,
       endDate: formValue.endDate ? this.formatDate(formValue.endDate) : undefined,
+      institutionId: formValue.institutionId || undefined,
+      intakeId: formValue.intakeId || undefined,
       page: this.currentPage,
       size: this.pageSize,
     };

@@ -60,6 +60,8 @@ public class AdminApplicationController {
             @RequestParam(required = false) String preferredBuilding,
             @RequestParam(required = false) @Parameter(description = "Start date YYYY-MM-DD") String startDate,
             @RequestParam(required = false) @Parameter(description = "End date YYYY-MM-DD") String endDate,
+            @RequestParam(required = false) Long institutionId,
+            @RequestParam(required = false) Long intakeId,
             @PageableDefault(size = 20, sort = "applicationDate") Pageable pageable) {
         LocalDate start;
         LocalDate end;
@@ -76,7 +78,8 @@ public class AdminApplicationController {
             return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(applicationSearchService.searchApplications(
-                applicationCode, studentName, statusEnum, allocationStatus, preferredBuilding, start, end, pageable));
+                applicationCode, studentName, statusEnum, allocationStatus, preferredBuilding, start, end,
+                institutionId, intakeId, pageable));
     }
 
     @Operation(summary = "Get application by ID")

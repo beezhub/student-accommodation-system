@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,19 +36,30 @@ public class AllocationScoringOrchestrator {
     private final WaitingListRepository waitingListRepository;
     private final ApplicantPriorityScorer applicantPriorityScorer;
     private final BuildingRepository buildingRepository;
+    private final Clock clock;
 
     public Map<Long, List<ScoredRoom>> buildScoringMatrix(List<WaitingListEntry> waitingList) {
         Map<Long, List<ScoredRoom>> scoringMatrix = new HashMap<>();
+        LocalDate today = LocalDate.now(clock);
 
         for (WaitingListEntry entry : waitingList) {
             Student student = entry.getStudent();
+            Application app = entry.getApplication();
+            StayPeriod stay = StayPeriod.of(app);
 
-            // Skip if already has active allocation
-            if (roomAllocationRepository.existsActiveAllocationByStudentId(student.getId())) {
+            // Never offer a stay that has already ended (GH-496).
+            if (stay.hasEnded(today)) {
+                log.info("action=scoringSkipped reason=stayEnded waitingListEntryId={}", entry.getId());
                 continue;
             }
 
-            Application app = entry.getApplication();
+            // Skip a student who already holds a bed for overlapping dates. A 2026 resident is
+            // still matched for a 2027 stay.
+            if (roomAllocationRepository.existsLiveAllocationForStudentDuring(
+                    student.getId(), stay.from(), stay.until())) {
+                continue;
+            }
+
             Building preferredBuilding = app != null ? app.getPreferredBuilding() : null;
 
             List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(
@@ -60,24 +73,15 @@ public class AllocationScoringOrchestrator {
         return scoringMatrix;
     }
 
-    public Map<Long, Integer> buildRoomCapacityMap(List<Room> rooms) {
-        Map<Long, Integer> capacityMap = new HashMap<>();
-
-        for (Room room : rooms) {
-            long activeCount = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-            int availableSpots = room.getCapacity() - (int) activeCount;
-            if (availableSpots > 0) {
-                capacityMap.put(room.getId(), availableSpots);
-            }
-        }
-
-        return capacityMap;
+    /** Free beds by room and stay for one batch run, starting from the database count. */
+    public BedLedger newBedLedger(List<Room> rooms) {
+        return new BedLedger(rooms, roomAllocationRepository);
     }
 
     /** The transaction is what lets the tenant filter scope this to the tenant in context. */
     @Transactional(readOnly = true)
     public List<Room> getAvailableRoomsForBatch() {
-        return roomRepository.findRoomsWithAvailableCapacity();
+        return roomRepository.findRoomsOpenForOffers();
     }
 
     /**

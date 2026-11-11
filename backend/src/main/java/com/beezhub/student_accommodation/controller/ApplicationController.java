@@ -123,6 +123,8 @@ public class ApplicationController {
                         @RequestParam(required = false) String preferredBuilding,
                         @RequestParam(required = false) @Parameter(description = "Start date in format YYYY-MM-DD") String startDate,
                         @RequestParam(required = false) @Parameter(description = "End date in format YYYY-MM-DD") String endDate,
+                        @RequestParam(required = false) Long institutionId,
+                        @RequestParam(required = false) Long intakeId,
                         @PageableDefault(size = 20, sort = "applicationDate") Pageable pageable) {
                 LocalDate start;
                 LocalDate end;
@@ -140,7 +142,7 @@ public class ApplicationController {
                 }
                 PageResponse<ApplicationResponse> page = applicationSearchService.searchApplications(
                                 applicationCode, studentName, statusEnum, allocationStatus, preferredBuilding, start,
-                                end, pageable);
+                                end, institutionId, intakeId, pageable);
                 return ResponseEntity.ok(page);
         }
 

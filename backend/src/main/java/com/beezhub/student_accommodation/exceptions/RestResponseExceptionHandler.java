@@ -388,6 +388,16 @@ public class RestResponseExceptionHandler extends ResponseEntityExceptionHandler
                 return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
         }
 
+        @ExceptionHandler(StayEndedException.class)
+        public ResponseEntity<ErrorResponse> handleStayEnded(StayEndedException ex, WebRequest request) {
+                ErrorResponse errorResponse = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.CONFLICT.value(),
+                                ex.getMessage(),
+                                request.getDescription(false));
+                return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+        }
+
         @ExceptionHandler(StudentAlreadyAllocatedException.class)
         public ResponseEntity<ErrorResponse> handleStudentAlreadyAllocated(
                         StudentAlreadyAllocatedException ex, WebRequest request) {

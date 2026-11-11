@@ -41,6 +41,8 @@ class ScheduledJobRunnerTest {
     private CheckInReminderService checkInReminderService;
     @Mock
     private NotificationRetryService notificationRetryService;
+    @Mock
+    private com.beezhub.student_accommodation.service.allocation.ReconfirmationService reconfirmationService;
 
     private MeterRegistry meterRegistry;
     private ScheduledJobRunner scheduledJobRunner;
@@ -56,6 +58,7 @@ class ScheduledJobRunnerTest {
                 offerReminderService,
                 checkInReminderService,
                 notificationRetryService,
+                reconfirmationService,
                 meterRegistry);
     }
 
@@ -241,5 +244,25 @@ class ScheduledJobRunnerTest {
         Counter processed = meterRegistry.find("sas.jobs.checkInReminder.processed").counter();
         assertThat(processed).isNotNull();
         assertThat(processed.count()).isEqualTo(3.0);
+    }
+
+    // --- reconfirmation (GH-496) ---
+
+    @Test
+    void runReconfirmation_countsWhatTheJobProcessed() {
+        when(reconfirmationService.runDaily()).thenReturn(4);
+
+        scheduledJobRunner.runReconfirmation();
+
+        assertThat(meterRegistry.find("sas.jobs.reconfirmation.processed").counter().count()).isEqualTo(4.0);
+    }
+
+    @Test
+    void runReconfirmation_whenServiceThrows_failureCounted_noExceptionPropagated() {
+        when(reconfirmationService.runDaily()).thenThrow(new RuntimeException("db down"));
+
+        assertThatCode(() -> scheduledJobRunner.runReconfirmation()).doesNotThrowAnyException();
+
+        assertThat(meterRegistry.find("sas.jobs.reconfirmation.failures").counter().count()).isEqualTo(1.0);
     }
 }

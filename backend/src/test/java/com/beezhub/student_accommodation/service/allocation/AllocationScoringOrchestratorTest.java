@@ -23,6 +23,9 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +51,10 @@ class AllocationScoringOrchestratorTest {
         private ApplicantPriorityScorer applicantPriorityScorer =
                 new ApplicantPriorityScorer(org.mockito.Mockito.mock(
                         com.beezhub.student_accommodation.repository.AllocationRuleRepository.class));
+
+        @org.mockito.Spy
+        private java.time.Clock clock = java.time.Clock.fixed(
+                        java.time.Instant.parse("2026-11-10T08:00:00Z"), java.time.ZoneId.of("Africa/Johannesburg"));
 
         @InjectMocks
         private AllocationScoringOrchestrator allocationScoringOrchestrator;
@@ -151,7 +158,7 @@ class AllocationScoringOrchestratorTest {
                                 .warnings(new ArrayList<>())
                                 .build();
 
-                when(roomAllocationRepository.existsActiveAllocationByStudentId(anyLong())).thenReturn(false);
+                when(roomAllocationRepository.existsLiveAllocationForStudentDuring(anyLong(), any(), any())).thenReturn(false);
                 when(allocationScoringService.scoreAvailableRooms(student1, application1, building))
                                 .thenReturn(Arrays.asList(scoredRoom1));
                 when(allocationScoringService.scoreAvailableRooms(student2, application2, building))
@@ -174,10 +181,10 @@ class AllocationScoringOrchestratorTest {
                 // Arrange
                 List<WaitingListEntry> waitingList = Arrays.asList(waitingEntry1, waitingEntry2);
 
-                when(roomAllocationRepository.existsActiveAllocationByStudentId(1L)).thenReturn(true); // Student 1
+                when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(1L), any(), any())).thenReturn(true); // Student 1
                                                                                                        // already
                                                                                                        // allocated
-                when(roomAllocationRepository.existsActiveAllocationByStudentId(2L)).thenReturn(false);
+                when(roomAllocationRepository.existsLiveAllocationForStudentDuring(eq(2L), any(), any())).thenReturn(false);
 
                 ScoredRoom scoredRoom2 = ScoredRoom.builder()
                                 .roomId(2L)
@@ -211,44 +218,56 @@ class AllocationScoringOrchestratorTest {
                 assertThat(scoringMatrix).isEmpty();
         }
 
+        /** GH-496: a stay that has already ended is never offered, so it is not scored. */
         @Test
-        void buildRoomCapacityMap_mixedCapacity_correctCounts() {
-                // Arrange
-                List<Room> rooms = Arrays.asList(room1, room2);
+        void buildScoringMatrix_stayHasEnded_skipped() {
+                Application ended = new Application();
+                ended.setId(99L);
+                Intake intake = new Intake();
+                intake.setStayStartDate(java.time.LocalDate.of(2026, 2, 1));
+                intake.setStayEndDate(java.time.LocalDate.of(2026, 6, 30));
+                ended.setIntake(intake);
+                WaitingListEntry entry = new WaitingListEntry();
+                entry.setId(7L);
+                entry.setStudent(student1);
+                entry.setApplication(ended);
 
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(1L); // 1 out of 2
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(2L)).thenReturn(0L); // 0 out of 1
+                Map<Long, List<ScoredRoom>> scoringMatrix =
+                                allocationScoringOrchestrator.buildScoringMatrix(List.of(entry));
 
-                // Act
-                Map<Long, Integer> capacityMap = allocationScoringOrchestrator.buildRoomCapacityMap(rooms);
-
-                // Assert
-                assertThat(capacityMap).hasSize(2);
-                assertThat(capacityMap.get(1L)).isEqualTo(1); // 2 - 1 = 1 available
-                assertThat(capacityMap.get(2L)).isEqualTo(1); // 1 - 0 = 1 available
+                assertThat(scoringMatrix).isEmpty();
+                verify(allocationScoringService, never()).scoreAvailableRooms(any(), any(), any());
         }
 
+        /** GH-496: a 2026 resident is matched for a 2027 stay; the overlap query is asked for 2027. */
         @Test
-        void buildRoomCapacityMap_fullRoom_excluded() {
-                // Arrange
-                List<Room> rooms = Arrays.asList(room1, room2);
+        void buildScoringMatrix_residentForNextYear_scoredForThatStay() {
+                Application nextYear = new Application();
+                nextYear.setId(98L);
+                Intake intake = new Intake();
+                intake.setStayStartDate(java.time.LocalDate.of(2027, 2, 1));
+                intake.setStayEndDate(java.time.LocalDate.of(2027, 11, 30));
+                nextYear.setIntake(intake);
+                WaitingListEntry entry = new WaitingListEntry();
+                entry.setId(8L);
+                entry.setStudent(student1);
+                entry.setApplication(nextYear);
+                when(roomAllocationRepository.existsLiveAllocationForStudentDuring(
+                                student1.getId(), java.time.LocalDate.of(2027, 2, 1), java.time.LocalDate.of(2027, 11, 30)))
+                                .thenReturn(false);
+                when(allocationScoringService.scoreAvailableRooms(any(), any(), any()))
+                                .thenReturn(List.of(ScoredRoom.builder().roomId(1L).build()));
 
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(1L)).thenReturn(2L); // Full (2/2)
-                when(roomAllocationRepository.countActiveAllocationsByRoomId(2L)).thenReturn(0L); // Available
+                Map<Long, List<ScoredRoom>> scoringMatrix =
+                                allocationScoringOrchestrator.buildScoringMatrix(List.of(entry));
 
-                // Act
-                Map<Long, Integer> capacityMap = allocationScoringOrchestrator.buildRoomCapacityMap(rooms);
-
-                // Assert
-                assertThat(capacityMap).hasSize(1); // Only room2
-                assertThat(capacityMap.containsKey(1L)).isFalse();
-                assertThat(capacityMap.get(2L)).isEqualTo(1);
+                assertThat(scoringMatrix).containsKey(student1.getId());
         }
 
         @Test
         void getAvailableRoomsForBatch_returnsOnlyAvailable() {
-                // Arrange: repository now returns only rooms with available capacity
-                when(roomRepository.findRoomsWithAvailableCapacity()).thenReturn(Arrays.asList(room1));
+                // Arrange: every room open for offers; beds are checked per stay by the ledger
+                when(roomRepository.findRoomsOpenForOffers()).thenReturn(Arrays.asList(room1));
 
                 // Act
                 List<Room> availableRooms = allocationScoringOrchestrator.getAvailableRoomsForBatch();

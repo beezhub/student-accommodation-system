@@ -355,12 +355,10 @@ class ApplicationSubmissionIntegrationTest extends AbstractIntegrationTest {
     /** A year of the company with one Annual intake whose window is open today; returns the intake. */
     private Long openYear(Long company, Long institution, LocalDate start, LocalDate end) {
         Long year = jdbc.queryForObject("""
-                INSERT INTO academic_year (name, start_date, end_date, application_open_date, application_close_date,
-                                           tenant_id, institution_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id
+                INSERT INTO academic_year (name, start_date, end_date, tenant_id, institution_id)
+                VALUES (?, ?, ?, ?, ?) RETURNING id
                 """, Long.class, "Y" + UUID.randomUUID().toString().substring(0, 8), Date.valueOf(start),
-                Date.valueOf(end), Date.valueOf(today.minusDays(5)), Date.valueOf(today.plusDays(30)), company,
-                institution);
+                Date.valueOf(end), company, institution);
         return jdbc.queryForObject("""
                 INSERT INTO intake (tenant_id, academic_year_id, intake_type, name, stay_start_date, stay_end_date,
                                     application_open_date, application_close_date)

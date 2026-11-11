@@ -831,6 +831,8 @@ class AdminCrossCompanyAccessIntegrationTest extends AbstractIntegrationTest {
 
     private Application saveApplication(Student student, Long tenantId, ApplicationStatus status) {
         return applicationRepository.save(Application.builder()
+                .academicYear(testCalendar().year())
+                .intake(testCalendar().intake())
                 .applicationCode("APP-" + System.nanoTime())
                 .applicationDate(LocalDate.now())
                 .status(status)

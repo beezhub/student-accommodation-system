@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Your Place Has Been Released</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Your Place Has Been Released</h1>
+<span layout:fragment="email-subtitle">Not confirmed before move-in</span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${studentName}">Student</span>,</p>
+
+    <div class="danger-box">
+        <h3>Place released</h3>
+        <p>We asked you to confirm your place in <strong>Room <span th:text="${roomNumber}">101</span></strong>
+           in <strong th:text="${buildingName}">Building A</strong> from
+           <strong th:text="${moveInDate}">01 February 2027</strong>, and did not hear back in time.</p>
+        <p>The place has been offered to the next student on the waiting list, and your application
+           (<strong th:text="${applicationCode}">APP123</strong>) is now closed.</p>
+    </div>
+
+    <p>If you still need accommodation, you can apply again while an application window is open.</p>
+
+    <div class="cta-section">
+        <a th:href="${portalUrl}" class="cta-button">View My Applications</a>
+    </div>
+</div>
+
+</body>
+</html>

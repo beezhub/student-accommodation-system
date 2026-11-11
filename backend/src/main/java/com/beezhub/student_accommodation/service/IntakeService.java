@@ -88,8 +88,6 @@ public class IntakeService {
                 .name(name)
                 .startDate(source.getStartDate().plusYears(1))
                 .endDate(source.getEndDate().plusYears(1))
-                .applicationOpenDate(source.getApplicationOpenDate().plusYears(1))
-                .applicationCloseDate(source.getApplicationCloseDate().plusYears(1))
                 .build();
         copy.setTenantId(source.getTenantId());
         List<Intake> intakes = intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(academicYearId)
@@ -118,7 +116,6 @@ public class IntakeService {
         apply(intake, request);
         validate(intake);
         Intake saved = intakeRepository.save(intake);
-        syncYearWindow(year);
         log.info("action=intakeCreated intakeId={} academicYearId={}", saved.getId(), academicYearId);
         return academicYearService.toIntakeResponse(saved);
     }
@@ -134,7 +131,6 @@ public class IntakeService {
         apply(intake, request);
         validate(intake);
         Intake saved = intakeRepository.save(intake);
-        syncYearWindow(intake.getAcademicYear());
         log.info("action=intakeUpdated intakeId={}", intakeId);
         return withCounts(academicYearService.toIntakeResponse(saved), intake.getAcademicYear().getId());
     }
@@ -150,7 +146,6 @@ public class IntakeService {
         }
         intakeRepository.delete(intake);
         intakeRepository.flush();
-        syncYearWindow(year);
         log.info("action=intakeDeleted intakeId={}", intakeId);
     }
 
@@ -168,7 +163,6 @@ public class IntakeService {
             intake.setApplicationCloseDate(today);
         }
         Intake saved = intakeRepository.save(intake);
-        syncYearWindow(intake.getAcademicYear());
         log.info("action=intakeApplicationsClosed intakeId={} closeDate={}", intakeId, today);
         return withCounts(academicYearService.toIntakeResponse(saved), intake.getAcademicYear().getId());
     }
@@ -178,7 +172,6 @@ public class IntakeService {
     private AcademicYear saveYearWithIntakes(AcademicYear year, Long institutionId, List<Intake> intakes) {
         AcademicYear withInstitution = academicYearService.prepareNewYear(year, institutionId);
         intakes.forEach(IntakeService::validateDates);
-        coverWindows(withInstitution, intakes);
         academicYearService.validate(withInstitution);
         AcademicYear saved = academicYearRepository.save(withInstitution);
         intakes.forEach(i -> i.setAcademicYear(saved));
@@ -252,29 +245,6 @@ public class IntakeService {
             throw new InvalidAcademicCalendarException("Applications for " + intake.getName()
                     + " must open before they close");
         }
-    }
-
-    /**
-     * Keeps the year's own window covering its intakes' windows. Submitting an application still
-     * reads the year's window until applications carry an intake (group B of #493).
-     */
-    private void syncYearWindow(AcademicYear year) {
-        List<Intake> intakes = intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(year.getId());
-        if (intakes.isEmpty()) {
-            return;
-        }
-        coverWindows(year, intakes);
-        academicYearRepository.save(year);
-    }
-
-    private static void coverWindows(AcademicYear year, List<Intake> intakes) {
-        if (intakes.isEmpty()) {
-            return;
-        }
-        year.setApplicationOpenDate(intakes.stream().map(Intake::getApplicationOpenDate)
-                .min(Comparator.naturalOrder()).orElseThrow());
-        year.setApplicationCloseDate(intakes.stream().map(Intake::getApplicationCloseDate)
-                .max(Comparator.naturalOrder()).orElseThrow());
     }
 
     private IntakeResponse withCounts(IntakeResponse response, Long academicYearId) {

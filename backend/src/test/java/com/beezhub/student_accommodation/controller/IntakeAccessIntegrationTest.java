@@ -160,10 +160,9 @@ class IntakeAccessIntegrationTest extends AbstractIntegrationTest {
     void closeApplicationsNow_ownIntake_setsTheCloseDateToToday() {
         LocalDate today = LocalDate.now(ClockConfig.CALENDAR_ZONE);
         Long yearA = jdbc.queryForObject("""
-                INSERT INTO academic_year (name, start_date, end_date, application_open_date, application_close_date, tenant_id)
-                VALUES ('Now', ?, ?, ?, ?, ?) RETURNING id
-                """, Long.class, Date.valueOf(today.plusMonths(2)), Date.valueOf(today.plusMonths(12)),
-                Date.valueOf(today.minusDays(10)), Date.valueOf(today.plusMonths(1)), companyA);
+                INSERT INTO academic_year (name, start_date, end_date, tenant_id)
+                VALUES ('Now', ?, ?, ?) RETURNING id
+                """, Long.class, Date.valueOf(today.plusMonths(2)), Date.valueOf(today.plusMonths(12)), companyA);
         Long intakeA = jdbc.queryForObject("""
                 INSERT INTO intake (tenant_id, academic_year_id, intake_type, name, stay_start_date, stay_end_date,
                                     application_open_date, application_close_date)
@@ -182,11 +181,10 @@ class IntakeAccessIntegrationTest extends AbstractIntegrationTest {
 
     private Long insertYear(Long tenantId, int year) {
         return jdbc.queryForObject("""
-                INSERT INTO academic_year (name, start_date, end_date, application_open_date, application_close_date, tenant_id)
-                VALUES (?, ?, ?, ?, ?, ?) RETURNING id
+                INSERT INTO academic_year (name, start_date, end_date, tenant_id)
+                VALUES (?, ?, ?, ?) RETURNING id
                 """, Long.class, String.valueOf(year), Date.valueOf(LocalDate.of(year, 2, 1)),
-                Date.valueOf(LocalDate.of(year, 11, 30)), Date.valueOf(LocalDate.of(year - 1, 10, 1)),
-                Date.valueOf(LocalDate.of(year, 1, 18)), tenantId);
+                Date.valueOf(LocalDate.of(year, 11, 30)), tenantId);
     }
 
     private Long insertIntake(Long yearId, Long tenantId, String name, LocalDate start, LocalDate end) {

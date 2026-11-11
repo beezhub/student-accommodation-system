@@ -33,6 +33,37 @@ import org.testcontainers.containers.wait.strategy.Wait;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class AbstractIntegrationTest {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate calendarJdbc;
+
+    private TestCalendar testCalendar;
+
+    /**
+     * A platform year with one Annual intake, for applications this test saves: since GH-496
+     * {@code application.academic_year_id} and {@code intake_id} are NOT NULL. Created on first use
+     * and deleted after the test, once the subclass has removed its applications.
+     */
+    protected TestCalendar testCalendar() {
+        if (testCalendar == null) {
+            testCalendar = TestCalendar.create(calendarJdbc, 0L);
+        }
+        return testCalendar;
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void deleteTestCalendar() {
+        if (testCalendar == null) {
+            return;
+        }
+        try {
+            testCalendar.delete();
+        } catch (org.springframework.dao.DataAccessException e) {
+            // An application the test left behind still points at it. It is dated 2090, so it never
+            // becomes anyone's current year.
+        }
+        testCalendar = null;
+    }
+
     /** Test-only signing key; long enough to satisfy {@code JwtConfig} and HS512. Not a real secret. */
     private static final String TEST_JWT_SECRET =
             "test-only-jwt-secret-not-for-production-use-0123456789abcdefghijklmnopqrstuvwxyz";

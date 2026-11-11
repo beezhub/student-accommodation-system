@@ -106,8 +106,10 @@ class WaitingListTerminalApplicationIntegrationTest extends AbstractIntegrationT
         assertThat(entryStatus(rejectedRow)).isEqualTo("CANCELLED");
 
         Application second = givenApplication(ApplicationStatus.AWAITING_ALLOCATION);
+        // Loaded in the transaction, as every caller of this overload does: the planned stay is
+        // read from the application's intake (GH-496).
         transactionTemplate.executeWithoutResult(status ->
-                waitingListService.enqueueWaitingList(student, second));
+                waitingListService.enqueueWaitingList(student, applicationRepository.findById(second.getId()).orElseThrow()));
 
         assertThat(jdbcTemplate.queryForList(
                 "SELECT application_id FROM waiting_list_entry WHERE student_id = ? AND status = 'WAITING'",
@@ -135,6 +137,8 @@ class WaitingListTerminalApplicationIntegrationTest extends AbstractIntegrationT
 
     private Application givenApplication(ApplicationStatus status) {
         Application application = new Application();
+        application.setAcademicYear(testCalendar().year());
+        application.setIntake(testCalendar().intake());
         application.setApplicationCode("WL-" + System.nanoTime());
         application.setStudent(student);
         application.setStatus(status);

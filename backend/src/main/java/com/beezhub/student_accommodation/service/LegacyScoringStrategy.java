@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.GenderRestriction;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.allocation.ScoringStrategy;
+import com.beezhub.student_accommodation.service.allocation.StayPeriod;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -64,8 +65,8 @@ public class LegacyScoringStrategy implements ScoringStrategy {
         log.info("Scoring available rooms for student: {}, application: {}",
                 student.getId(), application != null ? application.getId() : "N/A");
 
-        // Get all rooms with available capacity
-        List<Room> availableRooms = getAvailableRooms();
+        // Rooms with a free bed for the stay applied for (GH-496)
+        List<Room> availableRooms = getAvailableRooms(StayPeriod.of(application));
         log.debug("Found {} rooms with available capacity", availableRooms.size());
 
         // Batch-load all attributes in 2 queries (N+1 fix — TASK-2.10)
@@ -268,19 +269,23 @@ public class LegacyScoringStrategy implements ScoringStrategy {
      * @return List of eligible rooms (no scoring, unordered)
      */
     public List<Room> getEligibleRoomsForStudent(Student student, Building building) {
+        return getEligibleRoomsForStudent(student, building, StayPeriod.UNBOUNDED);
+    }
+
+    /**
+     * Rooms that pass the hard constraints and have a free bed for {@code stay} (GH-496).
+     */
+    public List<Room> getEligibleRoomsForStudent(Student student, Building building, StayPeriod stay) {
         log.info("Getting eligible rooms for student: {}, building: {}",
                 student.getId(), building != null ? building.getId() : "all");
 
         List<Room> availableRooms;
         if (building != null) {
             availableRooms = roomRepository.findByBuildingId(building.getId()).stream()
-                    .filter(room -> {
-                        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-                        return activeAllocations < room.getCapacity();
-                    })
+                    .filter(room -> hasFreeBed(room, stay))
                     .collect(Collectors.toList());
         } else {
-            availableRooms = getAvailableRooms();
+            availableRooms = getAvailableRooms(stay);
         }
 
         List<Room> eligibleRooms = availableRooms.stream()
@@ -308,7 +313,7 @@ public class LegacyScoringStrategy implements ScoringStrategy {
         }
 
         // Get buildings that serve the student's institution
-        List<Room> availableRooms = getAvailableRooms().stream()
+        List<Room> availableRooms = getAvailableRooms(StayPeriod.UNBOUNDED).stream()
                 .filter(room -> {
                     Building building = room.getBuilding();
                     if (building == null || building.getInstitutions() == null || building.getInstitutions().isEmpty()) {
@@ -437,7 +442,7 @@ public class LegacyScoringStrategy implements ScoringStrategy {
 
         List<String> warnings = generateWarningsFromMaps(student, application, room, rule, roomAttrs, buildingAttrs);
 
-        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
+        long activeAllocations = bedsTaken(room, StayPeriod.of(application));
         int availableSpots = room.getCapacity() - (int) activeAllocations;
 
         return ScoredRoom.builder()
@@ -542,7 +547,7 @@ public class LegacyScoringStrategy implements ScoringStrategy {
         List<String> warnings = generateWarnings(student, application, room, rule);
 
         // Get room availability info
-        long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
+        long activeAllocations = bedsTaken(room, StayPeriod.of(application));
         int availableSpots = room.getCapacity() - (int) activeAllocations;
 
         // Build scored room response
@@ -571,17 +576,24 @@ public class LegacyScoringStrategy implements ScoringStrategy {
         return scoredRoom;
     }
 
-    private List<Room> getAvailableRooms() {
+    /**
+     * Rooms open for offers with a free bed for {@code stay}. Any status but MAINTENANCE: FULL and
+     * OCCUPIED describe today (GH-496), and a room full today can still be free for next year.
+     */
+    private List<Room> getAvailableRooms(StayPeriod stay) {
         return roomRepository.findAll().stream()
-                .filter(room -> {
-                    String status = room.getStatus();
-                    if (!"AVAILABLE".equals(status) && !"OCCUPIED".equals(status)) {
-                        return false;
-                    }
-                    long activeAllocations = roomAllocationRepository.countActiveAllocationsByRoomId(room.getId());
-                    return activeAllocations < room.getCapacity();
-                })
+                .filter(room -> room.getStatus() != null && !"MAINTENANCE".equals(room.getStatus()))
+                .filter(room -> hasFreeBed(room, stay))
                 .collect(Collectors.toList());
+    }
+
+    private boolean hasFreeBed(Room room, StayPeriod stay) {
+        return bedsTaken(room, stay) < room.getCapacity();
+    }
+
+    /** Beds taken in the room during the stay, by planned dates. */
+    private long bedsTaken(Room room, StayPeriod stay) {
+        return roomAllocationRepository.countHoldingBeds(room.getId(), stay.from(), stay.until());
     }
 
     private BigDecimal calculatePreferenceMatchScore(Room room, Building preferredBuilding) {

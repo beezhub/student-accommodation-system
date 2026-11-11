@@ -6,6 +6,7 @@ import com.beezhub.student_accommodation.model.enums.DeclineReason;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -69,8 +70,20 @@ public class RoomAllocation implements TenantAware {
     @Enumerated(EnumType.STRING)
     private AllocationMethod allocationMethod;
 
+    /** When the stay actually ended: check-out, or the offer or check-in lapsing. */
     @Column(name = "end_date")
     private LocalDateTime endDate;
+
+    /**
+     * Planned move-in, copied from the intake when the allocation is made (GH-496). Capacity is
+     * counted by overlapping planned stays, so a 2027 offer does not take a 2026 bed.
+     */
+    @Column(name = "stay_start_date")
+    private LocalDate stayStartDate;
+
+    /** Planned check-out: the bed is free again from this date. */
+    @Column(name = "stay_end_date")
+    private LocalDate stayEndDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "academic_year_id")
@@ -94,6 +107,22 @@ public class RoomAllocation implements TenantAware {
 
     @Column(name = "checkin_reminder_24h_sent", nullable = false)
     private boolean checkInReminder24hSent = false;
+
+    /** When the offer was accepted (GH-496). Empty for places accepted before it was recorded. */
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;
+
+    /** When the student was first asked "Still coming?" before move-in. */
+    @Column(name = "reconfirm_requested_at")
+    private LocalDateTime reconfirmRequestedAt;
+
+    /** When the last reconfirmation reminder was sent. */
+    @Column(name = "reconfirm_reminded_at")
+    private LocalDateTime reconfirmRemindedAt;
+
+    /** When the student confirmed they are still coming. A confirmed place keeps its bed. */
+    @Column(name = "reconfirmed_at")
+    private LocalDateTime reconfirmedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
