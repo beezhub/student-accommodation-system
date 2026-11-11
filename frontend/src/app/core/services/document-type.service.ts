@@ -25,6 +25,8 @@ export interface DocumentTypeResponse {
   name: string;
   description?: string;
   isRequired: boolean;
+  /** Expires at the end of the company's academic year it was uploaded in (GH-498). */
+  isExpiring?: boolean;
   isPlatformDefault?: boolean;
 }
 
@@ -32,6 +34,7 @@ export interface DocumentTypeRequest {
   name: string;
   description?: string;
   isRequired: boolean;
+  isExpiring?: boolean;
 }
 
 @Injectable({

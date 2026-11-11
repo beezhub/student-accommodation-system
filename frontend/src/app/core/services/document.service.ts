@@ -8,7 +8,7 @@ import {
 } from '@angular/common/http';
 import { Observable, map, filter } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { DocumentData } from '../models/document.model';
+import { DocumentData, DocumentExpiry } from '../models/document.model';
 import { AuthService } from './auth.service';
 
 export type UploadProgress =
@@ -218,6 +218,16 @@ export class DocumentService {
 
   deleteDocument(documentId: string | number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/delete/${documentId}`);
+  }
+
+  /**
+   * The student's expiring documents and when each expires (GH-498). Silent: the documents page
+   * works without it, so a failure shows nothing rather than a snackbar.
+   */
+  getMyDocumentExpiries(): Observable<DocumentExpiry[]> {
+    return this.http.get<DocumentExpiry[]>(`${this.apiUrl}/my/expiry`, {
+      headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
+    });
   }
 }
 

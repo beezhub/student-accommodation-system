@@ -139,6 +139,26 @@ class ApplicationDocumentCoordinatorTest {
         assertDoesNotThrow(() -> coordinator.tryAllocateOrQueue(student, application));
     }
 
+    /** GH-498: an expired required expiring document queues the student instead of dropping them. */
+    @Test
+    void tryAllocateOrQueue_documentsNotReady_queues() {
+        Document doc1 = Document.builder()
+                .documentType(requiredDocType)
+                .documentStatus(DocumentStatus.APPROVED)
+                .build();
+        when(documentRepository.findAllByStudent_Id(10L)).thenReturn(List.of(doc1));
+        when(documentTypeService.getEffectiveRequiredTypeNames(42L)).thenReturn(Set.of("national id"));
+        Room room = new Room();
+        room.setId(5L);
+        when(roomAllocationService.findAvailableRoom()).thenReturn(room);
+        doThrow(new com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException("expired"))
+                .when(roomAllocationService).createRoomAllocation(any());
+
+        coordinator.tryAllocateOrQueue(student, application);
+
+        verify(roomAllocationService).enqueueWaitingList(student.getId(), application.getId());
+    }
+
     @Test
     void tryAllocateOrQueue_tenantShadowMakesTypeOptional_allocatesWithoutIt() {
         // Tenant has shadowed "National ID" to isRequired=false — effective required set is empty

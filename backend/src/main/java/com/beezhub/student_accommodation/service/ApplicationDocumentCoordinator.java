@@ -132,6 +132,12 @@ public class ApplicationDocumentCoordinator {
             log.info("action=autoAllocateRoomFullForStay studentId={} applicationId={}",
                     student.getId(), application.getId());
             roomAllocationService.enqueueWaitingList(student.getId(), application.getId());
+        } catch (com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException e) {
+            // A required expiring document has expired (GH-498). The student waits in the queue,
+            // and the batch offers them a room once a replacement is approved.
+            log.info("action=autoAllocateDocumentsNotReady studentId={} applicationId={}",
+                    student.getId(), application.getId());
+            roomAllocationService.enqueueWaitingList(student.getId(), application.getId());
         } catch (com.beezhub.student_accommodation.exceptions.RoomAllocationNotFoundException |
                  com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException e) {
             log.error("Failed to auto-allocate room for student {}", student.getId(), e);

@@ -1,5 +1,6 @@
 import { OpenWindowsBannerComponent } from './open-windows-banner/open-windows-banner.component';
 import { ReconfirmPlaceComponent } from './reconfirm-place/reconfirm-place.component';
+import { StayExtensionComponent } from './stay-extension/stay-extension.component';
 import {
   Component,
   OnInit,
@@ -56,6 +57,7 @@ interface UploadedDocumentRow {
   imports: [
     OpenWindowsBannerComponent,
     ReconfirmPlaceComponent,
+    StayExtensionComponent,
     CommonModule,
     RouterModule,
     DocumentViewerComponent,

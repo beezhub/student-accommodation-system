@@ -44,6 +44,10 @@ export interface ApplicationResponse {
   totalRequiredDocuments?: number;
   allocationStatus?: string; // PENDING_ALLOCATION, ALLOCATED, REJECTED
   allocationScore?: number; // Priority score for allocation (0-100)
+  /** An expiring document of the student has expired at this company (GH-498). */
+  hasExpiredDocuments?: boolean;
+  /** The student had been checked in at this company when they applied (GH-499). */
+  isReturning?: boolean;
   // Preference fields for quick view
   requiresAccessibility?: boolean;
   specialRequirements?: string;

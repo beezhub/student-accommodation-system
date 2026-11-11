@@ -3,8 +3,10 @@ package com.beezhub.student_accommodation.repository;
 import com.beezhub.student_accommodation.model.entity.Room;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -102,4 +104,13 @@ public interface RoomRepository extends JpaRepository<Room, Long>, JpaSpecificat
            "AND (ra.stayEndDate IS NULL OR ra.stayEndDate > :today))")
     long countAvailableRoomsByBuildingId(@Param("buildingId") Long buildingId,
                                          @Param("today") java.time.LocalDate today);
+
+    /**
+     * Loads a room and locks its row until the transaction ends (GH-498). Two students asking for
+     * the last bed of the same stay at once are served one after the other, so the second sees the
+     * first one's extension in its count.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Room r WHERE r.id = :id")
+    Optional<Room> findByIdForUpdate(@Param("id") Long id);
 }

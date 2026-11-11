@@ -18,4 +18,12 @@ public interface IntakeRepository extends JpaRepository<Intake, Long> {
     boolean existsByAcademicYear_IdAndName(Long academicYearId, String name);
 
     boolean existsByAcademicYear_IdAndNameAndIdNot(Long academicYearId, String name, Long id);
+
+    /**
+     * Intakes of one type in a year that start on or after {@code from}, earliest first (GH-498):
+     * the candidates for extending a stay that ends on {@code from}.
+     */
+    List<Intake> findByAcademicYear_IdAndIntakeTypeAndStayStartDateGreaterThanEqualOrderByStayStartDateAsc(
+            Long academicYearId, com.beezhub.student_accommodation.model.enums.IntakeType intakeType,
+            java.time.LocalDate from);
 }

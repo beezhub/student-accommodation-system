@@ -71,6 +71,10 @@ export interface ApplicationFullDetails {
   documents: DocumentWithComments[];
   requiredDocumentsChecklist: RequiredDocumentsChecklist;
   allocationEligibility: AllocationEligibility;
+  /** An expiring document of the student has expired at this company (GH-498). */
+  hasExpiredDocuments?: boolean;
+  /** The student had been checked in at this company when they applied (GH-499). */
+  isReturning?: boolean;
 }
 
 export interface DocumentWithComments {
@@ -81,6 +85,9 @@ export interface DocumentWithComments {
   uploadedAt: string;
   documentTypeId: number;
   documentTypeName: string;
+  /** For an expiring type, the last day it is valid at this company, 'YYYY-MM-DD' (GH-498). */
+  expiryDate?: string;
+  expired?: boolean;
   comments: DocumentComment[];
 }
 

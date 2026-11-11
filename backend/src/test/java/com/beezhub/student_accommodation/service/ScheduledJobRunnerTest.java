@@ -45,6 +45,8 @@ class ScheduledJobRunnerTest {
     private com.beezhub.student_accommodation.service.allocation.ReconfirmationService reconfirmationService;
     @Mock
     private com.beezhub.student_accommodation.service.application.IntakeExpiryService intakeExpiryService;
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentExpiryReminderService documentExpiryReminderService;
 
     private MeterRegistry meterRegistry;
     private ScheduledJobRunner scheduledJobRunner;
@@ -62,6 +64,7 @@ class ScheduledJobRunnerTest {
                 notificationRetryService,
                 reconfirmationService,
                 intakeExpiryService,
+                documentExpiryReminderService,
                 meterRegistry);
     }
 
@@ -287,5 +290,25 @@ class ScheduledJobRunnerTest {
         assertThatCode(() -> scheduledJobRunner.runIntakeExpiry()).doesNotThrowAnyException();
 
         assertThat(meterRegistry.find("sas.jobs.intakeExpiry.failures").counter().count()).isEqualTo(1.0);
+    }
+
+    // --- documentExpiryReminder (GH-498) ---
+
+    @Test
+    void runDocumentExpiryReminders_countsWhatTheJobProcessed() {
+        when(documentExpiryReminderService.runDaily()).thenReturn(4);
+
+        scheduledJobRunner.runDocumentExpiryReminders();
+
+        assertThat(meterRegistry.find("sas.jobs.documentExpiryReminder.processed").counter().count()).isEqualTo(4.0);
+    }
+
+    @Test
+    void runDocumentExpiryReminders_whenServiceThrows_failureCounted_noExceptionPropagated() {
+        when(documentExpiryReminderService.runDaily()).thenThrow(new RuntimeException("db down"));
+
+        assertThatCode(() -> scheduledJobRunner.runDocumentExpiryReminders()).doesNotThrowAnyException();
+
+        assertThat(meterRegistry.find("sas.jobs.documentExpiryReminder.failures").counter().count()).isEqualTo(1.0);
     }
 }

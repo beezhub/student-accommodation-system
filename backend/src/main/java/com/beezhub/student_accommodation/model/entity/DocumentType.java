@@ -27,6 +27,12 @@ public class DocumentType {
     private String description;
     @Column(name = "is_required", nullable = false)
     private Boolean isRequired;
+    /**
+     * Expires at the end of the company's academic year, for the student's institution, that the
+     * document was uploaded in (GH-498). The date is worked out per company, not stored.
+     */
+    @Column(name = "is_expiring", nullable = false)
+    private Boolean isExpiring = false;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     @Column(name = "updated_at")

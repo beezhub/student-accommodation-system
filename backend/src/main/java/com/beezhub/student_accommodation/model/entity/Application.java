@@ -101,6 +101,14 @@ public class Application implements TenantAware {
     @lombok.EqualsAndHashCode.Exclude
     private Institution institution;
 
+    /**
+     * The student had been checked in at this company, in an earlier year or now, when they applied
+     * (GH-499). Set at submit; history only, with no effect on scoring, windows or rooms.
+     */
+    @Column(name = "is_returning", nullable = false)
+    @Builder.Default
+    private Boolean isReturning = false;
+
     @Column(name = "allocation_method")
     @Enumerated(EnumType.STRING)
     @Builder.Default

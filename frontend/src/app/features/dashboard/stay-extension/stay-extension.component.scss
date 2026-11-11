@@ -1,0 +1,23 @@
+@use '../../../../styles/variables' as vars;
+
+.stay {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-3;
+  flex-wrap: wrap;
+  padding: vars.$space-3 vars.$space-4;
+  margin-top: vars.$space-3;
+  border: 1px solid vars.$slate-200;
+  border-radius: vars.$radius-md;
+  background: vars.$slate-50;
+}
+
+.stay-icon {
+  color: vars.$accent-purple-dark;
+}
+
+.stay-body {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}

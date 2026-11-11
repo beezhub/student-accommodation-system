@@ -58,6 +58,7 @@ import {
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 
 import { InstitutionIntakeFilterComponent } from '../../../shared/components/institution-intake-filter/institution-intake-filter.component';
+import { ApplicationFlagsComponent } from './application-flags/application-flags.component';
 
 @Component({
   selector: 'app-application-review',
@@ -65,6 +66,7 @@ import { InstitutionIntakeFilterComponent } from '../../../shared/components/ins
   styleUrls: ['./application-review.component.scss'],
   standalone: true,
   imports: [
+    ApplicationFlagsComponent,
     CommonModule,
     InstitutionIntakeFilterComponent,
     ReactiveFormsModule,

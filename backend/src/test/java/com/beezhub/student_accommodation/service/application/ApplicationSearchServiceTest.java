@@ -67,6 +67,9 @@ class ApplicationSearchServiceTest {
     @Mock
     private DocumentTypeService documentTypeService;
 
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentExpiryQueryService documentExpiryQueryService;
+
     @InjectMocks
     private ApplicationSearchService applicationSearchService;
 
@@ -176,6 +179,24 @@ class ApplicationSearchServiceTest {
         assertEquals(2, result.getContent().size());
         assertEquals(2, result.getTotalElements());
         verify(applicationRepository).findAll(pageable);
+    }
+
+    /** GH-498: the list carries the expired badge, read per application's company. */
+    @Test
+    void getAllApplications_expiredDocument_flagsOnlyThatApplication() {
+        Page<Application> page = new PageImpl<>(Arrays.asList(application1, application2), pageable, 2);
+        when(applicationRepository.findAll(pageable)).thenReturn(page);
+        response1.setHasExpiredDocuments(null);
+        response2.setHasExpiredDocuments(null);
+        when(applicationMapper.toResponse(application1)).thenReturn(response1);
+        when(applicationMapper.toResponse(application2)).thenReturn(response2);
+        when(documentExpiryQueryService.expiredByApplication(any(), any()))
+                .thenReturn(java.util.Map.of(application1.getId(), true));
+
+        PageResponse<ApplicationResponse> result = applicationSearchService.getAllApplications(pageable);
+
+        assertEquals(Boolean.TRUE, result.getContent().get(0).getHasExpiredDocuments());
+        assertEquals(Boolean.FALSE, result.getContent().get(1).getHasExpiredDocuments());
     }
 
     @Test

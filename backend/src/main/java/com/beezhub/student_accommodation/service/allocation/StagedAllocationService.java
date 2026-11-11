@@ -29,6 +29,8 @@ import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.beezhub.student_accommodation.util.PageMapper;
+import com.beezhub.student_accommodation.service.document.DocumentExpiryPolicy;
+import com.beezhub.student_accommodation.service.document.DocumentReadinessGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,6 +72,7 @@ public class StagedAllocationService {
     private final RoomOccupancyManager roomOccupancyManager;
     private final StayCapacityGuard stayCapacityGuard;
     private final com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+    private final DocumentReadinessGuard documentReadinessGuard;
 
     @Transactional
     public RoomAllocationResponse confirmAllocation(Long stagedAllocationId, Long adminId) {
@@ -81,6 +84,8 @@ public class StagedAllocationService {
         stayCapacityGuard.assertNotEnded(stay);
         validateStudentNotAlreadyAllocated(staged, stay);
         stayCapacityGuard.assertBedFree(staged.getRoom(), stay);
+        documentReadinessGuard.assertReadyForRoom(staged.getStudent(), staged.getRoom().getTenantId(),
+                staged.getApplication());
 
         RoomAllocation allocation = createConfirmedAllocation(staged);
         stay.applyTo(allocation);
@@ -422,6 +427,9 @@ public class StagedAllocationService {
         StayPeriod stay = StayPeriod.of(application);
         stayCapacityGuard.assertNotEnded(stay);
         validateNoActiveAllocation(student.getId(), stay);
+        // Before scoring, which queues the student when no room fits: a student whose documents
+        // are not in order is skipped and keeps whatever queue place they have (GH-498).
+        documentReadinessGuard.assertReadyForRoom(student, DocumentExpiryPolicy.companyOf(application), application);
         Building effectiveBuilding = preferredBuilding != null ? preferredBuilding : application.getPreferredBuilding();
 
         List<ScoredRoom> scoredRooms = allocationScoringService.scoreAvailableRooms(student, application,

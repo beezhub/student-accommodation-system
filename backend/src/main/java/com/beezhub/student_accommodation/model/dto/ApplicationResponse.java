@@ -56,6 +56,12 @@ public class ApplicationResponse {
 
     private String allocationStatus;
 
+    /** A required or other expiring document of the student has expired at this company (GH-498). */
+    private Boolean hasExpiredDocuments;
+
+    /** The student had been checked in at this company when they applied (GH-499). */
+    private Boolean isReturning;
+
     private Long tenantId;
 
     /** The company the application is with (GH-495). */

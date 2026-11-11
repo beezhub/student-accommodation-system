@@ -78,6 +78,7 @@ public class ApplicationSubmissionService {
     private final AuthService authService;
     private final CompanyIntakePolicy intakePolicy;
     private final ApplicationPreferenceWriter preferenceWriter;
+    private final ReturningResidentPolicy returningResidentPolicy;
     private final Clock clock;
 
     /** One company's part of a submission, checked and ready to write. */
@@ -155,6 +156,7 @@ public class ApplicationSubmissionService {
                 .academicYear(intake.getAcademicYear())
                 .intake(intake)
                 .institution(student.getInstitution())
+                .isReturning(returningResidentPolicy.isReturning(student.getId(), company.getId()))
                 .build();
 
         // saveAndFlush, so a unique-index violation surfaces here, inside the transaction, where it

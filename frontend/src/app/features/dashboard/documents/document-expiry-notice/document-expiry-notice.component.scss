@@ -1,0 +1,32 @@
+@use '../../../../../styles/variables' as vars;
+
+.expiry-notice {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-3;
+  flex-wrap: wrap;
+  padding: vars.$space-3 vars.$space-4;
+  margin-bottom: vars.$space-3;
+  border: 1px solid vars.$slate-200;
+  border-radius: vars.$radius-md;
+  background: vars.$slate-50;
+}
+
+.expiry-notice--expired {
+  border-color: rgba(vars.$error, 0.35);
+  background: rgba(vars.$error, 0.06);
+}
+
+.expiry-notice__icon {
+  color: vars.$accent-purple-dark;
+
+  .expiry-notice--expired & {
+    color: vars.$error;
+  }
+}
+
+.expiry-notice__text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}

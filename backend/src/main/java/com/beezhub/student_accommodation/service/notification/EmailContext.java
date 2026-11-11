@@ -30,5 +30,7 @@ public sealed interface EmailContext permits
         ReconfirmReminderContext,
         PlaceReleasedContext,
         ApplicationExpiredContext,
-        ApplicationsWithdrawnContext {
+        ApplicationsWithdrawnContext,
+        DocumentExpiryReminderContext,
+        StayExtendedContext {
 }

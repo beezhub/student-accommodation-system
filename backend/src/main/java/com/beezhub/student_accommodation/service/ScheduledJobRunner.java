@@ -6,6 +6,7 @@ import com.beezhub.student_accommodation.service.allocation.OfferReminderService
 import com.beezhub.student_accommodation.service.allocation.CheckInReminderService;
 import com.beezhub.student_accommodation.service.allocation.ReconfirmationService;
 import com.beezhub.student_accommodation.service.application.IntakeExpiryService;
+import com.beezhub.student_accommodation.service.document.DocumentExpiryReminderService;
 import com.beezhub.student_accommodation.service.document.DocumentRetentionJob;
 import com.beezhub.student_accommodation.service.document.OrphanFileCleanupJob;
 import com.beezhub.student_accommodation.service.notification.NotificationRetryService;
@@ -40,6 +41,7 @@ public class ScheduledJobRunner {
     private final NotificationRetryService notificationRetryService;
     private final ReconfirmationService reconfirmationService;
     private final IntakeExpiryService intakeExpiryService;
+    private final DocumentExpiryReminderService documentExpiryReminderService;
     private final MeterRegistry meterRegistry;
 
     @Scheduled(fixedDelayString = "${app.allocation.expiry-check-interval-ms:3600000}")
@@ -194,6 +196,26 @@ public class ScheduledJobRunner {
         log.info("job={} action=start", jobName);
         try {
             int processed = intakeExpiryService.runDaily();
+            log.info("job={} action=complete processed={}", jobName, processed);
+            meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
+        } catch (Exception e) {
+            log.error("job={} action=failed", jobName, e);
+            meterRegistry.counter("sas.jobs." + jobName + ".failures").increment();
+        }
+    }
+
+    /**
+     * Reminds students to replace expiring documents, before and after expiry (GH-498). Daily at
+     * 06:30 UTC, 08:30 in South Africa: after the intake expiry and reconfirmation runs, so the
+     * emails arrive in the morning, and clear of the 01:30 UTC backup. Dates inside the run are read
+     * in South African time; the service sets the tenant context per company.
+     */
+    @Scheduled(cron = "${app.document.expiry-reminder-cron:0 30 6 * * *}", zone = "UTC")
+    public void runDocumentExpiryReminders() {
+        String jobName = "documentExpiryReminder";
+        log.info("job={} action=start", jobName);
+        try {
+            int processed = documentExpiryReminderService.runDaily();
             log.info("job={} action=complete processed={}", jobName, processed);
             meterRegistry.counter("sas.jobs." + jobName + ".processed").increment(processed);
         } catch (Exception e) {

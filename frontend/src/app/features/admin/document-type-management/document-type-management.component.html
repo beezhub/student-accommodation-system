@@ -159,6 +159,12 @@
                   <mat-icon>{{ docType.isRequired ? 'check_circle' : 'remove_circle' }}</mat-icon>
                   {{ docType.isRequired ? 'Required' : 'Optional' }}
                 </span>
+                @if (docType.isExpiring) {
+                  <span class="status-badge optional" matTooltip="Expires at the end of the academic year it was uploaded in">
+                    <mat-icon>event_busy</mat-icon>
+                    Expires yearly
+                  </span>
+                }
               </td>
             </ng-container>
 

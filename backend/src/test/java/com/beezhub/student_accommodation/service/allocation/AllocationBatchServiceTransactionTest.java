@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.service.allocation;
 
+import com.beezhub.student_accommodation.service.document.DocumentReadinessGuard;
 import com.beezhub.student_accommodation.config.FF4jConfig;
 import com.beezhub.student_accommodation.config.TransactionTemplateConfig;
 import com.beezhub.student_accommodation.exceptions.StudentAlreadyAllocatedException;
@@ -89,7 +90,8 @@ class AllocationBatchServiceTransactionTest {
 
     private AllocationBatchService serviceUsing(TransactionTemplate template) {
         return new AllocationBatchService(waitingListRepository, lifecycleService, featureFlagService, template,
-                environment, orchestrator, stagedAllocationService, roomAllocationMapper, new SimpleMeterRegistry(), neutralPriorityScorer());
+                environment, orchestrator, stagedAllocationService, roomAllocationMapper, new SimpleMeterRegistry(), neutralPriorityScorer(),
+                mock(DocumentReadinessGuard.class));
     }
 
     @Test

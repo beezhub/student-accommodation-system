@@ -41,6 +41,7 @@ import { Subscription } from 'rxjs';
 import { confirmAction } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { askForReason } from '../../../../shared/components/reason-dialog/reason-dialog.component';
 import { ApplicationStatus, canApplicationTransition } from '../../../../core/models/status.model';
+import { ApplicationFlagsComponent } from '../application-flags/application-flags.component';
 
 export interface ApplicationDetailDialogData {
   applicationId: number;
@@ -62,6 +63,7 @@ interface DocumentStatusChange {
   selector: 'app-application-detail-dialog',
   standalone: true,
   imports: [
+    ApplicationFlagsComponent,
     CommonModule,
     ReactiveFormsModule,
     MatDialogModule,

@@ -82,6 +82,8 @@ class AllocationLifecycleServiceTest {
     private AllocationAccessGuard allocationAccessGuard;
     @Mock
     private com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard tenantOwnershipGuard;
+    @Mock
+    private com.beezhub.student_accommodation.service.document.DocumentReadinessGuard documentReadinessGuard;
 
     @InjectMocks
     private AllocationLifecycleService allocationLifecycleService;
@@ -307,6 +309,22 @@ class AllocationLifecycleServiceTest {
         assertThatThrownBy(() -> allocationLifecycleService.createRoomAllocation(allocationRequest))
                 .isInstanceOf(StayEndedException.class);
         verify(roomAllocationRepository, never()).save(any());
+    }
+
+    /** GH-498: an expired or unapproved required expiring document holds every offer back. */
+    @Test
+    void createRoomAllocation_documentsNotReady_refusedAndNothingSaved() {
+        room.setTenantId(7L);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(roomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        org.mockito.Mockito.doThrow(new com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException("expired"))
+                .when(documentReadinessGuard).assertReadyForRoom(student, 7L, application);
+
+        assertThatThrownBy(() -> allocationLifecycleService.createRoomAllocation(allocationRequest))
+                .isInstanceOf(com.beezhub.student_accommodation.exceptions.DocumentsNotReadyException.class);
+        verify(roomAllocationRepository, never()).save(any());
+        verify(waitingListService, never()).updateStatusToAllocated(any());
     }
 
     /** An offer accepted months ahead keeps its check-in deadline until the student can arrive. */

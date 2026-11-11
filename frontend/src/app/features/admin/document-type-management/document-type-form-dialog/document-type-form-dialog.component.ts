@@ -56,6 +56,7 @@ export class DocumentTypeFormDialogComponent implements OnInit {
       name: ['', [Validators.required, Validators.maxLength(50)]],
       description: ['', [Validators.maxLength(255)]],
       isRequired: [false, [Validators.required]],
+      isExpiring: [false],
     });
   }
 
@@ -65,6 +66,7 @@ export class DocumentTypeFormDialogComponent implements OnInit {
         name: this.documentType.name,
         description: this.documentType.description,
         isRequired: this.documentType.isRequired,
+        isExpiring: !!this.documentType.isExpiring,
       });
     } else if (this.mode === 'create' && this.data.prefillName) {
       this.documentTypeForm.patchValue({ name: this.data.prefillName });

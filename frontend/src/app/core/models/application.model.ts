@@ -37,6 +37,10 @@ export interface Application {
   totalRequiredDocuments?: number;
   allocationStatus?: string;
   tenantId?: number;
+  /** An expiring document of the student has expired at this company (GH-498). */
+  hasExpiredDocuments?: boolean;
+  /** The student had been checked in at this company when they applied (GH-499). */
+  isReturning?: boolean;
 
   // The company, and the intake and year applied for (GH-495)
   companyName?: string | null;
