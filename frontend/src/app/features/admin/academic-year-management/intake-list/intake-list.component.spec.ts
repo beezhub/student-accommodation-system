@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 
@@ -45,6 +46,7 @@ describe('IntakeListComponent', () => {
       imports: [IntakeListComponent],
       providers: [
         provideNoopAnimations(),
+        provideNativeDateAdapter(),
         { provide: AcademicYearService, useValue: service },
         { provide: MatDialog, useValue: { open: () => ({ afterClosed: () => of(true) }) } },
       ],
@@ -75,8 +77,8 @@ describe('IntakeListComponent', () => {
     component.startAdd();
     component.form.patchValue({
       name: 'Semester 2',
-      stayStartDate: '2027-07-15',
-      stayEndDate: '2027-11-30',
+      stayStartDate: new Date(2027, 6, 15),
+      stayEndDate: new Date(2027, 10, 30),
     });
 
     component.save();
@@ -95,13 +97,28 @@ describe('IntakeListComponent', () => {
   it('save_edit_sendsTheChangedDates', () => {
     const component = fixture.componentInstance;
     component.startEdit(year.intakes![0]);
-    component.form.patchValue({ applicationCloseDate: '2027-01-31' });
+    component.form.patchValue({ applicationCloseDate: new Date(2027, 0, 31) });
 
     component.save();
 
-    expect(service.updateIntake).toHaveBeenCalledWith(
-      10,
-      jasmine.objectContaining({ applicationCloseDate: '2027-01-31' })
+    expect(service.updateIntake).toHaveBeenCalledWith(10, {
+      intakeType: 'ANNUAL',
+      name: 'Annual',
+      stayStartDate: '2027-02-01',
+      stayEndDate: '2027-11-30',
+      applicationOpenDate: '2026-10-04',
+      applicationCloseDate: '2027-01-31',
+    });
+  });
+
+  it('editor_datesUseTheCalendarPicker', () => {
+    (fixture.nativeElement.querySelector('.intake-edit') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('mat-datepicker-toggle').length).toBe(4);
+    expect(fixture.nativeElement.querySelector('input[type="date"]')).toBeNull();
+    expect(fixture.componentInstance.form.controls.stayStartDate.value).toEqual(
+      new Date(2027, 1, 1)
     );
   });
 

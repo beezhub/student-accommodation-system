@@ -78,20 +78,28 @@
     </mat-form-field>
     <mat-form-field appearance="outline">
       <mat-label>Move in</mat-label>
-      <input matInput type="date" formControlName="stayStartDate" />
+      <input matInput [matDatepicker]="moveInPicker" formControlName="stayStartDate" />
+      <mat-datepicker-toggle matSuffix [for]="moveInPicker"></mat-datepicker-toggle>
+      <mat-datepicker #moveInPicker></mat-datepicker>
     </mat-form-field>
     <mat-form-field appearance="outline">
       <mat-label>Move out</mat-label>
-      <input matInput type="date" formControlName="stayEndDate" />
+      <input matInput [matDatepicker]="moveOutPicker" formControlName="stayEndDate" />
+      <mat-datepicker-toggle matSuffix [for]="moveOutPicker"></mat-datepicker-toggle>
+      <mat-datepicker #moveOutPicker></mat-datepicker>
     </mat-form-field>
     <mat-form-field appearance="outline">
       <mat-label>Applications open</mat-label>
-      <input matInput type="date" formControlName="applicationOpenDate" />
+      <input matInput [matDatepicker]="openPicker" formControlName="applicationOpenDate" />
+      <mat-datepicker-toggle matSuffix [for]="openPicker"></mat-datepicker-toggle>
+      <mat-datepicker #openPicker></mat-datepicker>
       <mat-hint>Empty: filled in from move-in</mat-hint>
     </mat-form-field>
     <mat-form-field appearance="outline">
       <mat-label>Applications close</mat-label>
-      <input matInput type="date" formControlName="applicationCloseDate" />
+      <input matInput [matDatepicker]="closePicker" formControlName="applicationCloseDate" />
+      <mat-datepicker-toggle matSuffix [for]="closePicker"></mat-datepicker-toggle>
+      <mat-datepicker #closePicker></mat-datepicker>
     </mat-form-field>
     <div class="form-actions">
       <button mat-button type="button" (click)="cancel()">Cancel</button>

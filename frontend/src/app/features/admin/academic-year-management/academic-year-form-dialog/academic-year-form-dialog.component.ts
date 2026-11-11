@@ -1,22 +1,39 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { ErrorStateMatcher } from '@angular/material/core';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable } from 'rxjs';
 
 import { AcademicYearService } from '../../../../core/services/academic-year.service';
 import { InstitutionService } from '../../../../core/services/institution.service';
 import { AcademicYear, IntakeType } from '../../../../core/models/academic-year.model';
 import { Institution } from '../../../../core/models/institution.model';
-import { ALL_INSTITUTIONS, describeAffected } from '../academic-year-wording';
+import {
+  ALL_INSTITUTIONS,
+  IntakePreview,
+  describeAffected,
+  formatDay,
+  parseApiDate,
+  previewIntakes,
+  toApiDate,
+} from '../academic-year-wording';
 
 /**
  * 'pattern' creates a year with its intakes filled in (GH-494); 'edit' changes a year's name,
@@ -26,6 +43,13 @@ export interface AcademicYearDialogData {
   mode: 'pattern' | 'edit';
   academicYear?: AcademicYear;
   institutionId?: number | null;
+}
+
+/** The last move-out day has to come after the first move-in day, as the server checks. */
+function moveOutAfterMoveIn(group: AbstractControl): ValidationErrors | null {
+  const start = group.get('startDate')?.value as Date | null;
+  const end = group.get('endDate')?.value as Date | null;
+  return start && end && end.getTime() <= start.getTime() ? { dateOrder: true } : null;
 }
 
 @Component({
@@ -40,10 +64,12 @@ export interface AcademicYearDialogData {
     MatInputModule,
     MatButtonModule,
     MatCheckboxModule,
+    MatDatepickerModule,
     MatSelectModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatIconModule,
+    MatTooltipModule,
   ],
 })
 export class AcademicYearFormDialogComponent implements OnInit {
@@ -59,15 +85,33 @@ export class AcademicYearFormDialogComponent implements OnInit {
   institutions: Institution[] = [];
   isSubmitting = false;
 
-  form = this.fb.nonNullable.group({
-    institutionId: [null as number | null],
-    name: ['', [Validators.required, Validators.maxLength(20)]],
-    startDate: ['', Validators.required],
-    endDate: ['', Validators.required],
-    annual: [true],
-    semesters: [false],
-    trimesters: [false],
-  });
+  /** The intake choices, each with what it creates (GH-524). */
+  readonly intakeOptions = [
+    { control: 'annual', label: 'Annual', help: '1 intake for the whole year' },
+    { control: 'semesters', label: 'Semesters', help: '2 intakes, each half of the year' },
+    { control: 'trimesters', label: 'Trimesters', help: '3 intakes, each a third of the year' },
+  ] as const;
+
+  form = this.fb.group(
+    {
+      institutionId: [null as number | null],
+      name: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(20)]),
+      startDate: [null as Date | null, Validators.required],
+      endDate: [null as Date | null, Validators.required],
+      annual: this.fb.nonNullable.control(true),
+      semesters: this.fb.nonNullable.control(false),
+      trimesters: this.fb.nonNullable.control(false),
+    },
+    { validators: moveOutAfterMoveIn }
+  );
+
+  /** Marks the move-out field red when the dates are the wrong way round, not only when empty. */
+  readonly endDateErrorState: ErrorStateMatcher = {
+    isErrorState: (control) =>
+      !!control &&
+      (control.invalid || this.form.hasError('dateOrder')) &&
+      (control.touched || control.dirty),
+  };
 
   ngOnInit(): void {
     this.institutionService.getInstitutions().subscribe({
@@ -79,8 +123,8 @@ export class AcademicYearFormDialogComponent implements OnInit {
       this.form.patchValue({
         institutionId: year.institutionId ?? null,
         name: year.name,
-        startDate: year.startDate,
-        endDate: year.endDate,
+        startDate: parseApiDate(year.startDate),
+        endDate: parseApiDate(year.endDate),
       });
     } else {
       this.form.patchValue({ institutionId: this.data.institutionId ?? null });
@@ -97,6 +141,24 @@ export class AcademicYearFormDialogComponent implements OnInit {
     ];
   }
 
+  /** The full name of the picked institution, which the closed select may cut off. */
+  get institutionName(): string {
+    const id = this.form.controls.institutionId.value;
+    return this.institutions.find((institution) => institution.id === id)?.name ?? ALL_INSTITUTIONS;
+  }
+
+  /** The intakes that will be created, worked out the way the server does. */
+  get preview(): IntakePreview[] {
+    const { startDate, endDate } = this.form.getRawValue();
+    return previewIntakes(toApiDate(startDate), toApiDate(endDate), this.intakeTypes);
+  }
+
+  /** "1 February to 1 July", with the year only when it differs from the first move-in. */
+  describeStay(intake: IntakePreview): string {
+    const year = this.form.controls.startDate.value?.getFullYear();
+    return `${formatDay(intake.stayStartDate, year)} to ${formatDay(intake.stayEndDate, year)}`;
+  }
+
   get canSubmit(): boolean {
     return this.form.valid && (this.isEditMode || this.intakeTypes.length > 0);
   }
@@ -111,8 +173,8 @@ export class AcademicYearFormDialogComponent implements OnInit {
     const base = {
       institutionId: value.institutionId,
       name: value.name.trim(),
-      startDate: value.startDate,
-      endDate: value.endDate,
+      startDate: toApiDate(value.startDate),
+      endDate: toApiDate(value.endDate),
     };
     const operation: Observable<AcademicYear> =
       this.isEditMode && this.data.academicYear

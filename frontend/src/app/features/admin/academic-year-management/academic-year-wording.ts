@@ -1,4 +1,4 @@
-import { AcademicYear, Intake } from '../../../core/models/academic-year.model';
+import { AcademicYear, Intake, IntakeType } from '../../../core/models/academic-year.model';
 
 /** One institution's years on the admin screen, newest first. */
 export interface InstitutionGroup {
@@ -57,6 +57,53 @@ export function describeIntake(intake: Intake): string {
 /** "1 February 2027 to 30 November 2027". */
 export function describeYearDates(year: AcademicYear): string {
   return `${formatDay(year.startDate, -1)} to ${formatDay(year.endDate, -1)}`;
+}
+
+/** One intake "Create year" will make, before it is saved. */
+export interface IntakePreview {
+  name: string;
+  stayStartDate: string;
+  stayEndDate: string;
+}
+
+const INTAKE_PARTS: Record<IntakeType, { label: string; parts: number }> = {
+  ANNUAL: { label: 'Annual', parts: 1 },
+  SEMESTER: { label: 'Semester', parts: 2 },
+  TRIMESTER: { label: 'Trimester', parts: 3 },
+};
+
+/**
+ * The intakes "Create year" will make: Annual is the whole year, Semesters split it in two and
+ * Trimesters in three. Mirrors `IntakeService.split` on the server, which stays the source of
+ * truth. Empty when the dates are missing, reversed, or too short to split.
+ */
+export function previewIntakes(start: string, end: string, types: IntakeType[]): IntakePreview[] {
+  const first = parseApiDate(start);
+  const last = parseApiDate(end);
+  if (!first || !last) {
+    return [];
+  }
+  const dayMs = 24 * 60 * 60 * 1000;
+  const utc = (date: Date) => Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const days = Math.round((utc(last) - utc(first)) / dayMs) + 1;
+  const plusDays = (offset: number) =>
+    toApiDate(new Date(first.getFullYear(), first.getMonth(), first.getDate() + offset));
+
+  const intakes: IntakePreview[] = [];
+  for (const type of types) {
+    const { label, parts } = INTAKE_PARTS[type];
+    if (days < parts * 2) {
+      return [];
+    }
+    for (let part = 1; part <= parts; part++) {
+      intakes.push({
+        name: parts === 1 ? label : `${label} ${part}`,
+        stayStartDate: plusDays(Math.floor((days * (part - 1)) / parts)),
+        stayEndDate: part === parts ? end : plusDays(Math.floor((days * part) / parts) - 1),
+      });
+    }
+  }
+  return intakes;
 }
 
 /** What an edit touched, in plain words, or null when nothing is on file yet. */

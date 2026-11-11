@@ -19,6 +19,30 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { AppNavMenuComponent } from './shared/app-nav-menu.component';
 import { BrandLogoComponent } from './shared/components/brand-logo/brand-logo.component';
 
+/** Full-screen pages that draw their own header, so the app navbar stays hidden. */
+const TOOLBAR_HIDDEN_ROUTES = [
+  '/home',
+  '/login',
+  '/signup',
+  '/verify-email',
+  '/email-verification-required',
+  '/forgot-password',
+  '/reset-password',
+  '/profile-setup',
+  '/document-upload',
+  '/application-submission',
+  '/application-review',
+  '/application-confirmation',
+];
+
+/** True when `url` is one of those pages, with or without a query string. */
+export function hidesToolbar(url: string): boolean {
+  return (
+    url.startsWith('/buildings') ||
+    TOOLBAR_HIDDEN_ROUTES.some((route) => url === route || url.startsWith(route + '?'))
+  );
+}
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -52,20 +76,6 @@ export class AppComponent implements OnInit, OnDestroy {
   isHomePage = false;
   isAdminRoute = false;
 
-  private static readonly TOOLBAR_HIDDEN_ROUTES = [
-    '/home',
-    '/login',
-    '/signup',
-    '/verify-email',
-    '/forgot-password',
-    '/reset-password',
-    '/profile-setup',
-    '/document-upload',
-    '/application-submission',
-    '/application-review',
-    '/application-confirmation',
-  ];
-
   constructor() {
     this.isMobile = this.breakpointObserver.isMatched(Breakpoints.Handset);
     // Initialize immediately so the toolbar is hidden on the first render
@@ -79,11 +89,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private updateRouteFlags(url: string): void {
     this.isAdminRoute = url.startsWith('/admin');
-    this.isHomePage =
-      url.startsWith('/buildings') ||
-      AppComponent.TOOLBAR_HIDDEN_ROUTES.some(
-        (route) => url === route || url.startsWith(route + '?')
-      );
+    this.isHomePage = hidesToolbar(url);
   }
 
   ngOnInit() {
