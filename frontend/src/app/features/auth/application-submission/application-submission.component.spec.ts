@@ -93,7 +93,7 @@ describe('ApplicationSubmissionComponent', () => {
       studentNumber: 'S1',
       phoneNumber: '0821234567',
       dateOfBirth: new Date(2000, 4, 14),
-      gender: 'female',
+      gender: 'Female',
       courseName: 'BSc',
     });
   }
@@ -165,7 +165,7 @@ describe('ApplicationSubmissionComponent', () => {
           id: 7,
           studentNumber: 'S1',
           phoneNumber: '0821234567',
-          gender: 'female',
+          gender: 'Female',
           specialRequirements: 'Ground floor',
         }) as never
       );
@@ -174,7 +174,7 @@ describe('ApplicationSubmissionComponent', () => {
 
       expect(component.applicationForm.value.studentNumber).toBe('S1');
       expect(component.applicationForm.value.phoneNumber).toBe('0821234567');
-      expect(component.applicationForm.value.gender).toBe('female');
+      expect(component.applicationForm.value.gender).toBe('Female');
       expect(component.applicationForm.value.specialRequirements).toBe('Ground floor');
     });
 

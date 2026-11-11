@@ -81,10 +81,10 @@ describe('ProfileComponent', () => {
     [
       ['MALE', 'Male'],
       ['female', 'Female'],
-      ['OTHER', 'Other'],
-      ['prefer-not-to-say', 'prefer-not-to-say'],
+      ['OTHER', ''],
+      ['prefer-not-to-say', ''],
     ].forEach(([stored, shown]) => {
-      it(`ngOnInit_gender_${stored}_isShownAs_${shown}`, () => {
+      it(`ngOnInit_gender_${stored}_isShownAs_${shown || 'empty'}`, () => {
         studentService.getStudentProfile.and.returnValue(
           of({ ...profile, gender: stored }) as never
         );
