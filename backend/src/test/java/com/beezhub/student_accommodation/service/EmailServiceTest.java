@@ -226,8 +226,8 @@ class EmailServiceTest {
     void sendTemplateEmail_withRoomAllocatedContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var ctx = new RoomAllocatedContext("Student Name", "101", "Building", "Single",
-                "1", "ALLOC1", "2023-01-01", "2023-12-31", "1 Year", "Office", "Address", "url",
-                "01 January 2024 at 12:00 UTC");
+                "2023-01-01", "2023-12-31", "1 Year", "Address", "url",
+                "01 January 2024 at 12:00 UTC", "https://www.google.com/maps/search/?api=1&query=0,0");
 
         emailService.sendTemplateEmail("test@example.com", EmailSubjects.ROOM_ALLOCATED, "room-allocated", ctx);
 

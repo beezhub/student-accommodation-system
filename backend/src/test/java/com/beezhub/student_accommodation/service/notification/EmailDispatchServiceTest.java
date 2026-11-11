@@ -223,8 +223,6 @@ class EmailDispatchServiceTest {
     @Test
     void sendRoomAllocatedEmail_validData_sendsEmail() {
         when(contentBuilder.determineRoomType(any(Room.class))).thenReturn("Single");
-        when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
-        when(contentBuilder.calculateDuration(any(), any())).thenReturn("1 year");
 
         emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, "John Doe", "john@example.com");
 
@@ -250,6 +248,69 @@ class EmailDispatchServiceTest {
                 eq("john@example.com"), eq(EmailSubjects.ROOM_ALLOCATED), eq("room-allocated"), ctx.capture());
         assertThat(ctx.getValue().offerExpiryDate()).isEqualTo("11 November 2026 at 14:30 UTC");
         assertThat(ctx.getValue().portalUrl()).isEqualTo("http://test-url/dashboard");
+    }
+
+    /**
+     * GH-529: the tenancy is the stay the student applied for, not the day the offer went out
+     * plus ten months. On NONPROD an offer made on 11 Nov 2026 for a 15 Jan to 15 Dec 2027 stay
+     * said 11 Nov 2026 to 11 Sep 2027.
+     */
+    @Test
+    void sendRoomAllocatedEmail_tenancy_isTheStayNotTheOfferDate() {
+        allocation.setAllocationDate(LocalDateTime.of(2026, 11, 11, 17, 34));
+        allocation.setStayStartDate(java.time.LocalDate.of(2027, 1, 15));
+        allocation.setStayEndDate(java.time.LocalDate.of(2027, 12, 15));
+        when(contentBuilder.formatDate(java.time.LocalDate.of(2027, 1, 15))).thenReturn("15 January 2027");
+        when(contentBuilder.formatDate(java.time.LocalDate.of(2027, 12, 15))).thenReturn("15 December 2027");
+        when(contentBuilder.calculateDuration(java.time.LocalDate.of(2027, 1, 15), java.time.LocalDate.of(2027, 12, 15)))
+                .thenReturn("11 months");
+
+        RoomAllocatedContext ctx = sentRoomAllocatedContext();
+
+        assertThat(ctx.startDate()).isEqualTo("15 January 2027");
+        assertThat(ctx.endDate()).isEqualTo("15 December 2027");
+        assertThat(ctx.duration()).isEqualTo("11 months");
+    }
+
+    @Test
+    void sendRoomAllocatedEmail_noStayDates_inventsNoTenancy() {
+        allocation.setStayStartDate(null);
+        allocation.setStayEndDate(null);
+
+        RoomAllocatedContext ctx = sentRoomAllocatedContext();
+
+        assertThat(ctx.startDate()).isNull();
+        assertThat(ctx.endDate()).isNull();
+        assertThat(ctx.duration()).isNull();
+    }
+
+    /** The student portal has no map; the email links to the building on Google Maps instead. */
+    @Test
+    void sendRoomAllocatedEmail_buildingWithCoordinates_linksToTheMapAndUsesTheFullAddress() {
+        building.setFormattedAddress("1 Jan Smuts Ave, Braamfontein, Johannesburg, 2000");
+        building.setLatitude(new BigDecimal("-26.1929"));
+        building.setLongitude(new BigDecimal("28.0305"));
+
+        RoomAllocatedContext ctx = sentRoomAllocatedContext();
+
+        assertThat(ctx.buildingAddress()).isEqualTo("1 Jan Smuts Ave, Braamfontein, Johannesburg, 2000");
+        assertThat(ctx.mapsUrl()).isEqualTo("https://www.google.com/maps/search/?api=1&query=-26.1929,28.0305");
+    }
+
+    @Test
+    void sendRoomAllocatedEmail_buildingWithoutCoordinates_hasNoMapLink() {
+        RoomAllocatedContext ctx = sentRoomAllocatedContext();
+
+        assertThat(ctx.buildingAddress()).isEqualTo("123 Test St");
+        assertThat(ctx.mapsUrl()).isNull();
+    }
+
+    private RoomAllocatedContext sentRoomAllocatedContext() {
+        emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, "John Doe", "john@example.com");
+        ArgumentCaptor<RoomAllocatedContext> ctx = ArgumentCaptor.forClass(RoomAllocatedContext.class);
+        verify(emailService).sendTemplateEmail(
+                eq("john@example.com"), eq(EmailSubjects.ROOM_ALLOCATED), eq("room-allocated"), ctx.capture());
+        return ctx.getValue();
     }
 
     @Test

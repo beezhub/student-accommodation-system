@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -241,37 +242,44 @@ public class EmailDispatchService {
                 log.info("Room allocation email sent to {}", email);
         }
 
+        /**
+         * Everything here comes from the allocation, the room or the building (GH-529). The stay is
+         * the one the student applied for; the offer date is not the start of anything.
+         */
         private RoomAllocatedContext roomAllocatedContext(RoomAllocation allocation, Room room,
                         Building building, String studentName) {
-                String roomNumber = room.getRoomNumber();
-                String buildingName = building.getName();
-                String buildingAddress = building.getAddress() != null ? building.getAddress() : "";
-                String roomType = contentBuilder.determineRoomType(room);
-                String bedNumber = "1";
-                String allocationId = "ALLOC-" + allocation.getId();
-                String startDate = contentBuilder.formatDate(allocation.getAllocationDate());
-                String endDate = allocation.getEndDate() != null
-                                ? contentBuilder.formatDate(allocation.getEndDate())
-                                : contentBuilder.formatDate(allocation.getAllocationDate().plusMonths(10));
-                String duration = contentBuilder.calculateDuration(allocation.getAllocationDate(),
-                                allocation.getEndDate());
-                String officeLocation = "Main Administration Building, Ground Floor";
-                String portalUrl = baseUrl + "/dashboard";
+                LocalDate stayStart = allocation.getStayStartDate();
+                LocalDate stayEnd = allocation.getStayEndDate();
 
                 return new RoomAllocatedContext(
                                 studentName,
-                                roomNumber,
-                                buildingName,
-                                roomType,
-                                bedNumber,
-                                allocationId,
-                                startDate,
-                                endDate,
-                                duration,
-                                officeLocation,
-                                buildingAddress,
-                                portalUrl,
-                                contentBuilder.formatDeadline(allocation.getOfferExpiryDate()));
+                                room.getRoomNumber(),
+                                building.getName(),
+                                contentBuilder.determineRoomType(room),
+                                stayStart != null ? contentBuilder.formatDate(stayStart) : null,
+                                stayEnd != null ? contentBuilder.formatDate(stayEnd) : null,
+                                contentBuilder.calculateDuration(stayStart, stayEnd),
+                                addressOf(building),
+                                baseUrl + "/dashboard",
+                                contentBuilder.formatDeadline(allocation.getOfferExpiryDate()),
+                                mapsUrlOf(building));
+        }
+
+        /** The geocoded address when there is one, since it is the complete form. */
+        private static String addressOf(Building building) {
+                if (building.getFormattedAddress() != null && !building.getFormattedAddress().isBlank()) {
+                        return building.getFormattedAddress();
+                }
+                return building.getAddress() != null && !building.getAddress().isBlank() ? building.getAddress() : null;
+        }
+
+        /** A Google Maps link to the building, or null when it was never geocoded. */
+        private static String mapsUrlOf(Building building) {
+                if (building.getLatitude() == null || building.getLongitude() == null) {
+                        return null;
+                }
+                return "https://www.google.com/maps/search/?api=1&query="
+                                + building.getLatitude().toPlainString() + "," + building.getLongitude().toPlainString();
         }
 
         public Map<String, Object> allocationProposalTemplateData(StagedAllocation stagedAllocation,

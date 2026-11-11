@@ -5,13 +5,11 @@ public record RoomAllocatedContext(
         String roomNumber,
         String buildingName,
         String roomType,
-        String bedNumber,
-        String allocationId,
         String startDate,
         String endDate,
         String duration,
-        String officeLocation,
         String buildingAddress,
         String portalUrl,
-        String offerExpiryDate
+        String offerExpiryDate,
+        String mapsUrl
 ) implements EmailContext {}

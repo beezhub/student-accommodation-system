@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,16 +69,26 @@ class EmailContentBuilderTest {
     }
 
     @Test
+    void calculateDuration_stayDates_countsTheMonthsBetweenThem() {
+        assertEquals("11 months", emailContentBuilder.calculateDuration(
+                java.time.LocalDate.of(2027, 1, 15), java.time.LocalDate.of(2027, 12, 15)));
+    }
+
+    /** GH-529: no end date means no duration, never a guessed ten months. */
+    @Test
+    void calculateDuration_noEndDate_returnsNull() {
+        assertNull(emailContentBuilder.calculateDuration(java.time.LocalDate.of(2027, 1, 15), null));
+    }
+
+    @Test
     void calculateDuration_10Months_returns10Months() {
-        LocalDateTime start = LocalDateTime.of(2026, 1, 1, 0, 0);
-        LocalDateTime end = LocalDateTime.of(2026, 11, 1, 0, 0);
-        assertEquals("10 months", emailContentBuilder.calculateDuration(start, end));
+        assertEquals("10 months", emailContentBuilder.calculateDuration(
+                java.time.LocalDate.of(2026, 1, 1), java.time.LocalDate.of(2026, 11, 1)));
     }
 
     @Test
     void calculateDuration_1Year_returns1Year() {
-        LocalDateTime start = LocalDateTime.of(2026, 1, 1, 0, 0);
-        LocalDateTime end = LocalDateTime.of(2027, 1, 1, 0, 0);
-        assertEquals("1 year", emailContentBuilder.calculateDuration(start, end));
+        assertEquals("1 year", emailContentBuilder.calculateDuration(
+                java.time.LocalDate.of(2026, 1, 1), java.time.LocalDate.of(2027, 1, 1)));
     }
 }

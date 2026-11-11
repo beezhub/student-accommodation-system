@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -101,11 +102,12 @@ public class EmailContentBuilder {
         };
     }
 
-    public String calculateDuration(LocalDateTime startDate, LocalDateTime endDate) {
-        if (startDate == null) return "N/A";
-        if (endDate == null) {
-            endDate = startDate.plusMonths(10);
-        }
+    /**
+     * The length of a stay, for example "11 months". Null when either date is missing: an email
+     * shows no duration rather than a guessed one (GH-529).
+     */
+    public String calculateDuration(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) return null;
 
         long months = ChronoUnit.MONTHS.between(startDate, endDate);
 

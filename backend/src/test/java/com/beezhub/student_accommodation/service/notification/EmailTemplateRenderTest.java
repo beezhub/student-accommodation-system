@@ -779,6 +779,55 @@ class EmailTemplateRenderTest {
         }
     }
 
+    /**
+     * GH-529: the offer used to list a bed number, an internal id, an office and move-in steps
+     * that no data supplied. Older notification rows still carry those keys, so they are passed.
+     */
+    @Test
+    void roomAllocated_showsNothingInvented() {
+        Map<String, Object> vars = minimalVars("room-allocated");
+        vars.put("roomNumber", "205B");
+        vars.put("bedNumber", "1");
+        vars.put("allocationId", "ALLOC-2026-099");
+        vars.put("officeLocation", "Main Administration Building, Ground Floor");
+        vars.put("buildingAddress", "1 Campus Drive, City");
+
+        String html = render("room-allocated", vars);
+
+        assertThat(html)
+                .doesNotContain("Bed Number")
+                .doesNotContain("ALLOC-")
+                .doesNotContain("Main Administration Building")
+                .doesNotContain("orientation")
+                .doesNotContain("2:00 PM")
+                .doesNotContain("Important Reminders")
+                .doesNotContain("View map in your student portal")
+                .contains("1 Campus Drive, City");
+        assertThat(html.split("205B", -1)).as("room number shown once").hasSize(2);
+        assertThat(html.split("Review and Accept Offer", -1)).as("one button").hasSize(2);
+    }
+
+    @Test
+    void roomAllocated_withMapsUrl_linksToTheMap() {
+        Map<String, Object> vars = minimalVars("room-allocated");
+        vars.put("buildingAddress", "1 Campus Drive, City");
+        vars.put("mapsUrl", "https://www.google.com/maps/search/?api=1&query=-26.1929,28.0305");
+
+        assertThat(render("room-allocated", vars))
+                .contains("href=\"https://www.google.com/maps/search/?api=1&amp;query=-26.1929,28.0305\"");
+    }
+
+    /** No stay dates on the allocation: no tenancy block, rather than invented dates. */
+    @Test
+    void roomAllocated_noStayDates_hidesTheTenancy() {
+        Map<String, Object> vars = minimalVars("room-allocated");
+        vars.remove("startDate");
+        vars.remove("endDate");
+        vars.remove("duration");
+
+        assertThat(render("room-allocated", vars)).doesNotContain("Tenancy");
+    }
+
     /** By approval the documents are uploaded, and checking them is the office's job (GH-526). */
     @Test
     void applicationApproved_nextStepsAreWhatHappensNext() {

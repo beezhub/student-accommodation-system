@@ -234,15 +234,13 @@ public class EmailService {
                 vars.put("roomNumber", c.roomNumber());
                 vars.put("buildingName", c.buildingName());
                 vars.put("roomType", c.roomType());
-                vars.put("bedNumber", c.bedNumber());
-                vars.put("allocationId", c.allocationId());
                 vars.put("startDate", c.startDate());
                 vars.put("endDate", c.endDate());
                 vars.put("duration", c.duration());
-                vars.put("officeLocation", c.officeLocation());
                 vars.put("buildingAddress", c.buildingAddress());
                 vars.put("portalUrl", c.portalUrl());
                 vars.put("offerExpiryDate", c.offerExpiryDate());
+                vars.put("mapsUrl", c.mapsUrl());
             }
             case AllocationProposalContext c -> {
                 vars.put("studentName", c.studentName());
