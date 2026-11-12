@@ -1,5 +1,8 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { ContactInfoService } from '../../core/services/contact-info.service';
+import { telHref } from '../../core/models/contact-info.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { BrandLogoComponent } from '../../shared/components/brand-logo/brand-logo.component';
@@ -11,6 +14,7 @@ import { TestimonialsComponent } from '../../shared/components/testimonials/test
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
   imports: [
+    AsyncPipe,
     RouterModule,
     MatButtonModule,
     MatIconModule,
@@ -21,6 +25,10 @@ import { TestimonialsComponent } from '../../shared/components/testimonials/test
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {
+  /** Set by APP_SUPPORT_EMAIL and APP_CONTACT_PHONE on the backend. */
+  readonly contact$ = inject(ContactInfoService).getContactInfo();
+  readonly telHref = telHref;
+
   readonly stats = [
     { value: '5,000+', label: 'Students housed' },
     { value: '200+', label: 'Rooms available' },

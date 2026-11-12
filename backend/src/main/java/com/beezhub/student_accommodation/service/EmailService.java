@@ -43,7 +43,7 @@ public class EmailService {
     @Value("${app.university-name:University}")
     private String universityName;
 
-    @Value("${app.contact-phone:+27 (0) 11 000 0000}")
+    @Value("${app.contact-phone:}")
     private String contactPhone;
 
     String sender() {
