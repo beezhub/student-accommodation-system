@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import {
+  ActivatedRoute,
   ActivatedRouteSnapshot,
   provideRouter,
   Router,
@@ -37,6 +38,7 @@ describe('EmailVerificationRequiredComponent', () => {
 
   let httpMock: HttpTestingController;
   let navigate: jasmine.Spy;
+  let navigateByUrl: jasmine.Spy;
   let open: jasmine.Spy;
   let component: EmailVerificationRequiredComponent;
 
@@ -68,6 +70,7 @@ describe('EmailVerificationRequiredComponent', () => {
     });
     httpMock = TestBed.inject(HttpTestingController);
     navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    navigateByUrl = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
     open = spyOn(MatSnackBar.prototype, 'open').and.callThrough();
     component = TestBed.createComponent(EmailVerificationRequiredComponent).componentInstance;
   });
@@ -133,6 +136,27 @@ describe('EmailVerificationRequiredComponent', () => {
         { url: '/dashboard' } as RouterStateSnapshot
       )
     ).toBeTrue();
+  });
+
+  /** Sent here from step 4 or a guard: once verified, go back to what they were doing. */
+  it('checkVerificationStatus_verifiedWithAReturnUrl_goesBackThere', () => {
+    TestBed.inject(ActivatedRoute).snapshot.queryParams = { returnUrl: '/application-submission' };
+
+    component.checkVerificationStatus();
+    httpMock.expectOne(meUrl).flush({ ...student, emailVerified: true });
+
+    expect(navigateByUrl).toHaveBeenCalledWith('/application-submission');
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('checkVerificationStatus_verifiedWithAnOffSiteReturnUrl_goesToTheDashboard', () => {
+    TestBed.inject(ActivatedRoute).snapshot.queryParams = { returnUrl: '//evil.example' };
+
+    component.checkVerificationStatus();
+    httpMock.expectOne(meUrl).flush({ ...student, emailVerified: true });
+
+    expect(navigateByUrl).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith(['/dashboard']);
   });
 
   it('checkVerificationStatus_stillUnverified_staysAndSaysSo', () => {

@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ErrorHandlingService } from '../../../core/services/error-handling.service';
 import { RoleService } from '../../../core/services/role.service';
+import { safeReturnUrl } from '../../../core/utils/safe-return-url';
 
 // Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -89,7 +90,7 @@ export class LoginComponent {
               panelClass: ['success-snackbar'],
             });
             // Back to whatever the guard interrupted, if anything.
-            const target = this.safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
+            const target = safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
             if (target) {
               // navigateByUrl, so a returnUrl carrying its own query string or fragment survives.
               this.router.navigateByUrl(target);
@@ -128,21 +129,5 @@ export class LoginComponent {
 
   togglePasswordVisibility(): void {
     this.hidePassword = !this.hidePassword;
-  }
-
-  /**
-   * Deny-by-default check on the returnUrl query parameter.
-   *
-   * <p>Angular routing cannot navigate off-origin, so this is defence in depth rather than the
-   * thing standing between a user and an open redirect. It also stops a redirect loop back to the
-   * login page, which is the failure a tester would actually hit.
-   */
-  private safeReturnUrl(raw: string | null): string | null {
-    if (!raw || !raw.startsWith('/')) return null;
-    if (raw.startsWith('//') || raw.startsWith('/\\')) return null;
-    if (raw.includes('://')) return null;
-    const path = raw.split(/[?#]/)[0];
-    if (path === '/login' || path === '/') return null;
-    return raw;
   }
 }

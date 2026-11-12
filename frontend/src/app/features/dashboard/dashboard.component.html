@@ -115,7 +115,6 @@
                 </span>
                 <span class="room-building">On the waiting list</span>
               } @else {
-                <span class="room-number room-number--placeholder">–</span>
                 <span class="room-building">No allocation yet</span>
               }
             </div>
@@ -127,14 +126,12 @@
                 We'll notify you as soon as a room becomes available.
               </p>
             } @else if (!currentApplication && !isLoadingCurrentApplication) {
-              <div class="dash-empty">
-                <mat-icon>meeting_room</mat-icon>
-                <p>No application yet</p>
-                <span>Submit an accommodation application to get started.</span>
-                <button class="dash-btn-dark dash-btn-sm" routerLink="/applications/new">
-                  <mat-icon>add</mat-icon> Start Application
-                </button>
-              </div>
+              <!-- The Application card below owns the "apply" call to action; repeating it here
+                   stacked three identical empty states on a new student's dashboard. -->
+              <p class="dash-notice-text">
+                <mat-icon>info_outline</mat-icon>
+                Apply for accommodation and your room will show here once it is assigned.
+              </p>
             } @else if (currentApplication?.status?.toUpperCase() === 'CANCELLED') {
               <div class="dash-empty">
                 <mat-icon>cancel</mat-icon>
@@ -253,7 +250,7 @@
                     <div class="dash-doc-name">
                       <mat-icon>description</mat-icon>
                       <div>
-                        <span class="info-label">{{doc.name}}</span>
+                        <span class="info-label dash-doc-title" [title]="doc.name">{{doc.name}}</span>
                         <span class="dash-doc-date">{{doc.date | date:'shortDate'}}</span>
                       </div>
                     </div>
@@ -291,11 +288,7 @@
         }
 
         @if (!isLoadingApplications && applicationHistory.length === 0) {
-          <div class="dash-empty">
-            <mat-icon>inbox</mat-icon>
-            <p>No applications yet</p>
-            <span>Your application history will appear here.</span>
-          </div>
+          <p class="dash-history-empty">Your past applications will appear here.</p>
         }
 
         @if (!isLoadingApplications && applicationHistory.length > 0) {

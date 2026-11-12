@@ -332,8 +332,11 @@
   gap: 1rem;
   min-height: 168px;
 
+  // No room number to show, so the 168px stage would be a tall empty block.
   &--empty {
     background: vars.$slate-800;
+    min-height: 0;
+    padding: 1.25rem 1.75rem;
   }
 
   &--loading {
@@ -794,6 +797,7 @@
   display: flex;
   align-items: center;
   gap: 0.625rem;
+  min-width: 0;
 
   mat-icon {
     font-size: 1rem;
@@ -807,7 +811,22 @@
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
+    min-width: 0;
   }
+}
+
+// Uploaded file names are often long; one line each, full name in the tooltip.
+.dash-doc-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-history-empty {
+  margin: 0;
+  padding: 1rem 1.5rem;
+  font-size: 0.8125rem;
+  color: vars.$slate-400;
 }
 
 .dash-doc-date {
