@@ -30,7 +30,7 @@ public class EmailDispatchService {
         @Value("${app.support-email:accommodation@university.edu}")
         private String supportEmail;
 
-        @Value("${app.contact-phone:+27 (0) 11 000 0000}")
+        @Value("${app.contact-phone:}")
         private String contactPhone;
 
         /** The same limit AllowListFileValidationService enforces on upload. */
