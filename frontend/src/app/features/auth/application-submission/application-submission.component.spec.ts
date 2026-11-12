@@ -36,6 +36,7 @@ describe('ApplicationSubmissionComponent', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     authService = { currentUserValue: { emailVerified: true } };
     applicationService = jasmine.createSpyObj('ApplicationService', ['hasActiveApplication']);
     buildingService = jasmine.createSpyObj('BuildingService', [
@@ -82,7 +83,10 @@ describe('ApplicationSubmissionComponent', () => {
     component = TestBed.createComponent(ApplicationSubmissionComponent).componentInstance;
   });
 
-  afterEach(() => localStorage.clear());
+  afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
 
   function fillInTheForm(): void {
     component.studentId = 7;
@@ -304,6 +308,107 @@ describe('ApplicationSubmissionComponent', () => {
 
       expect(component.selectedTenantId).toBeNull();
       expect(documentTypeService.getRequiredDocumentTypes).toHaveBeenCalledWith(undefined);
+    });
+  });
+
+  /** #550: a refresh before Continue to Review emptied every field on step 4. */
+  describe('keeping answers across a refresh', () => {
+    const student = { id: '9', emailVerified: true } as User;
+
+    function typeAnswers(): void {
+      component.applicationForm.patchValue({
+        studentNumber: 'S9',
+        phoneNumber: '0821234567',
+        dateOfBirth: new Date(2004, 2, 14),
+        gender: 'Female',
+        courseName: 'BSc Computer Science',
+        requiresAccessibility: true,
+        preferredBuildingIds: [5],
+        termsAccepted: true,
+      });
+    }
+
+    function refresh(): void {
+      component = TestBed.createComponent(ApplicationSubmissionComponent).componentInstance;
+      component.currentUser = student;
+      component.loadStudentProfile();
+    }
+
+    it('loadStudentProfile_answersTypedBeforeARefresh_comeBack', () => {
+      component.currentUser = student;
+      component.loadStudentProfile();
+      typeAnswers();
+
+      refresh();
+
+      const v = component.applicationForm.value;
+      expect(v.studentNumber).toBe('S9');
+      expect(v.dateOfBirth).toEqual(new Date(2004, 2, 14));
+      expect(v.gender).toBe('Female');
+      expect(v.courseName).toBe('BSc Computer Science');
+      expect(v.requiresAccessibility).toBeTrue();
+      expect(v.preferredBuildingIds).toEqual([5]);
+    });
+
+    it('loadStudentProfile_afterARefresh_theConfirmationIsNotKept', () => {
+      component.currentUser = student;
+      component.loadStudentProfile();
+      typeAnswers();
+
+      refresh();
+
+      expect(component.applicationForm.value.termsAccepted).toBeFalse();
+    });
+
+    it('loadStudentProfile_keptAnswers_winOverTheSavedProfile', () => {
+      component.currentUser = student;
+      component.loadStudentProfile();
+      typeAnswers();
+      studentService.getStudentProfile.and.returnValue(
+        of({ id: 7, studentNumber: 'OLD', dateOfBirth: '2000-05-14' }) as never
+      );
+
+      refresh();
+
+      expect(component.applicationForm.value.studentNumber).toBe('S9');
+      expect(component.applicationForm.value.dateOfBirth).toEqual(new Date(2004, 2, 14));
+    });
+
+    it('loadStudentProfile_anotherStudentsAnswers_areNotShown', () => {
+      component.currentUser = student;
+      component.loadStudentProfile();
+      typeAnswers();
+
+      component = TestBed.createComponent(ApplicationSubmissionComponent).componentInstance;
+      component.currentUser = { id: '10', emailVerified: true } as User;
+      component.loadStudentProfile();
+
+      expect(component.applicationForm.value.courseName).toBe('');
+    });
+
+    it('onSubmit_applicationCreated_forgetsTheKeptAnswers', () => {
+      component.currentUser = student;
+      component.loadStudentProfile();
+      typeAnswers();
+      component.studentProfile = { institutionId: 1, yearOfStudyId: 2 } as StudentResponse;
+
+      component.onSubmit();
+      refresh();
+
+      expect(component.applicationForm.value.courseName).toBe('');
+    });
+
+    it('onSubmit_serverFails_keepsTheAnswers', () => {
+      wizardService.submit.and.returnValue(failure() as never);
+      component.currentUser = student;
+      component.loadStudentProfile();
+      typeAnswers();
+      component.studentProfile = { institutionId: 1, yearOfStudyId: 2 } as StudentResponse;
+
+      component.onSubmit();
+      refresh();
+
+      expect(component.applicationForm.value.courseName).toBe('BSc Computer Science');
     });
   });
 

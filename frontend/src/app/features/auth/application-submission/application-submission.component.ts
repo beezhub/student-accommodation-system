@@ -3,8 +3,10 @@ import {
   OnInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  DestroyRef,
   inject,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
@@ -19,6 +21,7 @@ import { DocumentTypeService } from '../../../core/services/document-type.servic
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
 import { parseLocalDate } from '../../../core/utils/local-date';
 import { ApplicationWizardService } from '../../../core/services/application-wizard.service';
+import { ApplicationStep4AnswersService } from '../../../core/services/application-step4-answers.service';
 import { describeSubmitted } from '../../../core/utils/apply-wording';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -75,7 +78,10 @@ export class ApplicationSubmissionComponent implements OnInit {
   private readonly documentTypeService = inject(DocumentTypeService);
   private readonly errorService = inject(ErrorHandlingService);
   private readonly wizardService = inject(ApplicationWizardService);
+  private readonly answersService = inject(ApplicationStep4AnswersService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private keepingAnswers = false;
 
   applicationForm: FormGroup;
   isSubmitting = false;
@@ -252,6 +258,9 @@ export class ApplicationSubmissionComponent implements OnInit {
         this.studentId = profile.id;
         this.studentInstitutionId = profile.institutionId || null;
         this.studentProfile = profile;
+        // Read before the profile is patched in: patching starts keeping answers, and would
+        // otherwise overwrite what the student typed before a refresh (#550).
+        const kept = this.currentUser ? this.answersService.load(this.currentUser.id) : null;
 
         // Pre-populate deferred profile fields if the student already has them
         if (profile.studentNumber) {
@@ -269,6 +278,11 @@ export class ApplicationSubmissionComponent implements OnInit {
         if (profile.specialRequirements) {
           this.applicationForm.patchValue({ specialRequirements: profile.specialRequirements });
         }
+        // What the student typed before a refresh wins over the saved profile.
+        if (kept) {
+          this.applicationForm.patchValue(kept);
+        }
+        this.keepAnswers();
 
         // Get institution name and load buildings after we know the institution
         if (profile.institutionId) {
@@ -309,6 +323,31 @@ export class ApplicationSubmissionComponent implements OnInit {
         }
         this.cdr.markForCheck();
       },
+    });
+  }
+
+  /**
+   * Keeps step 4's answers in this tab until the application is created, so a refresh does not
+   * empty the form (#550). The confirmation is left out: the student confirms again.
+   */
+  private keepAnswers(): void {
+    const userId = this.currentUser?.id;
+    if (this.keepingAnswers || userId == null) {
+      return;
+    }
+    this.keepingAnswers = true;
+    this.applicationForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      const v = this.applicationForm.getRawValue();
+      this.answersService.save(userId, {
+        studentNumber: v.studentNumber ?? '',
+        phoneNumber: v.phoneNumber ?? '',
+        dateOfBirth: v.dateOfBirth instanceof Date ? v.dateOfBirth : null,
+        gender: v.gender ?? '',
+        courseName: v.courseName ?? '',
+        requiresAccessibility: !!v.requiresAccessibility,
+        preferredBuildingIds: v.preferredBuildingIds ?? [],
+        specialRequirements: v.specialRequirements ?? '',
+      });
     });
   }
 
@@ -376,6 +415,7 @@ export class ApplicationSubmissionComponent implements OnInit {
       .subscribe({
         next: (created) => {
           this.isSubmitting = false;
+          this.answersService.clear(user.id);
           this.errorService.showSuccess(describeSubmitted(created));
           this.router.navigate(['/application-review'], {
             queryParams: { ids: created.map((a) => a.id).join(',') },
