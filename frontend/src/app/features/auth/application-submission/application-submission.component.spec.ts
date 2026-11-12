@@ -21,7 +21,10 @@ describe('ApplicationSubmissionComponent', () => {
   const building = { id: 5, name: 'Liesbeek House', tenantId: 3 };
   const failure = (status = 500) => throwError(() => new HttpErrorResponse({ status }));
 
-  let authService: { currentUserValue: Partial<User> | null };
+  let authService: {
+    currentUserValue: Partial<User> | null;
+    refreshCurrentUser: jasmine.Spy;
+  };
   let applicationService: jasmine.SpyObj<ApplicationService>;
   let buildingService: jasmine.SpyObj<BuildingService>;
   let documentService: jasmine.SpyObj<DocumentService>;
@@ -37,7 +40,10 @@ describe('ApplicationSubmissionComponent', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
-    authService = { currentUserValue: { emailVerified: true } };
+    authService = {
+      currentUserValue: { emailVerified: true },
+      refreshCurrentUser: jasmine.createSpy('refreshCurrentUser'),
+    };
     applicationService = jasmine.createSpyObj('ApplicationService', ['hasActiveApplication']);
     buildingService = jasmine.createSpyObj('BuildingService', [
       'getBuildingsByInstitution',
@@ -475,13 +481,63 @@ describe('ApplicationSubmissionComponent', () => {
       expect(navigate).toHaveBeenCalledWith(['/profile-setup']);
     });
 
-    it('onSubmit_emailNotVerified_goesToVerify', () => {
+    /**
+     * The stored user only learns about a verification done in this browser. A student who opened
+     * the link on their phone stayed "unverified" here, so step 4 sent them to the verify page on
+     * every click and never saved the application. The server is asked before turning them away.
+     */
+    it('onSubmit_verifiedOnAnotherDevice_asksTheServerAndSaves', () => {
       fillInTheForm();
       component.currentUser = { emailVerified: false } as User;
+      authService.refreshCurrentUser.and.callFake(() => {
+        authService.currentUserValue = { emailVerified: true };
+        return of({ emailVerified: true });
+      });
 
       component.onSubmit();
 
-      expect(navigate).toHaveBeenCalledWith(['/email-verification-required']);
+      expect(authService.refreshCurrentUser).toHaveBeenCalled();
+      expect(wizardService.submit).toHaveBeenCalled();
+      expect(navigate).not.toHaveBeenCalledWith(
+        ['/email-verification-required'],
+        jasmine.anything()
+      );
+    });
+
+    it('onSubmit_serverSaysNotVerified_goesToVerifyAndBackHere', () => {
+      fillInTheForm();
+      component.currentUser = { emailVerified: false } as User;
+      authService.refreshCurrentUser.and.returnValue(of({ emailVerified: false }));
+
+      component.onSubmit();
+
+      expect(wizardService.submit).not.toHaveBeenCalled();
+      expect(component.isSubmitting).toBeFalse();
+      expect(navigate).toHaveBeenCalledWith(['/email-verification-required'], {
+        queryParams: { returnUrl: '/application-submission' },
+      });
+    });
+
+    it('onSubmit_verificationCheckFails_showsTheErrorAndStays', () => {
+      fillInTheForm();
+      component.currentUser = { emailVerified: false } as User;
+      authService.refreshCurrentUser.and.returnValue(failure(0));
+
+      component.onSubmit();
+
+      expect(wizardService.submit).not.toHaveBeenCalled();
+      expect(component.isSubmitting).toBeFalse();
+      expect(component.submitError).not.toBeNull();
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('onSubmit_storedCopySaysVerified_doesNotAskTheServer', () => {
+      fillInTheForm();
+
+      component.onSubmit();
+
+      expect(authService.refreshCurrentUser).not.toHaveBeenCalled();
+      expect(wizardService.submit).toHaveBeenCalled();
     });
 
     it('onSubmit_incompleteForm_warnsAndStays', () => {

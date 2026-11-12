@@ -52,7 +52,9 @@ describe('EmailVerifiedGuard', () => {
     currentUserIs({ emailVerified: false });
 
     expect(guard.canActivate(route, state)).toBeFalse();
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/email-verification-required']);
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/email-verification-required'], {
+      queryParams: { returnUrl: '/dashboard' },
+    });
   });
 
   /**
@@ -64,7 +66,9 @@ describe('EmailVerifiedGuard', () => {
     currentUserIs({ email: 'someone@example.com' });
 
     expect(guard.canActivate(route, state)).toBeFalse();
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/email-verification-required']);
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/email-verification-required'], {
+      queryParams: { returnUrl: '/dashboard' },
+    });
   });
 
   it('canActivate_noUser_redirectsToLoginCarryingTheReturnUrl', () => {

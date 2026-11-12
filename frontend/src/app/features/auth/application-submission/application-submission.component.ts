@@ -368,15 +368,48 @@ export class ApplicationSubmissionComponent implements OnInit {
     }
 
     // GH-153: the backend refuses an application from an unverified address with a 403. Caught
-    // here so the student is sent somewhere they can act, rather than filling in the review step
-    // and being stopped by a snackbar at the end of it. The backend gate is the real enforcement;
-    // this only saves the wasted trip.
+    // here so the student is sent somewhere they can act. The backend gate is the real
+    // enforcement; this only saves the wasted trip.
     if (this.currentUser && this.currentUser.emailVerified !== true) {
-      this.errorService.showWarning('Confirm your email address before submitting an application.');
-      this.router.navigate(['/email-verification-required']);
+      this.submitOnceVerified(this.studentId);
       return;
     }
 
+    this.saveApplication(this.studentId);
+  }
+
+  /**
+   * The stored user only learns about a link opened in this browser, so a student who verified
+   * on their phone still looks unverified here. Ask the server before sending them away, or they
+   * are sent to the verify page on every click and the application is never saved.
+   */
+  private submitOnceVerified(studentId: number): void {
+    this.isSubmitting = true;
+    this.authService.refreshCurrentUser().subscribe({
+      next: (user) => {
+        this.isSubmitting = false;
+        if (user.emailVerified === true) {
+          this.currentUser = this.authService.currentUserValue;
+          this.saveApplication(studentId);
+          return;
+        }
+        this.errorService.showWarning(
+          'Confirm your email address before submitting an application.'
+        );
+        // Answers are kept by answersService, so coming back here loses nothing (#550).
+        this.router.navigate(['/email-verification-required'], {
+          queryParams: { returnUrl: '/application-submission' },
+        });
+      },
+      error: (error) => {
+        this.isSubmitting = false;
+        this.submitError = this.errorService.parseError(error);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private saveApplication(studentId: number): void {
     if (!this.applicationForm.valid) {
       this.applicationForm.markAllAsTouched();
       this.errorService.showWarning('Please fill in all required fields correctly');
@@ -399,7 +432,7 @@ export class ApplicationSubmissionComponent implements OnInit {
     this.isSubmitting = true;
     this.wizardService
       .submit(user, {
-        studentId: this.studentId,
+        studentId,
         institutionId,
         yearOfStudyId,
         institutionName: this.institutionName || 'Not specified',
