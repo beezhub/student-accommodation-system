@@ -10,11 +10,14 @@
 # needs a CI run on main, which no longer has one.
 #
 # Needs: git history (checkout with fetch-depth: 0), gh with GH_TOKEN, GITHUB_REPOSITORY.
-# CI_WAIT_SECONDS (default 1200) bounds the wait for a run in progress.
+# CI_WAIT_SECONDS (default 1200) bounds the wait for a run in progress. Each GitHub API call is
+# tried 3 times, CI_RETRY_DELAY seconds apart (default 10). Tests: tools/ci/ci-passed.test.sh
 set -euo pipefail
 target=${1:?usage: ci-passed.sh <sha>}
 repo=${GITHUB_REPOSITORY:?GITHUB_REPOSITORY must be set}
 wait_seconds=${CI_WAIT_SECONDS:-1200}
+api_attempts=3
+retry_delay=${CI_RETRY_DELAY:-10}
 ci=.github/workflows/ci.yml
 
 # The paths ci.yml's push trigger ignores, read from ci.yml itself so the two never drift. GitHub's
@@ -47,15 +50,30 @@ covers() {
   return 0
 }
 
-# The newest CI runs with the given status, as head SHAs.
+# The newest CI runs with the given status, as head SHAs. Retried, because a GitHub 5xx used to
+# leave the list empty, and the gate then blamed CI for a run that had passed (Deploy NONPROD
+# 43310976050). Callers must capture the result with `|| exit`: set -e does not apply to a
+# command substitution inside a `for` word list.
 runs() {
-  gh api "repos/$repo/actions/workflows/ci.yml/runs?status=$1&per_page=100" --jq '.workflow_runs[].head_sha'
+  local attempt shas
+  for attempt in $(seq 1 "$api_attempts"); do
+    if shas=$(gh api "repos/$repo/actions/workflows/ci.yml/runs?status=$1&per_page=100" \
+      --jq '.workflow_runs[].head_sha'); then
+      printf '%s\n' "$shas"
+      return 0
+    fi
+    echo "listing $1 CI runs failed (attempt $attempt of $api_attempts)" >&2
+    [ "$attempt" -lt "$api_attempts" ] && sleep "$retry_delay"
+  done
+  echo "::error::the GitHub API did not answer, so it is unknown whether CI passed. This is not a CI failure: re-run this job." >&2
+  return 1
 }
 
 echo "ignored by CI: ${ignored[*]:-(none found)}"
 deadline=$(( $(date +%s) + wait_seconds ))
 while :; do
-  for sha in $(runs success); do
+  passed=$(runs success) || exit 1
+  for sha in $passed; do
     if covers "$sha"; then
       echo "CI passed on ${sha:0:7}, which has the same files as ${target:0:7} apart from ignored paths"
       exit 0
@@ -64,7 +82,8 @@ while :; do
 
   pending=""
   for status in in_progress queued; do
-    for sha in $(runs "$status"); do
+    running=$(runs "$status") || exit 1
+    for sha in $running; do
       covers "$sha" && pending=$sha
     done
   done
