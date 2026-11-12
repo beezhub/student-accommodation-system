@@ -72,9 +72,12 @@
         <p class="support-detail">
           Our support team is available Monday to Friday, 08:00 – 17:00 SAST.
         </p>
-        <a class="support-email" href="mailto:support@beezhub.com">
-          support&#64;beezhub.com
-        </a>
+        @if (contact$ | async; as contact) {
+          <a class="support-email" [href]="'mailto:' + contact.email">{{ contact.email }}</a>
+          @if (contact.phone) {
+            <a class="support-email" [href]="telHref(contact.phone)">{{ contact.phone }}</a>
+          }
+        }
       </div>
     </div>
   </section>

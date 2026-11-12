@@ -7,33 +7,34 @@
       </mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      @if (!submitted) {
-        <form (ngSubmit)="submitForm()" autocomplete="off" class="contact-form">
-          <mat-form-field appearance="outline" class="form-field" floatLabel="always">
-            <mat-label>Name</mat-label>
-            <input matInput [(ngModel)]="name" name="name" required autocomplete="off">
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="form-field" floatLabel="always">
-            <mat-label>Email</mat-label>
-            <input matInput [(ngModel)]="email" name="email" type="email" required autocomplete="off">
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="form-field" floatLabel="always">
-            <mat-label>Message</mat-label>
-            <textarea matInput [(ngModel)]="message" name="message" rows="4" required></textarea>
-          </mat-form-field>
-          <div class="form-actions">
-            <button mat-raised-button color="primary" type="submit" class="send-button">
-              <mat-icon>send</mat-icon>
-              Send
-            </button>
-          </div>
-        </form>
-      }
-      @if (submitted) {
-        <div class="success-message">
-          <mat-icon color="primary">check_circle</mat-icon>
-          Your message has been sent. Support will contact you soon.
+      @if (contact() === undefined) {
+        <div class="loading">
+          <mat-spinner diameter="32" aria-label="Loading contact details"></mat-spinner>
         </div>
+      } @else if (contact(); as info) {
+        <p class="intro">Have a question about your application or room? Get in touch with us.</p>
+        <ul class="contact-list">
+          <li>
+            <mat-icon aria-hidden="true">email</mat-icon>
+            <div>
+              <span class="contact-label">Email</span>
+              <a class="contact-value" [href]="'mailto:' + info.email">{{ info.email }}</a>
+            </div>
+          </li>
+          @if (info.phone) {
+            <li>
+              <mat-icon aria-hidden="true">phone</mat-icon>
+              <div>
+                <span class="contact-label">Phone</span>
+                <a class="contact-value" [href]="telHref(info.phone)">{{ info.phone }}</a>
+              </div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="unavailable" role="alert">
+          Contact details could not be loaded. Please refresh the page or try again later.
+        </p>
       }
     </mat-card-content>
   </mat-card>

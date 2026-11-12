@@ -150,7 +150,8 @@ public class SecurityConfig {
                                 "/api/building/by-institution/{institutionId}",
                                 "/api/building/{buildingId}/images",
                                 "/api/building/{buildingId}/images/{imageId}/content",
-                                "/api/institution/all")
+                                "/api/institution/all",
+                                "/api/contact")
                         .permitAll()
                         // PLATFORM_STAFF is admitted to the /api/admin URL space, and every
                         // governance endpoint inside it is held shut by its own
