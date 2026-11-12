@@ -141,7 +141,6 @@ class EmailDispatchServiceTest {
     void sendApplicationRejectedEmail_validData_sendsEmail() {
         when(contentBuilder.formatDate(any(java.time.LocalDate.class))).thenReturn("01 January 2026");
         when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
-        when(contentBuilder.getNextApplicationPeriod()).thenReturn("June 2026");
 
         emailDispatchService.sendApplicationRejectedEmail(application, "John Doe", "john@example.com");
 
@@ -156,6 +155,7 @@ class EmailDispatchServiceTest {
     @Test
     void sendApplicationChangesRequestedEmail_validData_sendsReasonAndLinkToTheApplication() {
         application.setRemarks("Proof of registration is for the wrong year");
+        application.setApplicationCode("APP-2026-001");
 
         emailDispatchService.sendApplicationChangesRequestedEmail(application, "John Doe", "john@example.com");
 
@@ -166,6 +166,7 @@ class EmailDispatchServiceTest {
                 eq(new ApplicationChangesRequestedContext(
                         "John Doe",
                         1L,
+                        "APP-2026-001",
                         "Proof of registration is for the wrong year",
                         "http://test-url/applications/1")));
     }
@@ -192,7 +193,6 @@ class EmailDispatchServiceTest {
     @Test
     void sendDocumentRejectedEmail_validData_sendsEmail() {
         when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
-        when(contentBuilder.parseFeedbackPoints(any())).thenReturn(List.of("Fix this"));
 
         emailDispatchService.sendDocumentRejectedEmail(document, "John Doe", "john@example.com", "ID Document", "Invalid file");
 
@@ -220,10 +220,7 @@ class EmailDispatchServiceTest {
 
     @Test
     void sendRoomAllocatedEmail_validData_sendsEmail() {
-        when(contentBuilder.extractFloorNumber(anyString())).thenReturn(1);
         when(contentBuilder.determineRoomType(any(Room.class))).thenReturn("Single");
-        when(contentBuilder.formatDate(any(LocalDateTime.class))).thenReturn("01 January 2026");
-        when(contentBuilder.calculateDuration(any(), any())).thenReturn("1 year");
 
         emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, "John Doe", "john@example.com");
 
@@ -251,10 +248,152 @@ class EmailDispatchServiceTest {
         assertThat(ctx.getValue().portalUrl()).isEqualTo("http://test-url/dashboard");
     }
 
+    /**
+     * GH-529: the tenancy is the stay the student applied for, not the day the offer went out
+     * plus ten months. On NONPROD an offer made on 11 Nov 2026 for a 15 Jan to 15 Dec 2027 stay
+     * said 11 Nov 2026 to 11 Sep 2027.
+     */
+    @Test
+    void sendRoomAllocatedEmail_tenancy_isTheStayNotTheOfferDate() {
+        allocation.setAllocationDate(LocalDateTime.of(2026, 11, 11, 17, 34));
+        allocation.setStayStartDate(java.time.LocalDate.of(2027, 1, 15));
+        allocation.setStayEndDate(java.time.LocalDate.of(2027, 12, 15));
+        when(contentBuilder.formatDate(java.time.LocalDate.of(2027, 1, 15))).thenReturn("15 January 2027");
+        when(contentBuilder.formatDate(java.time.LocalDate.of(2027, 12, 15))).thenReturn("15 December 2027");
+        when(contentBuilder.calculateDuration(java.time.LocalDate.of(2027, 1, 15), java.time.LocalDate.of(2027, 12, 15)))
+                .thenReturn("11 months");
+
+        RoomAllocatedContext ctx = sentRoomAllocatedContext();
+
+        assertThat(ctx.startDate()).isEqualTo("15 January 2027");
+        assertThat(ctx.endDate()).isEqualTo("15 December 2027");
+        assertThat(ctx.duration()).isEqualTo("11 months");
+    }
+
+    @Test
+    void sendRoomAllocatedEmail_noStayDates_inventsNoTenancy() {
+        allocation.setStayStartDate(null);
+        allocation.setStayEndDate(null);
+
+        RoomAllocatedContext ctx = sentRoomAllocatedContext();
+
+        assertThat(ctx.startDate()).isNull();
+        assertThat(ctx.endDate()).isNull();
+        assertThat(ctx.duration()).isNull();
+    }
+
+    /** The student portal has no map; the email links to the building on Google Maps instead. */
+    @Test
+    void sendRoomAllocatedEmail_buildingWithCoordinates_linksToTheMapAndUsesTheFullAddress() {
+        building.setFormattedAddress("1 Jan Smuts Ave, Braamfontein, Johannesburg, 2000");
+        building.setLatitude(new BigDecimal("-26.1929"));
+        building.setLongitude(new BigDecimal("28.0305"));
+
+        RoomAllocatedContext ctx = sentRoomAllocatedContext();
+
+        assertThat(ctx.buildingAddress()).isEqualTo("1 Jan Smuts Ave, Braamfontein, Johannesburg, 2000");
+        assertThat(ctx.mapsUrl()).isEqualTo("https://www.google.com/maps/search/?api=1&query=-26.1929,28.0305");
+    }
+
+    @Test
+    void sendRoomAllocatedEmail_buildingWithoutCoordinates_hasNoMapLink() {
+        RoomAllocatedContext ctx = sentRoomAllocatedContext();
+
+        assertThat(ctx.buildingAddress()).isEqualTo("123 Test St");
+        assertThat(ctx.mapsUrl()).isNull();
+    }
+
+    /**
+     * GH-530: the confirmed email showed the offer date as both move-in and tenancy start, and
+     * never mentioned the check-in deadline, the one date the student still has to act on.
+     */
+    @Test
+    void sendAllocationConfirmedEmail_showsTheStayAndTheCheckInDeadline() {
+        allocation.setAllocationDate(LocalDateTime.of(2026, 11, 11, 17, 34));
+        allocation.setStayStartDate(java.time.LocalDate.of(2027, 1, 15));
+        allocation.setStayEndDate(java.time.LocalDate.of(2027, 12, 15));
+        allocation.setCheckInExpiryDate(LocalDateTime.of(2027, 1, 22, 0, 0));
+        when(contentBuilder.formatDate(java.time.LocalDate.of(2027, 1, 15))).thenReturn("15 January 2027");
+        when(contentBuilder.formatDate(java.time.LocalDate.of(2027, 12, 15))).thenReturn("15 December 2027");
+        when(contentBuilder.formatDeadline(LocalDateTime.of(2027, 1, 22, 0, 0)))
+                .thenReturn("22 January 2027 at 00:00 SAST");
+
+        emailDispatchService.sendAllocationConfirmedEmail(allocation, room, building, "John Doe", "john@example.com");
+
+        ArgumentCaptor<AllocationConfirmedContext> ctx = ArgumentCaptor.forClass(AllocationConfirmedContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.ALLOCATION_CONFIRMED),
+                eq("allocation-confirmed"), ctx.capture());
+        assertThat(ctx.getValue().startDate()).isEqualTo("15 January 2027");
+        assertThat(ctx.getValue().endDate()).isEqualTo("15 December 2027");
+        assertThat(ctx.getValue().checkInDeadline()).isEqualTo("22 January 2027 at 00:00 SAST");
+    }
+
+    /** GH-531: sent within a day of an exact deadline, so the time matters as much as the date. */
+    @Test
+    void sendOfferExpiryReminderEmail_givesTheDeadlineWithItsTime() {
+        LocalDateTime expiry = LocalDateTime.of(2026, 11, 18, 17, 34);
+        allocation.setOfferExpiryDate(expiry);
+        when(contentBuilder.formatDeadline(expiry)).thenReturn("18 November 2026 at 17:34 SAST");
+
+        emailDispatchService.sendOfferExpiryReminderEmail(allocation, room, "John Doe", "john@example.com", "s");
+
+        ArgumentCaptor<OfferExpiryReminderContext> ctx = ArgumentCaptor.forClass(OfferExpiryReminderContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.OFFER_EXPIRY_REMINDER),
+                eq("offer-expiry-reminder"), ctx.capture());
+        assertThat(ctx.getValue().expiryDate()).isEqualTo("18 November 2026 at 17:34 SAST");
+    }
+
+    @Test
+    void sendCheckInReminderEmail_givesTheDeadlineWithItsTime() {
+        LocalDateTime deadline = LocalDateTime.of(2027, 1, 22, 0, 0);
+        allocation.setCheckInExpiryDate(deadline);
+        when(contentBuilder.formatDeadline(deadline)).thenReturn("22 January 2027 at 00:00 SAST");
+
+        emailDispatchService.sendCheckInReminderEmail(allocation, room, "John Doe", "john@example.com", "s");
+
+        ArgumentCaptor<CheckInReminderContext> ctx = ArgumentCaptor.forClass(CheckInReminderContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.CHECK_IN_REMINDER),
+                eq("check-in-reminder"), ctx.capture());
+        assertThat(ctx.getValue().deadlineDate()).isEqualTo("22 January 2027 at 00:00 SAST");
+    }
+
+    /** GH-532: the email said 5MB while the upload limit is the configured one, 10 MB by default. */
+    @Test
+    void sendDocumentRejectedEmail_givesTheConfiguredFileSizeLimit() {
+        ReflectionTestUtils.setField(emailDispatchService, "maxFileSizeBytes", 10_485_760L);
+
+        emailDispatchService.sendDocumentRejectedEmail(document, "John Doe", "john@example.com", "ID", "Blurry");
+
+        ArgumentCaptor<DocumentRejectedContext> ctx = ArgumentCaptor.forClass(DocumentRejectedContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.DOCUMENT_REJECTED),
+                eq("document-rejected"), ctx.capture());
+        assertThat(ctx.getValue().maxFileSize()).isEqualTo("10 MB");
+    }
+
+    /** GH-532: the status in words, not the enum name, and no made-up PENDING_REVIEW. */
+    @Test
+    void sendDocumentCommentEmail_showsTheStatusInWords() {
+        document.setDocumentStatus(com.beezhub.student_accommodation.model.enums.DocumentStatus.REJECTED);
+
+        emailDispatchService.sendDocumentCommentEmailWithTemplate(document, "Please rescan", "Office",
+                "John Doe", "john@example.com", "id.pdf", "ID");
+
+        ArgumentCaptor<DocumentCommentContext> ctx = ArgumentCaptor.forClass(DocumentCommentContext.class);
+        verify(emailService).sendTemplateEmail(eq("john@example.com"), eq(EmailSubjects.DOCUMENT_COMMENT),
+                eq("document-comment"), ctx.capture());
+        assertThat(ctx.getValue().documentStatus()).isEqualTo("Rejected");
+    }
+
+    private RoomAllocatedContext sentRoomAllocatedContext() {
+        emailDispatchService.sendRoomAllocatedEmail(allocation, room, building, "John Doe", "john@example.com");
+        ArgumentCaptor<RoomAllocatedContext> ctx = ArgumentCaptor.forClass(RoomAllocatedContext.class);
+        verify(emailService).sendTemplateEmail(
+                eq("john@example.com"), eq(EmailSubjects.ROOM_ALLOCATED), eq("room-allocated"), ctx.capture());
+        return ctx.getValue();
+    }
+
     @Test
     void sendAllocationProposalEmail_validData_sendsEmail() {
-        when(contentBuilder.extractFloorNumber(anyString())).thenReturn(1);
-        when(contentBuilder.parseWarnings(any())).thenReturn(List.of());
 
         emailDispatchService.sendAllocationProposalEmail(stagedAllocation, room, building, "John Doe", "john@example.com");
 

@@ -9,7 +9,7 @@
 <body>
 
 <h1 layout:fragment="email-title">Room Offer Expiring Soon</h1>
-<span layout:fragment="email-subtitle">Action required — respond before the deadline</span>
+<span layout:fragment="email-subtitle">Action required: respond before the deadline</span>
 
 <div layout:fragment="email-content">
     <p>Dear <span th:text="${studentName}">Student</span>,</p>
@@ -35,7 +35,7 @@
     <p>If you have already responded, please disregard this reminder.</p>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">Respond to Offer Now</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">Respond to Offer Now</a>
     </div>
 </div>
 

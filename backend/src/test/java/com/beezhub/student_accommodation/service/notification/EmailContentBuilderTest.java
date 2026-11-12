@@ -10,9 +10,9 @@ import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,19 +55,6 @@ class EmailContentBuilderTest {
     }
 
     @Test
-    void extractFloorNumber_validRoomNumber_returnsFloor() {
-        assertEquals(1, emailContentBuilder.extractFloorNumber("101"));
-        assertEquals(2, emailContentBuilder.extractFloorNumber("205"));
-    }
-
-    @Test
-    void extractFloorNumber_invalidRoomNumber_returns1() {
-        assertEquals(1, emailContentBuilder.extractFloorNumber("Invalid"));
-        assertEquals(1, emailContentBuilder.extractFloorNumber(""));
-        assertEquals(1, emailContentBuilder.extractFloorNumber(null));
-    }
-
-    @Test
     void determineRoomType_capacity1_returnsSingle() {
         Room room = new Room();
         room.setCapacity(1);
@@ -82,31 +69,26 @@ class EmailContentBuilderTest {
     }
 
     @Test
+    void calculateDuration_stayDates_countsTheMonthsBetweenThem() {
+        assertEquals("11 months", emailContentBuilder.calculateDuration(
+                java.time.LocalDate.of(2027, 1, 15), java.time.LocalDate.of(2027, 12, 15)));
+    }
+
+    /** GH-529: no end date means no duration, never a guessed ten months. */
+    @Test
+    void calculateDuration_noEndDate_returnsNull() {
+        assertNull(emailContentBuilder.calculateDuration(java.time.LocalDate.of(2027, 1, 15), null));
+    }
+
+    @Test
     void calculateDuration_10Months_returns10Months() {
-        LocalDateTime start = LocalDateTime.of(2026, 1, 1, 0, 0);
-        LocalDateTime end = LocalDateTime.of(2026, 11, 1, 0, 0);
-        assertEquals("10 months", emailContentBuilder.calculateDuration(start, end));
+        assertEquals("10 months", emailContentBuilder.calculateDuration(
+                java.time.LocalDate.of(2026, 1, 1), java.time.LocalDate.of(2026, 11, 1)));
     }
 
     @Test
     void calculateDuration_1Year_returns1Year() {
-        LocalDateTime start = LocalDateTime.of(2026, 1, 1, 0, 0);
-        LocalDateTime end = LocalDateTime.of(2027, 1, 1, 0, 0);
-        assertEquals("1 year", emailContentBuilder.calculateDuration(start, end));
-    }
-
-    @Test
-    void parseWarnings_validJson_returnsList() {
-        String json = "[\"Warning 1\", \"Warning 2\"]";
-        List<String> result = emailContentBuilder.parseWarnings(json);
-        assertEquals(2, result.size());
-        assertEquals("Warning 1", result.get(0));
-    }
-
-    @Test
-    void parseWarnings_invalidJson_returnsEmptyList() {
-        String json = "Invalid JSON";
-        List<String> result = emailContentBuilder.parseWarnings(json);
-        assertTrue(result.isEmpty());
+        assertEquals("1 year", emailContentBuilder.calculateDuration(
+                java.time.LocalDate.of(2026, 1, 1), java.time.LocalDate.of(2027, 1, 1)));
     }
 }

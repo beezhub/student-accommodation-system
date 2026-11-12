@@ -13,6 +13,8 @@ import java.time.Year;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -360,7 +362,8 @@ class EmailTemplateRenderTest {
         String html = render("allocation-rejected", vars);
 
         assertBaseRequirements(html, "allocation-rejected");
-        assertThat(html).contains("Higher priority student assigned");
+        // GH-532: the admin's reason is for admins; the student sees the room and what happens next.
+        assertThat(html).contains("201").contains("North Block").doesNotContain("Higher priority student assigned");
     }
 
     @Test
@@ -631,6 +634,419 @@ class EmailTemplateRenderTest {
     // -------------------------------------------------------------------------
     // Cross-cutting assertions
     // -------------------------------------------------------------------------
+
+    /**
+     * Every template a student is actually sent. welcome and password-reset are left out: nothing
+     * sends them, and GH-533 deletes them.
+     */
+    private static final List<String> SENT_TEMPLATES = List.of(
+            "application-approved", "application-rejected", "application-changes-requested",
+            "document-verified", "document-rejected", "document-comment",
+            "room-allocated",
+            "allocation-proposal", "allocation-confirmed", "allocation-rejected", "allocation-moved",
+            "offer-declined-requeue", "offer-declined-max-reached",
+            "offer-expired", "offer-expiry-reminder",
+            "check-in-reminder", "check-in-expired",
+            "reconfirm-request", "reconfirm-reminder", "place-released",
+            "application-expired", "applications-withdrawn",
+            "document-expiry-reminder", "stay-extended");
+
+    /**
+     * The app's colour tokens (frontend/src/styles/_variables.scss: primary #7c3aed, success
+     * #059669, warning #d97706, error #dc2626, info #0284c7, the slate greys) plus light and
+     * dark shades from the same palette families for box backgrounds and headings (GH-526).
+     */
+    private static final Set<String> SYSTEM_COLOURS = Set.of(
+            "#ffffff",
+            "#f8fafc", "#f1f5f9", "#e2e8f0", "#cbd5e1", "#64748b", "#475569", "#334155", "#1e293b",
+            "#7c3aed", "#6d28d9", "#f5f3ff",
+            "#059669", "#ecfdf5", "#065f46",
+            "#d97706", "#fffbeb", "#92400e",
+            "#dc2626", "#fef2f2", "#991b1b",
+            "#0284c7", "#f0f9ff", "#075985");
+
+    /** A CSS hex colour, but not an HTML character reference such as &#127968;. */
+    private static final Pattern HEX_COLOUR = Pattern.compile("(?<!&)#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\\b");
+
+    @Test
+    void sentTemplates_useOnlySystemColours() {
+        for (String template : SENT_TEMPLATES) {
+            String html = render(template, minimalVars(template));
+            List<String> colours = HEX_COLOUR.matcher(html).results()
+                    .map(m -> m.group().toLowerCase()).distinct().toList();
+
+            assertThat(colours).as("colours in %s", template).allMatch(SYSTEM_COLOURS::contains);
+            // Outlook ignores CSS gradients, so a gradient header renders as no colour at all.
+            assertThat(html).as("gradients in %s", template).doesNotContain("gradient");
+        }
+    }
+
+    /** Gmail draws links in its own blue unless the colour is on the element itself. */
+    @Test
+    void sentTemplates_buttonTextColourIsInline() {
+        Pattern button = Pattern.compile("<a[^>]*class=\"cta-button\"[^>]*>");
+        for (String template : SENT_TEMPLATES) {
+            String html = render(template, minimalVars(template));
+            List<String> buttons = button.matcher(html).results().map(m -> m.group()).toList();
+
+            assertThat(buttons).as("buttons in %s", template)
+                    .allMatch(tag -> tag.contains("color: #ffffff"));
+        }
+    }
+
+    /** No terms to accept, no payment taken, no amenities stored, no policy pages (GH-526). */
+    @Test
+    void sentTemplates_doNotPromiseThingsThatDoNotExist() {
+        for (String template : SENT_TEMPLATES) {
+            String html = render(template, minimalVars(template)).toLowerCase();
+
+            assertThat(html).as(template)
+                    .doesNotContain("terms and conditions")
+                    .doesNotContain("payment")
+                    .doesNotContain("fee structure")
+                    .doesNotContain("amenities")
+                    .doesNotContain("gym access")
+                    .doesNotContain("privacy policy")
+                    .doesNotContain("terms of service")
+                    .doesNotContain("href=\"#\"");
+        }
+    }
+
+    /** The student knows their application by its code, as the dashboard shows it (GH-526). */
+    @Test
+    void applicationEmails_showTheApplicationCodeNotTheDatabaseId() {
+        for (String template : List.of("application-approved", "application-rejected",
+                "application-changes-requested")) {
+            Map<String, Object> vars = minimalVars(template);
+            vars.put("applicationId", 9876L);
+            vars.put("applicationCode", "APP-2026-001");
+
+            String html = render(template, vars);
+
+            assertThat(html).as(template).contains("APP-2026-001").doesNotContain("9876");
+        }
+    }
+
+    /**
+     * GH-528: a proposal is a draft the office still reviews. The scoring engine's codes and
+     * score are for admins. Older notification rows still carry these keys, which is why they
+     * are passed here: the template itself must not show them.
+     */
+    @Test
+    void allocationProposal_showsNoInternalScoringData() {
+        Map<String, Object> vars = minimalVars("allocation-proposal");
+        vars.put("roomNumber", "301A");
+        vars.put("buildingName", "Eastview Hall");
+        vars.put("score", new BigDecimal("87.50"));
+        vars.put("warnings", List.of("BUILDING_MISMATCH", "CONSTRAINT_OVERRIDE: gender"));
+        vars.put("proposalId", "PROP-2026-010");
+        vars.put("floorNumber", 3);
+        vars.put("moveInDate", "01 February 2027");
+
+        String html = render("allocation-proposal", vars);
+
+        assertThat(html)
+                .doesNotContain("87.5")
+                .doesNotContain("Match Score")
+                .doesNotContain("BUILDING_MISMATCH")
+                .doesNotContain("CONSTRAINT_OVERRIDE")
+                .doesNotContain("PROP-")
+                .doesNotContain("Floor")
+                .doesNotContain("Move-In")
+                .doesNotContain("Great news")
+                .contains("reviewing");
+        assertThat(html.split("301A", -1)).as("room number shown once").hasSize(2);
+        assertThat(html.split("Eastview Hall", -1)).as("building shown once").hasSize(2);
+    }
+
+    @Test
+    void allocationRejected_doesNotShowTheProposalId() {
+        Map<String, Object> vars = minimalVars("allocation-rejected");
+        vars.put("proposalId", "PROP-2026-005");
+
+        assertThat(render("allocation-rejected", vars)).doesNotContain("PROP-");
+    }
+
+    /** Rooms store no floor; the old one was guessed from the room number's first digit (GH-528). */
+    @Test
+    void roomEmails_doNotShowAGuessedFloor() {
+        for (String template : List.of("room-allocated", "allocation-confirmed", "allocation-moved")) {
+            Map<String, Object> vars = minimalVars(template);
+            vars.put("floorNumber", 1);
+            vars.put("oldFloorNumber", 1);
+            vars.put("newFloorNumber", 2);
+
+            assertThat(render(template, vars)).as(template).doesNotContain("Floor");
+        }
+    }
+
+    /**
+     * GH-529: the offer used to list a bed number, an internal id, an office and move-in steps
+     * that no data supplied. Older notification rows still carry those keys, so they are passed.
+     */
+    @Test
+    void roomAllocated_showsNothingInvented() {
+        Map<String, Object> vars = minimalVars("room-allocated");
+        vars.put("roomNumber", "205B");
+        vars.put("bedNumber", "1");
+        vars.put("allocationId", "ALLOC-2026-099");
+        vars.put("officeLocation", "Main Administration Building, Ground Floor");
+        vars.put("buildingAddress", "1 Campus Drive, City");
+
+        String html = render("room-allocated", vars);
+
+        assertThat(html)
+                .doesNotContain("Bed Number")
+                .doesNotContain("ALLOC-")
+                .doesNotContain("Main Administration Building")
+                .doesNotContain("orientation")
+                .doesNotContain("2:00 PM")
+                .doesNotContain("Important Reminders")
+                .doesNotContain("View map in your student portal")
+                .contains("1 Campus Drive, City");
+        assertThat(html.split("205B", -1)).as("room number shown once").hasSize(2);
+        assertThat(html.split("Review and Accept Offer", -1)).as("one button").hasSize(2);
+    }
+
+    @Test
+    void roomAllocated_withMapsUrl_linksToTheMap() {
+        Map<String, Object> vars = minimalVars("room-allocated");
+        vars.put("buildingAddress", "1 Campus Drive, City");
+        vars.put("mapsUrl", "https://www.google.com/maps/search/?api=1&query=-26.1929,28.0305");
+
+        assertThat(render("room-allocated", vars))
+                .contains("href=\"https://www.google.com/maps/search/?api=1&amp;query=-26.1929,28.0305\"");
+    }
+
+    /** No stay dates on the allocation: no tenancy block, rather than invented dates. */
+    @Test
+    void roomAllocated_noStayDates_hidesTheTenancy() {
+        Map<String, Object> vars = minimalVars("room-allocated");
+        vars.remove("startDate");
+        vars.remove("endDate");
+        vars.remove("duration");
+
+        assertThat(render("room-allocated", vars)).doesNotContain("Tenancy");
+    }
+
+    /**
+     * GH-530: sent once the student accepts. It names the stay and the check-in deadline, and
+     * nothing the system does not supply. Older rows still carry allocationId and moveInDate.
+     */
+    @Test
+    void allocationConfirmed_namesTheCheckInDeadlineAndNothingInvented() {
+        Map<String, Object> vars = minimalVars("allocation-confirmed");
+        vars.put("roomNumber", "301A");
+        vars.put("allocationId", "ALLOC-2026-010");
+        vars.put("moveInDate", "11 November 2026");
+        vars.put("startDate", "15 January 2027");
+        vars.put("endDate", "15 December 2027");
+        vars.put("checkInDeadline", "22 January 2027 at 00:00 SAST");
+
+        String html = render("allocation-confirmed", vars);
+
+        assertThat(html)
+                .contains("15 January 2027").contains("15 December 2027")
+                .contains("22 January 2027 at 00:00 SAST")
+                .doesNotContain("ALLOC-")
+                .doesNotContain("Move-In Date")
+                .doesNotContain("11 November 2026")
+                .doesNotContain("orientation")
+                .doesNotContain("rules and regulations")
+                .doesNotContain("Prepare required documents");
+        assertThat(html.split("301A", -1)).as("room number shown once").hasSize(2);
+    }
+
+    /** GH-531: the last day to confirm, not the release date, which is already too late. */
+    @Test
+    void reconfirmEmails_nameTheLastDayToConfirm() {
+        for (String template : List.of("reconfirm-request", "reconfirm-reminder")) {
+            Map<String, Object> vars = minimalVars(template);
+            vars.put("releaseDate", "18 January 2027");
+            vars.put("confirmByDate", "17 January 2027");
+
+            String html = render(template, vars);
+
+            assertThat(html).as(template).containsPattern("by\\s+<strong>17 January 2027</strong>")
+                    .doesNotContainPattern("by\\s+<strong>18 January 2027</strong>");
+        }
+    }
+
+    /** Older notification rows have only the release date: confirming before it is still true. */
+    @Test
+    void reconfirmEmails_olderRowWithOnlyTheReleaseDate_saysBeforeIt() {
+        Map<String, Object> vars = minimalVars("reconfirm-request");
+        vars.put("releaseDate", "18 January 2027");
+
+        assertThat(render("reconfirm-request", vars)).containsPattern("before\\s+<strong>18 January 2027</strong>");
+    }
+
+    /**
+     * GH-531: the offer and check-in windows come from config and admins can extend an offer,
+     * and the check-in clock starts on move-in day, so no email states a fixed number of days.
+     */
+    @Test
+    void expiryEmails_doNotStateAFixedNumberOfDays() {
+        for (String template : List.of("offer-expired", "check-in-expired")) {
+            assertThat(render(template, minimalVars(template))).as(template)
+                    .doesNotContain("7 days")
+                    .doesNotContain("of accepting the offer");
+        }
+    }
+
+    /** GH-531: nothing stores or enforces a resubmission deadline. */
+    @Test
+    void documentRejected_inventsNoDeadline() {
+        Map<String, Object> vars = minimalVars("document-rejected");
+        vars.put("resubmissionDeadline", "20 January 2026");
+
+        assertThat(render("document-rejected", vars))
+                .doesNotContain("Resubmission Deadline")
+                .doesNotContain("20 January 2026")
+                .doesNotContain("Failure to resubmit");
+    }
+
+    /** GH-531: the room is already switched when this is sent; there is nothing to finish by a date. */
+    @Test
+    void allocationMoved_setsNoDeadline() {
+        assertThat(render("allocation-moved", minimalVars("allocation-moved")))
+                .doesNotContain("complete the room change by");
+    }
+
+    // ---- GH-532: outcomes that did not happen and steps the student cannot take ----
+
+    /** The position was hardcoded to 0 and the reason is the admin UI's fixed text. */
+    @Test
+    void allocationRejected_showsNoFakePositionReasonOrImpossibleSteps() {
+        Map<String, Object> vars = minimalVars("allocation-rejected");
+        vars.put("waitingListPosition", 0);
+        vars.put("reason", "Admin rejected from pending proposals");
+
+        assertThat(render("allocation-rejected", vars))
+                .doesNotContain("Position")
+                .doesNotContain("Admin rejected from pending proposals")
+                .doesNotContain("preferences")
+                .contains("room offer");
+    }
+
+    /** Sent on every approved document, not once the application reaches the queue. */
+    @Test
+    void documentVerified_doesNotClaimTheApplicationIsQueued() {
+        assertThat(render("document-verified", minimalVars("document-verified")))
+                .doesNotContain("allocation queue")
+                .doesNotContain("2-3 business days")
+                .doesNotContain("View Application Status")
+                .contains("View Documents");
+    }
+
+    /** The waiting list is only refilled when auto-allocation is on, and it ships off. */
+    @Test
+    void releaseEmails_doNotClaimTheNextStudentGotThePlace() {
+        for (String template : List.of("place-released", "reconfirm-request", "reconfirm-reminder")) {
+            assertThat(render(template, minimalVars(template))).as(template)
+                    .doesNotContain("next student on the waiting list")
+                    .contains("released to other students");
+        }
+    }
+
+    @Test
+    void offerDeclinedRequeue_usesPlainWordsNotAStatusCode() {
+        assertThat(render("offer-declined-requeue", minimalVars("offer-declined-requeue")))
+                .doesNotContain("AWAITING ALLOCATION")
+                .doesNotContain("you have been\n           added back");
+    }
+
+    /** The expiry jobs skip the cancel when the application was already closed, so say closed. */
+    @Test
+    void expiredEmails_sayTheApplicationIsClosed() {
+        for (String template : List.of("offer-expired", "check-in-expired")) {
+            assertThat(render(template, minimalVars(template))).as(template)
+                    .doesNotContain("CANCELLED")
+                    .doesNotContain("Application Cancelled")
+                    .contains("closed");
+        }
+    }
+
+    /** Also sent for approved and waiting applications, where the student finished everything. */
+    @Test
+    void applicationExpired_doesNotBlameTheStudent() {
+        assertThat(render("application-expired", minimalVars("application-expired")))
+                .doesNotContain("not finished in time");
+    }
+
+    /** Only residence staff can check a student in. */
+    @Test
+    void checkInReminder_doesNotAskTheStudentToCheckThemselvesIn() {
+        assertThat(render("check-in-reminder", minimalVars("check-in-reminder")))
+                .doesNotContain("complete the check-in process")
+                .contains("residence staff");
+    }
+
+    /** A student can replace documents and edit their profile, not the submitted application. */
+    @Test
+    void applicationChangesRequested_namesWhatTheStudentCanChange() {
+        assertThat(render("application-changes-requested", minimalVars("application-changes-requested")))
+                .contains("replacement document")
+                .contains("profile");
+    }
+
+    @Test
+    void documentComment_doesNotAlwaysAskForAResubmission() {
+        assertThat(render("document-comment", minimalVars("document-comment")))
+                .doesNotContain("You may need to resubmit")
+                .doesNotContain("&mdash;")
+                .doesNotContain("—");
+    }
+
+    @Test
+    void documentRejected_showsTheReasonOnceAndTheRealLimit() {
+        Map<String, Object> vars = minimalVars("document-rejected");
+        vars.put("rejectionReason", "Blurry scan;Wrong year");
+        vars.put("feedbackPoints", List.of("Blurry scan", "Wrong year"));
+        vars.put("maxFileSize", "10 MB");
+
+        String html = render("document-rejected", vars);
+
+        assertThat(html)
+                .doesNotContain("Specific Issues")
+                .doesNotContain("5MB")
+                .doesNotContain("Submit for review")
+                .contains("10 MB");
+        assertThat(html.split("Wrong year", -1)).as("reason shown once").hasSize(2);
+    }
+
+    /** The period was guessed from the calendar month, not from any real intake. */
+    @Test
+    void applicationRejected_doesNotGuessTheNextApplicationPeriod() {
+        Map<String, Object> vars = minimalVars("application-rejected");
+        vars.put("nextApplicationPeriod", "June 2026");
+
+        assertThat(render("application-rejected", vars))
+                .doesNotContain("Next Application Period")
+                .doesNotContain("June 2026");
+    }
+
+    /** Also sent to students who have not moved in, who have no old room or key. */
+    @Test
+    void allocationMoved_listsNoInventedProcedure() {
+        assertThat(render("allocation-moved", minimalVars("allocation-moved")))
+                .doesNotContain("room key")
+                .doesNotContain("checkout")
+                .doesNotContain("within 24 hours")
+                .doesNotContain("charges");
+    }
+
+    /** By approval the documents are uploaded, and checking them is the office's job (GH-526). */
+    @Test
+    void applicationApproved_nextStepsAreWhatHappensNext() {
+        String html = render("application-approved", minimalVars("application-approved"));
+
+        assertThat(html)
+                .doesNotContain("Upload all required documents")
+                .doesNotContain("within 7 days")
+                .doesNotContain("2-3 business days")
+                .contains("room offer");
+    }
 
     @Test
     void allTemplates_containUniversityName() {

@@ -342,6 +342,22 @@
   --mdc-circular-progress-active-indicator-color: white;
 }
 
+/* ── CONFIRMATION ────────────────────────────────────────────────────────── */
+
+.confirm-section {
+  margin: 0 1.5rem 1rem;
+  padding: 1.25rem 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+}
+
+.confirm-checkbox {
+  font-size: 0.9375rem;
+  color: #334155;
+  font-weight: 500;
+}
+
 /* ── RESPONSIVE ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {

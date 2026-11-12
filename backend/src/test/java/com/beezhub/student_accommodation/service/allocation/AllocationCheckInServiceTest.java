@@ -131,6 +131,43 @@ class AllocationCheckInServiceTest {
         org.assertj.core.api.Assertions.assertThat(allocation.getStatus()).isEqualTo(AllocationStatus.ACTIVE);
     }
 
+    /** GH-541: check-in was the one allocation change that never recounted the room. */
+    @Test
+    void confirmCheckIn_acceptedAllocation_syncsRoomOccupancyAfterSave() {
+        Room room = new Room();
+        room.setId(5L);
+        room.setRoomNumber("12");
+        room.setCapacity(2);
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(6L);
+        allocation.setStatus(AllocationStatus.ACCEPTED);
+        allocation.setRoom(room);
+        allocation.setApplication(new Application());
+        when(roomAllocationRepository.findByIdWithDetails(6L)).thenReturn(Optional.of(allocation));
+        when(roomAllocationRepository.countByRoom_IdAndStatus(5L, AllocationStatus.ACTIVE)).thenReturn(0L);
+        when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(allocation);
+
+        allocationCheckInService.confirmCheckIn(6L, false);
+
+        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(roomAllocationRepository, roomOccupancyManager);
+        inOrder.verify(roomAllocationRepository).save(allocation);
+        inOrder.verify(roomOccupancyManager).syncOccupancy(room);
+    }
+
+    @Test
+    void confirmCheckIn_refused_doesNotSyncOccupancy() {
+        RoomAllocation allocation = new RoomAllocation();
+        allocation.setId(7L);
+        allocation.setStatus(AllocationStatus.OFFERED);
+        allocation.setApplication(new Application());
+        when(roomAllocationRepository.findByIdWithDetails(7L)).thenReturn(Optional.of(allocation));
+
+        assertThrows(InvalidAllocationStatusTransitionException.class,
+                () -> allocationCheckInService.confirmCheckIn(7L, false));
+
+        verifyNoInteractions(roomOccupancyManager);
+    }
+
     @Test
     void checkIn_acceptedAllocation_statusActive() {
         // Arrange

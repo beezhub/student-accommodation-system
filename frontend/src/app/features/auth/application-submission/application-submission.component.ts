@@ -3,8 +3,10 @@ import {
   OnInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  DestroyRef,
   inject,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
@@ -17,8 +19,10 @@ import { BuildingService, BuildingResponse } from '../../../core/services/buildi
 import { DocumentService } from '../../../core/services/document.service';
 import { DocumentTypeService } from '../../../core/services/document-type.service';
 import { ErrorHandlingService, ParsedError } from '../../../core/services/error-handling.service';
-import { parseLocalDate, toLocalDateString } from '../../../core/utils/local-date';
-import { ApplicationDraftService } from '../../../core/services/application-draft.service';
+import { parseLocalDate } from '../../../core/utils/local-date';
+import { ApplicationWizardService } from '../../../core/services/application-wizard.service';
+import { ApplicationStep4AnswersService } from '../../../core/services/application-step4-answers.service';
+import { describeSubmitted } from '../../../core/utils/apply-wording';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -36,6 +40,7 @@ import { BuildingGalleryComponent } from '../../dashboard/applications/building-
 import { User } from '../../../core/models/user.model';
 import { contentOf } from '../../../core/models/page-response.model';
 import { StudentResponse } from '../../../core/models/student.model';
+import { GENDER_OPTIONS, normalizeGender } from '../../../core/utils/gender';
 
 @Component({
   selector: 'app-application-submission',
@@ -72,8 +77,11 @@ export class ApplicationSubmissionComponent implements OnInit {
   private readonly documentService = inject(DocumentService);
   private readonly documentTypeService = inject(DocumentTypeService);
   private readonly errorService = inject(ErrorHandlingService);
-  private readonly draftService = inject(ApplicationDraftService);
+  private readonly wizardService = inject(ApplicationWizardService);
+  private readonly answersService = inject(ApplicationStep4AnswersService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private keepingAnswers = false;
 
   applicationForm: FormGroup;
   isSubmitting = false;
@@ -107,12 +115,7 @@ export class ApplicationSubmissionComponent implements OnInit {
   /** Student profile data — used for pre-populating deferred fields */
   studentProfile: StudentResponse | null = null;
 
-  readonly genderOptions = [
-    { value: 'male', viewValue: 'Male' },
-    { value: 'female', viewValue: 'Female' },
-    { value: 'other', viewValue: 'Other' },
-    { value: 'prefer-not-to-say', viewValue: 'Prefer not to say' },
-  ] as const;
+  readonly genderOptions = GENDER_OPTIONS;
 
   constructor() {
     this.applicationForm = this.fb.group({
@@ -126,6 +129,8 @@ export class ApplicationSubmissionComponent implements OnInit {
       preferredBuildingIds: [[]],
       specialRequirements: [''],
       courseName: ['', Validators.required],
+      // On this step rather than the review page, because Continue to Review submits (#538)
+      termsAccepted: [false, Validators.requiredTrue],
     });
   }
 
@@ -253,6 +258,9 @@ export class ApplicationSubmissionComponent implements OnInit {
         this.studentId = profile.id;
         this.studentInstitutionId = profile.institutionId || null;
         this.studentProfile = profile;
+        // Read before the profile is patched in: patching starts keeping answers, and would
+        // otherwise overwrite what the student typed before a refresh (#550).
+        const kept = this.currentUser ? this.answersService.load(this.currentUser.id) : null;
 
         // Pre-populate deferred profile fields if the student already has them
         if (profile.studentNumber) {
@@ -265,11 +273,16 @@ export class ApplicationSubmissionComponent implements OnInit {
           this.applicationForm.patchValue({ dateOfBirth: parseLocalDate(profile.dateOfBirth) });
         }
         if (profile.gender) {
-          this.applicationForm.patchValue({ gender: profile.gender });
+          this.applicationForm.patchValue({ gender: normalizeGender(profile.gender) });
         }
         if (profile.specialRequirements) {
           this.applicationForm.patchValue({ specialRequirements: profile.specialRequirements });
         }
+        // What the student typed before a refresh wins over the saved profile.
+        if (kept) {
+          this.applicationForm.patchValue(kept);
+        }
+        this.keepAnswers();
 
         // Get institution name and load buildings after we know the institution
         if (profile.institutionId) {
@@ -313,6 +326,31 @@ export class ApplicationSubmissionComponent implements OnInit {
     });
   }
 
+  /**
+   * Keeps step 4's answers in this tab until the application is created, so a refresh does not
+   * empty the form (#550). The confirmation is left out: the student confirms again.
+   */
+  private keepAnswers(): void {
+    const userId = this.currentUser?.id;
+    if (this.keepingAnswers || userId == null) {
+      return;
+    }
+    this.keepingAnswers = true;
+    this.applicationForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      const v = this.applicationForm.getRawValue();
+      this.answersService.save(userId, {
+        studentNumber: v.studentNumber ?? '',
+        phoneNumber: v.phoneNumber ?? '',
+        dateOfBirth: v.dateOfBirth instanceof Date ? v.dateOfBirth : null,
+        gender: v.gender ?? '',
+        courseName: v.courseName ?? '',
+        requiresAccessibility: !!v.requiresAccessibility,
+        preferredBuildingIds: v.preferredBuildingIds ?? [],
+        specialRequirements: v.specialRequirements ?? '',
+      });
+    });
+  }
+
   retryLoadProfile(): void {
     this.loadStudentProfile();
   }
@@ -339,32 +377,59 @@ export class ApplicationSubmissionComponent implements OnInit {
       return;
     }
 
-    if (this.applicationForm.valid) {
-      const formValue = this.applicationForm.value;
-
-      // Save draft to localStorage and navigate to review step
-      const draft: import('../../../core/services/application-draft.service').ApplicationDraft = {
-        studentId: this.studentId,
-        requiresAccessibility: formValue.requiresAccessibility || false,
-        preferredBuildingIds: formValue.preferredBuildingIds?.length
-          ? formValue.preferredBuildingIds
-          : [],
-        specialRequirements: formValue.specialRequirements || null,
-        institutionName: this.institutionName || 'Not specified',
-        courseName: formValue.courseName,
-        studentNumber: formValue.studentNumber,
-        phoneNumber: formValue.phoneNumber,
-        // Saved as a calendar day: JSON.stringify would turn the picked Date into a UTC timestamp.
-        dateOfBirth: toLocalDateString(formValue.dateOfBirth),
-        gender: formValue.gender,
-      };
-
-      this.draftService.saveDraft(draft);
-      this.router.navigate(['/application-review']);
-    } else {
+    if (!this.applicationForm.valid) {
       this.applicationForm.markAllAsTouched();
       this.errorService.showWarning('Please fill in all required fields correctly');
+      return;
     }
+
+    const user = this.currentUser;
+    const institutionId = this.studentProfile?.institutionId;
+    const yearOfStudyId = this.studentProfile?.yearOfStudyId;
+    if (!user || institutionId == null || yearOfStudyId == null) {
+      this.errorService.showWarning(
+        'Your profile is missing institution details. Please complete profile setup first.'
+      );
+      return;
+    }
+
+    // #538: save the profile and create the application here, so nothing the student entered
+    // lives only in this browser. The review page shows what the server saved.
+    const formValue = this.applicationForm.value;
+    this.isSubmitting = true;
+    this.wizardService
+      .submit(user, {
+        studentId: this.studentId,
+        institutionId,
+        yearOfStudyId,
+        institutionName: this.institutionName || 'Not specified',
+        studentNumber: formValue.studentNumber,
+        phoneNumber: formValue.phoneNumber,
+        dateOfBirth: formValue.dateOfBirth,
+        gender: formValue.gender,
+        courseName: formValue.courseName,
+        requiresAccessibility: formValue.requiresAccessibility || false,
+        preferredBuildingIds: formValue.preferredBuildingIds ?? [],
+        specialRequirements: formValue.specialRequirements || null,
+      })
+      .subscribe({
+        next: (created) => {
+          this.isSubmitting = false;
+          this.answersService.clear(user.id);
+          this.errorService.showSuccess(describeSubmitted(created));
+          this.router.navigate(['/application-review'], {
+            queryParams: { ids: created.map((a) => a.id).join(',') },
+          });
+        },
+        error: (error) => {
+          this.isSubmitting = false;
+          this.submitError = this.errorService.parseError(error);
+          if (this.submitError.type !== 'validation') {
+            this.errorService.showErrorSnackbar(this.submitError);
+          }
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   onBuildingSelectionChanged(buildingIds: number[]): void {

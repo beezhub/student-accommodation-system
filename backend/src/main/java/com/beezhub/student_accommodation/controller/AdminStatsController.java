@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.model.dto.ApplicationStatusCountsResponse;
 import com.beezhub.student_accommodation.model.dto.DashboardStatsResponse;
 import com.beezhub.student_accommodation.model.dto.OccupancyStatsResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
@@ -33,6 +34,16 @@ public class AdminStatsController {
     @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
     public ResponseEntity<DashboardStatsResponse> getDashboardStats() {
         return ResponseEntity.ok(adminStatsService.getDashboardStats());
+    }
+
+    @Operation(summary = "Get application counts per status",
+            description = "Application count for every status, zeros included, with their total. "
+                    + "Not affected by any list filter; tenant admins see their own tenant only.")
+    @ApiResponse(responseCode = "200", description = "Application counts retrieved successfully")
+    @GetMapping("/applications")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'TENANT_ADMIN')")
+    public ResponseEntity<ApplicationStatusCountsResponse> getApplicationStatusCounts() {
+        return ResponseEntity.ok(adminStatsService.getApplicationStatusCounts());
     }
 
     @Operation(summary = "Get room occupancy statistics", description = "Retrieves detailed room occupancy statistics with building-level breakdown")

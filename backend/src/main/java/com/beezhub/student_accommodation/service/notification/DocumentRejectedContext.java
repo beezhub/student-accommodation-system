@@ -1,7 +1,5 @@
 package com.beezhub.student_accommodation.service.notification;
 
-import java.util.List;
-
 public record DocumentRejectedContext(
         String studentName,
         String documentType,
@@ -9,7 +7,6 @@ public record DocumentRejectedContext(
         String submissionDate,
         String reviewDate,
         String rejectionReason,
-        String resubmissionDeadline,
         String uploadUrl,
-        List<String> feedbackPoints
+        String maxFileSize
 ) implements EmailContext {}

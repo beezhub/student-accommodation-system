@@ -11,6 +11,30 @@ export enum ApplicationStatus {
   CANCELLED = 'CANCELLED',
 }
 
+/** Readable label per application status, matching the backend `ApplicationStatus` labels. */
+export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
+  [ApplicationStatus.PENDING]: 'Pending',
+  [ApplicationStatus.UNDER_REVIEW]: 'Under Review',
+  [ApplicationStatus.CHANGES_REQUESTED]: 'Changes Requested',
+  [ApplicationStatus.APPROVED]: 'Approved',
+  [ApplicationStatus.REJECTED]: 'Rejected',
+  [ApplicationStatus.AWAITING_ALLOCATION]: 'Awaiting Allocation',
+  [ApplicationStatus.ALLOCATED]: 'Allocated',
+  [ApplicationStatus.CHECKED_IN]: 'Checked In',
+  [ApplicationStatus.EXPIRED]: 'Expired',
+  [ApplicationStatus.CANCELLED]: 'Cancelled',
+};
+
+/** Application count per status, as the admin stats endpoints return it: every status present. */
+export type ApplicationStatusCounts = Record<ApplicationStatus, number>;
+
+/** Counts with every status at zero, for a screen still waiting on the backend. */
+export function emptyApplicationStatusCounts(): ApplicationStatusCounts {
+  return Object.fromEntries(
+    Object.values(ApplicationStatus).map((status) => [status, 0])
+  ) as ApplicationStatusCounts;
+}
+
 /**
  * The frontend copy of `ApplicationStatus.canTransitionTo` on the backend. Keep the two identical:
  * a button offered for a move the backend refuses only ever ends in an error for the admin.

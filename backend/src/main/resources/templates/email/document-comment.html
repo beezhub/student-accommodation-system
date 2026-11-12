@@ -28,15 +28,15 @@
 
     <div class="warning-box">
         <h3>Comment from <span th:text="${reviewerName != null ? reviewerName : 'Accommodation Office'}">Admin</span>
-            <th:block th:if="${commentDate != null}"> &mdash; <span th:text="${commentDate}">Date</span></th:block>
+            <th:block th:if="${commentDate != null}">, <span th:text="${commentDate}">Date</span></th:block>
         </h3>
         <p th:text="${comment}">Comment text...</p>
     </div>
 
-    <p>Please review the comment and take appropriate action. You may need to resubmit the document with the requested changes.</p>
+    <p>Please read the comment. If it asks for a new document, upload it on the Documents page.</p>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">View Documents</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">View Documents</a>
     </div>
 </div>
 

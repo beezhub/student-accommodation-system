@@ -17,10 +17,10 @@
     <div class="danger-box">
         <h3>Your room offer has expired</h3>
         <p>The offer for <strong>Room <span th:text="${roomNumber}">101</span></strong> in
-           <strong th:text="${buildingName}">Building A</strong> has expired because no response
-           was received within 7 days.</p>
-        <p>As a result, your application (<strong th:text="${applicationCode}">APP123</strong>) has been
-           <strong>CANCELLED</strong>.</p>
+           <strong th:text="${buildingName}">Building A</strong> has expired because it was not
+           accepted before its deadline.</p>
+        <p>The room has been released to other students, and your application
+           (<strong th:text="${applicationCode}">APP123</strong>) is now closed.</p>
     </div>
 
     <div class="neutral-box">
@@ -36,7 +36,7 @@
     <p>If you have any questions, please contact our accommodation office.</p>
 
     <div class="cta-section">
-        <a th:href="${portalUrl}" class="cta-button">View Application</a>
+        <a th:href="${portalUrl}" class="cta-button" style="color: #ffffff;">View Application</a>
     </div>
 </div>
 

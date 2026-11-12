@@ -31,25 +31,11 @@
 
       <div class="step-card-header">
         <span class="step-eyebrow">Step 4 of 4</span>
-        <h2 class="step-title">Review Your Application</h2>
-        <p class="step-subtitle">Please review your information before final submission</p>
+        <h2 class="step-title">Your Application</h2>
+        <p class="step-subtitle">Your application is saved. This is what we received.</p>
       </div>
 
       <div class="step-card-body">
-
-        <!-- Submit Error Display -->
-        @if (submitError) {
-          <app-error-display
-            mode="inline"
-            [type]="submitError.type"
-            [message]="submitError.message"
-            [details]="submitError.details"
-            [showRetry]="submitError.canRetry"
-            [showDismiss]="true"
-            (retry)="retrySubmit()"
-            (dismiss)="dismissError()">
-          </app-error-display>
-        }
 
         <!-- Personal Information -->
         <div class="review-section">
@@ -72,16 +58,16 @@
               </div>
               <div class="info-item">
                 <span class="info-label">Student Number</span>
-                <span class="info-value">{{ draft?.studentNumber || studentProfile?.studentNumber || 'N/A' }}</span>
+                <span class="info-value">{{ studentProfile?.studentNumber || 'N/A' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Phone Number</span>
-                <span class="info-value">{{ draft?.phoneNumber || studentProfile?.phoneNumber || 'N/A' }}</span>
+                <span class="info-value">{{ studentProfile?.phoneNumber || 'N/A' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Date of Birth</span>
                 <span class="info-value">
-                  {{ (draft?.dateOfBirth || studentProfile?.dateOfBirth) ? ((draft?.dateOfBirth || studentProfile?.dateOfBirth) | date: 'longDate') : 'N/A' }}
+                  {{ studentProfile?.dateOfBirth ? (studentProfile?.dateOfBirth | date: 'longDate') : 'N/A' }}
                 </span>
               </div>
               <div class="info-item">
@@ -94,44 +80,53 @@
               </div>
               <div class="info-item">
                 <span class="info-label">Gender</span>
-                <span class="info-value">{{ draft?.gender || studentProfile?.gender || 'N/A' }}</span>
+                <span class="info-value">{{ studentProfile?.gender || 'N/A' }}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Accommodation Preferences -->
-        @if (draft) {
+        <!-- Saved applications, one per company (GH-495) -->
+        @if (isLoading) {
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        }
+        @for (application of applications; track application.id) {
           <div class="review-section">
-            <span class="section-label">Accommodation Preferences</span>
+            <span class="section-label">
+              {{ application.companyName || 'Application' }} {{ application.applicationCode }}
+            </span>
             <div class="info-block">
               <div class="info-grid">
-                @if (draft.institutionName) {
+                @if (application.intakeName) {
                   <div class="info-item">
-                    <span class="info-label">Institution</span>
-                    <span class="info-value">{{ draft.institutionName }}</span>
+                    <span class="info-label">Intake</span>
+                    <span class="info-value">{{ application.intakeName }}</span>
                   </div>
                 }
-                @if (draft.courseName) {
+                @if (application.institutionName) {
+                  <div class="info-item">
+                    <span class="info-label">Institution</span>
+                    <span class="info-value">{{ application.institutionName }}</span>
+                  </div>
+                }
+                @if (application.courseName) {
                   <div class="info-item">
                     <span class="info-label">Course</span>
-                    <span class="info-value">{{ draft.courseName }}</span>
+                    <span class="info-value">{{ application.courseName }}</span>
                   </div>
                 }
                 <div class="info-item">
                   <span class="info-label">Accessibility Required</span>
-                  <span class="info-value">{{ draft.requiresAccessibility ? 'Yes' : 'No' }}</span>
+                  <span class="info-value">{{ application.requiresAccessibility ? 'Yes' : 'No' }}</span>
                 </div>
-                @if (draft.preferredBuildingIds && draft.preferredBuildingIds.length > 0) {
-                  <div class="info-item">
-                    <span class="info-label">Preferred Buildings</span>
-                    <span class="info-value">{{ draft.preferredBuildingIds.length }} selected</span>
-                  </div>
-                }
-                @if (draft.specialRequirements) {
+                <div class="info-item">
+                  <span class="info-label">Preferred Buildings</span>
+                  <span class="info-value">{{ buildingNames(application) }}</span>
+                </div>
+                @if (application.specialRequirements) {
                   <div class="info-item full-span">
                     <span class="info-label">Special Requirements</span>
-                    <span class="info-value">{{ draft.specialRequirements }}</span>
+                    <span class="info-value">{{ application.specialRequirements }}</span>
                   </div>
                 }
               </div>
@@ -139,26 +134,13 @@
           </div>
         }
 
-        <!-- Confirmation -->
-        <div class="confirm-section">
-          <mat-checkbox [(ngModel)]="termsAccepted" class="confirm-checkbox">
-            I confirm that all the information provided is accurate and complete
-          </mat-checkbox>
-        </div>
-
       </div>
 
       <div class="step-card-footer">
         <div></div>
-        <button mat-flat-button class="submit-btn" (click)="onSubmit()"
-          [disabled]="isSubmitting || !termsAccepted || !draft">
-          @if (isSubmitting) {
-            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            <span>Submitting...</span>
-          } @else {
-            <span>Submit Application</span>
-            <mat-icon>send</mat-icon>
-          }
+        <button mat-flat-button class="submit-btn" (click)="finish()" [disabled]="isLoading">
+          <span>Finish</span>
+          <mat-icon>check</mat-icon>
         </button>
       </div>
 

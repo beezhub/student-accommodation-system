@@ -47,6 +47,8 @@ class ScheduledJobRunnerTest {
     private com.beezhub.student_accommodation.service.application.IntakeExpiryService intakeExpiryService;
     @Mock
     private com.beezhub.student_accommodation.service.document.DocumentExpiryReminderService documentExpiryReminderService;
+    @Mock
+    private com.beezhub.student_accommodation.service.allocation.RoomOccupancyRecountService roomOccupancyRecountService;
 
     private MeterRegistry meterRegistry;
     private ScheduledJobRunner scheduledJobRunner;
@@ -65,6 +67,7 @@ class ScheduledJobRunnerTest {
                 reconfirmationService,
                 intakeExpiryService,
                 documentExpiryReminderService,
+                roomOccupancyRecountService,
                 meterRegistry);
     }
 
@@ -310,5 +313,26 @@ class ScheduledJobRunnerTest {
         assertThatCode(() -> scheduledJobRunner.runDocumentExpiryReminders()).doesNotThrowAnyException();
 
         assertThat(meterRegistry.find("sas.jobs.documentExpiryReminder.failures").counter().count()).isEqualTo(1.0);
+    }
+
+    // --- occupancyRecount (GH-541) ---
+
+    @Test
+    void runOccupancyRecount_whenServiceSucceeds_processedCounterIncremented() {
+        when(roomOccupancyRecountService.recountAll()).thenReturn(4);
+
+        scheduledJobRunner.runOccupancyRecount();
+
+        verify(roomOccupancyRecountService).recountAll();
+        assertThat(meterRegistry.find("sas.jobs.occupancyRecount.processed").counter().count()).isEqualTo(4.0);
+    }
+
+    @Test
+    void runOccupancyRecount_whenServiceThrows_failureCounterIncremented_noExceptionPropagated() {
+        when(roomOccupancyRecountService.recountAll()).thenThrow(new RuntimeException("db down"));
+
+        assertThatCode(() -> scheduledJobRunner.runOccupancyRecount()).doesNotThrowAnyException();
+
+        assertThat(meterRegistry.find("sas.jobs.occupancyRecount.failures").counter().count()).isEqualTo(1.0);
     }
 }
