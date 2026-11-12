@@ -52,10 +52,12 @@ public class RoomOccupancyManager {
      *
      * <p>MAINTENANCE is preserved. It is an administrative decision about the room, not a statement
      * about how many students are in it, and the old delta silently cleared it.
+     *
+     * @return whether the room's occupancy or status changed, which the nightly recount reports
      */
-    public void syncOccupancy(Room room) {
+    public boolean syncOccupancy(Room room) {
         if (room == null || room.getId() == null) {
-            return;
+            return false;
         }
 
         long active = roomAllocationRepository.countInRoomOn(room.getId(), LocalDate.now(clock));
@@ -67,7 +69,7 @@ public class RoomOccupancyManager {
         if (!occupancyChanged && !statusChanged) {
             // Room carries a version column, so writing an unchanged row would bump it and create
             // avoidable optimistic-lock contention. This is also what makes a repeated call free.
-            return;
+            return false;
         }
 
         if (room.getCapacity() != null && active > room.getCapacity()) {
@@ -81,6 +83,7 @@ public class RoomOccupancyManager {
 
         log.info("action=roomOccupancySynced roomId={} occupancy={} status={}",
                 room.getId(), occupancy, status);
+        return true;
     }
 
     private String deriveStatus(Room room, long active) {

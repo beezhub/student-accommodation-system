@@ -15,6 +15,25 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
 
 import { OverdueCheckOutsComponent } from './overdue-check-outs/overdue-check-outs.component';
+import {
+  APPLICATION_STATUS_LABELS,
+  ApplicationStatus,
+  emptyApplicationStatusCounts,
+} from '../../../core/models/status.model';
+
+/** Chart colour per application status, in the order the legend lists them. */
+const APPLICATION_STATUS_COLORS: Record<ApplicationStatus, string> = {
+  [ApplicationStatus.PENDING]: '#FFA726',
+  [ApplicationStatus.UNDER_REVIEW]: '#FFCA28',
+  [ApplicationStatus.CHANGES_REQUESTED]: '#AB47BC',
+  [ApplicationStatus.APPROVED]: '#66BB6A',
+  [ApplicationStatus.AWAITING_ALLOCATION]: '#42A5F5',
+  [ApplicationStatus.ALLOCATED]: '#26A69A',
+  [ApplicationStatus.CHECKED_IN]: '#5C6BC0',
+  [ApplicationStatus.REJECTED]: '#EF5350',
+  [ApplicationStatus.EXPIRED]: '#8D6E63',
+  [ApplicationStatus.CANCELLED]: '#78909C',
+};
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -43,11 +62,7 @@ export class AdminDashboardComponent implements OnInit {
 
   stats: DashboardStats = {
     totalApplications: 0,
-    pendingApplications: 0,
-    approvedApplications: 0,
-    rejectedApplications: 0,
-    inReviewApplications: 0,
-    allocatedApplications: 0,
+    applicationsByStatus: emptyApplicationStatusCounts(),
     totalDocuments: 0,
     pendingDocuments: 0,
     approvedDocuments: 0,
@@ -158,38 +173,16 @@ export class AdminDashboardComponent implements OnInit {
   updateChartData(): void {
     // Application chart data
     const appTotal = this.stats.totalApplications || 1;
-    this.applicationChartSegments = [
-      {
-        label: 'Pending',
-        value: this.stats.pendingApplications,
-        color: '#FFA726',
-        percent: (this.stats.pendingApplications / appTotal) * 100,
-      },
-      {
-        label: 'Approved',
-        value: this.stats.approvedApplications,
-        color: '#66BB6A',
-        percent: (this.stats.approvedApplications / appTotal) * 100,
-      },
-      {
-        label: 'Awaiting',
-        value: this.stats.inReviewApplications,
-        color: '#42A5F5',
-        percent: (this.stats.inReviewApplications / appTotal) * 100,
-      },
-      {
-        label: 'Allocated',
-        value: this.stats.allocatedApplications,
-        color: '#26A69A',
-        percent: (this.stats.allocatedApplications / appTotal) * 100,
-      },
-      {
-        label: 'Rejected',
-        value: this.stats.rejectedApplications,
-        color: '#EF5350',
-        percent: (this.stats.rejectedApplications / appTotal) * 100,
-      },
-    ].filter((s) => s.value > 0);
+    // Every status with applications, so the legend adds up to the total
+    const byStatus = this.stats.applicationsByStatus ?? emptyApplicationStatusCounts();
+    this.applicationChartSegments = (Object.keys(APPLICATION_STATUS_COLORS) as ApplicationStatus[])
+      .map((status) => ({
+        label: APPLICATION_STATUS_LABELS[status],
+        value: byStatus[status] ?? 0,
+        color: APPLICATION_STATUS_COLORS[status],
+        percent: ((byStatus[status] ?? 0) / appTotal) * 100,
+      }))
+      .filter((s) => s.value > 0);
 
     // Document chart data
     const docTotal = this.stats.totalDocuments || 1;

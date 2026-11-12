@@ -23,7 +23,7 @@
 | Date of birth | `2000-01-15` |
 | Institutions | University of Cape Town, Stellenbosch University, Wits University |
 | Years of study | 1st Year, 2nd Year, 3rd Year, 4th Year, Postgraduate |
-| Gender options | Male, Female, Other, Prefer not to say |
+| Gender options | Male, Female |
 | Buildings | Residence Hall Alpha, Residence Hall Beta, Residence Hall Gamma |
 | Required documents | National ID, Proof of Enrollment, Proof of Funding |
 | Optional documents | Medical Certificate |
@@ -424,7 +424,7 @@
 | **Module** | Student Onboarding |
 | **Priority** | Medium |
 | **Preconditions** | User `newstudent@test.com` is logged in, email verified. On `/profile-setup`. |
-| **Test Data** | Student number: `STU004`, Phone: `0712345678`, DOB: `2000-01-15`, Institution: `Wits University`, Year: `2nd Year`, Gender: `Prefer not to say`, Special requirements: (empty) |
+| **Test Data** | Student number: `STU004`, Phone: `0712345678`, DOB: `2000-01-15`, Institution: `Wits University`, Year: `2nd Year`, Gender: `Female`, Special requirements: (empty) |
 
 | Step | Action | Expected Result |
 |------|--------|-----------------|
@@ -631,7 +631,8 @@
 | 3 | Leave **Requires Accessibility** checkbox unchecked | Checkbox remains unchecked (default) |
 | 4 | Select `Residence Hall Alpha` and `Residence Hall Beta` from Preferred Buildings | Both buildings selected and shown as selected |
 | 5 | Enter `Quiet floor preferred` in Special Requirements textarea | Text accepted |
-| 6 | Click **Submit Application** | Success message displayed (e.g., "Application submitted successfully"); user redirected to application review/confirmation page |
+| 6 | Refresh the page | Every value entered in steps 2-5, and the personal information fields, are shown again; the confirmation checkbox is unticked |
+| 7 | Tick **I confirm that all the information provided is accurate and complete**, then click **Continue to Review** | Profile and application are saved on the server; success message displayed; user redirected to `/application-review` showing the saved application |
 
 | Field | Value |
 |-------|-------|
@@ -822,8 +823,10 @@
 | Step | Action | Expected Result |
 |------|--------|-----------------|
 | 1 | Complete application submission (per TC-ONB-022) | Success message appears |
-| 2 | Observe browser URL after redirect | URL changes to `/application-review` or `/application-confirmation/{id}` |
-| 3 | Verify the page content | Page displays the submitted application details for review (course name, building preferences, accessibility, special requirements, document statuses) |
+| 2 | Observe browser URL after redirect | URL changes to `/application-review?ids={id}` |
+| 3 | Verify the page content | Page shows the saved application read-only (course name, building preferences, accessibility, special requirements); no submit button or terms checkbox |
+| 4 | Refresh the page | The same saved details are shown again |
+| 5 | Click **Finish** | Redirected to `/application-confirmation/{id}` |
 
 | Field | Value |
 |-------|-------|
@@ -919,7 +922,7 @@
 | 11 | Click **Continue** to proceed | Redirected to `/application-submission` |
 | 12 | Enter `BSc Computer Science` as course name | Field populated |
 | 13 | Select `Residence Hall Alpha` as preferred building | Building selected |
-| 14 | Click **Submit Application** | Application submitted; redirected to confirmation page |
+| 14 | Tick the confirmation checkbox and click **Continue to Review** | Application submitted; redirected to `/application-review`, then **Finish** goes to the confirmation page |
 | 15 | Verify confirmation page shows all correct details | Course, building, status (PENDING) all displayed correctly |
 | 16 | Navigate to `http://localhost:4200/dashboard` | Student dashboard loads showing the submitted application |
 

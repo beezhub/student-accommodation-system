@@ -4,6 +4,7 @@ import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 export { PageResponse } from '../models/page-response.model';
 import { PageResponse } from '../models/page-response.model';
+import { resolveBuildingImageUrls, resolveBuildingUrls } from '../utils/image-url';
 
 export interface BuildingRequest {
   name: string;
@@ -91,32 +92,6 @@ export class BuildingService {
 
   private apiUrl = `${environment.apiUrl}/building`;
 
-  /**
-   * The backend hands back image URLs relative to the API root (`/building/.../content`), not a
-   * host-qualified address, the same way every other building endpoint is only a path here and
-   * gets `environment.apiUrl` prepended. Resolving it in one place means every list, browse and
-   * detail response ends up pointing at wherever this app's own API is, in dev or in prod, instead
-   * of an object-storage URL the browser could never reach (GH-268).
-   */
-  private resolveImageUrl<T extends string | undefined>(url: T): T {
-    if (url && url.startsWith('/')) {
-      return `${environment.apiUrl}${url}` as T;
-    }
-    return url;
-  }
-
-  private resolveBuildingImageUrls(image: BuildingImageResponse): BuildingImageResponse {
-    return { ...image, imageUrl: this.resolveImageUrl(image.imageUrl) };
-  }
-
-  private resolveBuildingUrls(building: BuildingResponse): BuildingResponse {
-    return {
-      ...building,
-      primaryImageUrl: this.resolveImageUrl(building.primaryImageUrl),
-      images: building.images?.map((image) => this.resolveBuildingImageUrls(image)),
-    };
-  }
-
   getMapsConfig(): Observable<MapsConfig> {
     return this.http.get<MapsConfig>(`${this.apiUrl}/maps-config`);
   }
@@ -126,7 +101,7 @@ export class BuildingService {
     return this.http.get<PageResponse<BuildingResponse>>(this.apiUrl, { params }).pipe(
       map((response) => ({
         ...response,
-        content: response.content.map((building) => this.resolveBuildingUrls(building)),
+        content: response.content.map(resolveBuildingUrls),
       }))
     );
   }
@@ -139,7 +114,7 @@ export class BuildingService {
     const options = silent ? { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) } : undefined;
     return this.http
       .get<BuildingResponse[]>(`${this.apiUrl}/all`, options)
-      .pipe(map((buildings) => buildings.map((building) => this.resolveBuildingUrls(building))));
+      .pipe(map((buildings) => buildings.map(resolveBuildingUrls)));
   }
 
   browseBuildingsPaginated(filters: {
@@ -165,7 +140,7 @@ export class BuildingService {
     return this.http.get<PageResponse<BuildingResponse>>(`${this.apiUrl}/browse`, { params }).pipe(
       map((response) => ({
         ...response,
-        content: response.content.map((building) => this.resolveBuildingUrls(building)),
+        content: response.content.map(resolveBuildingUrls),
       }))
     );
   }
@@ -196,15 +171,13 @@ export class BuildingService {
       .pipe(
         map((response) => ({
           ...response,
-          content: response.content.map((building) => this.resolveBuildingUrls(building)),
+          content: response.content.map(resolveBuildingUrls),
         }))
       );
   }
 
   getBuildingById(id: number): Observable<BuildingResponse> {
-    return this.http
-      .get<BuildingResponse>(`${this.apiUrl}/${id}`)
-      .pipe(map((building) => this.resolveBuildingUrls(building)));
+    return this.http.get<BuildingResponse>(`${this.apiUrl}/${id}`).pipe(map(resolveBuildingUrls));
   }
 
   /**
@@ -216,7 +189,7 @@ export class BuildingService {
       .post<BuildingResponse>(this.apiUrl, building, {
         headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
       })
-      .pipe(map((response) => this.resolveBuildingUrls(response)));
+      .pipe(map(resolveBuildingUrls));
   }
 
   /** Silent for the same reason as createBuilding above. */
@@ -225,7 +198,7 @@ export class BuildingService {
       .put<BuildingResponse>(`${this.apiUrl}/${id}`, building, {
         headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
       })
-      .pipe(map((response) => this.resolveBuildingUrls(response)));
+      .pipe(map(resolveBuildingUrls));
   }
 
   /** Silent because the admin list shows its own message when a delete is refused. */
@@ -238,7 +211,7 @@ export class BuildingService {
   getBuildingsByInstitution(institutionId: number): Observable<BuildingResponse[]> {
     return this.http
       .get<BuildingResponse[]>(`${this.apiUrl}/by-institution/${institutionId}`)
-      .pipe(map((buildings) => buildings.map((building) => this.resolveBuildingUrls(building))));
+      .pipe(map((buildings) => buildings.map(resolveBuildingUrls)));
   }
 
   // Building Image Methods
@@ -249,7 +222,7 @@ export class BuildingService {
       .get<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`, {
         headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
       })
-      .pipe(map((images) => images.map((image) => this.resolveBuildingImageUrls(image))));
+      .pipe(map((images) => images.map(resolveBuildingImageUrls)));
   }
 
   uploadBuildingImages(buildingId: number, files: File[]): Observable<BuildingImageResponse[]> {
@@ -259,7 +232,7 @@ export class BuildingService {
       .post<BuildingImageResponse[]>(`${this.apiUrl}/${buildingId}/images`, formData, {
         headers: new HttpHeaders({ 'X-Silent-Error': 'true' }),
       })
-      .pipe(map((images) => images.map((image) => this.resolveBuildingImageUrls(image))));
+      .pipe(map((images) => images.map(resolveBuildingImageUrls)));
   }
 
   deleteBuildingImage(buildingId: number, imageId: number): Observable<void> {
@@ -275,6 +248,6 @@ export class BuildingService {
         {},
         { headers: new HttpHeaders({ 'X-Silent-Error': 'true' }) }
       )
-      .pipe(map((image) => this.resolveBuildingImageUrls(image)));
+      .pipe(map(resolveBuildingImageUrls));
   }
 }

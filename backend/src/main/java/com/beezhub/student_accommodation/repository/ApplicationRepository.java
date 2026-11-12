@@ -22,6 +22,14 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 
      long countByStatus(ApplicationStatus status);
 
+     /**
+      * Application count per status, one row {@code [ApplicationStatus, Long]} per status that has
+      * any applications. Tenant-scoped by the Hibernate tenant filter, so call it from a
+      * {@code @Transactional} service method.
+      */
+     @Query("SELECT a.status, COUNT(a) FROM Application a GROUP BY a.status")
+     List<Object[]> countGroupedByStatus();
+
      List<Application> findByStudent_Id(Long studentId);
 
      /**
