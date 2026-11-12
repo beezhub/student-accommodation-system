@@ -16,8 +16,10 @@
   color: vars.$accent-purple-dark;
 }
 
+// The 14rem basis lets "Apply now" wrap under the text on a phone instead of
+// squeezing the text into a narrow column beside it.
 .open-windows-body {
-  flex: 1;
+  flex: 1 1 14rem;
   min-width: 0;
 }
 

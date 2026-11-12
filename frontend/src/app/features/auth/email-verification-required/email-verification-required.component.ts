@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { safeReturnUrl } from '../../../core/utils/safe-return-url';
 import { AuthService } from '../../../core/services/auth.service';
 import { ErrorHandlingService } from '../../../core/services/error-handling.service';
 
@@ -25,6 +26,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 })
 export class EmailVerificationRequiredComponent {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
   private errorService = inject(ErrorHandlingService);
@@ -33,10 +35,19 @@ export class EmailVerificationRequiredComponent {
   currentUser = this.authService.currentUserValue;
 
   constructor() {
-    // If user is already verified, redirect to dashboard
     if (this.currentUser?.emailVerified === true) {
-      this.router.navigate(['/dashboard']);
+      this.goOn();
     }
+  }
+
+  /** Back to the page that sent the student here (step 4, or a guarded route), else the dashboard. */
+  private goOn(): void {
+    const target = safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
+    if (target) {
+      this.router.navigateByUrl(target);
+      return;
+    }
+    this.router.navigate(['/dashboard']);
   }
 
   resendVerificationEmail(): void {
@@ -84,7 +95,7 @@ export class EmailVerificationRequiredComponent {
             duration: 2000,
             panelClass: ['success-snackbar'],
           });
-          this.router.navigate(['/dashboard']);
+          this.goOn();
         } else {
           this.snackBar.open(
             'Email not yet verified. Please check your inbox and click the verification link.',
