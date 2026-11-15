@@ -17,7 +17,6 @@ import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
 import com.beezhub.student_accommodation.service.AcademicYearService;
 import com.beezhub.student_accommodation.service.AuthService;
-import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import com.beezhub.student_accommodation.exceptions.AcademicYearNotFoundException;

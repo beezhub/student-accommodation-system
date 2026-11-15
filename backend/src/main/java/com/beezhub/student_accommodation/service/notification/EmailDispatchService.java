@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -471,42 +470,6 @@ public class EmailDispatchService {
                 Map<String, Object> data = EmailService.toVariableMap(ctx);
                 data.put("templateName", templateName);
                 return data;
-        }
-
-        /**
-         * The variables welcome.html reads, as a map that can be persisted alongside the
-         * notification row.
-         *
-         * <p>The welcome path was the only live producer of a notification with null template
-         * data, which the retry job could not rebuild an email from, so a failed welcome email was
-         * unrecoverable (GH-141). Dispatch goes through this same method, so what is sent and what
-         * is stored cannot drift apart.
-         */
-        public Map<String, Object> welcomeTemplateData(AppUser user, String studentName, String email) {
-                Map<String, Object> data = new HashMap<>();
-                data.put("templateName", "welcome");
-                data.put("studentName", studentName);
-                data.put("email", email);
-                data.put("studentId", "N/A");
-                data.put("registrationDate", contentBuilder.formatDate(user.getCreatedAt()));
-                data.put("loginUrl", baseUrl + "/login");
-                return data;
-        }
-
-        public void sendWelcomeEmail(AppUser user, String studentName, String email) {
-                Map<String, Object> data = welcomeTemplateData(user, studentName, email);
-
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.WELCOME, "welcome", data));
-                log.info("Welcome email sent to {}", email);
-        }
-
-        public void sendPasswordResetEmail(String studentName, String email, String resetToken, String subject) {
-                String resetUrl = baseUrl + "/reset-password?token=" + resetToken;
-
-                var ctx = new PasswordResetContext(studentName, resetUrl);
-
-                monitorEmail(() -> emailService.sendTemplateEmail(email, EmailSubjects.PASSWORD_RESET, "password-reset", ctx));
-                log.info("Password reset email sent to {}", email);
         }
 
         public Map<String, Object> offerExpiredTemplateData(Application application, Room room,

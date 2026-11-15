@@ -155,23 +155,12 @@ public class EmailService {
     }
 
     // ──────────────────────────────────────────────────────────────────────────────
-    // Context mapping: the sealed switch exhausts all 26 EmailContext subtypes
+    // Context mapping: the sealed switch exhausts every EmailContext subtype
     // ──────────────────────────────────────────────────────────────────────────────
 
     public static Map<String, Object> toVariableMap(EmailContext ctx) {
         Map<String, Object> vars = new HashMap<>();
         switch (ctx) {
-            case WelcomeContext c -> {
-                vars.put("studentName", c.studentName());
-                vars.put("email", c.email());
-                vars.put("studentId", c.studentId());
-                vars.put("registrationDate", c.registrationDate());
-                vars.put("loginUrl", c.loginUrl());
-            }
-            case PasswordResetContext c -> {
-                vars.put("studentName", c.studentName());
-                vars.put("resetUrl", c.resetUrl());
-            }
             case ApplicationApprovedContext c -> {
                 vars.put("studentName", c.studentName());
                 vars.put("applicationId", c.applicationId());
