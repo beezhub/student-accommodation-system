@@ -1,0 +1,125 @@
+@use '../../../../styles/variables' as vars;
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background: vars.$slate-50;
+  color: vars.$slate-700;
+  font-family: vars.$font-sans;
+}
+
+.privacy-header {
+  background: vars.$slate-900;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: vars.$space-4;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: vars.$space-3 vars.$space-6;
+}
+
+.brand,
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: vars.$space-2;
+  color: #fff;
+  text-decoration: none;
+}
+
+.brand {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.back-link {
+  font-size: vars.$font-size-body;
+  color: rgb(255 255 255 / 80%);
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.privacy-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: vars.$space-10 vars.$space-6 vars.$space-12;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+h1 {
+  margin: 0 0 vars.$space-2;
+  font-size: vars.$font-size-h1;
+  font-weight: vars.$font-weight-h1;
+  color: vars.$slate-900;
+}
+
+h2 {
+  margin: vars.$space-8 0 vars.$space-3;
+  font-size: vars.$font-size-title;
+  font-weight: vars.$font-weight-title;
+  color: vars.$slate-900;
+}
+
+.updated {
+  margin-bottom: vars.$space-6;
+  font-size: vars.$font-size-small;
+  color: vars.$slate-500;
+}
+
+ul {
+  padding-left: vars.$space-6;
+}
+
+li + li {
+  margin-top: vars.$space-2;
+}
+
+strong {
+  color: vars.$slate-800;
+}
+
+a:not(.brand, .back-link) {
+  color: vars.$accent-blue-dark;
+  overflow-wrap: anywhere;
+}
+
+// Text a person must fill in before this policy is published. Loud on purpose.
+.placeholder {
+  padding: 0 vars.$space-1;
+  border: 1px dashed vars.$warning;
+  border-radius: vars.$radius-sm;
+  background: #fef3c7;
+  color: vars.$slate-900;
+}
+
+.contact-status {
+  color: vars.$slate-500;
+}
+
+.unavailable {
+  color: vars.$error;
+}
+
+@media (max-width: vars.$breakpoint-tablet) {
+  .header-inner {
+    padding: vars.$space-3 vars.$space-4;
+  }
+
+  .privacy-content {
+    padding: vars.$space-6 vars.$space-4 vars.$space-10;
+  }
+
+  h1 {
+    font-size: 26px;
+  }
+}

@@ -128,7 +128,8 @@
             I agree to the
             <a href="#" class="terms-link">Terms of Service</a>
             and
-            <a href="#" class="terms-link">Privacy Policy</a>
+            <a routerLink="/privacy" target="_blank" rel="noopener" class="terms-link privacy-link"
+              >Privacy Policy<span class="visually-hidden"> (opens in a new tab)</span></a>
           </mat-checkbox>
           @if (signupForm.get('agreeTerms')?.hasError('required') && signupForm.get('agreeTerms')?.touched) {
             <mat-error class="terms-error">You must agree to the terms and conditions</mat-error>

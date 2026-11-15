@@ -80,6 +80,10 @@ import { NotificationsComponent } from './notifications/notifications.component'
         <mat-icon>lock_outline</mat-icon>
         Change Password
       </button>
+      <a mat-menu-item routerLink="/privacy" class="nav-menu-privacy">
+        <mat-icon>privacy_tip</mat-icon>
+        Privacy Policy
+      </a>
       <mat-divider></mat-divider>
       <button mat-menu-item class="nav-menu-logout" (click)="logout.emit()">
         <mat-icon>logout</mat-icon>
@@ -112,6 +116,10 @@ import { NotificationsComponent } from './notifications/notifications.component'
         <mat-icon>lock_outline</mat-icon>
         Change Password
       </button>
+      <a mat-menu-item routerLink="/privacy" class="nav-menu-privacy">
+        <mat-icon>privacy_tip</mat-icon>
+        Privacy Policy
+      </a>
       <mat-divider></mat-divider>
       <button mat-menu-item (click)="logout.emit()">
         <mat-icon>logout</mat-icon>

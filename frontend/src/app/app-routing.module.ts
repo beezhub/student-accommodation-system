@@ -316,5 +316,13 @@ export const routes: Routes = [
         (m) => m.BuildingDetailComponent
       ),
   },
+  // Public, like /buildings: signup links here, and it must be readable before an account exists.
+  {
+    path: 'privacy',
+    loadComponent: () =>
+      import('./features/legal/privacy-policy/privacy-policy.component').then(
+        (m) => m.PrivacyPolicyComponent
+      ),
+  },
   { path: '**', redirectTo: '/home' },
 ];
