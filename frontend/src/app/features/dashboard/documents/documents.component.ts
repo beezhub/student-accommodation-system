@@ -6,7 +6,7 @@ import {
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
@@ -37,7 +37,7 @@ import { confirmAction } from '../../../shared/components/confirm-dialog/confirm
 import { User } from '../../../core/models/user.model';
 import { DocumentData, DocumentExpiry, DocumentPreview } from '../../../core/models/document.model';
 import { DocumentExpiryNoticeComponent } from './document-expiry-notice/document-expiry-notice.component';
-import { contentOf } from '../../../core/models/page-response.model';
+import { PICKED_BUILDINGS_PARAM, pickedBuildingIds } from './picked-buildings';
 
 /** Merged view of a document type slot — either empty or populated by an uploaded document. */
 export interface DocumentSlot {
@@ -88,6 +88,7 @@ export class DocumentsComponent implements OnInit {
   private readonly errorService = inject(ErrorHandlingService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
 
   currentUser: User | null = null;
   selectedDocument: DocumentPreview | null = null;
@@ -130,9 +131,10 @@ export class DocumentsComponent implements OnInit {
     this.isLoading = true;
     this.loadError = null;
 
-    this.documentTypeService.getAllDocumentTypes().subscribe({
+    const picked = pickedBuildingIds(this.route.snapshot.queryParamMap.get(PICKED_BUILDINGS_PARAM));
+    this.documentTypeService.getMyDocumentTypes(picked).subscribe({
       next: (types) => {
-        this.allDocumentTypes = contentOf(types);
+        this.allDocumentTypes = types;
 
         // Now load uploaded documents
         this.documentService.getUploadedDocuments().subscribe({

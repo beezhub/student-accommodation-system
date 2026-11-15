@@ -76,10 +76,14 @@ describe('CompanyCheckPanelComponent', () => {
     expect(el.querySelector('a[href="/applications/44"]')).not.toBeNull();
   });
 
-  it('missingDocuments_linksToTheDocumentsPage', () => {
-    const el = render(check({ missingDocuments: ['Proof of address'] }));
+  // The buildings go along, so the Documents page offers a type only this company asks for (#443)
+  it('missingDocuments_linksToTheDocumentsPageWithTheCompanysBuildings', () => {
+    const el = render({
+      ...check({ missingDocuments: ['Proof of address'] }),
+      buildingIds: [2, 3],
+    });
 
     expect(el.textContent).toContain('Company B needs proof of address.');
-    expect(el.querySelector('a[href="/documents"]')).not.toBeNull();
+    expect(el.querySelector('a[href="/documents?buildings=2,3"]')).not.toBeNull();
   });
 });

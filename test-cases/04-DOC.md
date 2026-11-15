@@ -39,6 +39,7 @@
 | `/api/documents/{id}/comments` | GET/POST | Get/add comments |
 | `/api/documents/comments/{id}` | DELETE | Delete comment |
 | `/api/document-type` | CRUD | Document type management |
+| `/api/document-type/my` | GET | Student: types to upload, with the required types of the companies applied to or picked |
 
 ---
 
@@ -1211,6 +1212,37 @@
 
 ---
 
+### TC-DOC-044: Student uploads a company's own required document type
+
+| Field | Value |
+|-------|-------|
+| **ID** | TC-DOC-044 |
+| **Module** | Document Management |
+| **Priority** | High |
+| **Preconditions** | Tenant Admin X has created a required document type "Bursary Letter", a name no platform type uses; Company X has a building with an intake open to Student A's institution; Student A has uploaded every platform required type and has no application with Company X; Student B has not picked a Company X building or applied there |
+| **Test Data** | Company type: Bursary Letter (required); File: `bursary.pdf` (< 5 MB) |
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | As Student A, go to `/applications/new` and pick Company X's building | Company X's panel says "Company X needs bursary Letter." and shows "Upload documents" |
+| 2 | Click "Upload documents" | `/documents?buildings={buildingId}` opens; the pack has a "Bursary Letter" slot marked Required |
+| 3 | Upload `bursary.pdf` to the Bursary Letter slot | Upload succeeds; the slot shows `PENDING` |
+| 4 | Go back to `/applications/new` and pick the same building | Company X's panel no longer lists missing documents |
+| 5 | Submit the application | The application to Company X is created |
+| 6 | Open `/documents` from the menu | "Bursary Letter" is still listed, marked Required, with the uploaded file |
+| 7 | As Tenant Admin X, open the application's required documents | Bursary Letter shows the uploaded file as `PENDING`, not as not uploaded |
+| 8 | As Student B, open `/documents` | No "Bursary Letter" slot is listed |
+
+| Field | Value |
+|-------|-------|
+| **Postconditions** | A company's own required type can be uploaded, and the upload counts for submit and for the admin checklist |
+| **Pass/Fail** | ☐ |
+| **Tester** | _________________ |
+| **Date** | _________________ |
+| **Notes** | #443. The page calls `GET /api/document-type/my?buildingIds=` (students only). Step 4 of onboarding (`/application-submission`) links to the page with the picked buildings the same way. |
+
+---
+
 ## G. Role-Based Access
 
 ---
@@ -1280,9 +1312,9 @@
 | C. Student — Resubmit Rejected | 2 | TC-DOC-015 to TC-DOC-016 |
 | D. Admin — Document Verification | 11 | TC-DOC-017 to TC-DOC-027 |
 | E. Admin — Document Comments | 5 | TC-DOC-028 to TC-DOC-032 |
-| F. Admin — Document Type Management | 9 | TC-DOC-033 to TC-DOC-041 |
+| F. Admin — Document Type Management | 10 | TC-DOC-033 to TC-DOC-041, TC-DOC-044 |
 | G. Role-Based Access | 2 | TC-DOC-042 to TC-DOC-043 |
-| **Total** | **43** | |
+| **Total** | **44** | |
 
 ---
 

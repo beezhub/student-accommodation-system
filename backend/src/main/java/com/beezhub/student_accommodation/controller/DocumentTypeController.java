@@ -4,7 +4,9 @@ import com.beezhub.student_accommodation.model.dto.DocumentTypeRequest;
 import com.beezhub.student_accommodation.model.dto.DocumentTypeResponse;
 import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.service.DocumentTypeService;
+import com.beezhub.student_accommodation.service.document.StudentDocumentTypeService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import java.util.List;
 public class DocumentTypeController {
 
     private final DocumentTypeService documentTypeService;
+    private final StudentDocumentTypeService studentDocumentTypeService;
 
     @GetMapping
     @Operation(summary = "Get all document types", description = "Returns a list of all available document types. Supports pagination with query params: page, size, sort")
@@ -57,6 +60,23 @@ public class DocumentTypeController {
         log.info("Fetching required document types for tenantId={}", tenantId);
         List<DocumentTypeResponse> requiredDocumentTypes = documentTypeService.getRequiredDocumentTypes(tenantId);
         return ResponseEntity.ok(requiredDocumentTypes);
+    }
+
+    /**
+     * Students only (GH-443). Not paginated: the Documents page shows a slot for every type, and
+     * the list is bounded by the platform types and the required types of a few companies.
+     */
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Document types a student can upload",
+            description = "The platform types plus the required types of the companies the student is applying to: "
+                    + "those of the student's live applications and those owning the buildings picked on the "
+                    + "application form. One entry per type name; a name the student already uploaded under keeps "
+                    + "that upload's type.")
+    public ResponseEntity<List<DocumentTypeResponse>> getMyDocumentTypes(
+            @Parameter(description = "Buildings picked on the application form, at most 3")
+            @RequestParam(required = false) List<Long> buildingIds) {
+        return ResponseEntity.ok(studentDocumentTypeService.getUploadableTypes(buildingIds));
     }
 
     @GetMapping("/{id}")
