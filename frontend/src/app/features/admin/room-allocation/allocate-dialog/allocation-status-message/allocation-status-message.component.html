@@ -1,0 +1,8 @@
+<div class="status-message" [class.success]="ok()" [class.error]="!ok()">
+  @if (ok()) {
+  <mat-icon>check_circle</mat-icon>
+  } @else {
+  <mat-icon>error</mat-icon>
+  }
+  <span><ng-content /></span>
+</div>

@@ -1,0 +1,104 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="header-icon">
+      <mat-icon>assignment_ind</mat-icon>
+    </div>
+    <div class="header-text">
+      <h2 mat-dialog-title>Allocate Room to Student</h2>
+      <p class="subtitle">Assign a room to an eligible student</p>
+    </div>
+  </div>
+
+  <mat-dialog-content>
+    <form [formGroup]="allocateForm" class="allocate-form">
+      <!-- Student ID -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Student ID</mat-label>
+        <mat-icon matPrefix>badge</mat-icon>
+        <input
+          matInput
+          type="number"
+          formControlName="studentId"
+          placeholder="Enter student ID"
+          required
+          (blur)="checkEligibility()"
+        />
+        @if (allocateForm.get('studentId')?.hasError('required')) {
+        <mat-error>Student ID is required</mat-error>
+        } @if (allocateForm.get('studentId')?.hasError('min')) {
+        <mat-error>Invalid student ID</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Eligibility Status -->
+      @if (eligibilityChecked) {
+      <app-allocation-status-message [ok]="!!eligibility?.isEligible">
+        @if (eligibility?.isEligible) {
+        Student is eligible for room allocation
+        } @else {
+        {{ eligibility?.reason || 'Student is not eligible' }}
+        }
+      </app-allocation-status-message>
+      }
+
+      <!-- Room Selection and Availability Status -->
+      <app-allocation-room-field
+        [group]="allocateForm"
+        [availability]="availabilityChecked ? availability : null"
+        (roomSelected)="checkAvailability()"
+      />
+
+      <!-- Application Selection (Optional) -->
+      <app-allocation-application-field [group]="allocateForm" />
+
+      <!-- Allocation Date -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Allocation Date</mat-label>
+        <mat-icon matPrefix>event</mat-icon>
+        <input matInput [matDatepicker]="picker" formControlName="allocationDate" required />
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        @if (allocateForm.get('allocationDate')?.hasError('required')) {
+        <mat-error>Allocation date is required</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Information Panel -->
+      @if (allocateForm.get('studentId')?.value) {
+      <div class="info-panel">
+        <mat-icon>lightbulb</mat-icon>
+        <div class="info-content">
+          <strong>Allocation Process</strong>
+          <ul>
+            <li>Student eligibility will be verified</li>
+            <li>Room availability will be checked</li>
+            <li>Allocation will be created with ACTIVE status</li>
+            @if (allocateForm.get('applicationId')?.value) {
+            <li>Application status will be updated</li>
+            }
+          </ul>
+        </div>
+      </div>
+      }
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="onCancel()" [disabled]="isSubmitting" class="cancel-btn">
+      Cancel
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="onSubmit()"
+      [disabled]="!canSubmit() || isSubmitting"
+      class="submit-btn"
+    >
+      @if (isSubmitting) {
+      <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+      Allocating... } @if (!isSubmitting) {
+      <mat-icon>assignment_turned_in</mat-icon>
+      Allocate Room }
+    </button>
+  </mat-dialog-actions>
+</div>
