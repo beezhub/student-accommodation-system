@@ -52,6 +52,15 @@ public class Document {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * When the last expiry reminder was sent, in South African time, so the daily job reminds a
+     * document at most once a day however often it runs (GH-514). Written by
+     * {@code DocumentRepository.markExpiryReminded}, not through the entity, so a reminder does not
+     * move {@code updatedAt} or the version.
+     */
+    @Column(name = "expiry_reminded_at")
+    private LocalDateTime expiryRemindedAt;
+
     @ManyToOne
     @JoinColumn(name = "student_id", referencedColumnName = "id", nullable = false)
     private Student student;
