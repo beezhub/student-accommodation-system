@@ -35,6 +35,9 @@ class NotificationEventListenerTest {
     @Mock
     private ApplicationExpiryEmailService applicationExpiryEmailService;
 
+    @Mock
+    private AdminWelcomeEmailService adminWelcomeEmailService;
+
     /**
      * Returns null from every {@code find}, so the listener falls back to the entity carried on the
      * event. That keeps these cases asserting on the same instances they always did, and covers the
@@ -459,5 +462,47 @@ class NotificationEventListenerTest {
 
         verify(emailDispatchService).sendAllocationRejectedEmail(any(), any(), eq("John Doe"), eq("test@example.com"));
         verify(notificationService).markNotificationAsSent(notification);
+    }
+
+    /** GH-419: the row is stored with its template data before the send, so a failure is retried. */
+    @Test
+    void handleAdminTenantAssigned_storesTheWelcomeThenSendsIt() {
+        AppUser admin = AppUser.builder().id(5L).email("admin@company.test").firstName("Ada").lastName("Admin")
+                .userRole(UserRole.TENANT_ADMIN).tenantId(42L).mustChangePassword(true).build();
+        Tenant company = Tenant.builder().id(42L).name("Acme Residences").build();
+        TemplatedEmail welcome = new TemplatedEmail("admin-welcome", EmailSubjects.ADMIN_WELCOME,
+                new AdminWelcomeContext("Ada Admin", "Acme Residences", "admin@company.test", true,
+                        "http://test-url/login"));
+        when(adminWelcomeEmailService.welcome(admin, company)).thenReturn(welcome);
+        when(notificationService.createNotification(any(), any(), any(NotificationType.class), any(), any(), any(),
+                any())).thenReturn(notification);
+
+        notificationEventListener.handleAdminTenantAssigned(new AdminTenantAssignedEvent(admin, company));
+
+        InOrder order = inOrder(notificationService, adminWelcomeEmailService);
+        order.verify(notificationService).createNotification(eq("admin@company.test"), eq(EmailSubjects.ADMIN_WELCOME),
+                eq(NotificationType.WELCOME_EMAIL), eq(admin), eq(5L), eq("AppUser"), eq(welcome.templateData()));
+        order.verify(adminWelcomeEmailService).send("admin@company.test", welcome);
+        order.verify(notificationService).markNotificationAsSent(notification);
+    }
+
+    @Test
+    void handleAdminTenantAssigned_sendFails_leavesTheRowForTheRetryJob() {
+        AppUser admin = AppUser.builder().id(5L).email("admin@company.test").firstName("Ada").lastName("Admin")
+                .tenantId(42L).build();
+        Tenant company = Tenant.builder().id(42L).name("Acme Residences").build();
+        TemplatedEmail welcome = new TemplatedEmail("admin-welcome", EmailSubjects.ADMIN_WELCOME,
+                new AdminWelcomeContext("Ada Admin", "Acme Residences", "admin@company.test", false,
+                        "http://test-url/login"));
+        when(adminWelcomeEmailService.welcome(admin, company)).thenReturn(welcome);
+        when(notificationService.createNotification(any(), any(), any(NotificationType.class), any(), any(), any(),
+                any())).thenReturn(notification);
+        RuntimeException down = new RuntimeException("smtp down");
+        doThrow(down).when(adminWelcomeEmailService).send(any(), any());
+
+        notificationEventListener.handleAdminTenantAssigned(new AdminTenantAssignedEvent(admin, company));
+
+        verify(notificationService).handleNotificationFailure(notification, down);
+        verify(notificationService, never()).markNotificationAsSent(any());
     }
 }

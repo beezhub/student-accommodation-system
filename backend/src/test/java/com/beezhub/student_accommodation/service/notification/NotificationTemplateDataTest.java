@@ -102,8 +102,13 @@ class NotificationTemplateDataTest {
                 mock(EmailService.class), new EmailContentBuilder(), intakePolicy, new SimpleMeterRegistry());
         ReflectionTestUtils.setField(expiryEmails, "baseUrl", BASE_URL);
 
+        AdminWelcomeEmailService adminWelcomeEmails = new AdminWelcomeEmailService(
+                mock(EmailService.class), new SimpleMeterRegistry());
+        ReflectionTestUtils.setField(adminWelcomeEmails, "baseUrl", BASE_URL);
+
         // find() returns null, so the listener uses the entity carried on the event.
-        listener = new NotificationEventListener(persistence, dispatch, expiryEmails, mock(EntityManager.class));
+        listener = new NotificationEventListener(persistence, dispatch, expiryEmails, adminWelcomeEmails,
+                mock(EntityManager.class));
 
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
@@ -144,7 +149,9 @@ class NotificationTemplateDataTest {
                 emailType("allocation-proposal", l -> l.handleStagedAllocationProposed(
                         new StagedAllocationProposedEvent(stagedAllocation()))),
                 emailType("allocation-rejected", l -> l.handleStagedAllocationRejected(
-                        new StagedAllocationRejectedEvent(stagedAllocation(), "Room withdrawn"))));
+                        new StagedAllocationRejectedEvent(stagedAllocation(), "Room withdrawn"))),
+                emailType(AdminWelcomeEmailService.TEMPLATE, l -> l.handleAdminTenantAssigned(
+                        new AdminTenantAssignedEvent(companyAdmin(), Tenant.builder().id(1L).name("Company A").build()))));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -350,6 +357,18 @@ class NotificationTemplateDataTest {
         student.setId(1L);
         student.setAppUser(user);
         return student;
+    }
+
+    /** GH-419: an account created in user management, just added to its company. */
+    private static AppUser companyAdmin() {
+        AppUser admin = new AppUser();
+        admin.setId(2L);
+        admin.setFirstName("Ada");
+        admin.setLastName("Admin");
+        admin.setEmail("ada@company-a.test");
+        admin.setTenantId(1L);
+        admin.setMustChangePassword(true);
+        return admin;
     }
 
     private static Application application() {

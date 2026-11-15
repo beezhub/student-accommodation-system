@@ -155,7 +155,7 @@ public class EmailService {
     }
 
     // ──────────────────────────────────────────────────────────────────────────────
-    // Context mapping: the sealed switch exhausts all 26 EmailContext subtypes
+    // Context mapping: the sealed switch exhausts every EmailContext subtype
     // ──────────────────────────────────────────────────────────────────────────────
 
     public static Map<String, Object> toVariableMap(EmailContext ctx) {
@@ -377,6 +377,13 @@ public class EmailService {
                 vars.put("intakeName", c.intakeName());
                 vars.put("stayEndDate", c.stayEndDate());
                 vars.put("portalUrl", c.portalUrl());
+            }
+            case AdminWelcomeContext c -> {
+                vars.put("adminName", c.adminName());
+                vars.put("companyName", c.companyName());
+                vars.put("email", c.email());
+                vars.put("mustChangePassword", c.mustChangePassword());
+                vars.put("loginUrl", c.loginUrl());
             }
         }
         return vars;
