@@ -45,6 +45,16 @@ describe('WaitlistService', () => {
       expect(result).toEqual(mockPosition);
     });
 
+    it('getMyPosition_anyCall_sendsSilentErrorHeader', () => {
+      // The 404 for a student with no WAITING entry is handled here, so errorInterceptor
+      // must not also show its snackbar for it.
+      service.getMyPosition().subscribe();
+
+      const req = httpMock.expectOne(`${apiUrl}/position`);
+      expect(req.request.headers.get('X-Silent-Error')).toBe('true');
+      req.flush(mockPosition);
+    });
+
     it('getMyPosition_studentNotOnWaitlist_returnsNullOn404', () => {
       let result: WaitlistPosition | null | undefined;
 
