@@ -58,7 +58,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * The waiting-list screen and the batch job against a real database.
+ * The waiting-list screen, its rescore and the batch job against a real database.
  *
  * <p>Both read the queue in one session and score it in another, so a lazy association the query did
  * not fetch only fails here. The Mockito tests hand the strategy plain objects and cannot see it.
@@ -197,6 +197,30 @@ class WaitingListQueueIntegrationTest extends AbstractIntegrationTest {
                 .containsExactlyInAnyOrder(studentA.getId(), studentB.getId());
     }
 
+    // ==================== POST /api/admin/allocation/waiting-list/rescore ====================
+
+    @Test
+    void rescoreWaitingList_tenantAdmin_countsOnlyOwnTenantEntries() {
+        givenOneWaitingInTenantAAndTwoInTenantB();
+
+        // The rescore read every tenant's queue with no transaction, so the filter was off (GH-515).
+        ResponseEntity<JsonNode> response = rescoreAs(UserRole.TENANT_ADMIN, tenantA);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().get("rescored").asInt()).isEqualTo(1);
+        assertThat(response.getBody().get("message").asText()).contains("rescored 1 ");
+    }
+
+    @Test
+    void rescoreWaitingList_platformAdmin_countsEveryTenant() {
+        givenOneWaitingInTenantAAndTwoInTenantB();
+
+        ResponseEntity<JsonNode> response = rescoreAs(UserRole.PLATFORM_ADMIN, 0L);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().get("rescored").asInt()).isEqualTo(3);
+    }
+
     // ==================== Batch job ====================
 
     @Test
@@ -316,12 +340,37 @@ class WaitingListQueueIntegrationTest extends AbstractIntegrationTest {
     // ==================== Fixtures ====================
 
     private ResponseEntity<JsonNode> getWaitingListAs(UserRole role, Long tenantId) {
+        return rest.exchange(WAITING_LIST_URL, HttpMethod.GET,
+                new HttpEntity<>(adminHeaders(role, tenantId)), JsonNode.class);
+    }
+
+    private ResponseEntity<JsonNode> rescoreAs(UserRole role, Long tenantId) {
+        return rest.exchange(WAITING_LIST_URL + "/rescore", HttpMethod.POST,
+                new HttpEntity<>(adminHeaders(role, tenantId)), JsonNode.class);
+    }
+
+    private HttpHeaders adminHeaders(UserRole role, Long tenantId) {
         AppUser admin = newUser(role, tenantId, "Admin");
         String token = jwtUtil.generateToken(
                 new AppUserDetails(admin.getEmail(), "", role.name(), tenantId));
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
-        return rest.exchange(WAITING_LIST_URL, HttpMethod.GET, new HttpEntity<>(headers), JsonNode.class);
+        return headers;
+    }
+
+    /** Different sizes per tenant, so a count that leaks the other tenant cannot pass by accident. */
+    private void givenOneWaitingInTenantAAndTwoInTenantB() {
+        Building buildingA = newBuilding(tenantA);
+        newRoom(buildingA, tenantA);
+        Student studentA = newStudent("Ada", null, null);
+        enqueue(studentA, newApplication(studentA, tenantA, buildingA, null), tenantA);
+
+        Building buildingB = newBuilding(tenantB);
+        newRoom(buildingB, tenantB);
+        for (String name : List.of("Bea", "Cid")) {
+            Student studentB = newStudent(name, null, null);
+            enqueue(studentB, newApplication(studentB, tenantB, buildingB, null), tenantB);
+        }
     }
 
     private static List<Long> studentIdsIn(JsonNode rows) {

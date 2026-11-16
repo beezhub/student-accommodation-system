@@ -171,7 +171,17 @@ public class AllocationScoringOrchestrator {
      * because the entity has no score/priority column. Scores are recalculated
      * on-the-fly via {@link #getWaitingListWithScores}. This method validates
      * that scoring succeeds for all entries but does not persist results.
+     * <p>
+     * Read in one transaction so the tenant filter applies, as {@link #getWaitingListWithScores}
+     * does: a tenant admin rescores only their own queue and the count covers only it. Platform
+     * roles have no filter and rescore every tenant (GH-515).
+     * <p>
+     * A scoring failure fails the whole call rather than skipping the entry. The scoring strategy
+     * is transactional and joins this transaction, so a failure inside it marks the transaction
+     * rollback-only and a per-entry catch could only turn it into an
+     * {@code UnexpectedRollbackException} at commit.
      */
+    @Transactional(readOnly = true)
     public RescoreResult rescoreWaitingList() {
         log.info("Rescoring all waiting list entries using latest rules");
 
@@ -188,19 +198,14 @@ public class AllocationScoringOrchestrator {
 
         int rescored = 0;
         for (WaitingListEntry entry : entries) {
-            try {
-                Student student = entry.getStudent();
-                Application application = entry.getApplication();
-                Building preferredBuilding = application != null ? application.getPreferredBuilding() : null;
+            Student student = entry.getStudent();
+            Application application = entry.getApplication();
+            Building preferredBuilding = application != null ? application.getPreferredBuilding() : null;
 
-                allocationScoringService.scoreAvailableRooms(
-                        student, application, preferredBuilding);
+            allocationScoringService.scoreAvailableRooms(
+                    student, application, preferredBuilding);
 
-                rescored++;
-            } catch (Exception e) {
-                log.error("Failed to rescore entry {} for student {}: {}",
-                        entry.getId(), entry.getStudent().getId(), e.getMessage());
-            }
+            rescored++;
         }
 
         log.info("Rescored {} waiting list entries", rescored);
