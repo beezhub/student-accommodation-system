@@ -19,20 +19,42 @@ resource "aws_ecr_repository" "this" {
   }
 }
 
+# Counts builds, not manifests (#355). Each build pushes three: the index tagged sha-<commit>,
+# which deploys pull by digest, and two untagged children, the arm64 image and BuildKit's
+# provenance attestation. A count over every manifest kept 6 or 7 builds, not 20.
+#
+# Rule 1 keeps the 20 newest builds by their tag. images.yml pushes no tag other than sha-, so
+# nothing tagged falls outside it. Rule 2 removes untagged manifests a day after push; ECR does
+# not expire a manifest that a kept index still references, so a kept build keeps its children,
+# and an expired build's children go with the next run.
 resource "aws_ecr_lifecycle_policy" "this" {
   for_each   = aws_ecr_repository.this
   repository = each.value.name
 
   policy = jsonencode({
-    rules = [{
-      rulePriority = 1
-      description  = "Keep the last 20 images"
-      selection = {
-        tagStatus   = "any"
-        countType   = "imageCountMoreThan"
-        countNumber = 20
-      }
-      action = { type = "expire" }
-    }]
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep the last 20 builds (sha- tags)"
+        selection = {
+          tagStatus     = "tagged"
+          tagPrefixList = ["sha-"]
+          countType     = "imageCountMoreThan"
+          countNumber   = 20
+        }
+        action = { type = "expire" }
+      },
+      {
+        rulePriority = 2
+        description  = "Expire untagged manifests 1 day after push"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 1
+        }
+        action = { type = "expire" }
+      },
+    ]
   })
 }
