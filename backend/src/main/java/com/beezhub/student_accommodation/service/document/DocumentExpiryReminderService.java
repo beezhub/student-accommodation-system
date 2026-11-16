@@ -18,7 +18,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -36,8 +38,12 @@ import java.util.Set;
  * offer, an accepted place or a room there. The first reminder goes out
  * {@code document_expiry_reminder_days} before expiry and then every {@value #INTERVAL_DAYS} days
  * until it expires; after expiry, the day after and then every {@value #INTERVAL_DAYS} days until the
- * document is replaced. The cadence is worked out from the dates, so nothing is stored per reminder.
- * The same document expiring on the same day at two companies is reminded once.
+ * document is replaced. The cadence is worked out from the dates. The same document expiring on the
+ * same day at two companies is reminded once.
+ *
+ * <p>Each reminder is recorded on the document ({@code expiry_reminded_at}), and a document already
+ * reminded today by an earlier run, or by another instance, is skipped, so running the job twice in
+ * a day sends nothing new (GH-514).
  *
  * <p>The job sets the tenant context per company, since scheduled code otherwise sees every company,
  * and publishes each reminder inside a transaction so the email is sent after commit, never inside
@@ -66,6 +72,7 @@ public class DocumentExpiryReminderService {
     private final DocumentExpiryPolicy documentExpiryPolicy;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
+    private final Clock clock;
 
     public DocumentExpiryReminderService(
             ApplicationRepository applicationRepository,
@@ -73,13 +80,15 @@ public class DocumentExpiryReminderService {
             DocumentRepository documentRepository,
             DocumentExpiryPolicy documentExpiryPolicy,
             ApplicationEventPublisher eventPublisher,
-            @Qualifier(TransactionTemplateConfig.REQUIRES_NEW) TransactionTemplate transactionTemplate) {
+            @Qualifier(TransactionTemplateConfig.REQUIRES_NEW) TransactionTemplate transactionTemplate,
+            Clock clock) {
         this.applicationRepository = applicationRepository;
         this.roomAllocationRepository = roomAllocationRepository;
         this.documentRepository = documentRepository;
         this.documentExpiryPolicy = documentExpiryPolicy;
         this.eventPublisher = eventPublisher;
         this.transactionTemplate = transactionTemplate;
+        this.clock = clock;
     }
 
     /**
@@ -91,6 +100,7 @@ public class DocumentExpiryReminderService {
         Set<Long> companies = new LinkedHashSet<>(applicationRepository.findTenantIdsWithStatusIn(IN_PROGRESS));
         companies.addAll(roomAllocationRepository.findTenantIdsWithStatusIn(HOLDING_A_BED));
         Set<String> sent = new HashSet<>();
+        Set<Long> remindedThisRun = new HashSet<>();
         Long previousTenant = TenantContext.getTenantId();
         int reminded = 0;
         try {
@@ -100,8 +110,13 @@ public class DocumentExpiryReminderService {
                 }
                 TenantContext.setTenantId(tenantId);
                 try {
-                    Integer count = transactionTemplate.execute(status -> remindCompany(tenantId, sent));
+                    Set<Long> recorded = new HashSet<>();
+                    Integer count = transactionTemplate.execute(
+                            status -> remindCompany(tenantId, sent, remindedThisRun, recorded));
                     reminded += count == null ? 0 : count;
+                    // Added only once the company's transaction has gone through: a record that was
+                    // rolled back is not on the document, so a later company has to make it again.
+                    remindedThisRun.addAll(recorded);
                 } catch (Exception e) {
                     log.error("action=documentExpiryReminderFailed tenantId={}", tenantId, e);
                 }
@@ -116,8 +131,12 @@ public class DocumentExpiryReminderService {
         return reminded;
     }
 
-    /** Reminders for one company, inside its own transaction. */
-    int remindCompany(Long tenantId, Set<String> sent) {
+    /**
+     * Reminders for one company, inside its own transaction. {@code remindedThisRun} holds the
+     * documents that earlier companies in this run recorded a reminder on, and {@code recorded}
+     * collects the ones this company records.
+     */
+    int remindCompany(Long tenantId, Set<String> sent, Set<Long> remindedThisRun, Set<Long> recorded) {
         CompanyRules rules = documentExpiryPolicy.forCompany(tenantId);
         if (!rules.hasExpiringTypes()) {
             return 0;
@@ -127,6 +146,7 @@ public class DocumentExpiryReminderService {
             return 0;
         }
         int reminded = 0;
+        LocalDateTime now = LocalDateTime.now(clock);
         for (Document document : documentRepository.findAllByStudent_IdIn(new ArrayList<>(institutionByStudent.keySet()))) {
             Long institutionId = institutionByStudent.get(document.getStudent().getId());
             Optional<LocalDate> expiry = rules.expiryOf(document, institutionId);
@@ -137,6 +157,12 @@ public class DocumentExpiryReminderService {
             if (due == Reminder.NONE || !sent.add(document.getId() + "|" + expiry.get() + "|" + due)) {
                 continue;
             }
+            if (!recordReminder(document, rules.today(), now, remindedThisRun)) {
+                log.info("action=documentExpiryReminderSkipped reason=alreadyRemindedToday documentId={} tenantId={}",
+                        document.getId(), tenantId);
+                continue;
+            }
+            recorded.add(document.getId());
             eventPublisher.publishEvent(new DocumentExpiryReminderEvent(document.getId(), tenantId, expiry.get(),
                     due == Reminder.EXPIRED));
             reminded++;
@@ -144,6 +170,17 @@ public class DocumentExpiryReminderService {
         log.info("action=documentExpiryReminders tenantId={} students={} reminded={}",
                 tenantId, institutionByStudent.size(), reminded);
         return reminded;
+    }
+
+    /**
+     * Records the reminder on the document, and says whether it may be sent (GH-514). False when an
+     * earlier run today, or another instance, already reminded this document. A document recorded
+     * earlier in this run by another company is not recorded again and may still be sent, so two
+     * companies with different expiry dates each send their own reminder, as before.
+     */
+    private boolean recordReminder(Document document, LocalDate today, LocalDateTime now, Set<Long> remindedThisRun) {
+        return remindedThisRun.contains(document.getId())
+                || documentRepository.markExpiryReminded(document.getId(), now, today.atStartOfDay()) == 1;
     }
 
     /** The company's students, with the institution their application there is for. */
