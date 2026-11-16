@@ -1,0 +1,35 @@
+// Field rules shared by the allocate dialog and its field components, so each keeps the same look.
+
+@mixin form-field {
+  .full-width {
+    width: 100%;
+  }
+
+  mat-icon[matPrefix] {
+    color: #94a3b8;
+    margin-right: 8px;
+  }
+}
+
+// Search inside the option lists: these are server-side searches, not client filters.
+@mixin option-search {
+  .option-search {
+    padding: 8px 16px;
+    border-bottom: 1px solid rgb(0 0 0 / 12%);
+  }
+
+  .option-search input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+  }
+
+  .option-hint {
+    padding: 4px 16px;
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+}

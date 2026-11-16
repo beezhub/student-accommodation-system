@@ -1,0 +1,178 @@
+@use 'allocate-dialog-fields' as fields;
+@include fields.form-field;
+
+.dialog-container {
+  min-width: 550px;
+}
+
+/* Dialog Header */
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 24px 0;
+}
+
+.header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border-radius: 16px;
+  border: 1px solid #ddd6fe;
+}
+
+.header-icon mat-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  color: #7c3aed;
+}
+
+.header-text h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.header-text .subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Dialog Content */
+mat-dialog-content {
+  padding: 24px !important;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.allocate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Info Panel */
+.info-panel {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 12px;
+  border: 1px solid #93c5fd;
+  margin-top: 8px;
+}
+
+.info-panel > mat-icon {
+  color: #2563eb;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+}
+
+.info-content strong {
+  display: block;
+  color: #1e40af;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.info-panel ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.info-panel li {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #1e40af;
+}
+
+/* Dialog Actions */
+mat-dialog-actions {
+  padding: 16px 24px 24px !important;
+  gap: 12px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 8px;
+}
+
+.cancel-btn {
+  border-radius: 10px !important;
+  padding: 0 20px !important;
+  height: 44px;
+  color: #64748b;
+  border-color: #e2e8f0 !important;
+}
+
+.cancel-btn:hover {
+  background-color: #f8fafc;
+}
+
+.submit-btn {
+  border-radius: 10px !important;
+  padding: 0 24px !important;
+  height: 44px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.submit-btn mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.button-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+/* Responsive */
+@media (width <= 600px) {
+  .dialog-container {
+    min-width: unset;
+    width: 100%;
+  }
+
+  mat-dialog-content {
+    padding: 16px !important;
+  }
+
+  .dialog-header {
+    padding: 16px 16px 0;
+  }
+
+  .header-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+
+  .header-icon mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .header-text h2 {
+    font-size: 18px;
+  }
+
+  mat-dialog-actions {
+    flex-direction: column-reverse;
+    padding: 16px !important;
+  }
+
+  .cancel-btn,
+  .submit-btn {
+    width: 100%;
+  }
+}
