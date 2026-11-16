@@ -25,6 +25,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,6 +35,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @DisplayName("Applications expire with their intake (integration)")
 class IntakeExpiryIntegrationTest extends AbstractIntegrationTest {
+
+    /** Numbers the academic years made in this run, so their names stay short and unique. */
+    private static final AtomicInteger YEAR_SEQUENCE = new AtomicInteger();
 
     @Autowired JdbcTemplate jdbc;
     @Autowired Clock clock;
@@ -62,11 +66,11 @@ class IntakeExpiryIntegrationTest extends AbstractIntegrationTest {
         tenant = tenantRepository.save(Tenant.builder().name("Expiry Co " + System.nanoTime()).isActive(true).build());
 
         // Last year ended yesterday: its Annual intake ran to the year end, Semester 1 ended earlier.
-        endedYear = year("Ended " + System.nanoTime(), today.minusDays(300), today.minusDays(1));
+        endedYear = year(yearName("Ended"), today.minusDays(300), today.minusDays(1));
         annual = intake(endedYear, "ANNUAL", "Annual", today.minusDays(300), today.minusDays(1));
         semester1 = intake(endedYear, "SEMESTER", "Semester 1", today.minusDays(300), today.minusDays(150));
         // This year is running; one of its intakes takes applications today.
-        currentYear = year("Now " + System.nanoTime(), today.minusDays(60), today.plusDays(300));
+        currentYear = year(yearName("Now"), today.minusDays(60), today.plusDays(300));
         semester2 = intake(currentYear, "SEMESTER", "Semester 2", today.minusDays(60), today.plusDays(60));
         nextIntake = intake(currentYear, "TRIMESTER", "Trimester 3", today.plusDays(30), today.plusDays(200),
                 today.minusDays(10), today.plusDays(10));
@@ -137,6 +141,14 @@ class IntakeExpiryIntegrationTest extends AbstractIntegrationTest {
 
     private String statusOf(Application application) {
         return jdbc.queryForObject("SELECT status FROM application WHERE id = ?", String.class, application.getId());
+    }
+
+    /**
+     * academic_year.name is VARCHAR(20) (GH-535). A nanoTime suffix grows with machine uptime and
+     * overflowed it; the run counter's longest name is "Ended -2147483648", 17 characters.
+     */
+    private static String yearName(String prefix) {
+        return prefix + " " + YEAR_SEQUENCE.incrementAndGet();
     }
 
     private Long year(String name, LocalDate start, LocalDate end) {
