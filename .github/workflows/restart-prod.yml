@@ -1,0 +1,86 @@
+# Restarts containers on PROD without deploying anything.
+#
+# Started by hand from Actions > Restart PROD > Run workflow, on main. For a stuck or slow container
+# (the "Server using swap" or "Backend not answering" alerts in docs/PROD_RUNBOOK.md), not for a
+# release: the containers keep the images and .env the last Deploy PROD gave them.
+#
+# Same access as deploy-prod.yml: the sas-prod-github-deploy role through OIDC from the production
+# environment, and SSM Run Command on the server. The role only trusts runs from main
+# (infra/terraform/prod/iam.tf), so no AWS change is needed and no other branch can restart PROD.
+
+name: Restart PROD
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to restart
+        required: true
+        default: backend
+        type: choice
+        options:
+          - backend
+          - frontend
+          - redis
+          - alloy
+          - all
+
+# Shares the deploy's group: a restart never runs in the middle of a deploy, or the other way round.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  restart:
+    name: Restart on PROD
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # Through env only, never as ${{ }} inside a run block.
+      TARGET: ${{ inputs.target }}
+      SITE: https://accommodation.beezhub.co.za
+    steps:
+      - name: Check the branch
+        run: |
+          # A readable error for the rule the deploy role enforces anyway.
+          [ "$GITHUB_REF" = refs/heads/main ] || { echo "::error::run this workflow from main, not $GITHUB_REF"; exit 1; }
+
+      - uses: actions/checkout@v7
+
+      - name: AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::428847003911:role/sas-prod-github-deploy
+          aws-region: af-south-1
+
+      - name: Restart
+        run: VARS="TARGET=$TARGET" bash tools/prod/ssmrun.sh tools/prod/restart.sh
+
+      # The way students reach it: through the Elastic IP, Caddy and nginx.
+      - name: Check from outside
+        run: |
+          for _ in $(seq 1 12); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -m 10 "$SITE/" || true)
+            [ "$code" = 200 ] && { echo "$SITE/ returned 200"; exit 0; }
+            sleep 5
+          done
+          echo "::error::$SITE/ returned $code"
+          exit 1
+
+      - name: Report
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+        run: |
+          {
+            echo "### PROD restart"
+            echo ""
+            echo "- restarted: \`$TARGET\`"
+            echo "- result: $RESULT"
+            echo ""
+            echo "Nothing was deployed. If it fails again soon, read the backend log before restarting"
+            echo "again (docs/PROD_RUNBOOK.md, Reading logs)."
+          } >> "$GITHUB_STEP_SUMMARY"
