@@ -87,6 +87,17 @@ migration**: `hbm2ddl.auto` is `validate` and there are no down-migrations, so a
 a newer schema will not start. If a migration ran, restore RDS to a point in time before the deploy
 together with the previous images. The steps and the measured times are in `docs/BACKUP_AND_RESTORE.md`.
 
+## Restarting
+
+**Actions > Restart PROD > Run workflow**, on `main`, and pick what to restart: `backend`,
+`frontend`, `redis`, `alloy` or `all`. The workflow (`restart-prod.yml`) runs `tools/prod/restart.sh`
+through SSM, waits for the backend's readiness, then checks the site from outside. By hand:
+`VARS='TARGET=backend' tools/prod/ssmrun.sh tools/prod/restart.sh`.
+
+A restart keeps the images and `.env` the last deploy left, so it deploys nothing and needs no
+rollback. It also means a changed setting or secret is **not** picked up: redeploy for that. Expect a
+short outage while the backend starts. The database is RDS and is not restarted.
+
 ## Changing a setting
 
 Settings live in SSM, not in the server's `.env`, which is regenerated on every deploy:
