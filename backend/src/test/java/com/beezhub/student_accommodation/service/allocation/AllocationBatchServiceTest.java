@@ -10,7 +10,6 @@ import com.beezhub.student_accommodation.model.entity.*;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
-import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -60,8 +59,6 @@ class AllocationBatchServiceTest {
     private LegacyScoringStrategy allocationScoringService;
     @Mock
     private AllocationLifecycleService allocationLifecycleService;
-    @Mock
-    private NotificationService notificationService;
     @Mock
     private UserNotificationService userNotificationService;
     @Mock

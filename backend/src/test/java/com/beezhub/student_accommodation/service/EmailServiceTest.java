@@ -235,16 +235,6 @@ class EmailServiceTest {
     }
 
     @Test
-    void sendTemplateEmail_withWelcomeContext_shouldProcessCorrectTemplate() {
-        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var ctx = new WelcomeContext("Student Name", "test@example.com", "ST123", "2023-01-01", "url");
-
-        emailService.sendTemplateEmail("test@example.com", EmailSubjects.WELCOME, "welcome", ctx);
-
-        verify(templateEngine).process(eq("email/welcome"), any(Context.class));
-    }
-
-    @Test
     void sendTemplateEmail_withAllocationProposalContext_shouldProcessCorrectTemplate() {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var ctx = new AllocationProposalContext("Student Name", "101", "Building", 2, "url");

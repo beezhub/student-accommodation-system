@@ -7,8 +7,6 @@ package com.beezhub.student_accommodation.service.notification;
  * are injected automatically by EmailService and must NOT appear in these records.
  */
 public sealed interface EmailContext permits
-        WelcomeContext,
-        PasswordResetContext,
         ApplicationApprovedContext,
         ApplicationRejectedContext,
         ApplicationChangesRequestedContext,

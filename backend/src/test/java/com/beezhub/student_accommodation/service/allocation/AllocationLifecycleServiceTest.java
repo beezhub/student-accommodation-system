@@ -12,7 +12,6 @@ import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DeclineReason;
 import com.beezhub.student_accommodation.repository.*;
 import com.beezhub.student_accommodation.service.LegacyScoringStrategy;
-import com.beezhub.student_accommodation.service.NotificationService;
 import com.beezhub.student_accommodation.service.UserNotificationService;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,8 +57,6 @@ class AllocationLifecycleServiceTest {
     private ApplicationRepository applicationRepository;
     @Mock
     private RoomAllocationMapper roomAllocationMapper;
-    @Mock
-    private NotificationService notificationService;
     @Mock
     private WaitingListService waitingListService;
     @Mock
