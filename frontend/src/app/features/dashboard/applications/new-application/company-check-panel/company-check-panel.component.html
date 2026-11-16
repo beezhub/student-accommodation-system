@@ -31,7 +31,15 @@
     View application
   </a>
   } } @if (missesDocuments) {
-  <a mat-stroked-button class="company-link" routerLink="/documents">Upload documents</a>
+  <!-- This company's buildings, so the Documents page offers its own required types (#443) -->
+  <a
+    mat-stroked-button
+    class="company-link"
+    routerLink="/documents"
+    [queryParams]="{ buildings: check.buildingIds.join(',') }"
+  >
+    Upload documents
+  </a>
   } @if (openIntakes.length === 1) {
   <p class="company-intake">
     <mat-icon aria-hidden="true">event</mat-icon>

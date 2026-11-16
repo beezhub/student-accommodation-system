@@ -117,6 +117,39 @@ class ApplicationDocumentServiceTest {
         assertThat(response.getAllApproved()).isFalse();
     }
 
+    /**
+     * GH-443: a student can now upload against a company's own required type, offered on the
+     * Documents page. That upload must tick the company's checklist item.
+     */
+    @Test
+    void getRequiredDocumentsChecklist_documentOfCompanyOwnType_countsAsUploaded() {
+        DocumentType bursary = new DocumentType();
+        bursary.setId(300L);
+        bursary.setTenantId(42L);
+        bursary.setTypeName("Bursary Letter");
+        bursary.setIsRequired(true);
+        Document bursaryLetter = new Document();
+        bursaryLetter.setId(3000L);
+        bursaryLetter.setDocumentType(bursary);
+        bursaryLetter.setDocumentStatus(DocumentStatus.PENDING);
+        bursaryLetter.setStudent(student);
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(documentTypeService.getEffectiveDocumentTypes(42L)).thenReturn(List.of(docType1, bursary));
+        when(documentRepository.findAllByStudent_Id(5L)).thenReturn(List.of(document1, bursaryLetter));
+
+        RequiredDocumentsChecklistResponse response = service.getRequiredDocumentsChecklist(1L);
+
+        assertThat(response.getNotUploaded()).isZero();
+        assertThat(response.getPending()).isEqualTo(1);
+        assertThat(response.getDocuments())
+                .filteredOn(item -> "Bursary Letter".equals(item.getType()))
+                .singleElement()
+                .satisfies(item -> {
+                    assertThat(item.getStatus()).isEqualTo("PENDING");
+                    assertThat(item.getDocumentId()).isEqualTo(3000L);
+                });
+    }
+
     @Test
     void getRequiredDocumentsChecklist_ApplicationNotFound_ThrowsException() {
         when(applicationRepository.findById(1L)).thenReturn(Optional.empty());

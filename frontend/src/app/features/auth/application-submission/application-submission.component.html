@@ -184,6 +184,8 @@
 
         <!-- Document Readiness Checklist -->
         @if (!isLoadingDocReadiness && requiredDocTypes.length > 0) {
+        <!-- The picked buildings, so the Documents page offers their companies' own types (#443) -->
+        @let documentsQuery = { buildings: applicationForm.value.preferredBuildingIds?.join(',') || null };
         <div class="doc-readiness">
           <div class="doc-readiness__header">
             <mat-icon
@@ -212,7 +214,7 @@
               }}</mat-icon>
               <span>{{ dt.name }}</span>
               @if (!uploadedDocTypeNames.has(dt.name.toLowerCase())) {
-              <a class="doc-readiness__link" routerLink="/documents">Upload now</a>
+              <a class="doc-readiness__link" routerLink="/documents" [queryParams]="documentsQuery">Upload now</a>
               }
             </li>
             }
@@ -220,7 +222,7 @@
           @if (!hasAllRequiredDocs) {
           <p class="doc-readiness__hint">
             Upload missing documents in your
-            <a routerLink="/documents">Documents</a> section before submitting.
+            <a routerLink="/documents" [queryParams]="documentsQuery">Documents</a> section before submitting.
           </p>
           }
         </div>

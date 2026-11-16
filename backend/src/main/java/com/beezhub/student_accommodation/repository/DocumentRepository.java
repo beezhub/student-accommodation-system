@@ -1,6 +1,7 @@
 package com.beezhub.student_accommodation.repository;
 
 import com.beezhub.student_accommodation.model.entity.Document;
+import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
@@ -58,6 +59,10 @@ public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSp
     /** Returns the set of document type names already uploaded by the student — used for name-based completeness checks. */
     @Query("SELECT d.documentType.typeName FROM Document d WHERE d.student.id = :studentId")
     Set<String> findDocumentTypeNamesByStudentId(@Param("studentId") Long studentId);
+
+    /** The types the student's documents were uploaded against, so the Documents page can show each in place. */
+    @Query("SELECT d.documentType FROM Document d WHERE d.student.id = :studentId")
+    List<DocumentType> findDocumentTypesByStudentId(@Param("studentId") Long studentId);
 
     long countByDocumentStatus(DocumentStatus status);
 

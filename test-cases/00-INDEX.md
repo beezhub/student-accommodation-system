@@ -118,7 +118,7 @@ Every test case in the linked files follows this standard template:
 | 1 | [01-AUTH.md](01-AUTH.md) | Authentication & Account Management | 52 | ☐ |
 | 2 | [02-ONB.md](02-ONB.md) | Student Onboarding | 35 | ☐ |
 | 3 | [03-APP.md](03-APP.md) | Application Management | 63 | ☐ |
-| 4 | [04-DOC.md](04-DOC.md) | Document Management | 43 | ☐ |
+| 4 | [04-DOC.md](04-DOC.md) | Document Management | 44 | ☐ |
 | 5 | [05-BLD.md](05-BLD.md) | Building Management | 37 | ☐ |
 | 6 | [06-ROM.md](06-ROM.md) | Room Management | 43 | ☐ |
 | 7 | [07-ALC.md](07-ALC.md) | Allocation System | 66 | ☐ |
@@ -137,7 +137,7 @@ Every test case in the linked files follows this standard template:
 | 20 | [20-XFW.md](20-XFW.md) | Cross-Feature Workflows | 25 | ☐ |
 | 21 | [21-REL-NEXT.md](21-REL-NEXT.md) | Release Next: Academic Years, Intakes and Stays | 74 | ☐ |
 
-**Total: 700 test cases**
+**Total: 701 test cases**
 
 ---
 
@@ -148,7 +148,7 @@ Every test case in the linked files follows this standard template:
 | Authentication & Account Management | 52 | | | | 52 |
 | Student Onboarding | 35 | | | | 35 |
 | Application Management | 63 | | | | 63 |
-| Document Management | 43 | | | | 43 |
+| Document Management | 44 | | | | 44 |
 | Building Management | 37 | | | | 37 |
 | Room Management | 43 | | | | 43 |
 | Allocation System | 66 | | | | 66 |
@@ -166,7 +166,7 @@ Every test case in the linked files follows this standard template:
 | Security & Authorization | 30 | | | | 30 |
 | Cross-Feature Workflows | 25 | | | | 25 |
 | Release Next: Academic Years, Intakes and Stays | 74 | | | | 74 |
-| **TOTALS** | **700** | **0** | **0** | **0** | **700** |
+| **TOTALS** | **701** | **0** | **0** | **0** | **701** |
 
 ---
 
