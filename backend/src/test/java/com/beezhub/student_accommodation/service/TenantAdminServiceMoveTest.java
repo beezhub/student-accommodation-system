@@ -47,8 +47,6 @@ class TenantAdminServiceMoveTest {
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
-    private NotificationService notificationService;
-    @Mock
     private TokenBlacklistService tokenBlacklistService;
 
     @InjectMocks

@@ -1,0 +1,32 @@
+<ng-container [formGroup]="group()">
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Application (Optional)</mat-label>
+    <mat-icon matPrefix>description</mat-icon>
+    <mat-select formControlName="applicationId">
+      <div class="option-search" (click)="$event.stopPropagation()">
+        <input
+          matInput
+          [formControl]="applicationSearch"
+          placeholder="Search by application code"
+          aria-label="Search applications"
+        />
+      </div>
+      @if (moreApplicationsExist) {
+      <div class="option-hint">Showing the first {{ optionPageSize }}. Search to narrow.</div>
+      }
+      <mat-option value="">No Application</mat-option>
+      @for (app of studentApplications; track app.id) {
+      <mat-option [value]="app.id">
+        <div class="app-option">
+          <span class="app-code">{{ app.applicationCode }}</span>
+          <span class="app-status" [class]="app.status.toLowerCase()">{{ app.status }}</span>
+        </div>
+      </mat-option>
+      }
+    </mat-select>
+    <mat-hint>
+      <mat-icon class="hint-icon">info</mat-icon>
+      Link this allocation to an existing application
+    </mat-hint>
+  </mat-form-field>
+</ng-container>

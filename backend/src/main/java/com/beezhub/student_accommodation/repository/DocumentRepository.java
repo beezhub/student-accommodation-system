@@ -1,12 +1,14 @@
 package com.beezhub.student_accommodation.repository;
 
 import com.beezhub.student_accommodation.model.entity.Document;
+import com.beezhub.student_accommodation.model.entity.DocumentType;
 import com.beezhub.student_accommodation.model.enums.AllocationStatus;
 import com.beezhub.student_accommodation.model.enums.ApplicationStatus;
 import com.beezhub.student_accommodation.model.enums.DocumentStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -28,6 +30,23 @@ public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSp
     /** Batch fetch — used to enrich application search results without N+1 queries. */
     List<Document> findAllByStudent_IdIn(List<Long> studentIds);
 
+    /**
+     * Records an expiry reminder on a document unless it already had one on or after
+     * {@code startOfDay} (GH-514). Returns 1 when this call recorded it and 0 when the document was
+     * already reminded that day, so a second run, or a second instance running at the same time,
+     * sends nothing: the row lock makes the second update wait for the first to commit and then
+     * match no row.
+     *
+     * <p>A bulk update rather than an entity write, so {@code @PreUpdate} does not move
+     * {@code updated_at}, which the document emails show as the review date, and the version is
+     * not bumped under a student or an admin editing the same document.
+     */
+    @Modifying
+    @Query("UPDATE Document d SET d.expiryRemindedAt = :remindedAt WHERE d.id = :id "
+            + "AND (d.expiryRemindedAt IS NULL OR d.expiryRemindedAt < :startOfDay)")
+    int markExpiryReminded(@Param("id") Long id, @Param("remindedAt") LocalDateTime remindedAt,
+                           @Param("startOfDay") LocalDateTime startOfDay);
+
     /** Upsert lookup: find the document for this student + type slot (at most one due to unique constraint). */
     @Query("SELECT d FROM Document d WHERE d.student.id = :studentId AND d.documentType.id = :documentTypeId")
     Optional<Document> findByStudentIdAndDocumentTypeId(@Param("studentId") Long studentId,
@@ -40,6 +59,10 @@ public interface DocumentRepository extends JpaRepository<Document, Long>, JpaSp
     /** Returns the set of document type names already uploaded by the student — used for name-based completeness checks. */
     @Query("SELECT d.documentType.typeName FROM Document d WHERE d.student.id = :studentId")
     Set<String> findDocumentTypeNamesByStudentId(@Param("studentId") Long studentId);
+
+    /** The types the student's documents were uploaded against, so the Documents page can show each in place. */
+    @Query("SELECT d.documentType FROM Document d WHERE d.student.id = :studentId")
+    List<DocumentType> findDocumentTypesByStudentId(@Param("studentId") Long studentId);
 
     long countByDocumentStatus(DocumentStatus status);
 

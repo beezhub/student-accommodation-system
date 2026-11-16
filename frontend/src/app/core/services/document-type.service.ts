@@ -45,16 +45,25 @@ export class DocumentTypeService {
 
   private apiUrl = `${environment.apiUrl}/document-type`;
 
-  getAllDocumentTypes(): Observable<DocumentType[]> {
-    return this.http.get<DocumentType[]>(this.apiUrl);
-  }
-
   getRequiredDocumentTypes(tenantId?: number): Observable<DocumentType[]> {
     let params = new HttpParams();
     if (tenantId != null) {
       params = params.set('tenantId', tenantId.toString());
     }
     return this.http.get<DocumentType[]>(`${this.apiUrl}/required`, { params });
+  }
+
+  /**
+   * The types the student's Documents page offers (#443): the platform types, plus the required
+   * types of the companies the student applied to or owning `buildingIds`, the buildings picked
+   * on an application form. Students are platform tenant 0, so the list above has no company types.
+   */
+  getMyDocumentTypes(buildingIds: readonly number[] = []): Observable<DocumentType[]> {
+    let params = new HttpParams();
+    if (buildingIds.length > 0) {
+      params = params.set('buildingIds', buildingIds.join(','));
+    }
+    return this.http.get<DocumentType[]>(`${this.apiUrl}/my`, { params });
   }
 
   getAllDocumentTypesPaginated(

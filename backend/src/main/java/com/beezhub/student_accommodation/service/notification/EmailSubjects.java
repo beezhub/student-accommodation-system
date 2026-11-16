@@ -8,8 +8,6 @@ public final class EmailSubjects {
 
     private EmailSubjects() {}
 
-    public static final String WELCOME = "Welcome to Student Accommodation System";
-    public static final String PASSWORD_RESET = "Password Reset Request - Student Accommodation System";
     public static final String APPLICATION_APPROVED = "Application Approved - Student Accommodation";
     public static final String APPLICATION_REJECTED = "Application Status Update - Student Accommodation";
     public static final String APPLICATION_CHANGES_REQUESTED = "Action Required: Changes Needed on Your Application";

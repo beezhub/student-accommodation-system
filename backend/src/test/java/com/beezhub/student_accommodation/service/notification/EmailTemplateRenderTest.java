@@ -84,62 +84,10 @@ class EmailTemplateRenderTest {
 
     @Test
     void layout_blankContactPhone_hidesThePhoneNumber() {
-        Map<String, Object> vars = baseContext();
+        Map<String, Object> vars = minimalVars("document-verified");
         vars.put("contactPhone", "");
-        vars.put("resetUrl", "http://localhost:4200/reset?token=abc123");
 
-        assertThat(render("password-reset", vars)).doesNotContain(CONTACT_PHONE);
-    }
-
-    @Test
-    void passwordReset_rendersCorrectly() {
-        Map<String, Object> vars = baseContext();
-        vars.put("studentName", "Jane Smith");
-        vars.put("resetUrl", "http://localhost:4200/reset?token=abc123");
-
-        String html = render("password-reset", vars);
-
-        assertBaseRequirements(html, "password-reset");
-        assertThat(html).contains("http://localhost:4200/reset?token=abc123");
-        assertThat(html).contains("Jane Smith");
-    }
-
-    /**
-     * GH-141 in one test: the map persisted with the notification row must be enough to rebuild
-     * the email days later. Anything the retry job cannot render is an email the user never gets.
-     * The keys here are exactly those EmailDispatchService.welcomeTemplateData produces.
-     */
-    @Test
-    void welcome_rendersFromThePersistedTemplateData() {
-        Map<String, Object> vars = baseContext();
-        vars.put("templateName", "welcome");
-        vars.put("studentName", "Alice Smith");
-        vars.put("email", "alice@example.com");
-        vars.put("studentId", "N/A");
-        vars.put("registrationDate", "15 Jan 2026");
-        vars.put("loginUrl", PORTAL_URL + "/login");
-
-        String html = render("welcome", vars);
-
-        assertBaseRequirements(html, "welcome");
-        assertThat(html).contains("Alice Smith");
-        assertThat(html).contains(PORTAL_URL + "/login");
-    }
-
-    @Test
-    void welcome_rendersCorrectly() {
-        Map<String, Object> vars = baseContext();
-        vars.put("studentName", "John Doe");
-        vars.put("email", "john.doe@student.edu");
-        vars.put("studentId", "STU-2025-001");
-        vars.put("registrationDate", "2026-01-15");
-        vars.put("loginUrl", PORTAL_URL + "/login");
-
-        String html = render("welcome", vars);
-
-        assertBaseRequirements(html, "welcome");
-        assertThat(html).contains("John Doe");
-        assertThat(html).contains("STU-2025-001");
+        assertThat(render("document-verified", vars)).doesNotContain(CONTACT_PHONE);
     }
 
     @Test
@@ -635,10 +583,7 @@ class EmailTemplateRenderTest {
     // Cross-cutting assertions
     // -------------------------------------------------------------------------
 
-    /**
-     * Every template a student is actually sent. welcome and password-reset are left out: nothing
-     * sends them, and GH-533 deletes them.
-     */
+    /** Every template a student is actually sent. */
     private static final List<String> SENT_TEMPLATES = List.of(
             "application-approved", "application-rejected", "application-changes-requested",
             "document-verified", "document-rejected", "document-comment",
@@ -1051,7 +996,6 @@ class EmailTemplateRenderTest {
     @Test
     void allTemplates_containUniversityName() {
         String[] templates = {
-            "welcome", "password-reset",
             "application-approved", "application-rejected", "application-changes-requested",
             "document-verified", "document-rejected", "document-comment",
             "room-allocated",
@@ -1077,7 +1021,6 @@ class EmailTemplateRenderTest {
     @Test
     void allTemplates_doNotContainCenterTag() {
         String[] templates = {
-            "welcome", "password-reset",
             "application-approved", "application-rejected", "application-changes-requested",
             "document-verified", "document-rejected", "document-comment",
             "room-allocated",
@@ -1102,7 +1045,6 @@ class EmailTemplateRenderTest {
     @Test
     void footer_doesNotContainHardcodedYear2025() {
         String[] templates = {
-            "welcome", "password-reset",
             "application-approved", "application-rejected", "application-changes-requested",
             "document-verified", "document-rejected", "document-comment",
             "room-allocated",
@@ -1140,13 +1082,6 @@ class EmailTemplateRenderTest {
         vars.put("portalUrl", PORTAL_URL);
 
         switch (template) {
-            case "password-reset" -> vars.put("resetUrl", "http://reset.example.com");
-            case "welcome" -> {
-                vars.put("email", "test@student.edu");
-                vars.put("studentId", "STU-001");
-                vars.put("registrationDate", "2026-01-01");
-                vars.put("loginUrl", PORTAL_URL);
-            }
             case "application-approved" -> {
                 vars.put("applicationId", 1L);
                 vars.put("applicationDate", "2026-01-01");

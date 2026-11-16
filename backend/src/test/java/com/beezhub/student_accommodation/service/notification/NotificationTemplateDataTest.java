@@ -72,11 +72,11 @@ class NotificationTemplateDataTest {
             Set.of("universityName", "supportEmail", "contactPhone", "currentYear");
 
     /**
-     * Sent with no retryable row. The password reset URL holds a live token that must not be stored
-     * (GH-141). The reminder jobs write no row: an unsent reminder is simply picked up on the next run.
+     * Sent with no retryable row. The reminder jobs write no row: an unsent reminder is simply
+     * picked up on the next run.
      */
     private static final Set<String> NOT_RETRIED_FROM_A_ROW =
-            Set.of("password-reset", "offer-expiry-reminder", "check-in-reminder",
+            Set.of("offer-expiry-reminder", "check-in-reminder",
                     DocumentExpiryNotificationListener.TEMPLATE);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -175,13 +175,6 @@ class NotificationTemplateDataTest {
         assertThat(renderRetry("document-comment", stored)).contains(COMMENT);
     }
 
-    @Test
-    void storedTemplateData_welcome_carriesEveryVariableTheTemplateReads() throws IOException {
-        Map<String, Object> stored = dispatch.welcomeTemplateData(student().getAppUser(), "John Doe", "john@example.com");
-
-        assertThat(stored).containsKeys(variablesReadBy("welcome").toArray(String[]::new));
-    }
-
     /** A new template has to be added above, or say here why a retry never reads it. */
     @Test
     void emailTypes_everyTemplate_isCoveredOrDeliberatelyExempt() throws IOException {
@@ -195,7 +188,6 @@ class NotificationTemplateDataTest {
         reconfirmationEmailTypes().map(type -> (String) type.get()[0]).forEach(accountedFor::add);
         accountedFor.add(WithdrawalNotificationListener.TEMPLATE);
         accountedFor.add(StayExtensionNotificationListener.TEMPLATE);
-        accountedFor.add("welcome");
         accountedFor.addAll(NOT_RETRIED_FROM_A_ROW);
 
         assertThat(accountedFor).containsExactlyInAnyOrderElementsOf(onDisk);

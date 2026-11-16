@@ -307,6 +307,22 @@ describe('ApplicationSubmissionComponent', () => {
       expect(documentTypeService.getRequiredDocumentTypes).not.toHaveBeenCalled();
     });
 
+    // #443: the Documents page offers a company's own types only for buildings it is told about
+    it('onBuildingSelectionChanged_documentMissing_uploadLinksCarryThePickedBuildings', () => {
+      documentTypeService.getRequiredDocumentTypes.and.returnValue(
+        of([{ id: 9, name: 'Bursary Letter' }]) as never
+      );
+      const fixture = TestBed.createComponent(ApplicationSubmissionComponent);
+      fixture.detectChanges();
+
+      fixture.componentInstance.onBuildingSelectionChanged([5, 6]);
+      fixture.detectChanges();
+
+      const links = (fixture.nativeElement as HTMLElement).querySelectorAll('.doc-readiness a');
+      expect(links.length).toBe(2);
+      links.forEach((link) => expect(link.getAttribute('href')).toBe('/documents?buildings=5,6'));
+    });
+
     it('onBuildingSelectionChanged_cleared_goesBackToTheDefaultDocuments', () => {
       component.selectedTenantId = 3;
 

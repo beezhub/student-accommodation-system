@@ -1,0 +1,47 @@
+@use '../allocate-dialog-fields' as fields;
+@include fields.form-field;
+@include fields.option-search;
+
+.app-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.app-code {
+  font-weight: 500;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.app-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.app-status.approved {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.app-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+mat-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+}
+
+.hint-icon {
+  font-size: 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+  color: #94a3b8;
+}

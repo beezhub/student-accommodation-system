@@ -15,12 +15,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.transaction.TransactionManager;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -381,5 +387,54 @@ class AllocationScoringOrchestratorTest {
                 assertThat(result.getSuccess()).isTrue();
                 assertThat(result.getRescored()).isEqualTo(0);
                 assertThat(result.getMessage()).contains("No waiting list entries");
+        }
+
+        /**
+         * GH-515: TenantFilterAspect only enables the tenant filter inside an active transaction, so
+         * a queue read outside one gave a tenant admin every company's entries. Runs the call through
+         * Spring's real transaction interceptor and checks the state at the moment of the read.
+         */
+        @Test
+        void rescoreWaitingList_throughTransactionProxy_readsQueueInReadOnlyTransaction() {
+                boolean[] inTransaction = new boolean[1];
+                boolean[] readOnly = new boolean[1];
+                when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING")).thenAnswer(invocation -> {
+                        inTransaction[0] = TransactionSynchronizationManager.isActualTransactionActive();
+                        readOnly[0] = TransactionSynchronizationManager.isCurrentTransactionReadOnly();
+                        return List.of(waitingEntry1);
+                });
+
+                RescoreResult result = transactional(allocationScoringOrchestrator).rescoreWaitingList();
+
+                assertThat(result.getRescored()).isEqualTo(1);
+                assertThat(inTransaction[0]).as("queue read inside a transaction").isTrue();
+                assertThat(readOnly[0]).as("queue read in a read-only transaction").isTrue();
+        }
+
+        /**
+         * The scoring strategy joins the rescore's transaction, so a failure inside it marks that
+         * transaction rollback-only. Skipping the entry would only defer the failure to commit.
+         */
+        @Test
+        void rescoreWaitingList_scoringFails_propagatesFailure() {
+                when(waitingListRepository.findByStatusOrderByCreatedAtAsc("WAITING"))
+                                .thenReturn(Arrays.asList(waitingEntry1, waitingEntry2));
+                when(allocationScoringService.scoreAvailableRooms(any(Student.class), any(Application.class),
+                                any(Building.class)))
+                                .thenThrow(new IllegalStateException("scoring failed"));
+
+                assertThatThrownBy(() -> allocationScoringOrchestrator.rescoreWaitingList())
+                                .isInstanceOf(IllegalStateException.class)
+                                .hasMessage("scoring failed");
+        }
+
+        /** The orchestrator behind the same transaction interceptor Spring puts in front of the bean. */
+        private static AllocationScoringOrchestrator transactional(AllocationScoringOrchestrator target) {
+                ProxyFactory factory = new ProxyFactory(target);
+                factory.setProxyTargetClass(true);
+                factory.addAdvice(new TransactionInterceptor(
+                                (TransactionManager) new AllocationBatchServiceTransactionTest.RecordingTransactionManager(),
+                                new AnnotationTransactionAttributeSource()));
+                return (AllocationScoringOrchestrator) factory.getProxy();
         }
 }

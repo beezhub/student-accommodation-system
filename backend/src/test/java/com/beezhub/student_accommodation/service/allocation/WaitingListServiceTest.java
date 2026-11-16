@@ -13,7 +13,6 @@ import com.beezhub.student_accommodation.repository.StudentRepository;
 import com.beezhub.student_accommodation.repository.WaitingListRepository;
 import com.beezhub.student_accommodation.service.AcademicYearService;
 import com.beezhub.student_accommodation.service.AuthService;
-import com.beezhub.student_accommodation.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

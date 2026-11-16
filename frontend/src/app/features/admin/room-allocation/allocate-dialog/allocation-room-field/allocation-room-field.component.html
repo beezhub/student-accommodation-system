@@ -1,0 +1,40 @@
+<ng-container [formGroup]="group()">
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Room</mat-label>
+    <mat-icon matPrefix>meeting_room</mat-icon>
+    <mat-select formControlName="roomId" required (selectionChange)="roomSelected.emit()">
+      <div class="option-search" (click)="$event.stopPropagation()">
+        <input
+          matInput
+          [formControl]="roomSearch"
+          placeholder="Search by room number"
+          aria-label="Search rooms"
+        />
+      </div>
+      @if (moreRoomsExist) {
+      <div class="option-hint">Showing the first {{ optionPageSize }}. Search to narrow.</div>
+      } @for (room of availableRooms; track room.id) {
+      <mat-option [value]="room.id">
+        <div class="room-option">
+          <span class="room-name">{{ room.roomNumber }} - {{ room.buildingName }}</span>
+          <span class="room-capacity">({{ room.currentOccupancy }}/{{ room.capacity }})</span>
+        </div>
+      </mat-option>
+      }
+    </mat-select>
+    @if (group().get('roomId')?.hasError('required')) {
+    <mat-error>Room is required</mat-error>
+    }
+  </mat-form-field>
+</ng-container>
+
+<!-- Room Availability Status -->
+@if (availability(); as result) {
+<app-allocation-status-message [ok]="result.isAvailable">
+  @if (result.isAvailable) {
+  Room is available ({{ result.availableSpots }} spots remaining)
+  } @else {
+  Room is not available ({{ result.status }})
+  }
+</app-allocation-status-message>
+}
