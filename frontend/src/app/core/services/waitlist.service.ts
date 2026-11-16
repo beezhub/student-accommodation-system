@@ -19,10 +19,14 @@ export class WaitlistService {
    * Fetches the authenticated student's waitlist position. Resolves to
    * `null` (rather than erroring) when the student has no active waiting-list
    * entry (backend returns 404), so callers can simply hide the waitlist card.
+   * Sends `X-Silent-Error` because the 404 is an expected answer handled here,
+   * so `errorInterceptor` must not show its snackbar for it.
    */
   getMyPosition(): Observable<WaitlistPosition | null> {
     return this.http
-      .get<WaitlistPosition>(`${this.apiUrl}/position`)
+      .get<WaitlistPosition>(`${this.apiUrl}/position`, {
+        headers: { 'X-Silent-Error': 'true' },
+      })
       .pipe(catchError(() => of(null)));
   }
 }
