@@ -17,6 +17,7 @@ import com.beezhub.student_accommodation.model.dto.UnassignedAdminResponseDto;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.UserRole;
+import com.beezhub.student_accommodation.model.event.AdminTenantAssignedEvent;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
 import java.time.LocalDateTime;
@@ -31,6 +32,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * GH-212: tenant 0 is the sentinel that disables the Hibernate tenant filter, so a TENANT_ADMIN or
@@ -46,6 +48,7 @@ class UnassignedAdminServiceTest {
     @Mock private AppUserRepository appUserRepository;
     @Mock private TokenBlacklistService tokenBlacklistService;
     @Mock private TenantService tenantService;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks private UnassignedAdminService service;
 
@@ -146,6 +149,27 @@ class UnassignedAdminServiceTest {
                 eq("stranded1@test.local"), any(), anyLong());
     }
 
+    /**
+     * GH-419: being added to a company is the moment the account can sign in, so it is welcomed.
+     * The event is handled after commit, which is what keeps a rolled-back assignment silent.
+     */
+    @Test
+    void assignTenant_publishesTheWelcomeForTheAccountAndCompany() {
+        AppUser user = strandedAdmin(1L, UserRole.TENANT_ADMIN);
+        Tenant company = company();
+        when(tenantService.requireTenantAcceptingNewRecords(OWNING_TENANT)).thenReturn(company);
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(appUserRepository.save(any(AppUser.class))).thenAnswer(i -> i.getArgument(0));
+
+        service.assignTenant(1L, OWNING_TENANT);
+
+        ArgumentCaptor<AdminTenantAssignedEvent> event = ArgumentCaptor.forClass(AdminTenantAssignedEvent.class);
+        verify(eventPublisher).publishEvent(event.capture());
+        assertThat(event.getValue().admin()).isSameAs(user);
+        assertThat(event.getValue().admin().getTenantId()).isEqualTo(OWNING_TENANT);
+        assertThat(event.getValue().company()).isSameAs(company);
+    }
+
     @Test
     void assignTenant_toThePlatformTenant_isRefused() {
         assertThatThrownBy(() -> service.assignTenant(1L, 0L))
@@ -178,6 +202,7 @@ class UnassignedAdminServiceTest {
 
         verify(appUserRepository, never()).save(any());
         verify(tokenBlacklistService, never()).revokeTokensIssuedBefore(anyString(), any(), anyLong());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -201,6 +226,7 @@ class UnassignedAdminServiceTest {
         assertThatThrownBy(() -> service.assignTenant(1L, OWNING_TENANT))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("already belongs");
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @ParameterizedTest

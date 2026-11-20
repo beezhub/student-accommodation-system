@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.model.dto.UnassignedAdminResponseDto;
 import com.beezhub.student_accommodation.model.entity.AppUser;
 import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.UserRole;
+import com.beezhub.student_accommodation.model.event.AdminTenantAssignedEvent;
 import com.beezhub.student_accommodation.repository.AppUserRepository;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantService;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +54,7 @@ public class UnassignedAdminService {
     private final AppUserRepository appUserRepository;
     private final TenantService tenantService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /** Every admin account still sitting on the platform tenant, newest first. */
     @Transactional(readOnly = true)
@@ -74,6 +77,9 @@ public class UnassignedAdminService {
      * <p>The account's existing tokens are revoked. A JWT carries the tenant claim it was issued
      * with, so without this the account would keep its platform-wide access until that token
      * expired, which is up to four hours after the reassignment.
+     *
+     * <p>This is the moment the account can sign in, so it is sent a welcome email naming the
+     * company, once the assignment commits (GH-419).
      */
     @Transactional
     public UnassignedAdminResponseDto assignTenant(Long userId, Long tenantId) {
@@ -105,6 +111,7 @@ public class UnassignedAdminService {
 
         tokenBlacklistService.revokeTokensIssuedBefore(
                 saved.getEmail(), Instant.now(), TOKEN_REVOCATION_MARKER_TTL_SECONDS);
+        eventPublisher.publishEvent(new AdminTenantAssignedEvent(saved, tenant));
 
         log.info("action=adminTenantAssigned userId={} tenantId={} tenantName={}",
                 userId, tenantId, tenant.getName());

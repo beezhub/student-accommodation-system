@@ -367,6 +367,13 @@ public class EmailService {
                 vars.put("stayEndDate", c.stayEndDate());
                 vars.put("portalUrl", c.portalUrl());
             }
+            case AdminWelcomeContext c -> {
+                vars.put("adminName", c.adminName());
+                vars.put("companyName", c.companyName());
+                vars.put("email", c.email());
+                vars.put("mustChangePassword", c.mustChangePassword());
+                vars.put("loginUrl", c.loginUrl());
+            }
         }
         return vars;
     }

@@ -43,7 +43,8 @@ public class UnassignedAdminController {
 
     @Operation(summary = "Assign a stranded admin account to a property company",
             description = "Sets the account's tenant, unlocks it and revokes the tokens it already "
-                    + "holds, which still carry the platform tenant claim.")
+                    + "holds, which still carry the platform tenant claim. Once committed, the account "
+                    + "is sent a welcome email naming the company, with no password in it.")
     @ApiResponse(responseCode = "200", description = "Account assigned and unlocked")
     @ApiResponse(responseCode = "404", description = "User or tenant not found")
     @ApiResponse(responseCode = "409", description = "Account already belongs to a company")

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{email/_layout}"
+      lang="en">
+<head>
+    <title>Your Admin Account Is Ready</title>
+</head>
+<body>
+
+<h1 layout:fragment="email-title">Your Admin Account Is Ready</h1>
+<span layout:fragment="email-subtitle">You can now sign in for <span th:text="${companyName}">Company A</span></span>
+
+<div layout:fragment="email-content">
+    <p>Dear <span th:text="${adminName}">Admin</span>,</p>
+
+    <div class="info-box">
+        <h3>You have been added to <span th:text="${companyName}">Company A</span></h3>
+        <p>Your account can now sign in to work on <strong th:text="${companyName}">Company A</strong>
+           in the accommodation system.</p>
+    </div>
+
+    <p>Sign in with this email address, <strong th:text="${email}">admin@company.example</strong>.</p>
+    <p th:if="${mustChangePassword}">Use the temporary password the platform administrator gave you.
+       You will be asked to choose a new password the first time you sign in.</p>
+    <p th:unless="${mustChangePassword}">Use the password you already have for this account.</p>
+
+    <div class="cta-section">
+        <a th:href="${loginUrl}" class="cta-button" style="color: #ffffff;">Sign In</a>
+    </div>
+
+    <p>If you did not expect this email, contact the support address below before you sign in.</p>
+</div>
+
+</body>
+</html>

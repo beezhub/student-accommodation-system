@@ -125,8 +125,9 @@ class NotificationEventListenerReloadTest {
                 .filter(m -> m.isAnnotationPresent(TransactionalEventListener.class))
                 .toList();
 
-        // Ten since GH-530 removed the staged-confirmation handler that sent "Allocation Confirmed" early.
-        assertThat(handlers).hasSize(10);
+        // Ten since GH-530 removed the staged-confirmation handler that sent "Allocation Confirmed" early,
+        // eleven with the admin welcome (GH-419).
+        assertThat(handlers).hasSize(11);
         assertThat(handlers).allSatisfy(handler -> {
             Transactional tx = handler.getAnnotation(Transactional.class);
             assertThat(tx)

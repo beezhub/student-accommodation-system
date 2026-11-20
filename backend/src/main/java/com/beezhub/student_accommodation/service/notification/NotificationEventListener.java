@@ -27,6 +27,7 @@ public class NotificationEventListener {
     private final NotificationPersistenceService notificationService;
     private final EmailDispatchService emailDispatchService;
     private final ApplicationExpiryEmailService applicationExpiryEmailService;
+    private final AdminWelcomeEmailService adminWelcomeEmailService;
 
     /** The shared, transaction-bound EntityManager proxy; see {@link #reload(Application)}. */
     private final EntityManager entityManager;
@@ -63,6 +64,14 @@ public class NotificationEventListener {
     private StagedAllocation reload(StagedAllocation detached) {
         return detached == null ? null
                 : orSelf(entityManager.find(StagedAllocation.class, detached.getId()), detached);
+    }
+
+    private AppUser reload(AppUser detached) {
+        return detached == null ? null : orSelf(entityManager.find(AppUser.class, detached.getId()), detached);
+    }
+
+    private Tenant reload(Tenant detached) {
+        return detached == null ? null : orSelf(entityManager.find(Tenant.class, detached.getId()), detached);
     }
 
     private <T> T orSelf(T managed, T detached) {
@@ -634,6 +643,34 @@ public class NotificationEventListener {
             notificationService.markNotificationAsSent(notification);
         } catch (Exception e) {
             notificationService.handleNotificationFailure(notification, e);
+        }
+    }
+
+    /**
+     * Welcomes an admin account added to a company (GH-419), once the assignment has committed. The
+     * row is stored first with every variable the template reads, so a failed send is retried.
+     */
+    @Async("notificationExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void handleAdminTenantAssigned(AdminTenantAssignedEvent event) {
+        AppUser admin = reload(event.admin());
+        Tenant company = reload(event.company());
+        TenantContext.setTenantId(admin.getTenantId());
+        try {
+            log.info("action=adminWelcomeEmail userId={} tenantId={}", admin.getId(), company.getId());
+            TemplatedEmail welcome = adminWelcomeEmailService.welcome(admin, company);
+            Notification notification = notificationService.createNotification(admin.getEmail(),
+                    welcome.subject(), NotificationType.WELCOME_EMAIL, admin, admin.getId(), "AppUser",
+                    welcome.templateData());
+            try {
+                adminWelcomeEmailService.send(admin.getEmail(), welcome);
+                notificationService.markNotificationAsSent(notification);
+            } catch (Exception e) {
+                notificationService.handleNotificationFailure(notification, e);
+            }
+        } finally {
+            TenantContext.clear();
         }
     }
 }

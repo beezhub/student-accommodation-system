@@ -33,4 +33,5 @@ public final class EmailSubjects {
     public static final String DOCUMENT_EXPIRED = "Your Document Has Expired - Upload the New One";
     public static final String STAY_EXTENDED = "Your Stay Has Been Extended - Same Room";
     public static final String CHECK_IN_EXPIRED = "Check-In Deadline Expired - Application Cancelled";
+    public static final String ADMIN_WELCOME = "Your Admin Account Is Ready";
 }

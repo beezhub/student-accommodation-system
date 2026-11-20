@@ -594,7 +594,8 @@ class EmailTemplateRenderTest {
             "check-in-reminder", "check-in-expired",
             "reconfirm-request", "reconfirm-reminder", "place-released",
             "application-expired", "applications-withdrawn",
-            "document-expiry-reminder", "stay-extended");
+            "document-expiry-reminder", "stay-extended",
+            "admin-welcome");
 
     /**
      * The app's colour tokens (frontend/src/styles/_variables.scss: primary #7c3aed, success
@@ -993,6 +994,36 @@ class EmailTemplateRenderTest {
                 .contains("room offer");
     }
 
+    /** GH-419: which company, where to sign in, and the forced change, but never a password. */
+    @Test
+    void adminWelcome_namesTheCompanyAndTheSignInLinkWithoutAPassword() {
+        Map<String, Object> vars = minimalVars("admin-welcome");
+
+        String html = render("admin-welcome", vars);
+
+        assertBaseRequirements(html, "admin-welcome");
+        assertThat(html)
+                .contains("Ada Admin")
+                .contains("Company A")
+                .contains("ada@company-a.test")
+                .contains("href=\"" + PORTAL_URL + "/login\"")
+                .contains("choose a new password the first time you sign in")
+                .doesNotContain("Dear Student")
+                .doesNotContain("Student ID")
+                .doesNotContain("Password:");
+    }
+
+    /** An older account repaired by assignment keeps its own password, so no change is promised. */
+    @Test
+    void adminWelcome_accountWithItsOwnPassword_isNotToldToChangeIt() {
+        Map<String, Object> vars = minimalVars("admin-welcome");
+        vars.put("mustChangePassword", false);
+
+        assertThat(render("admin-welcome", vars))
+                .doesNotContain("temporary password")
+                .contains("Use the password you already have");
+    }
+
     @Test
     void allTemplates_containUniversityName() {
         String[] templates = {
@@ -1005,7 +1036,8 @@ class EmailTemplateRenderTest {
             "check-in-reminder", "check-in-expired",
             "reconfirm-request", "reconfirm-reminder", "place-released",
             "application-expired", "applications-withdrawn",
-            "document-expiry-reminder", "stay-extended"
+            "document-expiry-reminder", "stay-extended",
+            "admin-welcome"
         };
 
         for (String template : templates) {
@@ -1030,7 +1062,8 @@ class EmailTemplateRenderTest {
             "check-in-reminder", "check-in-expired",
             "reconfirm-request", "reconfirm-reminder", "place-released",
             "application-expired", "applications-withdrawn",
-            "document-expiry-reminder", "stay-extended"
+            "document-expiry-reminder", "stay-extended",
+            "admin-welcome"
         };
 
         for (String template : templates) {
@@ -1054,7 +1087,8 @@ class EmailTemplateRenderTest {
             "check-in-reminder", "check-in-expired",
             "reconfirm-request", "reconfirm-reminder", "place-released",
             "application-expired", "applications-withdrawn",
-            "document-expiry-reminder", "stay-extended"
+            "document-expiry-reminder", "stay-extended",
+            "admin-welcome"
         };
 
         for (String template : templates) {
@@ -1230,6 +1264,13 @@ class EmailTemplateRenderTest {
                 vars.put("buildingName", "Block A");
                 vars.put("intakeName", "Semester 2");
                 vars.put("stayEndDate", "30 November 2027");
+            }
+            case "admin-welcome" -> {
+                vars.put("adminName", "Ada Admin");
+                vars.put("companyName", "Company A");
+                vars.put("email", "ada@company-a.test");
+                vars.put("mustChangePassword", true);
+                vars.put("loginUrl", PORTAL_URL + "/login");
             }
             case "place-released" -> {
                 vars.put("applicationCode", "APP-001");
