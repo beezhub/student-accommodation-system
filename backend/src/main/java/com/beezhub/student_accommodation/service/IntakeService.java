@@ -5,6 +5,7 @@ import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
 import com.beezhub.student_accommodation.exceptions.InvalidAcademicCalendarException;
 import com.beezhub.student_accommodation.exceptions.ResourceInUseException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+import com.beezhub.student_accommodation.model.dto.AcademicYearAssignRequest;
 import com.beezhub.student_accommodation.model.dto.AcademicYearCopyRequest;
 import com.beezhub.student_accommodation.model.dto.AcademicYearPatternRequest;
 import com.beezhub.student_accommodation.model.dto.AcademicYearResponse;
@@ -12,6 +13,7 @@ import com.beezhub.student_accommodation.model.dto.IntakeRequest;
 import com.beezhub.student_accommodation.model.dto.IntakeResponse;
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
 import com.beezhub.student_accommodation.model.entity.Intake;
+import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.IntakeType;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
@@ -19,6 +21,7 @@ import com.beezhub.student_accommodation.repository.IntakeRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
+import com.beezhub.student_accommodation.service.tenant.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,10 +34,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
- * Intakes inside academic years (GH-494): creating a year from a pattern, copying last year, and
- * editing the intakes in place. Kept apart from {@link AcademicYearService} so each stays small.
+ * Intakes inside academic years (GH-494): creating a year from a pattern, copying last year,
+ * assigning a platform year to a company (GH-575), and editing the intakes in place. Kept apart
+ * from {@link AcademicYearService} so each stays small.
  *
  * <p>Applications do not carry an intake yet (group B of #493), so the counts and the delete
  * check below use the intake's year. Every existing year has exactly one Annual intake, so for
@@ -55,6 +60,7 @@ public class IntakeService {
     private final AcademicYearService academicYearService;
     private final IntakeWindowPolicy intakeWindowPolicy;
     private final TenantOwnershipGuard tenantOwnershipGuard;
+    private final TenantService tenantService;
 
     /**
      * Creates a year with its intakes filled in: Annual covers the whole year, Semesters split it
@@ -90,22 +96,42 @@ public class IntakeService {
                 .endDate(source.getEndDate().plusYears(1))
                 .build();
         copy.setTenantId(source.getTenantId());
-        List<Intake> intakes = intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(academicYearId)
-                .stream()
-                .map(i -> Intake.builder()
-                        .academicYear(copy)
-                        .tenantId(copy.getTenantId())
-                        .intakeType(i.getIntakeType())
-                        .name(i.getName())
-                        .stayStartDate(i.getStayStartDate().plusYears(1))
-                        .stayEndDate(i.getStayEndDate().plusYears(1))
-                        .applicationOpenDate(i.getApplicationOpenDate().plusYears(1))
-                        .applicationCloseDate(i.getApplicationCloseDate().plusYears(1))
-                        .build())
-                .toList();
-        AcademicYear saved = saveYearWithIntakes(copy, source.getInstitutionId(), new ArrayList<>(intakes));
+        AcademicYear saved = saveYearWithIntakes(copy, source.getInstitutionId(), copyIntakes(academicYearId, copy, 1));
         log.info("action=academicYearCopied sourceId={} academicYearId={}", academicYearId, saved.getId());
         return academicYearService.toResponse(saved);
+    }
+
+    /**
+     * Gives a company its own copy of a platform year and its intakes, with the same dates
+     * (GH-575). The platform year stays as it is: it can go to several companies, and applications
+     * already filed under it keep pointing at it. The company's calendar rules apply to the copy,
+     * so a name it already uses or dates that overlap one of its years are refused.
+     */
+    @Transactional
+    @LogActivity(action = "ASSIGN", entityType = "ACADEMIC_YEAR", description = "Assigned academic year {0} to a company")
+    public AcademicYearResponse assignToCompany(Long academicYearId, AcademicYearAssignRequest request) {
+        AcademicYear source = academicYearService.loadOwned(academicYearId);
+        if (!TenantContext.PLATFORM_TENANT_ID.equals(source.getTenantId())) {
+            throw new InvalidAcademicCalendarException(source.getName()
+                    + " already belongs to a company. Only a platform year can be assigned.");
+        }
+        Long companyId = request.getTenantId();
+        if (TenantContext.PLATFORM_TENANT_ID.equals(companyId)) {
+            throw new InvalidAcademicCalendarException("Choose a company. The platform already has this year.");
+        }
+        Tenant company = tenantService.requireTenantAcceptingNewRecords(companyId);
+        AcademicYear copy = AcademicYear.builder()
+                .tenantId(companyId)
+                .name(source.getName())
+                .startDate(source.getStartDate())
+                .endDate(source.getEndDate())
+                .build();
+        AcademicYear saved = saveYearWithIntakes(copy, source.getInstitutionId(), copyIntakes(academicYearId, copy, 0));
+        log.info("action=academicYearAssigned sourceId={} academicYearId={} tenantId={}",
+                academicYearId, saved.getId(), companyId);
+        AcademicYearResponse response = academicYearService.toResponse(saved);
+        response.setCompanyName(company.getName());
+        return response;
     }
 
     @Transactional
@@ -177,6 +203,22 @@ public class IntakeService {
         intakes.forEach(i -> i.setAcademicYear(saved));
         intakeRepository.saveAll(intakes);
         return saved;
+    }
+
+    /** A year's intakes, copied into {@code copy} with every date moved on by {@code years}. */
+    private List<Intake> copyIntakes(Long sourceYearId, AcademicYear copy, int years) {
+        return intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(sourceYearId).stream()
+                .map(i -> Intake.builder()
+                        .academicYear(copy)
+                        .tenantId(copy.getTenantId())
+                        .intakeType(i.getIntakeType())
+                        .name(i.getName())
+                        .stayStartDate(i.getStayStartDate().plusYears(years))
+                        .stayEndDate(i.getStayEndDate().plusYears(years))
+                        .applicationOpenDate(i.getApplicationOpenDate().plusYears(years))
+                        .applicationCloseDate(i.getApplicationCloseDate().plusYears(years))
+                        .build())
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /** Splits a year into {@code type}'s equal parts, each with its window filled in. */

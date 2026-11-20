@@ -20,7 +20,13 @@ import { RoleService } from '../../../core/services/role.service';
 import { confirmAction } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { SkeletonLoaderComponent } from '../../../shared/components/skeleton-loader/skeleton-loader.component';
-import { InstitutionGroup, describeYearDates, groupByInstitution } from './academic-year-wording';
+import {
+  InstitutionGroup,
+  describeYearDates,
+  groupByInstitution,
+  isPlatformYear,
+  ownerLabel,
+} from './academic-year-wording';
 import { IntakeListComponent } from './intake-list/intake-list.component';
 import { AcademicYearDialogData } from './academic-year-form-dialog/academic-year-form-dialog.component';
 
@@ -59,7 +65,14 @@ export class AcademicYearManagementComponent implements OnInit {
     this.roleService.isPlatformAdmin() ||
     this.roleService.isPlatformStaff() ||
     this.roleService.isTenantAdmin();
+  /**
+   * Platform roles see every company's years, so each year shows its owner, and they can give a
+   * platform year to a company (GH-575).
+   */
+  readonly canAssign = this.roleService.isPlatformAdmin() || this.roleService.isPlatformStaff();
   readonly describeDates = describeYearDates;
+  readonly isPlatformYear = isPlatformYear;
+  readonly ownerLabel = ownerLabel;
 
   academicYears: AcademicYear[] = [];
   groups: InstitutionGroup[] = [];
@@ -108,6 +121,27 @@ export class AcademicYearManagementComponent implements OnInit {
         this.loadAcademicYears();
       },
       error: (error: HttpErrorResponse) => this.showError(error, 'The year could not be copied'),
+    });
+  }
+
+  /** "Assign to a company": the company gets its own copy, and the platform year stays. */
+  openAssignDialog(academicYear: AcademicYear): void {
+    import('./assign-academic-year-dialog/assign-academic-year-dialog.component').then((m) => {
+      this.dialog
+        .open(m.AssignAcademicYearDialogComponent, { width: '520px', data: { academicYear } })
+        .afterClosed()
+        .subscribe((copy?: AcademicYear) => {
+          if (!copy) {
+            return;
+          }
+          this.snackBar.open(
+            `${academicYear.name} assigned to ${copy.companyName ?? 'the company'}. ` +
+              'They can now change their copy.',
+            'Close',
+            { duration: 6000 }
+          );
+          this.loadAcademicYears();
+        });
     });
   }
 

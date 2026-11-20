@@ -18,7 +18,9 @@ import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.InstitutionRepository;
 import com.beezhub.student_accommodation.repository.IntakeRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.repository.TenantRepository;
 import com.beezhub.student_accommodation.model.entity.Intake;
+import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.IntakeType;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
@@ -62,6 +64,7 @@ class AcademicYearServiceTest {
     @Mock private RoomAllocationRepository roomAllocationRepository;
     @Mock private IntakeRepository intakeRepository;
     @Mock private IntakeWindowPolicy intakeWindowPolicy;
+    @Mock private TenantRepository tenantRepository;
 
     private final TenantOwnershipGuard tenantOwnershipGuard = new TenantOwnershipGuard();
     private AcademicYearService service;
@@ -310,6 +313,37 @@ class AcademicYearServiceTest {
         verify(academicYearRepository, never()).findByTenantId(anyLong(), any());
     }
 
+    /** GH-575: the platform's list mixes every company's years, so each names its owner. */
+    @Test
+    void getAllAcademicYears_platformAdmin_namesEachYearsCompany() {
+        TenantContext.setTenantId(PLATFORM);
+        PageRequest page = PageRequest.of(0, 20);
+        AcademicYear platformYear = year(5L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
+        platformYear.setTenantId(PLATFORM);
+        AcademicYear companyYear = year(6L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
+        when(academicYearRepository.findAll(page))
+                .thenReturn(new PageImpl<>(List.of(platformYear, companyYear), page, 2));
+        when(tenantRepository.findAllById(List.of(COMPANY)))
+                .thenReturn(List.of(Tenant.builder().id(COMPANY).name("Acme Residences").build()));
+
+        PageResponse<AcademicYearResponse> result = service.getAllAcademicYears(page);
+
+        assertThat(result.getContent()).extracting(AcademicYearResponse::getCompanyName)
+                .containsExactly(null, "Acme Residences");
+    }
+
+    @Test
+    void getAllAcademicYears_companyAdmin_doesNotLookUpCompanies() {
+        PageRequest page = PageRequest.of(0, 20);
+        when(academicYearRepository.findByTenantId(COMPANY, page)).thenReturn(new PageImpl<>(
+                List.of(year(5L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30))), page, 1));
+
+        PageResponse<AcademicYearResponse> result = service.getAllAcademicYears(page);
+
+        assertThat(result.getContent().get(0).getCompanyName()).isNull();
+        verifyNoInteractions(tenantRepository);
+    }
+
     @Test
     void getAcademicYearById_platformYear_isReadable() {
         AcademicYear platformYear = year(5L, "2027", null, LocalDate.of(2027, 2, 1), LocalDate.of(2027, 11, 30));
@@ -467,7 +501,7 @@ class AcademicYearServiceTest {
         Clock clock = Clock.fixed(ZonedDateTime.of(johannesburgTime, ClockConfig.CALENDAR_ZONE).toInstant(),
                 ClockConfig.CALENDAR_ZONE);
         return new AcademicYearService(academicYearRepository, applicationRepository, roomAllocationRepository,
-                intakeRepository, institutionRepository, academicYearMapper,
+                intakeRepository, institutionRepository, tenantRepository, academicYearMapper,
                 tenantOwnershipGuard, clock);
     }
 

@@ -75,6 +75,16 @@ export class AcademicYearService {
     );
   }
 
+  /**
+   * Gives a company its own copy of a platform year and its intakes, with the same dates. The
+   * platform year stays as it is (GH-575).
+   */
+  assignToCompany(id: number, tenantId: number): Observable<AcademicYear> {
+    return this.write(
+      this.http.post<AcademicYear>(`${this.apiUrl}/${id}/assign`, { tenantId }, { headers: SILENT })
+    );
+  }
+
   /** The response carries how many applications and allocations the year has. */
   updateAcademicYear(id: number, request: AcademicYearRequest): Observable<AcademicYear> {
     return this.write(
