@@ -33,6 +33,7 @@ const TOOLBAR_HIDDEN_ROUTES = [
   '/application-submission',
   '/application-review',
   '/application-confirmation',
+  '/privacy',
 ];
 
 /** True when `url` is one of those pages, with or without a query string. */

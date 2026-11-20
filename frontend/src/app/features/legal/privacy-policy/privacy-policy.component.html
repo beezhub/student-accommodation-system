@@ -1,0 +1,268 @@
+<div class="privacy-page">
+  <header class="privacy-header">
+    <div class="header-inner">
+      <a routerLink="/home" class="brand">
+        <mat-icon aria-hidden="true">home_work</mat-icon>
+        <span>BeeZhub</span>
+      </a>
+      <a [routerLink]="back.link" class="back-link">
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+        <span>{{ back.label }}</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="privacy-content">
+    <h1>Privacy Policy</h1>
+    <p class="updated">
+      Last updated: <mark class="placeholder">[To be completed: the date this policy is published]</mark>
+    </p>
+
+    <p>
+      BeeZhub is a platform where students apply for accommodation with the accommodation providers
+      that use it. This policy explains what personal information we collect about you, why we
+      collect it, who receives it, how long we keep it, and your rights under the Protection of
+      Personal Information Act, 2013 (POPIA).
+    </p>
+    <p>
+      BeeZhub is run by
+      <mark class="placeholder">[To be completed: the registered name and registration number of
+        the company that runs BeeZhub]</mark>,
+      <mark class="placeholder">[To be completed: its physical and postal address]</mark>.
+    </p>
+
+    <section aria-labelledby="collect">
+      <h2 id="collect">What we collect</h2>
+      <ul>
+        <li>
+          <strong>Your account:</strong> your first and last name, email address and password. We
+          store the password only as a one-way hash, so nobody can read it.
+        </li>
+        <li>
+          <strong>Your student profile:</strong> student number, phone number, date of birth,
+          gender, institution, year of study, any special requirements you enter, and an emergency
+          contact's name, relationship, phone number and email address.
+        </li>
+        <li>
+          <strong>Your applications:</strong> the provider and intake you apply to, your institution
+          and course, the buildings you prefer, whether you need accessible accommodation, any
+          special requirements, and the status of each application with the notes staff add while
+          reviewing it.
+        </li>
+        <li>
+          <strong>Your documents:</strong> the files a provider asks you to upload, for example an
+          ID document or passport, proof of address and proof of registration, and where a provider
+          asks for them, a financial aid application or a medical certificate. We also keep each
+          document's review status and the comments staff make on it.
+        </li>
+        <li>
+          <strong>Rooms and offers:</strong> the rooms you are offered, your answers to those offers,
+          your check-in, and your place on any waiting list.
+        </li>
+        <li>
+          <strong>Messages:</strong> the notifications we show you in the app and the emails we send
+          you.
+        </li>
+        <li>
+          <strong>Security records:</strong> a record of the actions taken in your account, with the
+          time and the IP address they came from; failed sign-in attempts, since several in a row
+          lock the account for a while; and web server logs, which hold your IP address, the
+          address you requested, the time and your browser type.
+        </li>
+      </ul>
+      <p>
+        Some of this is special personal information under POPIA: health or disability details you
+        give as accessibility needs or special requirements, or in a medical certificate. We collect
+        it only when you enter it or a provider asks you to upload it, and we use it to find you
+        accommodation that suits you.
+      </p>
+      <p>
+        You need a name, email address and password to create an account. Before you can apply,
+        your profile must include your student number, phone number, date of birth, gender and an
+        emergency contact's name and phone number, and you must upload the documents the provider
+        marks as required. Without these we cannot process your application.
+      </p>
+      <p>
+        Your emergency contact's details are another person's personal information. Please tell
+        them that you have given them to us, and show them this policy.
+      </p>
+    </section>
+
+    <section aria-labelledby="why">
+      <h2 id="why">Why we use it</h2>
+      <ul>
+        <li>To create your account, keep it secure and confirm your email address.</li>
+        <li>To give your application and documents to the provider you apply to, so they can review
+          it.</li>
+        <li>To match you with a room and manage offers, check-in and waiting lists.</li>
+        <li>To tell you, in the app and by email, about your account, applications, documents and
+          offers.</li>
+        <li>To reach your emergency contact if something happens to you.</li>
+        <li>To protect the service: to detect misuse, lock an account after repeated failed sign-ins,
+          investigate problems and keep a record of who did what.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="automatic">
+      <h2 id="automatic">Automatic room matching</h2>
+      <p>
+        A provider can let the platform offer rooms automatically. The platform then ranks
+        applications and matches them to rooms using your gender (only where a room or building is
+        for one gender), your accessibility needs, any funding you mention in your special
+        requirements (such as NSFAS or a bursary), your institution and your year of study. You can
+        decline any offer, and you can contact us about any decision made this way.
+      </p>
+    </section>
+
+    <section aria-labelledby="who">
+      <h2 id="who">Who receives it</h2>
+      <ul>
+        <li>
+          <strong>The accommodation providers you apply to.</strong> Their staff see your profile,
+          the applications you send them and your documents. A provider only sees students who
+          applied to it.
+        </li>
+        <li>
+          <strong>BeeZhub's administrators</strong>, who run the platform and support students and
+          providers.
+        </li>
+        <li>
+          <strong>Amazon Web Services</strong>, in its Cape Town region, which hosts our servers,
+          our database, the documents you upload (Amazon S3) and the emails we send you (Amazon
+          SES).
+        </li>
+        <li>
+          <strong>Grafana Labs</strong> (Grafana Cloud), which stores our application and web server
+          logs so we can monitor and fix the platform. These logs hold IP addresses and the
+          addresses of pages requested, and some log lines hold email addresses.
+        </li>
+        <li>
+          <strong>Google</strong>, because our pages load their fonts from Google Fonts. Your browser
+          sends your IP address and browser details to Google when a page loads.
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="abroad">
+      <h2 id="abroad">Information that leaves South Africa</h2>
+      <p>
+        Your profile, applications and documents are stored in South Africa, in Amazon Web Services'
+        Cape Town region. Two things leave the country: our logs, which Grafana Cloud stores in the
+        European Union, and the details your browser sends to Google when it loads our fonts.
+      </p>
+    </section>
+
+    <section aria-labelledby="keep">
+      <h2 id="keep">How long we keep it</h2>
+      <ul>
+        <li>
+          <strong>Your account, profile, applications, offers, notifications and activity
+            records</strong> are kept until you delete your account, which removes them.
+          <mark class="placeholder">[To be completed: how long an account that is no longer used is
+            kept before it is deleted]</mark>
+        </li>
+        <li>
+          <strong>Your documents</strong> are deleted when you delete your account.
+          <mark class="placeholder">[To be completed: how long documents are kept after your last
+            application closes and your last tenancy ends. The platform can delete them
+            automatically after a set number of months (12 by default), but only once that job is
+            switched on in production]</mark>
+        </li>
+        <li>
+          <strong>Backups:</strong> we keep database backups for 35 days and earlier versions of
+          deleted documents for 35 days, so information you delete can stay in our backups for up
+          to about six weeks before it is gone.
+        </li>
+        <li>
+          <strong>Logs:</strong>
+          <mark class="placeholder">[To be completed: how long Grafana Cloud keeps our logs on the
+            plan in use]</mark>
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="protect">
+      <h2 id="protect">How we protect it</h2>
+      <p>
+        Everything you send us travels over HTTPS. Our database is encrypted and cannot be reached
+        from the internet. Your documents are stored encrypted in private storage, and are only
+        handed out, through links that expire after a short time, to you, the providers you applied
+        to, and our administrators.
+      </p>
+    </section>
+
+    <section aria-labelledby="storage">
+      <h2 id="storage">Cookies and storage in your browser</h2>
+      <p>
+        We do not use cookies, analytics or advertising trackers. When you sign in, the website
+        keeps your sign-in token and your name, email address and role in your browser's local
+        storage, so that you stay signed in. Both are removed when you sign out. While you fill in
+        an application, your answers on the personal details step are kept in your browser's
+        session storage so that a refresh does not lose them. They are removed when the application
+        is created or when you close the tab.
+      </p>
+    </section>
+
+    <section aria-labelledby="rights">
+      <h2 id="rights">Your rights</h2>
+      <p>Under POPIA you can:</p>
+      <ul>
+        <li>
+          <strong>See your information.</strong> Most of it is in the app, under My Profile,
+          Applications and Documents. To ask for a copy of everything we hold about you, contact us.
+        </li>
+        <li>
+          <strong>Correct it.</strong> Edit your details in My Profile, or ask us to correct anything
+          you cannot change there.
+        </li>
+        <li>
+          <strong>Delete it.</strong> Use Delete Account in My Profile, which removes your account,
+          profile, applications and documents, or ask us to delete it.
+        </li>
+        <li>
+          <strong>Object</strong> to us using your information, or withdraw your consent. If you do,
+          we may no longer be able to process your applications.
+        </li>
+        <li>
+          <strong>Complain to the Information Regulator</strong> if you believe we have not handled
+          your information properly:
+          <a href="https://inforegulator.org.za" target="_blank" rel="noopener"
+            class="regulator-link">inforegulator.org.za</a>.
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="contact">
+      <h2 id="contact">Contact us</h2>
+      <p>
+        Our information officer is <strong>Boitumelo Tshehla</strong>, who can be reached at
+        <mark class="placeholder">[To be completed: the information officer's direct email address
+          or phone number]</mark>.
+      </p>
+      @if (contact() === undefined) {
+        <p class="contact-status">Loading contact details...</p>
+      } @else if (contact(); as info) {
+        <p>For any question or request about your information, you can also contact us at:</p>
+        <ul class="contact-list">
+          <li>
+            Email: <a class="contact-value" [href]="'mailto:' + info.email">{{ info.email }}</a>
+          </li>
+          @if (info.phone) {
+            <li>
+              Phone: <a class="contact-value" [href]="telHref(info.phone)">{{ info.phone }}</a>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="contact-status unavailable" role="alert">
+          Our contact details could not be loaded. Please refresh the page or try again later.
+        </p>
+      }
+    </section>
+
+    <section aria-labelledby="changes">
+      <h2 id="changes">Changes to this policy</h2>
+      <p>When we change this policy, we update the date at the top of this page.</p>
+    </section>
+  </main>
+</div>

@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { OverlayContainer } from '@angular/cdk/overlay';
 
 import { AppNavMenuComponent } from './app-nav-menu.component';
 import { AuthService } from '../core/services/auth.service';
@@ -113,5 +114,47 @@ describe('AppNavMenuComponent with the real RoleService (admin paths)', () => {
     fixture.detectChanges();
     const links = fixture.nativeElement.querySelectorAll('.nav-links .nav-link');
     expect(links.length).toBe(3);
+  });
+});
+
+/** #559: a signed-in student must be able to find the privacy policy they accepted at signup. */
+describe('AppNavMenuComponent privacy policy link', () => {
+  function openMenu(trigger: string): HTMLAnchorElement | null {
+    TestBed.configureTestingModule({
+      imports: [AppNavMenuComponent, HttpClientTestingModule],
+      providers: [
+        provideRouter([]),
+        provideNoopAnimations(),
+        {
+          provide: AuthService,
+          useValue: jasmine.createSpyObj<AuthService>('AuthService', [], {
+            currentUserValue: null,
+          }),
+        },
+        { provide: RoleService, useValue: { isStudent: () => true } },
+      ],
+    });
+    const fixture = TestBed.createComponent(AppNavMenuComponent);
+    fixture.detectChanges();
+
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(trigger)?.click();
+    fixture.detectChanges();
+
+    return TestBed.inject(OverlayContainer)
+      .getContainerElement()
+      .querySelector<HTMLAnchorElement>('a.nav-menu-privacy');
+  }
+
+  it('privacyLink_profileMenu_linksToThePolicy', () => {
+    const link = openMenu('.nav-avatar');
+
+    expect(link?.getAttribute('href')).toBe('/privacy');
+    expect(link?.textContent).toContain('Privacy Policy');
+  });
+
+  it('privacyLink_mobileMenu_linksToThePolicy', () => {
+    const link = openMenu('.nav-hamburger');
+
+    expect(link?.getAttribute('href')).toBe('/privacy');
   });
 });
