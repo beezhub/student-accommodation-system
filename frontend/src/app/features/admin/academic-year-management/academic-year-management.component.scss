@@ -250,6 +250,24 @@ $accent-light: vars.$accent-green-light;
   color: vars.$slate-500;
 }
 
+// Who owns the year, on the platform's list of every company's years (GH-575)
+.year-owner {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: vars.$radius-pill;
+  background: vars.$slate-100;
+  color: vars.$slate-600;
+  font-size: 0.75rem;
+  font-weight: 500;
+  vertical-align: middle;
+
+  &.platform {
+    background: rgba($accent-light, 0.12);
+    color: $accent;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────
 // Actions cell
 // ─────────────────────────────────────────────────────────────
@@ -263,7 +281,8 @@ $accent-light: vars.$accent-green-light;
 .action-btn {
   transition: all vars.$motion-fast ease !important;
 
-  &.edit:hover {
+  &.edit:hover,
+  &.assign:hover {
     background: rgba(vars.$accent-blue-light, 0.1);
     color: vars.$accent-blue-dark;
   }

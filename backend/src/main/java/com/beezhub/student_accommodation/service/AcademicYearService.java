@@ -14,11 +14,13 @@ import com.beezhub.student_accommodation.model.dto.PageResponse;
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
 import com.beezhub.student_accommodation.model.entity.Institution;
 import com.beezhub.student_accommodation.model.entity.Intake;
+import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
 import com.beezhub.student_accommodation.repository.InstitutionRepository;
 import com.beezhub.student_accommodation.repository.IntakeRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
+import com.beezhub.student_accommodation.repository.TenantRepository;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
 import com.beezhub.student_accommodation.util.PageMapper;
@@ -32,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -58,6 +61,7 @@ public class AcademicYearService {
     private final RoomAllocationRepository roomAllocationRepository;
     private final IntakeRepository intakeRepository;
     private final InstitutionRepository institutionRepository;
+    private final TenantRepository tenantRepository;
     private final AcademicYearMapper academicYearMapper;
     private final TenantOwnershipGuard tenantOwnershipGuard;
     private final Clock clock;
@@ -112,12 +116,14 @@ public class AcademicYearService {
 
     /**
      * The caller's company's years. Platform roles see every company's years, since they manage
-     * them all; a company admin sees only their own (GH-439).
+     * them all, each with the company that owns it (GH-575); a company admin sees only their own
+     * (GH-439).
      */
     @Transactional(readOnly = true)
     public PageResponse<AcademicYearResponse> getAllAcademicYears(Pageable pageable) {
         Long tenantId = TenantContext.getTenantId();
-        Page<AcademicYear> years = isPlatformCaller(tenantId)
+        boolean platformCaller = isPlatformCaller(tenantId);
+        Page<AcademicYear> years = platformCaller
                 ? academicYearRepository.findAll(pageable)
                 : academicYearRepository.findByTenantId(tenantId, pageable);
         Map<Long, List<IntakeResponse>> intakesByYear = years.isEmpty() ? Map.of()
@@ -125,8 +131,12 @@ public class AcademicYearService {
                                 years.map(AcademicYear::getId).getContent()).stream()
                         .collect(Collectors.groupingBy(i -> i.getAcademicYear().getId(),
                                 Collectors.mapping(this::toIntakeResponse, Collectors.toList())));
-        return PageMapper.toPageResponse(years.map(year ->
-                toResponse(year, intakesByYear.getOrDefault(year.getId(), List.of()))));
+        Map<Long, String> companyNames = platformCaller ? companyNames(years.getContent()) : new HashMap<>();
+        return PageMapper.toPageResponse(years.map(year -> {
+            AcademicYearResponse response = toResponse(year, intakesByYear.getOrDefault(year.getId(), List.of()));
+            response.setCompanyName(companyNames.get(year.getTenantId()));
+            return response;
+        }));
     }
 
     /**
@@ -322,6 +332,15 @@ public class AcademicYearService {
             return "All institutions";
         }
         return year.getInstitution() != null ? year.getInstitution().getName() : "this institution";
+    }
+
+    /** Names of the companies owning {@code years}. The platform has none: its years are its own. */
+    private Map<Long, String> companyNames(List<AcademicYear> years) {
+        List<Long> companyIds = years.stream().map(AcademicYear::getTenantId)
+                .filter(id -> id != null && !TenantContext.PLATFORM_TENANT_ID.equals(id))
+                .distinct().toList();
+        return companyIds.isEmpty() ? new HashMap<>() : tenantRepository.findAllById(companyIds).stream()
+                .collect(Collectors.toMap(Tenant::getId, Tenant::getName, (a, b) -> a, HashMap::new));
     }
 
     private static boolean isPlatformCaller(Long tenantId) {

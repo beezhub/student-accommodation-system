@@ -3,6 +3,8 @@ import {
   describeAffected,
   describeIntake,
   groupByInstitution,
+  isPlatformYear,
+  ownerLabel,
   parseApiDate,
   previewIntakes,
   toApiDate,
@@ -95,5 +97,26 @@ describe('academic-year-wording', () => {
     expect(previewIntakes('', '2027-11-30', ['ANNUAL'])).toEqual([]);
     expect(previewIntakes('2027-11-30', '2027-02-01', ['ANNUAL'])).toEqual([]);
     expect(previewIntakes('2027-02-01', '2027-02-03', ['SEMESTER'])).toEqual([]);
+  });
+
+  describe('ownerLabel', () => {
+    const year: AcademicYear = {
+      id: 1,
+      name: '2027',
+      startDate: '2027-02-01',
+      endDate: '2027-11-30',
+      isApplicationWindowOpen: false,
+    };
+
+    it('ownerLabel_platformYear_saysPlatform', () => {
+      expect(isPlatformYear({ ...year, tenantId: 0 })).toBeTrue();
+      expect(ownerLabel({ ...year, tenantId: 0 })).toBe('Platform');
+    });
+
+    it('ownerLabel_companyYear_namesTheCompany', () => {
+      const companyYear = { ...year, tenantId: 42, companyName: 'Acme Residences' };
+      expect(isPlatformYear(companyYear)).toBeFalse();
+      expect(ownerLabel(companyYear)).toBe('Acme Residences');
+    });
   });
 });

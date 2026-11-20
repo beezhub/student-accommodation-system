@@ -67,11 +67,29 @@
         <section class="year-block" [attr.aria-label]="year.name">
           <div class="year-header">
             <div>
-              <h3 class="year-name">{{ year.name }}</h3>
+              <h3 class="year-name">
+                {{ year.name }}
+                @if (canAssign) {
+                <span class="year-owner" [class.platform]="isPlatformYear(year)">{{
+                  ownerLabel(year)
+                }}</span>
+                }
+              </h3>
               <p class="year-dates">{{ describeDates(year) }}</p>
             </div>
             @if (canManage) {
             <div class="actions-cell">
+              @if (canAssign && isPlatformYear(year)) {
+              <button
+                mat-icon-button
+                class="action-btn assign"
+                (click)="openAssignDialog(year)"
+                matTooltip="Assign to a company"
+                [attr.aria-label]="'Assign ' + year.name + ' to a company'"
+              >
+                <mat-icon>business</mat-icon>
+              </button>
+              }
               <button
                 mat-icon-button
                 class="action-btn edit"
