@@ -3,7 +3,7 @@
 > **Module:** Release Next (academic years, intakes, stays, documents; release `77f80ecf..7c5d0c3e`)
 > **Frontend Routes:** `/admin/academic-years`, `/admin/applications`, `/admin/room-allocations`, `/admin/document-types`, `/admin` (dashboard), student `/dashboard`, `/applications/new`, documents page
 > **Email Verification:** MailHog at `http://localhost:8025`
-> **Release notes:** [`docs/releases/RELEASE_NOTES_NEXT.md`](../docs/releases/RELEASE_NOTES_NEXT.md)
+> **Release notes:** [`docs/releases/RELEASE_NOTES_2026-11-11.md`](../docs/releases/RELEASE_NOTES_2026-11-11.md)
 > **Total Test Cases:** 74
 
 | Field | Value |
