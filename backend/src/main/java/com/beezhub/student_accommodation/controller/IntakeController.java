@@ -1,5 +1,6 @@
 package com.beezhub.student_accommodation.controller;
 
+import com.beezhub.student_accommodation.model.dto.AcademicYearAssignRequest;
 import com.beezhub.student_accommodation.model.dto.AcademicYearCopyRequest;
 import com.beezhub.student_accommodation.model.dto.AcademicYearPatternRequest;
 import com.beezhub.student_accommodation.model.dto.AcademicYearResponse;
@@ -17,8 +18,9 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * Intakes inside a company's academic years (GH-494): create a year from a pattern, copy last
- * year, and create, edit, delete or close intakes. Every load by id goes through
- * {@code TenantOwnershipGuard}, so another company's year or intake reads as not found.
+ * year, assign a platform year to a company (GH-575), and create, edit, delete or close intakes.
+ * Every load by id goes through {@code TenantOwnershipGuard}, so another company's year or intake
+ * reads as not found.
  */
 @RestController
 @RequiredArgsConstructor
@@ -41,6 +43,16 @@ public class IntakeController {
     public ResponseEntity<AcademicYearResponse> copyYear(
             @PathVariable Long id, @Valid @RequestBody(required = false) AcademicYearCopyRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(intakeService.copyYear(id, request));
+    }
+
+    /** Platform roles only: a company admin has no platform years to give away. */
+    @PostMapping("/api/academic-years/{id}/assign")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'PLATFORM_STAFF')")
+    @Operation(summary = "Assign a platform year to a company",
+            description = "Gives the company its own copy of the year and its intakes, with the same dates")
+    public ResponseEntity<AcademicYearResponse> assignToCompany(
+            @PathVariable Long id, @Valid @RequestBody AcademicYearAssignRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(intakeService.assignToCompany(id, request));
     }
 
     @PostMapping("/api/academic-years/{id}/intakes")

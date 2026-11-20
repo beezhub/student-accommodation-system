@@ -26,6 +26,7 @@ public interface AcademicYearMapper {
     AcademicYear toEntity(AcademicYearRequest request);
 
     @Mapping(target = "institutionName", source = "institution.name")
+    @Mapping(target = "companyName", ignore = true)
     @Mapping(target = "isApplicationWindowOpen", ignore = true)
     @Mapping(target = "applicationOpenDate", ignore = true)
     @Mapping(target = "applicationCloseDate", ignore = true)

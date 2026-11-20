@@ -34,8 +34,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Intakes are company data (GH-494): company A cannot read or change company B's intakes, and a
- * company admin can build their own calendar from a pattern. Runs over HTTP with real tokens, so
- * the tenant filter, the role check and {@code TenantOwnershipGuard} are all in play.
+ * company admin can build their own calendar from a pattern. A platform admin can give a company
+ * its own copy of a platform year, and a company admin cannot (GH-575). Runs over HTTP with real
+ * tokens, so the tenant filter, the role check and {@code TenantOwnershipGuard} are all in play.
  */
 class IntakeAccessIntegrationTest extends AbstractIntegrationTest {
 
@@ -47,6 +48,7 @@ class IntakeAccessIntegrationTest extends AbstractIntegrationTest {
 
     private final List<Long> userIds = new ArrayList<>();
     private final List<Long> tenantIds = new ArrayList<>();
+    private final List<Long> platformYearIds = new ArrayList<>();
 
     private Long companyA;
     private Long companyB;
@@ -58,7 +60,7 @@ class IntakeAccessIntegrationTest extends AbstractIntegrationTest {
         SecurityContextHolder.clearContext();
         companyA = saveCompany();
         companyB = saveCompany();
-        adminA = tokenFor(companyA);
+        adminA = tokenFor(UserRole.TENANT_ADMIN, companyA);
         TenantContext.clear();
     }
 
@@ -66,6 +68,7 @@ class IntakeAccessIntegrationTest extends AbstractIntegrationTest {
     void tearDown() {
         TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
         tenantIds.forEach(id -> jdbc.update("DELETE FROM academic_year WHERE tenant_id = ?", id));
+        platformYearIds.forEach(id -> jdbc.update("DELETE FROM academic_year WHERE id = ?", id));
         userIds.forEach(appUserRepository::deleteById);
         tenantIds.forEach(tenantRepository::deleteById);
         TenantContext.clear();
@@ -177,7 +180,74 @@ class IntakeAccessIntegrationTest extends AbstractIntegrationTest {
         assertThat(closeDate.toLocalDate()).isEqualTo(today);
     }
 
+    // ── Assign a platform year to a company (GH-575) ────────────────────────────────────────
+
+    @Test
+    void assign_platformAdmin_givesTheCompanyItsOwnCopyAndKeepsThePlatformYear() {
+        String platformAdmin = tokenFor(UserRole.PLATFORM_ADMIN, TenantContext.PLATFORM_TENANT_ID);
+        String name = uniqueName();
+        Long platformYear = insertPlatformYear(name);
+        insertIntake(platformYear, TenantContext.PLATFORM_TENANT_ID, "Annual",
+                LocalDate.of(2040, 2, 1), LocalDate.of(2040, 11, 30));
+
+        ResponseEntity<String> response = exchangeAs(platformAdmin, HttpMethod.POST,
+                "/api/academic-years/" + platformYear + "/assign", "{\"tenantId\":" + companyA + "}");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        Date copiedStart = jdbc.queryForObject("""
+                SELECT i.stay_start_date FROM intake i JOIN academic_year y ON y.id = i.academic_year_id
+                WHERE y.tenant_id = ? AND i.tenant_id = ? AND y.name = ?
+                """, Date.class, companyA, companyA, name);
+        assertThat(copiedStart.toLocalDate()).isEqualTo(LocalDate.of(2040, 2, 1));
+        Long platformOwner = jdbc.queryForObject("SELECT tenant_id FROM academic_year WHERE id = ?",
+                Long.class, platformYear);
+        assertThat(platformOwner).isEqualTo(TenantContext.PLATFORM_TENANT_ID);
+        assertThat(exchange(HttpMethod.GET, "/api/academic-years?size=500", null).getBody()).contains(name);
+    }
+
+    @Test
+    void assign_sameYearTwiceToOneCompany_isRefusedTheSecondTime() {
+        String platformAdmin = tokenFor(UserRole.PLATFORM_ADMIN, TenantContext.PLATFORM_TENANT_ID);
+        Long platformYear = insertPlatformYear(uniqueName());
+        String path = "/api/academic-years/" + platformYear + "/assign";
+        String body = "{\"tenantId\":" + companyA + "}";
+
+        assertThat(exchangeAs(platformAdmin, HttpMethod.POST, path, body).getStatusCode())
+                .isEqualTo(HttpStatus.CREATED);
+        assertThat(exchangeAs(platformAdmin, HttpMethod.POST, path, body).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void assign_companyAdmin_isForbiddenAndCopiesNothing() {
+        Long platformYear = insertPlatformYear(uniqueName());
+
+        ResponseEntity<String> response = exchange(HttpMethod.POST,
+                "/api/academic-years/" + platformYear + "/assign", "{\"tenantId\":" + companyA + "}");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        Integer years = jdbc.queryForObject("SELECT COUNT(*) FROM academic_year WHERE tenant_id = ?",
+                Integer.class, companyA);
+        assertThat(years).isZero();
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
+
+    /** Dated 2040 and uniquely named, so it cannot clash with any other platform year. */
+    private Long insertPlatformYear(String name) {
+        Long id = jdbc.queryForObject("""
+                INSERT INTO academic_year (name, start_date, end_date, tenant_id)
+                VALUES (?, ?, ?, ?) RETURNING id
+                """, Long.class, name, Date.valueOf(LocalDate.of(2040, 2, 1)),
+                Date.valueOf(LocalDate.of(2040, 11, 30)), TenantContext.PLATFORM_TENANT_ID);
+        platformYearIds.add(id);
+        return id;
+    }
+
+    /** Within the 20 characters {@code academic_year.name} allows. */
+    private static String uniqueName() {
+        return "P " + UUID.randomUUID().toString().substring(0, 8);
+    }
 
     private Long insertYear(Long tenantId, int year) {
         return jdbc.queryForObject("""
@@ -209,24 +279,28 @@ class IntakeAccessIntegrationTest extends AbstractIntegrationTest {
         return tenant.getId();
     }
 
-    private String tokenFor(Long tenantId) {
+    private String tokenFor(UserRole role, Long tenantId) {
         AppUser user = appUserRepository.save(AppUser.builder()
-                .email("tenant_admin." + UUID.randomUUID() + "@test.com")
+                .email(role.name().toLowerCase() + "." + UUID.randomUUID() + "@test.com")
                 .firstName("Test")
                 .lastName("Admin")
                 .userPassword("$2a$10$hashed")
-                .userRole(UserRole.TENANT_ADMIN)
+                .userRole(role)
                 .tenantId(tenantId)
                 .emailVerified(true)
                 .mustChangePassword(false)
                 .build());
         userIds.add(user.getId());
-        return jwtUtil.generateToken(new AppUserDetails(user.getEmail(), "", UserRole.TENANT_ADMIN.name(), tenantId));
+        return jwtUtil.generateToken(new AppUserDetails(user.getEmail(), "", role.name(), tenantId));
     }
 
     private ResponseEntity<String> exchange(HttpMethod method, String path, String body) {
+        return exchangeAs(adminA, method, path, body);
+    }
+
+    private ResponseEntity<String> exchangeAs(String token, HttpMethod method, String path, String body) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(adminA);
+        headers.setBearerAuth(token);
         headers.setContentType(MediaType.APPLICATION_JSON);
         return rest.exchange(path, method, new HttpEntity<>(body, headers), String.class);
     }

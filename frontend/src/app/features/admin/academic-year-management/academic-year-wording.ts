@@ -9,6 +9,19 @@ export interface InstitutionGroup {
 
 export const ALL_INSTITUTIONS = 'All institutions';
 
+/** The platform's own tenant. Its years are the fallback for companies with none (GH-575). */
+export const PLATFORM_TENANT_ID = 0;
+
+/** A year the platform created, which a platform admin can assign to a company (GH-575). */
+export function isPlatformYear(year: AcademicYear): boolean {
+  return year.tenantId === PLATFORM_TENANT_ID;
+}
+
+/** Who owns a year, for the platform's list of every company's years: "Platform" or the company. */
+export function ownerLabel(year: AcademicYear): string {
+  return isPlatformYear(year) ? 'Platform' : year.companyName ?? 'Company';
+}
+
 /**
  * Reads an API date (`2027-07-15`) as a local calendar day. `new Date('2027-07-15')` is UTC
  * midnight, which shows as the day before anywhere west of Greenwich.

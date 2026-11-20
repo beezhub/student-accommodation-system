@@ -117,6 +117,36 @@ describe('AcademicYearManagementComponent', () => {
     expect(service.getAcademicYears).toHaveBeenCalledTimes(2);
   });
 
+  /** GH-575: the platform's list mixes every company's years, and only platform years go out. */
+  it('render_platformAdmin_namesEachOwnerAndOffersAssignOnPlatformYearsOnly', () => {
+    const platformYear: AcademicYear = { ...allInstitutions, tenantId: 0 };
+    const companyYear: AcademicYear = {
+      ...allInstitutions,
+      id: 4,
+      name: '2026',
+      startDate: '2026-02-01',
+      tenantId: 42,
+      companyName: 'Acme Residences',
+    };
+    const page = render('platformAdmin', [platformYear, companyYear]).nativeElement as HTMLElement;
+
+    const owners = Array.from(page.querySelectorAll('.year-owner')).map((e) =>
+      e.textContent?.trim()
+    );
+    expect(owners).toEqual(['Platform', 'Acme Residences']);
+    const assign = page.querySelectorAll('.action-btn.assign');
+    expect(assign.length).toBe(1);
+    expect(assign[0].getAttribute('aria-label')).toBe('Assign 2027 to a company');
+  });
+
+  it('render_tenantAdmin_hasNoOwnerLabelsOrAssign', () => {
+    const page = render('tenantAdmin', [{ ...allInstitutions, tenantId: 0 }])
+      .nativeElement as HTMLElement;
+
+    expect(page.querySelector('.year-owner')).toBeNull();
+    expect(page.querySelector('.action-btn.assign')).toBeNull();
+  });
+
   it('render_noYears_saysHowToStart', () => {
     const page = render('tenantAdmin', []).nativeElement as HTMLElement;
 

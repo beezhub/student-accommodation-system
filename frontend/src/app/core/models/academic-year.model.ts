@@ -24,6 +24,8 @@ export interface Intake {
 export interface AcademicYear {
   id: number;
   tenantId?: number;
+  /** The owning company, on the platform's list only. Empty for a platform year (GH-575). */
+  companyName?: string | null;
   institutionId?: number | null;
   institutionName?: string | null;
   name: string;

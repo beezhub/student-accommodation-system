@@ -17,6 +17,8 @@ public class AcademicYearResponse {
 
     private Long id;
     private Long tenantId;
+    /** The owning company, on the platform's list of every company's years. Empty for a platform year. */
+    private String companyName;
     /** Empty means "All institutions". */
     private Long institutionId;
     private String institutionName;

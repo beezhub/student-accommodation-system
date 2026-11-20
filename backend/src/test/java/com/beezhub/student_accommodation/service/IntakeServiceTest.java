@@ -1,9 +1,11 @@
 package com.beezhub.student_accommodation.service;
 
 import com.beezhub.student_accommodation.exceptions.DuplicateResourceException;
+import com.beezhub.student_accommodation.exceptions.InactiveTenantException;
 import com.beezhub.student_accommodation.exceptions.InvalidAcademicCalendarException;
 import com.beezhub.student_accommodation.exceptions.ResourceInUseException;
 import com.beezhub.student_accommodation.exceptions.ResourceNotFoundException;
+import com.beezhub.student_accommodation.model.dto.AcademicYearAssignRequest;
 import com.beezhub.student_accommodation.model.dto.AcademicYearCopyRequest;
 import com.beezhub.student_accommodation.model.dto.AcademicYearPatternRequest;
 import com.beezhub.student_accommodation.model.dto.AcademicYearResponse;
@@ -11,6 +13,7 @@ import com.beezhub.student_accommodation.model.dto.IntakeRequest;
 import com.beezhub.student_accommodation.model.dto.IntakeResponse;
 import com.beezhub.student_accommodation.model.entity.AcademicYear;
 import com.beezhub.student_accommodation.model.entity.Intake;
+import com.beezhub.student_accommodation.model.entity.Tenant;
 import com.beezhub.student_accommodation.model.enums.IntakeType;
 import com.beezhub.student_accommodation.repository.AcademicYearRepository;
 import com.beezhub.student_accommodation.repository.ApplicationRepository;
@@ -18,6 +21,7 @@ import com.beezhub.student_accommodation.repository.IntakeRepository;
 import com.beezhub.student_accommodation.repository.RoomAllocationRepository;
 import com.beezhub.student_accommodation.service.tenant.TenantContext;
 import com.beezhub.student_accommodation.service.tenant.TenantOwnershipGuard;
+import com.beezhub.student_accommodation.service.tenant.TenantService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +54,7 @@ class IntakeServiceTest {
     @Mock private RoomAllocationRepository roomAllocationRepository;
     @Mock private AcademicYearService academicYearService;
     @Mock private IntakeWindowPolicy intakeWindowPolicy;
+    @Mock private TenantService tenantService;
 
     private IntakeService service;
     private AcademicYear year2027;
@@ -58,7 +63,8 @@ class IntakeServiceTest {
     void setUp() {
         TenantContext.setTenantId(COMPANY);
         service = new IntakeService(intakeRepository, academicYearRepository, applicationRepository,
-                roomAllocationRepository, academicYearService, intakeWindowPolicy, new TenantOwnershipGuard());
+                roomAllocationRepository, academicYearService, intakeWindowPolicy, new TenantOwnershipGuard(),
+                tenantService);
         year2027 = AcademicYear.builder().id(5L).tenantId(COMPANY).name("2027")
                 .startDate(LocalDate.of(2027, 2, 1)).endDate(LocalDate.of(2027, 11, 30))
                 .build();
@@ -177,6 +183,98 @@ class IntakeServiceTest {
         AcademicYearResponse response = service.copyYear(5L, new AcademicYearCopyRequest("Next one"));
 
         assertThat(response.getName()).isEqualTo("Next one");
+    }
+
+    // ── Assign a platform year to a company (GH-575) ────────────────────────────────────────
+
+    @Test
+    void assignToCompany_platformYear_givesTheCompanyACopyWithTheSameDatesAndIntakes() {
+        TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+        AcademicYear platformYear = platformYear2027();
+        when(academicYearService.loadOwned(5L)).thenReturn(platformYear);
+        when(tenantService.requireTenantAcceptingNewRecords(COMPANY))
+                .thenReturn(Tenant.builder().id(COMPANY).name("Acme Residences").build());
+        Intake platformIntake = intake(9L, "Semester 2", LocalDate.of(2027, 7, 15), LocalDate.of(2027, 11, 30));
+        platformIntake.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+        platformIntake.setAcademicYear(platformYear);
+        when(intakeRepository.findByAcademicYear_IdOrderByStayStartDateAscNameAsc(5L)).thenReturn(List.of(platformIntake));
+
+        AcademicYearResponse response = service.assignToCompany(5L, new AcademicYearAssignRequest(COMPANY));
+
+        assertThat(response.getCompanyName()).isEqualTo("Acme Residences");
+        ArgumentCaptor<AcademicYear> captor = ArgumentCaptor.forClass(AcademicYear.class);
+        verify(academicYearRepository).save(captor.capture());
+        AcademicYear copy = captor.getValue();
+        assertThat(copy).isNotSameAs(platformYear);
+        assertThat(copy.getId()).isNull();
+        assertThat(copy.getTenantId()).isEqualTo(COMPANY);
+        assertThat(copy.getName()).isEqualTo("2027");
+        assertThat(copy.getStartDate()).isEqualTo(LocalDate.of(2027, 2, 1));
+        assertThat(copy.getEndDate()).isEqualTo(LocalDate.of(2027, 11, 30));
+        verify(academicYearService).prepareNewYear(any(), eq7());
+        verify(academicYearService).validate(copy);
+        Intake copied = savedIntakes().get(0);
+        assertThat(copied.getId()).isNull();
+        assertThat(copied.getTenantId()).isEqualTo(COMPANY);
+        assertThat(copied.getAcademicYear()).isSameAs(copy);
+        assertThat(copied.getName()).isEqualTo("Semester 2");
+        assertThat(copied.getStayStartDate()).isEqualTo(LocalDate.of(2027, 7, 15));
+        assertThat(copied.getApplicationOpenDate()).isEqualTo(platformIntake.getApplicationOpenDate());
+        assertThat(copied.getApplicationCloseDate()).isEqualTo(platformIntake.getApplicationCloseDate());
+        assertThat(platformYear.getTenantId()).isEqualTo(TenantContext.PLATFORM_TENANT_ID);
+        assertThat(platformIntake.getTenantId()).isEqualTo(TenantContext.PLATFORM_TENANT_ID);
+    }
+
+    @Test
+    void assignToCompany_companyYear_isRefused() {
+        TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+        when(academicYearService.loadOwned(5L)).thenReturn(year2027);
+
+        assertThatThrownBy(() -> service.assignToCompany(5L, new AcademicYearAssignRequest(99L)))
+                .isInstanceOf(InvalidAcademicCalendarException.class)
+                .hasMessageContaining("Only a platform year");
+        verifyNoInteractions(tenantService);
+        verify(academicYearRepository, never()).save(any());
+    }
+
+    @Test
+    void assignToCompany_toThePlatform_isRefused() {
+        TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+        when(academicYearService.loadOwned(5L)).thenReturn(platformYear2027());
+
+        assertThatThrownBy(() -> service.assignToCompany(5L,
+                new AcademicYearAssignRequest(TenantContext.PLATFORM_TENANT_ID)))
+                .isInstanceOf(InvalidAcademicCalendarException.class)
+                .hasMessageContaining("Choose a company");
+        verify(academicYearRepository, never()).save(any());
+    }
+
+    @Test
+    void assignToCompany_deactivatedCompany_isRefused() {
+        TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+        when(academicYearService.loadOwned(5L)).thenReturn(platformYear2027());
+        when(tenantService.requireTenantAcceptingNewRecords(COMPANY))
+                .thenThrow(new InactiveTenantException("deactivated"));
+
+        assertThatThrownBy(() -> service.assignToCompany(5L, new AcademicYearAssignRequest(COMPANY)))
+                .isInstanceOf(InactiveTenantException.class);
+        verify(academicYearRepository, never()).save(any());
+    }
+
+    /** The company's own calendar rules decide: a name it uses or an overlapping year is refused. */
+    @Test
+    void assignToCompany_clashesWithTheCompanysYears_isRefused() {
+        TenantContext.setTenantId(TenantContext.PLATFORM_TENANT_ID);
+        when(academicYearService.loadOwned(5L)).thenReturn(platformYear2027());
+        when(tenantService.requireTenantAcceptingNewRecords(COMPANY))
+                .thenReturn(Tenant.builder().id(COMPANY).name("Acme Residences").build());
+        doThrow(new DuplicateResourceException("There is already a year called '2027'"))
+                .when(academicYearService).validate(argThat(y -> COMPANY.equals(y.getTenantId())));
+
+        assertThatThrownBy(() -> service.assignToCompany(5L, new AcademicYearAssignRequest(COMPANY)))
+                .isInstanceOf(DuplicateResourceException.class);
+        verify(academicYearRepository, never()).save(any());
+        verify(intakeRepository, never()).saveAll(any());
     }
 
     @Test
@@ -344,6 +442,13 @@ class IntakeServiceTest {
                 .intakeType(name.startsWith("Semester") ? IntakeType.SEMESTER : IntakeType.ANNUAL)
                 .stayStartDate(start).stayEndDate(end)
                 .applicationOpenDate(start.minusDays(120)).applicationCloseDate(start.minusDays(14)).build();
+    }
+
+    private static AcademicYear platformYear2027() {
+        return AcademicYear.builder().id(5L).tenantId(TenantContext.PLATFORM_TENANT_ID).name("2027")
+                .institutionId(7L)
+                .startDate(LocalDate.of(2027, 2, 1)).endDate(LocalDate.of(2027, 11, 30))
+                .build();
     }
 
     private static Long eq7() {
