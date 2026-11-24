@@ -1,0 +1,107 @@
+# Dependabot version updates.
+#
+# Every update targets develop, like any feature, so it is tested there and ships in the next
+# release. Dependabot reads this file from the default branch (main), so a change here takes
+# effect after the release that carries it.
+#
+# Security updates are a repository setting, not part of this file, and GitHub always opens them
+# against the default branch. A merge into main deploys NONPROD and skips develop, so that setting
+# stays off. Vulnerable packages are fixed by the version updates below instead: npm includes
+# transitive dependencies, because most advisories are in packages nobody lists in package.json.
+#
+# Major versions are ignored. Angular majors go through `ng update`, and the Java and Node
+# majors are pinned together across build.gradle, the Dockerfiles and ci.yml
+# (ToolchainVersionConsistencyTest), so a single-file bump would only fail CI.
+#
+# A new release must be at least 7 days old before Dependabot proposes it, so a hijacked package
+# version is usually pulled before it reaches a pull request.
+
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Johannesburg
+    cooldown:
+      default-days: 7
+    allow:
+      - dependency-type: all
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      angular:
+        patterns:
+          - "@angular/*"
+          - "@angular-devkit/*"
+          - "@angular-eslint/*"
+          - "@schematics/angular"
+      npm:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: chore
+      include: scope
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: gradle
+    directory: /backend
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Africa/Johannesburg
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      gradle:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: chore
+      include: scope
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directories:
+      - /backend
+      - /frontend
+    target-branch: develop
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: Africa/Johannesburg
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: Africa/Johannesburg
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: chore
+      include: scope
